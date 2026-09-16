@@ -64,6 +64,7 @@ struct LibraryView: View {
         case .book: BookReaderView(set: set)
         case .qa: QACardsView(set: set)
         case .osce: OsceReviewView(set: set)
+        case .narrate: NarrateReviewView(set: set)
         }
     }
 }

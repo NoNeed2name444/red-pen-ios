@@ -3,7 +3,7 @@ import Foundation
 /// Which study mode a saved set belongs to. The web app's `state.library`
 /// holds both kinds together, distinguished by a `kind` field the same way.
 enum StudySetKind: String, Codable, CaseIterable, Identifiable {
-    case mcq, anki, book, qa, osce
+    case mcq, anki, book, qa, osce, narrate
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -12,6 +12,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .book: return "Textbook"
         case .qa: return "Cases"
         case .osce: return "OSCE"
+        case .narrate: return "Narrate"
         }
     }
     var emoji: String {
@@ -21,6 +22,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .book: return "📖"
         case .qa: return "🩺"
         case .osce: return "✅"
+        case .narrate: return "🎙️"
         }
     }
 }
@@ -46,6 +48,8 @@ struct StudySet: Identifiable, Codable, Hashable {
     var qaCards: [QACard] = []
     /// "osce": one or more station checklists, worked through in order.
     var osceChecklists: [OsceChecklist] = []
+    /// "narrate": a lecture transcript read line by line at a reading pace.
+    var narrateSegments: [NarrateSegment] = []
     /// Base64-encoded image data (`data:` URI payloads), indexed the same
     /// way `state.images` / `state.ankiImages` are in the web app.
     var images: [String] = []
@@ -57,6 +61,7 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .book: return BookPages.split(bookMarkdown).count
         case .qa: return qaCards.count
         case .osce: return osceChecklists.reduce(0) { $0 + $1.steps.count }
+        case .narrate: return narrateSegments.count
         }
     }
     var itemNoun: String {
@@ -64,6 +69,7 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .book: return "page"
         case .mcq: return "question"
         case .osce: return "step"
+        case .narrate: return "line"
         default: return "card"
         }
     }
@@ -134,6 +140,22 @@ enum PlainTextImport {
         }
         flush()
         return checklists
+    }
+
+    /// Narrate: one line per segment — "en|Text" or "ar|النص"; the language
+    /// tag is optional and defaults to "en".
+    static func parseNarrate(_ text: String) -> [NarrateSegment] {
+        text.split(separator: "\n").compactMap { rawLine -> NarrateSegment? in
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { return nil }
+            let parts = line.components(separatedBy: "|")
+            if parts.count >= 2, ["en", "ar"].contains(parts[0].trimmingCharacters(in: .whitespaces).lowercased()) {
+                let body = parts.dropFirst().joined(separator: "|").trimmingCharacters(in: .whitespaces)
+                guard !body.isEmpty else { return nil }
+                return NarrateSegment(text: body, lang: parts[0].trimmingCharacters(in: .whitespaces).lowercased())
+            }
+            return NarrateSegment(text: line, lang: "en")
+        }
     }
 
     static func parseAnkiQA(_ text: String) -> [AnkiCard] {

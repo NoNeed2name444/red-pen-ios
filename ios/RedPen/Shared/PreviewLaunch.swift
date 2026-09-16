@@ -16,7 +16,7 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -157,7 +157,22 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce]
+    static let narrate = StudySet(
+        name: "Lecture — acid–base physiology",
+        subject: "Renal physiology",
+        kind: .narrate,
+        narrateSegments: [
+            NarrateSegment(text: "Today we're covering how the body defends its blood pH.", lang: "en"),
+            NarrateSegment(text: "Three systems do the work: buffers, the lungs, and the kidneys.", lang: "en"),
+            NarrateSegment(text: "Buffers act in seconds, the lungs in minutes, the kidneys over hours to days.", lang: "en"),
+            NarrateSegment(text: "The bicarbonate buffer system is the one you'll use clinically most often.", lang: "en"),
+            NarrateSegment(text: "Remember the Henderson–Hasselbalch equation links pH to the ratio of bicarbonate to CO2.", lang: "en"),
+            NarrateSegment(text: "A rise in CO2 lowers pH — that's a respiratory acidosis.", lang: "en"),
+            NarrateSegment(text: "The kidneys compensate slowly, by reabsorbing more bicarbonate.", lang: "en"),
+        ]
+    )
+
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce, narrate]
 }
 
 /// Opens the requested screen directly, with the sample data in place.
@@ -194,6 +209,10 @@ struct PreviewRoot: View {
             NavigationStack { OsceReviewView(set: SampleData.osce, startRevealed: true) }
         case "osce-complete":
             NavigationStack { OsceReviewView(set: SampleData.osce, startComplete: true, startMissed: [2]) }
+        case "narrate":
+            NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: 3) }
+        case "narrate-finished":
+            NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: SampleData.narrate.narrateSegments.count - 1, startFinished: true) }
         default:
             LibraryView()
         }
