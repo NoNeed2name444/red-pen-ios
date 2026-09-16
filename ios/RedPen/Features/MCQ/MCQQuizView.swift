@@ -5,7 +5,7 @@ import SwiftUI
 /// option, check it (reveals correct/incorrect coloring + explanation),
 /// then Next / See results. `state.answers[i]` becomes `answers[i]` here.
 struct MCQQuizView: View {
-    let set: StudySet
+    let studySet: StudySet
     @Environment(\.dismiss) private var dismiss
 
     @State private var current: Int = 0
@@ -14,23 +14,23 @@ struct MCQQuizView: View {
 
     /// `initialAnswers` is only used by the CI screenshot launch (see
     /// PreviewLaunch) to open the quiz with an answer already checked.
-    init(set: StudySet, initialAnswers: [MCQAnswer]? = nil) {
-        self.set = set
-        var answers = Array(repeating: MCQAnswer(), count: set.questions.count)
+    init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil) {
+        self.studySet = studySet
+        var answers = Array(repeating: MCQAnswer(), count: studySet.questions.count)
         if let initialAnswers {
             for (i, a) in initialAnswers.enumerated() where i < answers.count { answers[i] = a }
         }
         _answers = State(initialValue: answers)
     }
 
-    private var q: MCQQuestion { set.questions[current] }
+    private var q: MCQQuestion { studySet.questions[current] }
     private var a: MCQAnswer { answers[current] }
 
     private var scoreSoFar: (correct: Int, checked: Int) {
         var correct = 0, checked = 0
         for (i, ans) in answers.enumerated() where ans.checked {
             checked += 1
-            if ans.selected == set.questions[i].correctIndex { correct += 1 }
+            if ans.selected == studySet.questions[i].correctIndex { correct += 1 }
         }
         return (correct, checked)
     }
@@ -38,7 +38,7 @@ struct MCQQuizView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            ProgressView(value: Double(current), total: Double(set.questions.count))
+            ProgressView(value: Double(current), total: Double(studySet.questions.count))
                 .tint(.accentColor)
                 .padding(.horizontal)
             ScrollView {
@@ -47,8 +47,8 @@ struct MCQQuizView: View {
                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     Text(q.stem).font(.title3.weight(.semibold))
 
-                    if let idx = q.imageIndex, idx >= 0, idx < set.images.count,
-                       let data = Data(base64Encoded: stripDataPrefix(set.images[idx])),
+                    if let idx = q.imageIndex, idx >= 0, idx < studySet.images.count,
+                       let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
                        let uiImage = UIImage(data: data) {
                         Image(uiImage: uiImage).resizable().scaledToFit().frame(maxHeight: 220)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -68,16 +68,16 @@ struct MCQQuizView: View {
             }
             footer
         }
-        .navigationTitle(set.subject.isEmpty ? "MCQ" : set.subject)
+        .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showSummary) {
-            MCQSummaryView(set: set, answers: answers)
+            MCQSummaryView(set: studySet, answers: answers)
         }
     }
 
     private var header: some View {
         HStack {
-            Text("Question \(current + 1) of \(set.questions.count)")
+            Text("Question \(current + 1) of \(studySet.questions.count)")
                 .font(.footnote).foregroundStyle(.secondary)
             Spacer()
             let s = scoreSoFar
@@ -160,7 +160,7 @@ struct MCQQuizView: View {
 
     private var checkButtonTitle: String {
         if !a.checked { return "Check answer" }
-        return current == set.questions.count - 1 ? "See results" : "Next question"
+        return current == studySet.questions.count - 1 ? "See results" : "Next question"
     }
 
     private func onCheckOrNext() {
@@ -168,7 +168,7 @@ struct MCQQuizView: View {
             answers[current].checked = true
             return
         }
-        if current < set.questions.count - 1 {
+        if current < studySet.questions.count - 1 {
             current += 1
         } else {
             showSummary = true

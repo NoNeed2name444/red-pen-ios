@@ -66,7 +66,9 @@ jobs:
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning:|BUILD |\*\* " || true
-          test -d build/Build/Products/Debug-iphonesimulator/RedPen.app
+          # xcodebuild's own exit status is hidden by the grep above, and the .app
+          # folder exists even after a failed compile — so ask the log instead
+          grep -q "BUILD SUCCEEDED" ../build.log
 
       - name: Screenshots
         env:
@@ -114,7 +116,7 @@ jobs:
               "xcode": subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True).stdout.strip().replace("\n", " "),
               "device": os.environ.get("DEVICE", ""),
               "runtime": os.environ.get("RUNTIME", ""),
-              "build_ok": os.path.isdir(app),
+              "build_ok": os.path.exists("build.log") and "BUILD SUCCEEDED" in open("build.log", errors="replace").read(),
               "screens": shots,
           }
           json.dump(status, open("previews/status.json", "w"), indent=2)

@@ -4,10 +4,15 @@ import SwiftUI
 /// `renderAnkiCard()` for the front face, the reveal button, then
 /// `el.ankiRateGrid` for the four rating buttons once revealed.
 struct AnkiReviewView: View {
-    let set: StudySet
+    let studySet: StudySet
     /// Only used by the CI screenshot launch (see PreviewLaunch) to open on
     /// the back of the first card.
     var startRevealed: Bool = false
+
+    init(set studySet: StudySet, startRevealed: Bool = false) {
+        self.studySet = studySet
+        self.startRevealed = startRevealed
+    }
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
 
@@ -34,7 +39,7 @@ struct AnkiReviewView: View {
                 Spacer()
             }
         }
-        .navigationTitle(set.subject.isEmpty ? "Anki" : set.subject)
+        .navigationTitle(studySet.subject.isEmpty ? "Anki" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSession)
     }
@@ -60,8 +65,8 @@ struct AnkiReviewView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            if card.type == .occlusion, let idx = card.imageIndex, idx >= 0, idx < set.images.count,
-               let data = Data(base64Encoded: stripDataPrefix(set.images[idx])),
+            if card.type == .occlusion, let idx = card.imageIndex, idx >= 0, idx < studySet.images.count,
+               let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
                let uiImage = UIImage(data: data) {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
@@ -186,7 +191,7 @@ struct AnkiReviewView: View {
     }
 
     private func startSession() {
-        queue = AnkiScheduler.seedQueue(cards: set.cards)
+        queue = AnkiScheduler.seedQueue(cards: studySet.cards)
         reviewedCount = 0
         showNext()
         if startRevealed { revealed = true }
