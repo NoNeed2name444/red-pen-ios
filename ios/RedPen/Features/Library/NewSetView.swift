@@ -31,13 +31,13 @@ struct NewSetView: View {
                 }
 
                 Section {
-                    Text(kind == .mcq ? mcqFormatHelp : ankiFormatHelp)
+                    Text(formatHelp)
                         .font(.caption).foregroundStyle(.secondary)
                     TextEditor(text: $bodyText)
                         .frame(minHeight: 160)
                         .font(.system(.footnote, design: .monospaced))
                 } header: {
-                    Text("Type or paste \(kind == .mcq ? "questions" : "cards")")
+                    Text("Type or paste \(kind == .book ? "the textbook (Markdown)" : kind == .mcq ? "questions" : "cards")")
                 } footer: {
                     if let importError { Text(importError).foregroundStyle(.red) }
                 }
@@ -61,11 +61,13 @@ struct NewSetView: View {
         }
     }
 
-    private var mcqFormatHelp: String {
-        "One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation"
-    }
-    private var ankiFormatHelp: String {
-        "One card per line: Front | bullet1; bullet2 | why (optional)"
+    private var formatHelp: String {
+        switch kind {
+        case .mcq: return "One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation"
+        case .anki: return "One card per line: Front | bullet1; bullet2 | why (optional)"
+        case .book: return "Markdown. Every # or ## heading starts a new page."
+        case .qa: return "One card per line: Topic | case or recall | Question | answer1; answer2"
+        }
     }
 
     private func create() {
@@ -73,6 +75,8 @@ struct NewSetView: View {
         switch kind {
         case .mcq: set.questions = PlainTextImport.parseMCQ(bodyText)
         case .anki: set.cards = PlainTextImport.parseAnkiQA(bodyText)
+        case .book: set.bookMarkdown = bodyText
+        case .qa: set.qaCards = PlainTextImport.parseQA(bodyText)
         }
         store.addSet(set)
         dismiss()

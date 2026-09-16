@@ -47,10 +47,10 @@ struct LibraryView: View {
 
     private func setRow(_ set: StudySet) -> some View {
         HStack {
-            Text(set.kind == .mcq ? "📝" : "🗂️")
+            Text(set.kind.emoji)
             VStack(alignment: .leading, spacing: 2) {
                 Text(set.name).font(.body.weight(.medium))
-                Text("\(set.kind.label) · \(set.itemCount) item\(set.itemCount == 1 ? "" : "s")")
+                Text("\(set.kind.label) · \(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -61,6 +61,8 @@ struct LibraryView: View {
         switch set.kind {
         case .mcq: MCQQuizView(set: set)
         case .anki: AnkiReviewView(set: set)
+        case .book: BookReaderView(set: set)
+        case .qa: QACardsView(set: set)
         }
     }
 }

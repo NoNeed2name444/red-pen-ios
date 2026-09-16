@@ -16,7 +16,7 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -82,7 +82,54 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology]
+    static let endocrine = StudySet(
+        name: "Endocrinology — thyroid",
+        subject: "Endocrinology",
+        kind: .book,
+        bookMarkdown: """
+        # Hyperthyroidism
+
+        **Thyrotoxicosis** is the clinical state of excess thyroid hormone; **hyperthyroidism** is the subset caused by overproduction by the gland itself.
+
+        ## Causes
+
+        | Cause | Clue |
+        |---|---|
+        | **Graves disease** | Diffuse goitre, eye signs, pretibial myxoedema, TRAb positive |
+        | Toxic multinodular goitre | Older patient, nodular gland, no eye signs |
+        | Toxic adenoma | Single hot nodule on uptake scan |
+        | Thyroiditis | Tender gland, *low* uptake, transient |
+
+        ## Investigations
+
+        - **TSH** suppressed, free T4 (± T3) raised
+        - TSH-receptor antibodies confirm Graves
+        - Radioiodine uptake: high and diffuse in Graves, patchy in MNG, low in thyroiditis
+
+        ## Management
+
+        - Symptom control: **propranolol**
+        - Antithyroid drugs: **carbimazole** first line (propylthiouracil in the first trimester)
+        - Definitive: radioiodine or thyroidectomy
+        - Warn every patient on antithyroid drugs to report a sore throat or fever — **agranulocytosis**
+        """
+    )
+
+    static let respiratory = StudySet(
+        name: "Respiratory — cases",
+        subject: "Respiratory",
+        kind: .qa,
+        qaCards: [
+            QACard(topic: "Pneumonia", type: .case, stem: "A 72-year-old with fever, productive cough and right basal crackles. RR 32, BP 88/56, urea 9 mmol/L, confused. What is the CURB-65 score and where should she be managed?",
+                   answer: ["CURB-65 = **4** (confusion, urea > 7, RR ≥ 30, BP < 90/60)", "Score ≥ 3 → **admit, consider ICU**", "IV co-amoxiclav + clarithromycin per local policy"]),
+            QACard(topic: "Asthma", type: .recall, stem: "Features of a life-threatening asthma attack?",
+                   answer: ["PEF < **33%** of best", "SpO₂ < **92%**, PaO₂ < 8 kPa, *normal* PaCO₂", "Silent chest, cyanosis, poor effort", "Exhaustion, arrhythmia, hypotension, altered consciousness"]),
+            QACard(topic: "COPD", type: .case, stem: "Known COPD, acutely breathless, drowsy. ABG on 15 L O₂: pH 7.28, PaCO₂ 9.5 kPa, PaO₂ 14 kPa. Next step?",
+                   answer: ["Controlled oxygen — target SpO₂ **88–92%** (Venturi 24–28%)", "Nebulised salbutamol + ipratropium, steroids, antibiotics if purulent", "Repeat ABG in 30–60 min; **NIV** if pH < 7.35 with PaCO₂ > 6.5 despite treatment"]),
+        ]
+    )
+
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory]
 }
 
 /// Opens the requested screen directly, with the sample data in place.
@@ -107,6 +154,12 @@ struct PreviewRoot: View {
             NavigationStack { AnkiReviewView(set: SampleData.cardiology) }
         case "anki-revealed":
             NavigationStack { AnkiReviewView(set: SampleData.cardiology, startRevealed: true) }
+        case "book":
+            NavigationStack { BookReaderView(set: SampleData.endocrine, page: 1) }
+        case "qa":
+            NavigationStack { QACardsView(set: SampleData.respiratory) }
+        case "qa-revealed":
+            NavigationStack { QACardsView(set: SampleData.respiratory, startRevealed: true) }
         default:
             LibraryView()
         }
