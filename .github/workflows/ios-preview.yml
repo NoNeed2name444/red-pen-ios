@@ -1,0 +1,143 @@
+# Builds the SwiftUI app on GitHub's free macOS runner, opens it in the iOS
+# Simulator once per screen (light and dark), and pushes the screenshots —
+# real SwiftUI pixels — to the `previews` branch, together with the build
+# log and any compile errors. Red Pen's chat then pulls that branch and
+# publishes the pictures as an artifact page, and reads the errors to fix
+# the code. Started by hand (Actions → iOS preview → Run workflow) or from
+# chat through the bridge (workflow_dispatch).
+name: iOS preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  # newest runtime first, then a plain "Pro" over Max / base models
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name), d["udid"], name, runtime))
+          candidates.sort()
+          _, udid, name, runtime = candidates[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          print(f"runtime={runtime.rsplit('.', 1)[-1]}")
+          print("picked", name, runtime, file=sys.stderr)
+          PY
+
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning:|BUILD |\*\* " || true
+          test -d build/Build/Products/Debug-iphonesimulator/RedPen.app
+
+      - name: Screenshots
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -e
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged \
+            --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p previews
+          for mode in light dark; do
+            xcrun simctl ui "$UDID" appearance "$mode"
+            for screen in library new quiz quiz-checked summary anki anki-revealed; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen"
+              sleep 7
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "previews/$screen-$mode.png"
+            done
+          done
+          # phone-sized copies are plenty for a web page (the originals are 3x)
+          for f in previews/*.png; do sips --resampleWidth 780 "$f" --out "$f" >/dev/null; done
+          ls -la previews
+
+      - name: Record the outcome
+        if: always()
+        env:
+          DEVICE: ${{ steps.sim.outputs.name }}
+          RUNTIME: ${{ steps.sim.outputs.runtime }}
+        run: |
+          mkdir -p previews
+          cp build.log previews/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -80 > previews/errors.txt || true
+          python3 - <<'PY'
+          import datetime, json, os, subprocess
+          app = "ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          shots = sorted(f for f in os.listdir("previews") if f.endswith(".png"))
+          status = {
+              "commit": os.environ["GITHUB_SHA"],
+              "run_url": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              "when": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+              "xcode": subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True).stdout.strip().replace("\n", " "),
+              "device": os.environ.get("DEVICE", ""),
+              "runtime": os.environ.get("RUNTIME", ""),
+              "build_ok": os.path.isdir(app),
+              "screens": shots,
+          }
+          json.dump(status, open("previews/status.json", "w"), indent=2)
+          print(json.dumps(status, indent=2))
+          PY
+
+      - name: Publish to the previews branch
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          cd previews
+          git init -q
+          git checkout -q -b previews
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "iOS preview of ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews:previews
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-preview
+          path: previews

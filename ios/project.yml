@@ -1,0 +1,35 @@
+name: RedPen
+options:
+  bundleIdPrefix: com.redpen
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  RedPen:
+    type: application
+    platform: iOS
+    sources:
+      - path: RedPen
+    info:
+      path: RedPen/Info.plist
+      properties:
+        CFBundleDisplayName: Red Pen
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.redpen.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+schemes:
+  RedPen:
+    build:
+      targets:
+        RedPen: all
+    run:
+      config: Debug

@@ -1,0 +1,73 @@
+import Foundation
+
+/// A line-for-line port of the web app's Anki scheduling — see the comment
+/// block above `var ANKI_MIN` in red-pen-content.html. Every rating
+/// schedules the card's next appearance at real wall-clock now+interval and
+/// reinserts it into the queue, which stays sorted by due time ascending;
+/// intervals escalate per-card on repeat presses (Hard/Good/Easy grow the
+/// interval; Again always resets to 1 minute), loosely mirroring real
+/// Anki's learning-step feel. Kept as free functions/constants (not tied to
+/// any view) so it's trivially testable and exactly matches the web
+/// version's behavior for the same rating sequence.
+enum AnkiRating: String, CaseIterable {
+    case again, hard, good, easy
+}
+
+enum AnkiScheduler {
+    /// Minutes — matches the web app's `ANKI_MIN` object exactly.
+    static let baseMinutes: [AnkiRating: Double] = [
+        .again: 1,
+        .hard: 5,
+        .good: 10,
+        .easy: 4 * 24 * 60,
+    ]
+
+    /// Matches `formatInterval()`: minutes -> "N min" / "N hr" / "N d".
+    static func formatInterval(_ minutes: Double) -> String {
+        let min = max(1, minutes)
+        if min < 60 { return "\(Int(min.rounded())) min" }
+        if min < 1440 { return "\(Int((min / 60).rounded())) hr" }
+        return "\(Int((min / 1440).rounded())) d"
+    }
+
+    /// Matches the `el.ankiRateGrid` click handler's `next` computation.
+    static func nextInterval(rating: AnkiRating, currentIntervalMin: Double) -> Double {
+        let cur = currentIntervalMin
+        switch rating {
+        case .again: return baseMinutes[.again]!
+        case .hard: return max(baseMinutes[.hard]!, cur * 1.2)
+        case .good: return max(baseMinutes[.good]!, cur * 2.5)
+        case .easy: return max(baseMinutes[.easy]!, cur * 4)
+        }
+    }
+
+    /// Matches `updateAnkiRateLabels()` — the four "in N min/hr/d" previews
+    /// shown on the rating buttons before the user picks one.
+    static func previewLabels(currentIntervalMin: Double) -> [AnkiRating: String] {
+        var out: [AnkiRating: String] = [:]
+        for rating in AnkiRating.allCases {
+            out[rating] = "in " + formatInterval(nextInterval(rating: rating, currentIntervalMin: currentIntervalMin))
+        }
+        return out
+    }
+
+    /// Seeds a fresh session queue from a card deck — matches
+    /// `openAnkiReview()` setting `state.ankiQueue` from `state.ankiCards`,
+    /// every card due immediately with a zero starting interval.
+    static func seedQueue(cards: [AnkiCard]) -> [AnkiQueueItem] {
+        let now = Date()
+        return cards.map { AnkiQueueItem(card: $0, due: now, intervalMin: 0) }
+    }
+
+    /// Applies a rating to a queue item and reinserts it into the queue,
+    /// re-sorted by due date ascending — matches the click handler's
+    /// `item.intervalMin = next; item.due = Date.now() + next * 60000` plus
+    /// the queue re-sort in `showNextAnkiCard()`.
+    static func apply(rating: AnkiRating, to item: AnkiQueueItem, in queue: inout [AnkiQueueItem]) {
+        guard let idx = queue.firstIndex(where: { $0.id == item.id }) else { return }
+        let next = nextInterval(rating: rating, currentIntervalMin: queue[idx].intervalMin)
+        queue[idx].intervalMin = next
+        queue[idx].due = Date().addingTimeInterval(next * 60)
+        queue.sort { $0.due < $1.due }
+    }
+}
