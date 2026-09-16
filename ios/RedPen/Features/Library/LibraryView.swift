@@ -63,6 +63,7 @@ struct LibraryView: View {
         case .anki: AnkiReviewView(set: set)
         case .book: BookReaderView(set: set)
         case .qa: QACardsView(set: set)
+        case .osce: OsceReviewView(set: set)
         }
     }
 }

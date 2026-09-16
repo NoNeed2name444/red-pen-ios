@@ -37,7 +37,7 @@ struct NewSetView: View {
                         .frame(minHeight: 160)
                         .font(.system(.footnote, design: .monospaced))
                 } header: {
-                    Text("Type or paste \(kind == .book ? "the textbook (Markdown)" : kind == .mcq ? "questions" : "cards")")
+                    Text("Type or paste \(kind == .book ? "the textbook (Markdown)" : kind == .mcq ? "questions" : kind == .osce ? "checklists" : "cards")")
                 } footer: {
                     if let importError { Text(importError).foregroundStyle(.red) }
                 }
@@ -67,6 +67,7 @@ struct NewSetView: View {
         case .anki: return "One card per line: Front | bullet1; bullet2 | why (optional)"
         case .book: return "Markdown. Every # or ## heading starts a new page."
         case .qa: return "One card per line: Topic | case or recall | Question | answer1; answer2"
+        case .osce: return "## Station title, then one step per line. Blank line or the next ## starts a new station."
         }
     }
 
@@ -77,6 +78,7 @@ struct NewSetView: View {
         case .anki: set.cards = PlainTextImport.parseAnkiQA(bodyText)
         case .book: set.bookMarkdown = bodyText
         case .qa: set.qaCards = PlainTextImport.parseQA(bodyText)
+        case .osce: set.osceChecklists = PlainTextImport.parseOsce(bodyText)
         }
         store.addSet(set)
         dismiss()

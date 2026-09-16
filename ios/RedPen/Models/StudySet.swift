@@ -3,7 +3,7 @@ import Foundation
 /// Which study mode a saved set belongs to. The web app's `state.library`
 /// holds both kinds together, distinguished by a `kind` field the same way.
 enum StudySetKind: String, Codable, CaseIterable, Identifiable {
-    case mcq, anki, book, qa
+    case mcq, anki, book, qa, osce
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -11,6 +11,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .anki: return "Anki"
         case .book: return "Textbook"
         case .qa: return "Cases"
+        case .osce: return "OSCE"
         }
     }
     var emoji: String {
@@ -19,6 +20,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .anki: return "🗂️"
         case .book: return "📖"
         case .qa: return "🩺"
+        case .osce: return "✅"
         }
     }
 }
@@ -42,6 +44,8 @@ struct StudySet: Identifiable, Codable, Hashable {
     var bookMarkdown: String = ""
     /// "qa": the Cases cards.
     var qaCards: [QACard] = []
+    /// "osce": one or more station checklists, worked through in order.
+    var osceChecklists: [OsceChecklist] = []
     /// Base64-encoded image data (`data:` URI payloads), indexed the same
     /// way `state.images` / `state.ankiImages` are in the web app.
     var images: [String] = []
@@ -52,9 +56,17 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .anki: return cards.count
         case .book: return BookPages.split(bookMarkdown).count
         case .qa: return qaCards.count
+        case .osce: return osceChecklists.reduce(0) { $0 + $1.steps.count }
         }
     }
-    var itemNoun: String { kind == .book ? "page" : kind == .mcq ? "question" : "card" }
+    var itemNoun: String {
+        switch kind {
+        case .book: return "page"
+        case .mcq: return "question"
+        case .osce: return "step"
+        default: return "card"
+        }
+    }
 }
 
 /// A library folder — mirrors `state.folders` / `folderId` grouping in the
@@ -97,6 +109,31 @@ enum PlainTextImport {
             guard !parts[2].isEmpty, !answers.isEmpty else { return nil }
             return QACard(topic: parts[0], type: parts[1].lowercased().hasPrefix("case") ? .case : .recall, stem: parts[2], answer: answers)
         }
+    }
+
+    /// OSCE: one or more stations, each a "## Title" line followed by one
+    /// step per line until the next "## " heading or the end of the text.
+    static func parseOsce(_ text: String) -> [OsceChecklist] {
+        var checklists: [OsceChecklist] = []
+        var title = ""
+        var steps: [String] = []
+        func flush() {
+            let t = title.trimmingCharacters(in: .whitespaces)
+            let s = steps.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            if !t.isEmpty, !s.isEmpty { checklists.append(OsceChecklist(title: t, steps: s)) }
+            steps = []
+        }
+        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(rawLine)
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("##") {
+                flush()
+                title = line.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "#")).trimmingCharacters(in: .whitespaces)
+            } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
+                steps.append(line)
+            }
+        }
+        flush()
+        return checklists
     }
 
     static func parseAnkiQA(_ text: String) -> [AnkiCard] {

@@ -16,7 +16,7 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -129,7 +129,35 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory]
+    static let osce = StudySet(
+        name: "Skills — venepuncture & catheterisation",
+        subject: "Clinical skills",
+        kind: .osce,
+        osceChecklists: [
+            OsceChecklist(title: "Venepuncture", steps: [
+                "Wash hands and don gloves",
+                "Confirm patient identity and explain the procedure, gain consent",
+                "Select and clean the venepuncture site",
+                "Apply tourniquet",
+                "Insert needle at 15–30° and advance until flashback",
+                "Release tourniquet before withdrawing needle",
+                "Withdraw needle, apply pressure, dispose of sharps safely",
+                "Label samples at the bedside and thank the patient",
+            ]),
+            OsceChecklist(title: "Male urinary catheterisation", steps: [
+                "Wash hands, explain procedure and gain consent",
+                "Position patient supine, expose and drape",
+                "Clean the glans with antiseptic, retracting the foreskin if present",
+                "Instil local anaesthetic gel and allow it to take effect",
+                "Insert catheter fully to the hilt",
+                "Inflate balloon only once urine is seen draining",
+                "Withdraw gently until resistance is felt, reduce foreskin",
+                "Connect to drainage bag and document the procedure",
+            ]),
+        ]
+    )
+
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce]
 }
 
 /// Opens the requested screen directly, with the sample data in place.
@@ -160,6 +188,12 @@ struct PreviewRoot: View {
             NavigationStack { QACardsView(set: SampleData.respiratory) }
         case "qa-revealed":
             NavigationStack { QACardsView(set: SampleData.respiratory, startRevealed: true) }
+        case "osce":
+            NavigationStack { OsceReviewView(set: SampleData.osce) }
+        case "osce-revealed":
+            NavigationStack { OsceReviewView(set: SampleData.osce, startRevealed: true) }
+        case "osce-complete":
+            NavigationStack { OsceReviewView(set: SampleData.osce, startComplete: true, startMissed: [2]) }
         default:
             LibraryView()
         }

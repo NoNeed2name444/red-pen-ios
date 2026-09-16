@@ -85,7 +85,7 @@ jobs:
           mkdir -p previews
           for mode in light dark; do
             xcrun simctl ui "$UDID" appearance "$mode"
-            for screen in library new quiz quiz-checked summary anki anki-revealed book qa qa-revealed; do
+            for screen in library new quiz quiz-checked summary anki anki-revealed book qa qa-revealed osce osce-revealed osce-complete; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen"
               sleep 7
