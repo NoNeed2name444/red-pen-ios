@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 /// mode by mode starting with MCQ.
 struct NewSetView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var gemma: GemmaModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
@@ -81,11 +82,23 @@ struct NewSetView: View {
                     MCQQuizView(set: set, isUnsaved: true, saved: $generatedSetSaved, onSave: { store.addSet(set) })
                 }
             }
+            .onAppear { gemma.refreshStatus() }
             .onDisappear { generationTask?.cancel() }
         }
     }
 
-    // MARK: generate (MCQ only — see MCQGenerator)
+    // MARK: generate (MCQ only — see MCQGenerator / GemmaModel)
+
+    /// Which backend a tap on "Generate" would actually use right now.
+    /// `nil` means neither is ready — the UI shows why, and for Gemma,
+    /// an offer to download it — instead of a Generate button that would
+    /// just fail.
+    private enum Backend: Equatable { case apple, gemma }
+    private var activeBackend: Backend? {
+        if MCQGenerator.availability.isAvailable { return .apple }
+        if gemma.status == .ready { return .gemma }
+        return nil
+    }
 
     private var generateSection: some View {
         Group {
@@ -107,11 +120,12 @@ struct NewSetView: View {
                     .disabled(isGenerating)
             }
 
+            backendSection
+
             Section {
-                if !MCQGenerator.availability.isAvailable, case .unavailable(let reason) = MCQGenerator.availability {
-                    Label(reason, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                if activeBackend == .gemma {
+                    Text("Using the downloaded Gemma 4 E2B model — on-device, nothing sent anywhere.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Button {
                     startGenerating()
@@ -123,7 +137,7 @@ struct NewSetView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(isGenerating || !MCQGenerator.availability.isAvailable || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(isGenerating || activeBackend == nil || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
                 if isGenerating {
                     Button("Cancel", role: .cancel) {
                         generationTask?.cancel()
@@ -132,24 +146,78 @@ struct NewSetView: View {
                 if let generationStatus, !isGenerating {
                     Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
                 }
+                if activeBackend == .gemma, !isGenerating {
+                    Button("Remove downloaded model", role: .destructive) {
+                        gemma.deleteDownloadedModel()
+                    }
+                    .font(.footnote)
+                }
+            }
+        }
+    }
+
+    /// Apple's on-device model is tried first; this section only shows up
+    /// when that's unavailable, offering the Gemma 4 E2B download as a
+    /// fallback that still never touches anyone's Claude account.
+    @ViewBuilder
+    private var backendSection: some View {
+        if !MCQGenerator.availability.isAvailable {
+            Section {
+                if case .unavailable(let reason) = MCQGenerator.availability {
+                    Label(reason, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                switch gemma.status {
+                case .ready:
+                    EmptyView() // handled by the note in the generate section above
+                case .notDownloaded:
+                    Button {
+                        gemma.download()
+                    } label: {
+                        Label("Download offline model (~2.8 GB, one-time)", systemImage: "arrow.down.circle")
+                    }
+                    Text("A smaller model (Gemma 4 E2B) that runs entirely on this device once downloaded — works on hardware that can't run Apple's own on-device model.")
+                        .font(.caption).foregroundStyle(.secondary)
+                case .downloading(let fraction):
+                    ProgressView(value: fraction) {
+                        Text("Downloading offline model — \(Int(fraction * 100))%")
+                            .font(.footnote)
+                    }
+                    Button("Cancel download", role: .cancel) { gemma.cancelDownload() }
+                case .failed(let message):
+                    Text("Download failed: \(message)")
+                        .font(.footnote).foregroundStyle(.red)
+                    Button("Try again") { gemma.download() }
+                }
+            } header: {
+                Text("Offline model")
             }
         }
     }
 
     private func startGenerating() {
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true
         generationStatus = "Writing 0 of \(questionCount) questions…"
         let count = questionCount, subj = subject, hy = highYield, setName = name
         generationTask = Task {
             do {
-                let questions = try await MCQGenerator.generate(
-                    sourceText: text, count: count, subject: subj, highYield: hy,
-                    onProgress: { done, total in
-                        Task { @MainActor in generationStatus = "Writing \(done) of \(total) questions…" }
-                    }
-                )
+                let progress: (Int, Int) -> Void = { done, total in
+                    Task { @MainActor in generationStatus = "Writing \(done) of \(total) questions…" }
+                }
+                let questions: [MCQQuestion]
+                switch backend {
+                case .apple:
+                    questions = try await MCQGenerator.generate(
+                        sourceText: text, count: count, subject: subj, highYield: hy, onProgress: progress
+                    )
+                case .gemma:
+                    questions = try await gemma.generate(
+                        sourceText: text, count: count, subject: subj, highYield: hy, onProgress: progress
+                    )
+                }
                 await MainActor.run {
                     isGenerating = false
                     generationStatus = "Done — \(questions.count) question(s) written."
@@ -166,7 +234,9 @@ struct NewSetView: View {
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    generationStatus = (error as? MCQGenerator.GenerationError)?.errorDescription ?? error.localizedDescription
+                    generationStatus = (error as? MCQGenerator.GenerationError)?.errorDescription
+                        ?? (error as? GemmaModel.GenerationError)?.errorDescription
+                        ?? error.localizedDescription
                 }
             }
         }
