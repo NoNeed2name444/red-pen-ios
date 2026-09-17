@@ -25,13 +25,13 @@ struct QACardsView: View {
                 Spacer()
                 Text("\(index + 1) / \(cards.count)")
                     .font(.footnote.weight(.semibold))
-                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .foregroundStyle(.tint)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
                     .liquidGlassChip()
             }
             .padding(.horizontal).padding(.top, 8)
-            ProgressView(value: Double(index + 1), total: Double(max(1, cards.count)))
-                .tint(.accentColor)
-                .padding(.horizontal).padding(.vertical, 6)
+            ThinProgress(fraction: Double(index + 1) / Double(max(1, cards.count)))
+                .padding(.horizontal).padding(.vertical, 8)
             ScrollView {
                 if let card {
                     VStack(alignment: .leading, spacing: 14) {
@@ -39,7 +39,8 @@ struct QACardsView: View {
                             Text(card.badge)
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8).padding(.vertical, 3)
-                                .background(card.type == .case ? Color.orange.opacity(0.18) : Color.accentColor.opacity(0.14), in: Capsule())
+                                .foregroundStyle(card.type == .case ? Color.orange : StudySetKind.qa.tint)
+                                .background((card.type == .case ? Color.orange : StudySetKind.qa.tint).opacity(0.14), in: Capsule())
                             if !card.topic.isEmpty { Text(card.topic).font(.caption).foregroundStyle(.secondary) }
                         }
                         Text(hl(card.stem)).font(.title3.weight(.semibold)).lineSpacing(2)
@@ -54,17 +55,21 @@ struct QACardsView: View {
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
-                    .padding()
-                    .padding(.bottom, 12)
+                    .contentCard()
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
                 } else {
                     Text("No cards in this set.").foregroundStyle(.secondary).padding()
                 }
             }
             footer
         }
+        .modeScreen(.qa)
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -82,7 +87,7 @@ struct QACardsView: View {
                 }
                 .buttonStyle(.glassProminent)
             } else {
-                Button("Reveal answer") { revealed = true }
+                Button("Reveal answer") { withAnimation(.snappy) { revealed = true } }
                     .buttonStyle(.glassProminent)
                     .disabled(card == nil)
             }

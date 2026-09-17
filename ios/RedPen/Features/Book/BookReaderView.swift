@@ -93,10 +93,10 @@ struct BookReaderView: View {
                 Spacer()
                 if pages.count > 1 {
                     Button { showToc = true } label: { Label("Contents", systemImage: "list.bullet").font(.footnote.weight(.semibold)) }
+                        .buttonStyle(.glass)
                 }
             }
             .padding(.horizontal).padding(.vertical, 8)
-            Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if let page {
@@ -107,12 +107,15 @@ struct BookReaderView: View {
                         Text("This textbook is empty.").foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+                .contentCard()
+                .padding(.horizontal)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
             }
             .id(index)
             if pages.count > 1 { footer }
         }
+        .modeScreen(.book)
         .navigationTitle(studySet.subject.isEmpty ? "Textbook" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showToc) {
@@ -157,7 +160,7 @@ struct BookReaderView: View {
                 }
             }
             .padding(8)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         case .paragraph(let text):
             Text(md(text)).font(.body).lineSpacing(3)
         }
@@ -168,14 +171,17 @@ struct BookReaderView: View {
     }
 
     private var footer: some View {
-        HStack {
-            Button("Previous") { index = max(0, index - 1) }.disabled(index == 0)
-            Spacer()
-            Text("Page \(index + 1) of \(pages.count)").font(.footnote).foregroundStyle(.secondary)
-            Spacer()
-            Button("Next") { index = min(pages.count - 1, index + 1) }.disabled(index >= pages.count - 1)
+        GlassEffectContainer(spacing: 12) {
+            HStack {
+                Button("Previous") { index = max(0, index - 1) }.buttonStyle(.glass).disabled(index == 0)
+                Spacer()
+                Text("Page \(index + 1) of \(pages.count)").font(.footnote.weight(.medium)).foregroundStyle(.secondary)
+                Spacer()
+                Button("Next") { index = min(pages.count - 1, index + 1) }.buttonStyle(.glassProminent).disabled(index >= pages.count - 1)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 }

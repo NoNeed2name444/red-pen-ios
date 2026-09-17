@@ -24,12 +24,13 @@ struct AnkiReviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             if let current {
                 ScrollView {
                     cardBody(current.card)
-                        .padding()
-                        .padding(.bottom, 12)
+                        .contentCard()
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+                        .padding(.bottom, 24)
                 }
                 Spacer(minLength: 0)
                 footer(current)
@@ -40,6 +41,7 @@ struct AnkiReviewView: View {
                 Spacer()
             }
         }
+        .modeScreen(.anki)
         .navigationTitle(studySet.subject.isEmpty ? "Anki" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSession)
@@ -53,7 +55,8 @@ struct AnkiReviewView: View {
             Spacer()
             Text("\(reviewedCount) reviewed")
                 .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 10).padding(.vertical, 4)
+                .foregroundStyle(.tint)
+                .padding(.horizontal, 10).padding(.vertical, 5)
                 .liquidGlassChip()
         }
         .padding(.horizontal).padding(.vertical, 8)
@@ -64,7 +67,8 @@ struct AnkiReviewView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(badge(for: card.type))
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.tint)
+                .textCase(.uppercase)
 
             if card.type == .occlusion, let idx = card.imageIndex, idx >= 0, idx < studySet.images.count,
                let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
@@ -91,10 +95,13 @@ struct AnkiReviewView: View {
                 back(for: card)
                 if !card.why.trimmingCharacters(in: .whitespaces).isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Why / how").font(.caption.weight(.bold))
-                        Text(card.why).font(.subheadline)
+                        Text("Why / how").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                        Text(card.why).font(.subheadline).lineSpacing(2)
                     }
-                    .padding(.top, 6)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.top, 4)
                 }
             }
         }

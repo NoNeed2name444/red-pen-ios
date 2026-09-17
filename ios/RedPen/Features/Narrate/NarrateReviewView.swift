@@ -35,10 +35,10 @@ struct NarrateReviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             transcript
             controls
         }
+        .modeScreen(.narrate)
         .navigationTitle(studySet.subject.isEmpty ? "Narrate" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { timer?.invalidate() }
@@ -52,7 +52,7 @@ struct NarrateReviewView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text("Line \(min(index + 1, max(total, 1))) of \(total)")
                 .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
-            ProgressView(value: min(1, fraction)).tint(.accentColor)
+            ThinProgress(fraction: min(1, fraction))
         }
         .padding()
     }
@@ -68,8 +68,10 @@ struct NarrateReviewView: View {
                     FlowText(segments: segments, currentIndex: index) { i in
                         jump(to: i)
                     }
-                    .padding()
-                    .padding(.bottom, 96) // keeps the last lines clear of the floating glass controls
+                    .contentCard()
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24) // keeps the last lines clear of the floating glass controls
                 }
             }
             .onChange(of: index) { _, newValue in
@@ -111,7 +113,7 @@ struct NarrateReviewView: View {
 
     private func speedButton(_ value: Double, _ label: String) -> some View {
         Button(label) { speed = value }
-            .buttonStyle(.glass).tint(speed == value ? .accentColor : .secondary)
+            .buttonStyle(.glass).tint(speed == value ? StudySetKind.narrate.tint : Color.secondary)
     }
 
     // MARK: playback logic — ported 1:1 from the web app's timers
@@ -192,8 +194,9 @@ private struct FlowText: View {
                     .lineSpacing(3)
                     .foregroundStyle(i == currentIndex ? Color.accentColor : .primary)
                     .fontWeight(i == currentIndex ? .semibold : .regular)
-                    .padding(.vertical, 4).padding(.horizontal, 6)
-                    .background(i == currentIndex ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.vertical, 6).padding(.horizontal, 8)
+                    .background(i == currentIndex ? Color.accentColor.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .animation(.easeInOut(duration: 0.25), value: currentIndex)
                     .id(seg.id)
                     .onTapGesture { onTap(i) }
                     .environment(\.layoutDirection, seg.lang == "ar" ? .rightToLeft : .leftToRight)

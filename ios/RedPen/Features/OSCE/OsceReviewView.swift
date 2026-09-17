@@ -39,7 +39,6 @@ struct OsceReviewView: View {
         VStack(spacing: 0) {
             if let checklist {
                 progressHeader(checklist)
-                Divider()
                 if complete {
                     completeBody(checklist)
                 } else {
@@ -49,6 +48,7 @@ struct OsceReviewView: View {
                 ContentUnavailableView("No checklists in this set.", systemImage: "checklist")
             }
         }
+        .modeScreen(.osce)
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -79,7 +79,7 @@ struct OsceReviewView: View {
                 Spacer()
             }
             Text(checklist.title).font(.title3.weight(.semibold))
-            ProgressView(value: fraction).tint(.accentColor)
+            ThinProgress(fraction: fraction)
         }
         .padding()
     }
@@ -94,9 +94,9 @@ struct OsceReviewView: View {
                     Text(text)
                         .font(.title3.weight(.medium))
                         .multilineTextAlignment(.center)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.vertical, 10)
+                        .contentCard()
+                        .transition(.scale(scale: 0.96).combined(with: .opacity))
                 } else {
                     Text(inRepeat ? "Once more — what was step \(currentStepIdx + 1)? Say it, then reveal." : "What comes next? Say it out loud, then reveal.")
                         .font(.title3)
@@ -126,7 +126,7 @@ struct OsceReviewView: View {
                         .buttonStyle(.glassProminent)
                 }
             } else {
-                Button("Reveal") { revealed = true }
+                Button("Reveal") { withAnimation(.snappy) { revealed = true } }
                     .buttonStyle(.glassProminent)
                     .frame(maxWidth: .infinity)
             }
@@ -145,7 +145,10 @@ struct OsceReviewView: View {
         let missedCount = missed.count
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill").font(.system(size: 44)).foregroundStyle(.green)
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(StudySetKind.osce.gradient)
+                .shadow(color: StudySetKind.osce.tint.opacity(0.35), radius: 14, y: 6)
             Text(hasNext ? "Checklist complete — \(checklist.title)" : "All checklists complete!")
                 .font(.title3.weight(.semibold)).multilineTextAlignment(.center)
             Text(missedCount == 0
