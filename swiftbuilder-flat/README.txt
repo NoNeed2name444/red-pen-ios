@@ -36,12 +36,24 @@ HOW TO ADD THEM
      14_OsceReviewView.swift   -> OsceReviewView (OSCE mode)
      15_NarrateReviewView.swift -> NarrateReviewView, FlowText (Narrate mode)
      16_LibraryView.swift      -> LibraryView (now with a swipe-to-export-PDF action)
-     16b_MCQGenerator.swift    -> MCQGenerator (on-device MCQ generation — see the note below)
+     16b_MCQGenerator.swift    -> MCQGenerator (on-device MCQ generation, Apple's model — see the note below)
+     16c_GemmaModel.swift      -> GemmaModel (the Gemma 4 E2B fallback for devices Apple's model can't run on — see the note below; needs a package dependency, see step 2b)
      17_NewSetView.swift       -> NewSetView (MCQ sets: Generate / Type / Import)
      18_PreviewLaunch.swift    -> PreviewLaunch, SampleData, PreviewRoot (CI screenshot hooks; harmless in the app)
      20_PDFExporter.swift      -> PDFExporter (the "Export PDF" swipe action's PDF builder)
      21_ShareSheet.swift       -> ShareSheet (system share sheet wrapper, used by the PDF export)
      22_ApkgExporter.swift     -> ApkgExporter, MiniZip, JSONExporter (Anki .apkg + JSON sharing)
+
+2b. 16c_GemmaModel.swift needs a Swift package SwiftBuilder doesn't add on
+    its own: LocalLLMClient. In SwiftBuilder's package-dependency screen
+    (or Xcode's File > Add Package Dependencies, if SwiftBuilder opens the
+    project in Xcode under the hood), add:
+        https://github.com/tattn/LocalLLMClient
+    branch: main — and select all three of its products: LocalLLMClient,
+    LocalLLMClientLlama, LocalLLMClientUtility. Skipping this step means
+    16c_GemmaModel.swift (and anything that imports it) won't compile;
+    the standalone Xcode project (project.yml) already declares this
+    dependency, so this step is only needed here.
 
 3. 19_RedPenApp.swift is the app's entry point (`@main`). SwiftBuilder's
    own template already created one for you (usually called something like
@@ -50,7 +62,9 @@ HOW TO ADD THEM
      - open SwiftBuilder's existing `@main` file,
      - replace its whole contents with 19_RedPenApp.swift's contents, OR
      - if SwiftBuilder won't let you rename that file's struct, just copy
-       the *body* (the `WindowGroup { LibraryView()... }` part) into
+       the *body* (the `WindowGroup { LibraryView()... }` part, including
+       both `.environmentObject(store)` and `.environmentObject(gemma)` —
+       NewSetView needs the second one to offer the Gemma fallback) into
        whatever `@main` struct it already generated, and delete any
        `ContentView()` placeholder it was showing instead.
    There must be exactly ONE `@main` in the whole project — if SwiftBuilder
@@ -100,22 +114,32 @@ target of iOS 26 — set that in SwiftBuilder's project settings, or the
 
 NOTE ON MCQ GENERATION
 ------------------------
-New set ▸ MCQ ▸ Generate writes a set from pasted notes on-device, with
-Apple's Foundation Models (Apple Intelligence) — the same prompt rules the
-web app's Claude-backed generator uses (single-best-answer format, no
-"all/none of the above", length-matched distractors, a mix of vignette and
-pure-recall questions), just answered by the model bundled with iOS instead
-of a paid API call. That means it needs a device with Apple Intelligence
-turned on (Settings ▸ Apple Intelligence & Siri) — on anything else
-(older hardware, Apple Intelligence off, or the Simulator, which has no
-on-device model at all) the Generate tab shows why it can't run instead of
-a button that quietly does nothing, and Type / Import are still right there
-as fallbacks. Nothing about this path — unlike a bring-your-own-API-key
-version would — ever touches a Claude account or any other paid usage.
-Once a set is generated, it opens as an ordinary quiz with its own "Save"
-button in the header (and again on the results screen) — nothing is added
-to the library until you tap it, matching the web app's generate-then-save
-flow.
+New set ▸ MCQ ▸ Generate writes a set from pasted notes on-device — the
+same prompt rules the web app's Claude-backed generator uses (single-best-
+answer format, no "all/none of the above", length-matched distractors, a
+mix of vignette and pure-recall questions) — through one of two on-device
+models, tried in this order, neither of which ever touches a Claude
+account or any other paid usage:
+
+  1. Apple's Foundation Models (Apple Intelligence), bundled with iOS —
+     needs a device with Apple Intelligence turned on (Settings ▸ Apple
+     Intelligence & Siri). This is instant: no download.
+  2. If that's unavailable (older hardware, Apple Intelligence off, or
+     the Simulator, which has neither) — a downloaded Gemma 4 E2B model
+     (Google's small "edge" model, ~2.8 GB as a 4-bit GGUF checkpoint),
+     run entirely on-device through the LocalLLMClient / llama.cpp
+     package (see step 2b above). The Generate tab offers a one-time
+     "Download offline model" button for this, with progress, cancel,
+     retry-on-failure, and a "Remove downloaded model" option once it's
+     in place — all in GemmaModel.swift.
+
+If neither is available yet (e.g. the download hasn't finished), the
+Generate tab explains why instead of showing a button that quietly does
+nothing, and Type / Import are still right there as fallbacks. Once a set
+is generated (by either model), it opens as an ordinary quiz with its own
+"Save" button in the header (and again on the results screen) — nothing is
+added to the library until you tap it, matching the web app's
+generate-then-save flow.
 
 NOTE ON NARRATE MODE
 ---------------------
@@ -127,6 +151,8 @@ which is what most Narrate sets are read with anyway.
 
 IF A PASTE DOESN'T COMPILE
 ----------------------------
-The most common cause is paste order (a type used before it's defined) or
+The most common cause is paste order (a type used before it's defined),
+a missing package dependency (see step 2b — this is the most likely
+cause if 16c_GemmaModel.swift specifically won't compile), or
 SwiftBuilder's own template file still having leftover placeholder code —
 check its `@main` file first.
