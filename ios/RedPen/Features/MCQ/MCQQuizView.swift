@@ -65,6 +65,7 @@ struct MCQQuizView: View {
                     }
                 }
                 .padding()
+                .padding(.bottom, 12)
             }
             footer
         }
@@ -84,7 +85,7 @@ struct MCQQuizView: View {
             Text("\(s.correct) / \(s.checked)")
                 .font(.footnote.weight(.semibold))
                 .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.12), in: Capsule())
+                .liquidGlassChip()
         }
         .padding(.horizontal).padding(.top, 8)
     }
@@ -148,14 +149,17 @@ struct MCQQuizView: View {
     private var footer: some View {
         HStack {
             Button("Previous") { if current > 0 { current -= 1 } }
+                .buttonStyle(.liquidGlass)
                 .disabled(current == 0)
             Spacer()
             Button(checkButtonTitle) { onCheckOrNext() }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.liquidGlassProminent())
                 .disabled(!a.checked && a.selected == nil)
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .liquidGlassPanel()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     private var checkButtonTitle: String {

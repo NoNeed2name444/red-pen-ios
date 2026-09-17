@@ -49,7 +49,13 @@ struct LibraryView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showNewSet = true } label: { Image(systemName: "plus") }
+                    Button { showNewSet = true } label: {
+                        Image(systemName: "plus")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.liquidGlassProminent())
+                    .clipShape(Circle())
                 }
             }
             .sheet(isPresented: $showNewSet) {
@@ -72,12 +78,16 @@ struct LibraryView: View {
     private func setRow(_ set: StudySet) -> some View {
         HStack {
             Text(set.kind.emoji)
+                .font(.title3)
+                .frame(width: 34, height: 34)
+                .liquidGlassChip()
             VStack(alignment: .leading, spacing: 2) {
                 Text(set.name).font(.body.weight(.medium))
                 Text("\(set.kind.label) · \(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder

@@ -29,6 +29,7 @@ struct AnkiReviewView: View {
                 ScrollView {
                     cardBody(current.card)
                         .padding()
+                        .padding(.bottom, 12)
                 }
                 Spacer(minLength: 0)
                 footer(current)
@@ -53,7 +54,7 @@ struct AnkiReviewView: View {
             Text("\(reviewedCount) reviewed")
                 .font(.footnote.weight(.semibold))
                 .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.12), in: Capsule())
+                .liquidGlassChip()
         }
         .padding(.horizontal).padding(.vertical, 8)
     }
@@ -159,9 +160,9 @@ struct AnkiReviewView: View {
                 Button {
                     revealed = true
                 } label: {
-                    Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 10)
+                    Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.liquidGlassProminent())
             } else {
                 let labels = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
                 HStack(spacing: 8) {
@@ -172,8 +173,10 @@ struct AnkiReviewView: View {
                 }
             }
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .liquidGlassPanel()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     private func rateButton(_ rating: AnkiRating, _ subtitle: String, color: Color) -> some View {
@@ -184,10 +187,9 @@ struct AnkiReviewView: View {
                 Text(rating.rawValue.capitalized).font(.subheadline.weight(.semibold))
                 Text(subtitle).font(.caption2).opacity(0.8)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 8)
+            .frame(maxWidth: .infinity).padding(.vertical, 4)
         }
-        .buttonStyle(.bordered)
-        .tint(color)
+        .buttonStyle(.liquidGlass(tint: color))
     }
 
     private func startSession() {

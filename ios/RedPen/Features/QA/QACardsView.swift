@@ -26,7 +26,7 @@ struct QACardsView: View {
                 Text("\(index + 1) / \(cards.count)")
                     .font(.footnote.weight(.semibold))
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                    .liquidGlassChip()
             }
             .padding(.horizontal).padding(.top, 8)
             ProgressView(value: Double(index + 1), total: Double(max(1, cards.count)))
@@ -58,6 +58,7 @@ struct QACardsView: View {
                         }
                     }
                     .padding()
+                    .padding(.bottom, 12)
                 } else {
                     Text("No cards in this set.").foregroundStyle(.secondary).padding()
                 }
@@ -70,21 +71,25 @@ struct QACardsView: View {
 
     private var footer: some View {
         HStack {
-            Button("Previous") { index = max(0, index - 1); revealed = false }.disabled(index == 0)
+            Button("Previous") { index = max(0, index - 1); revealed = false }
+                .buttonStyle(.liquidGlass)
+                .disabled(index == 0)
             Spacer()
             if revealed {
                 Button(index >= cards.count - 1 ? "Done" : "Next") {
                     if index >= cards.count - 1 { dismiss() } else { index += 1; revealed = false }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.liquidGlassProminent())
             } else {
                 Button("Reveal answer") { revealed = true }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.liquidGlassProminent())
                     .disabled(card == nil)
             }
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .liquidGlassPanel()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     /// `**term**` highlights, via SwiftUI's Markdown support.

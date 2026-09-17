@@ -37,7 +37,6 @@ struct NarrateReviewView: View {
             header
             Divider()
             transcript
-            Divider()
             controls
         }
         .navigationTitle(studySet.subject.isEmpty ? "Narrate" : studySet.subject)
@@ -70,6 +69,7 @@ struct NarrateReviewView: View {
                         jump(to: i)
                     }
                     .padding()
+                    .padding(.bottom, 96) // keeps the last lines clear of the floating glass controls
                 }
             }
             .onChange(of: index) { _, newValue in
@@ -92,24 +92,25 @@ struct NarrateReviewView: View {
             HStack(spacing: 12) {
                 if finished {
                     Button("Restart") { restart() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.liquidGlassProminent())
                         .frame(maxWidth: .infinity)
                 } else {
                     Button(playing ? "Pause" : "Play") { playing ? pause() : play() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.liquidGlassProminent())
                         .frame(maxWidth: .infinity)
                         .disabled(segments.isEmpty)
                 }
             }
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .liquidGlassPanel()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     private func speedButton(_ value: Double, _ label: String) -> some View {
         Button(label) { speed = value }
-            .buttonStyle(.bordered)
-            .tint(speed == value ? .accentColor : .secondary)
+            .buttonStyle(.liquidGlass(tint: speed == value ? .accentColor : .secondary))
     }
 
     // MARK: playback logic — ported 1:1 from the web app's timers

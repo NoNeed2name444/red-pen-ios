@@ -72,8 +72,8 @@ struct OsceReviewView: View {
                         Text("again")
                             .font(.caption2.weight(.bold))
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.18), in: Capsule())
                             .foregroundStyle(.orange)
+                            .liquidGlassChip(tint: .orange)
                     }
                 }
                 Spacer()
@@ -111,6 +111,7 @@ struct OsceReviewView: View {
             }
             .padding()
             .frame(minHeight: 220)
+            .padding(.bottom, 12)
         }
         footer
     }
@@ -120,18 +121,20 @@ struct OsceReviewView: View {
             if revealed {
                 HStack(spacing: 12) {
                     Button("Missed it") { grade(knewIt: false) }
-                        .buttonStyle(.bordered).tint(.red)
+                        .buttonStyle(.liquidGlass(tint: .red))
                     Button("Knew it") { grade(knewIt: true) }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.liquidGlassProminent())
                 }
             } else {
                 Button("Reveal") { revealed = true }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.liquidGlassProminent())
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding()
-        .background(.bar)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .liquidGlassPanel()
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     // MARK: complete
@@ -153,10 +156,10 @@ struct OsceReviewView: View {
             Spacer()
             if hasNext {
                 Button("Next checklist: \(checklists[checklistIndex + 1].title) ›") { nextChecklist() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.liquidGlassProminent())
             } else {
                 Button("Done") { dismiss() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.liquidGlassProminent())
             }
         }
         .padding()
