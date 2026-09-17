@@ -83,10 +83,13 @@ struct LibraryView: View {
             .toolbar {
                 if !store.library.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(selecting ? "Done" : "Select") {
+                        // toolbar items already sit in the system's glass on iOS 26;
+                        // an extra .glass style here squashed the label into a circle
+                        Button {
                             withAnimation(.snappy) { selecting.toggle(); selected = [] }
+                        } label: {
+                            Text(selecting ? "Done" : "Select").fixedSize()
                         }
-                        .buttonStyle(.glass)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
