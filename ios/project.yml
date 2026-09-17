@@ -37,6 +37,13 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.redpen.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # LocalLLMClientLlamaC's own header hard-errors ("needs to be
+        # compiled in C++ interoperability mode") unless the CONSUMING
+        # target — this app, not just the package's own target — also
+        # builds with Swift/C++ interop on. The package sets this for
+        # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
+        # doesn't propagate to a plain .xcodeproj app target automatically.
+        OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
 schemes:
   RedPen:
     build:
