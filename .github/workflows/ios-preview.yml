@@ -125,19 +125,27 @@ jobs:
               "build_ok": os.path.exists("build.log") and "BUILD SUCCEEDED" in open("build.log", errors="replace").read(),
               "screens": shots,
           }
-          with open("previews/status.json", "w") as f:
-              json.dump(status, f, indent=2)
+          json.dump(status, open("previews/status.json", "w"), indent=2)
+          print(json.dumps(status, indent=2))
           PY
 
-      - name: Push previews
+      - name: Publish to the previews branch
         if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan previews-tmp
-          git rm -rf --cached . >/dev/null
-          git add previews/*.png previews/status.json previews/build.log previews/errors.txt 2>/dev/null || true
-          git commit -m "Preview run ${{ github.run_id }}" -q
-          git branch -D previews 2>/dev/null || true
-          git branch -m previews
-          git push -f origin previews
+          set -e
+          cd previews
+          git init -q
+          git checkout -q -b previews
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "iOS preview of ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews:previews
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-preview
+          path: previews
