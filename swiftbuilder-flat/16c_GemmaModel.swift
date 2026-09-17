@@ -1,7 +1,6 @@
 import Foundation
 import LocalLLMClient
 import LocalLLMClientLlama
-import LocalLLMClientUtility
 
 /// The fallback MCQ-generation backend for devices that can't run Apple's
 /// on-device model at all — anything older than iPhone 15 Pro, or a newer
@@ -15,10 +14,6 @@ import LocalLLMClientUtility
 /// difference is that a plain llama.cpp model has no `@Generable` — this
 /// asks the model for JSON directly (`requestJSONShape: true`) and parses
 /// it by hand, the same way the web app's Claude-backed generator did.
-///
-/// Needs the LocalLLMClient Swift package — in SwiftBuilder, add it via
-/// its package-dependency screen with URL https://github.com/tattn/LocalLLMClient
-/// (branch: main); the Xcode project (project.yml) already declares it.
 @MainActor
 final class GemmaModel: ObservableObject {
     static let shared = GemmaModel()
@@ -54,8 +49,11 @@ final class GemmaModel: ObservableObject {
     private var downloadTask: Task<Void, Never>?
     /// The loaded llama.cpp client — expensive to create, so it's kept
     /// around for the lifetime of the app once generation has happened
-    /// once, rather than reloaded on every batch.
-    private var client: LocalLLMClient?
+    /// once, rather than reloaded on every batch. `LocalLLMClient` itself
+    /// is just an empty namespace enum for the static factory methods
+    /// (`LocalLLMClient.llama(...)`) — the actual client type it hands
+    /// back is `LlamaClient`.
+    private var client: LlamaClient?
 
     private init() {
         status = Self.isDownloaded ? .ready : .notDownloaded
@@ -144,7 +142,7 @@ final class GemmaModel: ObservableObject {
         }
     }
 
-    private func loadedClient() async throws -> LocalLLMClient {
+    private func loadedClient() async throws -> LlamaClient {
         if let client { return client }
         let loaded = try await LocalLLMClient.llama(url: Self.localURL, parameter: .init(
             context: 4096, temperature: 0.7, topK: 40, topP: 0.9
