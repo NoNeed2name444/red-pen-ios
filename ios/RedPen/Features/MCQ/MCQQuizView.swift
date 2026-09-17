@@ -136,7 +136,10 @@ struct MCQQuizView: View {
                     } label: {
                         Label(saved.wrappedValue ? "Saved" : "Save", systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
                     }
-                    .buttonStyle(saved.wrappedValue ? .glass : .glassProminent)
+                    // a ternary between .glass and .glassProminent won't type-check
+                    // (each is a different opaque `some ButtonStyle`) — one fixed
+                    // style plus .disabled() conveys the "already saved" state instead
+                    .buttonStyle(.glassProminent)
                     .disabled(saved.wrappedValue)
                 }
             }
