@@ -212,6 +212,15 @@ struct LibraryView: View {
                 }
             }
             Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }
+            if set.kind == .anki {
+                // the web app's "Export .apkg" — opens straight into the Anki app
+                Button("Export Anki deck (.apkg)", systemImage: "square.and.arrow.up") {
+                    if let url = try? ApkgExporter.export(set) { exportURL = url } else { exportFailedSetName = set.name }
+                }
+            }
+            Button("Share as JSON", systemImage: "doc.text") {
+                if let url = JSONExporter.export(set) { exportURL = url } else { exportFailedSetName = set.name }
+            }
             Divider()
             Button("Delete", systemImage: "trash", role: .destructive) { store.deleteSet(set.id) }
         }
