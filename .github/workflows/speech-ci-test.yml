@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   probe:
@@ -24,6 +24,7 @@ jobs:
         run: |
           swift ci/speech_ci_test.swift 2>&1 | tee speech_probe.log
           echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          echo "exit_code was ${PIPESTATUS[0]}" >> speech_probe.log
 
       - name: Upload probe log
         if: always()
@@ -31,3 +32,21 @@ jobs:
         with:
           name: speech-probe-log
           path: speech_probe.log
+
+      # Artifacts need signed-in API auth to download from chat's side; a
+      # tiny orphan branch (same trick as the `previews` branch) is much
+      # easier for Red Pen's chat to read back afterward.
+      - name: Publish the log to a branch too
+        if: always()
+        run: |
+          set -e
+          mkdir -p /tmp/probe-out
+          cp speech_probe.log /tmp/probe-out/speech_probe.log
+          cd /tmp/probe-out
+          git init -q
+          git checkout -q -b speech-probe
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Speech CI probe log ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" speech-probe:speech-probe
