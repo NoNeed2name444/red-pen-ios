@@ -1,0 +1,5 @@
+=== Speech CI feasibility probe ===
+Process is interactive session? SessionInfo unavailable in CLI, continuing anyway.
+Initial authorizationStatus(): 0 (0=notDetermined,1=denied,2=restricted,3=authorized)
+RESULT: requestAuthorization() never called back within 30s (no TCC session to answer it).
+exit_code was 0
