@@ -175,9 +175,9 @@ struct NewSetView: View {
                     Button {
                         gemma.download()
                     } label: {
-                        Label("Download offline model (~2.8 GB, one-time)", systemImage: "arrow.down.circle")
+                        Label("Download offline model (~3.4 GB, one-time)", systemImage: "arrow.down.circle")
                     }
-                    Text("A smaller model (Gemma 4 E2B) that runs entirely on this device once downloaded — works on hardware that can't run Apple's own on-device model.")
+                    Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded — works on hardware that can't run Apple's own on-device model, and can also read images.")
                         .font(.caption).foregroundStyle(.secondary)
                 case .downloading(let fraction):
                     ProgressView(value: fraction) {
