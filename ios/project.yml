@@ -25,8 +25,6 @@ targets:
         product: LocalLLMClient
       - package: LocalLLMClient
         product: LocalLLMClientLlama
-      - package: LocalLLMClient
-        product: LocalLLMClientUtility
     info:
       path: RedPen/Info.plist
       properties:
