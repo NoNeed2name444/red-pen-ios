@@ -5,6 +5,8 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @State private var showNewSet = false
+    @State private var exportURL: URL?
+    @State private var exportFailedSetName: String?
 
     var body: some View {
         NavigationStack {
@@ -20,6 +22,17 @@ struct LibraryView: View {
                         ForEach(store.library) { set in
                             NavigationLink(value: set) {
                                 setRow(set)
+                            }
+                            .swipeActions(edge: .leading) {
+                                // matches the web app's per-mode "Export PDF" button
+                                // (renderQuestionsPdf() and its siblings)
+                                Button {
+                                    if let url = PDFExporter.export(set) { exportURL = url }
+                                    else { exportFailedSetName = set.name }
+                                } label: {
+                                    Label("Export PDF", systemImage: "arrow.down.doc")
+                                }
+                                .tint(.teal)
                             }
                         }
                         .onDelete { offsets in
@@ -41,6 +54,17 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showNewSet) {
                 NewSetView()
+            }
+            .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) {
+                if let exportURL { ShareSheet(items: [exportURL]) }
+            }
+            .alert("Couldn't export", isPresented: .init(
+                get: { exportFailedSetName != nil },
+                set: { if !$0 { exportFailedSetName = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Something went wrong building the PDF for \(exportFailedSetName ?? "this set").")
             }
         }
     }
