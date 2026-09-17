@@ -68,9 +68,22 @@ jobs:
           # macro" question the first time, which a headless CI run can
           # never answer. These two flags are xcodebuild's own bypass for
           # exactly that — same effect as clicking "Trust & Enable" once.
+          #
+          # LocalLLMClientLlamaC (the C target wrapping llama.cpp) has
+          # headers that are really C++ ("Swift C++ interop" — `<memory>`,
+          # templates), and its own package target already turns on
+          # .interoperabilityMode(.Cxx) for exactly that. But Xcode's
+          # Explicit Modules pre-scan (on by default since Xcode 16)
+          # dependency-scans that C target's module map through a plain-C
+          # Clang context that never gets libc++'s search paths wired in,
+          # so it can't find `<memory>` — a known incompatibility between
+          # xcodebuild's explicit-module builds and llama.cpp-style mixed
+          # C/C++ SwiftPM targets. Disabling explicit modules falls back
+          # to the older, working implicit-module scanning.
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
             -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning:|BUILD |\*\* " || true
           # xcodebuild's own exit status is hidden by the grep above, and the .app
           # folder exists even after a failed compile — so ask the log instead
