@@ -8,12 +8,25 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
+packages:
+  # Gemma-4-E2B fallback path for devices that can't run Apple's on-device
+  # model (older hardware, Apple Intelligence off) — see GemmaModel.swift.
+  LocalLLMClient:
+    url: https://github.com/tattn/LocalLLMClient.git
+    branch: main
 targets:
   RedPen:
     type: application
     platform: iOS
     sources:
       - path: RedPen
+    dependencies:
+      - package: LocalLLMClient
+        product: LocalLLMClient
+      - package: LocalLLMClient
+        product: LocalLLMClientLlama
+      - package: LocalLLMClient
+        product: LocalLLMClientUtility
     info:
       path: RedPen/Info.plist
       properties:
