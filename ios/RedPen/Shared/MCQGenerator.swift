@@ -6,6 +6,11 @@ import FoundationModels
 /// Generates an MCQ set on-device with Apple's Foundation Models
 /// (Apple Intelligence) — the native counterpart to the web app's
 /// `buildPrompt()` + `generateQuestionBatch()` (see red-pen-content.html).
+/// On a device that can't run Apple's model at all — anything older than
+/// iPhone 15 Pro, or Apple Intelligence just turned off — GemmaModel.swift
+/// is the fallback backend: same prompt rules (this file's `buildPrompt`
+/// is shared by both), a downloaded Gemma 4 E2B model instead of Apple's,
+/// still entirely on-device and free.
 ///
 /// The prompt text, the "single best answer" rules, the length-parity
 /// backstop and the batching strategy below are carried over line-for-line
@@ -15,7 +20,9 @@ import FoundationModels
 /// with raw JSON it then parses by hand. This asks Apple's on-device model
 /// — bundled with iOS, running locally, free, with no account or API key —
 /// for a `@Generable` struct directly, so there's no JSON-parsing step and
-/// nothing here ever touches anyone's Claude usage.
+/// nothing here ever touches anyone's Claude usage. (The Gemma fallback
+/// *does* parse JSON by hand, same as the web app once did — see
+/// `requestJSONShape` below — since it has no `@Generable`-equivalent.)
 enum MCQGenerator {
     // MARK: constants (ported from the web app's setup-form limits)
 
@@ -100,10 +107,11 @@ enum MCQGenerator {
     /// Builds the instructions sent to the model for one batch of `count`
     /// questions. Word-for-word the same rules the web app's Claude prompt
     /// uses (minus the image-anchoring branch, which the on-device model
-    /// doesn't take image input for, and minus the trailing "reply with
-    /// only this JSON shape" instruction, which `@Generable` makes moot —
-    /// the framework guarantees the shape instead of asking nicely for it).
-    static func buildPrompt(sourceText: String, count: Int, subject: String, highYield: Bool) -> String {
+    /// doesn't take image input for). `requestJSONShape` is off by default
+    /// (Apple's `@Generable` path doesn't need it) and on for the Gemma
+    /// fallback, which has to be told the output shape directly.
+    static func buildPrompt(sourceText: String, count: Int, subject: String, highYield: Bool,
+                             requestJSONShape: Bool = false) -> String {
         var lines: [String] = [
             "You are writing single-best-answer multiple-choice questions for a medical student's internal medicine exam revision, in the NBME/USMLE \"one-best-answer\" style.",
             "",
@@ -137,6 +145,16 @@ enum MCQGenerator {
         lines.append("6. In the explanation for each question: state why the best answer is best, and explicitly address at least one other option that is tempting or partially correct, explaining why it falls short of best. Never refer to options by a letter or position (\"option A\", \"the first choice\") — the order they're shown in is randomized after you write them, so a letter reference would be wrong. Refer to each option by its actual content instead (e.g. \"metformin\" or \"the biopsy finding of...\").")
         lines.append("7. Every question must be answerable from the source material above — never invent facts outside it.")
         if highYield { lines.append("8. Favor the highest-yield, most exam-relevant facts in the source material.") }
+        // @Generable makes Apple's on-device path guarantee its own output
+        // shape, but a plain-text model (the Gemma fallback below) has to be
+        // asked for it directly — the same JSON instruction the web app's
+        // Claude-backed prompt used before this app existed.
+        if requestJSONShape {
+            lines.append("")
+            lines.append("Reply with ONLY a single JSON object — no markdown code fences, no commentary before or after it — of exactly this shape:")
+            lines.append(#"{"questions":[{"stem":"...","options":["...","...","...","...","..."],"correctIndex":0,"explanation":"..."}]}"#)
+            lines.append("\"options\" must have exactly 5 strings. \"correctIndex\" is the zero-based index into options of the best answer.")
+        }
         return lines.joined(separator: "\n")
     }
 
@@ -145,7 +163,7 @@ enum MCQGenerator {
     /// option and meaningfully longer than the distractors' average, so
     /// "pick the longest option" stays a losing strategy even when the
     /// model didn't follow the length-parity rule closely.
-    private static func lengthBalanced(_ options: [String], correctIndex: Int) -> Bool {
+    static func lengthBalanced(_ options: [String], correctIndex: Int) -> Bool {
         let lens = options.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).count }
         guard lens.indices.contains(correctIndex) else { return false }
         let correctLen = lens[correctIndex]
@@ -156,10 +174,17 @@ enum MCQGenerator {
         return !(correctLen > maxOther && Double(correctLen) > avgOther * 1.3)
     }
 
+    /// Shared by both backends: Apple's `@Generable` result and the Gemma
+    /// backend's hand-parsed JSON both funnel through this same check
+    /// before a question is accepted.
+    static func isValidQuestion(stem: String, options: [String], correctIndex: Int) -> Bool {
+        options.count == 5 && (0...4).contains(correctIndex) &&
+            !stem.trimmingCharacters(in: .whitespaces).isEmpty &&
+            lengthBalanced(options, correctIndex: correctIndex)
+    }
+
     private static func isValid(_ q: GeneratedQuestion) -> Bool {
-        q.options.count == 5 && (0...4).contains(q.correctIndex) &&
-            !q.stem.trimmingCharacters(in: .whitespaces).isEmpty &&
-            lengthBalanced(q.options, correctIndex: q.correctIndex)
+        isValidQuestion(stem: q.stem, options: q.options, correctIndex: q.correctIndex)
     }
 
     // MARK: generation
