@@ -15,35 +15,71 @@ struct MCQSummaryView: View {
     private var correctCount: Int {
         answers.enumerated().filter { $0.element.selected == studySet.questions[$0.offset].correctIndex }.count
     }
+    private var total: Int { studySet.questions.count }
+    private var fraction: Double { total == 0 ? 0 : Double(correctCount) / Double(total) }
+
+    private var verdict: String {
+        switch fraction {
+        case 0.9...: return "Excellent — exam ready."
+        case 0.7..<0.9: return "Solid. A few to revisit."
+        case 0.5..<0.7: return "Getting there — review the misses."
+        default: return "Worth another pass before moving on."
+        }
+    }
 
     var body: some View {
-        List {
-            Section {
-                VStack(spacing: 6) {
-                    Text("\(correctCount) / \(studySet.questions.count)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                    Text("correct").font(.subheadline).foregroundStyle(.secondary)
+        ScrollView {
+            VStack(spacing: 16) {
+                VStack(spacing: 14) {
+                    ScoreRing(fraction: fraction,
+                              label: "\(Int((fraction * 100).rounded()))%",
+                              sublabel: "\(correctCount) of \(total) correct")
+                    Text(verdict)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-            }
-            Section("Review") {
-                ForEach(studySet.questions.indices, id: \.self) { i in
-                    let q = studySet.questions[i]
-                    let correct = answers[i].selected == q.correctIndex
-                    HStack(alignment: .top) {
-                        Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(correct ? .green : .red)
-                        Text(q.stem).font(.subheadline)
+                .padding(.vertical, 10)
+                .contentCard()
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Review")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 10)
+                    ForEach(studySet.questions.indices, id: \.self) { i in
+                        let q = studySet.questions[i]
+                        let correct = answers[i].selected == q.correctIndex
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(correct ? .green : .red)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(q.stem).font(.subheadline).lineSpacing(2)
+                                if !correct, q.options.indices.contains(q.correctIndex) {
+                                    Text("Answer: \(q.options[q.correctIndex])")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 10)
+                        if i < studySet.questions.count - 1 { Divider() }
                     }
                 }
+                .contentCard()
             }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 30)
         }
+        .modeScreen(.mcq)
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Done") { dismiss() }
+                Button("Done") { dismiss() }.buttonStyle(.glassProminent)
             }
         }
     }
