@@ -117,22 +117,21 @@ struct OsceReviewView: View {
     }
 
     private var footer: some View {
-        Group {
+        GlassEffectContainer(spacing: 12) {
             if revealed {
                 HStack(spacing: 12) {
                     Button("Missed it") { grade(knewIt: false) }
-                        .buttonStyle(.liquidGlass(tint: .red))
+                        .buttonStyle(.glass).tint(.red)
                     Button("Knew it") { grade(knewIt: true) }
-                        .buttonStyle(.liquidGlassProminent())
+                        .buttonStyle(.glassProminent)
                 }
             } else {
                 Button("Reveal") { revealed = true }
-                    .buttonStyle(.liquidGlassProminent())
+                    .buttonStyle(.glassProminent)
                     .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .liquidGlassPanel()
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
     }
@@ -156,10 +155,10 @@ struct OsceReviewView: View {
             Spacer()
             if hasNext {
                 Button("Next checklist: \(checklists[checklistIndex + 1].title) ›") { nextChecklist() }
-                    .buttonStyle(.liquidGlassProminent())
+                    .buttonStyle(.glassProminent)
             } else {
                 Button("Done") { dismiss() }
-                    .buttonStyle(.liquidGlassProminent())
+                    .buttonStyle(.glassProminent)
             }
         }
         .padding()

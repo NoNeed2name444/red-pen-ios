@@ -70,24 +70,25 @@ struct QACardsView: View {
     }
 
     private var footer: some View {
+        GlassEffectContainer(spacing: 12) {
         HStack {
             Button("Previous") { index = max(0, index - 1); revealed = false }
-                .buttonStyle(.liquidGlass)
+                .buttonStyle(.glass)
                 .disabled(index == 0)
             Spacer()
             if revealed {
                 Button(index >= cards.count - 1 ? "Done" : "Next") {
                     if index >= cards.count - 1 { dismiss() } else { index += 1; revealed = false }
                 }
-                .buttonStyle(.liquidGlassProminent())
+                .buttonStyle(.glassProminent)
             } else {
                 Button("Reveal answer") { revealed = true }
-                    .buttonStyle(.liquidGlassProminent())
+                    .buttonStyle(.glassProminent)
                     .disabled(card == nil)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .liquidGlassPanel()
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
     }

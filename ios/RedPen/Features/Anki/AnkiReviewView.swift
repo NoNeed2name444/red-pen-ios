@@ -155,6 +155,7 @@ struct AnkiReviewView: View {
 
     @ViewBuilder
     private func footer(_ item: AnkiQueueItem) -> some View {
+        GlassEffectContainer(spacing: 10) {
         VStack(spacing: 10) {
             if !revealed {
                 Button {
@@ -162,7 +163,7 @@ struct AnkiReviewView: View {
                 } label: {
                     Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
                 }
-                .buttonStyle(.liquidGlassProminent())
+                .buttonStyle(.glassProminent)
             } else {
                 let labels = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
                 HStack(spacing: 8) {
@@ -174,7 +175,7 @@ struct AnkiReviewView: View {
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .liquidGlassPanel()
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
     }
@@ -189,7 +190,7 @@ struct AnkiReviewView: View {
             }
             .frame(maxWidth: .infinity).padding(.vertical, 4)
         }
-        .buttonStyle(.liquidGlass(tint: color))
+        .buttonStyle(.glass).tint(color)
     }
 
     private func startSession() {

@@ -83,6 +83,7 @@ struct NarrateReviewView: View {
     // MARK: controls — matches el.narratePlayBtn / restart / speed buttons
 
     private var controls: some View {
+        GlassEffectContainer(spacing: 10) {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
                 speedButton(0.75, "Slow")
@@ -92,25 +93,25 @@ struct NarrateReviewView: View {
             HStack(spacing: 12) {
                 if finished {
                     Button("Restart") { restart() }
-                        .buttonStyle(.liquidGlassProminent())
+                        .buttonStyle(.glassProminent)
                         .frame(maxWidth: .infinity)
                 } else {
                     Button(playing ? "Pause" : "Play") { playing ? pause() : play() }
-                        .buttonStyle(.liquidGlassProminent())
+                        .buttonStyle(.glassProminent)
                         .frame(maxWidth: .infinity)
                         .disabled(segments.isEmpty)
                 }
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .liquidGlassPanel()
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
     }
 
     private func speedButton(_ value: Double, _ label: String) -> some View {
         Button(label) { speed = value }
-            .buttonStyle(.liquidGlass(tint: speed == value ? .accentColor : .secondary))
+            .buttonStyle(.glass).tint(speed == value ? .accentColor : .secondary)
     }
 
     // MARK: playback logic — ported 1:1 from the web app's timers

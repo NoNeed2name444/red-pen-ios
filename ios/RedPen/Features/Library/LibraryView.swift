@@ -54,7 +54,7 @@ struct LibraryView: View {
                             .font(.body.weight(.semibold))
                             .frame(width: 30, height: 30)
                     }
-                    .buttonStyle(.liquidGlassProminent())
+                    .buttonStyle(.glassProminent)
                     .clipShape(Circle())
                 }
             }

@@ -147,17 +147,18 @@ struct MCQQuizView: View {
     }
 
     private var footer: some View {
+        GlassEffectContainer(spacing: 12) {
         HStack {
             Button("Previous") { if current > 0 { current -= 1 } }
-                .buttonStyle(.liquidGlass)
+                .buttonStyle(.glass)
                 .disabled(current == 0)
             Spacer()
             Button(checkButtonTitle) { onCheckOrNext() }
-                .buttonStyle(.liquidGlassProminent())
+                .buttonStyle(.glassProminent)
                 .disabled(!a.checked && a.selected == nil)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .liquidGlassPanel()
+        }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
     }
