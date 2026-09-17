@@ -92,10 +92,14 @@ struct MCQQuizView: View {
                         }
                     }
                     .contentCard()
+                    .riseIn()
+                    .id("stem-\(current)")
 
                     VStack(spacing: 8) {
                         ForEach(q.options.indices, id: \.self) { idx in
                             optionRow(idx)
+                                .riseIn(index: idx + 1)
+                                .id("\(current)-\(idx)")
                         }
                     }
 
@@ -213,7 +217,7 @@ struct MCQQuizView: View {
             .background(state.fill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(state.border, lineWidth: 1.2))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
     }
@@ -250,7 +254,7 @@ struct MCQQuizView: View {
             Text(q.explanation).font(.subheadline).lineSpacing(3)
         }
         .contentCard()
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
     }
 
     private var footer: some View {

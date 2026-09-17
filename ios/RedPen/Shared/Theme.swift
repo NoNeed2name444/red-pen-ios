@@ -47,7 +47,15 @@ struct ModeTile: View {
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .background(kind.gradient, in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
-            .shadow(color: kind.tint.opacity(0.35), radius: 6, y: 3)
+            .overlay(
+                // a glossy top-edge highlight so the tile reads as a lit object
+                RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                    .fill(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                    .padding(1)
+            )
+            .overlay(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 0.8))
+            .shadow(color: kind.tint.opacity(0.42), radius: 9, y: 5)
+            .shadow(color: .black.opacity(0.10), radius: 1.5, y: 1)
     }
 }
 
@@ -57,16 +65,26 @@ struct ModeTile: View {
 struct ModeBackdrop: View {
     let kind: StudySetKind
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drift = false
 
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground)
-            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.28 : 0.20), .clear],
-                           center: .init(x: 0.95, y: 0.02), startRadius: 0, endRadius: 420)
-            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.18 : 0.12), .clear],
-                           center: .init(x: 0.05, y: 1.0), startRadius: 0, endRadius: 380)
+            // two soft blobs that drift very slowly, so the glass above them
+            // has something living to refract
+            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.30 : 0.22), .clear],
+                           center: .init(x: drift ? 0.85 : 0.98, y: drift ? 0.08 : -0.02), startRadius: 0, endRadius: 440)
+            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.20 : 0.13), .clear],
+                           center: .init(x: drift ? 0.12 : 0.02, y: drift ? 0.92 : 1.04), startRadius: 0, endRadius: 400)
+            RadialGradient(colors: [.white.opacity(scheme == .dark ? 0.0 : 0.35), .clear],
+                           center: .init(x: 0.5, y: 0.35), startRadius: 0, endRadius: 320)
         }
         .ignoresSafeArea()
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) { drift = true }
+        }
     }
 }
 
@@ -78,7 +96,13 @@ struct ContentCard: ViewModifier {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(0.06), radius: 12, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
+                    .blendMode(.plusLighter)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)   // contact shadow
+            .shadow(color: .black.opacity(0.07), radius: 16, y: 8)    // ambient lift
     }
 }
 
@@ -90,6 +114,39 @@ extension View {
         self
             .background(ModeBackdrop(kind: kind))
             .tint(kind.tint)
+    }
+
+    /// Slides up and fades in on first appearance, staggered by `index` so
+    /// a list of rows arrives as a cascade rather than all at once.
+    func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
+}
+
+/// A tappable row that squashes a touch under the finger — the tactile
+/// feedback Liquid Glass buttons have, for our custom rows.
+struct PressableRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
+extension ButtonStyle where Self == PressableRowStyle {
+    static var pressableRow: PressableRowStyle { PressableRowStyle() }
+}
+
+struct RiseIn: ViewModifier {
+    let index: Int
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown || reduceMotion ? 1 : 0)
+            .offset(y: shown || reduceMotion ? 0 : 14)
+            .onAppear {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.05)) { shown = true }
+            }
     }
 }
 
@@ -125,12 +182,13 @@ struct ScoreRing: View {
                 .stroke(AngularGradient(colors: [Color.accentColor.opacity(0.65), Color.accentColor], center: .center),
                         style: StrokeStyle(lineWidth: 14, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .shadow(color: Color.accentColor.opacity(0.45), radius: 10)
             VStack(spacing: 2) {
                 Text(label).font(.system(size: 38, weight: .bold, design: .rounded))
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
             }
         }
         .frame(width: 168, height: 168)
-        .onAppear { withAnimation(.easeOut(duration: 0.9)) { shown = fraction } }
+        .onAppear { withAnimation(.spring(response: 1.1, dampingFraction: 0.72)) { shown = fraction } }
     }
 }
