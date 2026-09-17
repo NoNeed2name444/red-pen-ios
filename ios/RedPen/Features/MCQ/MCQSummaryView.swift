@@ -5,10 +5,12 @@ import SwiftUI
 struct MCQSummaryView: View {
     let studySet: StudySet
     let answers: [MCQAnswer]
+    var onRetake: (() -> Void)? = nil
 
-    init(set studySet: StudySet, answers: [MCQAnswer]) {
+    init(set studySet: StudySet, answers: [MCQAnswer], onRetake: (() -> Void)? = nil) {
         self.studySet = studySet
         self.answers = answers
+        self.onRetake = onRetake
     }
     @Environment(\.dismiss) private var dismiss
 
@@ -42,6 +44,17 @@ struct MCQSummaryView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .contentCard()
+
+                if let onRetake {
+                    // matches the web app's "Retake this set" button
+                    Button {
+                        onRetake(); dismiss()
+                    } label: {
+                        Label("Retake this set", systemImage: "arrow.counterclockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glass)
+                }
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Review")

@@ -6,31 +6,66 @@ import SwiftUI
 /// then Next / See results. `state.answers[i]` becomes `answers[i]` here.
 struct MCQQuizView: View {
     let studySet: StudySet
+    @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
 
     @State private var current: Int = 0
     @State private var answers: [MCQAnswer]
+    /// Per-question option order: displayed slot i shows the original option
+    /// `orders[q][i]` — the web app's `shuffleOptions()`, applied per session
+    /// so the answer letter can't be memorised.
+    @State private var orders: [[Int]]
     @State private var showSummary = false
+    @State private var pendingResume: QuizProgress?
+    private let shuffle: Bool
 
     /// `initialAnswers` is only used by the CI screenshot launch (see
-    /// PreviewLaunch) to open the quiz with an answer already checked.
+    /// PreviewLaunch) to open the quiz with an answer already checked; it
+    /// also switches shuffling off so the screenshots are stable.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil) {
         self.studySet = studySet
+        self.shuffle = initialAnswers == nil
         var answers = Array(repeating: MCQAnswer(), count: studySet.questions.count)
         if let initialAnswers {
             for (i, a) in initialAnswers.enumerated() where i < answers.count { answers[i] = a }
         }
         _answers = State(initialValue: answers)
+        _orders = State(initialValue: Self.makeOrders(for: studySet, shuffle: initialAnswers == nil))
+    }
+
+    private static func makeOrders(for set: StudySet, shuffle: Bool) -> [[Int]] {
+        set.questions.map { q in
+            let identity = Array(q.options.indices)
+            return shuffle ? identity.shuffled() : identity
+        }
     }
 
     private var q: MCQQuestion { studySet.questions[current] }
     private var a: MCQAnswer { answers[current] }
+    /// The displayed slot that holds the correct option for `question`.
+    private func correctSlot(_ qi: Int) -> Int {
+        orders[qi].firstIndex(of: studySet.questions[qi].correctIndex) ?? studySet.questions[qi].correctIndex
+    }
+    private func optionText(_ qi: Int, slot: Int) -> String {
+        let opts = studySet.questions[qi].options
+        let orig = orders[qi][slot]
+        return opts.indices.contains(orig) ? opts[orig] : ""
+    }
+    /// Answers translated back to original option indices — what the
+    /// summary and the store expect.
+    private var originalAnswers: [MCQAnswer] {
+        answers.enumerated().map { qi, ans in
+            var out = ans
+            if let sel = ans.selected, orders[qi].indices.contains(sel) { out.selected = orders[qi][sel] }
+            return out
+        }
+    }
 
     private var scoreSoFar: (correct: Int, checked: Int) {
         var correct = 0, checked = 0
         for (i, ans) in answers.enumerated() where ans.checked {
             checked += 1
-            if ans.selected == studySet.questions[i].correctIndex { correct += 1 }
+            if ans.selected == correctSlot(i) { correct += 1 }
         }
         return (correct, checked)
     }
@@ -40,6 +75,7 @@ struct MCQQuizView: View {
             header
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    if let p = pendingResume { resumeBanner(p) }
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Question \(current + 1) · single best answer")
                             .font(.caption.weight(.semibold))
@@ -75,8 +111,60 @@ struct MCQQuizView: View {
         .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showSummary) {
-            MCQSummaryView(set: studySet, answers: answers)
+            MCQSummaryView(set: studySet, answers: originalAnswers) { retake() }
         }
+        .onAppear(perform: checkForResume)
+    }
+
+    // MARK: resume / retake — the web app's resumeBanner and retakeBtn
+
+    private func checkForResume() {
+        guard shuffle, let p = store.quizProgress[studySet.id],
+              p.questionIds == studySet.questions.map(\.id),
+              p.answers.contains(where: \.checked) else { return }
+        pendingResume = p
+    }
+
+    private func resumeBanner(_ p: QuizProgress) -> some View {
+        let done = p.answers.filter(\.checked).count
+        return HStack(spacing: 12) {
+            Image(systemName: "clock.arrow.circlepath").font(.title3).foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Pick up where you left off?").font(.subheadline.weight(.semibold))
+                Text("\(done) of \(studySet.questions.count) answered · \(p.savedAt.formatted(.relative(presentation: .named)))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button("Resume") {
+                withAnimation(.snappy) {
+                    answers = p.answers; orders = p.optionOrders
+                    current = min(p.current, max(0, studySet.questions.count - 1))
+                    pendingResume = nil
+                }
+            }
+            .buttonStyle(.glassProminent)
+            Button {
+                store.clearProgress(for: studySet.id)
+                withAnimation(.snappy) { pendingResume = nil }
+            } label: { Image(systemName: "xmark") }
+            .buttonStyle(.glass)
+        }
+        .contentCard()
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private func persist() {
+        guard shuffle else { return } // never from the screenshot launch
+        store.saveProgress(QuizProgress(current: current, answers: answers,
+                                        questionIds: studySet.questions.map(\.id), optionOrders: orders),
+                           for: studySet.id)
+    }
+
+    private func retake() {
+        answers = Array(repeating: MCQAnswer(), count: studySet.questions.count)
+        orders = Self.makeOrders(for: studySet, shuffle: shuffle)
+        current = 0
+        store.clearProgress(for: studySet.id)
     }
 
     private var header: some View {
@@ -112,7 +200,7 @@ struct MCQQuizView: View {
                     .foregroundStyle(state.badgeFg)
                     .frame(width: 30, height: 30)
                     .background(state.badgeBg, in: Circle())
-                Text(q.options[idx])
+                Text(optionText(current, slot: idx))
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
@@ -126,7 +214,8 @@ struct MCQQuizView: View {
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(state.border, lineWidth: 1.2))
         }
         .buttonStyle(.plain)
-        .disabled(a.checked)
+        // the action already ignores taps once checked — no .disabled(), which
+        // would dim the correct answer along with everything else
     }
 
     private struct OptionState {
@@ -143,7 +232,7 @@ struct MCQQuizView: View {
                                badgeBg: on ? tint : Color.primary.opacity(0.07),
                                badgeFg: on ? .white : .primary, mark: nil)
         }
-        if idx == q.correctIndex {
+        if idx == correctSlot(current) {
             return OptionState(fill: .green.opacity(0.12), border: .green, badgeBg: .green, badgeFg: .white, mark: "checkmark.circle.fill")
         }
         if idx == a.selected {
@@ -153,7 +242,7 @@ struct MCQQuizView: View {
     }
 
     private var explanationBox: some View {
-        let correct = a.selected == q.correctIndex
+        let correct = a.selected == correctSlot(current)
         return VStack(alignment: .leading, spacing: 8) {
             Label(correct ? "Correct" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.subheadline.weight(.bold))
@@ -194,11 +283,14 @@ struct MCQQuizView: View {
     private func onCheckOrNext() {
         if !a.checked {
             answers[current].checked = true
+            persist()
             return
         }
         if current < studySet.questions.count - 1 {
             current += 1
+            persist()
         } else {
+            store.clearProgress(for: studySet.id)
             showSummary = true
         }
     }
