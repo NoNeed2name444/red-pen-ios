@@ -131,11 +131,11 @@ enum PDFExporter {
         NSAttributedString(string: s + "\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 14), .foregroundColor: UIColor.black])
     }
     private static func body(_ s: String) -> NSAttributedString {
-        let para = NSMutableParagraphStyle(); para.lineSpacing = 3; para.paragraphSpacingAfter = 8
+        let para = NSMutableParagraphStyle(); para.lineSpacing = 3; para.paragraphSpacing = 8
         return NSAttributedString(string: s + "\n", attributes: [.font: UIFont.systemFont(ofSize: 11.5), .foregroundColor: UIColor.black, .paragraphStyle: para])
     }
     private static func bullet(_ s: String, emphasize: Bool) -> NSAttributedString {
-        let para = NSMutableParagraphStyle(); para.firstLineHeadIndent = 6; para.headIndent = 6; para.lineSpacing = 2; para.paragraphSpacingAfter = 3
+        let para = NSMutableParagraphStyle(); para.firstLineHeadIndent = 6; para.headIndent = 6; para.lineSpacing = 2; para.paragraphSpacing = 3
         return NSAttributedString(string: s + "\n", attributes: [
             .font: emphasize ? UIFont.boldSystemFont(ofSize: 11) : UIFont.systemFont(ofSize: 11),
             .foregroundColor: emphasize ? UIColor(red: 0.18, green: 0.43, blue: 0.29, alpha: 1) : UIColor.black,
@@ -144,7 +144,7 @@ enum PDFExporter {
     }
     private static func note(_ label: String, _ text: String) -> NSAttributedString {
         let out = NSMutableAttributedString()
-        let para = NSMutableParagraphStyle(); para.paragraphSpacingBefore = 4; para.paragraphSpacingAfter = 8
+        let para = NSMutableParagraphStyle(); para.paragraphSpacingBefore = 4; para.paragraphSpacing = 8
         out.append(NSAttributedString(string: label.uppercased() + "\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 9), .foregroundColor: UIColor(red: 0.62, green: 0.16, blue: 0.09, alpha: 1), .paragraphStyle: para]))
         out.append(NSAttributedString(string: text + "\n", attributes: [.font: UIFont.systemFont(ofSize: 10.5), .foregroundColor: UIColor.darkGray]))
         return out
