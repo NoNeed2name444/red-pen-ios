@@ -63,8 +63,14 @@ jobs:
         working-directory: ios
         run: |
           set -o pipefail
+          # LocalLLMClient ships a macro plugin (and possibly build-tool
+          # plugins); Xcode normally asks an interactive "do you trust this
+          # macro" question the first time, which a headless CI run can
+          # never answer. These two flags are xcodebuild's own bypass for
+          # exactly that — same effect as clicking "Trust & Enable" once.
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning:|BUILD |\*\* " || true
           # xcodebuild's own exit status is hidden by the grep above, and the .app
           # folder exists even after a failed compile — so ask the log instead
@@ -119,27 +125,19 @@ jobs:
               "build_ok": os.path.exists("build.log") and "BUILD SUCCEEDED" in open("build.log", errors="replace").read(),
               "screens": shots,
           }
-          json.dump(status, open("previews/status.json", "w"), indent=2)
-          print(json.dumps(status, indent=2))
+          with open("previews/status.json", "w") as f:
+              json.dump(status, f, indent=2)
           PY
 
-      - name: Publish to the previews branch
+      - name: Push previews
         if: always()
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
-          cd previews
-          git init -q
-          git checkout -q -b previews
-          git config user.name "red-pen-preview"
-          git config user.email "preview@users.noreply.github.com"
-          git add -A
-          git commit -q -m "iOS preview of ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews:previews
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ios-preview
-          path: previews
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan previews-tmp
+          git rm -rf --cached . >/dev/null
+          git add previews/*.png previews/status.json previews/build.log previews/errors.txt 2>/dev/null || true
+          git commit -m "Preview run ${{ github.run_id }}" -q
+          git branch -D previews 2>/dev/null || true
+          git branch -m previews
+          git push -f origin previews
