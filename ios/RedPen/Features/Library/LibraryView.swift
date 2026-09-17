@@ -44,14 +44,14 @@ struct LibraryView: View {
                         }
                         if !loose.isEmpty {
                             Section {
-                                ForEach(loose) { set in row(set) }
+                                ForEach(Array(loose.enumerated()), id: \.element.id) { i, set in row(set).riseIn(index: i) }
                                     .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
                             } header: { sectionHeader("Your sets") }
                         }
                         ForEach(store.folders) { folder in
                             let inside = members(of: folder)
                             Section {
-                                ForEach(inside) { set in row(set) }
+                                ForEach(Array(inside.enumerated()), id: \.element.id) { i, set in row(set).riseIn(index: loose.count + i) }
                                     .onDelete { offsets in delete(offsets.map { inside[$0].id }) }
                             } header: {
                                 HStack {
@@ -191,7 +191,7 @@ struct LibraryView: View {
                         setRow(set)
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressableRow)
             } else {
                 NavigationLink(value: set) { setRow(set) }
             }
