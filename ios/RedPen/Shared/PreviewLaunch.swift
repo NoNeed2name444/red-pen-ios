@@ -24,6 +24,12 @@ enum PreviewLaunch {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("redpen-preview-\(UUID().uuidString).json")
         let store = Store(fileURL: url)
         store.library = SampleData.sets
+        // group the two cardiology-ish sets so the library screenshot shows a folder
+        let folder = StudyFolder(name: "Cardiology block")
+        store.folders = [folder]
+        for i in store.library.indices where ["Cardiology", "Respiratory"].contains(store.library[i].subject) {
+            store.library[i].folderId = folder.id
+        }
         return store
     }
 }
