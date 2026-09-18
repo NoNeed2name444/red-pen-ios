@@ -1,8 +1,10 @@
 import SwiftUI
 
 /// The set list: every saved set, tap to open into its mode's session, swipe to
-/// delete, swipe the other way to export a PDF. The rows themselves are in
-/// LibraryRows.
+/// delete, swipe the other way to export a PDF.
+///
+/// The rows are in LibraryRows and the sheets in LibrarySheets; what is left
+/// here is the shape of the screen.
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
@@ -38,15 +40,18 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            content
-                .background(LibraryBackdrop())
-                .navigationTitle("Red Pen")
-                .navigationDestination(for: StudySet.self) { destination(for: $0) }
-                .toolbar { toolbarItems }
-                .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
-                .modifier(LibrarySheets())
+            attachingSheets(to: screen)
         }
         .tint(pen)
+    }
+
+    private var screen: some View {
+        content
+            .background(LibraryBackdrop())
+            .navigationTitle("Red Pen")
+            .navigationDestination(for: StudySet.self) { destination(for: $0) }
+            .toolbar { toolbarItems }
+            .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
     }
 
     @ViewBuilder
@@ -150,11 +155,5 @@ struct LibraryView: View {
         case .osce: OsceReviewView(set: set)
         case .narrate: NarrateReviewView(set: set)
         }
-    }
-
-    /// Every sheet and alert the library can raise, kept together so the main
-    /// body stays one screen long.
-    private struct LibrarySheets: ViewModifier {
-        func body(content: Content) -> some View { content }
     }
 }
