@@ -88,7 +88,10 @@ jobs:
           suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift
           suite deck DeckTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
                 $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
-                $M/StudySet.swift $S/BookPages.swift $S/Highlight.swift \
+                $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
+                $S/LectureTranscriber.swift $S/PlainTextImport.swift \
+                $S/BookPages.swift $S/Highlight.swift \
                 $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift
 
       - name: Fail the job if anything failed
