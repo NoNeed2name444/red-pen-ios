@@ -90,12 +90,20 @@ enum SourceText {
     }
 
     /// One page's text, tidied.
+    ///
+    /// A blank line survives as far as the collapse below, because it is the
+    /// only thing separating a heading from the paragraph under it once the
+    /// styling is gone. Throwing every blank line away here - which is what
+    /// treating one as page furniture used to do - ran the heading and the body
+    /// together into a single line, and a generator reading that line makes one
+    /// card out of two facts.
     static func clean(_ text: String, dropping furniture: Set<String> = []) -> String {
         let joined = joinHyphenated(text)
         let kept = joined.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !isPageFurniture($0) && !furniture.contains($0) }
-        // collapse the runs of blank lines a PDF's layout leaves behind
+            .filter { $0.isEmpty || (!isPageFurniture($0) && !furniture.contains($0)) }
+        // collapse the runs of blank lines a PDF's layout leaves behind, and
+        // drop the ones at the very start
         var out: [String] = []
         for line in kept where !(line.isEmpty && out.last?.isEmpty != false) {
             out.append(line)
