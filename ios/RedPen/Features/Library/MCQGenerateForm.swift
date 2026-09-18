@@ -4,8 +4,9 @@ import SwiftUI
 ///
 /// Split out of NewSetView because it is now the larger half: it owns the
 /// choice of on-device model and the download of the fallback one. Reading the
-/// lecture out of a PDF lives beside it in LecturePDFSection, which feeds this
-/// form its text and can also hand back a deck of its own.
+/// lecture out of a file lives beside it in LecturePDFSection, which feeds this
+/// form its text, proposes how many questions that much material can support,
+/// and can also hand back a deck of its own.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
 
@@ -31,8 +32,8 @@ struct MCQGenerateForm: View {
 
     var body: some View {
         Group {
-            LecturePDFSection(sourceText: $sourceText, disabled: isGenerating,
-                              name: name, subject: subject,
+            LecturePDFSection(sourceText: $sourceText, questionCount: $questionCount,
+                              disabled: isGenerating, name: name, subject: subject,
                               onOcclusionSet: onGenerated)
 
             Section {
