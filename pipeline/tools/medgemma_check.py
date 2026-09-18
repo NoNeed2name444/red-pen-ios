@@ -20,24 +20,21 @@ It never edits a card, never writes an answer, and never picks a side. Same
 rule as the transcription committee, for the same reason: a model that can be
 confidently wrong may only ever stop something, never author it.
 
-WHERE IT RUNS, AND WHOSE ACCOUNT. Nobody's. Not on the phone - four billion
-parameters is three gigabytes of RAM and a download no study app should ask
-for. Not through a hosted Space either: a GPU Space bills whoever calls it, so
-it refuses anonymous callers, and wiring one up would mean some person's
-account paying for every student's cards. Instead this runs on a throwaway CI
-machine from a publicly downloadable GGUF build, with llama.cpp. No token, no
-sign-in, no key in the app, nothing of anyone's to leak.
+WHOSE ACCOUNT. Nobody's. Not the phone - four billion parameters is three
+gigabytes of RAM and a download no study app should ask for. Not a hosted
+Space either: a GPU Space bills whoever calls it, so it refuses anonymous
+callers, and wiring one up would mean some person's account paying for every
+student's cards. This runs on a throwaway CI machine from a publicly
+downloadable GGUF build, with llama.cpp. No token, no sign-in, no key.
 
-The weights are a community conversion of Google's model, and they are
-ungated where Google's own copy is not. The gate is there so you read Google's
-Health AI terms, which still apply: this is a development model, not a
-clinician, and nothing it says here is a clinical judgement. Read them once.
+The weights are a community conversion, ungated where Google's own copy is
+not. The gate exists so you read Google's Health AI terms, which still apply:
+this is a development model, not a clinician, and nothing here is a clinical
+judgement.
 
 And it has never seen your slides. It was tuned on real medical imaging -
-X-rays, histology, fundus photographs - not on lecture slides, so its hit rate
-on YOUR material is unknown until measured. That is what --benchmark is for:
-run it over cards you have already checked by hand and see how often it agrees
-with you BEFORE you let it flag anything.
+X-rays, histology, fundus photographs - not lecture slides, so its hit rate on
+YOUR material is unknown until measured. That is what --benchmark is for.
 """
 import argparse, json, os, re, subprocess, sys, urllib.request
 
@@ -45,6 +42,14 @@ REPO = "unsloth/medgemma-1.5-4b-it-GGUF"
 WEIGHTS = "medgemma-1.5-4b-it-Q4_K_M.gguf"
 PROJECTOR = "mmproj-F16.gguf"           # without this it cannot see at all
 HOST = "https://huggingface.co/%s/resolve/main/%s"
+
+# Every substantive word of the CARD's answer has to be there. A partial match
+# sounds reasonable and is the exact hole this tool exists to close: "renal
+# vein" against a card saying "renal artery" shares "renal", which is half the
+# words and none of the meaning - at any floor below 1.0 the one card that
+# would teach you the wrong vessel is the one that passes. Being strict costs
+# review time; being loose costs the thing the check was for.
+FLOOR = 1.0
 
 # A short, closed question. Asked openly a vision model narrates the whole
 # slide, and a paragraph cannot be compared with a two-word answer.
@@ -75,7 +80,13 @@ def stem(word):
 
 
 def agreement(said, claimed):
-    """How much of the CARD's answer the model's answer actually contains."""
+    """How much of the CARD's answer the model's answer actually contains.
+
+    Deliberately one-sided. The model naming more than the card - "renal artery
+    and vein" where the card says "renal artery" - is the model being
+    descriptive, not the card being wrong. The card naming more than the model
+    saw is the card claiming something unconfirmed.
+    """
     a = {stem(w) for w in words(said)}
     b = {stem(w) for w in words(claimed)}
     if not a or not b:
@@ -83,7 +94,7 @@ def agreement(said, claimed):
     return len(a & b) / float(len(b))
 
 
-def verdict(said, claimed, floor=0.5):
+def verdict(said, claimed, floor=FLOOR):
     text = (said or "").strip()
     if not text or any(h in text.lower() for h in HEDGES):
         return "unsure", 0.0
@@ -144,7 +155,7 @@ def main(argv=None):
     ap.add_argument("--out", default="results/medgemma-check.json")
     ap.add_argument("--binary", default=os.environ.get("MTMD_CLI", "llama-mtmd-cli"))
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 4)
-    ap.add_argument("--floor", type=float, default=0.5)
+    ap.add_argument("--floor", type=float, default=FLOOR)
     ap.add_argument("--benchmark", action="store_true",
                     help="cards carry a 'truth' field checked by hand; report the hit rate")
     args = ap.parse_args(argv)
