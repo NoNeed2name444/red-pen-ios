@@ -124,24 +124,37 @@ DECK = [
      "bullets": ["The malar rash"], "why": "Sparing separates it from rosacea."},
 ]
 questions, skipped = quiz_from_cards.build(DECK, seed=1)
-check("a question is built from each card", len(questions) == len(DECK),
-      (len(questions), skipped))
+made = {q["fromCard"] for q in questions}
 
-first = questions[0]
+# k2 asks "which ANTIBODY" and its answer is the only option containing the
+# word, which is a question you can win without knowing any medicine. No other
+# card in this deck supplies a distractor that repairs it, so the right
+# behaviour is to drop it and say why.
+check("a question that gives itself away is dropped",
+      "k2" not in made and any(s["id"] == "k2" and "gives itself away" in s["why"]
+                               for s in skipped), skipped)
+check("every other card became a question", made == {"k1", "k3", "k4", "k5", "k6"}, made)
+
+first = [q for q in questions if q["fromCard"] == "k1"][0]
 check("the key is the card's own answer",
       first["options"][first["correctIndex"]] == "Hydroxychloroquine", first)
 answers = {c["bullets"][0] for c in DECK}
 check("every option came from the deck, none invented",
       all(set(q["options"]) <= answers for q in questions))
-check("the card's own reasoning is carried over",
-      first["explanation"].startswith("It lowers flares"), first["explanation"])
+check("the explanation names what it is explaining",
+      first["explanation"].startswith("Hydroxychloroquine")
+      and "lowers flares" in first["explanation"], first["explanation"])
+check("an explanation that already names the answer is left alone",
+      quiz_from_cards.explain("The malar rash",
+                              "The malar rash spares the nasolabial folds.")
+      == "The malar rash spares the nasolabial folds.")
 check("no question repeats an option",
       all(len(set(q["options"])) == len(q["options"]) for q in questions))
 
-# the questions it writes must themselves survive the quality rules
+# the questions it ships must themselves survive the quality rules
 built = review({"mcq": questions})
 allowed = {"near-duplicate"}   # six cards on one topic do resemble each other
-check("the generated questions pass the quality rules",
+check("the shipped questions pass the quality rules",
       not (rules(built["problems"]) - allowed), built["problems"])
 
 thin_deck = DECK[:2]
