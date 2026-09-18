@@ -1,0 +1,24 @@
+# The sync worker's logic, run against a real SQLite.
+#
+# Cheap and fast on purpose - Ubuntu and no install step - so that the one part
+# of Red Pen that can lose a student's work by being subtly wrong is checked on
+# every push rather than only when somebody remembers.
+name: Server tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-tests.yml'
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # node:sqlite, which these tests run against, arrived in 22.5.
+          node-version: '22'
+      - name: The sync worker
+        run: node server/tests/sync.test.mjs
