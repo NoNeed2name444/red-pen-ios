@@ -1,6 +1,14 @@
 import Foundation
 import Combine
 
+/// Only decks of cards have a schedule; a textbook or a transcript answers with
+/// nothing, which is what keeps them out of the day's queue.
+extension StudySet: ReviewDeck {
+    var deckID: UUID { id }
+    var deckName: String { name }
+    var deckCards: [AnkiCard] { kind == .anki ? cards : [] }
+}
+
 /// Where the schedule lives between sessions.
 ///
 /// Deliberately a file of its own rather than another field in the library
@@ -74,16 +82,15 @@ final class ReviewStore: ObservableObject {
         return next
     }
 
-    /// A card that was edited beyond recognition, or deleted, loses its place.
+    /// A card that was deleted loses its place.
     func forget(_ cardID: UUID) {
         guard records[cardID] != nil else { return }
         records[cardID] = nil
         save()
     }
 
-    /// Drops records for cards that no longer exist in any set. Worth doing
-    /// when the library changes rather than never: otherwise every card ever
-    /// deleted keeps its schedule for good.
+    /// Drops records for cards that no longer exist in any set. Otherwise every
+    /// card ever deleted keeps its schedule for good.
     func prune(keeping sets: [StudySet]) {
         let kept = ReviewPlan.pruned(records, keeping: sets)
         guard kept.count != records.count else { return }
