@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AuthenticationServices
 
 /// Who is signed in, and how they got there.
 ///
@@ -17,8 +18,11 @@ final class AccountStore: ObservableObject {
     @Published private(set) var codeSentAt: Date?
     @Published var pendingEmail: String?
 
-    private let apple = AppleSignIn()
     private let google = GoogleSignIn()
+    /// The raw nonce for a sign-in in progress. Apple is given only its hash,
+    /// and the server is told both - which is what stops a token captured from
+    /// one sign-in being replayed into another.
+    private var appleNonce = ""
 
     init(session: Session? = nil) {
         if let session {
@@ -31,15 +35,47 @@ final class AccountStore: ObservableObject {
     var isSignedIn: Bool { state.isSignedIn }
     var account: Account? { state.account }
 
-    // MARK: signing in
+    // MARK: Apple
 
-    func signInWithApple() async {
-        await attempt { try await self.apple.run() }
+    /// Called as Apple's own button builds its request; returns the hashed
+    /// nonce it should carry.
+    func beginApple() -> String {
+        appleNonce = AuthRules.nonce()
+        return AuthRules.sha256Hex(appleNonce)
     }
+
+    func finishApple(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case .failure(let error):
+            if let authError = error as? ASAuthorizationError, authError.code == .canceled { return }
+            trouble = error.localizedDescription
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let data = credential.identityToken,
+                  let token = String(data: data, encoding: .utf8) else {
+                trouble = "Apple didn't return a usable sign-in."
+                return
+            }
+            // Apple gives the name ONCE, on the very first sign-in, and never
+            // again - so it goes straight through rather than being asked for
+            // later, when it no longer exists.
+            let name = [credential.fullName?.givenName, credential.fullName?.familyName]
+                .compactMap { $0 }.joined(separator: " ")
+            let nonce = appleNonce
+            await attempt {
+                try await AuthAPI.signInWithApple(identityToken: token, nonce: nonce,
+                                                  fullName: name.isEmpty ? nil : name)
+            }
+        }
+    }
+
+    // MARK: Google
 
     func signInWithGoogle() async {
         await attempt { try await self.google.run() }
     }
+
+    // MARK: email
 
     /// Sends a code. The answer is the same whether or not the address is
     /// already known - telling somebody "no account with that address" turns
@@ -73,13 +109,14 @@ final class AccountStore: ObservableObject {
         await attempt { try await AuthAPI.verifyCode(email: email, code: code) }
     }
 
+    // MARK: the shared plumbing
+
     private func attempt(_ work: @escaping () async throws -> Session) async {
         busy = true
         trouble = nil
         defer { busy = false }
         do {
-            let session = try await work()
-            adopt(session)
+            adopt(try await work())
         } catch is CancellationError {
             // backing out of a sign-in sheet is not a problem to report
         } catch {
@@ -127,8 +164,9 @@ final class AccountStore: ObservableObject {
     ///
     /// The App Store requires this of any app that can create an account, and
     /// it is right anyway: somebody who signed up in two taps should not have
-    /// to email support to leave. The student's decks are not touched - they
-    /// were never on the server to delete.
+    /// to email support to leave. The student's decks are untouched - they were
+    /// never on the server to delete.
+    @discardableResult
     func deleteAccount() async -> Bool {
         guard let session = state.session else { return false }
         busy = true
