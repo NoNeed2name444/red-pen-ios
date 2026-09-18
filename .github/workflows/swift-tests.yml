@@ -1,15 +1,14 @@
 # The app's pure-Swift logic, compiled and RUN - not just type-checked. A suite
-# that compiles and never executes is a suite that passes forever: the store
-# tests in the other repo did exactly that for weeks.
+# that compiles and never executes is a suite that passes forever.
 #
 # Swift allows top-level statements only in a file named main.swift, and only
 # one per binary, so each suite is copied to its own build directory under that
-# name. Copying it to any other name is what made the earlier suite silently
+# name. Copying it to any other name is what made an earlier suite silently
 # never compile.
 #
-# Only UIKit-free files can be listed here: the runner is a Mac, so a file that
-# imports UIKit or PDFKit cannot be compiled for it. That is why the decisions
-# worth testing are kept in files that import nothing but Foundation.
+# Only UIKit-free files can be listed: the runner is a Mac, so a file importing
+# UIKit, PDFKit or Vision cannot be compiled for it. That is why the decisions
+# worth testing live in files that import nothing but Foundation.
 name: Swift tests
 on:
   workflow_dispatch:
@@ -26,117 +25,49 @@ env:
 jobs:
   tests:
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
-      - name: Card quality and the quiz builder
+      # A real zip for the Word reader to open, written by the runner's own zip
+      # command rather than by Red Pen: the whole risk in reading a .docx is
+      # that a real file is laid out differently from the one in your head.
+      - name: A sample Word handout
         run: |
-          mkdir -p out build/quality
-          cp ios/RedPen/Tests/CardQualityTests.swift build/quality/main.swift
-          {
-            swiftc -O ios/RedPen/Models/MCQQuestion.swift \
-                   ios/RedPen/Models/AnkiCard.swift \
-                   ios/RedPen/Shared/CardQuality.swift \
-                   ios/RedPen/Shared/QuizFromCards.swift \
-                   build/quality/main.swift -o qualitytest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./qualitytest ]; then ./qualitytest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "qualitytest was never built"; fi
-          } > out/quality.log 2>&1
-          cat out/quality.log
-
-      # The sound keys are the contract between the phone and the committee, so
-      # this suite failing means the two have drifted apart - not that a test is
-      # being fussy.
-      - name: Pronunciations, corrections and word timing
-        run: |
-          mkdir -p out build/learning
-          cp ios/RedPen/Tests/LearningTests.swift build/learning/main.swift
-          {
-            swiftc -O ios/RedPen/Shared/SoundKey.swift \
-                   ios/RedPen/Shared/PronunciationStore.swift \
-                   ios/RedPen/Shared/OnDeviceLearning.swift \
-                   ios/RedPen/Shared/Corrections.swift \
-                   ios/RedPen/Shared/WordTiming.swift \
-                   build/learning/main.swift -o learningtest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./learningtest ]; then ./learningtest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "learningtest was never built"; fi
-          } > out/learning.log 2>&1
-          cat out/learning.log
-
-      - name: Transcript lines and the word clock
-        run: |
-          mkdir -p out build/transcriber
-          cp ios/RedPen/Tests/TranscriberTests.swift build/transcriber/main.swift
-          {
-            swiftc -O ios/RedPen/Shared/SoundKey.swift \
-                   ios/RedPen/Shared/PronunciationStore.swift \
-                   ios/RedPen/Shared/OnDeviceLearning.swift \
-                   ios/RedPen/Shared/Corrections.swift \
-                   ios/RedPen/Shared/WordTiming.swift \
-                   ios/RedPen/Shared/LectureTranscriber.swift \
-                   build/transcriber/main.swift -o transcribertest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./transcribertest ]; then ./transcribertest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "transcribertest was never built"; fi
-          } > out/transcriber.log 2>&1
-          cat out/transcriber.log
-
-      # What happens to a lecture's words after they leave the PDF: the footer
-      # on every page must not become the most repeated fact in the deck.
-      - name: Reading a lecture file
-        run: |
-          mkdir -p out build/ingest
-          cp ios/RedPen/Tests/IngestTests.swift build/ingest/main.swift
-          {
-            swiftc -O ios/RedPen/Shared/SourceText.swift \
-                   build/ingest/main.swift -o ingesttest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./ingesttest ]; then ./ingesttest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "ingesttest was never built"; fi
-          } > out/ingest.log 2>&1
-          cat out/ingest.log
-
-      # A labelled diagram carries its own answers, so occlusion cards are
-      # geometry rather than a guess - which means they can be checked.
-      - name: Figures and occlusion cards
-        run: |
-          mkdir -p out build/figures
-          cp ios/RedPen/Tests/FigureTests.swift build/figures/main.swift
-          {
-            swiftc -O ios/RedPen/Models/AnkiCard.swift \
-                   ios/RedPen/Shared/FigureGrid.swift \
-                   build/figures/main.swift -o figuretest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./figuretest ]; then ./figuretest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "figuretest was never built"; fi
-          } > out/figures.log 2>&1
-          cat out/figures.log
-
-      # The archive is written by the runner's own zip command, not by Red Pen:
-      # the entire risk in reading a .docx is that a real file is laid out a few
-      # bytes differently from the one in your head.
-      - name: Word handouts
-        run: |
-          mkdir -p out build/docx fixture/word/media
-          cat > fixture/word/document.xml <<'XML'
-          <?xml version="1.0"?><w:document xmlns:w="x"><w:body><w:p><w:r><w:t>Lupus &amp; the kidney</w:t></w:r></w:p><w:p><w:r><w:t>Class IV</w:t></w:r><w:r><w:t> nephritis</w:t></w:r></w:p><w:p/><w:p><w:r><w:t>Treat with</w:t></w:r><w:br/><w:r><w:t>steroids</w:t></w:r></w:p></w:body></w:document>
-          XML
+          mkdir -p fixture/word/media
+          printf '%s' '<?xml version="1.0"?><w:document xmlns:w="x"><w:body><w:p><w:r><w:t>Lupus &amp; the kidney</w:t></w:r></w:p><w:p><w:r><w:t>Class IV</w:t></w:r><w:r><w:t> nephritis</w:t></w:r></w:p><w:p/><w:p><w:r><w:t>Treat with</w:t></w:r><w:br/><w:r><w:t>steroids</w:t></w:r></w:p></w:body></w:document>' > fixture/word/document.xml
           printf 'two' > fixture/word/media/image2.png
           printf 'ten' > fixture/word/media/image10.png
           (cd fixture && zip -qr ../sample.docx .)
-          cp ios/RedPen/Tests/DocxTests.swift build/docx/main.swift
-          {
-            swiftc -O ios/RedPen/Shared/Zip.swift \
-                   ios/RedPen/Shared/DocxText.swift \
-                   build/docx/main.swift -o docxtest 2>&1 | head -n 40
-            echo "compile rc=${PIPESTATUS[0]}"
-            if [ -x ./docxtest ]; then ./docxtest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
-            else echo "docxtest was never built"; fi
-          } > out/docx.log 2>&1
-          cat out/docx.log
+
+      - name: Every suite
+        run: |
+          mkdir -p out
+          S=ios/RedPen/Shared; M=ios/RedPen/Models
+          suite () {
+            name=$1; test=$2; shift 2
+            mkdir -p build/$name
+            cp ios/RedPen/Tests/$test build/$name/main.swift
+            {
+              swiftc -O "$@" build/$name/main.swift -o build/$name/run 2>&1 | head -n 40
+              echo "compile rc=${PIPESTATUS[0]}"
+              if [ -x build/$name/run ]; then
+                build/$name/run 2>&1 | head -n 90; echo "run rc=${PIPESTATUS[0]}"
+              else echo "$name was never built"; fi
+            } > out/$name.log 2>&1
+            cat out/$name.log
+          }
+          suite quality CardQualityTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
+                $S/CardQuality.swift $S/QuizFromCards.swift
+          suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift
+          suite transcriber TranscriberTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
+                $S/LectureTranscriber.swift
+          suite ingest IngestTests.swift $S/SourceText.swift
+          suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
+          suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
+          suite coverage CoverageTests.swift $S/MCQCoverage.swift
 
       - name: Fail the job if anything failed
         run: |
