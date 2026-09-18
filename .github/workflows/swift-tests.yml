@@ -1,0 +1,61 @@
+# The app's pure-Swift logic, compiled and RUN - not just type-checked. A suite
+# that compiles and never executes is a suite that passes forever: the store
+// tests in the other repo did exactly that for weeks.
+#
+# Swift allows top-level statements only in a file named main.swift, and only
+# one per binary, so each suite is copied to its own build directory under that
+# name. Copying it to any other name is what made the earlier suite silently
+# never compile.
+name: Swift tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/RedPen/Shared/**'
+      - 'ios/RedPen/Models/**'
+      - 'ios/RedPen/Tests/**'
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  tests:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Card quality and the quiz builder
+        run: |
+          mkdir -p out build/quality
+          cp ios/RedPen/Tests/CardQualityTests.swift build/quality/main.swift
+          {
+            swiftc -O ios/RedPen/Models/MCQQuestion.swift \
+                   ios/RedPen/Models/AnkiCard.swift \
+                   ios/RedPen/Shared/CardQuality.swift \
+                   ios/RedPen/Shared/QuizFromCards.swift \
+                   build/quality/main.swift -o qualitytest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./qualitytest ]; then ./qualitytest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "qualitytest was never built"; fi
+          } > out/quality.log 2>&1
+          cat out/quality.log
+
+      - name: Fail the job if anything failed
+        run: |
+          bad=0
+          for f in out/*.log; do
+            if grep -qE 'rc=[1-9]' "$f"; then echo "FAILURES in $f"; bad=1; fi
+            if grep -q 'never built' "$f"; then echo "NOT BUILT in $f"; bad=1; fi
+          done
+          [ "$bad" = "0" ] && echo "every check passed"
+          exit $bad
+
+      - name: Push the logs
+        if: always()
+        run: |
+          cd out
+          git init -q && git checkout -q -b swift-tests
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
