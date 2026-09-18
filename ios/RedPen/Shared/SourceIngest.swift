@@ -17,19 +17,28 @@ import UIKit
 /// because a deck with three scanned pages in the middle is the normal case.
 ///
 /// The text decisions all live in SourceText, which knows nothing about PDFKit
-/// and can therefore be tested.
+/// and can therefore be tested; the figure decisions live in FigureGrid for the
+/// same reason.
 enum SourceIngest {
 
     struct Result {
         var document: SourceText.Document
-        /// Rendered pages that carried no text of their own. On a slide deck
-        /// that picture IS the diagram, which is what an occlusion card is
-        /// eventually made from.
+        /// Pages carrying a diagram, in the order the cards refer to them.
         var figures: [UIImage]
+        /// Occlusion cards made from those diagrams' own labels. `imageIndex`
+        /// is a position in `figures`.
+        var occlusionCards: [AnkiCard]
     }
 
-    /// Read a PDF: its own text where it has any, OCR where it does not.
-    static func read(pdf url: URL) async throws -> Result {
+    /// Read a PDF: its own text where it has any, OCR where it does not, and a
+    /// look for a labelled diagram either way.
+    ///
+    /// A figure is looked for on EVERY page, not only on the pages with no text
+    /// of their own. The anatomy slide that matters most - a title, two bullets
+    /// and a labelled diagram - carries plenty of text, and the earlier version
+    /// of this skipped exactly those pages.
+    static func read(pdf url: URL, findingFigures: Bool = true,
+                     figureLimit: Int = 60) async throws -> Result {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
 
@@ -38,26 +47,40 @@ enum SourceIngest {
 
         var raw: [(number: Int, text: String, recognised: Bool)] = []
         var figures: [UIImage] = []
+        var cards: [AnkiCard] = []
 
         for index in 0..<pdf.pageCount {
-            guard let page = pdf.page(at: index) else { continue }
-            let embedded = page.string ?? ""
-            if embedded.trimmingCharacters(in: .whitespacesAndNewlines).count >= SourceText.textFloor {
-                raw.append((index + 1, embedded, false))
-                continue
+            // each page's render is several megabytes; without this, a forty
+            // page deck holds all forty at once and the app is killed
+            autoreleasepool {
+                guard let page = pdf.page(at: index) else { return }
+                let embedded = page.string ?? ""
+                let thin = embedded.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .count < SourceText.textFloor
+                let rendered = (thin || findingFigures) ? image(of: page) : nil
+
+                if thin {
+                    var recognised = ""
+                    if let cg = rendered?.cgImage {
+                        recognised = (try? RedPenOCR.readText(cg)) ?? ""
+                    }
+                    raw.append((index + 1, recognised, true))
+                } else {
+                    raw.append((index + 1, embedded, false))
+                }
+
+                guard findingFigures, figures.count < figureLimit,
+                      let cg = rendered?.cgImage,
+                      let found = FigureFinder.read(cg, imageIndex: figures.count)
+                else { return }
+                figures.append(rendered!)
+                cards.append(contentsOf: found.cards)
             }
-            let rendered = image(of: page)
-            var recognised = ""
-            if let cg = rendered?.cgImage {
-                recognised = (try? RedPenOCR.readText(cg)) ?? ""
-            }
-            raw.append((index + 1, recognised, true))
-            if let rendered { figures.append(rendered) }
         }
 
         let document = SourceText.document(from: raw)
-        guard !document.isEmpty else { throw Trouble.noText }
-        return Result(document: document, figures: figures)
+        guard !document.isEmpty || !cards.isEmpty else { throw Trouble.noText }
+        return Result(document: document, figures: figures, occlusionCards: cards)
     }
 
     /// A page as an image, at a size Vision can read without the memory cost of
