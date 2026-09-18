@@ -1,8 +1,8 @@
 // Getting in, and staying in.
 //
-// Both halves fail quietly when they are wrong: an address the server will
-// reject looks like an email that never arrived, and a mishandled expiry date
-// looks like an app that has decided you did not pay.
+// Both halves fail quietly when they are wrong: a malformed redirect looks like
+// a sign-in that just does not work, and a mishandled expiry date looks like an
+// app that has decided you did not pay.
 import Foundation
 
 var failures: [String] = []
@@ -12,38 +12,7 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
     if !ok { failures.append(label) }
 }
 
-// MARK: addresses
-
-check("an address is tidied, not judged",
-      AuthRules.normalisedEmail("  Ahmed@Example.COM ") == "ahmed@example.com",
-      AuthRules.normalisedEmail("  Ahmed@Example.COM ") ?? "nil")
-check("a plus address is fine",
-      AuthRules.normalisedEmail("me+lectures@uni.edu.eg") == "me+lectures@uni.edu.eg")
-check("no at-sign is a typo", AuthRules.normalisedEmail("ahmed.example.com") == nil)
-check("a domain with no dot is a typo", AuthRules.normalisedEmail("ahmed@localhost") == nil)
-check("a space in the middle is a typo", AuthRules.normalisedEmail("ahmed @example.com") == nil)
-check("nothing before the at-sign is a typo", AuthRules.normalisedEmail("@example.com") == nil)
-check("a doubled dot is a typo", AuthRules.normalisedEmail("ahmed@example..com") == nil)
-check("an empty box is not an address", AuthRules.normalisedEmail("   ") == nil)
-
-// MARK: the code
-
-// people paste the whole sentence, or the code with a space in it; pulling the
-// digits out is kinder than refusing
-check("a code pasted with a space still works",
-      AuthRules.normalisedCode("482 913") == "482913")
-check("a code pasted inside a sentence still works",
-      AuthRules.normalisedCode("Your Red Pen code is 482913") == "482913")
-check("five digits is not a code", AuthRules.normalisedCode("48291") == nil)
-check("seven digits is not a code", AuthRules.normalisedCode("4829134") == nil)
-check("nothing typed is not a code", AuthRules.normalisedCode("") == nil)
-
 let now = Date(timeIntervalSince1970: 1_700_000_000)
-check("the first code can be asked for at once", AuthRules.canResend(lastSentAt: nil, now: now))
-check("a second one cannot be asked for straight away",
-      !AuthRules.canResend(lastSentAt: now.addingTimeInterval(-5), now: now))
-check("but can after the wait",
-      AuthRules.canResend(lastSentAt: now.addingTimeInterval(-31), now: now))
 
 // MARK: PKCE
 
@@ -61,6 +30,10 @@ check("a challenge is safe to put in a URL",
 check("a hashed nonce is hex",
       AuthRules.sha256Hex("abc").count == 64
         && AuthRules.sha256Hex("abc").allSatisfy { $0.isHexDigit })
+check("the same input hashes the same way twice",
+      AuthRules.sha256Hex("abc") == AuthRules.sha256Hex("abc"))
+
+// MARK: the redirect
 
 let good = URL(string: "redpen://auth?code=xyz123&state=abc")!
 check("the code comes back out of the redirect",
@@ -74,6 +47,9 @@ check("a redirect with no code is refused",
                      expectedState: "abc") == nil)
 check("an error redirect is refused",
       AuthRules.code(fromRedirect: URL(string: "redpen://auth?error=access_denied&state=abc")!,
+                     expectedState: "abc") == nil)
+check("an empty code is refused",
+      AuthRules.code(fromRedirect: URL(string: "redpen://auth?code=&state=abc")!,
                      expectedState: "abc") == nil)
 
 // MARK: sessions
