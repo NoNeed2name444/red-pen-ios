@@ -10,7 +10,7 @@ settings:
     TARGETED_DEVICE_FAMILY: "1,2"
 packages:
   # Gemma-4-E2B fallback path for devices that can't run Apple's on-device
-  # model (older hardware, Apple Intelligence off) — see GemmaModel.swift.
+  # model (older hardware, Apple Intelligence off) - see GemmaModel.swift.
   LocalLLMClient:
     url: https://github.com/tattn/LocalLLMClient.git
     branch: main
@@ -33,6 +33,13 @@ targets:
         product: LocalLLMClient
       - package: LocalLLMClient
         product: LocalLLMClientLlama
+    entitlements:
+      path: RedPen/RedPen.entitlements
+      properties:
+        # Sign in with Apple needs the capability, not just the button. Without
+        # it the sheet appears and then fails with an unhelpful error.
+        com.apple.developer.applesignin:
+          - Default
     info:
       path: RedPen/Info.plist
       properties:
@@ -51,13 +58,28 @@ targets:
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:
           - audio
+        # Google's sign-in comes back to redpen://auth. The scheme has to be
+        # declared or the system browser has nowhere to return to.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.redpen.app.auth
+            CFBundleURLSchemes:
+              - redpen
+        # Configuration rather than source, so a build can point at a local
+        # worker and a real client id without editing Swift. Both are filled in
+        # per build; empty means the app says sign-in is not set up rather than
+        # opening a broken page.
+        RedPenAuthBaseURL: $(RED_PEN_AUTH_URL)
+        RedPenGoogleClientID: $(RED_PEN_GOOGLE_CLIENT_ID)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.redpen.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Empty by default: a build that has not been given these says so.
+        RED_PEN_AUTH_URL: ""
+        RED_PEN_GOOGLE_CLIENT_ID: ""
         # LocalLLMClientLlamaC's own header hard-errors ("needs to be
         # compiled in C++ interoperability mode") unless the CONSUMING
-        # target — this app, not just the package's own target — also
+        # target - this app, not just the package's own target - also
         # builds with Swift/C++ interop on. The package sets this for
         # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
         # doesn't propagate to a plain .xcodeproj app target automatically.
@@ -69,3 +91,7 @@ schemes:
         RedPen: all
     run:
       config: Debug
+      # Products come from this file until they exist in App Store Connect, so
+      # the paywall can be opened, bought from and cancelled on a simulator
+      # with no developer account attached.
+      storeKitConfiguration: RedPen/RedPen.storekit
