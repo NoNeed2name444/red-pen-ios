@@ -3,3 +3,5 @@ ios/RedPen.xcodeproj/
 ios/build/
 ios/DerivedData/
 .DS_Store
+__pycache__/
+*.pyc
