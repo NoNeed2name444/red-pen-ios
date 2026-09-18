@@ -29,15 +29,36 @@ enum PptxText {
     ///
     /// PowerPoint wraps every run in <a:t>, and a line break inside a text box
     /// is a new run - so runs are joined with newlines rather than spaces, and
-    /// a bullet list arrives as a list rather than as one long sentence.
+    /// a bulleted slide arrives as a list rather than one long sentence.
+    ///
+    /// The tag has to be matched exactly. Looking for "<a:t" alone also matches
+    /// <a:tbl>, the tag that opens a TABLE - and since a table has no </a:t> of
+    /// its own, everything from the table to the end of the next real run gets
+    /// swallowed as one blob of markup. Tables are common on a lecture slide.
     static func text(fromSlideXML xml: String) -> String {
         var out: [String] = []
         var rest = Substring(xml)
-        while let open = rest.range(of: "<a:t"),
-              let gt = rest[open.upperBound...].firstIndex(of: ">"),
-              let close = rest.range(of: "</a:t>", range: gt..<rest.endIndex) {
-            let run = rest[rest.index(after: gt)..<close.lowerBound]
-            let text = DocxText.decodeEntities(String(run))
+        while let open = rest.range(of: "<a:t") {
+            var contentStart: Substring.Index?
+            if open.upperBound < rest.endIndex {
+                let next = rest[open.upperBound]
+                if next == ">" {
+                    contentStart = rest.index(after: open.upperBound)
+                } else if next == " " || next == "\n" || next == "\r" || next == "\t" {
+                    // <a:t dirty="0"> - attributes are allowed on the run
+                    if let gt = rest[open.upperBound...].firstIndex(of: ">") {
+                        contentStart = rest.index(after: gt)
+                    }
+                }
+            }
+            guard let start = contentStart,
+                  let close = rest.range(of: "</a:t>", range: start..<rest.endIndex) else {
+                // <a:tbl>, <a:tc>, or a run with no closing tag: step over the
+                // tag name and carry on rather than swallowing the rest
+                rest = rest[open.upperBound...]
+                continue
+            }
+            let text = DocxText.decodeEntities(String(rest[start..<close.lowerBound]))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty { out.append(text) }
             rest = rest[close.upperBound...]
@@ -55,6 +76,11 @@ enum PptxText {
 
     /// The pictures, in filename order. A deck's diagrams are here, and they are
     /// what the occlusion cards are made from.
+    ///
+    /// Note what this does NOT give: which slide each picture sits on. That is
+    /// recorded in the relationship files, not the media folder, so a picture's
+    /// position in this list is not its slide number and must never be quoted
+    /// as one.
     static func images(_ archive: [String: Data]) -> [Data] {
         archive.keys
             .filter { $0.hasPrefix(mediaPrefix) && DocxText.isPicture($0) }
