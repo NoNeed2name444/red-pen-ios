@@ -14,22 +14,22 @@
 import Foundation
 import CoreGraphics
 
-public enum FigureFinder {
+enum FigureFinder {
 
     /// How coarse the grid is. Eighty cells across a slide is about a
     /// centimetre each: fine enough to separate a diagram from a paragraph,
     /// coarse enough that a whole page is a few thousand cells rather than a
     /// few million.
-    public static let gridWidth = 80
+    static let gridWidth = 80
 
     /// A page reduced to "is there ink here", with the text taken out.
     ///
     /// Text has to be removed before the blobs are found, or the body of the
     /// slide - which is a dense, well-connected mass of ink - becomes the
     /// biggest "figure" on every page.
-    public static func inkGrid(_ image: CGImage,
-                               ignoring textBoxes: [CGRect] = [],
-                               width: Int = gridWidth) -> [[Bool]] {
+    static func inkGrid(_ image: CGImage,
+                        ignoring textBoxes: [CGRect] = [],
+                        width: Int = gridWidth) -> [[Bool]] {
         let height = max(1, Int((Double(image.height) / Double(image.width)
                                 * Double(width)).rounded()))
         guard width > 0,
@@ -80,7 +80,7 @@ public enum FigureFinder {
 
     /// The labels sitting on a figure, in the form FigureGrid wants them:
     /// fractions of the whole image, origin top-left.
-    public static func labels(_ lines: [OCRLine], on figure: OcclusionBox)
+    static func labels(_ lines: [OCRLine], on figure: OcclusionBox)
         -> [FigureGrid.Label] {
         lines.compactMap { line in
             let box = OcclusionBox(x: Double(line.box.minX),
@@ -98,9 +98,9 @@ public enum FigureFinder {
     }
 
     /// What a page offers: the figure on it, and the cards its labels make.
-    public struct Found {
-        public var figure: OcclusionBox
-        public var cards: [AnkiCard]
+    struct Found {
+        var figure: OcclusionBox
+        var cards: [AnkiCard]
     }
 
     /// Everything above, for one page image.
@@ -108,8 +108,8 @@ public enum FigureFinder {
     /// The OCR pass happens first because its boxes are what keep the page's
     /// text out of the ink grid. A page with no figure - a wall of bullet
     /// points - returns nil rather than a card about its own heading.
-    public static func read(_ image: CGImage, imageIndex: Int,
-                            question: String = "What is labelled here?") -> Found? {
+    static func read(_ image: CGImage, imageIndex: Int,
+                     question: String = "What is labelled here?") -> Found? {
         let lines = (try? RedPenOCR.read(image)) ?? []
         let grid = inkGrid(image, ignoring: lines.map(\.box))
         guard let width = grid.first?.count,
