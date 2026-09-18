@@ -76,6 +76,7 @@ jobs:
                 $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
           suite account AccountTests.swift $M/Account.swift $S/AuthRules.swift \
                 $S/Entitlement.swift
+          suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift
 
       - name: Fail the job if anything failed
         run: |
