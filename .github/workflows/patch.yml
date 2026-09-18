@@ -1,0 +1,40 @@
+name: Patch
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        required: true
+      old:
+        required: true
+      new:
+        required: true
+      message:
+        required: false
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply
+        env:
+          FILE: ${{ inputs.file }}
+          OLD: ${{ inputs.old }}
+          NEW: ${{ inputs.new }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          p, old, new = os.environ['FILE'], os.environ['OLD'], os.environ['NEW']
+          s = open(p).read()
+          if s.count(old) != 1:
+              sys.exit(f"{p}: {s.count(old)} matches, expected exactly one")
+          open(p, 'w').write(s.replace(old, new))
+          PY
+      - name: Commit
+        run: |
+          git config user.name patch
+          git config user.email patch@users.noreply.github.com
+          git add -A
+          git commit -m "${{ inputs.message || 'patch' }}" || exit 0
+          git push origin HEAD:main
