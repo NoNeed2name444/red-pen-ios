@@ -1,0 +1,40 @@
+# Unpacks a base64 archive that was pushed in pieces.
+#
+# The bridge this repo is edited through truncates a large payload, so a batch
+# of files travels as fixed-size chunks and is reassembled here. The checksum is
+# the point: a chunk that arrived short or out of order must fail loudly rather
+# than commit half a file.
+name: Unpack
+on:
+  workflow_dispatch:
+    inputs:
+      sha256:
+        description: sha256 of the .tar.xz
+        required: true
+      message:
+        description: commit message
+        required: false
+        default: Unpacked changes
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble and verify
+        run: |
+          set -e
+          cat .transfer/part-* > /tmp/all.b64
+          base64 -d /tmp/all.b64 > /tmp/all.tar.xz
+          echo "${{ inputs.sha256 }}  /tmp/all.tar.xz" | sha256sum -c -
+      - name: Apply
+        run: |
+          set -e
+          tar xJf /tmp/all.tar.xz
+          rm -rf .transfer .github/workflows/unpack.yml
+          git config user.name red-pen-transfer
+          git config user.email transfer@users.noreply.github.com
+          git add -A
+          git commit -q -m "${{ inputs.message }}"
+          git push
