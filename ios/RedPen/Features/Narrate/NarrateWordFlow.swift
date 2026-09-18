@@ -7,10 +7,18 @@ import SwiftUI
 /// target now - a short press jumps the player to that line, a long press
 /// offers to fix the word - and the line still reads as a line because the
 /// words are flowed rather than stacked.
+///
+/// When a recording is attached, `spokenWord` is the word the recogniser says
+/// is being spoken right now, and it is marked more strongly than the line
+/// around it. That is the whole point of keeping word timings: a student
+/// reading along knows exactly where the lecturer is, instead of scanning a
+/// highlighted paragraph for their place.
 struct NarrateWordFlow: View {
     let texts: [String]
     let langs: [String]
     let currentIndex: Int
+    /// The word within the current line, when a recording is driving playback.
+    var spokenWord: Int?
     let onJump: (Int) -> Void
     let onFix: (FixTarget) -> Void
 
@@ -35,10 +43,17 @@ struct NarrateWordFlow: View {
         let words = texts[i].split(separator: " ").map(String.init)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
+                let speaking = (i == currentIndex && spokenWord == w)
                 Text(words[w])
                     .font(.body)
                     .foregroundStyle(i == currentIndex ? Color.accentColor : .primary)
-                    .fontWeight(i == currentIndex ? .semibold : .regular)
+                    .fontWeight(speaking ? .bold : (i == currentIndex ? .semibold : .regular))
+                    .padding(.horizontal, speaking ? 3 : 0)
+                    .background(speaking ? Color.accentColor.opacity(0.22) : .clear,
+                                in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    // a moving highlight should glide, but not so slowly that
+                    // it lags behind the voice it is tracking
+                    .animation(.easeOut(duration: 0.12), value: speaking)
                     .contentShape(Rectangle())
                     .onTapGesture { onJump(i) }
                     .onLongPressGesture(minimumDuration: 0.35) {
