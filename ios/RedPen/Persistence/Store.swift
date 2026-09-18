@@ -33,6 +33,14 @@ final class Store: ObservableObject {
     /// mid-sentence. Losing the position and starting the station again is the
     /// difference between a tool somebody revises with and one they open once.
     @Published var osceProgress: [UUID: OsceProgress] = [:]
+    /// Where the student had got to in a Cases deck or a textbook, keyed by
+    /// set id.
+    ///
+    /// The textbook is the mode this matters most in: it is the longest thing
+    /// in the app, read over days, and being put back on page one for having
+    /// closed it is the fastest way to stop using it. One number is enough for
+    /// both - which card, or which page.
+    @Published var readingProgress: [UUID: ReadingProgress] = [:]
 
     private let fileURL: URL
 
@@ -59,6 +67,7 @@ final class Store: ObservableObject {
         var quizProgress: [UUID: QuizProgress]? // added later; older files simply lack it
         var tombstones: [UUID: Date]?           // likewise
         var osceProgress: [UUID: OsceProgress]? // likewise
+        var readingProgress: [UUID: ReadingProgress]? // likewise
     }
 
     func load() {
@@ -69,12 +78,14 @@ final class Store: ObservableObject {
         quizProgress = snapshot.quizProgress ?? [:]
         tombstones = snapshot.tombstones ?? [:]
         osceProgress = snapshot.osceProgress ?? [:]
+        readingProgress = snapshot.readingProgress ?? [:]
     }
 
     func save() {
         let snapshot = Snapshot(library: library, folders: folders,
                                 quizProgress: quizProgress, tombstones: tombstones,
-                                osceProgress: osceProgress)
+                                osceProgress: osceProgress,
+                                readingProgress: readingProgress)
         guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
@@ -88,6 +99,7 @@ final class Store: ObservableObject {
         library.removeAll { $0.id == id }
         quizProgress[id] = nil
         osceProgress[id] = nil
+        readingProgress[id] = nil
         tombstones[id] = Date()
         pruneEmptyFolders()
         save()
@@ -246,6 +258,42 @@ final class Store: ObservableObject {
         osceProgress[setId] = nil
         save()
     }
+
+    // MARK: where they had got to in a textbook or a Cases deck
+
+    /// Remembers a position, and only writes when it really moved.
+    ///
+    /// Both readers save on every turn of the page, and the library file holds
+    /// the whole of everything; rewriting it to record the page it already
+    /// knew about would be a disk write per tap.
+    func saveReading(at position: Int, for setId: UUID) {
+        guard readingProgress[setId]?.position != position else { return }
+        guard position > 0 else {
+            // Back at the beginning is not a position worth keeping, and
+            // storing it would leave a row per set that was merely opened.
+            if readingProgress[setId] != nil { readingProgress[setId] = nil; save() }
+            return
+        }
+        readingProgress[setId] = ReadingProgress(position: position)
+        save()
+    }
+
+    func reading(for setId: UUID, count: Int) -> Int {
+        guard let saved = readingProgress[setId], saved.position < count else { return 0 }
+        return saved.position
+    }
+
+    func clearReading(for setId: UUID) {
+        guard readingProgress[setId] != nil else { return }
+        readingProgress[setId] = nil
+        save()
+    }
+}
+
+/// How far into a textbook or a Cases deck somebody had read.
+struct ReadingProgress: Codable, Hashable {
+    var position: Int
+    var savedAt: Date = Date()
 }
 
 /// A station part way through: which checklist, which step, and which steps

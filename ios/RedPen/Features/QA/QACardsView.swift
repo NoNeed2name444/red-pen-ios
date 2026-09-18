@@ -8,6 +8,7 @@ struct QACardsView: View {
     @State private var index: Int
     @State private var revealed: Bool
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: Store
 
     init(set studySet: StudySet, startIndex: Int = 0, startRevealed: Bool = false) {
         self.studySet = studySet
@@ -69,6 +70,12 @@ struct QACardsView: View {
             }
             footer
         }
+        .onAppear {
+            // Only when opened at the start: a caller that asked for a
+            // particular card meant it.
+            if index == 0, !revealed { index = store.reading(for: studySet.id, count: cards.count) }
+        }
+        .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.qa)
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
@@ -83,7 +90,10 @@ struct QACardsView: View {
             Spacer()
             if revealed {
                 Button(index >= cards.count - 1 ? "Done" : "Next") {
-                    if index >= cards.count - 1 { dismiss() } else { index += 1; revealed = false }
+                    if index >= cards.count - 1 {
+                        store.clearReading(for: studySet.id)
+                        dismiss()
+                    } else { index += 1; revealed = false }
                 }
                 .buttonStyle(.glassProminent)
             } else {
@@ -99,7 +109,8 @@ struct QACardsView: View {
     }
 
     /// `**term**` highlights, via SwiftUI's Markdown support.
-    private func hl(_ s: String) -> AttributedString {
-        (try? AttributedString(markdown: s)) ?? AttributedString(s)
-    }
+    /// `**term**` highlights, and nothing else - see Highlight. A Cases card
+    /// is not Markdown, and reading it as if it were quietly eats the
+    /// underscores and brackets medical writing is full of.
+    private func hl(_ s: String) -> AttributedString { Highlight.attributed(s) }
 }

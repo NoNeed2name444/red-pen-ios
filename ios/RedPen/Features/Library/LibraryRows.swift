@@ -95,7 +95,7 @@ extension LibraryView {
         .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
-            Button { export(set) } label: { Label("Export PDF", systemImage: "arrow.down.doc") }
+            Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
                 .tint(.teal)
         }
     }
@@ -135,7 +135,9 @@ extension LibraryView {
                 }
             }
         }
-        Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }
+        if set.kind != .anki {
+            Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }
+        }
         if set.kind == .anki {
             Button("Export Anki deck (.apkg)", systemImage: "square.and.arrow.up") {
                 if let url = try? ApkgExporter.export(set) { exportURL = url }

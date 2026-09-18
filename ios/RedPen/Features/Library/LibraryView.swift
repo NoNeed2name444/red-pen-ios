@@ -153,8 +153,20 @@ struct LibraryView: View {
         reviews.prune(keeping: store.library)
     }
 
+    /// Exports a set in whichever form keeps the most of it.
+    ///
+    /// Every mode prints as a flashcard deck - one question to a page, its
+    /// answer overleaf - except Anki, which exports as .apkg. That is not an
+    /// omission: an Anki deck's value is its schedule and its occlusion masks,
+    /// and paper keeps neither, while .apkg keeps both and opens in the app
+    /// the student already uses.
     func export(_ set: StudySet) {
-        if let url = PDFExporter.export(set) { exportURL = url }
+        if set.kind == .anki {
+            if let url = try? ApkgExporter.export(set) { exportURL = url }
+            else { exportFailedSetName = set.name }
+            return
+        }
+        if let url = DeckPDF.export(set) { exportURL = url }
         else { exportFailedSetName = set.name }
     }
 
