@@ -30,6 +30,10 @@ final class SubscriptionStore: ObservableObject {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         self.fileURL = fileURL ?? dir.appendingPathComponent("redpen-entitlement.json")
         load()
+        // A screenshot run has no App Store to ask, so it starts subscribed -
+        // otherwise the paywall is not one screen to photograph, it is a wall
+        // in front of the other seventeen.
+        if PreviewLaunch.screen != nil { record = PreviewLaunch.pretendEntitlement() }
         // A renewal, a refund or a purchase made on another device arrives here
         // rather than being noticed the next time somebody opens the paywall.
         updates = Task { [weak self] in
@@ -50,7 +54,7 @@ final class SubscriptionStore: ObservableObject {
         do {
             let found = try await Product.products(for: SubscriptionPlan.allCases.map(\.rawValue))
             // cheapest first, so the yearly saving is visible rather than
-            // stated
+            // merely stated
             products = found.sorted { $0.price < $1.price }
         } catch {
             trouble = "Couldn't reach the App Store."
@@ -122,7 +126,7 @@ final class SubscriptionStore: ObservableObject {
     }
 
     func refresh() async {
-        var found: EntitlementRecord = record
+        var found = record
         found.plan = nil
         found.expiresAt = nil
         found.inBillingRetry = false
@@ -139,11 +143,13 @@ final class SubscriptionStore: ObservableObject {
             }
         }
 
-        if let plan = found.plan,
-           let status = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupName)
-            .first(where: { (try? $0.transaction.payloadValue.productID) == plan.rawValue }) {
-            found.inBillingRetry = status.state == .inBillingRetryPeriod
-                || status.state == .inGracePeriod
+        if found.plan != nil,
+           let statuses = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupName) {
+            // being told a renewal is being retried is the difference between
+            // "they cancelled" and "their card expired"
+            found.inBillingRetry = statuses.contains {
+                $0.state == .inBillingRetryPeriod || $0.state == .inGracePeriod
+            }
         }
 
         found.verifiedAt = Date()
