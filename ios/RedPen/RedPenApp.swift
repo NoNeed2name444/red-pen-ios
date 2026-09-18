@@ -18,7 +18,14 @@ struct RedPenApp: App {
         WindowGroup {
             Group {
                 if let screen = PreviewLaunch.screen {
-                    PreviewRoot(screen: screen)
+                    // Screens added after the original harness live in
+                    // PreviewExtras, so the fifteen already being compared week
+                    // to week are never disturbed by adding one.
+                    if PreviewExtras.handles(screen) {
+                        PreviewExtras.view(for: screen)
+                    } else {
+                        PreviewRoot(screen: screen)
+                    }
                 } else {
                     LibraryView()
                 }
