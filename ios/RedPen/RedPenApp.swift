@@ -6,6 +6,9 @@ struct RedPenApp: App {
     // What the phone has learned about a lecturer outlives any one set, so it
     // is owned here rather than by the screen that happens to teach it.
     @StateObject private var learned: PronunciationLibrary
+    // The schedule spans the whole library - what is due today is a question
+    // about every deck at once - so it is owned here too.
+    @StateObject private var reviews: ReviewStore
     // GemmaModel is a true singleton (its download must survive view
     // teardown), so it's observed here rather than owned by @StateObject.
     @ObservedObject private var gemma = GemmaModel.shared
@@ -15,12 +18,17 @@ struct RedPenApp: App {
         // pre-seeded store; a normal launch opens the user's own library.
         let seeded = PreviewLaunch.screen != nil
         _store = StateObject(wrappedValue: seeded ? PreviewLaunch.seededStore() : Store())
-        // and on a throwaway table, so a screenshot run never writes into the
-        // student's own learned pronunciations
+        // and on throwaway tables, so a screenshot run never writes into the
+        // student's own learned pronunciations or their real schedule
+        let scratch = FileManager.default.temporaryDirectory
         _learned = StateObject(wrappedValue: seeded
-            ? PronunciationLibrary(fileURL: FileManager.default.temporaryDirectory
+            ? PronunciationLibrary(fileURL: scratch
                 .appendingPathComponent("redpen-preview-\(UUID().uuidString).tsv"))
             : PronunciationLibrary())
+        _reviews = StateObject(wrappedValue: seeded
+            ? ReviewStore(fileURL: scratch
+                .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
+            : ReviewStore())
     }
 
     var body: some Scene {
@@ -41,6 +49,7 @@ struct RedPenApp: App {
             }
             .environmentObject(store)
             .environmentObject(learned)
+            .environmentObject(reviews)
             .environmentObject(gemma)
             .tint(Color(red: 0.78, green: 0.16, blue: 0.16)) // the app's "pen" red
         }
