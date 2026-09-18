@@ -78,6 +78,9 @@ jobs:
                 $S/Entitlement.swift
           suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift
           suite sources SourceTests.swift $M/SourceDoc.swift $S/SourceSearch.swift
+          suite osce OsceTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
+                $M/QACard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift \
+                $S/PlainTextImport.swift $S/OsceStations.swift
 
       - name: Fail the job if anything failed
         run: |
