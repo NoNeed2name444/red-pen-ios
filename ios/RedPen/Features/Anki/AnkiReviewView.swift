@@ -20,6 +20,11 @@ struct AnkiReviewView: View {
     @State private var current: AnkiQueueItem? = nil
     @State private var revealed: Bool = false
     @State private var reviewedCount: Int = 0
+    /// A quiz built from this deck, once asked for. Held as a set rather than a
+    /// question list because the quiz screen takes a StudySet, and copying this
+    /// one keeps the subject and images the questions may refer to.
+    @State private var quizSet: StudySet? = nil
+    @State private var quizNote: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,6 +50,46 @@ struct AnkiReviewView: View {
         .navigationTitle(studySet.subject.isEmpty ? "Anki" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSession)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: buildQuiz) {
+                    Label("Quiz me", systemImage: "list.bullet.rectangle")
+                }
+                .buttonStyle(.glass)
+                .disabled(studySet.cards.count < 5)
+            }
+        }
+        .navigationDestination(item: $quizSet) { set in
+            MCQQuizView(set: set)
+        }
+        .alert("Not enough to quiz on", isPresented: Binding(
+            get: { quizNote != nil }, set: { if !$0 { quizNote = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(quizNote ?? "")
+        }
+    }
+
+    /// Builds a quiz whose wrong answers are the right answers to other cards in
+    /// this deck. Nothing is generated and nothing is phoned anywhere: the
+    /// options are text these cards already contain, which is what stops a quiz
+    /// being easier than the deck it came from.
+    private func buildQuiz() {
+        let built = QuizFromCards.build(from: studySet.cards)
+        guard built.questions.count >= 3 else {
+            // Saying why beats showing three questions and letting you wonder
+            // where the rest went.
+            let reasons = Set(built.skipped.map(\.why)).sorted().prefix(2)
+            quizNote = "This deck made \(built.questions.count) usable question"
+                + (built.questions.count == 1 ? "" : "s") + ". "
+                + (reasons.isEmpty ? "" : reasons.joined(separator: " "))
+            return
+        }
+        var set = studySet
+        set.questions = built.questions
+        set.kind = .mcq
+        quizSet = set
     }
 
     private var header: some View {
