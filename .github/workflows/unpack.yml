@@ -4,6 +4,11 @@
 # of files travels as fixed-size chunks and is reassembled here. The checksum is
 # the point: a chunk that arrived short or out of order must fail loudly rather
 # than commit half a file.
+#
+# Workflow files are the one thing this cannot deliver: the Actions token is not
+# allowed to add or change anything under .github/workflows, and a push that
+# tries is refused outright - taking the rest of the batch down with it. So any
+# that arrive in the archive are dropped here and pushed separately instead.
 name: Unpack
 on:
   workflow_dispatch:
@@ -32,7 +37,10 @@ jobs:
         run: |
           set -e
           tar xJf /tmp/all.tar.xz
-          rm -rf .transfer .github/workflows/unpack.yml
+          rm -rf .transfer
+          git checkout -- .github 2>/dev/null || true
+          git clean -fd .github || true
+          rm -f .github/workflows/unpack.yml
           git config user.name red-pen-transfer
           git config user.email transfer@users.noreply.github.com
           git add -A
