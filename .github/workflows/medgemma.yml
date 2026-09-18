@@ -1,0 +1,68 @@
+# A second opinion on image-occlusion cards, run where no account is involved:
+# a throwaway runner downloads a public GGUF build and llama.cpp, checks the
+# cards, and pushes what it found. No token, no sign-in, nothing of anyone's.
+#
+# It never fails the build on a flagged card. A flag is a card for a person to
+# look at, and a check that breaks the build is a check everyone learns to
+# ignore.
+name: Check occlusion cards
+on:
+  workflow_dispatch:
+    inputs:
+      cards:
+        description: The committed cards file to check
+        required: false
+        default: export/cards.json
+      benchmark:
+        description: Cards carry a hand-checked 'truth' field - report the hit rate
+        type: boolean
+        default: false
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: The judging rules come first
+        run: python pipeline/tests/test_medgemma.py
+
+      - name: llama.cpp
+        run: |
+          set -e
+          # the released binary, not a source build: this job should spend its
+          # minutes on the cards, not on a compiler
+          url=$(curl -s https://api.github.com/repos/ggml-org/llama.cpp/releases/latest \
+                | python3 -c "import json,sys
+[print(a['browser_download_url']) for a in json.load(sys.stdin)['assets']
+ if 'ubuntu' in a['name'] and 'x64' in a['name'] and a['name'].endswith('.zip')]" | head -n1)
+          echo "$url"
+          curl -sL "$url" -o llama.zip
+          unzip -q llama.zip -d llama
+          echo "MTMD_CLI=$(find llama -name 'llama-mtmd-cli' -type f | head -n1)" >> $GITHUB_ENV
+          chmod +x $(find llama -name 'llama-*' -type f)
+
+      - name: Check the cards
+        run: |
+          pip install --quiet pillow
+          python pipeline/tools/medgemma_check.py "${{ inputs.cards }}" \
+            --binary "$MTMD_CLI" \
+            ${{ inputs.benchmark && '--benchmark' || '' }} \
+            --out results/medgemma-check.json
+
+      - name: Push what it found
+        if: always()
+        run: |
+          mkdir -p results
+          cd results
+          git init -q && git checkout -q -b card-check
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "occlusion check $GITHUB_RUN_ID" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" card-check:card-check
