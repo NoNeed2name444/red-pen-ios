@@ -1,16 +1,20 @@
 import SwiftUI
 
-/// The reading-pace narrate player — ports the web app's no-recording
-/// fallback path: `playNarrate()` / `pauseNarrate()` / `narrateAdvance()` /
-/// `jumpToNarrateSegment()` / `restartNarrate()` / the speed buttons
-/// (0.75x / 1x / 1.5x). Each segment holds the reading spotlight for
-/// `NarrateScheduler.segmentMs()`, then the highlight glides to the next
-/// one; tapping any line jumps straight to it. A real recording synced by
-/// timestamp (the web app's other path) is a larger feature — on-device
-/// transcription and alignment — left for later; this always-available
-/// typed-transcript path is what most Narrate sets are read with anyway.
+/// The reading-pace narrate player - ports the web app's no-recording
+/// fallback path: each segment holds the reading spotlight for
+/// `NarrateScheduler.segmentMs()`, then the highlight glides to the next one;
+/// tapping any line jumps straight to it.
+///
+/// The transcript is now EDITABLE, which is why the text lives in state rather
+/// than being read out of the set on every redraw. Long-press a word, say what
+/// it should have been, and three things happen: that word is fixed, every
+/// other word in the transcript that sounds the same is fixed with it, and the
+/// pronunciation is remembered so next week's lecture never shows it. All of
+/// it is reported and all of it undoes in one action - see FixWordSheet.
 struct NarrateReviewView: View {
     let studySet: StudySet
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var learned: PronunciationLibrary
     @Environment(\.dismiss) private var dismiss
 
     @State private var index = 0
@@ -21,16 +25,31 @@ struct NarrateReviewView: View {
     @State private var remainingMs: Double = 0
     @State private var segStartedAt: Date = Date()
 
-    /// Preview-only entry point (see PreviewLaunch) so CI can screenshot a
-    /// mid-playback or finished state without a live timer running.
-    init(set studySet: StudySet, startIndex: Int = 0, startPlaying: Bool = false, startFinished: Bool = false) {
+    /// The lines as they now read. Seeded from the set, then edited in place.
+    @State private var texts: [String] = []
+    @State private var fixing: FixTarget?
+    @State private var report: String?
+    @State private var lastOutcome: CorrectionOutcome?
+    @State private var snapshot: [String] = []
+
+    /// Preview-only entry points (see PreviewLaunch) so CI can screenshot a
+    /// mid-playback, finished, or mid-correction state without a live timer.
+    init(set studySet: StudySet, startIndex: Int = 0, startPlaying: Bool = false,
+         startFinished: Bool = false, startFixing: Int? = nil) {
         self.studySet = studySet
         _index = State(initialValue: min(startIndex, max(0, studySet.narrateSegments.count - 1)))
         _playing = State(initialValue: startPlaying)
         _finished = State(initialValue: startFinished)
+        if let word = startFixing, let first = studySet.narrateSegments.first {
+            let words = first.text.split(separator: " ").map(String.init)
+            if words.indices.contains(word) {
+                _fixing = State(initialValue: FixTarget(segment: 0, word: word, heard: words[word]))
+            }
+        }
     }
 
     private var segments: [NarrateSegment] { studySet.narrateSegments }
+    private var langs: [String] { segments.map(\.lang) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,48 +60,80 @@ struct NarrateReviewView: View {
         .modeScreen(.narrate)
         .navigationTitle(studySet.subject.isEmpty ? "Narrate" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear(perform: seed)
         .onDisappear { timer?.invalidate() }
+        .sheet(item: $fixing) { target in
+            FixWordSheet(target: target) { spelling in fix(target, to: spelling) }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let report {
+                FixReport(summary: report, onUndo: undo)
+            }
+        }
     }
 
-    // MARK: header — matches renderNarrateProgress()
+    /// Seeds the editable text, and applies everything already learned - the
+    /// "fix it once, never see it again" half of the feature.
+    private func seed() {
+        guard texts.isEmpty else { return }
+        texts = segments.map(\.text)
+        _ = learned.applyLearned(to: &texts)
+    }
+
+    private func fix(_ target: FixTarget, to spelling: String) {
+        snapshot = texts
+        let outcome = learned.fix(segment: target.segment, words: target.word...target.word,
+                                  to: spelling, in: &texts)
+        guard outcome.here != nil else { return }
+        lastOutcome = outcome
+        withAnimation(.snappy) { report = outcome.summary() }
+    }
+
+    private func undo() {
+        guard let outcome = lastOutcome else { return }
+        learned.undo(snapshot, into: &texts, touching: outcome)
+        lastOutcome = nil
+        withAnimation(.snappy) { report = nil }
+    }
+
+    // MARK: header - matches renderNarrateProgress()
 
     private var header: some View {
         let total = segments.count
         let fraction = total > 0 ? Double(index + (finished ? 1 : 0)) / Double(total) : 0
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Line \(min(index + 1, max(total, 1))) of \(total)")
-                .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            HStack {
+                Text("Line \(min(index + 1, max(total, 1))) of \(total)")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Text("Hold a word to fix it")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
             ThinProgress(fraction: min(1, fraction))
         }
         .padding()
     }
 
-    // MARK: transcript — matches renderNarrateSegmentsHtml() / renderNarrateHighlight()
-
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                if segments.isEmpty {
+                if texts.isEmpty {
                     Text("This transcript is empty.").foregroundStyle(.secondary).padding()
                 } else {
-                    FlowText(segments: segments, currentIndex: index) { i in
-                        jump(to: i)
-                    }
-                    .contentCard()
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-                    .padding(.bottom, 24) // keeps the last lines clear of the floating glass controls
+                    NarrateWordFlow(texts: texts, langs: langs, currentIndex: index,
+                                    onJump: { jump(to: $0) },
+                                    onFix: { fixing = $0 })
+                        .contentCard()
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+                        .padding(.bottom, 24)
                 }
             }
             .onChange(of: index) { _, newValue in
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(segments.indices.contains(newValue) ? segments[newValue].id : nil, anchor: .center)
-                }
+                withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(newValue, anchor: .center) }
             }
         }
     }
-
-    // MARK: controls — matches el.narratePlayBtn / restart / speed buttons
 
     private var controls: some View {
         GlassEffectContainer(spacing: 10) {
@@ -116,7 +167,7 @@ struct NarrateReviewView: View {
             .buttonStyle(.glass).tint(speed == value ? StudySetKind.narrate.tint : Color.secondary)
     }
 
-    // MARK: playback logic — ported 1:1 from the web app's timers
+    // MARK: playback logic - ported 1:1 from the web app's timers
 
     private func play() {
         guard !finished, !segments.isEmpty else { return }
@@ -172,36 +223,5 @@ struct NarrateReviewView: View {
         finished = false
         playing = false
         remainingMs = segments.isEmpty ? 0 : NarrateScheduler.segmentMs(segments[0], speed: speed)
-    }
-}
-
-/// A wrapping run of tappable phrases with the current one highlighted —
-/// matches `.narrate-seg` / `.narrate-current` styling. SwiftUI has no
-/// built-in inline-flow tap targets, so this lays words out itself with a
-/// simple wrapping HStack-in-a-VStack.
-private struct FlowText: View {
-    let segments: [NarrateSegment]
-    let currentIndex: Int
-    let onTap: (Int) -> Void
-
-    var body: some View {
-        // Each segment is its own paragraph-ish chunk (readable + simple);
-        // the web app's continuous inline flow becomes one block per line.
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(segments.enumerated()), id: \.element.id) { i, seg in
-                Text(seg.text)
-                    .font(.body)
-                    .lineSpacing(3)
-                    .foregroundStyle(i == currentIndex ? Color.accentColor : .primary)
-                    .fontWeight(i == currentIndex ? .semibold : .regular)
-                    .padding(.vertical, 6).padding(.horizontal, 8)
-                    .background(i == currentIndex ? Color.accentColor.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .animation(.easeInOut(duration: 0.25), value: currentIndex)
-                    .id(seg.id)
-                    .onTapGesture { onTap(i) }
-                    .environment(\.layoutDirection, seg.lang == "ar" ? .rightToLeft : .leftToRight)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
