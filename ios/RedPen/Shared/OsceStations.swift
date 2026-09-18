@@ -46,7 +46,7 @@ enum OsceStations {
     /// Removes "1.", "1)", "-", "•", "Step 2:" and the like from the front.
     static func stripLeadingMarker(_ step: String) -> String {
         var text = step
-        let patterns = [#"^\s*step\s*\d+\s*[:.)-]\s*"#, #"^\s*\d+\s*[:.)-]\s*"#, #"^\s*[-•*\u{2022}]\s*"#]
+        let patterns = [#"^\s*step\s*\d+\s*[:.)-]\s*"#, #"^\s*\d+\s*[:.)-]\s*"#, #"^\s*[-–—•*]\s*"#]
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
             else { continue }
