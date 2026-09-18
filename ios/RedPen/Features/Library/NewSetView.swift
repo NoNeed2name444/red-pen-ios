@@ -1,15 +1,13 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Stands in for the web app's setup screen (`#setupView`). For MCQ sets this
-/// offers the same three paths the web app does: generate a set from your own
-/// material - pasted, or read straight out of a lecture PDF - type lines by
-/// hand, or import a `.json` export. Every other mode still uses the
-/// line-based typing / import path, since generation is being ported mode by
-/// mode starting with MCQ.
+/// Making a set. For MCQ sets this offers three paths: generate from your own
+/// material - pasted, or read straight out of a lecture file - type lines by
+/// hand, or import a `.json` export. Every other mode uses the typing or import
+/// path.
 ///
 /// The generate path lives in MCQGenerateForm: it owns the model choice, the
-/// fallback model's download, and reading the PDF, which together are larger
+/// fallback model's download, and reading the file, which together are larger
 /// than the rest of this screen put together.
 struct NewSetView: View {
     @EnvironmentObject var store: Store
@@ -34,6 +32,9 @@ struct NewSetView: View {
     @State private var sourceText = ""
     @State private var questionCount = 8
     @State private var highYield = false
+    /// The document the text came out of, kept so generated questions can be
+    /// cited back to the page they came from.
+    @State private var readSource: ReadSource?
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
 
@@ -44,7 +45,7 @@ struct NewSetView: View {
                     TextField("Name", text: $name)
                     TextField("Subject", text: $subject)
                     Picker("Type", selection: $kind) {
-                        ForEach(StudySetKind.allCases) { k in Text(k.label).tag(k) }
+                        ForEach(StudySetKind.allCases) { kind in Text(kind.label).tag(kind) }
                     }
                     .pickerStyle(.segmented)
                 }
@@ -52,7 +53,7 @@ struct NewSetView: View {
                 if kind == .mcq {
                     Section {
                         Picker("How", selection: $mcqPath) {
-                            ForEach(MCQPath.allCases) { p in Text(p.rawValue).tag(p) }
+                            ForEach(MCQPath.allCases) { path in Text(path.rawValue).tag(path) }
                         }
                         .pickerStyle(.segmented)
                     }
@@ -61,6 +62,7 @@ struct NewSetView: View {
                         MCQGenerateForm(sourceText: $sourceText,
                                         questionCount: $questionCount,
                                         highYield: $highYield,
+                                        readSource: $readSource,
                                         name: name, subject: subject) { set in
                             generatedSetSaved = false
                             generatedSet = set
@@ -113,9 +115,7 @@ struct NewSetView: View {
 
     private var importSection: some View {
         Section {
-            Button {
-                showImporter = true
-            } label: {
+            Button { showImporter = true } label: {
                 Label("Import a .json export instead", systemImage: "square.and.arrow.down")
             }
         }
