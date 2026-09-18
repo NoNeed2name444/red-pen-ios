@@ -1,0 +1,65 @@
+--- pipeline/tests/test_card_quality.py
+ok   a sound question passes clean
+ok   the longest option is caught
+ok   only the key hedging is caught
+ok   a word shared only by stem and key is caught
+ok   'all of the above' is caught
+ok   a topic is not a stem
+ok   an explanation about something else is caught
+ok   a sound card passes clean
+ok   a card carrying five facts is caught
+ok   a cloze that deletes the sentence is caught
+ok   a sound cloze passes clean
+ok   a cloze with no deletion is caught
+ok   two cards asking one thing are caught
+ok   different questions are left alone
+ok   a question that gives itself away is dropped
+ok   every other card became a question
+ok   the key is the card's own answer
+ok   every option came from the deck, none invented
+ok   the explanation names what it is explaining
+ok   an explanation that already names the answer is left alone
+ok   no question repeats an option
+ok   the shipped questions pass the quality rules
+ok   a thin deck refuses rather than inventing distractors
+ok   a multi-fact card makes no question
+
+ALL CARD QUALITY TESTS PASS
+test_card_quality.py rc=0
+--- pipeline/tests/test_coverage.py
+ok   the claims are found
+ok   filler is not a claim
+ok   a number makes a clause studyable
+ok   a relation makes a clause studyable
+ok   two technical terms make a clause studyable
+ok   chatter is not studyable
+ok   a bare topic is not studyable
+ok   the covered claims are counted
+ok   what is missing is listed
+ok   the entry criterion is known to be missing
+ok   coverage is a fraction of the claims, not of the cards
+ok   vague cards cover nothing
+ok   a question covers a claim too
+ok   an empty deck covers nothing and says so
+ok   an empty source is not an error
+ok   a repeated claim is counted once
+
+ALL COVERAGE TESTS PASS
+test_coverage.py rc=0
+--- pipeline/tests/test_medgemma.py
+ok   the same answer agrees with itself
+ok   wording may differ where the identity does not
+ok   artery is not vein
+ok   a shared modifier is not agreement
+ok   a hedge is never agreement
+ok   a polite hedge is also a hedge
+ok   saying nothing is not agreement
+ok   a card with no answer cannot be confirmed
+ok   position words alone prove nothing
+ok   the stopwords really are dropped
+ok   plurals meet, but short words are left alone
+ok   agreement is measured against the card, not the model
+ok   a card naming more than the model saw is not confirmed
+
+ALL MEDGEMMA RULE TESTS PASS
+test_medgemma.py rc=0
