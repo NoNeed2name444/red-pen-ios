@@ -6,6 +6,10 @@
 # one per binary, so each suite is copied to its own build directory under that
 # name. Copying it to any other name is what made the earlier suite silently
 # never compile.
+#
+# Only UIKit-free files can be listed here: the runner is a Mac, so a file that
+# imports UIKit or PDFKit cannot be compiled for it. That is why the decisions
+# worth testing are kept in files that import nothing but Foundation.
 name: Swift tests
 on:
   workflow_dispatch:
@@ -61,9 +65,6 @@ jobs:
           } > out/learning.log 2>&1
           cat out/learning.log
 
-      # LectureTranscriber imports Speech, which exists on macOS too, so the
-      # line-splitting and the word clock can be exercised on the runner
-      # without a phone, a microphone or a permission prompt.
       - name: Transcript lines and the word clock
         run: |
           mkdir -p out build/transcriber
@@ -81,6 +82,21 @@ jobs:
             else echo "transcribertest was never built"; fi
           } > out/transcriber.log 2>&1
           cat out/transcriber.log
+
+      # What happens to a lecture's words after they leave the PDF: the footer
+      # on every page must not become the most repeated fact in the deck.
+      - name: Reading a lecture file
+        run: |
+          mkdir -p out build/ingest
+          cp ios/RedPen/Tests/IngestTests.swift build/ingest/main.swift
+          {
+            swiftc -O ios/RedPen/Shared/SourceText.swift \
+                   build/ingest/main.swift -o ingesttest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./ingesttest ]; then ./ingesttest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "ingesttest was never built"; fi
+          } > out/ingest.log 2>&1
+          cat out/ingest.log
 
       - name: Fail the job if anything failed
         run: |
