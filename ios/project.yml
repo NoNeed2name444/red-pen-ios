@@ -20,6 +20,14 @@ targets:
     platform: iOS
     sources:
       - path: RedPen
+        # RedPen/Tests holds standalone suites: each one is top-level code that
+        # swift-tests.yml copies to main.swift and RUNS. Swift allows top-level
+        # statements only in a file called main.swift, so sweeping them into the
+        # app target fails the whole build with "expressions are not allowed at
+        # the top level" - which is exactly what happened the first time a test
+        # suite landed in this folder.
+        excludes:
+          - "Tests/**"
     dependencies:
       - package: LocalLLMClient
         product: LocalLLMClient
