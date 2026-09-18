@@ -73,7 +73,7 @@ jobs:
                 $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift
           suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift \
                 $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
-                $S/MCQCoverage.swift $S/Provenance.swift
+                $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
 
       - name: Fail the job if anything failed
         run: |
