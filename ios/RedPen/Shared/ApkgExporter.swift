@@ -1,17 +1,49 @@
+import CryptoKit
 import Foundation
 import SQLite3
 import UIKit
 
-/// Ports the web app's `exportCardsToApkg()` / `assembleApkgZip()` (a
-/// genanki port there): writes a real Anki package — a SQLite
-/// `collection.anki2` plus a `media` manifest, zipped — that the Anki
-/// desktop and mobile apps import directly. Same two note types as the
-/// web app ("Red Pen Basic", "Red Pen Cloze"), same card CSS, same stable
-/// GUIDs, so re-exporting a deck updates notes instead of duplicating them.
-/// Image-occlusion cards are rendered to front (masked) / back (unmasked)
-/// JPEGs and shipped as media, exactly as the web version does.
+/// Ports the web app's `exportCardsToApkg()` / `assembleApkgZip()`: writes a
+/// real Anki package — a SQLite `collection.anki2` plus a `media` manifest,
+/// zipped — that the Anki desktop and mobile apps import directly. Same two
+/// note types as the web app ("Red Pen Basic", "Red Pen Cloze"), same card
+/// CSS. Image-occlusion cards are rendered to front (masked) / back
+/// (unmasked) JPEGs and shipped as media, exactly as the web version does.
+///
+/// This stays the real exporter: it runs on the phone, offline, in a moment,
+/// with nothing to upload and nobody's account involved. genanki — the Python
+/// library that is the community's reference for this file format — was
+/// measured against it rather than replacing it, and it turned out to get four
+/// things right that this did not. All four are about IDENTITY, which is the
+/// part of the format that decides what happens on the SECOND export.
+///
+///   * the note types now have FIXED ids. They were minted from the clock, so
+///     every export introduced a brand new "Red Pen Basic" note type: import
+///     twice and Anki shows two, import ten times and your card browser is
+///     unusable. A note type id is a name, not a timestamp;
+///   * the deck id is derived from the deck's NAME, so re-exporting the same
+///     subject lands in the same deck instead of creating a sibling;
+///   * a note's GUID comes from the card's own `id`. It used to be hashed from
+///     the card's CONTENT, which meant the comment promising that re-export
+///     "updates notes instead of duplicating them" was true only while you
+///     never edited anything — fix a typo and Anki imported a second copy of
+///     the card, and the copy you had been reviewing kept its schedule while
+///     the corrected one started from zero. Keying on the id is what makes an
+///     edit an edit;
+///   * the field checksum is the real one: the first eight hex digits of the
+///     SHA-1 of the stripped sort field. It was a different hash, which Anki
+///     accepts silently and then cannot use to find duplicates.
+///
+/// One consequence worth knowing: because the GUIDs change, the FIRST import
+/// after this lands brings your existing Red Pen notes in as new notes. That
+/// happens once. Afterwards, editing a card and exporting updates it in place.
 enum ApkgExporter {
     struct ExportError: Error {}
+
+    /// Fixed for the life of the app. Changing either of these orphans every
+    /// note anybody has already imported, so they are constants, not values.
+    private static let midBasic = 1_607_392_319
+    private static let midCloze = 1_607_392_320
 
     static func export(_ set: StudySet) throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("apkg-\(UUID().uuidString)")
@@ -65,7 +97,8 @@ enum ApkgExporter {
 
         var idc = Int(Date().timeIntervalSince1970 * 1000)
         func nextId() -> Int { idc += 1; return idc }
-        let midBasic = nextId(), midCloze = nextId(), did = nextId()
+        let deckName = set.name.isEmpty ? "Red Pen" : set.name
+        let did = deckId(for: deckName)
         let now = Int(Date().timeIntervalSince1970)
 
         let models: [String: Any] = [
@@ -76,7 +109,7 @@ enum ApkgExporter {
         ]
         let decks: [String: Any] = [
             "1": ["id": 1, "name": "Default", "desc": "", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
-            String(did): ["id": did, "name": set.name.isEmpty ? "Red Pen" : set.name, "desc": "Exported from Red Pen.", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
+            String(did): ["id": did, "name": deckName, "desc": "Exported from Red Pen.", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
         ]
         let conf: [String: Any] = ["nextPos": 1, "estTimes": true, "activeDecks": [1], "sortType": "noteFld", "timeLim": 0, "sortBackwards": false, "addToCur": true, "curDeck": 1, "newBury": true, "newSpread": 0, "dueCounts": true, "curModel": String(midBasic), "collapseTime": 1200]
         let dconf: [String: Any] = ["1": ["id": 1, "name": "Default", "replayq": true, "lapse": ["leechFails": 8, "minInt": 1, "delays": [10], "leechAction": 0, "mult": 0], "rev": ["perDay": 200, "ivlFct": 1, "maxIvl": 36500, "ease4": 1.3, "bury": true, "minSpace": 1, "fuzz": 0.05], "timer": 0, "maxTaken": 60, "usn": 0, "new": ["perDay": 20, "delays": [1, 10], "separate": true, "ints": [1, 4, 7], "initialFactor": 2500, "bury": true, "order": 1], "mod": 0, "autoplay": true]]
@@ -85,30 +118,32 @@ enum ApkgExporter {
 
         for card in set.cards {
             let why = card.why
-            var mid = midBasic, fields: [String], guid: String, sort: String, isCloze = false
+            var mid = midBasic, fields: [String], sort: String, isCloze = false
+            // The card's own id, not its text: editing a card must not create a
+            // second note, which is the whole reason a GUID exists.
+            let guid = guidFor(card.id.uuidString)
             switch card.type {
             case .cloze:
                 mid = midCloze; isCloze = true
                 let extra = why.isEmpty ? "" : bold(why)
                 fields = [card.clozeText, extra]
-                guid = guidFor("cloze:" + card.clozeText + "\u{1f}" + extra)
                 sort = plain(card.clozeText)
             case .qa:
                 let front = bold(card.front)
                 let back = "<ul class=\"bullets\">" + card.bullets.map { "<li>\(bold($0))</li>" }.joined() + "</ul>" + (why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(esc(why))</div>")
                 fields = [front, back]
-                guid = guidFor("qa:" + front + "\u{1f}" + back)
                 sort = plain(card.front)
             case .occlusion:
                 guard let idx = card.imageIndex, set.images.indices.contains(idx), let occ = card.occlusion,
                       let pair = renderOcclusion(set.images[idx], occ) else { continue }
                 let (frontJPEG, backJPEG) = pair
-                let mediaId = nextId()
-                let f = "occ_\(mediaId)_front.jpg", b = "occ_\(mediaId)_back.jpg"
+                // named from the card's id so re-exporting overwrites the same
+                // media rather than piling up a copy per export
+                let short = card.id.uuidString.prefix(8)
+                let f = "occ_\(short)_front.jpg", b = "occ_\(short)_back.jpg"
                 media.append((f, frontJPEG)); media.append((b, backJPEG))
                 fields = ["<img src=\"\(f)\">" + (card.front.isEmpty ? "" : "<div>\(bold(card.front))</div>"),
                           "<img src=\"\(b)\">" + (why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(esc(why))</div>")]
-                guid = guidFor("occ:\(card.front)|\(occ.x),\(occ.y),\(occ.w),\(occ.h)|\(idx)")
                 sort = plain(card.front.isEmpty ? "Image occlusion" : card.front)
             }
             let nid = nextId()
@@ -132,7 +167,40 @@ enum ApkgExporter {
         ]
     }
 
-    // MARK: helpers ported from the web app's ankiFieldBold / ankiGuidFor / plainTextForSort
+    // MARK: identity
+
+    /// The same subject must land in the same deck every time, so the id comes
+    /// from the name. Anki treats a deck id as opaque; it only has to be stable
+    /// and not collide with the Default deck's 1.
+    static func deckId(for name: String) -> Int {
+        var h: UInt64 = 0xcbf29ce484222325
+        for b in name.utf8 { h ^= UInt64(b); h = h &* 0x100000001b3 }
+        // keep it inside the range Anki's own ids occupy, and clear of 1
+        return Int(h % 900_000_000_000) + 1_000_000_000_000
+    }
+
+    /// A stable 10-character GUID, base91 like genanki's.
+    static func guidFor(_ content: String) -> String {
+        var h: UInt64 = 0xcbf29ce484222325
+        for b in content.utf8 { h ^= UInt64(b); h = h &* 0x100000001b3 }
+        let table = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&()*+,-./:;<=>?@[]^_`{|}~")
+        var out = "", v = h
+        for _ in 0..<10 { out.append(table[Int(v % UInt64(table.count))]); v /= UInt64(table.count) }
+        return out
+    }
+
+    /// Anki's field checksum: the first 8 hex digits of the SHA-1 of the
+    /// stripped first field, as an integer. Anki uses this and only this to
+    /// find duplicate notes, so a different hash is not a private detail —
+    /// it silently disables the duplicate warning in the card browser.
+    static func checksum(_ field: String) -> Int {
+        let stripped = field.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        let digest = Insecure.SHA1.hash(data: Data(stripped.utf8))
+        let hex = digest.prefix(4).map { String(format: "%02x", $0) }.joined()
+        return Int(hex, radix: 16) ?? 0
+    }
+
+    // MARK: helpers ported from the web app's ankiFieldBold / plainTextForSort
 
     /// `**term**` → <b>term</b>, everything else HTML-escaped.
     private static func bold(_ s: String) -> String {
@@ -149,23 +217,7 @@ enum ApkgExporter {
     }
     private static func plain(_ s: String) -> String { s.replacingOccurrences(of: "**", with: "") }
 
-    /// A stable 10-character GUID from the note's content, base91 like genanki.
-    private static func guidFor(_ content: String) -> String {
-        var h: UInt64 = 0xcbf29ce484222325
-        for b in content.utf8 { h ^= UInt64(b); h = h &* 0x100000001b3 }
-        let table = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&()*+,-./:;<=>?@[]^_`{|}~")
-        var out = "", v = h
-        for _ in 0..<10 { out.append(table[Int(v % UInt64(table.count))]); v /= UInt64(table.count) }
-        return out
-    }
-    /// Anki's field checksum: first 8 hex chars of SHA1 of the stripped field, as an int.
-    private static func checksum(_ field: String) -> Int {
-        let stripped = field.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        var h: UInt32 = 2166136261
-        for b in stripped.utf8 { h ^= UInt32(b); h = h &* 16777619 }
-        return Int(h)
-    }
-    private static func clozeOrdinals(_ text: String) -> [Int] {
+    static func clozeOrdinals(_ text: String) -> [Int] {
         let re = try? NSRegularExpression(pattern: #"\{\{c(\d+)::"#)
         let ns = text as NSString
         let nums = re?.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { Int(ns.substring(with: $0.range(at: 1))) } ?? []
