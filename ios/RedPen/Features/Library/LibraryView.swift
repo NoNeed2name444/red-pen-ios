@@ -10,6 +10,7 @@ struct LibraryView: View {
     @EnvironmentObject var reviews: ReviewStore
 
     @State var showNewSet = false
+    @State var showAccount = false
     @State var exportURL: URL?
     @State var exportFailedSetName: String?
 
@@ -52,6 +53,7 @@ struct LibraryView: View {
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
+            .sheet(isPresented: $showAccount) { AccountView() }
     }
 
     @ViewBuilder
@@ -111,10 +113,14 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        if !store.library.isEmpty {
-            ToolbarItem(placement: .topBarLeading) {
+        ToolbarItem(placement: .topBarLeading) {
+            if store.library.isEmpty {
                 // toolbar items already sit in the system's glass on iOS 26; an
                 // extra .glass style here squashed the label into a circle
+                Button { showAccount = true } label: {
+                    Image(systemName: "person.crop.circle")
+                }
+            } else {
                 Button {
                     withAnimation(.snappy) { selecting.toggle(); selected = [] }
                 } label: {
@@ -123,10 +129,15 @@ struct LibraryView: View {
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
-            Button { showNewSet = true } label: {
+            Menu {
+                Button("New set", systemImage: "plus") { showNewSet = true }
+                Button("Account", systemImage: "person.crop.circle") { showAccount = true }
+            } label: {
                 Image(systemName: "plus")
                     .font(.body.weight(.semibold))
                     .frame(width: 30, height: 30)
+            } primaryAction: {
+                showNewSet = true
             }
             .buttonStyle(.glassProminent)
             .clipShape(Circle())
