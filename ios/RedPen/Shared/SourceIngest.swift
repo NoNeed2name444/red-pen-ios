@@ -4,11 +4,6 @@ import UIKit
 
 /// Getting a lecture out of the file it arrived in.
 ///
-/// This is the half of the web app the native rewrite never had: sets could be
-/// typed, pasted or imported as JSON, but not made from the PDF the lecturer
-/// actually handed out. Everything downstream - generation, cards, occlusion -
-/// is worthless if the material cannot get in.
-///
 /// Two kinds of PDF turn up and they need opposite treatment. A deck exported
 /// from PowerPoint carries real text, which should be read exactly as written.
 /// A scanned handout is a photograph of a page, where PDFKit returns nothing,
@@ -16,9 +11,9 @@ import UIKit
 /// scripts, in RedPenOCR. The choice is made per PAGE rather than per document,
 /// because a deck with three scanned pages in the middle is the normal case.
 ///
-/// The text decisions all live in SourceText, which knows nothing about PDFKit
-/// and can therefore be tested; the figure decisions live in FigureGrid for the
-/// same reason.
+/// The text decisions live in SourceText and the figure decisions in FigureGrid,
+/// both free of UIKit so they can be tested. Word and PowerPoint come in
+/// through OfficeIngest and end up in this same Result.
 enum SourceIngest {
 
     struct Result {
@@ -33,10 +28,10 @@ enum SourceIngest {
     /// Read a PDF: its own text where it has any, OCR where it does not, and a
     /// look for a labelled diagram either way.
     ///
-    /// A figure is looked for on EVERY page, not only on the pages with no text
-    /// of their own. The anatomy slide that matters most - a title, two bullets
-    /// and a labelled diagram - carries plenty of text, and the earlier version
-    /// of this skipped exactly those pages.
+    /// A figure is looked for on EVERY page, not only on pages with no text of
+    /// their own. The anatomy slide that matters most - a title, two bullets and
+    /// a labelled diagram - carries plenty of text, and an earlier version of
+    /// this skipped exactly those pages.
     static func read(pdf url: URL, findingFigures: Bool = true,
                      figureLimit: Int = 60) async throws -> Result {
         let scoped = url.startAccessingSecurityScopedResource()
@@ -44,13 +39,14 @@ enum SourceIngest {
 
         guard let pdf = PDFDocument(url: url) else { throw Trouble.unreadable }
         guard pdf.pageCount > 0 else { throw Trouble.empty }
+        let name = url.deletingPathExtension().lastPathComponent
 
         var raw: [(number: Int, text: String, recognised: Bool)] = []
         var figures: [UIImage] = []
         var cards: [AnkiCard] = []
 
         for index in 0..<pdf.pageCount {
-            // each page's render is several megabytes; without this, a forty
+            // each page's render is several megabytes; without this a forty
             // page deck holds all forty at once and the app is killed
             autoreleasepool {
                 guard let page = pdf.page(at: index) else { return }
@@ -73,8 +69,15 @@ enum SourceIngest {
                       let cg = rendered?.cgImage,
                       let found = FigureFinder.read(cg, imageIndex: figures.count)
                 else { return }
+                // the page number is the whole value of provenance: a card that
+                // looks wrong can be checked against the slide it came off
+                // instead of merely distrusted
+                cards.append(contentsOf: found.cards.map {
+                    var card = $0
+                    card.source = "\(name), p. \(index + 1)"
+                    return card
+                })
                 figures.append(rendered!)
-                cards.append(contentsOf: found.cards)
             }
         }
 
@@ -84,8 +87,8 @@ enum SourceIngest {
     }
 
     /// A page as an image, at a size Vision can read without the memory cost of
-    /// rendering a poster. A forty-page deck rendered at full resolution is
-    /// enough to have the app killed for memory on an older phone.
+    /// rendering a poster. A forty-page deck at full resolution is enough to
+    /// have the app killed for memory on an older phone.
     static func image(of page: PDFPage, maxDimension: CGFloat = 2000) -> UIImage? {
         let box = page.bounds(for: .mediaBox)
         guard box.width > 0, box.height > 0 else { return nil }
