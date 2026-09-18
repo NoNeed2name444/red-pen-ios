@@ -2,14 +2,15 @@ import UIKit
 
 /// Ports the web app's per-mode "Export PDF" buttons (`exportPdfBtn`,
 /// `ankiExportBtn`, `exportBookPdfBtn`, `exportOscePdfBtn`,
-/// `exportNarratePdfBtn`, `exportQaPdfBtn` — see `renderQuestionsPdf()`
-/// and its siblings) as one generic renderer: build a flowing
-/// `NSAttributedString` for whichever kind of set this is, then paginate
-/// it into a real multi-page PDF with Core Text — no jsPDF equivalent
-/// needed, `UIGraphicsPDFRenderer` + `CTFramesetter` do the same job
-/// natively. Every mode gets a page of its own content; MCQ additionally
-/// gets each question's correct answer and explanation, matching the
-/// web app's review-style export.
+/// `exportNarratePdfBtn`, `exportQaPdfBtn`) as one generic renderer: build a
+/// flowing `NSAttributedString` for whichever kind of set this is, then
+/// paginate it into a real multi-page PDF with Core Text. No jsPDF equivalent
+/// is needed - `UIGraphicsPDFRenderer` and `CTFramesetter` do the same job
+/// natively.
+///
+/// Occlusion cards are the exception and get pages of their own, drawn by
+/// PDFOcclusion: a picture cannot flow through a text frame, and a card whose
+/// whole content is a masked diagram has nothing to say without it.
 enum PDFExporter {
     private static let pageSize = CGRect(x: 0, y: 0, width: 612, height: 792) // US letter, matches jsPDF's default
     private static let margin: CGFloat = 42
@@ -26,6 +27,7 @@ enum PDFExporter {
         do {
             try renderer.writePDF(to: url) { context in
                 paginate(text, context: context)
+                PDFOcclusion.draw(set, in: context, pageSize: pageSize, margin: margin)
             }
             return url
         } catch {
@@ -33,7 +35,7 @@ enum PDFExporter {
         }
     }
 
-    // MARK: pagination — a generic Core Text flow across as many pages as needed
+    // MARK: pagination - a generic Core Text flow across as many pages as needed
 
     private static func paginate(_ text: NSAttributedString, context: UIGraphicsPDFRendererContext) {
         let framesetter = CTFramesetterCreateWithAttributedString(text)
@@ -61,7 +63,7 @@ enum PDFExporter {
         }
     }
 
-    // MARK: content per StudySet kind — mirrors each mode's renderXPdf()
+    // MARK: content per StudySet kind
 
     private static func attributedString(for set: StudySet) -> NSAttributedString {
         let out = NSMutableAttributedString()
@@ -82,10 +84,15 @@ enum PDFExporter {
                 out.append(spacer())
             }
         case .anki:
-            for (i, card) in set.cards.enumerated() {
+            // occlusion cards are drawn later, as pictures
+            for (i, card) in set.cards.enumerated() where card.type != .occlusion {
                 out.append(heading("Card \(i + 1)"))
-                out.append(body(card.displayFront))
-                if !card.bullets.isEmpty {
+                if card.type == .cloze {
+                    // the sentence with its blanks IS the card; printing the
+                    // front instead left every cloze card in the export blank
+                    out.append(body(card.clozeText))
+                } else {
+                    out.append(body(card.displayFront))
                     for b in card.bullets { out.append(bullet(b, emphasize: false)) }
                 }
                 if !card.why.isEmpty { out.append(note("Why / how", card.why)) }
