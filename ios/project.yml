@@ -41,6 +41,16 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # iOS terminates an app that reaches for either of these without a
+        # stated reason, so these two strings are load-bearing, not paperwork.
+        # They also say the honest thing: the recognition happens here, because
+        # LectureTranscriber forces requiresOnDeviceRecognition and refuses
+        # rather than falling back to a server.
+        NSSpeechRecognitionUsageDescription: Red Pen turns your lecture recording into a transcript on this iPhone. The recording is never uploaded.
+        NSMicrophoneUsageDescription: Red Pen uses the microphone to record a lecture for transcription on this iPhone.
+        # A lecture should keep playing with the screen off.
+        UIBackgroundModes:
+          - audio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.redpen.app
