@@ -71,6 +71,12 @@ struct NewSetView: View {
                     case .importJSON: importSection
                     }
                 } else {
+                    // OSCE stations can be written from a lecture as well as
+                    // typed. What it writes goes into the same box, so there is
+                    // one path out of this screen rather than two.
+                    if kind == .osce {
+                        OsceGenerateSection(bodyText: $bodyText, subject: subject)
+                    }
                     typeSection
                     importSection
                 }

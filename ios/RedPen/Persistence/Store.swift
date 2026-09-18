@@ -25,6 +25,14 @@ final class Store: ObservableObject {
     /// `resumeBanner` / `el.resumeBtn` state, so a quiz closed halfway can be
     /// picked up where it was left.
     @Published var quizProgress: [UUID: QuizProgress] = [:]
+    /// Half-worked OSCE stations, keyed by set id.
+    ///
+    /// Kept for the same reason a half-finished quiz is. A station is twenty
+    /// steps recalled out loud, and it is the mode most likely to be
+    /// interrupted - by a phone call, by the ward, by the app being closed
+    /// mid-sentence. Losing the position and starting the station again is the
+    /// difference between a tool somebody revises with and one they open once.
+    @Published var osceProgress: [UUID: OsceProgress] = [:]
 
     private let fileURL: URL
 
@@ -50,6 +58,7 @@ final class Store: ObservableObject {
         var folders: [StudyFolder]
         var quizProgress: [UUID: QuizProgress]? // added later; older files simply lack it
         var tombstones: [UUID: Date]?           // likewise
+        var osceProgress: [UUID: OsceProgress]? // likewise
     }
 
     func load() {
@@ -59,11 +68,13 @@ final class Store: ObservableObject {
         folders = snapshot.folders
         quizProgress = snapshot.quizProgress ?? [:]
         tombstones = snapshot.tombstones ?? [:]
+        osceProgress = snapshot.osceProgress ?? [:]
     }
 
     func save() {
         let snapshot = Snapshot(library: library, folders: folders,
-                                quizProgress: quizProgress, tombstones: tombstones)
+                                quizProgress: quizProgress, tombstones: tombstones,
+                                osceProgress: osceProgress)
         guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
@@ -76,6 +87,7 @@ final class Store: ObservableObject {
     func deleteSet(_ id: UUID) {
         library.removeAll { $0.id == id }
         quizProgress[id] = nil
+        osceProgress[id] = nil
         tombstones[id] = Date()
         pruneEmptyFolders()
         save()
@@ -220,6 +232,47 @@ final class Store: ObservableObject {
         guard quizProgress[setId] != nil else { return }
         quizProgress[setId] = nil
         save()
+    }
+
+    // MARK: OSCE resume
+
+    func saveOsce(_ progress: OsceProgress, for setId: UUID) {
+        osceProgress[setId] = progress
+        save()
+    }
+
+    func clearOsce(for setId: UUID) {
+        guard osceProgress[setId] != nil else { return }
+        osceProgress[setId] = nil
+        save()
+    }
+}
+
+/// A station part way through: which checklist, which step, and which steps
+/// have been missed so far.
+///
+/// `checklistTitle` rather than only the index, because a set can be edited
+/// between sessions. Resuming by index alone into a set whose stations have
+/// been reordered drops somebody into the middle of a different station with
+/// their missed steps attached to it, which is worse than starting again.
+struct OsceProgress: Codable, Hashable {
+    var checklistIndex: Int
+    var checklistTitle: String
+    var stepIndex: Int
+    var missed: [Int]
+    var repeatQueue: [Int] = []
+    var repeatPos: Int = 0
+    var savedAt: Date = Date()
+
+    /// Whether this position still makes sense for the set as it is now.
+    func fits(_ checklists: [OsceChecklist]) -> Bool {
+        guard checklists.indices.contains(checklistIndex) else { return false }
+        let checklist = checklists[checklistIndex]
+        guard checklist.title == checklistTitle else { return false }
+        guard stepIndex >= 0, stepIndex < max(checklist.steps.count, 1) else { return false }
+        return missed.allSatisfy { checklist.steps.indices.contains($0) }
+            && repeatQueue.allSatisfy { checklist.steps.indices.contains($0) }
+            && (repeatQueue.isEmpty || repeatPos < repeatQueue.count)
     }
 }
 

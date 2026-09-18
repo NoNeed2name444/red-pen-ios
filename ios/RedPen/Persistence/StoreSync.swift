@@ -42,6 +42,7 @@ extension Store {
         library.removeAll { $0.id == id }
         folders.removeAll { $0.id == id }
         quizProgress[id] = nil
+        osceProgress[id] = nil
         save()
     }
 

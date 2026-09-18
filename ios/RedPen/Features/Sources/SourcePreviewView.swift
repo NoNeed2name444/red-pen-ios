@@ -128,7 +128,10 @@ struct SourcePageList: View {
 
     var body: some View {
         ScrollViewReader { scroll in
-            List(source.pages, selection: $selected) { page in
+            // No `selection:` here: that binding wants an optional or a set,
+            // and the highlight is drawn by the row itself anyway, which keeps
+            // this working the same way inside a sheet and beside the reader.
+            List(source.pages) { page in
                 Button {
                     selected = page.number
                 } label: {

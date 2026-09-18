@@ -9,6 +9,7 @@ import SwiftUI
 struct OsceReviewView: View {
     let studySet: StudySet
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: Store
 
     @State private var checklistIndex: Int
     @State private var stepIndex = 0
@@ -51,6 +52,13 @@ struct OsceReviewView: View {
         .modeScreen(.osce)
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear(perform: resume)
+        // Saved on every change rather than on the way out: a station is
+        // usually left by the app being closed or killed, and nothing runs then.
+        .onChange(of: stepIndex) { _, _ in remember() }
+        .onChange(of: checklistIndex) { _, _ in remember() }
+        .onChange(of: repeatPos) { _, _ in remember() }
+        .onChange(of: complete) { _, _ in remember() }
     }
 
     // MARK: header
@@ -194,6 +202,42 @@ struct OsceReviewView: View {
             }
         }
         revealed = false
+    }
+
+    // MARK: picking the station back up
+
+    /// Restores a saved position, if it still fits the set.
+    ///
+    /// Only when the screen was opened at the start. A caller that asked for a
+    /// particular checklist meant it, and quietly sending them somewhere else
+    /// would be the opposite of resuming.
+    private func resume() {
+        guard checklistIndex == 0, stepIndex == 0, !complete, missed.isEmpty,
+              let saved = store.osceProgress[studySet.id],
+              saved.fits(checklists) else { return }
+        checklistIndex = saved.checklistIndex
+        stepIndex = saved.stepIndex
+        missed = saved.missed
+        repeatQueue = saved.repeatQueue
+        repeatPos = saved.repeatPos
+        revealed = false
+    }
+
+    private func remember() {
+        // The whole set finished is not a position to come back to; it is the
+        // one state where starting again is what somebody wants.
+        if complete && checklistIndex >= checklists.count - 1 {
+            store.clearOsce(for: studySet.id)
+            return
+        }
+        guard let checklist else { return }
+        store.saveOsce(OsceProgress(checklistIndex: checklistIndex,
+                                    checklistTitle: checklist.title,
+                                    stepIndex: stepIndex,
+                                    missed: missed,
+                                    repeatQueue: repeatQueue,
+                                    repeatPos: repeatPos),
+                       for: studySet.id)
     }
 
     private func nextChecklist() {
