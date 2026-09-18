@@ -1,20 +1,27 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// What a file gave us, kept so that questions generated later can be cited
+/// back to the page they came from.
+struct ReadSource: Equatable {
+    var name: String
+    var document: SourceText.Document
+}
+
 /// Reading the lecture out of the file the lecturer handed out.
 ///
-/// Three things come back from one pass, and they are worth keeping apart. The
-/// TEXT is appended to whatever the student has already pasted. The COUNT is a
-/// proposal - a forty-page lecture cannot be covered by the ten questions the
-/// form defaults to, and nobody knows that until the file has been read. The
-/// DIAGRAMS are something the text route cannot produce at all: a labelled
-/// figure already carries its own answers, so each label becomes an occlusion
-/// card without a model being asked anything. That deck is offered separately
-/// rather than mixed into the questions, because it is a different way of
-/// studying and the student should choose it deliberately.
+/// Three things come back from one pass. The TEXT is appended to whatever the
+/// student has already pasted. The COUNT is a proposal - a forty-page lecture
+/// cannot be covered by the ten questions the form defaults to, and nobody
+/// knows that until the file has been read. The DIAGRAMS are something the text
+/// route cannot produce at all: a labelled figure already carries its own
+/// answers, so each label becomes an occlusion card without a model being asked
+/// anything. That deck is offered separately rather than mixed into the
+/// questions, because it is a different way of studying.
 struct LecturePDFSection: View {
     @Binding var sourceText: String
     @Binding var questionCount: Int
+    @Binding var readSource: ReadSource?
     let disabled: Bool
     let name: String
     let subject: String
@@ -26,11 +33,13 @@ struct LecturePDFSection: View {
     @State private var cards: [AnkiCard] = []
     @State private var images: [String] = []
 
-    /// A .docx is a zip, and a zip is not a type the picker offers by name, so
-    /// Word's own identifier is asked for directly. If the system does not know
-    /// it, the picker simply offers PDFs rather than failing to open.
+    /// Office files are zips, and a zip is not a type the picker offers by
+    /// name, so Word's and PowerPoint's own identifiers are asked for directly.
+    /// A system that does not know one simply offers the others.
     private var readableTypes: [UTType] {
-        [.pdf, UTType("org.openxmlformats.wordprocessingml.document")].compactMap { $0 }
+        [.pdf,
+         UTType("org.openxmlformats.wordprocessingml.document"),
+         UTType("org.openxmlformats.presentationml.presentation")].compactMap { $0 }
     }
 
     var body: some View {
@@ -49,9 +58,7 @@ struct LecturePDFSection: View {
             }
 
             if !cards.isEmpty {
-                Button {
-                    makeOcclusionSet()
-                } label: {
+                Button { makeOcclusionSet() } label: {
                     Label("Make an image-occlusion deck (\(cards.count) card\(cards.count == 1 ? "" : "s"))",
                           systemImage: "rectangle.dashed")
                 }
@@ -62,7 +69,7 @@ struct LecturePDFSection: View {
         } header: {
             Text("From a file")
         } footer: {
-            Text("PDF slides and Word handouts are read on this phone. A scanned page is read by OCR, in Arabic or English.")
+            Text("PDF, Word and PowerPoint are read on this phone. A scanned page is read by OCR, in Arabic or English.")
         }
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes) { result in
             Task { await read(result) }
@@ -79,36 +86,41 @@ struct LecturePDFSection: View {
             cards = []
             images = []
             do {
-                let isWord = url.pathExtension.lowercased().hasPrefix("doc")
-                let read = isWord ? try await DocxIngest.read(docx: url)
-                                  : try await SourceIngest.read(pdf: url)
+                let isPDF = url.pathExtension.lowercased() == "pdf"
+                let read = isPDF ? try await SourceIngest.read(pdf: url)
+                                 : try await OfficeIngest.read(url)
                 let document = read.document
+                let fileName = url.deletingPathExtension().lastPathComponent
                 // appended rather than replacing: a student who pasted notes and
                 // then adds the slides means both, and silently discarding what
                 // they typed would be unforgivable
                 let existing = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
                 sourceText = existing.isEmpty ? document.text
                                               : existing + "\n\n" + document.text
+                readSource = ReadSource(name: fileName, document: document)
                 keepFigures(read)
 
                 // proposed, not imposed: the stepper still moves, and a student
                 // who wants a quick ten-question run can say so
-                let suggested = MCQCoverage.suggestedCount(forCharacters: sourceText.count)
-                questionCount = min(MCQGenerator.maxQuestionsTotal, suggested)
+                questionCount = min(MCQGenerator.maxQuestionsTotal,
+                                    MCQCoverage.suggestedCount(forCharacters: sourceText.count))
 
-                let ocr = document.recognisedPages
-                let pages = document.pages.count
-                status = (isWord ? "Read the handout"
-                                 : "Read \(pages) page\(pages == 1 ? "" : "s")")
-                    + (ocr > 0 ? ", \(ocr) by OCR" : "")
-                    + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
-                    + ". Set to \(questionCount) questions \u{2014} about what this much material can cover without repeating itself. Check anything garbled before generating."
+                status = summary(pages: document.pages.count,
+                                 ocr: document.recognisedPages)
             } catch {
                 status = (error as? LocalizedError)?.errorDescription
                     ?? error.localizedDescription
             }
             reading = false
         }
+    }
+
+    private func summary(pages: Int, ocr: Int) -> String {
+        "Read \(pages) page\(pages == 1 ? "" : "s")"
+            + (ocr > 0 ? ", \(ocr) by OCR" : "")
+            + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
+            + ". Set to \(questionCount) questions \u{2014} about what this much material can"
+            + " cover without repeating itself. Check anything garbled before generating."
     }
 
     /// Shrink the figures for storage, and renumber the cards as we go.
