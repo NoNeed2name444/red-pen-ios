@@ -29,17 +29,14 @@ enum OfficeIngest {
 
         let raw: [(number: Int, text: String, recognised: Bool)]
         let pictures: [Data]
-        let label: (Int) -> String
 
         if !slides.isEmpty {
             raw = PptxText.pages(archive)
             pictures = PptxText.images(archive)
-            label = { "\(name), slide \($0)" }
         } else if archive[DocxText.documentPath] != nil {
             let read = DocxText.read(archive)
             raw = [(1, read.text, false)]
             pictures = read.images
-            label = { _ in name }
         } else {
             throw Trouble.notAnOfficeFile
         }
@@ -53,12 +50,15 @@ enum OfficeIngest {
                     guard let image = UIImage(data: picture), let cg = image.cgImage,
                           let found = FigureFinder.read(cg, imageIndex: figures.count)
                     else { return }
-                    // a picture in a zip is not tied to the slide it appears on
-                    // without following the relationship files, so the deck's
-                    // name is as far as provenance honestly goes here
+                    // The file names the deck and nothing finer. A picture in
+                    // the media folder is not tied to the slide it appears on
+                    // without following the relationship files, so its position
+                    // in that folder is NOT its slide number - quoting one
+                    // would produce a citation that looks precise and points at
+                    // the wrong slide, which is worse than no citation at all.
                     cards.append(contentsOf: found.cards.map {
                         var card = $0
-                        card.source = label(figures.count + 1)
+                        card.source = name
                         return card
                     })
                     figures.append(image)
