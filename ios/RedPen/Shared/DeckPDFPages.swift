@@ -24,7 +24,11 @@ extension DeckPDF {
     /// The coloured bar, and the y it leaves behind.
     @discardableResult
     static func bar(_ left: String, right: String, palette: DeckPalette) -> CGFloat {
-        let fill = palette.barFill
+        // Darker on an answer page. The two pages of a card are laid out
+        // identically on purpose, which left nothing to tell them apart at a
+        // glance in a stack of printed sheets; the depth of the bar is that
+        // signal, in the same hue, so the deck still reads as one thing.
+        let fill = left.lowercased() == "answer" ? palette.barFill.shade(0.3) : palette.barFill
         color(fill).setFill()
         UIBezierPath(rect: CGRect(x: 0, y: 0, width: pageSize.width, height: barHeight)).fill()
 

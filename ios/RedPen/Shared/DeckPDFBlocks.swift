@@ -82,6 +82,11 @@ extension DeckPDF {
         let width = pageSize.width - margin * 2
         var y = top
         let limit = pageSize.height - 48
+        // The phrase worth picking out of the reasoning, on a card that carries
+        // no marked terms of its own. Taken from the option marked correct, so
+        // it is empty on a question page by construction - no option is marked
+        // correct there, which is what keeps this from spoiling anything.
+        let key = keyPhrase(blocks)
 
         for block in blocks {
             if !measuring, y > limit {
@@ -95,7 +100,8 @@ extension DeckPDF {
             case .text(let text):
                 y += write(text, x: margin, y: y, width: width,
                            font: .systemFont(ofSize: size, weight: .semibold),
-                           color: UIColor(white: 0.07, alpha: 1), measuring: measuring)
+                           color: UIColor(white: 0.07, alpha: 1), measuring: measuring,
+                           accent: color(palette.shade(0.22)))
                 y += size * 0.5
 
             case .bullet(let lead, let text):
@@ -126,7 +132,7 @@ extension DeckPDF {
                            font: .systemFont(ofSize: size, weight: correct ? .semibold : .regular),
                            color: correct ? UIColor(white: 0.07, alpha: 1)
                                           : UIColor(white: 0.16, alpha: 1),
-                           measuring: measuring)
+                           measuring: measuring, accent: color(palette.shade(0.22)))
                 y += size * 0.45
 
             case .note(let label, let text):
@@ -139,13 +145,44 @@ extension DeckPDF {
                     ])
                 }
                 y += size * 1.05
-                y += write(text, x: margin, y: y, width: width,
+                y += write(marking(key, in: text), x: margin, y: y, width: width,
                            font: .systemFont(ofSize: size * 0.94),
-                           color: UIColor(white: 0.16, alpha: 1), measuring: measuring)
+                           color: UIColor(white: 0.16, alpha: 1), measuring: measuring,
+                           accent: color(palette.shade(0.22)))
                 y += size * 0.5
             }
         }
         return y
+    }
+
+    /// The answer's own phrase, for cards written without any marking.
+    ///
+    /// A set with nothing marked prints as a wall of one grey, which is exactly
+    /// the page that is hard to revise from. The option marked correct is the
+    /// one phrase on the page that is certainly the point of the card, so that
+    /// is what gets picked out of the reasoning.
+    static func keyPhrase(_ blocks: [DeckBlock]) -> String? {
+        for block in blocks {
+            if case .option(_, let text, let correct) = block, correct {
+                let trimmed = text.trimmingCharacters(in: CharacterSet(charactersIn: " ."))
+                return trimmed.count >= 4 ? trimmed : nil
+            }
+        }
+        return nil
+    }
+
+    /// Marks a phrase where it appears, leaving text that is already marked alone.
+    static func marking(_ phrase: String?, in text: String) -> String {
+        guard let phrase, !text.contains("**") else { return text }
+        var out = text
+        var searched = out.startIndex..<out.endIndex
+        while let found = out.range(of: phrase, options: .caseInsensitive, range: searched) {
+            out.replaceSubrange(found, with: "**" + out[found] + "**")
+            guard let resume = out.index(found.lowerBound, offsetBy: phrase.count + 4,
+                                         limitedBy: out.endIndex) else { break }
+            searched = resume..<out.endIndex
+        }
+        return out
     }
 
     /// A bullet whose opening phrase is set in the deck's colour.
@@ -159,10 +196,15 @@ extension DeckPDF {
             ]))
         }
         if !text.isEmpty {
-            body.append(NSAttributedString(string: text, attributes: [
-                .font: UIFont.systemFont(ofSize: size),
-                .foregroundColor: UIColor(white: 0.18, alpha: 1),
-            ]))
+            let plain = UIFont.systemFont(ofSize: size)
+            let strong = UIFont.systemFont(ofSize: size, weight: .bold)
+            for run in Highlight.runs(text) {
+                body.append(NSAttributedString(string: run.text, attributes: [
+                    .font: run.bold ? strong : plain,
+                    .foregroundColor: run.bold ? color(palette.shade(0.22))
+                                               : UIColor(white: 0.18, alpha: 1),
+                ]))
+            }
         }
         guard body.length > 0 else { return 0 }
         let rect = body.boundingRect(with: CGSize(width: width, height: 2000),
@@ -175,22 +217,43 @@ extension DeckPDF {
         return ceil(rect.height)
     }
 
+    /// Writes text, setting anything marked in the deck's own colour.
+    ///
+    /// Colour is the point here, not decoration. A printed page of one uniform
+    /// grey gives the eye nowhere to land: the term a card is actually about
+    /// reads exactly like the words around it, so nothing can be found by
+    /// glancing. What the student marked while writing the set is what matters
+    /// on the card, so that is what is coloured - a deliberate choice already
+    /// made, rather than this code guessing at which words look important.
+    ///
+    /// Weight carries it as well as hue, so the emphasis survives a black and
+    /// white printer and is still visible to somebody who cannot distinguish
+    /// the colour.
     static func write(_ text: String, x: CGFloat, y: CGFloat, width: CGFloat,
-                      font: UIFont, color textColor: UIColor, measuring: Bool) -> CGFloat {
+                      font: UIFont, color textColor: UIColor, measuring: Bool,
+                      accent: UIColor? = nil) -> CGFloat {
         guard !text.isEmpty else { return 0 }
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = font.pointSize * 0.22
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font, .foregroundColor: textColor, .paragraphStyle: paragraph,
-        ]
-        let string = text as NSString
-        let rect = string.boundingRect(with: CGSize(width: width, height: 4000),
-                                       options: [.usesLineFragmentOrigin, .usesFontLeading],
-                                       attributes: attrs, context: nil)
+
+        let body = NSMutableAttributedString()
+        let descriptor = font.fontDescriptor.withSymbolicTraits(.traitBold)
+        let bold = descriptor.map { UIFont(descriptor: $0, size: font.pointSize) }
+            ?? UIFont.systemFont(ofSize: font.pointSize, weight: .bold)
+        for run in Highlight.runs(text) {
+            body.append(NSAttributedString(string: run.text, attributes: [
+                .font: run.bold ? bold : font,
+                .foregroundColor: run.bold ? (accent ?? textColor) : textColor,
+                .paragraphStyle: paragraph,
+            ]))
+        }
+        guard body.length > 0 else { return 0 }
+        let rect = body.boundingRect(with: CGSize(width: width, height: 4000),
+                                     options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                     context: nil)
         if !measuring {
-            string.draw(with: CGRect(x: x, y: y, width: width, height: ceil(rect.height)),
-                        options: [.usesLineFragmentOrigin, .usesFontLeading],
-                        attributes: attrs, context: nil)
+            body.draw(with: CGRect(x: x, y: y, width: width, height: ceil(rect.height)),
+                      options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
         }
         return ceil(rect.height)
     }

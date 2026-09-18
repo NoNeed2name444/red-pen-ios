@@ -433,7 +433,11 @@ body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-seri
 ul { margin: 0; padding-left: 5mm }
 li { margin-bottom: 2mm }
 li::marker { color: var(--accent) }
-.lead { font-weight: 700 }
+.lead { font-weight: 700; color: var(--deep) }
+b, strong { color: var(--deep) }
+/* The opening phrase of a bullet, up to its colon or dash: what the line is
+   about, which is what the eye should land on first. */
+.key { font-weight: 700; color: var(--deep) }
 .opt { margin-bottom: 2.4mm; padding-left: 7mm; position: relative }
 .opt .letter { position: absolute; left: 0; font-weight: 700; color: #2b2b2b }
 .opt.correct { font-weight: 700; background: var(--soft); border-radius: 1.6mm;
@@ -485,8 +489,61 @@ def inline(text: str) -> str:
     Not a Markdown pass. Medical writing is full of underscores, brackets and
     leading numbers, and a full reader turns "T_max_" into italics and eats the
     underscores.
+
+    Marked terms are set in the deck's colour by the stylesheet. That is the
+    whole reason marking survives into print: a page in one uniform grey gives
+    the eye nowhere to land, and what the student marked while writing the set
+    is a decision already made about what matters - better than this code
+    guessing which words look important.
     """
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc(text))
+
+
+# "Fixed splitting of S2: the classic finding" - the part before the colon says
+# what the line is about.
+LEAD_IN = re.compile(r"^([^:\u2013\u2014]{3,60})(:|\s\u2013|\s\u2014)\s+")
+
+
+def with_key(text: str) -> str:
+    """Colours a line's own lead-in, for cards that carry no marked terms.
+
+    Without this, a set written without any marking prints as an undifferentiated
+    block, which is exactly the page that is hard to revise from. With it, every
+    line still has one thing the eye reaches first.
+    """
+    rendered = inline(text)
+    if "<b>" in rendered:
+        return rendered
+    match = LEAD_IN.match(text or "")
+    if not match:
+        return rendered
+    head, mark = match.group(1), match.group(2).strip()
+    rest = (text or "")[match.end():]
+    return (f'<span class="key">{esc(head)}</span>{esc(mark)} ' + inline(rest))
+
+
+def answer_phrase(blocks) -> str:
+    """The thing the card is actually testing, as the answer states it.
+
+    On a card with no marked terms there is nothing for the stylesheet to
+    colour, and an explanation then prints as a wall of one grey. The correct
+    option is the one phrase on the page that is certainly the point, so its
+    occurrences in the reasoning are what get picked out. This is used on the
+    answer side ONLY - doing it on a question page would be the spoiler this
+    whole layout exists to prevent.
+    """
+    for b in blocks:
+        if b["type"] == "option" and b.get("correct"):
+            return (b.get("text") or "").strip(" .")
+    return ""
+
+
+def emphasise(html_text: str, phrase: str) -> str:
+    """Marks a phrase where it appears in already-escaped HTML."""
+    if not phrase or len(phrase) < 4 or "<b>" in html_text:
+        return html_text
+    pattern = re.compile(re.escape(esc(phrase)), re.IGNORECASE)
+    return pattern.sub(lambda m: f"<b>{m.group(0)}</b>", html_text)
 
 
 def render_blocks(blocks, answer_side: bool) -> str:
@@ -502,7 +559,7 @@ def render_blocks(blocks, answer_side: bool) -> str:
         if kind == "bullet":
             lead = f'<span class="lead">{inline(b["lead"])}</span>' if b.get("lead") else ""
             joiner = ": " if lead and b.get("text") else ""
-            bullets.append(f"<li>{lead}{joiner}{inline(b.get('text'))}</li>")
+            bullets.append(f"<li>{lead}{joiner}{with_key(b.get('text'))}</li>")
             continue
         flush()
         if kind == "text":
@@ -512,15 +569,26 @@ def render_blocks(blocks, answer_side: bool) -> str:
             out.append(f'<div class="{cls}"><span class="letter">{esc(b["letter"])}.'
                        f'</span>{inline(b["text"])}</div>')
         elif kind == "note":
+            body = with_key(b["text"])
+            if answer_side:
+                body = emphasise(body, answer_phrase(blocks))
             out.append(f'<div class="note-label">{esc(b["label"]).upper()}</div>'
-                       f'<div class="note-text">{inline(b["text"])}</div>')
+                       f'<div class="note-text">{body}</div>')
     flush()
     return "\n".join(out)
 
 
 def page_head(card: Card, pal: Palette, left: str, total: int) -> str:
+    """The coloured bar, darker on an answer page.
+
+    Two pages of a card are deliberately laid out identically, which left
+    nothing to tell them apart at a glance in a stack of printed sheets. The
+    depth of the bar is that signal: same hue, so the deck still reads as one
+    thing, but a question and an answer are never mistaken for each other.
+    """
+    fill = pal.bar.shade(0.3) if left.lower() == "answer" else pal.bar
     return f"""
-  <div class="bar" style="background:{pal.bar.hex}">
+  <div class="bar" style="background:{fill.hex}">
     <span>{esc(left).upper()}</span><span>CARD {card.number}</span>
   </div>"""
 
