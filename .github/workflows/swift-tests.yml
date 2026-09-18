@@ -98,6 +98,22 @@ jobs:
           } > out/ingest.log 2>&1
           cat out/ingest.log
 
+      # A labelled diagram carries its own answers, so occlusion cards are
+      # geometry rather than a guess - which means they can be checked.
+      - name: Figures and occlusion cards
+        run: |
+          mkdir -p out build/figures
+          cp ios/RedPen/Tests/FigureTests.swift build/figures/main.swift
+          {
+            swiftc -O ios/RedPen/Models/AnkiCard.swift \
+                   ios/RedPen/Shared/FigureGrid.swift \
+                   build/figures/main.swift -o figuretest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./figuretest ]; then ./figuretest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "figuretest was never built"; fi
+          } > out/figures.log 2>&1
+          cat out/figures.log
+
       - name: Fail the job if anything failed
         run: |
           bad=0
