@@ -7,28 +7,33 @@ import UniformTypeIdentifiers
 /// timestamps decide which word is lit, and the clock is the audio's position,
 /// so scrubbing and speed changes cannot put the highlight out of step. With no
 /// recording it falls back to the web app's reading pace, holding each line for
-/// `NarrateScheduler.segmentMs()`.
+/// `NarrateScheduler.segmentMs()` - that half is in NarrateReading.
 ///
 /// The transcript is editable either way: long-press a word, say what it should
 /// have been, and the fix spreads to everything that sounds the same and is
 /// remembered for next time - see FixWordSheet.
+///
+/// `body` is deliberately split into `stage` and `screen`. SwiftUI type-checks
+/// a view's whole modifier chain as one expression, and this screen has enough
+/// of them - two conditional branches, a ternary title, an inline Binding -
+/// that the compiler gave up on it outright.
 struct NarrateReviewView: View {
     let studySet: StudySet
     @EnvironmentObject var store: Store
     @EnvironmentObject var learned: PronunciationLibrary
-    @StateObject private var player = LecturePlayer()
-    @StateObject private var importer = LectureImporter()
+    @StateObject var player = LecturePlayer()
+    @StateObject var importer = LectureImporter()
 
-    @State private var index = 0
-    @State private var playing = false
-    @State private var finished = false
-    @State private var speed: Double = 1
-    @State private var timer: Timer?
-    @State private var remainingMs: Double = 0
-    @State private var segStartedAt = Date()
+    @State var index = 0
+    @State var playing = false
+    @State var finished = false
+    @State var speed: Double = 1
+    @State var timer: Timer?
+    @State var remainingMs: Double = 0
+    @State var segStartedAt = Date()
 
-    @State private var segments: [NarrateSegment] = []
-    @State private var texts: [String] = []
+    @State var segments: [NarrateSegment] = []
+    @State var texts: [String] = []
     @State private var fixing: FixTarget?
     @State private var report: String?
     @State private var lastOutcome: CorrectionOutcome?
@@ -50,65 +55,91 @@ struct NarrateReviewView: View {
     }
 
     /// Word timings exist only when a recording was transcribed.
-    private var words: [TranscriptWord] {
+    var words: [TranscriptWord] {
         guard let measured = NarrateScheduler.measured(segments) else { return [] }
         return WordTiming.layout(texts: texts,
                                  ends: segments.map { $0.end ?? 0 },
                                  measured: measured)
     }
 
-    private var spokenNow: TranscriptWord? {
+    var spokenNow: TranscriptWord? {
         player.hasAudio ? WordTiming.word(at: player.time, in: words) : nil
     }
 
-    var body: some View {
+    private var title: String {
+        studySet.subject.isEmpty ? "Narrate" : studySet.subject
+    }
+
+    private var troubleShowing: Binding<Bool> {
+        Binding(get: { importer.trouble != nil },
+                set: { if !$0 { importer.trouble = nil } })
+    }
+
+    // MARK: the screen, in three shallow layers
+
+    @ViewBuilder
+    private var controls: some View {
+        if player.hasAudio {
+            NarrateAudioBar(player: player, speed: $speed)
+        } else {
+            NarrateReadingControls(speed: $speed, playing: playing, finished: finished,
+                                   canPlay: !segments.isEmpty,
+                                   onPlayPause: { playing ? pause() : play() },
+                                   onRestart: restart)
+        }
+    }
+
+    private var stage: some View {
         VStack(spacing: 0) {
             header
             if let message = importer.working { TranscribingBanner(message: message) }
             transcript
-            if player.hasAudio {
-                NarrateAudioBar(player: player, speed: $speed)
-            } else {
-                NarrateReadingControls(speed: $speed, playing: playing, finished: finished,
-                                       canPlay: !segments.isEmpty,
-                                       onPlayPause: { playing ? pause() : play() },
-                                       onRestart: restart)
-            }
+            controls
         }
         .modeScreen(.narrate)
-        .navigationTitle(studySet.subject.isEmpty ? "Narrate" : studySet.subject)
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: seed)
-        .onDisappear { timer?.invalidate(); player.stop() }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { importing = true } label: {
-                    Label(player.hasAudio ? "Replace recording" : "Add recording",
-                          systemImage: "waveform")
+    }
+
+    private var screen: some View {
+        stage
+            .onAppear(perform: seed)
+            .onDisappear { timer?.invalidate(); player.stop() }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { importing = true } label: {
+                        Label(player.hasAudio ? "Replace recording" : "Add recording",
+                              systemImage: "waveform")
+                    }
+                    .buttonStyle(.glass)
                 }
-                .buttonStyle(.glass)
             }
-        }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.audio]) { picked in
-            Task { await importer.attach(picked, to: studySet, learned: learned) }
-        }
-        .onChange(of: importer.produced) { _, made in
-            if let made { adopt(made) }
-        }
-        .onChange(of: spokenNow?.segment) { _, line in
-            // the audio is the clock, so the current line follows it rather
-            // than being advanced by a timer of our own
-            if let line, line != index { index = line }
-        }
-        .sheet(item: $fixing) { target in
-            FixWordSheet(target: target) { fix(target, to: $0) }
-        }
-        .alert("Couldn't use that recording", isPresented: Binding(
-            get: { importer.trouble != nil }, set: { if !$0 { importer.trouble = nil } }
-        )) { Button("OK", role: .cancel) {} } message: { Text(importer.trouble ?? "") }
-        .safeAreaInset(edge: .bottom) {
-            if let report { FixReport(summary: report, onUndo: undo) }
-        }
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.audio]) { picked in
+                Task { await importer.attach(picked, to: studySet, learned: learned) }
+            }
+    }
+
+    var body: some View {
+        screen
+            .onChange(of: importer.produced) { _, made in
+                if let made { adopt(made) }
+            }
+            .onChange(of: spokenNow?.segment) { _, line in
+                // the audio is the clock, so the current line follows it rather
+                // than being advanced by a timer of our own
+                if let line, line != index { index = line }
+            }
+            .sheet(item: $fixing) { target in
+                FixWordSheet(target: target) { fix(target, to: $0) }
+            }
+            .alert("Couldn't use that recording", isPresented: troubleShowing) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importer.trouble ?? "")
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let report { FixReport(summary: report, onUndo: undo) }
+            }
     }
 
     // MARK: setting up
@@ -156,7 +187,7 @@ struct NarrateReviewView: View {
     }
 
     /// A correction is an edit to the transcript, so it outlives the screen.
-    private func persistText() {
+    func persistText() {
         guard texts.count == segments.count else { return }
         for i in segments.indices { segments[i].text = texts[i] }
         var updated = studySet
@@ -164,7 +195,7 @@ struct NarrateReviewView: View {
         store.update(updated)
     }
 
-    // MARK: the screen
+    // MARK: the two pieces of chrome
 
     private var header: some View {
         let total = segments.count
@@ -205,65 +236,5 @@ struct NarrateReviewView: View {
                 withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(line, anchor: .center) }
             }
         }
-    }
-
-    // MARK: the reading pace, for a set with no recording
-
-    private func play() {
-        guard !finished, !segments.isEmpty else { return }
-        playing = true
-        if remainingMs == 0 { remainingMs = NarrateScheduler.segmentMs(segments[index], speed: speed) }
-        scheduleAdvance()
-    }
-
-    private func pause() {
-        guard playing else { return }
-        remainingMs = max(200, remainingMs - Date().timeIntervalSince(segStartedAt) * 1000)
-        timer?.invalidate()
-        playing = false
-    }
-
-    private func scheduleAdvance() {
-        timer?.invalidate()
-        segStartedAt = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: remainingMs / 1000, repeats: false) { _ in
-            Task { @MainActor in advance() }
-        }
-    }
-
-    private func advance() {
-        guard index < segments.count - 1 else { finish(); return }
-        index += 1
-        remainingMs = NarrateScheduler.segmentMs(segments[index], speed: speed)
-        if playing { scheduleAdvance() }
-    }
-
-    private func finish() {
-        playing = false
-        finished = true
-        timer?.invalidate()
-    }
-
-    /// Tapping a line means "take me there" in both states - to that moment in
-    /// the recording, or to that point in the reading.
-    private func jump(to i: Int) {
-        guard !segments.isEmpty else { return }
-        index = max(0, min(segments.count - 1, i))
-        if player.hasAudio {
-            if let start = segments[index].start { player.seek(to: start) }
-            return
-        }
-        timer?.invalidate()
-        finished = false
-        remainingMs = NarrateScheduler.segmentMs(segments[index], speed: speed)
-        if playing { scheduleAdvance() }
-    }
-
-    private func restart() {
-        timer?.invalidate()
-        index = 0
-        finished = false
-        playing = false
-        remainingMs = segments.isEmpty ? 0 : NarrateScheduler.segmentMs(segments[0], speed: speed)
     }
 }
