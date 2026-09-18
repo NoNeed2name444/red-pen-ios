@@ -87,6 +87,23 @@ public struct PronunciationStore: Codable, Sendable {
         return true
     }
 
+    /// Forget one sound entirely.
+    ///
+    /// Undo needs this. A correction that has been taken back must stop
+    /// teaching the spelling it taught, or the next transcript quietly
+    /// reapplies the very thing the student just rejected - and they would
+    /// have no way of telling where it came from.
+    @discardableResult
+    public mutating func forget(sound key: String) -> Bool {
+        let flat = SoundKey.collapsed(key)
+        var removed = entries.removeValue(forKey: key) != nil
+        if let primary = joined[flat], primary != key {
+            removed = entries.removeValue(forKey: primary) != nil || removed
+        }
+        joined.removeValue(forKey: flat)
+        return removed
+    }
+
     public func spelling(for span: [String]) -> String? {
         guard let hit = entry(for: SoundKey.of(span: span)), hit.isTrusted else { return nil }
         return hit.spelling
@@ -107,7 +124,7 @@ public struct PronunciationStore: Codable, Sendable {
                 if span.contains(where: SoundKey.hasArabic), let english = spelling(for: span) {
                     let head = tokens[i]
                     let article = SoundKey.stripArticle(head) != head && head.count > 3
-                    out.append(article ? "الـ " + english : english)
+                    out.append(article ? "\u{627}\u{644}\u{640} " + english : english)
                     hits.append((span.joined(separator: " "), english))
                     i += n
                     matched = true
