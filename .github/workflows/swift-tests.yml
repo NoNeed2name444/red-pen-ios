@@ -61,6 +61,27 @@ jobs:
           } > out/learning.log 2>&1
           cat out/learning.log
 
+      # LectureTranscriber imports Speech, which exists on macOS too, so the
+      # line-splitting and the word clock can be exercised on the runner
+      # without a phone, a microphone or a permission prompt.
+      - name: Transcript lines and the word clock
+        run: |
+          mkdir -p out build/transcriber
+          cp ios/RedPen/Tests/TranscriberTests.swift build/transcriber/main.swift
+          {
+            swiftc -O ios/RedPen/Shared/SoundKey.swift \
+                   ios/RedPen/Shared/PronunciationStore.swift \
+                   ios/RedPen/Shared/OnDeviceLearning.swift \
+                   ios/RedPen/Shared/Corrections.swift \
+                   ios/RedPen/Shared/WordTiming.swift \
+                   ios/RedPen/Shared/LectureTranscriber.swift \
+                   build/transcriber/main.swift -o transcribertest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./transcribertest ]; then ./transcribertest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "transcribertest was never built"; fi
+          } > out/transcriber.log 2>&1
+          cat out/transcriber.log
+
       - name: Fail the job if anything failed
         run: |
           bad=0
