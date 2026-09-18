@@ -41,6 +41,26 @@ jobs:
           } > out/quality.log 2>&1
           cat out/quality.log
 
+      # The sound keys are the contract between the phone and the committee, so
+      # this suite failing means the two have drifted apart - not that a test is
+      # being fussy.
+      - name: Pronunciations, corrections and word timing
+        run: |
+          mkdir -p out build/learning
+          cp ios/RedPen/Tests/LearningTests.swift build/learning/main.swift
+          {
+            swiftc -O ios/RedPen/Shared/SoundKey.swift \
+                   ios/RedPen/Shared/PronunciationStore.swift \
+                   ios/RedPen/Shared/OnDeviceLearning.swift \
+                   ios/RedPen/Shared/Corrections.swift \
+                   ios/RedPen/Shared/WordTiming.swift \
+                   build/learning/main.swift -o learningtest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./learningtest ]; then ./learningtest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "learningtest was never built"; fi
+          } > out/learning.log 2>&1
+          cat out/learning.log
+
       - name: Fail the job if anything failed
         run: |
           bad=0
