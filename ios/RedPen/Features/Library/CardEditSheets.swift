@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Editing one card.
 ///
-/// Only the fields that belong to the card's own type are shown. A cloze card
-/// has no bullets and a question card has no cloze sentence, and offering both
+/// Only the fields belonging to the card's own type are shown. A cloze card has
+/// no bullets and a question card has no cloze sentence, and offering both
 /// invites someone to fill in the one that will never be read.
 struct CardEditSheet: View {
     let card: AnkiCard
@@ -101,9 +101,7 @@ struct QuestionEditSheet: View {
                 Section("Options") {
                     ForEach(working.options.indices, id: \.self) { index in
                         HStack(spacing: 10) {
-                            Button {
-                                working.correctIndex = index
-                            } label: {
+                            Button { working.correctIndex = index } label: {
                                 Image(systemName: working.correctIndex == index
                                       ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(working.correctIndex == index ? .green : .secondary)
@@ -113,16 +111,10 @@ struct QuestionEditSheet: View {
                         }
                     }
                     .onDelete { offsets in
-                        // the key must follow its option, not its position
-                        let key = working.options.indices.contains(working.correctIndex)
-                            ? working.options[working.correctIndex] : nil
-                        working.options.remove(atOffsets: offsets)
-                        working.correctIndex = key.flatMap { working.options.firstIndex(of: $0) } ?? 0
+                        working = Self.removing(offsets, from: working)
                     }
-                    Button("Add an option", systemImage: "plus") {
-                        working.options.append("")
-                    }
-                    .font(.footnote)
+                    Button("Add an option", systemImage: "plus") { working.options.append("") }
+                        .font(.footnote)
                 }
                 Section("Explanation") {
                     TextEditor(text: $working.explanation).frame(minHeight: 90)
@@ -139,18 +131,40 @@ struct QuestionEditSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        working.options = working.options
-                            .map { $0.trimmingCharacters(in: .whitespaces) }
-                            .filter { !$0.isEmpty }
-                        if !working.options.indices.contains(working.correctIndex) {
-                            working.correctIndex = 0
-                        }
-                        onSave(working)
+                        onSave(Self.tidied(working))
                         dismiss()
                     }
                     .disabled(working.options.count < 2)
                 }
             }
         }
+    }
+
+    /// The key is remembered by its TEXT before anything is removed, then found
+    /// again afterwards.
+    ///
+    /// Every one of these operations shifts the positions after it, and
+    /// correctIndex is a position. Falling back to 0 when the maths goes wrong
+    /// does not fail loudly - it silently marks the first option correct, and
+    /// the student finds out when the app tells them they got it wrong.
+    static func removing(_ offsets: IndexSet, from question: MCQQuestion) -> MCQQuestion {
+        var out = question
+        let key = out.options.indices.contains(out.correctIndex)
+            ? out.options[out.correctIndex] : nil
+        out.options.remove(atOffsets: offsets)
+        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
+        return out
+    }
+
+    /// Blank options are dropped on the way out, which moves positions too.
+    static func tidied(_ question: MCQQuestion) -> MCQQuestion {
+        var out = question
+        let key = out.options.indices.contains(out.correctIndex)
+            ? out.options[out.correctIndex].trimmingCharacters(in: .whitespaces) : nil
+        out.options = out.options
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
+        return out
     }
 }
