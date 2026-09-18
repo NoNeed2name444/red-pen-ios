@@ -1,6 +1,6 @@
 # The app's pure-Swift logic, compiled and RUN - not just type-checked. A suite
 # that compiles and never executes is a suite that passes forever: the store
-// tests in the other repo did exactly that for weeks.
+# tests in the other repo did exactly that for weeks.
 #
 # Swift allows top-level statements only in a file named main.swift, and only
 # one per binary, so each suite is copied to its own build directory under that
