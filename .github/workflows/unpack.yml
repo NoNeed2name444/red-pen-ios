@@ -37,4 +37,5 @@ jobs:
           git config user.email transfer@users.noreply.github.com
           git add -A
           git commit -q -m "${{ inputs.message }}"
-          git push
+          # checkout leaves a detached HEAD, so the branch has to be named.
+          git push origin HEAD:main
