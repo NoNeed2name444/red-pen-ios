@@ -10,13 +10,19 @@ import Foundation
 ///
 /// So the key is remembered by its text before anything moves, and looked up
 /// again afterwards.
+///
+/// Foundation only, so it can be tested. That is why the removal is written out
+/// rather than using `remove(atOffsets:)`, which SwiftUI supplies and a test
+/// runner has no business importing.
 enum MCQEdit {
 
     static func removing(_ offsets: IndexSet, from question: MCQQuestion) -> MCQQuestion {
         var out = question
         let key = out.options.indices.contains(out.correctIndex)
             ? out.options[out.correctIndex] : nil
-        out.options.remove(atOffsets: offsets)
+        out.options = out.options.enumerated()
+            .filter { !offsets.contains($0.offset) }
+            .map(\.element)
         out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
         return out
     }
