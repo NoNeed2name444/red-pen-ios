@@ -1,11 +1,11 @@
--- The whole database. Two tables, and neither of them holds anything a student
--- wrote.
+-- The whole database.
 --
--- What is here: an account id, whichever provider proved it, an address if one
--- was given, and the subscription the App Store confirmed. What is not here,
--- and never will be: decks, cards, questions, recordings, transcripts,
--- pronunciations. Those stay on the phone. There is nothing in this file to
--- lose in a breach beyond a list of email addresses, and that is the point.
+-- An account, and that account's own library so it can follow the student
+-- between their own devices. Nothing here is shared with anybody else.
+--
+-- The pictures are not in this file: they live in object storage under the hash
+-- of their own bytes, because a term of slide images is gigabytes and a database
+-- is the wrong place for it.
 
 CREATE TABLE IF NOT EXISTS accounts (
   id            TEXT PRIMARY KEY,
@@ -28,15 +28,34 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE UNIQUE INDEX IF NOT EXISTS accounts_provider_subject
   ON accounts (provider, subject);
 
--- A code that was emailed, and the tries spent on it.
+-- The library, as documents.
 --
--- The code is stored HASHED. A database that can be read should not hand over
--- live sign-in codes, and nothing here ever needs the original back - verifying
--- means hashing what was typed and comparing.
-CREATE TABLE IF NOT EXISTS codes (
-  email       TEXT PRIMARY KEY,
-  code_hash   TEXT NOT NULL,
-  expires_at  INTEGER NOT NULL,
-  tries       INTEGER NOT NULL DEFAULT 0,
-  sent_at     INTEGER NOT NULL
+-- One row per set, folder or deck schedule, per account. `rev` is the account's
+-- own revision counter at the moment the row was written, which is what makes
+-- "everything since 47" a single indexed scan rather than a comparison of the
+-- whole library.
+CREATE TABLE IF NOT EXISTS docs (
+  account_id  TEXT NOT NULL,
+  id          TEXT NOT NULL,
+  kind        TEXT NOT NULL,          -- set | folder | review | saying
+  rev         INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL,       -- the device's clock, for settling edits
+  deleted     INTEGER NOT NULL DEFAULT 0,
+  -- Absent on a tombstone. Keeping the contents of something somebody deleted
+  -- is the opposite of deleting it.
+  payload     TEXT,
+  PRIMARY KEY (account_id, id)
+);
+
+-- The changes feed is this index. Without it every sync is a table scan, which
+-- is fine for one student and ruinous for a thousand.
+CREATE INDEX IF NOT EXISTS docs_by_rev ON docs (account_id, rev);
+
+-- The revision counter itself, one row per account. Incremented inside the same
+-- statement that reads it, so two devices pushing at once cannot be handed the
+-- same number - which would leave one device's change invisible to anybody who
+-- had already asked past it.
+CREATE TABLE IF NOT EXISTS sync_state (
+  account_id  TEXT PRIMARY KEY,
+  rev         INTEGER NOT NULL DEFAULT 0
 );

@@ -80,6 +80,24 @@ enum BlobRefs {
         }
     }
 
+    /// Every blob a list of images stands for, whichever form they are in.
+    ///
+    /// A set holds its pictures as base64 locally and as references once
+    /// packed, and both turn up together - a set half-restored because one
+    /// picture has not arrived yet holds some of each. An image's bytes hash to
+    /// the same name it would be stored under, so both answer the question.
+    static func names(in images: [String]) -> Set<String> {
+        var found = Set<String>()
+        for image in images {
+            if let name = hash(fromRef: image) {
+                found.insert(name)
+            } else if let data = data(fromStored: image) {
+                found.insert(name(for: data))
+            }
+        }
+        return found
+    }
+
     /// Which blobs a set of documents refers to but this device does not have.
     static func missing(_ refs: [String], have: Set<String>) -> [String] {
         var wanted: [String] = []

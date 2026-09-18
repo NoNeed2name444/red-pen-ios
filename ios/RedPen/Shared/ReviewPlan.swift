@@ -8,6 +8,14 @@ struct ReviewRecord: Codable, Equatable {
     /// A card with several lapses is one the student keeps forgetting.
     var reviews: Int = 0
     var lapses: Int = 0
+    /// When this rating was actually made.
+    ///
+    /// Here for sync. Two phones reviewing two different decks must not have
+    /// one phone's afternoon overwrite the other's: the schedule is merged card
+    /// by card, and this is what says which rating of a given card is the
+    /// later one. Without it a whole day of reviews can vanish silently, which
+    /// is the worst way for a study app to fail.
+    var ratedAt: Date = Date()
 }
 
 /// A deck, as the schedule needs to see one.
@@ -80,7 +88,8 @@ enum ReviewPlan {
         return ReviewRecord(due: now.addingTimeInterval(next * 60),
                             intervalMin: next,
                             reviews: kept.reviews + 1,
-                            lapses: kept.lapses + (rating == .again ? 1 : 0))
+                            lapses: kept.lapses + (rating == .again ? 1 : 0),
+                            ratedAt: now)
     }
 
     /// When the next card in a deck comes back.
@@ -116,6 +125,26 @@ enum ReviewPlan {
             }
         }
         return Array(found.sorted { $0.due < $1.due }.prefix(limit))
+    }
+
+    /// Merging two versions of a deck's schedule, card by card.
+    ///
+    /// Never last-write-wins. A phone that reviewed twenty cards this morning
+    /// and a laptop that reviewed five different ones this afternoon must end
+    /// up with all twenty-five, not the laptop's five. For a card both of them
+    /// rated, the later rating is the truer one - it is what the student most
+    /// recently told the app about their own memory.
+    static func merging(_ mine: [UUID: ReviewRecord],
+                        _ theirs: [UUID: ReviewRecord]) -> [UUID: ReviewRecord] {
+        var out = mine
+        for (id, record) in theirs {
+            guard let existing = out[id] else {
+                out[id] = record
+                continue
+            }
+            if record.ratedAt > existing.ratedAt { out[id] = record }
+        }
+        return out
     }
 
     /// Records for cards that no longer exist anywhere are dropped.

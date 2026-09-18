@@ -117,7 +117,7 @@ enum AuthAPI {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        request.httpBody = try? JSONEncoder.redPen.encode(body)
+        request.httpBody = try? JSONEncoder.sync.encode(body)
         request.timeoutInterval = timeout
 
         let data: Data, response: URLResponse

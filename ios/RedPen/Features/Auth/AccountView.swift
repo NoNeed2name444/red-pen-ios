@@ -5,6 +5,7 @@ import StoreKit
 struct AccountView: View {
     @EnvironmentObject var account: AccountStore
     @EnvironmentObject var subscriptions: SubscriptionStore
+    @EnvironmentObject var sync: SyncEngine
     @Environment(\.dismiss) private var dismiss
 
     @State private var showPaywall = false
@@ -21,6 +22,18 @@ struct AccountView: View {
                 }
 
                 Section {
+                    LabeledContent("Sync", value: syncSummary)
+                    Button("Sync now") { Task { await sync.syncNow() } }
+                        .disabled(sync.status == .syncing)
+                    if sync.copiesKept > 0 {
+                        Text("\(sync.copiesKept) deck\(sync.copiesKept == 1 ? " was" : "s were") edited in two places. Both versions are in your library \u{2014} check them and delete the one you don't want.")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
+                } footer: {
+                    Text("Your decks, folders and review schedule follow you between your devices. Recordings and learned pronunciations stay on the phone that made them.")
+                }
+
+                Section {
                     LabeledContent("Subscription",
                                    value: Entitlement.summary(subscriptions.access))
                     if subscriptions.isPro {
@@ -33,18 +46,21 @@ struct AccountView: View {
                     }
                     Button("Restore purchases") { Task { await subscriptions.restore() } }
                         .disabled(subscriptions.busy)
-                } footer: {
-                    Text("Your decks, recordings and transcripts are on this phone only. Signing out does not remove them.")
                 }
 
                 Section {
                     Button("Sign out") {
                         account.signOut()
+                        // Whatever this device believed it had agreed with the
+                        // server is about that account, not this phone. Left in
+                        // place, the next person to sign in here would start
+                        // with bookmarks for documents they have never seen.
+                        sync.forgetEverythingSynced()
                         dismiss()
                     }
                     Button("Delete account", role: .destructive) { confirmingDelete = true }
                 } footer: {
-                    Text("Deleting removes your account and its subscription record from our server. It does not cancel an active subscription \u{2014} do that in Manage first, or Apple will keep billing.")
+                    Text("Deleting removes your account, your synced library and its subscription record from our server. The copy on this phone stays. It does not cancel an active subscription \u{2014} do that in Manage first, or Apple will keep billing.")
                 }
             }
             .navigationTitle("Account")
@@ -57,7 +73,10 @@ struct AccountView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
                     Task {
-                        if await account.deleteAccount() { dismiss() }
+                        if await account.deleteAccount() {
+                            sync.forgetEverythingSynced()
+                            dismiss()
+                        }
                     }
                 }
             } message: {
@@ -70,6 +89,21 @@ struct AccountView: View {
             } message: {
                 Text(account.trouble ?? "")
             }
+        }
+    }
+
+    /// Said in words rather than as a date, because "synced" is a state and a
+    /// timestamp on its own does not say whether anything is wrong.
+    private var syncSummary: String {
+        switch sync.status {
+        case .syncing: return "Syncing\u{2026}"
+        case .offline: return "Waiting for a connection"
+        case .failed(let why): return why
+        case .idle:
+            guard let when = sync.lastSyncedAt else { return "Not synced yet" }
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .full
+            return "Synced " + formatter.localizedString(for: when, relativeTo: Date())
         }
     }
 

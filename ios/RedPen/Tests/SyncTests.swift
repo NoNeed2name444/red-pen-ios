@@ -159,6 +159,15 @@ check("the same name is a stable address",
 check("different bytes get different addresses",
       BlobRefs.name(for: red) != BlobRefs.name(for: blue))
 
+// MARK: every image form answers the same question
+
+// a set that is half-restored - one picture arrived, one has not - holds both
+// forms at once, and a sweep that understood only one would delete the other
+let halfRestored = BlobRefs.names(in: [red.base64EncodedString(), packed.refs[1]])
+check("base64 and a reference name the same blobs",
+      halfRestored == Set([BlobRefs.name(for: red), BlobRefs.name(for: blue)]),
+      "\(halfRestored)")
+
 print(failures.isEmpty ? "\nALL SYNC TESTS PASS"
                        : "\n\(failures.count) SYNC TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

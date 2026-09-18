@@ -1,18 +1,19 @@
-// Red Pen's auth server.
+// Red Pen's server: who somebody is, and their library following them between
+// their own devices.
 //
-// It exists for one reason: a phone cannot send an email. Apple and Google
-// sign-in would work with no server at all; a verification code has to come
-// from somewhere that can reach a mail provider and remember what it sent.
+// It holds one student's own material on their own account. Nothing is shared
+// with anyone else, nothing is read for any other purpose, and the account can
+// be deleted from inside the app - which takes the library with it, because
+// leaving it behind after somebody asked to be forgotten would not be deleting
+// anything.
 //
-// It is given as little as possible. It learns an account id, an address if one
-// was offered, and which plan the App Store confirmed. It never sees a deck, a
-// card, a recording or a transcript - those stay on the phone. See schema.sql.
-import { sign, verify, verifyApple, decodeClaims, sha256Hex } from './tokens.js';
+// The sync half is in sync.js. The shape of it - documents with revisions, a
+// changes feed, and pictures stored under the hash of their own bytes - is
+// explained there.
+import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
+import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
-const CODE_SECONDS = 60 * 10;
-const MAX_TRIES = 5;
-const RESEND_SECONDS = 30;
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
@@ -22,20 +23,33 @@ const now = () => Math.floor(Date.now() / 1000);
 
 export default {
   async fetch(request, env) {
-    if (request.method !== 'POST') return fail(405, 'POST only.');
     const path = new URL(request.url).pathname;
-    let body = {};
-    try { body = await request.json(); } catch { body = {}; }
 
     try {
+      // Blobs are raw bytes in both directions, so they are routed before
+      // anything tries to read the body as JSON.
+      if (path.startsWith('/blobs/') && path !== '/blobs/missing') {
+        const id = await holder(request, env);
+        if (!id) return fail(401, 'Please sign in again.');
+        const name = path.slice('/blobs/'.length);
+        if (request.method === 'PUT') return await putBlob(env, id, name, request);
+        if (request.method === 'GET') return await getBlob(env, id, name);
+        return fail(405, 'PUT or GET.');
+      }
+
+      if (request.method !== 'POST') return fail(405, 'POST only.');
+      let body = {};
+      try { body = await request.json(); } catch { body = {}; }
+
       switch (path) {
         case '/auth/apple': return await withApple(body, env);
         case '/auth/google': return await withGoogle(body, env);
-        case '/auth/email/request': return await requestCode(body, env);
-        case '/auth/email/verify': return await verifyCode(body, env);
         case '/auth/refresh': return await refresh(body, env);
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/subscription': return await setSubscription(request, body, env);
+        case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
+        case '/sync/push': return await guarded(request, env, id => push(env, id, body));
+        case '/blobs/missing': return await guarded(request, env, id => missingBlobs(env, id, body));
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {
@@ -132,84 +146,6 @@ async function withGoogle(body, env) {
   return await session(env, account);
 }
 
-// MARK: email
-
-async function requestCode(body, env) {
-  const email = String(body.email || '').trim().toLowerCase();
-  if (!email.includes('@')) return fail(400, 'That is not an address.');
-
-  const existing = await env.DB.prepare('SELECT sent_at FROM codes WHERE email = ?')
-    .bind(email).first();
-  if (existing && now() - existing.sent_at < RESEND_SECONDS) {
-    return fail(429, 'A code was just sent. Give it a moment.');
-  }
-
-  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000)
-    .padStart(6, '0');
-  // stored hashed, with a server-side pepper: a database somebody can read
-  // should not hand over live sign-in codes
-  const hash = await sha256Hex(`${email}:${code}:${env.SESSION_SECRET}`);
-  await env.DB.prepare(
-    `INSERT INTO codes (email, code_hash, expires_at, tries, sent_at)
-     VALUES (?, ?, ?, 0, ?)
-     ON CONFLICT(email) DO UPDATE SET
-       code_hash = excluded.code_hash, expires_at = excluded.expires_at,
-       tries = 0, sent_at = excluded.sent_at`)
-    .bind(email, hash, now() + CODE_SECONDS, now()).run();
-
-  await sendEmail(env, email, code);
-  // Always the same answer, whether or not this address has an account before.
-  // Anything else turns a sign-in form into a way of finding out who has one.
-  return json({ ok: true });
-}
-
-async function sendEmail(env, email, code) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.MAIL_FROM,
-      to: email,
-      subject: `${code} is your Red Pen code`,
-      text: `Your Red Pen sign-in code is ${code}.\n\n`
-        + `It works for ten minutes. If you didn't ask for it, ignore this - `
-        + `nobody can get in without it.`,
-    }),
-  });
-  if (!response.ok) throw new Error(`mail provider said ${response.status}`);
-}
-
-async function verifyCode(body, env) {
-  const email = String(body.email || '').trim().toLowerCase();
-  const code = String(body.code || '').replace(/\D/g, '');
-  const row = await env.DB.prepare('SELECT * FROM codes WHERE email = ?')
-    .bind(email).first();
-  if (!row) return fail(401, 'Ask for a new code.');
-  if (row.expires_at < now()) {
-    await env.DB.prepare('DELETE FROM codes WHERE email = ?').bind(email).run();
-    return fail(401, 'That code has expired. Ask for a new one.');
-  }
-  // Without a try limit, six digits is a few thousand guesses away from a
-  // stranger's account.
-  if (row.tries >= MAX_TRIES) return fail(429, 'Too many tries. Ask for a new code.');
-
-  const hash = await sha256Hex(`${email}:${code}:${env.SESSION_SECRET}`);
-  if (hash !== row.code_hash) {
-    await env.DB.prepare('UPDATE codes SET tries = tries + 1 WHERE email = ?')
-      .bind(email).run();
-    return fail(401, "That code doesn't match.");
-  }
-  // one code, one sign-in
-  await env.DB.prepare('DELETE FROM codes WHERE email = ?').bind(email).run();
-  const account = await upsert(env, {
-    provider: 'email', subject: email, email, displayName: null,
-  });
-  return await session(env, account);
-}
-
 // MARK: staying and leaving
 
 async function refresh(body, env) {
@@ -221,6 +157,14 @@ async function refresh(body, env) {
   return await session(env, account);
 }
 
+/// Every call that touches somebody's own material goes through this, so the
+/// check cannot be forgotten on one route out of six.
+async function guarded(request, env, work) {
+  const id = await holder(request, env);
+  if (!id) return fail(401, 'Please sign in again.');
+  return await work(id);
+}
+
 async function holder(request, env) {
   const header = request.headers.get('authorization') || '';
   const claims = await verify(header.replace(/^Bearer /, ''), env.SESSION_SECRET);
@@ -230,8 +174,10 @@ async function holder(request, env) {
 async function deleteAccount(request, env) {
   const id = await holder(request, env);
   if (!id) return fail(401, 'Please sign in again.');
-  // Actually deleted, not flagged. The App Store requires the account to be
-  // removable from inside the app, and a row marked "deleted" is not removed.
+  // Actually deleted, not flagged, and the library goes with it. The App Store
+  // requires the account to be removable from inside the app, and an account
+  // whose data outlives it has not been deleted.
+  await wipe(env, id);
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }

@@ -37,6 +37,11 @@ struct StudySet: Identifiable, Codable, Hashable {
     var subject: String = "General"
     var kind: StudySetKind
     var createdAt: Date = Date()
+    /// When this set's contents last actually changed, on the device that
+    /// changed them. Sync uses it to settle which of two edits is the later
+    /// one; it is stamped only when something really differs, so re-saving an
+    /// unchanged set does not make every other device think it moved.
+    var updatedAt: Date = Date()
     var folderId: UUID? = nil
 
     var questions: [MCQQuestion] = []
@@ -80,6 +85,7 @@ struct StudySet: Identifiable, Codable, Hashable {
 struct StudyFolder: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var name: String
+    var updatedAt: Date = Date()
 }
 
 /// Plain-text import/export shape for a quick hand-authored or scripted set,

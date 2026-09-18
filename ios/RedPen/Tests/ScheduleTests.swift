@@ -111,6 +111,36 @@ for rating in AnkiRating.allCases {
           abs(after.due.timeIntervalSince(now) - promised * 60) < 0.001)
 }
 
+// MARK: two devices, one schedule
+
+// the failure this prevents: a morning's reviews on the phone and an
+// afternoon's on the laptop, and last-write-wins throws one of them away
+// without saying anything
+let morning: [UUID: ReviewRecord] = [
+    lupus.id: ReviewRecord(due: now.addingTimeInterval(3600), intervalMin: 60,
+                           reviews: 1, lapses: 0, ratedAt: now),
+]
+let afternoon: [UUID: ReviewRecord] = [
+    renal.id: ReviewRecord(due: now.addingTimeInterval(7200), intervalMin: 120,
+                           reviews: 1, lapses: 0, ratedAt: now.addingTimeInterval(3600)),
+]
+let both = ReviewPlan.merging(morning, afternoon)
+check("both sittings survive a merge", both.count == 2, "\(both.count)")
+
+// for a card they both rated, the later rating is what the student most
+// recently said about their own memory
+let laterSame: [UUID: ReviewRecord] = [
+    lupus.id: ReviewRecord(due: now.addingTimeInterval(86_400), intervalMin: 1440,
+                           reviews: 2, lapses: 0, ratedAt: now.addingTimeInterval(600)),
+]
+let settled = ReviewPlan.merging(morning, laterSame)
+check("the later rating of the same card wins",
+      settled[lupus.id]?.intervalMin == 1440, "\(settled[lupus.id]?.intervalMin ?? -1)")
+check("and an older one does not overwrite a newer",
+      ReviewPlan.merging(laterSame, morning)[lupus.id]?.intervalMin == 1440)
+check("merging with nothing changes nothing",
+      ReviewPlan.merging(morning, [:]) == morning)
+
 print(failures.isEmpty ? "\nALL SCHEDULE TESTS PASS"
                        : "\n\(failures.count) SCHEDULE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

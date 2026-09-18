@@ -8,15 +8,19 @@ database_name = "redpen-auth"
 # filled in by `wrangler d1 create redpen-auth`
 database_id = ""
 
+# Slide images, under the hash of their own bytes. A term of lecture pictures is
+# gigabytes; a database is the wrong place for it.
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "redpen-blobs"
+
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.
 APPLE_BUNDLE_ID = "com.redpen.app"
-MAIL_FROM = "Red Pen <code@redpen.app>"
 GOOGLE_CLIENT_ID = ""
 
 # Secrets are NOT in this file, and must never be added to it - it is in the
 # repository. Set each one with `wrangler secret put NAME`:
 #   SESSION_SECRET        a long random string; signs sessions and peppers codes
 #   GOOGLE_CLIENT_SECRET  from the Google Cloud console
-#   RESEND_API_KEY        from the mail provider

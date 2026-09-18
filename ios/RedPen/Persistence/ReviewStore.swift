@@ -89,6 +89,20 @@ final class ReviewStore: ObservableObject {
         save()
     }
 
+    /// Takes in a schedule from another device, card by card.
+    ///
+    /// Merged, never replaced. A phone that reviewed twenty cards this morning
+    /// and a laptop that reviewed five others this afternoon must end up with
+    /// all twenty-five; last-write-wins would throw one of those sittings away
+    /// without saying so, which is the worst way for a study app to fail.
+    func merge(_ incoming: [UUID: ReviewRecord]) {
+        guard !incoming.isEmpty else { return }
+        let merged = SyncDocuments.mergeRecords(records, incoming)
+        guard merged != records else { return }
+        records = merged
+        save()
+    }
+
     /// Drops records for cards that no longer exist in any set. Otherwise every
     /// card ever deleted keeps its schedule for good.
     func prune(keeping sets: [StudySet]) {
