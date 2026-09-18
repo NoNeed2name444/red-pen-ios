@@ -16,6 +16,7 @@ on:
     paths:
       - 'ios/RedPen/Shared/**'
       - 'ios/RedPen/Models/**'
+      - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -43,7 +44,7 @@ jobs:
       - name: Every suite
         run: |
           mkdir -p out
-          S=ios/RedPen/Shared; M=ios/RedPen/Models
+          S=ios/RedPen/Shared; M=ios/RedPen/Models; F=ios/RedPen/Features
           suite () {
             name=$1; test=$2; shift 2
             mkdir -p build/$name
@@ -68,6 +69,11 @@ jobs:
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           suite coverage CoverageTests.swift $S/MCQCoverage.swift
+          suite schedule ScheduleTests.swift $M/AnkiCard.swift \
+                $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift
+          suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift \
+                $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
+                $S/MCQCoverage.swift $S/Provenance.swift
 
       - name: Fail the job if anything failed
         run: |
