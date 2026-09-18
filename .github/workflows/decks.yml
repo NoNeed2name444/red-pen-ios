@@ -1,0 +1,59 @@
+# Rebuilds the flashcard PDFs from exported sets.
+#
+# The point of having this here rather than only on somebody's laptop: a deck
+# is rebuilt whenever the sets change, by the same script every time, and the
+# pairing and every index link are verified on the file that comes out. A deck
+# that fails either check fails the job rather than being quietly published
+# with a question facing the wrong answer.
+#
+# Drop exported sets (the app's "Share as JSON") into decks/sets/ and push.
+name: Build decks
+on:
+  workflow_dispatch:
+    inputs:
+      combine:
+        description: one deck from every set, under this title (optional)
+        required: false
+  push:
+    paths:
+      - 'decks/sets/**.json'
+      - 'tools/deck_pdf.py'
+      - '.github/workflows/decks.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Tools
+        run: |
+          python -m pip install --quiet playwright pypdf
+          # Chromium only: the layout needs real CSS page control, and it is
+          # also what turns the index anchors into genuine PDF links.
+          python -m playwright install --with-deps chromium
+
+      - name: Build
+        run: |
+          if [ ! -d decks/sets ] || [ -z "$(ls -A decks/sets/*.json 2>/dev/null)" ]; then
+            echo "No sets in decks/sets - nothing to build."
+            exit 0
+          fi
+          if [ -n "${{ inputs.combine }}" ]; then
+            python tools/deck_pdf.py decks/sets --out decks/out --combine "${{ inputs.combine }}"
+          else
+            python tools/deck_pdf.py decks/sets --out decks/out
+          fi
+
+      - name: Keep the PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decks
+          path: decks/out/*.pdf
+          if-no-files-found: ignore
