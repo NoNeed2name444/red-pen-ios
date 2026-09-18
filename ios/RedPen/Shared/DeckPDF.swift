@@ -37,6 +37,19 @@ enum DeckPDF {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(fileName(for: set))
 
+        // Both sides are sized once for the whole deck, before a single page is
+        // drawn, so every question page is set at the same size as every other.
+        let questionScale = fit(cards.map { card in
+            (blocks: card.question, top: contentTop(topic: card.topic,
+                                       picture: picture(for: card, in: pictures, on: .question),
+                                       limit: questionPictureLimit))
+        }, palette: palette, size: questionSize)
+        let answerScale = fit(cards.map { card in
+            (blocks: card.answer, top: contentTop(topic: card.topic,
+                                     picture: picture(for: card, in: pictures, on: .answer),
+                                     limit: answerPictureLimit))
+        }, palette: palette, size: answerSize)
+
         do {
             try renderer.writePDF(to: url) { context in
                 cover(set, cards: cards, palette: palette, context: context)
@@ -44,10 +57,10 @@ enum DeckPDF {
                 for card in cards {
                     questionPage(card, set: set, total: cards.count, palette: palette,
                                  picture: picture(for: card, in: pictures, on: .question),
-                                 context: context)
+                                 scale: questionScale, context: context)
                     answerPage(card, set: set, total: cards.count, palette: palette,
                                picture: picture(for: card, in: pictures, on: .answer),
-                               context: context)
+                               scale: answerScale, context: context)
                 }
             }
             return url

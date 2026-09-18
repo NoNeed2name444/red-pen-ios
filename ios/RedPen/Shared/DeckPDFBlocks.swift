@@ -18,23 +18,53 @@ extension DeckPDF {
     /// Returns the y it finished at.
     @discardableResult
     static func draw(_ blocks: [DeckBlock], from top: CGFloat, palette: DeckPalette,
-                     size: CGFloat, questionSide: Bool) -> CGFloat {
-        let available = pageSize.height - 52 - top
-        var scale: CGFloat = 1
+                     size: CGFloat, scale: CGFloat) -> CGFloat {
+        // Both sides start directly under the rule. Centring the question in
+        // what was left of the page made every question page sit at a different
+        // height, so a deck flicked through looked like pages from several
+        // different documents.
+        render(blocks, from: top, palette: palette, size: size * scale, measuring: false)
+    }
+
+    /// The one step at which EVERY card on a side still fits.
+    ///
+    /// Fitting each card on its own is what made a deck look unfinished: a card
+    /// with three lines was set at full size and the next one at two thirds of
+    /// it, so the type changed size each time a page was turned. Taking the
+    /// smallest step any card needs and using it throughout keeps every page
+    /// identical to every other, which is the only way a deck reads as one
+    /// thing rather than a pile.
+    ///
+    /// It still has to shrink at all because every card is exactly two pages:
+    /// one answer spilling onto a third would print every later question
+    /// opposite the previous card's answer.
+    static func fit(_ sides: [(blocks: [DeckBlock], top: CGFloat)], palette: DeckPalette,
+                    size: CGFloat) -> CGFloat {
+        var scale = ladder[0]
         for step in ladder {
             scale = step
-            if height(blocks, palette: palette, size: size * step) <= available { break }
+            let overflowing = sides.contains { side in
+                height(side.blocks, palette: palette, size: size * step)
+                    > pageSize.height - 52 - side.top
+            }
+            if !overflowing { break }
         }
+        return scale
+    }
 
-        // A question is set large and centred in what is left of the page,
-        // the way a card in your hand would be. An answer starts at the top,
-        // because a long list centred looks like a mistake.
-        var y = top
-        if questionSide {
-            let used = height(blocks, palette: palette, size: size * scale)
-            y = top + max(0, (available - used) / 2)
-        }
-        return render(blocks, from: y, palette: palette, size: size * scale, measuring: false)
+    /// The band behind the right answer, drawn before the text so it sits under it.
+    ///
+    /// A hairline rule in the margin was too quiet on paper: printed at A4 and
+    /// read at arm's length, the right answer has to be findable without
+    /// hunting for a change in font weight.
+    static func drawBand(correct: Bool, y: CGFloat, size: CGFloat, width: CGFloat,
+                         palette: DeckPalette) {
+        guard correct else { return }
+        let box = CGRect(x: margin - 8, y: y - size * 0.3, width: width + 16, height: size * 1.85)
+        color(palette.tint(0.88)).setFill()
+        UIBezierPath(roundedRect: box, cornerRadius: 4).fill()
+        color(palette, 0.9).setFill()
+        UIBezierPath(rect: CGRect(x: box.minX, y: box.minY, width: 2.5, height: box.height)).fill()
     }
 
     static func height(_ blocks: [DeckBlock], palette: DeckPalette, size: CGFloat) -> CGFloat {
@@ -65,7 +95,7 @@ extension DeckPDF {
             case .text(let text):
                 y += write(text, x: margin, y: y, width: width,
                            font: .systemFont(ofSize: size, weight: .semibold),
-                           color: UIColor(white: 0.1, alpha: 1), measuring: measuring)
+                           color: UIColor(white: 0.07, alpha: 1), measuring: measuring)
                 y += size * 0.5
 
             case .bullet(let lead, let text):
@@ -85,23 +115,17 @@ extension DeckPDF {
                 let indent: CGFloat = 20
                 if !measuring {
                     let marker = (letter + ".") as NSString
+                    drawBand(correct: correct, y: y, size: size, width: width, palette: palette)
                     marker.draw(at: CGPoint(x: margin, y: y), withAttributes: [
                         .font: UIFont.systemFont(ofSize: size, weight: correct ? .bold : .regular),
                         .foregroundColor: correct ? color(palette.shade(0.14))
-                                                  : UIColor(white: 0.35, alpha: 1),
+                                                  : UIColor(white: 0.22, alpha: 1),
                     ])
-                    if correct {
-                        // A filled rule down the side, so the right answer is
-                        // findable at a glance without colour alone carrying it.
-                        color(palette, 0.85).setFill()
-                        UIBezierPath(rect: CGRect(x: margin - 8, y: y, width: 2.5,
-                                                  height: size * 1.25)).fill()
-                    }
                 }
                 y += write(text, x: margin + indent, y: y, width: width - indent,
                            font: .systemFont(ofSize: size, weight: correct ? .semibold : .regular),
-                           color: correct ? UIColor(white: 0.1, alpha: 1)
-                                          : UIColor(white: 0.3, alpha: 1),
+                           color: correct ? UIColor(white: 0.07, alpha: 1)
+                                          : UIColor(white: 0.16, alpha: 1),
                            measuring: measuring)
                 y += size * 0.45
 
@@ -109,7 +133,7 @@ extension DeckPDF {
                 y += size * 0.3
                 if !measuring {
                     label.uppercased().draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                        .font: UIFont.systemFont(ofSize: size * 0.72, weight: .heavy),
+                        .font: UIFont.systemFont(ofSize: size * 0.78, weight: .heavy),
                         .foregroundColor: color(palette.shade(0.2)),
                         .kern: 0.8,
                     ])
@@ -117,7 +141,7 @@ extension DeckPDF {
                 y += size * 1.05
                 y += write(text, x: margin, y: y, width: width,
                            font: .systemFont(ofSize: size * 0.94),
-                           color: UIColor(white: 0.3, alpha: 1), measuring: measuring)
+                           color: UIColor(white: 0.16, alpha: 1), measuring: measuring)
                 y += size * 0.5
             }
         }

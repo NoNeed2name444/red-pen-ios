@@ -176,16 +176,40 @@ enum DeckBuilder {
 
     // MARK: helpers
 
-    /// A short label for the contents index, taken from the first few words
-    /// when the card has no topic of its own.
+    /// A short label for the contents index, when the card has no topic of its
+    /// own.
+    ///
+    /// Taken from the ask - the last question in the stem - rather than from
+    /// the opening words. Clinical vignettes all open the same way ("A
+    /// 24-year-old man presents with..."), so the first few words gave a
+    /// whole deck of MCQs the same index row, which is the same as having no
+    /// index. The ask differs card to card and still says nothing about the
+    /// answer, which the answer side never may.
     static func topic(from text: String) -> String {
         let cleaned = Highlight.plain(text)
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return "Untitled" }
-        let words = cleaned.split(separator: " ").prefix(5)
+
+        var candidate = cleaned
+        if let question = cleaned.split(separator: "?", omittingEmptySubsequences: true)
+            .dropLast(cleaned.hasSuffix("?") ? 0 : 1).last,
+           question.split(separator: " ").count >= 3 {
+            candidate = question.split(separator: ".").last.map(String.init) ?? String(question)
+        }
+        candidate = candidate.trimmingCharacters(in: CharacterSet(charactersIn: " ,.;:?\u{201C}\u{2019}'\""))
+
+        // The scaffolding at the front of an ask carries nothing into a row.
+        for opener in ["which of the following", "which", "what", "who", "how", "why",
+                       "when", "where"] where candidate.lowercased().hasPrefix(opener + " ") {
+            candidate = String(candidate.dropFirst(opener.count + 1))
+            break
+        }
+        let words = candidate.split(separator: " ").prefix(8)
         var label = words.joined(separator: " ")
-        if label.count > 48 { label = String(label.prefix(46)) + "\u{2026}" }
+        guard !label.isEmpty else { return "Untitled" }
+        label = label.prefix(1).uppercased() + label.dropFirst()
+        if label.count > 64 { label = String(label.prefix(62)) + "\u{2026}" }
         return label
     }
 

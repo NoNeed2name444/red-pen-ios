@@ -231,13 +231,29 @@ def topic_from(text: str) -> str:
     as having no index at all. The opening clause is stripped first, and what
     is left is what the card is actually about.
     """
-    cleaned = re.sub(r"\*\*(.+?)\*\*", r"\1", text or "").replace("\n", " ").strip()
+    cleaned = re.sub(r"\*\*(.+?)\*\*", r"\\1", text or "").replace("\n", " ").strip()
     if not cleaned:
         return "Untitled"
-    trimmed = STEM_OPENER.sub("", cleaned, count=1).strip(" ,.;:")
-    words = trimmed.split() if len(trimmed.split()) >= 2 else cleaned.split()
-    label = " ".join(words[:6])
-    return label[:46] + "\u2026" if len(label) > 48 else label
+
+    # The ask is the last question in the stem: "Which congenital heart lesion
+    # best explains this finding?" That sentence says what the card is for
+    # without saying what the answer is, and it differs from card to card,
+    # which is exactly what the opening clause of a clinical vignette does not.
+    asks = re.findall(r"([^.?!]*\?)", cleaned)
+    candidate = asks[-1].strip() if asks else ""
+    if len(candidate.split()) < 3:
+        candidate = STEM_OPENER.sub("", cleaned, count=1).strip(" ,.;:")
+    if len(candidate.split()) < 2:
+        candidate = cleaned
+
+    # Openers that are pure scaffolding carry no meaning into an index row.
+    candidate = re.sub(r"^(which|what|who|how|why|when|where)\s+(of\s+the\s+following\s+)?"
+                       r"(is|are|was|were|would|will|does|do|did|best|most)?\s*",
+                       "", candidate, count=1, flags=re.IGNORECASE).strip(" ,.;:?")
+    words = candidate.split() or cleaned.split()
+    label = " ".join(words[:8])
+    label = label[:1].upper() + label[1:]
+    return label[:62] + "\u2026" if len(label) > 64 else label
 
 
 def letter_for(i: int) -> str:
@@ -407,35 +423,36 @@ body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-seri
 .body { flex: 1 1 auto; padding: 9mm 16mm 0; display: flex; flex-direction: column;
         overflow: hidden }
 .topic { font-size: 19pt; font-weight: 700; margin: 0 0 2mm; text-wrap: balance }
-.sub { font-size: 8pt; color: #777; margin: 0 0 3mm }
+.sub { font-size: 8.5pt; color: #4a4a4a; margin: 0 0 3mm }
 .chip { display: inline-block; font-size: 6.5pt; font-weight: 800; letter-spacing: .1em;
         padding: 1.4mm 3mm; border-radius: 3mm }
 .rule { height: .3mm; margin: 4mm 0 5mm }
 .content { flex: 1 1 auto; overflow: hidden }
-.content.centred { display: flex; flex-direction: column; justify-content: center }
-.q { font-size: 15pt; font-weight: 600; line-height: 1.45 }
-.a { font-size: 10.5pt; line-height: 1.5 }
+.q { font-size: 17pt; font-weight: 600; line-height: 1.5; color: #121212 }
+.a { font-size: 13pt; line-height: 1.55; color: #121212 }
 ul { margin: 0; padding-left: 5mm }
 li { margin-bottom: 2mm }
 li::marker { color: var(--accent) }
 .lead { font-weight: 700 }
 .opt { margin-bottom: 2.4mm; padding-left: 7mm; position: relative }
-.opt .letter { position: absolute; left: 0; font-weight: 600; color: #555 }
-.opt.correct { font-weight: 600 }
+.opt .letter { position: absolute; left: 0; font-weight: 700; color: #2b2b2b }
+.opt.correct { font-weight: 700; background: var(--soft); border-radius: 1.6mm;
+               padding-top: 1.2mm; padding-bottom: 1.2mm }
 .opt.correct .letter { font-weight: 800 }
 .opt.correct::before { content: ""; position: absolute; left: -3mm; top: .4mm;
                        bottom: .4mm; width: .9mm; background: var(--accent) }
-.note-label { font-size: 7.5pt; font-weight: 800; letter-spacing: .1em; margin-top: 3mm }
-.note-text { font-size: 9.5pt; color: #444 }
+.note-label { font-size: 9pt; font-weight: 800; letter-spacing: .1em; margin-top: 4mm;
+              color: var(--deep) }
+.note-text { font-size: 11.5pt; color: #2b2b2b }
 figure { margin: 0 0 5mm; text-align: center }
 figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .answer figure img { max-height: 80mm }
 .mark { position: absolute; right: 12mm; bottom: 14mm; font-size: 132pt;
         font-weight: 700; line-height: 1; user-select: none }
 .foot { flex: 0 0 auto; height: 12mm; display: flex; align-items: center;
-        justify-content: space-between; padding: 0 16mm; font-size: 7.5pt; color: #888 }
+        justify-content: space-between; padding: 0 16mm; font-size: 8.5pt; color: #4a4a4a }
 .foot .next { font-weight: 700; letter-spacing: .08em }
-.src { font-size: 7pt; color: #999; font-style: italic; margin-top: 3mm }
+.src { font-size: 8pt; color: #555; font-style: italic; margin-top: 3mm }
 
 .cover .hero { height: 72mm; padding: 18mm 16mm 0; color: #fff }
 .cover .hero .mode { font-size: 9pt; font-weight: 700; letter-spacing: .2em;
@@ -443,15 +460,15 @@ figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .cover .hero h1 { font-size: 27pt; margin: 4mm 0 0; text-wrap: balance }
 .cover .facts { padding: 12mm 16mm; display: flex; gap: 18mm }
 .cover .facts .k { font-size: 7.5pt; font-weight: 700; letter-spacing: .12em;
-                   color: #888 }
+                   color: #4a4a4a }
 .cover .facts .v { font-size: 15pt; font-weight: 600 }
-.cover .note { margin-top: auto; padding: 0 16mm 16mm; font-size: 9pt; color: #777 }
+.cover .note { margin-top: auto; padding: 0 16mm 16mm; font-size: 10pt; color: #4a4a4a }
 
 .toc h2 { font-size: 16pt; margin: 0 0 5mm }
 .cols { flex: 1 1 auto; display: flex; gap: 8mm; overflow: hidden }
 .col { flex: 1 1 0; overflow: hidden }
-.row { display: flex; justify-content: space-between; gap: 3mm; padding: 1.1mm 0;
-       font-size: 9pt; color: inherit; text-decoration: none }
+.row { display: flex; justify-content: space-between; gap: 3mm; padding: 1.3mm 0;
+       font-size: 10.5pt; color: #1a1a1a; text-decoration: none }
 .row .n { font-variant-numeric: tabular-nums; font-weight: 600 }
 .row .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .sec { font-size: 7.5pt; font-weight: 800; letter-spacing: .1em; margin: 4mm 0 1.5mm }
@@ -537,18 +554,18 @@ def card_pages(card: Card, pal: Palette, total: int) -> str:
     src = f'<div class="src">{esc(card.source)}</div>' if card.source else ""
 
     return f"""
-<section class="page" style="--accent:{pal.hex}">
+<section class="page" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex}">
   {page_head(card, pal, card.subject, total)}
   <div class="body">
     {heading(f"c{card.number}")}
     {q_fig}
-    <div class="content centred q">{render_blocks(card.question, False)}</div>
+    <div class="content q">{render_blocks(card.question, False)}</div>
   </div>
   <div class="mark" style="color:{light}">Q</div>
   <div class="foot"><span>Question {card.number} of {total}</span>
     <span class="next" style="color:{pal.shade(0.18).hex}">ANSWER OVERLEAF ›</span></div>
 </section>
-<section class="page answer" style="--accent:{pal.hex}">
+<section class="page answer" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex}">
   {page_head(card, pal, "Answer", total)}
   <div class="body">
     {heading()}
@@ -633,23 +650,44 @@ INDEX_JS = r"""
     if (col.scrollHeight > col.clientHeight) { col.removeChild(a); newCol(); col.appendChild(a); }
   }
 
-  // Auto-fit. A single overflowing answer would shift every following page and
-  // destroy the question/answer pairing, so content is stepped down a ladder
-  // until it fits rather than being allowed to run over.
+  // Auto-fit, decided ONCE for the whole deck rather than card by card.
+  //
+  // Fitting each card on its own is what made the deck look unfinished: a card
+  // with three lines was set at full size and the next one at two thirds of it,
+  // so the type changed size every time a page was turned. One scale per side
+  // - the smallest any card on that side needs - keeps every question page
+  // identical to every other, which is the only way a deck reads as one thing.
+  //
+  // It still has to be a scale rather than a free-for-all: every card is
+  // exactly two pages, and one answer spilling onto a third would print every
+  // later question opposite the previous card's answer.
   const ladder = [1, .94, .88, .82, .76, .7, .64];
-  let shrunk = 0, stubborn = 0;
-  for (const content of document.querySelectorAll('.content')) {
-    if (content.scrollHeight <= content.clientHeight) continue;
-    let fitted = false;
-    for (const step of ladder.slice(1)) {
-      content.style.fontSize = (step * (content.classList.contains('q') ? 15 : 10.5)) + 'pt';
-      content.style.lineHeight = 1.5 - (1 - step) * 0.35;
-      if (content.scrollHeight <= content.clientHeight) { fitted = true; break; }
+  const BASE = { q: 17, a: 13 };
+  const picked = {}, stubborn = {};
+
+  for (const side of ['q', 'a']) {
+    const blocks = [...document.querySelectorAll('.content.' + side)];
+    let chosen = ladder[0], failed = 0;
+    for (const step of ladder) {
+      failed = 0;
+      for (const content of blocks) {
+        content.style.fontSize = (step * BASE[side]) + 'pt';
+        content.style.lineHeight = 1.55 - (1 - step) * 0.3;
+        if (content.scrollHeight > content.clientHeight) failed++;
+      }
+      chosen = step;
+      if (!failed) break;
     }
-    shrunk++;
-    if (!fitted) stubborn++;
+    // Settle on the step that was chosen, since the loop may have moved past it.
+    for (const content of blocks) {
+      content.style.fontSize = (chosen * BASE[side]) + 'pt';
+      content.style.lineHeight = 1.55 - (1 - chosen) * 0.3;
+    }
+    picked[side] = chosen;
+    stubborn[side] = failed;
   }
-  window.__fit = { shrunk: shrunk, stubborn: stubborn };
+
+  window.__fit = { scale: picked, stubborn: stubborn.q + stubborn.a };
 })();
 """
 
@@ -671,7 +709,7 @@ async def render(html_text: str, out: Path) -> dict:
         browser = await p.chromium.launch()
         page = await browser.new_page()
         await page.set_content(html_text, wait_until="networkidle")
-        fit = await page.evaluate("window.__fit || {shrunk: 0, stubborn: 0}")
+        fit = await page.evaluate("window.__fit || {scale: {}, stubborn: 0}")
         await page.pdf(path=str(out), width="210mm", height="297mm",
                        print_background=True, margin={"top": "0", "bottom": "0",
                                                       "left": "0", "right": "0"})
@@ -805,9 +843,11 @@ async def build(study_sets: list[dict], title: str, out: Path,
     held = sum(1 for c in cards if c.image_side == "answer")
     print(f"{out}")
     print(f"  {len(cards)} cards, {len(cards) * 2 + 2} pages")
-    if fit.get("shrunk"):
-        print(f"  {fit['shrunk']} shrunk to fit"
-              + (f", {fit['stubborn']} still tight" if fit.get("stubborn") else ""))
+    scale = fit.get("scale") or {}
+    if scale:
+        print(f"  set at {round(17 * scale.get('q', 1), 1)}pt questions, "
+              f"{round(13 * scale.get('a', 1), 1)}pt answers"
+              + (f" - {fit['stubborn']} card(s) still tight" if fit.get("stubborn") else ""))
     if held:
         print(f"  {held} picture(s) held back to the answer page")
     if not with_ocr and any(c.image for c in cards):

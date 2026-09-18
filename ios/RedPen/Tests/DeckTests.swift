@@ -131,8 +131,21 @@ ok(DeckBuilder.letter(0) == "A" && DeckBuilder.letter(25) == "Z", "options are l
 ok(DeckBuilder.letter(26) == "27", "and an implausible number of options does not crash")
 
 ok(DeckBuilder.topic(from: "**Bold** opening words of a long stem that goes on")
-   == "Bold opening words of a", "a missing topic is taken from the opening words, unmarked")
+   == "Bold opening words of a long stem that", "a stem with no ask falls back to its words, unmarked")
 ok(DeckBuilder.topic(from: "   ") == "Untitled", "and an empty one is still labelled")
+
+// The point of the label: two vignettes that open identically must not end up
+// as the same index row, which is what taking the first few words did.
+let firstStem = "A 24-year-old man presents with crushing chest pain. "
+    + "Which coronary artery is most likely occluded?"
+let secondStem = "A 24-year-old man presents with crushing chest pain. "
+    + "What is the immediate next investigation?"
+ok(DeckBuilder.topic(from: firstStem) != DeckBuilder.topic(from: secondStem),
+   "two stems with the same opening do not collapse to one row")
+ok(DeckBuilder.topic(from: firstStem) == "Coronary artery is most likely occluded",
+   "the label is the ask, with its scaffolding words dropped")
+ok(!DeckBuilder.topic(from: firstStem).lowercased().contains("24-year-old"),
+   "and not the vignette every card in the deck shares")
 
 // MARK: numbering and the contents index
 

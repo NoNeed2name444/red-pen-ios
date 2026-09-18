@@ -8,6 +8,13 @@ extension DeckPDF {
 
     static let barHeight: CGFloat = 34
 
+    // Set for reading at arm's length off a printed A4 page, not for fitting
+    // as much as possible onto one.
+    static let questionSize: CGFloat = 17
+    static let answerSize: CGFloat = 13
+    static let questionPictureLimit = pageSize.height * 0.42
+    static let answerPictureLimit = pageSize.height * 0.36
+
     static func color(_ p: DeckPalette, _ alpha: CGFloat = 1) -> UIColor {
         UIColor(red: p.red, green: p.green, blue: p.blue, alpha: alpha)
     }
@@ -45,16 +52,14 @@ extension DeckPDF {
             .foregroundColor: color(palette.shade(0.10)),
         ]
         let width = pageSize.width - margin * 2
-        let titleHeight = title.boundingRect(
-            with: CGSize(width: width, height: 70),
-            options: [.usesLineFragmentOrigin], attributes: titleAttrs, context: nil).height
+        let titleHeight = titleHeight(topic)
         title.draw(with: CGRect(x: margin, y: y, width: width, height: titleHeight),
                    options: [.usesLineFragmentOrigin], attributes: titleAttrs, context: nil)
         y += titleHeight + 5
 
         subtitle.draw(at: CGPoint(x: margin, y: y), withAttributes: [
             .font: UIFont.systemFont(ofSize: 8.5, weight: .regular),
-            .foregroundColor: UIColor(white: 0.45, alpha: 1),
+            .foregroundColor: UIColor(white: 0.3, alpha: 1),
         ])
         y += 17
 
@@ -99,7 +104,7 @@ extension DeckPDF {
         let y = pageSize.height - 34
         left.draw(at: CGPoint(x: margin, y: y), withAttributes: [
             .font: UIFont.systemFont(ofSize: 7.5),
-            .foregroundColor: UIColor(white: 0.5, alpha: 1),
+            .foregroundColor: UIColor(white: 0.32, alpha: 1),
         ])
         guard let right else { return }
         let attrs: [NSAttributedString.Key: Any] = [
@@ -138,7 +143,7 @@ extension DeckPDF {
                                ("Pages", "\(cards.count * 2 + 2)")] {
             label.uppercased().draw(at: CGPoint(x: margin, y: y), withAttributes: [
                 .font: UIFont.systemFont(ofSize: 8, weight: .bold),
-                .foregroundColor: UIColor(white: 0.55, alpha: 1), .kern: 1.2,
+                .foregroundColor: UIColor(white: 0.34, alpha: 1), .kern: 1.2,
             ])
             value.draw(at: CGPoint(x: margin, y: y + 13), withAttributes: [
                 .font: UIFont.systemFont(ofSize: 15, weight: .semibold),
@@ -152,7 +157,7 @@ extension DeckPDF {
                                width: pageSize.width - margin * 2, height: 60),
                   options: [.usesLineFragmentOrigin],
                   attributes: [.font: UIFont.systemFont(ofSize: 9.5),
-                               .foregroundColor: UIColor(white: 0.45, alpha: 1)],
+                               .foregroundColor: UIColor(white: 0.3, alpha: 1)],
                   context: nil)
     }
 
@@ -201,8 +206,33 @@ extension DeckPDF {
         }
     }
 
+    /// How tall a card's title is, measured the same way it is drawn.
+    ///
+    /// Shared so that the size the deck is set at can be worked out before any
+    /// page exists - a measurement taken one way and a page drawn another is
+    /// how a layout comes to disagree with itself about whether it fits.
+    static func titleHeight(_ topic: String) -> CGFloat {
+        (topic as NSString).boundingRect(
+            with: CGSize(width: pageSize.width - margin * 2, height: 70),
+            options: [.usesLineFragmentOrigin],
+            attributes: [.font: UIFont.systemFont(ofSize: 19, weight: .bold)],
+            context: nil).height
+    }
+
+    /// The y a card's content starts at, given the bar and its heading.
+    static func contentTop(topic: String, picture: UIImage?, limit: CGFloat) -> CGFloat {
+        var y = barHeight + 22 + titleHeight(topic) + 5 + 17 + 26 + 18
+        if let picture, picture.size.width > 0, picture.size.height > 0 {
+            let scale = min((pageSize.width - margin * 2) / picture.size.width,
+                            limit / picture.size.height)
+            y += picture.size.height * scale + 16
+        }
+        return y
+    }
+
     static func questionPage(_ card: DeckCard, set: StudySet, total: Int, palette: DeckPalette,
-                             picture: UIImage?, context: UIGraphicsPDFRendererContext) {
+                             picture: UIImage?, scale: CGFloat,
+                             context: UIGraphicsPDFRendererContext) {
         context.beginPage()
         let top = bar(set.subject.isEmpty ? set.kind.label : set.subject,
                       right: "Card \(card.number)", palette: palette)
@@ -214,15 +244,16 @@ extension DeckPDF {
 
         watermark("Q", palette: palette)
         if let picture {
-            y = draw(picture, from: y, limit: pageSize.height * 0.42)
+            y = draw(picture, from: y, limit: questionPictureLimit)
         }
-        draw(card.question, from: y, palette: palette, size: 14.5, questionSide: true)
+        draw(card.question, from: y, palette: palette, size: questionSize, scale: scale)
         footer(left: "Question \(card.number) of \(total)",
                right: "Answer overleaf \u{203A}", palette: palette)
     }
 
     static func answerPage(_ card: DeckCard, set: StudySet, total: Int, palette: DeckPalette,
-                           picture: UIImage?, context: UIGraphicsPDFRendererContext) {
+                           picture: UIImage?, scale: CGFloat,
+                           context: UIGraphicsPDFRendererContext) {
         context.beginPage()
         let top = bar("Answer", right: "Card \(card.number)", palette: palette)
         var y = heading(topic: card.topic,
@@ -230,13 +261,13 @@ extension DeckPDF {
                         chip: card.kindLabel, palette: palette, from: top)
         watermark("A", palette: palette)
         if let picture {
-            y = draw(picture, from: y, limit: pageSize.height * 0.36)
+            y = draw(picture, from: y, limit: answerPictureLimit)
         }
-        y = draw(card.answer, from: y, palette: palette, size: 10.5, questionSide: false)
+        y = draw(card.answer, from: y, palette: palette, size: answerSize, scale: scale)
         if let source = card.source, !source.isEmpty {
             source.draw(at: CGPoint(x: margin, y: min(y + 10, pageSize.height - 58)),
-                        withAttributes: [.font: UIFont.italicSystemFont(ofSize: 7.5),
-                                         .foregroundColor: UIColor(white: 0.55, alpha: 1)])
+                        withAttributes: [.font: UIFont.italicSystemFont(ofSize: 8.5),
+                                         .foregroundColor: UIColor(white: 0.34, alpha: 1)])
         }
         footer(left: "\(set.subject) \u{00B7} Answer \(card.number)", right: nil, palette: palette)
     }
