@@ -8,12 +8,10 @@ import SwiftUI
 /// screens already being compared week to week.
 ///
 /// A screen only earns a place here if it shows something a still picture can
-/// actually prove. "Quiz me" qualifies twice over: the button has to be live
-/// rather than disabled, and the quiz it produces has to show options that are
-/// visibly other cards' answers.
+/// actually prove.
 enum PreviewExtras {
 
-    static let screens = ["anki-quizable", "quiz-from-cards"]
+    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -24,6 +22,10 @@ enum PreviewExtras {
             NavigationStack { AnkiReviewView(set: PreviewDecks.lupus) }
         case "quiz-from-cards":
             NavigationStack { MCQQuizView(set: PreviewDecks.lupusQuiz) }
+        case "narrate-fixing":
+            // a real Egyptian-mix lecture line, with the fix sheet open on the
+            // word the recogniser got wrong
+            NavigationStack { NarrateReviewView(set: PreviewDecks.lecture, startFixing: 3) }
         default:
             EmptyView()
         }
@@ -82,4 +84,22 @@ enum PreviewDecks {
         set.kind = .mcq
         return set
     }
+
+    /// A transcript in the register these lectures are actually delivered in:
+    /// Egyptian Arabic carrying English medical terms, written the way the
+    /// recogniser writes them - phonetically, in Arabic letters. The fourth
+    /// word of the first line is ميكو, which is where `mucocutaneous` starts and
+    /// where a student would hold to fix it.
+    static let lecture = StudySet(
+        name: "محاضرة — SLE",
+        subject: "Rheumatology",
+        kind: .narrate,
+        narrateSegments: [
+            NarrateSegment(text: "طيب في حاجه ميكو كوتينيوس دي مهمه جدا", lang: "ar"),
+            NarrateSegment(text: "الـ مالار ريش بيسيب الـ نازولابيال فولد", lang: "ar"),
+            NarrateSegment(text: "وده اللي بيفرقه عن الـ روزاشيا", lang: "ar"),
+            NarrateSegment(text: "والعلاج هو الـ هيدوكسيكلوكوين لكل المرضى", lang: "ar"),
+            NarrateSegment(text: "والـ ميكو كوتينياس تاني في الـ كرايتيريا", lang: "ar"),
+        ]
+    )
 }
