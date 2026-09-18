@@ -6,19 +6,35 @@ import UniformTypeIdentifiers
 /// With a recording attached it follows the audio: the recogniser's own word
 /// timestamps decide which word is lit, and the clock is the audio's position,
 /// so scrubbing and speed changes cannot put the highlight out of step. With no
-/// recording it falls back to the web app's reading pace, holding each line for
+/// recording it falls back to a reading pace, holding each line for
 /// `NarrateScheduler.segmentMs()` - that half is in NarrateReading.
 ///
 /// The transcript is editable either way: long-press a word, say what it should
 /// have been, and the fix spreads to everything that sounds the same and is
-/// remembered for next time - see FixWordSheet.
+/// remembered for next time.
 ///
-/// `body` is deliberately split into `stage` and `screen`. SwiftUI type-checks
-/// a view's whole modifier chain as one expression, and this screen has enough
-/// of them - two conditional branches, a ternary title, an inline Binding -
-/// that the compiler gave up on it outright.
+/// `body` is split into `stage` and `screen` on purpose. SwiftUI type-checks a
+/// view's whole modifier chain as one expression, and this screen has enough of
+/// them that the compiler gave up on it outright.
 struct NarrateReviewView: View {
     let studySet: StudySet
+    /// Only used by the CI screenshot launch to open on the back of a card.
+    var startRevealed: Bool = false
+
+    init(set studySet: StudySet, startIndex: Int = 0, startPlaying: Bool = false,
+         startFinished: Bool = false, startFixing: Int? = nil) {
+        self.studySet = studySet
+        _index = State(initialValue: min(startIndex, max(0, studySet.narrateSegments.count - 1)))
+        _playing = State(initialValue: startPlaying)
+        _finished = State(initialValue: startFinished)
+        if let word = startFixing, let first = studySet.narrateSegments.first {
+            let words = first.text.split(separator: " ").map(String.init)
+            if words.indices.contains(word) {
+                _fixing = State(initialValue: FixTarget(segment: 0, word: word, heard: words[word]))
+            }
+        }
+    }
+
     @EnvironmentObject var store: Store
     @EnvironmentObject var learned: PronunciationLibrary
     @StateObject var player = LecturePlayer()
@@ -39,20 +55,6 @@ struct NarrateReviewView: View {
     @State private var lastOutcome: CorrectionOutcome?
     @State private var snapshot: [String] = []
     @State private var importing = false
-
-    init(set studySet: StudySet, startIndex: Int = 0, startPlaying: Bool = false,
-         startFinished: Bool = false, startFixing: Int? = nil) {
-        self.studySet = studySet
-        _index = State(initialValue: min(startIndex, max(0, studySet.narrateSegments.count - 1)))
-        _playing = State(initialValue: startPlaying)
-        _finished = State(initialValue: startFinished)
-        if let word = startFixing, let first = studySet.narrateSegments.first {
-            let words = first.text.split(separator: " ").map(String.init)
-            if words.indices.contains(word) {
-                _fixing = State(initialValue: FixTarget(segment: 0, word: word, heard: words[word]))
-            }
-        }
-    }
 
     /// Word timings exist only when a recording was transcribed.
     var words: [TranscriptWord] {
@@ -114,7 +116,10 @@ struct NarrateReviewView: View {
                     .buttonStyle(.glass)
                 }
             }
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.audio]) { picked in
+            // the multiple-selection form on purpose: it hands back [URL],
+            // which is the shape LectureImporter.attach takes
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.audio],
+                          allowsMultipleSelection: false) { picked in
                 Task { await importer.attach(picked, to: studySet, learned: learned) }
             }
     }
