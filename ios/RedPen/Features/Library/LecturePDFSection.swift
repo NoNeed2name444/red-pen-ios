@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// Reading the lecture out of the file the lecturer handed out.
 ///
-/// Two things come back from one pass over a PDF, and they are worth keeping
+/// Two things come back from one pass over a file, and they are worth keeping
 /// apart. The TEXT is appended to whatever the student has already pasted, and
 /// feeds question generation as usual. The DIAGRAMS are something the text
 /// route cannot produce at all: a labelled figure already carries its own
@@ -24,12 +24,19 @@ struct LecturePDFSection: View {
     @State private var cards: [AnkiCard] = []
     @State private var images: [String] = []
 
+    /// A .docx is a zip, and a zip is not a type the picker offers by name, so
+    /// Word's own identifier is asked for directly. If the system does not know
+    /// it, the picker simply offers PDFs rather than failing to open.
+    private var readableTypes: [UTType] {
+        [.pdf, UTType("org.openxmlformats.wordprocessingml.document")].compactMap { $0 }
+    }
+
     var body: some View {
         Section {
             Button { picking = true } label: {
                 HStack {
                     if reading { ProgressView().controlSize(.small) }
-                    Label(reading ? "Reading the PDF\u{2026}" : "Read a lecture PDF",
+                    Label(reading ? "Reading the file\u{2026}" : "Read a lecture file",
                           systemImage: "doc.text.viewfinder")
                 }
             }
@@ -53,9 +60,9 @@ struct LecturePDFSection: View {
         } header: {
             Text("From a file")
         } footer: {
-            Text("Slides and handouts are read on this phone. A scanned page is read by OCR, in Arabic or English.")
+            Text("PDF slides and Word handouts are read on this phone. A scanned page is read by OCR, in Arabic or English.")
         }
-        .fileImporter(isPresented: $picking, allowedContentTypes: [.pdf]) { result in
+        .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes) { result in
             Task { await read(result) }
         }
     }
@@ -70,7 +77,9 @@ struct LecturePDFSection: View {
             cards = []
             images = []
             do {
-                let read = try await SourceIngest.read(pdf: url)
+                let isWord = url.pathExtension.lowercased().hasPrefix("doc")
+                let read = isWord ? try await DocxIngest.read(docx: url)
+                                  : try await SourceIngest.read(pdf: url)
                 let document = read.document
                 // appended rather than replacing: a student who pasted notes and
                 // then adds the slides means both, and silently discarding what
@@ -82,7 +91,8 @@ struct LecturePDFSection: View {
 
                 let ocr = document.recognisedPages
                 let pages = document.pages.count
-                status = "Read \(pages) page\(pages == 1 ? "" : "s")"
+                status = (isWord ? "Read the handout"
+                                 : "Read \(pages) page\(pages == 1 ? "" : "s")")
                     + (ocr > 0 ? ", \(ocr) by OCR" : "")
                     + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
                     + ". Check anything that looks garbled before generating."
@@ -108,9 +118,9 @@ struct LecturePDFSection: View {
         }
         cards = read.occlusionCards.compactMap { card in
             guard let old = card.imageIndex, let new = moved[old] else { return nil }
-            var moved = card
-            moved.imageIndex = new
-            return moved
+            var renumbered = card
+            renumbered.imageIndex = new
+            return renumbered
         }
     }
 
