@@ -1,12 +1,11 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// The "generate a set from my material" half of New set.
 ///
 /// Split out of NewSetView because it is now the larger half: it owns the
-/// choice of on-device model, the download of the fallback one, and - new here
-/// - reading the lecture out of the PDF instead of asking the student to paste
-/// forty pages by hand, which is the step the web app had and the app did not.
+/// choice of on-device model and the download of the fallback one. Reading the
+/// lecture out of a PDF lives beside it in LecturePDFSection, which feeds this
+/// form its text and can also hand back a deck of its own.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
 
@@ -21,10 +20,6 @@ struct MCQGenerateForm: View {
     @State private var generationStatus: String?
     @State private var generationTask: Task<Void, Never>?
 
-    @State private var pickingPDF = false
-    @State private var reading = false
-    @State private var readStatus: String?
-
     private enum Backend: Equatable { case apple, gemma }
     /// Which backend a tap on Generate would actually use. `nil` means neither
     /// is ready, and the UI says why rather than offering a button that fails.
@@ -36,25 +31,9 @@ struct MCQGenerateForm: View {
 
     var body: some View {
         Group {
-            Section {
-                Button {
-                    pickingPDF = true
-                } label: {
-                    HStack {
-                        if reading { ProgressView().controlSize(.small) }
-                        Label(reading ? "Reading the PDF\u{2026}" : "Read a lecture PDF",
-                              systemImage: "doc.text.viewfinder")
-                    }
-                }
-                .disabled(reading || isGenerating)
-                if let readStatus {
-                    Text(readStatus).font(.caption).foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("From a file")
-            } footer: {
-                Text("Slides and handouts are read on this phone. A scanned page is read by OCR, in Arabic or English.")
-            }
+            LecturePDFSection(sourceText: $sourceText, disabled: isGenerating,
+                              name: name, subject: subject,
+                              onOcclusionSet: onGenerated)
 
             Section {
                 Text("One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation")
@@ -108,9 +87,6 @@ struct MCQGenerateForm: View {
                 }
             }
         }
-        .fileImporter(isPresented: $pickingPDF, allowedContentTypes: [.pdf]) { result in
-            Task { await readPDF(result) }
-        }
         .onAppear { gemma.refreshStatus() }
         .onDisappear { generationTask?.cancel() }
     }
@@ -148,34 +124,6 @@ struct MCQGenerateForm: View {
             } header: {
                 Text("Offline model")
             }
-        }
-    }
-
-    // MARK: reading the file
-
-    private func readPDF(_ result: Result<URL, Error>) async {
-        switch result {
-        case .failure(let error):
-            readStatus = error.localizedDescription
-        case .success(let url):
-            reading = true
-            readStatus = nil
-            do {
-                let read = try await SourceIngest.read(pdf: url)
-                let document = read.document
-                // appended rather than replacing: a student who pasted notes and
-                // then adds the slides means both, and silently discarding what
-                // they typed would be unforgivable
-                let existing = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-                sourceText = existing.isEmpty ? document.text : existing + "\n\n" + document.text
-                let ocr = document.recognisedPages
-                readStatus = "Read \(document.pages.count) page\(document.pages.count == 1 ? "" : "s")"
-                    + (ocr > 0 ? ", \(ocr) by OCR" : "")
-                    + ". Check anything that looks garbled before generating."
-            } catch {
-                readStatus = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            }
-            reading = false
         }
     }
 
