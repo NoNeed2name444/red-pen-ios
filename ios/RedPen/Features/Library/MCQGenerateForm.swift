@@ -2,17 +2,18 @@ import SwiftUI
 
 /// The "generate a set from my material" half of New set.
 ///
-/// Split out of NewSetView because it is now the larger half: it owns the
-/// choice of on-device model and the download of the fallback one. Reading the
-/// lecture out of a file lives beside it in LecturePDFSection, which feeds this
-/// form its text, proposes how many questions that much material can support,
-/// and can also hand back a deck of its own.
+/// It owns the choice of on-device model and the download of the fallback one.
+/// Reading the lecture out of a file lives beside it in LecturePDFSection,
+/// which feeds this form its text, proposes how many questions that much
+/// material can support, and hands back the document so the questions can be
+/// cited to the page they came from.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
 
     @Binding var sourceText: String
     @Binding var questionCount: Int
     @Binding var highYield: Bool
+    @Binding var readSource: ReadSource?
     let name: String
     let subject: String
     let onGenerated: (StudySet) -> Void
@@ -33,7 +34,8 @@ struct MCQGenerateForm: View {
     var body: some View {
         Group {
             LecturePDFSection(sourceText: $sourceText, questionCount: $questionCount,
-                              disabled: isGenerating, name: name, subject: subject,
+                              readSource: $readSource, disabled: isGenerating,
+                              name: name, subject: subject,
                               onOcclusionSet: onGenerated)
 
             Section {
@@ -62,9 +64,7 @@ struct MCQGenerateForm: View {
                     Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Button {
-                    startGenerating()
-                } label: {
+                Button { startGenerating() } label: {
                     HStack {
                         if isGenerating { ProgressView().controlSize(.small) }
                         Text(isGenerating ? (generationStatus ?? "Writing\u{2026}") : "Generate questions")
@@ -136,6 +136,7 @@ struct MCQGenerateForm: View {
         isGenerating = true
         generationStatus = "Writing 0 of \(questionCount) questions\u{2026}"
         let count = questionCount, subj = subject, hy = highYield, setName = name
+        let cite = readSource
         generationTask = Task {
             do {
                 let progress: (Int, Int) -> Void = { done, total in
@@ -162,7 +163,12 @@ struct MCQGenerateForm: View {
                             ? (subj.isEmpty || subj == "General" ? "Generated set" : subj)
                             : setName,
                         subject: subj.isEmpty ? "General" : subj, kind: .mcq)
-                    set.questions = questions
+                    // each question is matched back to the page whose words it
+                    // shares; one that matches nothing is left uncited, which
+                    // is itself worth seeing
+                    set.questions = cite.map {
+                        Provenance.attribute(questions, to: $0.document, name: $0.name)
+                    } ?? questions
                     onGenerated(set)
                 }
             } catch is CancellationError {
