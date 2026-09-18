@@ -78,7 +78,8 @@ struct CardEditSheet: View {
 }
 
 /// Editing one question. The correct answer is picked rather than typed, so it
-/// cannot end up pointing at an option that no longer exists.
+/// cannot point at an option that no longer exists; the index bookkeeping that
+/// keeps that true is in MCQEdit, where it is tested.
 struct QuestionEditSheet: View {
     let question: MCQQuestion
     let onSave: (MCQQuestion) -> Void
@@ -110,9 +111,7 @@ struct QuestionEditSheet: View {
                             TextField("Option", text: $working.options[index], axis: .vertical)
                         }
                     }
-                    .onDelete { offsets in
-                        working = Self.removing(offsets, from: working)
-                    }
+                    .onDelete { offsets in working = MCQEdit.removing(offsets, from: working) }
                     Button("Add an option", systemImage: "plus") { working.options.append("") }
                         .font(.footnote)
                 }
@@ -131,40 +130,12 @@ struct QuestionEditSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        onSave(Self.tidied(working))
+                        onSave(MCQEdit.tidied(working))
                         dismiss()
                     }
                     .disabled(working.options.count < 2)
                 }
             }
         }
-    }
-
-    /// The key is remembered by its TEXT before anything is removed, then found
-    /// again afterwards.
-    ///
-    /// Every one of these operations shifts the positions after it, and
-    /// correctIndex is a position. Falling back to 0 when the maths goes wrong
-    /// does not fail loudly - it silently marks the first option correct, and
-    /// the student finds out when the app tells them they got it wrong.
-    static func removing(_ offsets: IndexSet, from question: MCQQuestion) -> MCQQuestion {
-        var out = question
-        let key = out.options.indices.contains(out.correctIndex)
-            ? out.options[out.correctIndex] : nil
-        out.options.remove(atOffsets: offsets)
-        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
-        return out
-    }
-
-    /// Blank options are dropped on the way out, which moves positions too.
-    static func tidied(_ question: MCQQuestion) -> MCQQuestion {
-        var out = question
-        let key = out.options.indices.contains(out.correctIndex)
-            ? out.options[out.correctIndex].trimmingCharacters(in: .whitespaces) : nil
-        out.options = out.options
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
-        return out
     }
 }
