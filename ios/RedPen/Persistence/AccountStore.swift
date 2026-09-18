@@ -13,11 +13,6 @@ final class AccountStore: ObservableObject {
     @Published var busy = false
     @Published var trouble: String?
 
-    /// When a code was last sent, so the resend button can say no for a moment
-    /// rather than letting somebody mail themselves ten codes.
-    @Published private(set) var codeSentAt: Date?
-    @Published var pendingEmail: String?
-
     private let google = GoogleSignIn()
     /// The raw nonce for a sign-in in progress. Apple is given only its hash,
     /// and the server is told both - which is what stops a token captured from
@@ -34,6 +29,7 @@ final class AccountStore: ObservableObject {
 
     var isSignedIn: Bool { state.isSignedIn }
     var account: Account? { state.account }
+    var token: String? { state.session?.token }
 
     // MARK: Apple
 
@@ -75,40 +71,6 @@ final class AccountStore: ObservableObject {
         await attempt { try await self.google.run() }
     }
 
-    // MARK: email
-
-    /// Sends a code. The answer is the same whether or not the address is
-    /// already known - telling somebody "no account with that address" turns
-    /// the sign-in form into a way of finding out who has one.
-    func sendCode(to rawEmail: String) async -> Bool {
-        guard let email = AuthRules.normalisedEmail(rawEmail) else {
-            trouble = "That doesn't look like an email address."
-            return false
-        }
-        guard AuthRules.canResend(lastSentAt: codeSentAt) else { return false }
-        busy = true
-        trouble = nil
-        defer { busy = false }
-        do {
-            try await AuthAPI.requestCode(email: email)
-            pendingEmail = email
-            codeSentAt = Date()
-            return true
-        } catch {
-            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            return false
-        }
-    }
-
-    func verifyCode(_ raw: String) async {
-        guard let email = pendingEmail else { return }
-        guard let code = AuthRules.normalisedCode(raw) else {
-            trouble = "A code is six digits."
-            return
-        }
-        await attempt { try await AuthAPI.verifyCode(email: email, code: code) }
-    }
-
     // MARK: the shared plumbing
 
     private func attempt(_ work: @escaping () async throws -> Session) async {
@@ -126,8 +88,6 @@ final class AccountStore: ObservableObject {
 
     private func adopt(_ session: Session) {
         Keychain.save(session)
-        pendingEmail = nil
-        codeSentAt = nil
         state = .signedIn(session)
     }
 
@@ -153,10 +113,11 @@ final class AccountStore: ObservableObject {
 
     // MARK: leaving
 
+    /// Signing out leaves the library on this device exactly where it is. It is
+    /// still on the server too, so signing back in brings the two together
+    /// again rather than starting from nothing.
     func signOut() {
         Keychain.clearSession()
-        pendingEmail = nil
-        codeSentAt = nil
         state = .signedOut
     }
 
@@ -164,8 +125,7 @@ final class AccountStore: ObservableObject {
     ///
     /// The App Store requires this of any app that can create an account, and
     /// it is right anyway: somebody who signed up in two taps should not have
-    /// to email support to leave. The student's decks are untouched - they were
-    /// never on the server to delete.
+    /// to email support to leave.
     @discardableResult
     func deleteAccount() async -> Bool {
         guard let session = state.session else { return false }
