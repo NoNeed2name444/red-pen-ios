@@ -78,9 +78,18 @@ jobs:
                 $S/Entitlement.swift
           suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift
           suite sources SourceTests.swift $M/SourceDoc.swift $S/SourceSearch.swift
+          # NarrateSegment carries a helper that builds segments from a
+          # transcript, so the parsers drag the transcriber in with them.
           suite osce OsceTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
                 $M/QACard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
+                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift \
                 $S/PlainTextImport.swift $S/OsceStations.swift
+          suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift
+          suite deck DeckTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
+                $M/StudySet.swift $S/BookPages.swift $S/Highlight.swift \
+                $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift
 
       - name: Fail the job if anything failed
         run: |
