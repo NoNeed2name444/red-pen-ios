@@ -18,6 +18,7 @@ on:
       - 'ios/RedPen/Shared/**'
       - 'ios/RedPen/Models/**'
       - 'ios/RedPen/Tests/**'
+      - '.github/workflows/swift-tests.yml'
 permissions:
   contents: write
 env:
@@ -113,6 +114,29 @@ jobs:
             else echo "figuretest was never built"; fi
           } > out/figures.log 2>&1
           cat out/figures.log
+
+      # The archive is written by the runner's own zip command, not by Red Pen:
+      # the entire risk in reading a .docx is that a real file is laid out a few
+      # bytes differently from the one in your head.
+      - name: Word handouts
+        run: |
+          mkdir -p out build/docx fixture/word/media
+          cat > fixture/word/document.xml <<'XML'
+          <?xml version="1.0"?><w:document xmlns:w="x"><w:body><w:p><w:r><w:t>Lupus &amp; the kidney</w:t></w:r></w:p><w:p><w:r><w:t>Class IV</w:t></w:r><w:r><w:t> nephritis</w:t></w:r></w:p><w:p/><w:p><w:r><w:t>Treat with</w:t></w:r><w:br/><w:r><w:t>steroids</w:t></w:r></w:p></w:body></w:document>
+          XML
+          printf 'two' > fixture/word/media/image2.png
+          printf 'ten' > fixture/word/media/image10.png
+          (cd fixture && zip -qr ../sample.docx .)
+          cp ios/RedPen/Tests/DocxTests.swift build/docx/main.swift
+          {
+            swiftc -O ios/RedPen/Shared/Zip.swift \
+                   ios/RedPen/Shared/DocxText.swift \
+                   build/docx/main.swift -o docxtest 2>&1 | head -n 40
+            echo "compile rc=${PIPESTATUS[0]}"
+            if [ -x ./docxtest ]; then ./docxtest 2>&1 | head -n 80; echo "run rc=${PIPESTATUS[0]}";
+            else echo "docxtest was never built"; fi
+          } > out/docx.log 2>&1
+          cat out/docx.log
 
       - name: Fail the job if anything failed
         run: |
