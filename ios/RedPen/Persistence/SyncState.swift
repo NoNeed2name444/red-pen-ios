@@ -39,9 +39,17 @@ struct SyncState: Codable, Equatable {
 
     func mark(_ id: String) -> SyncMark? { marks[id] }
 
+    /// Records agreement about ONE document. Deliberately does not touch the
+    /// cursor.
+    ///
+    /// The cursor is a promise about the whole account - "I have seen
+    /// everything up to here" - and only a pull is ever in a position to make
+    /// it. Documents are also remembered while resolving a push conflict, and
+    /// the conflicting document's revision can be far ahead of what this device
+    /// has actually pulled. Moving the cursor to it would quietly skip every
+    /// document in between, on every device, for ever.
     mutating func remember(_ doc: SyncDoc) {
         marks[doc.id] = SyncMerge.mark(for: doc)
-        if doc.rev > cursor { cursor = doc.rev }
     }
 
     mutating func forget(_ id: String) {
@@ -63,7 +71,10 @@ final class SyncStateStore {
             let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             self.fileURL = dir.appendingPathComponent("redpen-sync.json")
         }
-        if let data = try? Data(contentsOf: fileURL),
+        // self.fileURL, not the parameter: the parameter is the optional the
+        // caller may not have passed, and the one just settled above is the
+        // file we actually read.
+        if let data = try? Data(contentsOf: self.fileURL),
            let stored = try? JSONDecoder.redPen.decode(SyncState.self, from: data) {
             state = stored
         }

@@ -103,7 +103,6 @@ export async function push(env, account, body) {
       continue;
     }
 
-    const rev = await nextRev(env, account);
     const deleted = doc.deleted ? 1 : 0;
     // A tombstone drops the body. Keeping the contents of something somebody
     // deleted is the opposite of deleting it.
@@ -114,13 +113,45 @@ export async function push(env, account, body) {
       ? (existing?.kind || doc.kind || 'set')
       : (doc.kind || existing?.kind || 'set');
 
-    await env.DB.prepare(
+    const rev = await nextRev(env, account);
+
+    // The check above is only a fast path. The real compare-and-set is this
+    // statement's own WHERE clause, because the read and the write are two
+    // round trips and two devices can pass the read in the same instant. Both
+    // would then believe they were accepted, and the one written first would
+    // vanish without ever becoming a conflict copy - the single worst thing
+    // this file could do, since losing work silently is worse than refusing it.
+    //
+    // A row that is not there yet is inserted; a row that has moved on since
+    // the revision the device quoted changes nothing, and reports zero.
+    const written = await env.DB.prepare(
       `INSERT INTO docs (account_id, id, kind, rev, updated_at, deleted, payload)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(account_id, id) DO UPDATE SET
          kind = excluded.kind, rev = excluded.rev, updated_at = excluded.updated_at,
-         deleted = excluded.deleted, payload = excluded.payload`)
-      .bind(account, doc.id, kind, rev, incomingAt, deleted, payload).run();
+         deleted = excluded.deleted, payload = excluded.payload
+       WHERE docs.rev <= ?`)
+      .bind(account, doc.id, kind, rev, incomingAt, deleted, payload,
+            Number(doc.rev) || 0).run();
+
+    if (!written.meta || written.meta.changes === 0) {
+      // Somebody else got there between our read and our write. Send back
+      // whatever is actually there now, exactly as the fast path does.
+      const current = await env.DB.prepare(
+        'SELECT rev, updated_at, kind, deleted, payload FROM docs WHERE account_id = ? AND id = ?')
+        .bind(account, doc.id).first();
+      if (current) {
+        conflicts.push({
+          id: doc.id,
+          kind: current.kind,
+          rev: current.rev,
+          updatedAt: new Date(current.updated_at * 1000).toISOString(),
+          deleted: !!current.deleted,
+          payload: current.payload || null,
+        });
+        continue;
+      }
+    }
 
     accepted.push({ ...doc, kind, rev, deleted: !!deleted, payload });
   }
@@ -132,12 +163,13 @@ export async function push(env, account, body) {
 
 export async function missingBlobs(env, account, body) {
   const names = Array.isArray(body.names) ? body.names.slice(0, 500) : [];
-  const missing = [];
-  for (const name of names) {
-    if (!isHash(name)) continue;
-    const head = await env.BLOBS.head(key(account, name));
-    if (!head) missing.push(name);
-  }
+  // Asked all at once. Five hundred of these one after another is five hundred
+  // round trips before the first byte of the first picture moves, which on a
+  // reinstall is the whole delay the student sees.
+  const wanted = names.filter(isHash);
+  const found = await Promise.all(
+    wanted.map(name => env.BLOBS.head(key(account, name))));
+  const missing = wanted.filter((_, i) => !found[i]);
   return json({ missing });
 }
 

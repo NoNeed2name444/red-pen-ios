@@ -16,14 +16,16 @@ extension SyncEngine {
         var outgoing = outgoingDocuments()
         guard !outgoing.docs.isEmpty else { return }
 
-        // The pictures go first. A document that mentions a blob the server has
-        // never seen would arrive on the other device as a card with a hole in
-        // it, and the student would have no way of knowing it was coming.
-        try await uploadPictures(for: outgoing.docs, token: token)
-
         var attempts = 0
         while !outgoing.docs.isEmpty && attempts < 3 {
             attempts += 1
+            // The pictures go first, on every attempt. A document that mentions
+            // a blob the server has never seen would arrive on the other device
+            // as a card with a hole in it, and the student would have no way of
+            // knowing it was coming. Round two matters as much as round one: a
+            // conflict merge can mint a whole new set - the kept copy - whose
+            // pictures have never been offered to the server.
+            try await uploadPictures(for: outgoing.docs, token: token)
             let result = try await SyncAPI.push(outgoing.docs, token: token)
             for accepted in result.accepted {
                 bookmarks.update { state in

@@ -124,6 +124,13 @@ final class SyncEngine: ObservableObject {
             // on another device. Keeping it here is the only way that device
             // ever learns it lost.
             keepCopy(of: remote)
+            // And we now agree about where the server is, even though we are
+            // about to disagree about the contents. Without this the push that
+            // follows would still quote the revision from before their edit,
+            // the server would rightly refuse it, and this same branch would
+            // run again - keeping a second copy, and a third, while our own
+            // edit never landed at all.
+            bookmarks.update { $0.remember(remote) }
         case .applyRemoteKeepingLocalCopy:
             if let local, let mine = SyncDocuments.set(from: local) {
                 // restored, not left as references: a kept copy whose pictures
