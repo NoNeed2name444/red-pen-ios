@@ -3,16 +3,18 @@ import UniformTypeIdentifiers
 
 /// Reading the lecture out of the file the lecturer handed out.
 ///
-/// Two things come back from one pass over a file, and they are worth keeping
-/// apart. The TEXT is appended to whatever the student has already pasted, and
-/// feeds question generation as usual. The DIAGRAMS are something the text
-/// route cannot produce at all: a labelled figure already carries its own
-/// answers, so each label becomes an occlusion card without a model being asked
-/// anything. That deck is offered as a separate set rather than mixed into the
-/// questions, because it is a different way of studying and the student should
-/// choose it deliberately.
+/// Three things come back from one pass, and they are worth keeping apart. The
+/// TEXT is appended to whatever the student has already pasted. The COUNT is a
+/// proposal - a forty-page lecture cannot be covered by the ten questions the
+/// form defaults to, and nobody knows that until the file has been read. The
+/// DIAGRAMS are something the text route cannot produce at all: a labelled
+/// figure already carries its own answers, so each label becomes an occlusion
+/// card without a model being asked anything. That deck is offered separately
+/// rather than mixed into the questions, because it is a different way of
+/// studying and the student should choose it deliberately.
 struct LecturePDFSection: View {
     @Binding var sourceText: String
+    @Binding var questionCount: Int
     let disabled: Bool
     let name: String
     let subject: String
@@ -89,13 +91,18 @@ struct LecturePDFSection: View {
                                               : existing + "\n\n" + document.text
                 keepFigures(read)
 
+                // proposed, not imposed: the stepper still moves, and a student
+                // who wants a quick ten-question run can say so
+                let suggested = MCQCoverage.suggestedCount(forCharacters: sourceText.count)
+                questionCount = min(MCQGenerator.maxQuestionsTotal, suggested)
+
                 let ocr = document.recognisedPages
                 let pages = document.pages.count
                 status = (isWord ? "Read the handout"
                                  : "Read \(pages) page\(pages == 1 ? "" : "s")")
                     + (ocr > 0 ? ", \(ocr) by OCR" : "")
                     + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
-                    + ". Check anything that looks garbled before generating."
+                    + ". Set to \(questionCount) questions \u{2014} about what this much material can cover without repeating itself. Check anything garbled before generating."
             } catch {
                 status = (error as? LocalizedError)?.errorDescription
                     ?? error.localizedDescription
