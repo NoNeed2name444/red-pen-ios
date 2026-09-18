@@ -40,9 +40,7 @@ jobs:
           # the released binary, not a source build: this job should spend its
           # minutes on the cards, not on a compiler
           url=$(curl -s https://api.github.com/repos/ggml-org/llama.cpp/releases/latest \
-                | python3 -c "import json,sys
-[print(a['browser_download_url']) for a in json.load(sys.stdin)['assets']
- if 'ubuntu' in a['name'] and 'x64' in a['name'] and a['name'].endswith('.zip')]" | head -n1)
+                | python3 -c "import json,sys; [print(a['browser_download_url']) for a in json.load(sys.stdin)['assets'] if 'ubuntu' in a['name'] and 'x64' in a['name'] and a['name'].endswith('.zip')]" | head -n1)
           echo "$url"
           curl -sL "$url" -o llama.zip
           unzip -q llama.zip -d llama
