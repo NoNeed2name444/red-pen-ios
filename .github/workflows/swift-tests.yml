@@ -7,8 +7,8 @@
 # never compile.
 #
 # Only UIKit-free files can be listed: the runner is a Mac, so a file importing
-# UIKit, PDFKit or Vision cannot be compiled for it. That is why the decisions
-# worth testing live in files that import nothing but Foundation.
+# UIKit, PDFKit, StoreKit or Vision cannot be compiled for it. That is why the
+# decisions worth testing live in files that import nothing but Foundation.
 name: Swift tests
 on:
   workflow_dispatch:
@@ -74,6 +74,8 @@ jobs:
           suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift \
                 $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
                 $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
+          suite account AccountTests.swift $M/Account.swift $S/AuthRules.swift \
+                $S/Entitlement.swift
 
       - name: Fail the job if anything failed
         run: |
