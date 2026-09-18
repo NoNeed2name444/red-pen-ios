@@ -92,12 +92,12 @@ jobs:
             --cellularMode active --cellularBars 4 --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p previews
-          # anki-quizable and quiz-from-cards are the newer screens (see
-          # PreviewExtras): the live Quiz me button, and the quiz the app
-          # builds out of a deck's own answers.
+          # The last three are the newer screens (see PreviewExtras): the live
+          # Quiz me button, the quiz the app builds out of a deck's own
+          # answers, and fixing a misheard word in an Arabic transcript.
           for mode in light dark; do
             xcrun simctl ui "$UDID" appearance "$mode"
-            for screen in library new quiz quiz-checked summary anki anki-revealed anki-quizable quiz-from-cards book qa qa-revealed osce osce-revealed osce-complete narrate narrate-finished; do
+            for screen in library new quiz quiz-checked summary anki anki-revealed book qa qa-revealed osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen"
               sleep 7
