@@ -1,10 +1,7 @@
 # Builds the SwiftUI app on GitHub's free macOS runner, opens it in the iOS
-# Simulator once per screen (light and dark), and pushes the screenshots —
-# real SwiftUI pixels — to the `previews` branch, together with the build
-# log and any compile errors. Red Pen's chat then pulls that branch and
-# publishes the pictures as an artifact page, and reads the errors to fix
-# the code. Started by hand (Actions → iOS preview → Run workflow) or from
-# chat through the bridge (workflow_dispatch).
+# Simulator once per screen (light and dark), and pushes the screenshots -
+# real SwiftUI pixels - to the `previews` branch, together with the build
+# log and any compile errors.
 name: iOS preview
 
 on:
@@ -63,30 +60,23 @@ jobs:
         working-directory: ios
         run: |
           set -o pipefail
-          # LocalLLMClient ships a macro plugin (and possibly build-tool
-          # plugins); Xcode normally asks an interactive "do you trust this
-          # macro" question the first time, which a headless CI run can
-          # never answer. These two flags are xcodebuild's own bypass for
-          # exactly that — same effect as clicking "Trust & Enable" once.
+          # LocalLLMClient ships a macro plugin; Xcode normally asks an
+          # interactive "do you trust this macro" question the first time,
+          # which a headless CI run can never answer. These flags are
+          # xcodebuild's own bypass - the same as clicking Trust once.
           #
-          # LocalLLMClientLlamaC (the C target wrapping llama.cpp) has
-          # headers that are really C++ ("Swift C++ interop" — `<memory>`,
-          # templates), and its own package target already turns on
-          # .interoperabilityMode(.Cxx) for exactly that. But Xcode's
-          # Explicit Modules pre-scan (on by default since Xcode 16)
-          # dependency-scans that C target's module map through a plain-C
-          # Clang context that never gets libc++'s search paths wired in,
-          # so it can't find `<memory>` — a known incompatibility between
-          # xcodebuild's explicit-module builds and llama.cpp-style mixed
-          # C/C++ SwiftPM targets. Disabling explicit modules falls back
-          # to the older, working implicit-module scanning.
+          # LocalLLMClientLlamaC's headers are really C++, and Xcode's
+          # explicit-modules pre-scan reads that C target through a plain-C
+          # Clang context that never gets libc++'s search paths, so it cannot
+          # find <memory>. Disabling explicit modules falls back to the older,
+          # working implicit scanning.
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning:|BUILD |\*\* " || true
           # xcodebuild's own exit status is hidden by the grep above, and the .app
-          # folder exists even after a failed compile — so ask the log instead
+          # folder exists even after a failed compile - so ask the log instead
           grep -q "BUILD SUCCEEDED" ../build.log
 
       - name: Screenshots
@@ -102,9 +92,12 @@ jobs:
             --cellularMode active --cellularBars 4 --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p previews
+          # anki-quizable and quiz-from-cards are the newer screens (see
+          # PreviewExtras): the live Quiz me button, and the quiz the app
+          # builds out of a deck's own answers.
           for mode in light dark; do
             xcrun simctl ui "$UDID" appearance "$mode"
-            for screen in library new quiz quiz-checked summary anki anki-revealed book qa qa-revealed osce osce-revealed osce-complete narrate narrate-finished; do
+            for screen in library new quiz quiz-checked summary anki anki-revealed anki-quizable quiz-from-cards book qa qa-revealed osce osce-revealed osce-complete narrate narrate-finished; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen"
               sleep 7
@@ -126,7 +119,6 @@ jobs:
           grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -80 > previews/errors.txt || true
           python3 - <<'PY'
           import datetime, json, os, subprocess
-          app = "ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
           shots = sorted(f for f in os.listdir("previews") if f.endswith(".png"))
           status = {
               "commit": os.environ["GITHUB_SHA"],
