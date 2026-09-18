@@ -2,13 +2,14 @@ import SwiftUI
 
 /// The "generate a set from my material" half of New set.
 ///
-/// It owns the choice of on-device model and the download of the fallback one.
-/// Reading the lecture out of a file lives beside it in LecturePDFSection,
-/// which feeds this form its text, proposes how many questions that much
-/// material can support, and hands back the document so the questions can be
-/// cited to the page they came from.
+/// Where the paywall sits, and it sits in one place on purpose. Reading a file,
+/// typing questions, importing a deck and reviewing everything you already have
+/// stay free: those cost nothing to run and a student who cannot afford a
+/// subscription should still be able to study. Generating is the part that
+/// takes the phone minutes of work, and it is what Pro buys.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
+    @EnvironmentObject var subscriptions: SubscriptionStore
 
     @Binding var sourceText: String
     @Binding var questionCount: Int
@@ -21,6 +22,7 @@ struct MCQGenerateForm: View {
     @State private var isGenerating = false
     @State private var generationStatus: String?
     @State private var generationTask: Task<Void, Never>?
+    @State private var showPaywall = false
 
     private enum Backend: Equatable { case apple, gemma }
     /// Which backend a tap on Generate would actually use. `nil` means neither
@@ -60,19 +62,24 @@ struct MCQGenerateForm: View {
             backendSection
 
             Section {
-                if activeBackend == .gemma {
+                if !subscriptions.isPro {
+                    Label("Generating questions is part of Red Pen Pro.",
+                          systemImage: "lock.fill")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else if activeBackend == .gemma {
                     Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Button { startGenerating() } label: {
                     HStack {
                         if isGenerating { ProgressView().controlSize(.small) }
-                        Text(isGenerating ? (generationStatus ?? "Writing\u{2026}") : "Generate questions")
+                        Text(generateLabel)
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(isGenerating || activeBackend == nil
+                .disabled(isGenerating
+                          || (subscriptions.isPro && activeBackend == nil)
                           || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
                 if isGenerating {
                     Button("Cancel", role: .cancel) { generationTask?.cancel() }
@@ -88,8 +95,14 @@ struct MCQGenerateForm: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
         .onAppear { gemma.refreshStatus() }
         .onDisappear { generationTask?.cancel() }
+    }
+
+    private var generateLabel: String {
+        if isGenerating { return generationStatus ?? "Writing\u{2026}" }
+        return subscriptions.isPro ? "Generate questions" : "Unlock generating"
     }
 
     /// Apple's on-device model is tried first; this only appears when that is
@@ -97,7 +110,7 @@ struct MCQGenerateForm: View {
     /// touches anyone's account.
     @ViewBuilder
     private var backendSection: some View {
-        if !MCQGenerator.availability.isAvailable {
+        if subscriptions.isPro, !MCQGenerator.availability.isAvailable {
             Section {
                 if case .unavailable(let reason) = MCQGenerator.availability {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
@@ -131,6 +144,9 @@ struct MCQGenerateForm: View {
     // MARK: generating
 
     private func startGenerating() {
+        // the paywall opens instead of the work starting; nothing is generated
+        // and then taken away, which is the version of this people hate
+        guard subscriptions.isPro else { showPaywall = true; return }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true
