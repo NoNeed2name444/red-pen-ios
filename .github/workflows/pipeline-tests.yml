@@ -1,0 +1,42 @@
+# The Python side of Red Pen: card quality, the quiz builder, the occlusion
+# check's judging rules. Fast, no models, no network - so there is no excuse
+# for it not to run on every change.
+name: Pipeline tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pipeline/**'
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run them
+        run: |
+          mkdir -p out
+          {
+            for t in pipeline/tests/test_*.py; do
+              echo "--- $t"
+              python "$t" 2>&1
+              echo "$(basename "$t") rc=${PIPESTATUS[0]}"
+            done
+          } > out/pipeline.log 2>&1
+          cat out/pipeline.log
+          ! grep -qE 'rc=[1-9]' out/pipeline.log
+      - name: Push the log
+        if: always()
+        run: |
+          cd out
+          git init -q && git checkout -q -b pipeline-tests
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "pipeline tests $GITHUB_RUN_ID" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pipeline-tests:pipeline-tests
