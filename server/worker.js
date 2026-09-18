@@ -21,6 +21,22 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const fail = (status, message) => json({ error: message, message }, status);
 const now = () => Math.floor(Date.now() / 1000);
 
+/// A string from a client, kept to a sane length - or null.
+///
+/// Everything here arrives from an app that anyone can send requests to
+/// pretending to be. A display name is whatever the sender says it is, and
+/// without a limit "whatever they say" can be a megabyte, stored for ever, and
+/// read back on every sign-in.
+const text = (value, max) =>
+  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
+
+/// What one account may keep in pictures.
+///
+/// Not a business rule so much as a floor under the bill: without it, a single
+/// signed-in account can upload twelve megabytes at a time for as long as it
+/// likes, and nothing in the design would notice.
+const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -32,7 +48,7 @@ export default {
         const id = await holder(request, env);
         if (!id) return fail(401, 'Please sign in again.');
         const name = path.slice('/blobs/'.length);
-        if (request.method === 'PUT') return await putBlob(env, id, name, request);
+        if (request.method === 'PUT') return await putBlob(env, id, name, request, BLOB_BUDGET);
         if (request.method === 'GET') return await getBlob(env, id, name);
         return fail(405, 'PUT or GET.');
       }
@@ -46,6 +62,7 @@ export default {
         case '/auth/google': return await withGoogle(body, env);
         case '/auth/refresh': return await refresh(body, env);
         case '/account/delete': return await deleteAccount(request, env);
+        case '/account/signout': return await signOutEverywhere(request, env);
         case '/account/subscription': return await setSubscription(request, body, env);
         case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
         case '/sync/push': return await guarded(request, env, id => push(env, id, body));
@@ -53,9 +70,9 @@ export default {
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {
-      // never echo the error back: a stack trace in a sign-in response is a map
+      // never echo the error back: a stack trace in a response is a map
       console.error(path, error);
-      return fail(500, 'Something went wrong signing in.');
+      return fail(500, 'Something went wrong. Please try again.');
     }
   },
 };
@@ -109,7 +126,7 @@ async function withApple(body, env) {
     provider: 'apple', subject: claims.sub,
     // Apple only sends the address when the student allows it, and "hide my
     // email" sends a relay address. Either is fine; neither is required.
-    email: claims.email || null, displayName: fullName || null,
+    email: text(claims.email, 320), displayName: text(fullName, 120),
   });
   return await session(env, account);
 }
@@ -141,7 +158,7 @@ async function withGoogle(body, env) {
   }
   const account = await upsert(env, {
     provider: 'google', subject: claims.sub,
-    email: claims.email || null, displayName: claims.name || null,
+    email: text(claims.email, 320), displayName: text(claims.name, 120),
   });
   return await session(env, account);
 }
@@ -154,6 +171,10 @@ async function refresh(body, env) {
   const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?')
     .bind(claims.sub).first();
   if (!account) return fail(401, 'Please sign in again.');
+  // A refresh token outlives an access token six times over, so it is the one
+  // that most needs the revocation check. Without it, signing out everywhere
+  // would end the sessions and the thief would simply mint a new one.
+  if (!await stillValid(env, claims)) return fail(401, 'Please sign in again.');
   return await session(env, account);
 }
 
@@ -168,7 +189,40 @@ async function guarded(request, env, work) {
 async function holder(request, env) {
   const header = request.headers.get('authorization') || '';
   const claims = await verify(header.replace(/^Bearer /, ''), env.SESSION_SECRET);
-  return claims && claims.typ === 'access' ? claims.sub : null;
+  if (!claims || claims.typ !== 'access') return null;
+  return await stillValid(env, claims) ? claims.sub : null;
+}
+
+/// Whether a token that verifies is also one we still honour.
+///
+/// A signature only proves we issued it. Nothing in a signed token can be taken
+/// back, so a thirty-day session on a lost phone stays good for thirty days -
+/// unless something outside the token can say otherwise. That is this: each
+/// account carries the moment it last revoked everything, and a token issued
+/// before it is refused however well it is signed.
+async function stillValid(env, claims) {
+  const row = await env.DB.prepare(
+    'SELECT signed_out_before FROM accounts WHERE id = ?').bind(claims.sub).first();
+  // No such account any more - deleted while a token was still in the wild.
+  if (!row) return false;
+  const cutoff = Number(row.signed_out_before) || 0;
+  return typeof claims.iat === 'number' && claims.iat >= cutoff;
+}
+
+/// Every session on every device, ended.
+///
+/// The one thing a student can do from another phone when they have lost this
+/// one. Tokens are not stored, so they cannot be deleted one by one; moving the
+/// cutoff forward refuses all of them at once, including this caller's, which is
+/// what "everywhere" has to mean.
+async function signOutEverywhere(request, env) {
+  const id = await holder(request, env);
+  if (!id) return fail(401, 'Please sign in again.');
+  // A second into the future, so a token minted in this same second - including
+  // the one that authorised this call - is on the wrong side of the line.
+  await env.DB.prepare('UPDATE accounts SET signed_out_before = ? WHERE id = ?')
+    .bind(now() + 1, id).run();
+  return json({ ok: true });
 }
 
 async function deleteAccount(request, env) {
@@ -187,7 +241,7 @@ async function setSubscription(request, body, env) {
   if (!id) return fail(401, 'Please sign in again.');
   const expires = Math.floor(new Date(body.expiresAt || 0).getTime() / 1000) || null;
   await env.DB.prepare('UPDATE accounts SET plan = ?, expires_at = ? WHERE id = ?')
-    .bind(body.plan || null, expires, id).run();
+    .bind(text(body.plan, 40), expires, id).run();
   // Recorded as a convenience so a second phone knows what to expect. The App
   // Store remains the authority - this row is never what unlocks the app.
   return json({ ok: true });

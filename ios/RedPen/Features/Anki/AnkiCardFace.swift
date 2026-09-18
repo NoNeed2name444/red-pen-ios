@@ -10,6 +10,11 @@ struct AnkiCardFace: View {
     let card: AnkiCard
     let images: [String]
     let revealed: Bool
+    /// The lectures this set came from, so a citation can be opened rather than
+    /// only read. Defaulted, because most screens showing a card have no source
+    /// to offer and should not have to say so.
+    var sources: [SourceDoc] = []
+    var openSource: ((SourceDoc, Int) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -30,10 +35,32 @@ struct AnkiCardFace: View {
                 }
             }
 
-            if let source = card.source, !source.isEmpty {
-                // where this came from, so a card that looks wrong can be
-                // checked against the slide instead of merely distrusted
-                Text(source)
+            citation
+        }
+    }
+
+    /// Where this card came from.
+    ///
+    /// A tap opens the lecture at that page when we still have it - the point
+    /// of recording a citation in the first place, since a card that looks
+    /// wrong is only worth checking if checking is one tap rather than a hunt
+    /// through a slide deck. When the source is gone it stays what it always
+    /// was: a line of text saying where to look.
+    @ViewBuilder
+    private var citation: some View {
+        if let label = card.source, !label.isEmpty {
+            if let found = Citation.resolve(label, in: sources), let openSource {
+                Button {
+                    openSource(found.source, found.page)
+                } label: {
+                    Label(label, systemImage: "doc.text.magnifyingglass")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                .accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")
+            } else {
+                Text(label)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

@@ -103,6 +103,21 @@ extension LibraryView {
     @ViewBuilder
     func rowMenu(_ set: StudySet) -> some View {
         Button("Rename", systemImage: "pencil") { renaming = set }
+        // The lecture this set came from, readable on its own - not only by
+        // way of a card that happens to cite it.
+        if set.sources.count == 1, let only = set.sources.first {
+            Button("Open \(only.name)", systemImage: only.kind.symbol) {
+                reading = SourceOpening(source: only, page: 1)
+            }
+        } else if set.sources.count > 1 {
+            Menu("Open source", systemImage: "doc.richtext") {
+                ForEach(set.sources) { source in
+                    Button(source.name, systemImage: source.kind.symbol) {
+                        reading = SourceOpening(source: source, page: 1)
+                    }
+                }
+            }
+        }
         if set.kind == .anki || set.kind == .mcq {
             Button("Edit cards", systemImage: "square.and.pencil") { editing = set }
         }

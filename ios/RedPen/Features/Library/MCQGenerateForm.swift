@@ -185,6 +185,9 @@ struct MCQGenerateForm: View {
                     set.questions = cite.map {
                         Provenance.attribute(questions, to: $0.document, name: $0.name)
                     } ?? questions
+                    // The lecture goes with the set, so those citations lead
+                    // somewhere instead of merely naming a page.
+                    set.sources = cite.map { [$0.doc()] } ?? []
                     onGenerated(set)
                 }
             } catch is CancellationError {

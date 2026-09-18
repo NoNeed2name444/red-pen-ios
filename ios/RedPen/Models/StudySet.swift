@@ -58,6 +58,10 @@ struct StudySet: Identifiable, Codable, Hashable {
     /// Base64-encoded image data (`data:` URI payloads), indexed the same
     /// way `state.images` / `state.ankiImages` are in the web app.
     var images: [String] = []
+    /// The lectures this set was made from, kept so they can be read again.
+    /// Empty for every set made before sources were kept, and for any set typed
+    /// in by hand - so nothing may assume there is one.
+    var sources: [SourceDoc] = []
 
     var itemCount: Int {
         switch kind {

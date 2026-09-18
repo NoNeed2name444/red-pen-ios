@@ -34,6 +34,8 @@ struct AnkiReviewView: View {
     @State private var reviewedCount = 0
     @State private var studyingAhead = false
     @State private var quizSet: StudySet?
+    /// The lecture page a citation asked for, if one is open.
+    @State private var reading: SourceOpening?
     @State private var quizNote: String?
 
     var body: some View {
@@ -42,7 +44,11 @@ struct AnkiReviewView: View {
             if let current {
                 ScrollView {
                     AnkiCardFace(card: current.card, images: studySet.images,
-                                 revealed: revealed)
+                                 revealed: revealed,
+                                 sources: studySet.sources,
+                                 openSource: { source, page in
+                                     reading = SourceOpening(source: source, page: page)
+                                 })
                         .contentCard()
                         .padding(.horizontal)
                         .padding(.top, 4)
@@ -70,6 +76,12 @@ struct AnkiReviewView: View {
             }
         }
         .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set) }
+        // A sheet rather than a push: checking the slide is a glance in the
+        // middle of a review, and the card underneath should still be there
+        // when it closes.
+        .sheet(item: $reading) { opening in
+            SourcePreviewView(source: opening.source, set: studySet, openAt: opening.page)
+        }
         .alert("Not enough to quiz on", isPresented: Binding(
             get: { quizNote != nil }, set: { if !$0 { quizNote = nil } }
         )) {

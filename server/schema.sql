@@ -18,7 +18,13 @@ CREATE TABLE IF NOT EXISTS accounts (
   display_name  TEXT,
   created_at    INTEGER NOT NULL,
   plan          TEXT,
-  expires_at    INTEGER
+  expires_at    INTEGER,
+  -- Sessions issued before this moment are refused however well they are
+  -- signed. A signed token cannot be taken back on its own, so this is what
+  -- makes "sign out on every device" - the only thing a student can do about a
+  -- phone they have lost - mean anything.
+  -- Existing deployments: ALTER TABLE accounts ADD COLUMN signed_out_before INTEGER NOT NULL DEFAULT 0;
+  signed_out_before INTEGER NOT NULL DEFAULT 0
 );
 
 -- One person, one account per provider. Signing in with Apple and then with

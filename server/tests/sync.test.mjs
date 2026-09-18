@@ -12,7 +12,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { changes, push, missingBlobs, wipe } from '../sync.js';
+import { changes, push, missingBlobs, putBlob, wipe } from '../sync.js';
+import { sign, verify, decodeClaims } from '../tokens.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -216,6 +217,83 @@ res = await body(await changes(env, 'acc', { since: 0 }));
 ok(res.docs.length === 0, 'deleting an account leaves no documents');
 ok([...env.BLOBS.held.keys()].filter(k => k.startsWith('acc/')).length === 0,
    'and no pictures');
+
+// MARK: a batch cannot be unbounded
+
+env = freshEnv();
+res = await body(await push(env, 'acc', {
+  docs: Array.from({ length: 900 }, (_, i) => doc('x' + i, 0)),
+}));
+ok(res.accepted.length === 500, 'an implausibly large batch is capped rather than run');
+
+// MARK: picture storage has a floor under it
+
+env = freshEnv();
+const small = new Uint8Array(1024).buffer;
+const hashOf = async buf => {
+  const d = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+};
+const req = buf => ({ arrayBuffer: async () => buf });
+// The store has to report sizes for a budget to mean anything.
+env.BLOBS.put = async (k, v) => { env.BLOBS.held.set(k, v); };
+env.BLOBS.list = async ({ prefix }) => ({
+  objects: [...env.BLOBS.held.entries()]
+    .filter(([k]) => k.startsWith(prefix))
+    .map(([key, v]) => ({ key, size: v.byteLength })),
+  truncated: false,
+});
+
+const n1 = await hashOf(small);
+res = await body(await putBlob(env, 'acc', n1, req(small), 4096));
+ok(res.ok === true, 'a picture within the budget is stored');
+
+res = await body(await putBlob(env, 'acc', n1, req(small), 4096));
+ok(res.ok === true, 'and sending the same one again is free, not counted twice');
+
+const big = new Uint8Array(8192).buffer;
+const n2 = await hashOf(big);
+const tooMuch = await putBlob(env, 'acc', n2, req(big), 4096);
+ok(tooMuch.status === 507, 'one that would go over the budget is refused');
+
+const wrongName = await putBlob(env, 'acc', 'f'.repeat(64), req(big), Infinity);
+ok(wrongName.status === 400, 'and a picture filed under a name that is not its hash is refused');
+
+// MARK: tokens
+//
+// The session token is the only thing standing between one student's library
+// and anybody else, so the ways it can be malformed matter as much as the way
+// it is signed.
+
+const secret = 'test-secret';
+const good = await sign({ sub: 'acc', typ: 'access' }, secret, 60);
+ok((await verify(good, secret))?.sub === 'acc', 'a token we signed verifies');
+ok(await verify(good, 'other-secret') === null, 'and does not under a different secret');
+
+const [h, p] = good.split('.');
+ok(await verify(`${h}.${p}.`, secret) === null, 'a token with its signature removed is refused');
+ok(await verify(`${h}.${p}.!!!not base64!!!`, secret) === null,
+   'and one whose signature is not even base64 is refused, not an error');
+ok(await verify('rubbish', secret) === null, 'as is something that is not a token at all');
+ok(await verify('', secret) === null, 'and nothing at all');
+
+const expired = await sign({ sub: 'acc', typ: 'access' }, secret, -60);
+ok(await verify(expired, secret) === null, 'an expired token is refused');
+
+// A token with no expiry at all, correctly signed. The naive check is
+// `claims.exp * 1000 < Date.now()`, which on a missing exp is NaN < now -
+// false - and the token lives for ever.
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+const forever = await (async () => {
+  const head = b64({ alg: 'HS256', typ: 'JWT' });
+  const payload = b64({ sub: 'acc', typ: 'access' });   // no exp
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${head}.${payload}`));
+  return `${head}.${payload}.${Buffer.from(sig).toString('base64url')}`;
+})();
+ok(decodeClaims(forever)?.sub === 'acc', 'the never-expiring token really is well formed');
+ok(await verify(forever, secret) === null, 'but a token with no expiry is refused, not honoured for ever');
 
 console.log(failures === 0 ? '\nALL SERVER TESTS PASS' : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

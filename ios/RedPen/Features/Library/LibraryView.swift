@@ -19,6 +19,8 @@ struct LibraryView: View {
     @State var selected: Set<UUID> = []
     @State var naming: NamingSheet?
     @State var renaming: StudySet?
+    /// A lecture being read from the library, rather than from a card.
+    @State var reading: SourceOpening?
     @State var renamingFolder: StudyFolder?
     @State var editing: StudySet?
     @State var draftName = ""

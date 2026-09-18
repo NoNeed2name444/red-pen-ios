@@ -6,6 +6,25 @@ import UniformTypeIdentifiers
 struct ReadSource: Equatable {
     var name: String
     var document: SourceText.Document
+    var kind: SourceDoc.Kind = .pdf
+    /// The hash of the original file, if it was kept. Absent is normal - a
+    /// device short of space, or a file that could not be copied - and only
+    /// means the preview falls back to the text.
+    var fileBlob: String?
+
+    /// The keepable form of what was read, to store on the set.
+    ///
+    /// Blank pages are kept rather than dropped. A lecture's page nine being
+    /// empty is a fact about the lecture, and renumbering around it would make
+    /// every citation after it point one page short.
+    func doc() -> SourceDoc {
+        SourceDoc(name: name, kind: kind,
+                  pages: document.pages.map {
+                      SourceDoc.Page(number: $0.number, text: $0.text,
+                                     recognised: $0.recognised)
+                  },
+                  fileBlob: fileBlob)
+    }
 }
 
 /// Reading the lecture out of the file the lecturer handed out.
@@ -36,6 +55,20 @@ struct LecturePDFSection: View {
     /// Office files are zips, and a zip is not a type the picker offers by
     /// name, so Word's and PowerPoint's own identifiers are asked for directly.
     /// A system that does not know one simply offers the others.
+    /// What kind of document this is, by its extension.
+    ///
+    /// The extension rather than the picker's type, because a file that arrived
+    /// through Files, AirDrop or a shared folder may carry no useful type at
+    /// all, and the extension is the one thing that survives every route in.
+    static func kind(of url: URL) -> SourceDoc.Kind {
+        switch url.pathExtension.lowercased() {
+        case "pdf": return .pdf
+        case "docx", "doc": return .word
+        case "pptx", "ppt": return .powerpoint
+        default: return .text
+        }
+    }
+
     private var readableTypes: [UTType] {
         [.pdf,
          UTType("org.openxmlformats.wordprocessingml.document"),
@@ -97,7 +130,12 @@ struct LecturePDFSection: View {
                 let existing = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
                 sourceText = existing.isEmpty ? document.text
                                               : existing + "\n\n" + document.text
-                readSource = ReadSource(name: fileName, document: document)
+                // The file itself is kept on this device so the preview can show
+                // the real pages, diagrams and all. It is not synced - see
+                // SourceFiles - so the text above is what travels.
+                let kind = Self.kind(of: url)
+                readSource = ReadSource(name: fileName, document: document, kind: kind,
+                                        fileBlob: SourceFiles.keep(url, kind: kind))
                 keepFigures(read)
 
                 // proposed, not imposed: the stepper still moves, and a student
@@ -151,6 +189,10 @@ struct LecturePDFSection: View {
             subject: subject.isEmpty ? "General" : subject, kind: .anki)
         set.cards = cards
         set.images = images
+        // The diagrams came off the same lecture, so it travels with them too:
+        // an occlusion card is exactly the kind that sends you back to the
+        // slide to see the whole figure.
+        if let readSource { set.sources = [readSource.doc()] }
         onOcclusionSet(set)
     }
 }

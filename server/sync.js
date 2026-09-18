@@ -70,7 +70,10 @@ export async function changes(env, account, body) {
 // MARK: pushing
 
 export async function push(env, account, body) {
-  const docs = Array.isArray(body.docs) ? body.docs : [];
+  // Capped because each document here is several database round trips, and a
+  // batch is whatever the sender says it is. A real device sends tens; a
+  // request claiming fifty thousand is not a sync.
+  const docs = Array.isArray(body.docs) ? body.docs.slice(0, 500) : [];
   const accepted = [];
   const conflicts = [];
 
@@ -173,10 +176,20 @@ export async function missingBlobs(env, account, body) {
   return json({ missing });
 }
 
-export async function putBlob(env, account, name, request) {
+export async function putBlob(env, account, name, request, budget = Infinity) {
   if (!isHash(name)) return json({ error: 'bad name' }, 400);
   const data = await request.arrayBuffer();
   if (data.byteLength > 12 * 1024 * 1024) return json({ error: 'too big' }, 413);
+
+  // Already here: the same bytes under the same name, so there is nothing to
+  // store and nothing to count. Checked before the budget so that a retry of an
+  // upload that already succeeded can never be the thing that trips it.
+  const already = await env.BLOBS.head(key(account, name));
+  if (already) return json({ ok: true });
+
+  if (budget < Infinity && await used(env, account) + data.byteLength > budget) {
+    return json({ error: 'This account has run out of picture storage.' }, 507);
+  }
 
   // The name has to be the hash of what arrived. Without this check a caller
   // could park anything under any address, and every device that later asked
@@ -211,6 +224,23 @@ export async function getBlob(env, account, name) {
 /// picture tells you whether somebody else already has that exact file. Storage
 /// is not worth that.
 function key(account, name) { return `${account}/${name}`; }
+
+/// How many bytes of pictures this account is holding.
+///
+/// Counted by listing rather than kept as a running total on purpose: a total
+/// updated on every write drifts the first time an upload half-fails, and a
+/// storage limit that drifts upward is not a limit. Listing is slower, but it
+/// happens only on an upload of something genuinely new.
+async function used(env, account) {
+  let total = 0;
+  let cursor;
+  do {
+    const listed = await env.BLOBS.list({ prefix: `${account}/`, cursor });
+    for (const object of listed.objects) total += object.size || 0;
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+  return total;
+}
 
 function isHash(name) { return /^[0-9a-f]{64}$/.test(name || ''); }
 

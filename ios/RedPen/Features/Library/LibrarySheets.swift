@@ -39,6 +39,11 @@ extension LibraryView {
             .sheet(item: $editing) { set in
                 CardsEditorView(set: set)
             }
+            .sheet(item: $reading) { opening in
+                SourcePreviewView(source: opening.source,
+                                  set: store.library.first { $0.sources.contains(opening.source) },
+                                  openAt: opening.page)
+            }
             .sheet(isPresented: $showNewSet) { NewSetView() }
             .sheet(isPresented: Binding(get: { exportURL != nil },
                                         set: { if !$0 { exportURL = nil } })) {
