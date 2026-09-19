@@ -1,0 +1,140 @@
+# A recorded walkthrough of the app, as video rather than stills.
+#
+# The screenshot job already proves each screen renders. What it cannot show is
+# what the app feels like: the transition into a card, the flip to an answer,
+# how long a page takes to settle. This records the simulator while the app is
+# driven through every mode, and hands back an MP4.
+#
+# Driven by the same `-uiPreviewScreen` argument the screenshots use, rather
+# than by synthetic taps. That is a deliberate trade: taps would need idb or a
+# UI-test target, and both add a dependency that can rot, while the launch
+# argument is already load-bearing for the screenshot job and so is kept
+# working by something else.
+name: Walkthrough
+on:
+  workflow_dispatch:
+    inputs:
+      hold:
+        description: seconds to linger on each screen
+        required: false
+        default: '4'
+      appearance:
+        description: light, dark, or both
+        required: false
+        default: 'both'
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name),
+                                     d["udid"], name, runtime))
+          candidates.sort()
+          _, udid, name, runtime = candidates[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          print("picked", name, runtime, file=sys.stderr)
+          PY
+
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          # Same flags as the preview job, for the same two reasons: the macro
+          # trust prompt cannot be answered headlessly, and the llama C target's
+          # headers are really C++ and lose libc++'s search paths under
+          # explicit modules.
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Record
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+          HOLD: ${{ inputs.hold }}
+        run: |
+          set -e
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          # A tidy status bar, so the recording is about the app rather than
+          # about a runner's battery.
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+            --batteryState charged --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+
+          case "${{ inputs.appearance }}" in
+            light) MODES="light" ;;
+            dark)  MODES="dark" ;;
+            *)     MODES="light dark" ;;
+          esac
+
+          mkdir -p walkthrough
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black \
+            walkthrough/red-pen.mp4 &
+          RECORDER=$!
+          # Let the recorder actually start before anything worth seeing happens.
+          sleep 3
+
+          for mode in $MODES; do
+            xcrun simctl ui "$UDID" appearance "$mode"
+            for screen in library new quiz quiz-checked summary anki anki-revealed \
+                          anki-quizable book qa qa-revealed osce osce-revealed \
+                          osce-complete quiz-from-cards narrate narrate-fixing \
+                          narrate-finished; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                   >> walkthrough/tour.log 2>&1; then
+                echo "launch failed: $screen ($mode)" >> walkthrough/tour.log
+                continue
+              fi
+              sleep "$HOLD"
+            done
+          done
+
+          # SIGINT is what simctl wants: killing it outright leaves an
+          # unplayable file, because the MP4's index is written on the way out.
+          kill -INT $RECORDER
+          wait $RECORDER || true
+          ls -la walkthrough
+
+      - name: Keep the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: walkthrough
+          path: walkthrough/*
+          if-no-files-found: warn
