@@ -1,6 +1,6 @@
 name: RedPen
 options:
-  bundleIdPrefix: com.redpen
+  bundleIdPrefix: com.cramdown
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
@@ -43,7 +43,7 @@ targets:
     info:
       path: RedPen/Info.plist
       properties:
-        CFBundleDisplayName: Red Pen
+        CFBundleDisplayName: CramDown
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -72,7 +72,7 @@ targets:
         RedPenGoogleClientID: $(RED_PEN_GOOGLE_CLIENT_ID)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.redpen.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Empty by default: a build that has not been given these says so.
         RED_PEN_AUTH_URL: ""

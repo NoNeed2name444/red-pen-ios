@@ -66,7 +66,7 @@ struct LibraryView: View {
     private var screen: some View {
         content
             .background(LibraryBackdrop())
-            .navigationTitle("Red Pen")
+            .navigationTitle(Brand.name)
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }

@@ -46,11 +46,11 @@ enum LectureTranscriber {
         var errorDescription: String? {
             switch self {
             case .notPermitted:
-                return "Red Pen needs permission to use speech recognition. Settings › Red Pen."
+                return "\(Brand.name) needs permission to use speech recognition. Settings › \(Brand.name)."
             case .noRecogniser(let locale):
                 return "This phone has no speech recogniser for \(locale)."
             case .notOnDevice(let locale):
-                return "\(locale) can only be recognised on Apple's servers on this phone, and Red Pen never uploads a lecture. Download the offline language in Settings › General › Keyboard › Dictation, or transcribe elsewhere and paste the text in."
+                return "\(locale) can only be recognised on Apple's servers on this phone, and \(Brand.name) never uploads a lecture. Download the offline language in Settings › General › Keyboard › Dictation, or transcribe elsewhere and paste the text in."
             case .failed(let why):
                 return why
             }

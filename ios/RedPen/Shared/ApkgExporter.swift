@@ -97,19 +97,19 @@ enum ApkgExporter {
 
         var idc = Int(Date().timeIntervalSince1970 * 1000)
         func nextId() -> Int { idc += 1; return idc }
-        let deckName = set.name.isEmpty ? "Red Pen" : set.name
+        let deckName = set.name.isEmpty ? Brand.name : set.name
         let did = deckId(for: deckName)
         let now = Int(Date().timeIntervalSince1970)
 
         let models: [String: Any] = [
-            String(midBasic): model(id: midBasic, name: "Red Pen Basic", cloze: false, fields: ["Front", "Back"],
+            String(midBasic): model(id: midBasic, name: "\(Brand.name) Basic", cloze: false, fields: ["Front", "Back"],
                                    templates: [["name": "Card 1", "ord": 0, "qfmt": "{{Front}}", "afmt": "{{FrontSide}}<hr id=answer>{{Back}}", "bqfmt": "", "bafmt": "", "did": NSNull()]], did: did),
-            String(midCloze): model(id: midCloze, name: "Red Pen Cloze", cloze: true, fields: ["Text", "Extra"],
+            String(midCloze): model(id: midCloze, name: "\(Brand.name) Cloze", cloze: true, fields: ["Text", "Extra"],
                                    templates: [["name": "Cloze", "ord": 0, "qfmt": "{{cloze:Text}}", "afmt": "{{cloze:Text}}{{#Extra}}<div class=\"why\"><b>Why / how</b>{{Extra}}</div>{{/Extra}}", "bqfmt": "", "bafmt": "", "did": NSNull()]], did: did),
         ]
         let decks: [String: Any] = [
             "1": ["id": 1, "name": "Default", "desc": "", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
-            String(did): ["id": did, "name": deckName, "desc": "Exported from Red Pen.", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
+            String(did): ["id": did, "name": deckName, "desc": "Exported from \(Brand.name).", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
         ]
         let conf: [String: Any] = ["nextPos": 1, "estTimes": true, "activeDecks": [1], "sortType": "noteFld", "timeLim": 0, "sortBackwards": false, "addToCur": true, "curDeck": 1, "newBury": true, "newSpread": 0, "dueCounts": true, "curModel": String(midBasic), "collapseTime": 1200]
         let dconf: [String: Any] = ["1": ["id": 1, "name": "Default", "replayq": true, "lapse": ["leechFails": 8, "minInt": 1, "delays": [10], "leechAction": 0, "mult": 0], "rev": ["perDay": 200, "ivlFct": 1, "maxIvl": 36500, "ease4": 1.3, "bury": true, "minSpace": 1, "fuzz": 0.05], "timer": 0, "maxTaken": 60, "usn": 0, "new": ["perDay": 20, "delays": [1, 10], "separate": true, "ints": [1, 4, 7], "initialFactor": 2500, "bury": true, "order": 1], "mod": 0, "autoplay": true]]
