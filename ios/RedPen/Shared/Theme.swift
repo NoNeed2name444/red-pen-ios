@@ -141,6 +141,7 @@ extension View {
         self
             .background(ModeBackdrop(kind: kind))
             .tint(kind.tint)
+            .environment(\.modeTint, kind.tint)
     }
 
     /// Slides up and fades in on first appearance, staggered by `index` so
@@ -219,5 +220,24 @@ struct ScoreRing: View {
         }
         .frame(width: 168, height: 168)
         .onAppear { withAnimation(.spring(response: 1.1, dampingFraction: 0.72)) { shown = fraction } }
+    }
+}
+
+
+/// The colour of the screen a view finds itself on.
+///
+/// `.tint` already carries this for controls, but some things - a glass chip,
+/// for one - need a real `Color` rather than a shape style, and reaching for
+/// `Color.accentColor` there is what left a red "0 reviewed" chip sitting in
+/// the middle of the indigo Anki screen: the accent is the app's colour, not
+/// the screen's.
+private struct ModeTintKey: EnvironmentKey {
+    static let defaultValue: Color = StudySetKind.mcq.tint
+}
+
+extension EnvironmentValues {
+    var modeTint: Color {
+        get { self[ModeTintKey.self] }
+        set { self[ModeTintKey.self] = newValue }
     }
 }

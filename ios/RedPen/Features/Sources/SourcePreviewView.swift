@@ -24,6 +24,7 @@ struct SourceOpening: Identifiable, Equatable {
 /// apologise for - it is what a student sees on their second device, and it has
 /// to be good enough to study from on its own.
 struct SourcePreviewView: View {
+    @Environment(\.modeTint) private var modeTint
     let source: SourceDoc
     /// The set this lecture belongs to, so a page can show what came off it.
     var set: StudySet?
@@ -123,6 +124,7 @@ struct SourcePreviewView: View {
 /// search than flicking through the document, which is the thing the list is
 /// meant to save.
 struct SourcePageList: View {
+    @Environment(\.modeTint) private var modeTint
     let source: SourceDoc
     @Binding var selected: Int
 
@@ -139,7 +141,7 @@ struct SourcePageList: View {
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(page.number == selected
-                                   ? Color.accentColor.opacity(0.12) : Color.clear)
+                                   ? modeTint.opacity(0.12) : Color.clear)
                 .id(page.number)
             }
             .listStyle(.plain)
@@ -180,6 +182,7 @@ struct SourcePageList: View {
 /// for revision: "where does she talk about complement" is answered by the list
 /// itself, often without opening a page at all.
 struct SourceResultsList: View {
+    @Environment(\.modeTint) private var modeTint
     let hits: [SourceSearch.Hit]
     let source: SourceDoc
     let open: (Int) -> Void
@@ -210,7 +213,7 @@ struct SourceResultsList: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("\(source.kind.pageNoun) \(hit.page)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(modeTint)
             marked(hit)
                 .font(.subheadline)
                 .lineLimit(3)
@@ -229,6 +232,6 @@ struct SourceResultsList: View {
         let before = String(characters[..<hit.range.lowerBound])
         let match = String(characters[hit.range])
         let after = String(characters[hit.range.upperBound...])
-        return Text(before) + Text(match).bold().foregroundColor(.accentColor) + Text(after)
+        return Text(before) + Text(match).bold().foregroundColor(modeTint) + Text(after)
     }
 }

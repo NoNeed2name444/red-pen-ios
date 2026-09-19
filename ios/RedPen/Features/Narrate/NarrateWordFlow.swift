@@ -14,6 +14,7 @@ import SwiftUI
 /// reading along knows exactly where the lecturer is, instead of scanning a
 /// highlighted paragraph for their place.
 struct NarrateWordFlow: View {
+    @Environment(\.modeTint) private var modeTint
     let texts: [String]
     let langs: [String]
     let currentIndex: Int
@@ -27,7 +28,7 @@ struct NarrateWordFlow: View {
             ForEach(texts.indices, id: \.self) { i in
                 line(i)
                     .padding(.vertical, 6).padding(.horizontal, 8)
-                    .background(i == currentIndex ? Color.accentColor.opacity(0.14) : Color.clear,
+                    .background(i == currentIndex ? modeTint.opacity(0.14) : Color.clear,
                                 in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .animation(.easeInOut(duration: 0.25), value: currentIndex)
                     .id(i)
@@ -46,10 +47,10 @@ struct NarrateWordFlow: View {
                 let speaking = (i == currentIndex && spokenWord == w)
                 Text(words[w])
                     .font(.body)
-                    .foregroundStyle(i == currentIndex ? Color.accentColor : .primary)
+                    .foregroundStyle(i == currentIndex ? modeTint : .primary)
                     .fontWeight(speaking ? .bold : (i == currentIndex ? .semibold : .regular))
                     .padding(.horizontal, speaking ? 3 : 0)
-                    .background(speaking ? Color.accentColor.opacity(0.22) : .clear,
+                    .background(speaking ? modeTint.opacity(0.22) : .clear,
                                 in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     // a moving highlight should glide, but not so slowly that
                     // it lags behind the voice it is tracking

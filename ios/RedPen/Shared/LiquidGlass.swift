@@ -13,6 +13,16 @@ import SwiftUI
 // view can say `.liquidGlassPanel()` rather than spelling the shape out
 // each time. They add nothing of their own on top of Apple's effect.
 
+/// A glass capsule in the colour of the screen it sits on.
+private struct GlassChip: ViewModifier {
+    let tint: Color?
+    @Environment(\.modeTint) private var modeTint
+
+    func body(content: Content) -> some View {
+        content.glassEffect(.regular.tint((tint ?? modeTint).opacity(0.35)), in: .capsule)
+    }
+}
+
 extension View {
     /// A floating bottom control bar — matches the way iOS 26's own toolbars
     /// and tab bars sit as a rounded pane of glass over the content.
@@ -25,7 +35,9 @@ extension View {
 
     /// A small glass capsule — for the score / progress chips in each mode's
     /// header and the mode emoji on a library row.
-    func liquidGlassChip(tint: Color = .accentColor) -> some View {
-        glassEffect(.regular.tint(tint.opacity(0.35)), in: .capsule)
+    /// `tint: nil` - the default - means "whatever colour this screen is",
+    /// which is nearly always what a chip wants.
+    func liquidGlassChip(tint: Color? = nil) -> some View {
+        modifier(GlassChip(tint: tint))
     }
 }
