@@ -166,11 +166,23 @@ struct LibraryView: View {
                 ForEach(store.folders) { folder in
                     folderSection(folder)
                 }
+                if !selecting && tabs.count > 1 {
+                    // A row of empty space as tall as the dock. Both
+                    // safeAreaInset and contentMargins were supposed to keep
+                    // the last card clear of the floating bar and neither did;
+                    // a row cannot be ignored, because the list has to make
+                    // room for it like any other.
+                    Color.clear
+                        .frame(height: dockHeight + 8)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .accessibilityHidden(true)
+                }
             }
             .scrollContentBackground(.hidden)
             // The dock floats over the list, so the last row needs somewhere
             // to end that is not behind glass.
-            .contentMargins(.bottom, selecting ? 0 : dockHeight, for: .scrollContent)
             .id(tab)
             .transition(.opacity)
             .gesture(
