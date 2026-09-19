@@ -1,9 +1,10 @@
 # Artifacts, republished where a phone can actually get at them.
 #
 # A GitHub Actions artifact can only be downloaded by a signed-in browser
-# session, which makes it useless to somebody holding a phone. A release asset
-# on a public repository is a plain URL: it downloads, and an MP4 even plays in
-# place. So this takes a finished run's artifacts and puts them on a release.
+# session, which is no use to somebody holding a phone - and no use to an agent
+# working on their behalf either. So a finished run's artifacts are put in two
+# places that need no login: a release (a plain URL, and an MP4 plays in place)
+# and an orphan branch (fetchable with git, which is how they reach the chat).
 name: Publish artifacts
 on:
   workflow_dispatch:
@@ -12,7 +13,7 @@ on:
         description: the run whose artifacts should be published
         required: true
       tag:
-        description: release tag to write to (reused, not accumulated)
+        description: release tag and branch name (reused, not accumulated)
         required: false
         default: preview
 permissions:
@@ -24,7 +25,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Collect and release
+      - name: Collect
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -38,14 +39,46 @@ jobs:
             while IFS= read -r -d '' f; do
               cp "$f" "out/$(echo "${f#dl/}" | tr '/' '-')"
             done
+          ls -la out
+
+      - name: Drop on a branch
+        run: |
+          set -euo pipefail
+          BRANCH="drop-${{ inputs.tag }}"
+          git config user.name "red-pen-bot"
+          git config user.email "bot@users.noreply.github.com"
+          # Orphan and force-pushed: this branch is a drop box, not a history,
+          # and a repository does not need every past recording in its objects.
+          git checkout --orphan "$BRANCH"
+          git rm -rq --cached . || true
+          find . -maxdepth 1 -mindepth 1 ! -name out ! -name .git ! -name dl -exec rm -rf {} +
+          mv out/* . && rmdir out
+          rm -rf dl
+          git add -A
+          git commit -qm "artifacts from run ${{ inputs.run_id }}"
+          git push -f origin "HEAD:refs/heads/$BRANCH"
+          echo "dropped on $BRANCH"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git checkout -q "$GITHUB_SHA" -- . 2>/dev/null || true
+          mkdir -p rel
+          git show "refs/heads/drop-${{ inputs.tag }}" --stat >/dev/null 2>&1 || true
+          # Take the files back off the drop branch rather than keeping a
+          # second copy around through the steps above.
+          git fetch -q origin "drop-${{ inputs.tag }}"
+          git --work-tree=rel checkout FETCH_HEAD -- . || true
           # Stills go in one zip; a release with two hundred PNG assets is not
           # something anybody wants to scroll past on a phone.
-          if ls out/*.png >/dev/null 2>&1; then
-            (cd out && zip -q screens.zip ./*.png && rm -f ./*.png)
+          if ls rel/*.png >/dev/null 2>&1; then
+            (cd rel && zip -q screens.zip ./*.png && rm -f ./*.png)
           fi
-          ls -la out
+          ls -la rel
           gh release delete "${{ inputs.tag }}" -y --cleanup-tag || true
-          gh release create "${{ inputs.tag }}" out/* \
+          gh release create "${{ inputs.tag }}" rel/* \
             -t "Red Pen preview" \
             -n "Artifacts from run ${{ inputs.run_id }}. Tap an asset to download; the MP4 plays in place."
           gh release view "${{ inputs.tag }}" --json url -q .url
