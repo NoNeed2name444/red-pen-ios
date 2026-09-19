@@ -471,6 +471,12 @@ b, strong { color: var(--deep) }
 .note-text { font-size: 12pt; color: #24282b; line-height: 1.72 }
 .note-text p { margin: 0 0 3.4mm }
 .note-text p:last-child { margin-bottom: 0 }
+/* One step of the reasoning per line, each with its own marker, so the
+   argument can be followed a step at a time instead of read as a block. */
+.note-text.core p { position: relative; padding-left: 5.6mm; margin: 0 0 2.8mm }
+.note-text.core p::before { content: ""; position: absolute; left: 1mm; top: 2.3mm;
+                            width: 1.6mm; height: 1.6mm; border-radius: 50%;
+                            background: var(--deep); opacity: .55 }
 /* The second section is support, not headline: same colour, less weight, and
    each trap on its own line so they can be scanned one at a time. */
 .note-label.alt { margin-top: 5mm; opacity: .7 }
@@ -602,9 +608,9 @@ def explanation(block, blocks, answer_side: bool) -> str:
     position, because an explanation may deal with the distractors first.
 
     If nothing can be told apart - a short explanation, or one that never names
-    another option - it stays one block, broken into paragraphs of two
-    sentences. Guessing structure that is not there would be worse than the
-    wall.
+    another option - it stays one block. Either way each sentence is set on its
+    own line with its own marker: a step of the argument at a time, rather than
+    a paragraph to be got through.
     """
     text = block.get("text") or ""
     label = esc(block.get("label", "")).upper()
@@ -658,7 +664,7 @@ def explanation(block, blocks, answer_side: bool) -> str:
             for i in range(0, len(group), per))
 
     parts = [f'<div class="note-label">{label}</div>',
-             f'<div class="note-text">{paragraphs(core)}</div>']
+             f'<div class="note-text core">{paragraphs(core, per=1)}</div>']
     if traps:
         parts.append('<div class="note-label alt">WHY NOT THE OTHERS</div>')
         parts.append(f'<div class="note-text traps">{paragraphs(traps, per=1)}</div>')

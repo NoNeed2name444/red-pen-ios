@@ -182,7 +182,7 @@ extension DeckPDF {
                 let inset: CGFloat = 17
                 let bodyWidth = width - inset * 2
                 let body = DeckPDF.round(size * 0.94)
-                let core = marking(key, in: split.core)
+                let steps = split.steps.map { marking(key, in: $0) }
                 let traps = split.traps.map { marking(key, in: $0) }
                 // Room around the words is what stops six lines of reasoning
                 // reading as a wall: generous leading inside a paragraph, a
@@ -193,9 +193,15 @@ extension DeckPDF {
                 let rowTextX = inset + size * 0.95
                 let rowTextWidth = bodyWidth - size * 1.45
 
+                let stepX = inset + size * 0.72
+                let stepWidth = bodyWidth - size * 0.72
+
                 var height = size * 1.9
-                height += write(core, x: margin + inset, y: 0, width: bodyWidth,
-                                font: body, color: .black, measuring: true, leading: lead)
+                for step in steps {
+                    height += write(step, x: 0, y: 0, width: stepWidth,
+                                    font: body, color: .black, measuring: true, leading: lead)
+                    height += size * 0.42
+                }
                 for trap in traps {
                     height += rowPadY * 2 + size * 0.34
                     height += write(trap, x: 0, y: 0, width: rowTextWidth,
@@ -217,10 +223,20 @@ extension DeckPDF {
                 }
 
                 var inner = y + size * 1.9
-                inner += write(core, x: margin + inset, y: inner, width: bodyWidth,
-                               font: body, color: UIColor(white: 0.14, alpha: 1),
-                               measuring: measuring, accent: color(palette.shade(0.22)),
-                               leading: lead)
+                for step in steps {
+                    if !measuring {
+                        color(palette.shade(0.34), 0.55).setFill()
+                        UIBezierPath(ovalIn: CGRect(x: margin + inset + size * 0.06,
+                                                    y: inner + size * 0.42,
+                                                    width: size * 0.26,
+                                                    height: size * 0.26)).fill()
+                    }
+                    inner += write(step, x: margin + stepX, y: inner, width: stepWidth,
+                                   font: body, color: UIColor(white: 0.14, alpha: 1),
+                                   measuring: measuring, accent: color(palette.shade(0.22)),
+                                   leading: lead)
+                    inner += size * 0.42
+                }
                 if !traps.isEmpty {
                     if !measuring {
                         heading("WHY NOT THE OTHERS",

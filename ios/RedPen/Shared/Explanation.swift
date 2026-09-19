@@ -15,8 +15,14 @@ enum Explanation {
 
     /// The sentences that discuss another option, and everything else.
     struct Split {
-        var core: String
+        /// The reasoning that is about the right answer, one sentence per step:
+        /// an argument to be followed a line at a time rather than a paragraph
+        /// to be got through.
+        var steps: [String]
         var traps: [String]
+
+        /// The same reasoning run together, for callers that just want the text.
+        var core: String { steps.joined(separator: " ") }
     }
 
     /// How much of an option's own vocabulary a sentence must repeat before it
@@ -39,7 +45,10 @@ enum Explanation {
         }
         let pieces = sentences(text)
         guard !others.isEmpty, pieces.count > 1 else {
-            return Split(core: text.trimmingCharacters(in: .whitespacesAndNewlines), traps: [])
+            return Split(steps: pieces.isEmpty
+                            ? [text.trimmingCharacters(in: .whitespacesAndNewlines)]
+                            : pieces,
+                         traps: [])
         }
 
         var core: [String] = []
@@ -64,9 +73,9 @@ enum Explanation {
         // there is nothing to separate - the card keeps its wall rather than
         // being given a heading that explains nothing.
         guard !traps.isEmpty, !core.isEmpty else {
-            return Split(core: text.trimmingCharacters(in: .whitespacesAndNewlines), traps: [])
+            return Split(steps: pieces, traps: [])
         }
-        return Split(core: core.joined(separator: " "), traps: traps)
+        return Split(steps: core, traps: traps)
     }
 
     /// How much of one phrase's vocabulary a sentence repeats.
