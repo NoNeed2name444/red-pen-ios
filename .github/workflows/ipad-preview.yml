@@ -4,6 +4,11 @@
 # job is the compile check that must stay fast and must not be cancelled by
 # this, and an iPad run answers a different question - does the split view
 # actually look like a tablet app, or like a phone app stretched?
+#
+# Portrait only, for now. simctl cannot rotate a simulator from the command
+# line, and the app has no launch argument for it either, so a landscape pass
+# would quietly produce six more portrait screenshots - worse than none,
+# because it would look like evidence.
 name: iPad preview
 on:
   workflow_dispatch:
@@ -83,23 +88,19 @@ jobs:
             --batteryState charged --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p ipad
-          # Both orientations, because landscape is the one the split view is
-          # really for and the one the app refused to do until today.
-          for orient in portrait landscape; do
-            if [ "$orient" = landscape ]; then
-              xcrun simctl status_bar "$UDID" override --time "9:41" || true
-            fi
+          for mode in light dark; do
+            xcrun simctl ui "$UDID" appearance "$mode"
             for screen in library quiz quiz-checked anki-revealed book osce-revealed; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                     -uiPreviewOrientation "$orient" >> ipad/shots.log 2>&1; then
-                echo "launch failed: $screen ($orient)" >> ipad/shots.log
+                     >> ipad/shots.log 2>&1; then
+                echo "launch failed: $screen ($mode)" >> ipad/shots.log
                 continue
               fi
               sleep 7
               xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
-                "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
-                || echo "shot failed: $screen ($orient)" >> ipad/shots.log
+                "ipad/$screen-$mode.png" >> ipad/shots.log 2>&1 \
+                || echo "shot failed: $screen ($mode)" >> ipad/shots.log
             done
           done
           for f in ipad/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
