@@ -53,6 +53,7 @@ struct AnkiReviewView: View {
                         .padding(.horizontal)
                         .padding(.top, 4)
                         .padding(.bottom, 24)
+                        .readableColumn()
                 }
                 Spacer(minLength: 0)
                 footer(current)

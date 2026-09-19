@@ -235,6 +235,7 @@ struct NarrateReviewView: View {
                         .padding(.horizontal)
                         .padding(.top, 4)
                         .padding(.bottom, 24)
+                        .readableColumn()
                 }
             }
             .onChange(of: index) { _, line in

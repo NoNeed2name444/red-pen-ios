@@ -122,6 +122,7 @@ struct MCQQuizView: View {
                 .padding(.horizontal)
                 .padding(.top, 6)
                 .padding(.bottom, 24)
+                .readableColumn()
             }
             footer
         }

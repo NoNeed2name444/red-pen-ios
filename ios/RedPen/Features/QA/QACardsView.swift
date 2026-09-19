@@ -64,6 +64,7 @@ struct QACardsView: View {
                     .padding(.horizontal)
                     .padding(.top, 4)
                     .padding(.bottom, 24)
+                    .readableColumn()
                 } else {
                     Text("No cards in this set.").foregroundStyle(.secondary).padding()
                 }

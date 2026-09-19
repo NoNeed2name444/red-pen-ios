@@ -44,6 +44,7 @@ struct BookReaderView: View {
                 .padding(.horizontal)
                 .padding(.top, 4)
                 .padding(.bottom, 24)
+                .readableColumn()
             }
             .id(index)
             if pages.count > 1 { footer }

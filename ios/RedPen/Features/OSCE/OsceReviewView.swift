@@ -120,6 +120,7 @@ struct OsceReviewView: View {
             .padding()
             .frame(minHeight: 220)
             .padding(.bottom, 12)
+            .readableColumn()
         }
         footer
     }

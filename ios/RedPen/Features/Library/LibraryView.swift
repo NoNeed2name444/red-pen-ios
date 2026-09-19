@@ -67,6 +67,7 @@ struct LibraryView: View {
     /// one. The phone pushes instead, and leaves this alone.
     @State var chosen: StudySet.ID?
     @State private var opened: [StudySet] = []
+    @State private var columns: NavigationSplitViewVisibility = .all
 
     @Environment(\.horizontalSizeClass) var width
 
@@ -77,8 +78,14 @@ struct LibraryView: View {
                 // on screen beside whatever is open, because a tablet's whole
                 // advantage is not having to leave one thing to look at
                 // another. A stack here would be a phone app blown up.
-                NavigationSplitView {
+                // Columns pinned open, and a width given to the sidebar.
+                // Left to itself the split view hid the sidebar in portrait and
+                // showed nothing in its place - an iPad opening on a blank
+                // white screen, which is what the first iPad screenshots
+                // caught.
+                NavigationSplitView(columnVisibility: $columns) {
                     attachingSheets(to: screen)
+                        .navigationSplitViewColumnWidth(min: 300, ideal: 340, max: 400)
                 } detail: {
                     NavigationStack(path: $opened) {
                         detailColumn

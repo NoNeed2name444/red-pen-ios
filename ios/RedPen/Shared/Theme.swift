@@ -118,19 +118,10 @@ struct ModeBackdrop: View {
 /// A content card: the reading surface each mode places its question, card
 /// or page on. Rounded, elevated a touch off the backdrop.
 struct ContentCard: ViewModifier {
-    @Environment(\.horizontalSizeClass) private var width
-
-    /// A line of text stops being readable somewhere past about ninety
-    /// characters, and an iPad is far wider than that. On a wide screen the
-    /// card stops growing and centres instead, which is why a question on an
-    /// iPad reads like a page rather than like a phone screen stretched.
-    private var readableWidth: CGFloat { width == .regular ? 680 : .infinity }
-
     func body(content: Content) -> some View {
         content
             .padding(18)
-            .frame(maxWidth: readableWidth, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -248,5 +239,33 @@ extension EnvironmentValues {
     var modeTint: Color {
         get { self[ModeTintKey.self] }
         set { self[ModeTintKey.self] = newValue }
+    }
+}
+
+
+/// One readable column, for a screen that might be on an iPad.
+///
+/// The first attempt narrowed only the question card, which left the card
+/// tucked inside a column of full-width answer rows - the card looked cramped
+/// precisely because everything around it was not. A screen reads as one thing
+/// when every part of it shares a measure, so this constrains the whole column
+/// and gives it more air on a wide screen, where a phone's tight rhythm looks
+/// mean rather than efficient.
+struct ReadableColumn: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var width
+    var limit: CGFloat = 700
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: width == .regular ? limit : .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, width == .regular ? 8 : 0)
+            .padding(.top, width == .regular ? 10 : 0)
+    }
+}
+
+extension View {
+    func readableColumn(_ limit: CGFloat = 700) -> some View {
+        modifier(ReadableColumn(limit: limit))
     }
 }

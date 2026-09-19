@@ -107,6 +107,7 @@ struct MCQSummaryView: View {
             .padding(.horizontal)
             .padding(.top, 8)
             .padding(.bottom, 30)
+            .readableColumn()
         }
         .modeScreen(.mcq)
         .navigationTitle("Results")
