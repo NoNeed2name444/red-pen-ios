@@ -1,0 +1,26 @@
+compile rc=0
+ok   a longer lecture earns more questions
+ok   a scrap of text still gets a set
+ok   nothing pasted does not crash
+ok   a textbook does not get a thousand questions
+ok   the medicine is kept
+ok   the exam scaffolding is not
+ok   a rewritten vignette is the same question
+ok   a different fact is a different question
+ok   nothing overlaps nothing without dividing by zero
+ok   asking it again is caught
+ok   a new fact is let through
+ok   the first question of a set is never a repeat
+ok   a new vignette with the same answer is a repeat
+ok   the same vignette shape with a different answer is not
+ok   a blank answer does not match every other blank answer
+ok   the first batch is told nothing
+ok   the note says how many have been asked
+ok   only the recent ones are listed
+ok   the most recent is among them
+ok   a long stem is cut short
+ok   the note stays small
+ok   the answer is carried with the stem
+
+ALL COVERAGE TESTS PASS
+run rc=0

@@ -1,0 +1,41 @@
+compile rc=0
+ok   nothing anywhere is nothing to do
+ok   something the server has never seen is pushed
+ok   something from another device is taken
+ok   a tombstone for something we no longer have is still taken
+ok   two sides that already agree do nothing
+ok   a change only on the server is taken
+ok   a change only here is pushed
+ok   both sides arriving at the same text is not a conflict
+ok   the later edit wins and the earlier is kept beside it
+ok   and the same the other way round, so the other device loses nothing either
+ok   identical timestamps resolve the same way on every device
+ok   a deletion beats an older edit, and leaves no copy
+ok   an edit made after the deletion brings it back
+ok   deleting here beats an older edit there
+ok   and an edit there after our deletion brings it back
+ok   two deletions are not a conflict
+ok   a first sync with different copies keeps both
+ok   a first sync with matching copies just adopts the server's
+ok   the same body hashes the same
+ok   a different body hashes differently
+ok   a deletion hashes differently from an empty body
+ok   an unchanged document needs no push
+ok   an edited one does
+ok   and one never synced does
+ok   every image becomes a reference
+ok   and its bytes come back to be uploaded
+ok   the same picture twice is one blob
+ok   and both cards point at it
+ok   packing something already packed changes nothing
+ok   an image that cannot be decoded is left alone
+ok   a data: URI is understood
+ok   unpacking gives the pictures back
+ok   a reference with no blob yet stays a reference
+ok   only what is missing is asked for
+ok   the same name is a stable address
+ok   different bytes get different addresses
+ok   base64 and a reference name the same blobs
+
+ALL SYNC TESTS PASS
+run rc=0

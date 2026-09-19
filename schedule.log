@@ -1,0 +1,37 @@
+compile rc=0
+ok   a brand new card is due at once
+ok   so a freshly generated deck is reviewable immediately
+ok   easy puts a card days away
+ok   and it is not due an hour later
+ok   nor the next day, which is what reopening the app used to undo
+ok   and it IS due once the interval is up
+ok   the card nobody rated is still waiting
+ok   a queue holds only what is due
+ok   and it is the right card
+ok   again brings it straight back
+ok   and is counted as a lapse
+ok   a rating is counted either way
+ok   a card you get right is not a lapse
+ok   studying ahead offers the whole deck
+ok   and a card keeps the interval it earned
+ok   the day's queue spans every deck
+ok   and each card remembers which deck it came from
+ok   a deck with nothing due contributes nothing
+ok   an empty library is not an error
+ok   a card still in a deck keeps its place
+ok   a deleted card's schedule is dropped
+ok   again stores the interval its button promised
+ok   again sets the due date to match the interval
+ok   hard stores the interval its button promised
+ok   hard sets the due date to match the interval
+ok   good stores the interval its button promised
+ok   good sets the due date to match the interval
+ok   easy stores the interval its button promised
+ok   easy sets the due date to match the interval
+ok   both sittings survive a merge
+ok   the later rating of the same card wins
+ok   and an older one does not overwrite a newer
+ok   merging with nothing changes nothing
+
+ALL SCHEDULE TESTS PASS
+run rc=0

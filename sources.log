@@ -1,0 +1,32 @@
+compile rc=0
+ok   a page with nothing but whitespace is blank
+ok   and offers no heading
+ok   a heading is the first line with anything on it, trimmed
+ok   every appearance is found, on every page
+ok   across two pages
+ok   in reading order
+ok   case does not matter
+ok   and neither do accents
+ok   a single character is not a search, so it finds nothing rather than everything
+ok   nor is whitespace
+ok   both appearances on one page are separate hits
+ok   the marked range lies inside its own snippet
+ok   and marks the word itself, not something near it
+ok   the marked range lies inside its own snippet
+ok   and marks the word itself, not something near it
+ok   a match at the start of a page is marked from the start
+ok   and has nothing elided before it
+ok   overlapping matches advance past the match, not into it
+ok   the app's own citation format is read back
+ok   a citation with no document name still names a page
+ok   so does one that spells out 'page'
+ok   a range opens at its first page
+ok   a number in the document's own name is not mistaken for the page
+ok   and the page is still the page
+ok   no citation is not a citation
+ok   nor is an empty one
+ok   nor a document name with no page
+ok   and page zero is not a page
+
+ALL SOURCE TESTS PASS
+run rc=0

@@ -1,0 +1,30 @@
+compile rc=0
+ok   text with no markers is one plain run
+ok   a marked term is emboldened and the rest is left alone
+ok   two marked terms both work
+ok   a card that is nothing but a marked term
+ok   underscores are characters, not italics
+ok   a line starting with a number is not a list
+ok   square brackets are not a link
+ok   backticks are not code
+ok   a hash is not a heading
+ok   an unclosed pair stays as the asterisks somebody typed
+ok   and so does a lone pair
+ok   four asterisks emphasise nothing, so they stay
+ok   spaces inside the markers are kept, since they are part of what was typed
+ok   text before the first heading is a page of its own
+ok   and it is called Introduction
+ok   a heading names its page
+ok   at either level
+ok   and carries the text under it
+ok   an empty textbook has no pages
+ok   and neither does one with only whitespace
+ok   the heading is a heading
+ok   every list line is a bullet
+ok   a numbered line keeps its number, however it was punctuated
+ok   an unnumbered one has no marker to keep
+ok   and the marker is not repeated in the text
+ok   a table's rows are rows, and its separator line is not one of them
+
+ALL READING TESTS PASS
+run rc=0

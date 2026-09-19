@@ -1,0 +1,42 @@
+build/deck/main.swift:185:16: error: cannot find 'Explanation' in scope
+183 |     + "finding of an atrial septal defect. Ventricular septal defect is tempting because "
+184 |     + "it is also a left-to-right shunt, but it produces a pansystolic murmur."
+185 | let arranged = Explanation.split(asdWhy, options: asdOptions)
+    |                `- error: cannot find 'Explanation' in scope
+186 | 
+187 | ok(arranged.traps.count == 1, "the sentence about another option is lifted out")
+
+build/deck/main.swift:201:4: error: cannot find 'Explanation' in scope
+199 | let looseWhy = "Femoral pulses must be palpated on every examination. "
+200 |     + "Radial-radial delay is a tempting near-miss, but the finding described is weak."
+201 | ok(Explanation.split(looseWhy, options: looseOptions).traps.count == 1,
+    |    `- error: cannot find 'Explanation' in scope
+202 |    "a near-miss worded differently is still recognised")
+203 | 
+
+build/deck/main.swift:204:4: error: cannot find 'Explanation' in scope
+202 |    "a near-miss worded differently is still recognised")
+203 | 
+204 | ok(Explanation.split("One sentence only.", options: asdOptions).traps.isEmpty,
+    |    `- error: cannot find 'Explanation' in scope
+205 |    "a single sentence is never split")
+206 | ok(Explanation.split(asdWhy, options: []).core == asdWhy,
+
+build/deck/main.swift:206:4: error: cannot find 'Explanation' in scope
+204 | ok(Explanation.split("One sentence only.", options: asdOptions).traps.isEmpty,
+205 |    "a single sentence is never split")
+206 | ok(Explanation.split(asdWhy, options: []).core == asdWhy,
+    |    `- error: cannot find 'Explanation' in scope
+207 |    "and with no other options to talk about, nothing is lifted")
+208 | 
+
+build/deck/main.swift:210:4: error: cannot find 'Explanation' in scope
+208 | 
+209 | let allTraps = "Ventricular septal defect is wrong. Pulmonary valve stenosis is wrong."
+210 | ok(Explanation.split(allTraps, options: asdOptions).traps.isEmpty,
+    |    `- error: cannot find 'Explanation' in scope
+211 |    "an explanation that is nothing but traps keeps its own shape")
+212 | 
+
+compile rc=1
+deck was never built

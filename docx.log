@@ -1,0 +1,24 @@
+compile rc=0
+ok   every paragraph comes back
+ok   an ampersand survives as an ampersand
+ok   runs inside one paragraph are one sentence
+ok   a line break inside a paragraph is a line break
+ok   an empty paragraph is not a blank line
+ok   tags go, text stays
+ok   an escaped angle bracket is not treated as a tag
+ok   an escaped ampersand is decoded once
+ok   image2 sorts before image10
+ok   a picture is recognised
+ok   a stylesheet is not a picture
+ok   rubbish is not an archive
+ok   an empty file is not an archive
+ok   the document is in the archive
+ok   so are the pictures
+ok   a deflated entry comes back whole
+ok   and is exactly as long as it was written
+ok   the handout's words are all there
+ok   both pictures come back
+ok   in the order Word numbered them
+
+ALL DOCX TESTS PASS
+run rc=0

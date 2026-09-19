@@ -1,0 +1,20 @@
+compile rc=0
+ok   a pause ends a line
+ok   the first line is what was said before the pause
+ok   a line starts when its first word does
+ok   a line ends when its last word does
+ok   no word is lost at a break
+ok   speech with no pause is still broken into lines
+ok   and no line runs past the limit
+ok   silence transcribes to nothing rather than an empty line
+ok   every spoken word reaches the player
+ok   the recogniser's own times are used, not estimates
+ok   the highlight is on the word being said
+ok   and on the last word of the lecture at the end
+ok   a pause holds the last word rather than going blank
+ok   before the lecture starts nothing is highlighted
+ok   an untimed remainder is estimated, not dropped
+ok   last week's correction is already applied to this week's lecture
+
+ALL TRANSCRIBER TESTS PASS
+run rc=0

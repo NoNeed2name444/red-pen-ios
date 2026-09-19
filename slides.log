@@ -1,0 +1,29 @@
+compile rc=0
+ok   slides come back in the order they are shown
+ok   the relationship files are not slides
+ok   a deck with no slides is not an error
+ok   the title comes through
+ok   each bullet is its own line
+ok   an ampersand survives
+ok   an attribute on the run is not mistaken for text
+ok   an empty slide gives nothing rather than crashing
+ok   a table's cells are read as text
+ok   and no markup leaks into it
+ok   a question lands on the page it came from
+ok   a different fact lands on its own page
+ok   a question matching nothing is left uncited
+ok   an empty question is not attributed
+ok   a document with no pages attributes nothing
+ok   the citation names the file and the page
+ok   a card that already knows its page keeps it
+ok   a card with no source gets one
+ok   a nameless file still cites the page
+ok   deleting an earlier option moves the key with it
+ok   deleting a later option leaves the key alone
+ok   deleting the key itself falls back to the first option
+ok   dropping a blank option moves the key too
+ok   whitespace around an option is trimmed
+ok   a question with no options does not crash
+
+ALL SLIDE TESTS PASS
+run rc=0

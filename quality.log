@@ -1,0 +1,34 @@
+ios/RedPen/Shared/CardQuality.swift:119:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+117 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+118 |         }
+119 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+120 | 
+121 |         if card.type == .cloze {
+compile rc=0
+ok   a sound question passes clean
+ok   the longest option is caught
+ok   only the key hedging is caught
+ok   a word shared only by stem and key is caught
+ok   'all of the above' is caught
+ok   a topic is not a stem
+ok   an explanation about something else is caught
+ok   a sound card passes clean
+ok   a card carrying five facts is caught
+ok   a cloze that deletes the sentence is caught
+ok   a sound cloze passes clean
+ok   a cloze with no deletion is caught
+ok   a question that gives itself away is dropped
+ok   every other card became a question
+ok   every option came from the deck, none invented
+ok   each key is its own card's answer
+ok   no question repeats an option
+ok   the explanation names what it is explaining
+ok   an explanation that already names the answer is left alone
+ok   the shipped questions pass the quality rules
+ok   a thin deck refuses rather than inventing distractors
+ok   a multi-fact card makes no question
+ok   the quiz is reproducible
+
+ALL CARD QUALITY TESTS PASS
+run rc=0
