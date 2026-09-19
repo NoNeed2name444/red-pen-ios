@@ -25,13 +25,14 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 S = 1024
-GROUND = ((226, 62, 48), (192, 36, 32))   # scarlet, deeper at the foot
-ACCENT = (140, 200, 240)                  # the one cool mark on the page
-RULE = (150, 162, 184)                    # the writing: grey, never black
+GROUND = ((226, 62, 48), (192, 36, 32))       # scarlet, deeper at the foot
+GROUND_DARK = ((122, 24, 22), (72, 12, 14))   # the same red, turned down
+ACCENT = (140, 200, 240)                      # the one cool mark on the page
+RULE = (150, 162, 184)                        # the writing: grey, never black
 
 
-def ground() -> Image.Image:
-    top, foot = GROUND
+def ground(stops=GROUND) -> Image.Image:
+    top, foot = stops
     img = Image.new("RGB", (S, S))
     draw = ImageDraw.Draw(img)
     for y in range(S):
@@ -85,7 +86,7 @@ def inflate(mask: Image.Image, shade=(196, 204, 216)) -> Image.Image:
         ImageChops.multiply(occ, mask)))
 
 
-def writing() -> Image.Image:
+def writing(mono: bool = False) -> Image.Image:
     box = (int(S * 0.275), int(S * 0.205), int(S * 0.725), int(S * 0.815))
     x0, y0, x1, y1 = box
     width, middle = x1 - x0, (x0 + x1) // 2
@@ -100,11 +101,12 @@ def writing() -> Image.Image:
     w = int(width * 0.24)
     y = int(y0 + (y1 - y0) * 0.745)
     draw.rounded_rectangle([middle - w // 2, y, middle + w // 2, y + thickness],
-                           radius=thickness // 2, fill=ACCENT + (255,))
+                           radius=thickness // 2,
+                           fill=((120, 128, 146) if mono else ACCENT) + (255,))
     return layer
 
 
-def foreground(sheets: int = 2) -> Image.Image:
+def foreground(sheets: int = 2, mono: bool = False, flat: bool = False) -> Image.Image:
     """Everything that sits ON the tile, with its own transparency.
 
     This is the layer an iOS 26 layered icon wants: no background, and no baked
@@ -122,20 +124,49 @@ def foreground(sheets: int = 2) -> Image.Image:
         if not front:
             body = Image.blend(Image.new("RGBA", (S, S), (0, 0, 0, 0)), body, 0.82)
         out = Image.alpha_composite(out, body)
-    return Image.alpha_composite(out, writing())
+    out = Image.alpha_composite(out, writing(mono=mono))
+    if flat:
+        # No cast shadow in the layered and Clear appearances: the system draws
+        # the shadow itself, and a second one baked into the art is the classic
+        # way a layered icon ends up looking dirty.
+        out = Image.alpha_composite(Image.new("RGBA", (S, S), (0, 0, 0, 0)), out)
+    return out
 
 
-def composed() -> Image.Image:
+def composed(stops=GROUND, mono: bool = False) -> Image.Image:
     """The icon as one flat square, for the classic single-image slot."""
-    return Image.alpha_composite(ground(), foreground()).convert("RGB")
+    return Image.alpha_composite(ground(stops), foreground(mono=mono)).convert("RGB")
 
 
-def rounded_preview() -> Image.Image:
+def clear(dark: bool) -> Image.Image:
+    """The Clear appearance: no ground of our own, and no colour.
+
+    In this mode iOS makes the icon out of the wallpaper behind it - the art
+    is a stencil the system frosts, so anything coloured here comes out wrong.
+    What is shipped is the shape in white, with its own internal shading kept
+    (that is what stops the paper reading as a flat rectangle) and the writing
+    knocked through it: on a light wallpaper the page is drawn dark, on a dark
+    one it is drawn light.
+    """
+    art = foreground(mono=True, flat=True)
+    if not dark:
+        grey, alpha = art.convert("L"), art.split()[3]
+        art = Image.merge("RGBA", (ImageChops.invert(grey),) * 3 + (alpha,))
+    return art
+
+
+def tinted() -> Image.Image:
+    """The Tinted appearance: one hue chosen by the user, so ship grey."""
+    return Image.alpha_composite(ground(((58, 58, 62), (28, 28, 32))),
+                                 foreground(mono=True)).convert("RGB")
+
+
+def rounded_preview(stops=GROUND) -> Image.Image:
     """Only for looking at: the squircle the system applies, faked."""
     mask = Image.new("L", (S, S), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.225), fill=255)
     out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    out.paste(composed().convert("RGBA"), (0, 0), mask)
+    out.paste(composed(stops).convert("RGBA"), (0, 0), mask)
     return out
 
 
@@ -144,26 +175,51 @@ def main() -> int:
     parser.add_argument("--out", default="ios/RedPen/Assets.xcassets/AppIcon.appiconset",
                         help="where the icon itself goes")
     parser.add_argument("--layers", default="design/icon",
-                        help="where the flat layers for the layered icon go")
+                        help="the flat layers and the appearances that are not\n"
+                             "expressible in an asset catalogue")
     args = parser.parse_args()
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     composed().save(out / "icon-1024.png")
+    composed(GROUND_DARK).save(out / "icon-1024-dark.png")
+    tinted().save(out / "icon-1024-tinted.png")
+
+    # An asset catalogue can carry three of the appearances. Dark is a real
+    # design decision rather than a filter: the same scarlet turned right down,
+    # so a home screen at night is not one glowing red square among dark ones.
+    # Tinted must be greyscale, because the hue is the user's to choose.
     (out / "Contents.json").write_text(json.dumps({
-        "images": [{"idiom": "universal", "platform": "ios",
-                    "size": "1024x1024", "filename": "icon-1024.png"}],
+        "images": [
+            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
+             "filename": "icon-1024.png"},
+            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
+             "filename": "icon-1024-dark.png",
+             "appearances": [{"appearance": "luminosity", "value": "dark"}]},
+            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
+             "filename": "icon-1024-tinted.png",
+             "appearances": [{"appearance": "luminosity", "value": "tinted"}]},
+        ],
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
     layers = Path(args.layers)
     layers.mkdir(parents=True, exist_ok=True)
     ground().convert("RGB").save(layers / "background.png")
-    foreground().save(layers / "foreground.png")
+    ground(GROUND_DARK).convert("RGB").save(layers / "background-dark.png")
+    foreground(flat=True).save(layers / "foreground.png")
+    foreground(mono=True, flat=True).save(layers / "foreground-tinted.png")
+    # Clear has no catalogue slot at all - it belongs to a layered .icon - so
+    # it is exported here, ready for whoever assembles one.
+    clear(dark=False).save(layers / "clear-light.png")
+    clear(dark=True).save(layers / "clear-dark.png")
     rounded_preview().save(layers / "preview.png")
+    rounded_preview(GROUND_DARK).save(layers / "preview-dark.png")
 
-    print(f"{out / 'icon-1024.png'}")
-    print(f"{layers}/background.png, foreground.png, preview.png")
+    for name in ("icon-1024.png", "icon-1024-dark.png", "icon-1024-tinted.png"):
+        print(out / name)
+    print(f"{layers}/ background, background-dark, foreground, foreground-tinted,")
+    print(f"{layers}/ clear-light, clear-dark, preview, preview-dark")
     return 0
 
 
