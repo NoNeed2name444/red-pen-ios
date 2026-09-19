@@ -10,7 +10,6 @@ struct LibraryView: View {
     @EnvironmentObject var reviews: ReviewStore
 
     @State var showNewSet = false
-    @State var showAccount = false
     @State var exportURL: URL?
     @State var exportFailedSetName: String?
 
@@ -63,10 +62,10 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
-    /// Which set the detail column is showing, on a screen wide enough to have
-    /// one. The phone pushes instead, and leaves this alone.
-    @State var chosen: StudySet.ID?
+    /// Whatever is open in the main column: a set that was tapped, and on a
+    /// wide window possibly a support page chosen in the sidebar instead.
     @State private var opened: [StudySet] = []
+    @State private var support: SupportPage?
     @State private var columns: NavigationSplitViewVisibility = .all
 
     /// The window, not the screen: an iPad app can be a third of one, and the
@@ -85,19 +84,11 @@ struct LibraryView: View {
                         // that jumps between one column and two mid-drag is
                         // alarming in a way a quick crossfade is not.
                         guard now != span else { return }
+                        // The open set lives on the same path in both shapes,
+                        // so widening or narrowing the window no longer loses
+                        // it; only the sidebar's own page needs putting away.
                         withAnimation(.snappy(duration: 0.25)) {
-                            // Dropping to one column with a set selected would
-                            // leave that choice invisible and unreachable, so
-                            // the selection becomes a pushed screen instead.
-                            if span.splits, !now.splits {
-                                if let set = store.library.first(where: { $0.id == chosen }) {
-                                    opened = [set]
-                                }
-                                chosen = nil
-                            } else if !span.splits, now.splits {
-                                chosen = opened.last?.id
-                                opened = []
-                            }
+                            if !now.splits { support = nil }
                             span = now
                         }
                     }
@@ -108,56 +99,38 @@ struct LibraryView: View {
     private var layout: some View {
         Group {
             if span.splits {
-                // iPad, and a phone held sideways in Split View: the sets stay
-                // on screen beside whatever is open, because a tablet's whole
-                // advantage is not having to leave one thing to look at
-                // another. A stack here would be a phone app blown up.
-                // Columns pinned open, and a width given to the sidebar.
-                // Left to itself the split view hid the sidebar in portrait and
-                // showed nothing in its place - an iPad opening on a blank
-                // white screen, which is what the first iPad screenshots
-                // caught.
+                // The sets are the work, so they get the main column at full
+                // width with the dock under them. The sidebar is for the
+                // places you visit and come back from - account, settings,
+                // how it works, questions. The first version had this the
+                // wrong way round: the library squeezed into a 340-point
+                // sidebar with a seven-mode dock crushed along its foot, and
+                // a detail column that said "Choose a set" for most of the
+                // day.
                 NavigationSplitView(columnVisibility: $columns) {
-                    attachingSheets(to: screen)
-                        .navigationSplitViewColumnWidth(min: 300, ideal: 340, max: 400)
+                    SupportSidebar(chosen: $support)
+                        .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 300)
                 } detail: {
                     NavigationStack(path: $opened) {
-                        detailColumn
-                            .navigationDestination(for: StudySet.self) { destination(for: $0) }
+                        Group {
+                            if let support {
+                                support.page
+                            } else {
+                                attachingSheets(to: screen)
+                            }
+                        }
                     }
                 }
                 .navigationSplitViewStyle(.balanced)
             } else {
-                // The same path the detail column uses, so a set stays open
-                // across a resize: widen the window and it moves into the
-                // second column, narrow it and it becomes a pushed screen.
                 NavigationStack(path: $opened) {
                     attachingSheets(to: screen)
+                        .navigationDestination(item: $support) { $0.page }
                 }
             }
         }
         .tint(pen)
         .animation(.snappy(duration: 0.28), value: tab)
-    }
-
-    /// What fills the second column before a set has been chosen.
-    @ViewBuilder
-    private var detailColumn: some View {
-        if let set = store.library.first(where: { $0.id == chosen }) {
-            destination(for: set)
-        } else {
-            VStack(spacing: 14) {
-                Brand.Mark(size: 54, tint: .secondary)
-                    .opacity(0.5)
-                Text("Choose a set")
-                    .font(.title3.weight(.semibold))
-                Text(Brand.line)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(LibraryBackdrop())
-        }
     }
 
     private var screen: some View {
@@ -179,7 +152,6 @@ struct LibraryView: View {
                         }
                 }
             }
-            .sheet(isPresented: $showAccount) { AccountView() }
             // A tab whose last set has just been deleted would otherwise leave
             // the library showing an empty shelf with no way back.
             .onChange(of: store.library) { _, sets in
@@ -280,7 +252,9 @@ struct LibraryView: View {
             if store.library.isEmpty {
                 // toolbar items already sit in the system's glass on iOS 26; an
                 // extra .glass style here squashed the label into a circle
-                Button { showAccount = true } label: {
+                Menu {
+                    supportItems
+                } label: {
                     Image(systemName: "person.crop.circle")
                 }
             } else {
@@ -294,7 +268,7 @@ struct LibraryView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("New set", systemImage: "plus") { showNewSet = true }
-                Button("Account", systemImage: "person.crop.circle") { showAccount = true }
+                Section { supportItems }
             } label: {
                 Image(systemName: "plus")
                     .font(.body.weight(.semibold))
@@ -304,6 +278,19 @@ struct LibraryView: View {
             }
             .buttonStyle(.glassProminent)
             .clipShape(Circle())
+        }
+    }
+
+    /// Account, Settings, How it works, Questions - the sidebar's four, for a
+    /// window too narrow to have a sidebar. Same pages, pushed instead.
+    @ViewBuilder
+    private var supportItems: some View {
+        ForEach(SupportPage.allCases) { page in
+            // One state for both shapes: in the sidebar it decides what the
+            // main column shows, on a phone it is what gets pushed. A
+            // NavigationLink cannot live inside a Menu, so this is a button
+            // either way.
+            Button(page.title, systemImage: page.symbol) { support = page }
         }
     }
 
