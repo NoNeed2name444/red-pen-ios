@@ -1,0 +1,1 @@
+RedPen/Features/Support/SupportCenter.swift:113:10: error: instance method 'listRowBackground' requires that 'AnyShapeStyle' conform to 'View'
