@@ -29,6 +29,21 @@ enum PreviewLaunch {
         return args[i + 1].lowercased().hasPrefix("land")
     }
 
+    /// A pretend window width, for photographing the multitasking sizes.
+    ///
+    /// A simulator cannot be put into Slide Over from the command line, so a
+    /// pass that claims to show the app at 320 points has to get that width
+    /// some other way: the root view is simply given it. What is photographed
+    /// is then the app's own layout at that size - which is the thing being
+    /// checked - over a plain grey surround standing in for whatever the
+    /// student has open behind it.
+    static var pretendWidth: CGFloat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewWidth"), i + 1 < args.count,
+              let w = Double(args[i + 1]), w > 100 else { return nil }
+        return CGFloat(w)
+    }
+
     /// Asks the window to turn, and keeps asking until it does.
     ///
     /// One attempt in `.task` was not enough: the first landscape pass came
@@ -239,11 +254,24 @@ struct PreviewRoot: View {
     let screen: String
 
     var body: some View {
-        content
-            .task {
-                // After the first layout, so there is a scene to turn.
-                await PreviewLaunch.applyOrientation()
+        Group {
+            if let w = PreviewLaunch.pretendWidth {
+                ZStack {
+                    Color(.systemGray4).ignoresSafeArea()
+                    content
+                        .frame(width: w)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 6)
+                        .padding(.vertical, 28)
+                }
+            } else {
+                content
             }
+        }
+        .task {
+            // After the first layout, so there is a scene to turn.
+            await PreviewLaunch.applyOrientation()
+        }
     }
 
     @ViewBuilder
