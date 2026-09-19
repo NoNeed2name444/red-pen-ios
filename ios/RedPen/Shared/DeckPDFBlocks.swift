@@ -218,7 +218,7 @@ extension DeckPDF {
         var out = text
         var searched = out.startIndex..<out.endIndex
         while let found = out.range(of: phrase, options: .caseInsensitive, range: searched) {
-            out.replaceSubrange(found, with: "**" + out[found] + "**")
+            out.replaceSubrange(found, with: "**" + String(out[found]) + "**")
             guard let resume = out.index(found.lowerBound, offsetBy: phrase.count + 4,
                                          limitedBy: out.endIndex) else { break }
             searched = resume..<out.endIndex
