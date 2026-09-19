@@ -10,6 +10,8 @@ on:
 permissions:
   contents: write
 
+# A second dispatch cancels the first, because two runs racing to force-push
+# the same branch is worse than losing one of them.
 concurrency:
   group: ios-preview
   cancel-in-progress: true
@@ -79,8 +81,15 @@ jobs:
           # folder exists even after a failed compile - so ask the log instead
           grep -q "BUILD SUCCEEDED" ../build.log
 
+      # `!cancelled()` rather than `always()`, everywhere below.
+      #
+      # A run cancelled mid-compile by the next dispatch used to reach these
+      # steps anyway, find a build log that stops halfway, and publish
+      # build_ok:false over a perfectly good previous result - a verdict of
+      # "broken" on a build that was never allowed to finish. A cancelled run
+      # now leaves the branch exactly as it found it.
       - name: Screenshots
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           UDID: ${{ steps.sim.outputs.udid }}
         run: |
@@ -122,7 +131,7 @@ jobs:
           ls -la previews
 
       - name: Record the outcome
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           DEVICE: ${{ steps.sim.outputs.name }}
           RUNTIME: ${{ steps.sim.outputs.runtime }}
@@ -133,6 +142,7 @@ jobs:
           python3 - <<'PY'
           import datetime, json, os, subprocess
           shots = sorted(f for f in os.listdir("previews") if f.endswith(".png"))
+          log = open("build.log", errors="replace").read() if os.path.exists("build.log") else ""
           status = {
               "commit": os.environ["GITHUB_SHA"],
               "run_url": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
@@ -140,7 +150,10 @@ jobs:
               "xcode": subprocess.run(["xcodebuild", "-version"], capture_output=True, text=True).stdout.strip().replace("\n", " "),
               "device": os.environ.get("DEVICE", ""),
               "runtime": os.environ.get("RUNTIME", ""),
-              "build_ok": os.path.exists("build.log") and "BUILD SUCCEEDED" in open("build.log", errors="replace").read(),
+              "build_ok": "BUILD SUCCEEDED" in log,
+              # A log that mentions neither outcome is a run that was stopped,
+              # not a build that failed - worth saying which.
+              "build_finished": ("BUILD SUCCEEDED" in log) or ("BUILD FAILED" in log),
               "screens": shots,
           }
           json.dump(status, open("previews/status.json", "w"), indent=2)
@@ -148,7 +161,7 @@ jobs:
           PY
 
       - name: Publish to the previews branch
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -163,7 +176,7 @@ jobs:
           git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews:previews
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         with:
           name: ios-preview
           path: previews
