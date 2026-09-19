@@ -249,7 +249,8 @@ def topic_from(text: str) -> str:
     # Openers that are pure scaffolding carry no meaning into an index row.
     candidate = re.sub(r"^(which|what|who|how|why|when|where)\s+(of\s+the\s+following\s+)?"
                        r"(is|are|was|were|would|will|does|do|did|best|most)?\s*",
-                       "", candidate, count=1, flags=re.IGNORECASE).strip(" ,.;:?")
+                       "", candidate, count=1, flags=re.IGNORECASE)
+    candidate = candidate.strip(" ,.;:?\u2018\u2019\u201c\u201d'\"")
     words = candidate.split() or cleaned.split()
     label = " ".join(words[:8])
     label = label[:1].upper() + label[1:]
@@ -435,15 +436,19 @@ body { margin: 0; color: #1a1a1a;
         overflow: hidden }
 .topic { font-size: 19pt; font-weight: 700; margin: 0 0 2mm; text-wrap: balance }
 .sub { font-size: 8.5pt; color: #4a4a4a; margin: 0 0 3mm }
-.chip { display: inline-block; font-size: 6.5pt; font-weight: 800; letter-spacing: .1em;
-        padding: 1.4mm 3.4mm; border-radius: 3mm }
+.chip { display: inline-block; font-size: 7pt; font-weight: 800; letter-spacing: .1em;
+        padding: 1.6mm 3.6mm; border-radius: 3mm; background: var(--accent) !important;
+        color: #fff !important }
 .rule { height: .3mm; margin: 4mm 0 5mm }
-.content { flex: 1 1 auto; overflow: hidden }
+.content { flex: 1 1 auto; overflow: hidden; background: #fff; border-radius: 4mm;
+           padding: 6mm 7mm; box-shadow: 0 0 0 .25mm var(--soft) }
 .q { font-size: 13.5pt; font-weight: 600; line-height: 1.55; color: #121212 }
 .a { font-size: 13.5pt; line-height: 1.55; color: #121212 }
-ul { margin: 0; padding-left: 5mm }
-li { margin-bottom: 2mm }
-li::marker { color: var(--accent) }
+ul { margin: 0; padding: 0; list-style: none }
+li { margin-bottom: 2.2mm; padding: 2mm 3mm 2mm 7mm; position: relative;
+     background: var(--wash); border-radius: 2.4mm }
+li::before { content: ""; position: absolute; left: 3mm; top: 3.6mm; width: 2mm;
+             height: 2mm; border-radius: 50%; background: var(--accent) }
 .lead { font-weight: 700; color: var(--deep) }
 b, strong { color: var(--deep) }
 /* The opening phrase of a bullet, up to its colon or dash: what the line is
@@ -464,8 +469,8 @@ b, strong { color: var(--deep) }
 .note-label { font-size: 9pt; font-weight: 800; letter-spacing: .1em;
               color: var(--deep); margin-bottom: 1mm }
 .note-text { font-size: 12pt; color: #2b2b2b }
-.note { background: #fff; border-radius: 2.6mm; padding: 3mm 4mm; margin-top: 3mm;
-        border-left: 1.2mm solid var(--accent) }
+.why { background: var(--wash); border-radius: 2.6mm; padding: 3mm 4mm; margin-top: 4mm;
+       border-left: 1.2mm solid var(--accent) }
 figure { margin: 0 0 5mm; text-align: center }
 figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .answer figure img { max-height: 80mm }
@@ -474,25 +479,29 @@ figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .foot { flex: 0 0 auto; height: 12mm; display: flex; align-items: center;
         justify-content: space-between; padding: 0 16mm; font-size: 8.5pt; color: #4a4a4a }
 .foot .next { font-weight: 800; letter-spacing: .08em }
-.foot .n { font-weight: 800; color: var(--deep) }
+.foot .n { font-weight: 800; color: #fff; background: var(--accent); border-radius: 3mm;
+            padding: .8mm 2.6mm }
 .src { font-size: 8pt; color: #555; font-style: italic; margin-top: 3mm }
 
-.cover .hero { height: 72mm; padding: 18mm 16mm 0; color: #fff }
+.cover .hero { height: 78mm; padding: 18mm 16mm 0; color: #fff }
 .cover .hero .mode { font-size: 9pt; font-weight: 700; letter-spacing: .2em;
                      opacity: .85 }
 .cover .hero h1 { font-size: 27pt; margin: 4mm 0 0; text-wrap: balance }
 .cover .facts { padding: 12mm 16mm; display: flex; gap: 18mm }
 .cover .facts .k { font-size: 7.5pt; font-weight: 700; letter-spacing: .12em;
                    color: #4a4a4a }
-.cover .facts .v { font-size: 15pt; font-weight: 600 }
+.cover .facts .v { font-size: 17pt; font-weight: 800; color: var(--deep) }
+.cover .facts > div { background: #fff; border-radius: 3mm; padding: 4mm 6mm;
+                      box-shadow: 0 0 0 .25mm var(--soft) }
 .cover .note { margin-top: auto; padding: 0 16mm 16mm; font-size: 10pt; color: #4a4a4a }
 
 .toc h2 { font-size: 16pt; margin: 0 0 5mm }
 .cols { flex: 1 1 auto; display: flex; gap: 8mm; overflow: hidden }
 .col { flex: 1 1 0; overflow: hidden }
-.row { display: flex; justify-content: space-between; gap: 3mm; padding: 1.3mm 0;
-       font-size: 10.5pt; color: #1a1a1a; text-decoration: none }
-.row .n { font-variant-numeric: tabular-nums; font-weight: 600 }
+.row { display: flex; justify-content: space-between; gap: 3mm; padding: 1.6mm 2.4mm;
+       font-size: 10.5pt; color: #1a1a1a; text-decoration: none; border-radius: 1.8mm }
+.row:nth-child(odd) { background: var(--wash) }
+.row .n { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--deep) }
 .row .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .sec { font-size: 7.5pt; font-weight: 800; letter-spacing: .1em; margin: 4mm 0 1.5mm }
 """
@@ -591,7 +600,7 @@ def render_blocks(blocks, answer_side: bool) -> str:
             body = with_key(b["text"])
             if answer_side:
                 body = emphasise(body, answer_phrase(blocks))
-            out.append(f'<div class="note"><div class="note-label">'
+            out.append(f'<div class="why"><div class="note-label">'
                        f'{esc(b["label"]).upper()}</div>'
                        f'<div class="note-text">{body}</div></div>')
     flush()
@@ -642,7 +651,7 @@ def card_pages(card: Card, pal: Palette, total: int) -> str:
     src = f'<div class="src">{esc(card.source)}</div>' if card.source else ""
 
     return f"""
-<section class="page" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex}">
+<section class="page" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex};--wash:{pal.tint(0.93).hex}">
   {page_head(card, pal, card.subject, total)}
   <div class="body">
     {heading(f"c{card.number}")}
@@ -653,7 +662,7 @@ def card_pages(card: Card, pal: Palette, total: int) -> str:
   <div class="foot"><span>Question {card.number} of {total}</span>
     <span class="next" style="color:{pal.shade(0.18).hex}">ANSWER OVERLEAF ›</span></div>
 </section>
-<section class="page answer" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex}">
+<section class="page answer" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex};--wash:{pal.tint(0.93).hex}">
   {page_head(card, pal, "Answer", total)}
   <div class="body">
     {heading()}
@@ -680,8 +689,8 @@ def build_html(title: str, cards: list[Card], pal: Palette) -> str:
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
 <style>{CSS}</style></head>
 <body>
-<section class="page cover">
-  <div class="hero" style="background:{pal.bar.hex}">
+<section class="page cover" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex};--wash:{pal.tint(0.93).hex}">
+  <div class="hero" style="background:linear-gradient(135deg,{pal.bar.hex},{pal.bar.shade(0.4).hex})">
     <div class="mode">{esc(MODE_LABEL.get(cards[0].mode, 'RED PEN')).upper()}</div>
     <h1>{esc(title)}</h1>
   </div>
@@ -713,6 +722,10 @@ INDEX_JS = r"""
   function newPage() {
     page = document.createElement('section');
     page.className = 'page toc';
+    // The contents page inherits the deck's colour variables from a card page,
+    // since it is built here rather than in Python and has none of its own.
+    const styled = document.querySelector('.page[style]');
+    if (styled) page.setAttribute('style', styled.getAttribute('style'));
     page.innerHTML = '<div class="bar" style="background:' +
       document.querySelector('.bar').style.background +
       '"><span>CONTENTS</span><span></span></div>' +

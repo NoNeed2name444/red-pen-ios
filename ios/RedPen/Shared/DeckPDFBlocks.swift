@@ -128,17 +128,26 @@ extension DeckPDF {
                 y += size * 0.5
 
             case .bullet(let lead, let text):
-                let indent: CGFloat = 14
+                // A tinted row per bullet, with a dot rather than a glyph. A
+                // list of OSCE steps is a list of things to DO, and set as
+                // plain paragraphs with bullets it reads as prose.
+                let indent = size * 1.5
+                let rowHeight = writeLead(lead, text: text, x: margin + indent, y: y,
+                                          width: width - indent, size: size, palette: palette,
+                                          measuring: true)
                 if !measuring {
-                    "\u{2022}".draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                        .font: DeckPDF.round(size),
-                        .foregroundColor: color(palette, 0.9),
-                    ])
+                    let row = CGRect(x: margin - 8, y: y - size * 0.35,
+                                     width: width + 16, height: rowHeight + size * 0.7)
+                    color(palette.tint(0.93)).setFill()
+                    UIBezierPath(roundedRect: row, cornerRadius: 6).fill()
+                    color(palette, 0.95).setFill()
+                    UIBezierPath(ovalIn: CGRect(x: margin, y: y + size * 0.32,
+                                                width: size * 0.38, height: size * 0.38)).fill()
+                    _ = writeLead(lead, text: text, x: margin + indent, y: y,
+                                  width: width - indent, size: size, palette: palette,
+                                  measuring: false)
                 }
-                y += writeLead(lead, text: text, x: margin + indent, y: y,
-                               width: width - indent, size: size, palette: palette,
-                               measuring: measuring)
-                y += size * 0.42
+                y += rowHeight + size * 0.75
 
             case .option(let letter, let text, let correct):
                 let indent = size * 2.1

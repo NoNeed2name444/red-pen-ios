@@ -30,6 +30,21 @@ extension DeckPDF {
 
     // MARK: the furniture every page shares
 
+    /// The white card the content sits on.
+    ///
+    /// Structure, not decoration: a column of text laid straight onto the
+    /// tinted ground has no edges, so nothing on the page says where the card's
+    /// own content begins and the page furniture ends.
+    static func contentCard(from top: CGFloat, palette: DeckPalette) {
+        let box = CGRect(x: margin - 12, y: top - 14,
+                         width: pageSize.width - (margin - 12) * 2,
+                         height: pageSize.height - 44 - (top - 14))
+        color(palette.tint(0.92)).setFill()
+        UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
+        UIColor.white.setFill()
+        UIBezierPath(roundedRect: box.insetBy(dx: 0.7, dy: 0.7), cornerRadius: 11.5).fill()
+    }
+
     /// The page's own ground: the faintest wash of the mode's colour.
     ///
     /// A sheet of pure white with one coloured strip along the top reads as a
@@ -102,13 +117,13 @@ extension DeckPDF {
     static func chipBox(_ text: String, palette: DeckPalette, at point: CGPoint) {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: round(7.5, weight: .heavy),
-            .foregroundColor: color(palette.shade(0.28)),
+            .foregroundColor: UIColor.white,
             .kern: 0.9,
         ]
         let label = text.uppercased() as NSString
         let size = label.size(withAttributes: attrs)
         let box = CGRect(x: point.x, y: point.y, width: size.width + 16, height: 17)
-        color(palette.tint(0.84)).setFill()
+        color(palette).setFill()
         UIBezierPath(roundedRect: box, cornerRadius: 8.5).fill()
         label.draw(at: CGPoint(x: box.minX + 8, y: box.minY + (box.height - size.height) / 2),
                    withAttributes: attrs)
@@ -213,6 +228,12 @@ extension DeckPDF {
                 let row = rows[index]
                 let rect = CGRect(x: margin, y: y - 3,
                                   width: pageSize.width - margin * 2, height: 19)
+                // Banded, so an eye running down a long index keeps its line.
+                if index % 2 == 0 {
+                    color(palette.tint(0.93)).setFill()
+                    UIBezierPath(roundedRect: rect.insetBy(dx: -6, dy: -1),
+                                 cornerRadius: 5).fill()
+                }
                 row.topic.draw(with: CGRect(x: margin, y: y,
                                             width: pageSize.width - margin * 2 - 60, height: 15),
                                options: [.usesLineFragmentOrigin],
@@ -221,7 +242,7 @@ extension DeckPDF {
                                context: nil)
                 let number = row.range as NSString
                 let attrs: [NSAttributedString.Key: Any] = [
-                    .font: round(9.5, weight: .semibold).monospacedDigits(),
+                    .font: round(9.5, weight: .heavy).monospacedDigits(),
                     .foregroundColor: color(palette.shade(0.18)),
                 ]
                 let width = number.size(withAttributes: attrs).width
@@ -272,10 +293,13 @@ extension DeckPDF {
         // Registered here, clear of the page boundary - see contents().
         context.addDestination(withName: "card\(card.number)", at: CGPoint(x: 0, y: top + 12))
 
-        watermark("Q", palette: palette)
         if let picture {
             y = draw(picture, from: y, limit: questionPictureLimit)
         }
+        // The card first, then the watermark on top of it: drawn the other way
+        // round, the opaque card paints the letter out.
+        contentCard(from: y, palette: palette)
+        watermark("Q", palette: palette)
         draw(card.question, from: y, palette: palette, size: questionSize, scale: scale)
         footer(left: "Question \(card.number) of \(total)",
                right: "Answer overleaf \u{203A}", palette: palette)
@@ -290,10 +314,11 @@ extension DeckPDF {
         var y = heading(topic: card.topic,
                         subtitle: "\(set.kind.label) \u{00B7} Question \(card.number) of \(total)",
                         chip: card.kindLabel, palette: palette, from: top)
-        watermark("A", palette: palette)
         if let picture {
             y = draw(picture, from: y, limit: answerPictureLimit)
         }
+        contentCard(from: y, palette: palette)
+        watermark("A", palette: palette)
         y = draw(card.answer, from: y, palette: palette, size: answerSize, scale: scale)
         if let source = card.source, !source.isEmpty {
             source.draw(at: CGPoint(x: margin, y: min(y + 10, pageSize.height - 58)),
