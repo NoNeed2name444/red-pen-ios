@@ -26,13 +26,19 @@ permissions:
   contents: read
 jobs:
   record:
-    runs-on: macos-15
+    # macos-latest, NOT a pinned image: the first run of this job died in the
+    # build, and the difference from the screenshot job - which builds the same
+    # app from the same commit quite happily - was the runner. A pinned image
+    # carries whichever Xcode it shipped with, and this app needs the one that
+    # knows about iOS 26.
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
       - name: Tools
         run: |
+          xcodebuild -version
           brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
           xcodegen --version
 
@@ -59,6 +65,9 @@ jobs:
                   candidates.append(((version, name.endswith("Pro"), "Pro" in name, name),
                                      d["udid"], name, runtime))
           candidates.sort()
+          if not candidates:
+              print("no iPhone simulator on this runner", file=sys.stderr)
+              raise SystemExit(1)
           _, udid, name, runtime = candidates[-1]
           print(f"udid={udid}")
           print(f"name={name}")
@@ -130,6 +139,14 @@ jobs:
           kill -INT $RECORDER
           wait $RECORDER || true
           ls -la walkthrough
+
+      - name: Keep the log even when the build failed
+        if: always()
+        run: |
+          mkdir -p walkthrough
+          cp build.log walkthrough/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u \
+            | head -60 > walkthrough/errors.txt || true
 
       - name: Keep the recording
         if: always()
