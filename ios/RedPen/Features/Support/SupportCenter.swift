@@ -110,7 +110,12 @@ struct SupportSidebar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(here ? AnyShapeStyle(.tint.opacity(0.12)) : AnyShapeStyle(Color.clear))
+        // listRowBackground takes a VIEW, not a style, so the two branches
+        // have to be the same kind of thing: a filled shape either way.
+        .listRowBackground(
+            Rectangle().fill(here ? AnyShapeStyle(.tint.opacity(0.12))
+                                  : AnyShapeStyle(Color.clear))
+        )
         .accessibilityAddTraits(here ? [.isSelected] : [])
     }
 }
