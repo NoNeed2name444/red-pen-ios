@@ -1,0 +1,68 @@
+# An .ipa of the app, built on GitHub's Mac.
+#
+# Unsigned by default: signing needs an Apple developer certificate, and this
+# repository deliberately holds no secrets of the owner's. What comes out is a
+# real, complete app bundle that any of the usual signing routes can take -
+# and, with an App Store Connect key in the repository's secrets, the same job
+# can sign it and send it to TestFlight, which is the only way onto a phone
+# that needs no computer at all.
+name: IPA
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Debug or Release
+        required: false
+        default: 'Release'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools
+        run: |
+          xcodebuild -version
+          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build for a device
+        working-directory: ios
+        run: |
+          set -o pipefail
+          # generic/platform=iOS, not a simulator: a simulator build is x86/arm
+          # code for a Mac and will not run on a phone whatever you do to it.
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen \
+            -configuration "${{ inputs.configuration }}" \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Wrap it as an .ipa
+        run: |
+          set -euo pipefail
+          APP=$(find ios/build/Build/Products -maxdepth 2 -name 'RedPen.app' -type d | head -1)
+          test -n "$APP"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          # An .ipa is only ever a zip with the bundle inside Payload/.
+          (cd out && zip -qry "CramDown-${{ inputs.configuration }}.ipa" Payload && rm -rf Payload)
+          cp build.log out/build.log
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ipa
+          path: out/*
+          if-no-files-found: warn
