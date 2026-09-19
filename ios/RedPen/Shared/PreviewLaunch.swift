@@ -29,15 +29,44 @@ enum PreviewLaunch {
         return args[i + 1].lowercased().hasPrefix("land")
     }
 
-    /// Asks the window to turn, and tells iOS the app allows it while it does.
+    /// Asks the window to turn, and keeps asking until it does.
+    ///
+    /// One attempt in `.task` was not enough: the first landscape pass came
+    /// back as six portrait screenshots. A scene may not be attached yet when
+    /// the first view appears, and iOS refuses the request outright while the
+    /// app is multitasking-capable - so this tries repeatedly for a few
+    /// seconds and writes down what happened, because a silent failure here
+    /// produces screenshots that look like evidence and are not.
     @MainActor
-    static func applyOrientation() {
-        guard landscape,
-              let scene = UIApplication.shared.connectedScenes
-                  .compactMap({ $0 as? UIWindowScene }).first else { return }
-        scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
-            print("preview: could not rotate - \(error.localizedDescription)")
+    static func applyOrientation() async {
+        guard landscape else { return }
+        var notes: [String] = []
+        for attempt in 1...12 {
+            guard let scene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene }).first else {
+                notes.append("attempt \(attempt): no window scene yet")
+                try? await Task.sleep(for: .milliseconds(400))
+                continue
+            }
+            if scene.interfaceOrientation.isLandscape {
+                notes.append("attempt \(attempt): already landscape")
+                break
+            }
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
+                notes.append("attempt \(attempt): refused - \(error.localizedDescription)")
+            }
+            try? await Task.sleep(for: .milliseconds(400))
+            if scene.interfaceOrientation.isLandscape {
+                notes.append("attempt \(attempt): turned")
+                break
+            }
         }
+        // Written where the screenshot job can fish it out of the app
+        // container, since a print from a simctl launch goes nowhere.
+        let log = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("rotation.log")
+        let text = notes.joined(separator: "\n") + "\n"
+        try? text.write(to: log, atomically: true, encoding: .utf8)
     }
 
     static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
@@ -212,8 +241,8 @@ struct PreviewRoot: View {
     var body: some View {
         content
             .task {
-                // After the first layout, so the scene exists to be turned.
-                PreviewLaunch.applyOrientation()
+                // After the first layout, so there is a scene to turn.
+                await PreviewLaunch.applyOrientation()
             }
     }
 
