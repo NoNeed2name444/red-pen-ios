@@ -1,0 +1,145 @@
+# The same screens, on an iPad.
+#
+# A separate workflow rather than more loops inside the iPhone one: the phone
+# job is the compile check that must stay fast and must not be cancelled by
+# this, and an iPad run answers a different question - does the split view
+# actually look like a tablet app, or like a phone app stretched?
+name: iPad preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ipad-preview
+  cancel-in-progress: true
+jobs:
+  preview:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick an iPad
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          best = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPad"):
+                      continue
+                  # Pro first, then Air, then the base model - a bigger screen
+                  # is the more honest test of a split view.
+                  rank = 2 if "Pro" in name else 1 if "Air" in name else 0
+                  best.append(((version, rank, name), d["udid"], name, runtime))
+          best.sort()
+          if not best:
+              print("no iPad simulator on this runner", file=sys.stderr)
+              raise SystemExit(1)
+          _, udid, name, runtime = best[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          print(f"runtime={runtime.rsplit('.', 1)[-1]}")
+          print("picked", name, runtime, file=sys.stderr)
+          PY
+
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Screenshots
+        if: ${{ !cancelled() }}
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+            --batteryState charged --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p ipad
+          # Both orientations, because landscape is the one the split view is
+          # really for and the one the app refused to do until today.
+          for orient in portrait landscape; do
+            if [ "$orient" = landscape ]; then
+              xcrun simctl status_bar "$UDID" override --time "9:41" || true
+            fi
+            for screen in library quiz quiz-checked anki-revealed book osce-revealed; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                     -uiPreviewOrientation "$orient" >> ipad/shots.log 2>&1; then
+                echo "launch failed: $screen ($orient)" >> ipad/shots.log
+                continue
+              fi
+              sleep 7
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
+                "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
+                || echo "shot failed: $screen ($orient)" >> ipad/shots.log
+            done
+          done
+          for f in ipad/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
+          ls -la ipad
+
+      - name: Record and publish
+        if: ${{ !cancelled() }}
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEVICE: ${{ steps.sim.outputs.name }}
+          RUNTIME: ${{ steps.sim.outputs.runtime }}
+        run: |
+          set -e
+          mkdir -p ipad
+          cp build.log ipad/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -60 > ipad/errors.txt || true
+          python3 - <<'PY'
+          import datetime, json, os
+          log = open("build.log", errors="replace").read() if os.path.exists("build.log") else ""
+          json.dump({
+              "commit": os.environ["GITHUB_SHA"],
+              "when": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+              "device": os.environ.get("DEVICE", ""),
+              "runtime": os.environ.get("RUNTIME", ""),
+              "build_ok": "BUILD SUCCEEDED" in log,
+              "build_finished": ("BUILD SUCCEEDED" in log) or ("BUILD FAILED" in log),
+              "screens": sorted(f for f in os.listdir("ipad") if f.endswith(".png")),
+          }, open("ipad/status.json", "w"), indent=2)
+          PY
+          cd ipad
+          git init -q
+          git checkout -q -b ipad-previews
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "iPad preview of ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ipad-previews:ipad-previews
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ipad-preview
+          path: ipad
