@@ -1,0 +1,107 @@
+# The app at the window sizes iPadOS can give it.
+#
+# An iPad app is rarely the whole screen: it can be a Slide Over panel, half a
+# Split View, or a window dragged to any width, and the layout has to hold at
+# all of them. A simulator cannot be dragged into Slide Over from a script, so
+# the app is asked to lay itself out at a given width and photographed on a
+# plain surround - the layout is the thing being checked, not the wallpaper.
+name: iPad widths
+on:
+  workflow_dispatch:
+    inputs:
+      widths:
+        description: window widths in points, space separated
+        required: false
+        default: 320 507 740 1024
+permissions:
+  contents: write
+concurrency:
+  group: ipad-widths
+  cancel-in-progress: true
+jobs:
+  widths:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Pick an iPad
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          best = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPad"):
+                      continue
+                  rank = 3 if name.startswith("iPad Pro") else 2 if name.startswith("iPad Air") else 0 if name.startswith("iPad mini") else 1
+                  best.append(((rank, 1 if "13" in name else 0, version, name), d["udid"], name))
+          best.sort()
+          if not best:
+              print("no iPad simulator on this runner", file=sys.stderr)
+              raise SystemExit(1)
+          _, udid, name = best[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          PY
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Screenshots
+        if: ${{ !cancelled() }}
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+            --batteryState charged --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p widths
+          for w in ${{ inputs.widths }}; do
+            for screen in library quiz; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                     -uiPreviewWidth "$w" >> widths/shots.log 2>&1; then
+                echo "launch failed: $screen (w$w)" >> widths/shots.log
+                continue
+              fi
+              sleep 7
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
+                "widths/$screen-w$w.png" >> widths/shots.log 2>&1 \
+                || echo "shot failed: $screen (w$w)" >> widths/shots.log
+            done
+          done
+          for f in widths/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
+          ls -la widths
+      - name: Record
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p widths
+          cp build.log widths/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -60 > widths/errors.txt || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ipad-widths
+          path: widths
