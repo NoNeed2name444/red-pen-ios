@@ -55,6 +55,14 @@ struct LibraryView: View {
     /// The sets the chosen tab is about.
     var shown: [StudySet] { sets(in: tab) }
 
+    /// How tall the dock actually is, measured rather than guessed.
+    ///
+    /// The first attempt padded the list by a round number and the last row
+    /// still ended up behind the glass. A floating bar's height depends on the
+    /// text size the reader chose, so the only reliable number is the one the
+    /// layout reports.
+    @State private var dockHeight: CGFloat = 0
+
     var body: some View {
         NavigationStack {
             attachingSheets(to: screen)
@@ -77,6 +85,9 @@ struct LibraryView: View {
                     selectionBar
                 } else if tabs.count > 1 {
                     ModeDock(tabs: tabs, selection: $tab) { sets(in: $0).count }
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                            dockHeight = $0
+                        }
                 }
             }
             .sheet(isPresented: $showAccount) { AccountView() }
@@ -114,7 +125,7 @@ struct LibraryView: View {
             .scrollContentBackground(.hidden)
             // The dock floats over the list, so the last row needs somewhere
             // to end that is not behind glass.
-            .safeAreaPadding(.bottom, tabs.count > 1 ? 8 : 0)
+            .contentMargins(.bottom, selecting ? 0 : dockHeight, for: .scrollContent)
             .id(tab)
             .transition(.opacity)
             .gesture(

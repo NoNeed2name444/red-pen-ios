@@ -53,8 +53,8 @@ struct ModeDock: View {
             .padding(5)
         }
         .liquidGlassPanel(cornerRadius: 30)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
     }
 
     private func item(_ tab: LibraryTab) -> some View {
@@ -70,7 +70,8 @@ struct ModeDock: View {
                     if count(tab) > 0 {
                         Text("\(count(tab))")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(chosen ? .white : Color.secondary)
+                            .foregroundStyle(chosen ? AnyShapeStyle(.white)
+                                                    : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 3.5).padding(.vertical, 0.5)
                             // Grey unless this is the mode you are in: a
                             // coloured pip on every icon reads as six unread
@@ -88,7 +89,12 @@ struct ModeDock: View {
                         .transition(.opacity.combined(with: .move(edge: .leading)))
                 }
             }
-            .foregroundStyle(chosen ? AnyShapeStyle(tab.tint) : AnyShapeStyle(.secondary))
+            // Grey on grey made a stethoscope and a clipboard indistinguishable
+            // at 19 points. Each mode keeps its own hue when it is not chosen,
+            // just quietly: identifiable without competing with the one you are
+            // actually in.
+            .foregroundStyle(chosen ? AnyShapeStyle(tab.tint)
+                                    : AnyShapeStyle(tab.tint.opacity(0.55)))
             .padding(.horizontal, chosen ? 13 : 9)
             .padding(.vertical, 9)
             .background {

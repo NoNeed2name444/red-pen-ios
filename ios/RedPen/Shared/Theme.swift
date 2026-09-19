@@ -118,10 +118,19 @@ struct ModeBackdrop: View {
 /// A content card: the reading surface each mode places its question, card
 /// or page on. Rounded, elevated a touch off the backdrop.
 struct ContentCard: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var width
+
+    /// A line of text stops being readable somewhere past about ninety
+    /// characters, and an iPad is far wider than that. On a wide screen the
+    /// card stops growing and centres instead, which is why a question on an
+    /// iPad reads like a page rather than like a phone screen stretched.
+    private var readableWidth: CGFloat { width == .regular ? 680 : .infinity }
+
     func body(content: Content) -> some View {
         content
             .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: readableWidth, alignment: .leading)
+            .frame(maxWidth: .infinity)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
