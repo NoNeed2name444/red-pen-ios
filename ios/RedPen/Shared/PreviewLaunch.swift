@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Screenshot hooks for the CI preview pipeline (.github/workflows/ios-preview.yml).
 ///
@@ -14,6 +15,29 @@ enum PreviewLaunch {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-uiPreviewScreen"), i + 1 < args.count else { return nil }
         return args[i + 1]
+    }
+
+    /// The orientation named on the command line, for the iPad job.
+    ///
+    /// simctl cannot rotate a simulator, so without this a "landscape" pass
+    /// silently produces more portrait screenshots - pictures that look like
+    /// evidence and are not. The app turns itself instead, through the window
+    /// scene, which is the only part of the system that can.
+    static var landscape: Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewOrientation"), i + 1 < args.count else { return false }
+        return args[i + 1].lowercased().hasPrefix("land")
+    }
+
+    /// Asks the window to turn, and tells iOS the app allows it while it does.
+    @MainActor
+    static func applyOrientation() {
+        guard landscape,
+              let scene = UIApplication.shared.connectedScenes
+                  .compactMap({ $0 as? UIWindowScene }).first else { return }
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
+            print("preview: could not rotate - \(error.localizedDescription)")
+        }
     }
 
     static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
@@ -186,6 +210,15 @@ struct PreviewRoot: View {
     let screen: String
 
     var body: some View {
+        content
+            .task {
+                // After the first layout, so the scene exists to be turned.
+                PreviewLaunch.applyOrientation()
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch screen {
         case "new":
             NewSetView()
