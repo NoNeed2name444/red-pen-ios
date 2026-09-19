@@ -1,14 +1,15 @@
-# The same screens, on an iPad.
+# The same screens, on an iPad, in both orientations.
 #
 # A separate workflow rather than more loops inside the iPhone one: the phone
 # job is the compile check that must stay fast and must not be cancelled by
 # this, and an iPad run answers a different question - does the split view
 # actually look like a tablet app, or like a phone app stretched?
 #
-# Portrait only, for now. simctl cannot rotate a simulator from the command
-# line, and the app has no launch argument for it either, so a landscape pass
-# would quietly produce six more portrait screenshots - worse than none,
-# because it would look like evidence.
+# Landscape works because the APP turns itself: simctl cannot rotate a
+# simulator, so the run passes -uiPreviewOrientation and PreviewLaunch asks
+# the window scene for landscape. Without that the landscape pass would
+# quietly produce more portrait screenshots - pictures that look like
+# evidence and are not.
 name: iPad preview
 on:
   workflow_dispatch:
@@ -88,22 +89,37 @@ jobs:
             --batteryState charged --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p ipad
-          for mode in light dark; do
-            xcrun simctl ui "$UDID" appearance "$mode"
+          for orient in portrait landscape; do
             for screen in library quiz quiz-checked anki-revealed book osce-revealed; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                     >> ipad/shots.log 2>&1; then
-                echo "launch failed: $screen ($mode)" >> ipad/shots.log
+                     -uiPreviewOrientation "$orient" >> ipad/shots.log 2>&1; then
+                echo "launch failed: $screen ($orient)" >> ipad/shots.log
                 continue
               fi
-              sleep 7
+              # Longer than the phone job: the rotation animation has to
+              # finish before the picture is taken, or the screenshot catches
+              # the app mid-turn.
+              sleep 9
               xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
-                "ipad/$screen-$mode.png" >> ipad/shots.log 2>&1 \
-                || echo "shot failed: $screen ($mode)" >> ipad/shots.log
+                "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
+                || echo "shot failed: $screen ($orient)" >> ipad/shots.log
             done
           done
-          for f in ipad/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
+          # A landscape shot that came out portrait means the rotation did not
+          # take, and the run should say so rather than hand over a lie.
+          python3 - <<'PY' >> ipad/shots.log
+          import glob, struct
+          def size(path):
+              with open(path, "rb") as f:
+                  head = f.read(33)
+              return struct.unpack(">II", head[16:24])
+          for f in sorted(glob.glob("ipad/*-landscape.png")):
+              w, h = size(f)
+              if w <= h:
+                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
+          PY
+          for f in ipad/*.png; do sips --resampleWidth 1200 "$f" --out "$f" >/dev/null || true; done
           ls -la ipad
 
       - name: Record and publish
@@ -120,6 +136,7 @@ jobs:
           python3 - <<'PY'
           import datetime, json, os
           log = open("build.log", errors="replace").read() if os.path.exists("build.log") else ""
+          shots = open("ipad/shots.log", errors="replace").read() if os.path.exists("ipad/shots.log") else ""
           json.dump({
               "commit": os.environ["GITHUB_SHA"],
               "when": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -127,6 +144,7 @@ jobs:
               "runtime": os.environ.get("RUNTIME", ""),
               "build_ok": "BUILD SUCCEEDED" in log,
               "build_finished": ("BUILD SUCCEEDED" in log) or ("BUILD FAILED" in log),
+              "rotation_worked": "NOT ACTUALLY LANDSCAPE" not in shots,
               "screens": sorted(f for f in os.listdir("ipad") if f.endswith(".png")),
           }, open("ipad/status.json", "w"), indent=2)
           PY
