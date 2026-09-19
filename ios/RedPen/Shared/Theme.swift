@@ -31,6 +31,33 @@ extension StudySetKind {
         }
     }
 
+    /// Steps inside the mode's OWN hue, for controls that must be told apart
+    /// from one another.
+    ///
+    /// The four Anki rating buttons used to be red, orange, green and blue -
+    /// a traffic light borrowed wholesale from three other modes' identities,
+    /// sitting inside an indigo screen. Distinguishing four buttons does not
+    /// require four unrelated colours: depth inside one hue does it, and the
+    /// screen stays one colour. Anything that carries real meaning of its own
+    /// (a right answer, an error) keeps its own colour; this is for controls
+    /// that are merely different from each other.
+    func step(_ i: Int, of n: Int = 4) -> Color {
+        guard n > 1 else { return tint }
+        let t = Double(min(max(i, 0), n - 1)) / Double(n - 1)   // 0 ... 1
+        return shifted(brightness: 0.34 * (1 - t) - 0.16 * t,
+                       saturation: -0.30 * (1 - t))
+    }
+
+    /// The same hue, lighter or darker, for washes and quiet states.
+    func shifted(brightness: Double, saturation: Double = 0) -> Color {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard UIColor(tint).getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return tint }
+        return Color(hue: Double(h),
+                     saturation: min(1, max(0, Double(s) + saturation)),
+                     brightness: min(1, max(0, Double(b) + brightness)),
+                     opacity: Double(a))
+    }
+
     var gradient: LinearGradient {
         LinearGradient(colors: [tint, tint.opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -179,10 +206,12 @@ struct ScoreRing: View {
             Circle().stroke(Color.primary.opacity(0.08), lineWidth: 14)
             Circle()
                 .trim(from: 0, to: shown)
-                .stroke(AngularGradient(colors: [Color.accentColor.opacity(0.65), Color.accentColor], center: .center),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                // `.tint` rather than the app accent: the ring belongs to the
+                // screen it is on, and the accent is whatever mode happens to
+                // be the app's default.
+                .stroke(.tint, style: StrokeStyle(lineWidth: 14, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .shadow(color: Color.accentColor.opacity(0.45), radius: 10)
+                .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
             VStack(spacing: 2) {
                 Text(label).font(.system(size: 38, weight: .bold, design: .rounded))
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)

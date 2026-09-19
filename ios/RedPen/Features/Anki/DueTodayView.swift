@@ -86,10 +86,10 @@ struct DueTodayView: View {
                 } else {
                     let labels = AnkiScheduler.previewLabels(currentIntervalMin: interval)
                     HStack(spacing: 8) {
-                        rateButton(.again, labels[.again] ?? "", due: due, color: .red)
-                        rateButton(.hard, labels[.hard] ?? "", due: due, color: .orange)
-                        rateButton(.good, labels[.good] ?? "", due: due, color: .green)
-                        rateButton(.easy, labels[.easy] ?? "", due: due, color: .blue)
+                        rateButton(.again, labels[.again] ?? "", due: due, color: StudySetKind.anki.step(0))
+                        rateButton(.hard, labels[.hard] ?? "", due: due, color: StudySetKind.anki.step(1))
+                        rateButton(.good, labels[.good] ?? "", due: due, color: StudySetKind.anki.step(2))
+                        rateButton(.easy, labels[.easy] ?? "", due: due, color: StudySetKind.anki.step(3))
                     }
                 }
             }

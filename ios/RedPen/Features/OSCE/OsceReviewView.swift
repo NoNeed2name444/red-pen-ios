@@ -75,13 +75,13 @@ struct OsceReviewView: View {
                 if !complete {
                     Text(inRepeat ? "Missed step \(repeatPos + 1) of \(repeatQueue.count)" : "Step \(stepIndex + 1) of \(checklist.steps.count)")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(inRepeat ? .orange : .secondary)
+                        .foregroundStyle(inRepeat ? AnyShapeStyle(StudySetKind.osce.shifted(brightness: -0.12, saturation: 0.1)) : AnyShapeStyle(.secondary))
                     if inRepeat {
                         Text("again")
                             .font(.caption2.weight(.bold))
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .foregroundStyle(.orange)
-                            .liquidGlassChip(tint: .orange)
+                            .foregroundStyle(StudySetKind.osce.shifted(brightness: -0.14))
+                            .liquidGlassChip(tint: StudySetKind.osce.tint)
                     }
                 }
                 Spacer()
@@ -129,7 +129,7 @@ struct OsceReviewView: View {
             if revealed {
                 HStack(spacing: 12) {
                     Button("Missed it") { grade(knewIt: false) }
-                        .buttonStyle(.glass).tint(.red)
+                        .buttonStyle(.glass).tint(StudySetKind.osce.step(0))
                     Button("Knew it") { grade(knewIt: true) }
                         .buttonStyle(.glassProminent)
                 }

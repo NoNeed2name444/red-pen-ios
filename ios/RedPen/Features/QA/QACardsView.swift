@@ -40,8 +40,8 @@ struct QACardsView: View {
                             Text(card.badge)
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8).padding(.vertical, 3)
-                                .foregroundStyle(card.type == .case ? Color.orange : StudySetKind.qa.tint)
-                                .background((card.type == .case ? Color.orange : StudySetKind.qa.tint).opacity(0.14), in: Capsule())
+                                .foregroundStyle(card.type == .case ? StudySetKind.qa.shifted(brightness: -0.18, saturation: 0.05) : StudySetKind.qa.tint)
+                                .background((card.type == .case ? StudySetKind.qa.shifted(brightness: -0.18, saturation: 0.05) : StudySetKind.qa.tint).opacity(0.14), in: Capsule())
                             if !card.topic.isEmpty { Text(card.topic).font(.caption).foregroundStyle(.secondary) }
                         }
                         Text(hl(card.stem)).font(.title3.weight(.semibold)).lineSpacing(2)

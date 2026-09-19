@@ -147,10 +147,10 @@ struct AnkiReviewView: View {
                 } else {
                     let labels = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
                     HStack(spacing: 8) {
-                        rateButton(.again, labels[.again] ?? "", color: .red)
-                        rateButton(.hard, labels[.hard] ?? "", color: .orange)
-                        rateButton(.good, labels[.good] ?? "", color: .green)
-                        rateButton(.easy, labels[.easy] ?? "", color: .blue)
+                        rateButton(.again, labels[.again] ?? "", color: StudySetKind.anki.step(0))
+                        rateButton(.hard, labels[.hard] ?? "", color: StudySetKind.anki.step(1))
+                        rateButton(.good, labels[.good] ?? "", color: StudySetKind.anki.step(2))
+                        rateButton(.easy, labels[.easy] ?? "", color: StudySetKind.anki.step(3))
                     }
                 }
             }

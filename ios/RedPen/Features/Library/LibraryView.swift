@@ -25,7 +25,18 @@ struct LibraryView: View {
     @State var editing: StudySet?
     @State var draftName = ""
 
-    var pen: Color { StudySetKind.mcq.tint }
+    /// Which mode's shelf is showing. The whole screen takes its colour from
+    /// this, so a swipe to Anki turns the navigation bar indigo instead of
+    /// leaving MCQ's red over an indigo screen.
+    @State var tab: LibraryTab = .all
+
+    var pen: Color { tab.tint }
+
+    var tabs: [LibraryTab] { LibraryTab.present(in: store.library) }
+    func sets(in tab: LibraryTab) -> [StudySet] {
+        guard let kind = tab.kind else { return store.library }
+        return store.library.filter { $0.kind == kind }
+    }
 
     enum NamingSheet: Identifiable {
         case folder, combine
@@ -36,16 +47,20 @@ struct LibraryView: View {
     var canCombine: Bool {
         selectedSets.count >= 2 && Set(selectedSets.map(\.kind)).count == 1
     }
-    var loose: [StudySet] { store.library.filter { $0.folderId == nil } }
+    var loose: [StudySet] { shown.filter { $0.folderId == nil } }
     func members(of folder: StudyFolder) -> [StudySet] {
-        store.library.filter { $0.folderId == folder.id }
+        shown.filter { $0.folderId == folder.id }
     }
+
+    /// The sets the chosen tab is about.
+    var shown: [StudySet] { sets(in: tab) }
 
     var body: some View {
         NavigationStack {
             attachingSheets(to: screen)
         }
         .tint(pen)
+        .animation(.snappy(duration: 0.28), value: tab)
     }
 
     private var screen: some View {
@@ -56,6 +71,11 @@ struct LibraryView: View {
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
             .sheet(isPresented: $showAccount) { AccountView() }
+            // A tab whose last set has just been deleted would otherwise leave
+            // the library showing an empty shelf with no way back.
+            .onChange(of: store.library) { _, sets in
+                if let kind = tab.kind, !sets.contains(where: { $0.kind == kind }) { tab = .all }
+            }
     }
 
     @ViewBuilder
@@ -64,6 +84,14 @@ struct LibraryView: View {
             emptyState
         } else {
             List {
+                if tabs.count > 1 {
+                    Section {
+                        ModeTabBar(tabs: tabs, selection: $tab) { sets(in: $0).count }
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 2, trailing: 0))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                }
                 Section {
                     dueBanner
                     summaryStrip
@@ -83,6 +111,23 @@ struct LibraryView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .id(tab)
+            .transition(.opacity)
+            .gesture(
+                // A horizontal drag moves one tab along. The list keeps its own
+                // vertical scrolling because the gesture only claims a drag
+                // that is clearly sideways.
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) * 1.6,
+                              abs(value.translation.width) > 60,
+                              tabs.count > 1,
+                              let here = tabs.firstIndex(of: tab) else { return }
+                        let next = value.translation.width < 0 ? here + 1 : here - 1
+                        guard tabs.indices.contains(next) else { return }
+                        withAnimation(.snappy(duration: 0.28)) { tab = tabs[next] }
+                    }
+            )
         }
     }
 

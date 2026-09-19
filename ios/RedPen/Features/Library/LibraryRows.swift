@@ -96,7 +96,7 @@ extension LibraryView {
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
-                .tint(.teal)
+                .tint(set.kind.tint)
         }
     }
 
