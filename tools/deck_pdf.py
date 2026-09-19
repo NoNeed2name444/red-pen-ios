@@ -466,11 +466,22 @@ b, strong { color: var(--deep) }
                align-items: center; justify-content: center }
 .opt.correct { font-weight: 700; background: var(--soft) }
 .opt.correct .letter { background: var(--accent); color: #fff }
-.note-label { font-size: 9pt; font-weight: 800; letter-spacing: .1em;
-              color: var(--deep); margin-bottom: 1mm }
-.note-text { font-size: 12pt; color: #2b2b2b }
-.why { background: var(--wash); border-radius: 2.6mm; padding: 3mm 4mm; margin-top: 4mm;
-       border-left: 1.2mm solid var(--accent) }
+.note-label { font-size: 9pt; font-weight: 800; letter-spacing: .13em;
+              color: var(--deep); margin-bottom: 2.2mm }
+.note-text { font-size: 12pt; color: #24282b; line-height: 1.72 }
+.note-text p { margin: 0 0 3.4mm }
+.note-text p:last-child { margin-bottom: 0 }
+/* The second section is support, not headline: same colour, less weight, and
+   each trap on its own line so they can be scanned one at a time. */
+.note-label.alt { margin-top: 5mm; opacity: .7 }
+.note-text.traps p { padding: 2.6mm 3.4mm 2.6mm 7mm; position: relative; margin: 0 0 2.2mm;
+                     background: var(--wash); border-radius: 2.4mm }
+.note-text.traps p:last-child { margin-bottom: 0 }
+.note-text.traps p::before { content: ""; position: absolute; left: 3mm; top: 4.4mm;
+                             width: 1.8mm; height: 1.8mm; border-radius: 50%;
+                             background: var(--accent); opacity: .65 }
+.why { background: #fff; border-radius: 3.4mm; padding: 5mm 6mm 5.5mm; margin-top: 4.5mm;
+       border-left: 1.4mm solid var(--accent); box-shadow: 0 0 0 .25mm var(--soft) }
 figure { margin: 0 0 5mm; text-align: center }
 figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .answer figure img { max-height: 80mm }
@@ -574,6 +585,86 @@ def emphasise(html_text: str, phrase: str) -> str:
     return pattern.sub(lambda m: f"<b>{m.group(0)}</b>", html_text)
 
 
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def explanation(block, blocks, answer_side: bool) -> str:
+    """The reasoning, arranged rather than poured onto the page.
+
+    A good explanation does two jobs at once: it says why the right answer is
+    right, and it says why the tempting wrong ones are wrong. Set as a single
+    six-line paragraph, those two jobs are indistinguishable, and the whole
+    thing reads as a wall to be got through rather than as something to learn
+    from - which is the complaint that prompted this.
+
+    So the sentences that talk about the OTHER options are lifted out and set
+    under their own heading. The split is by what a sentence mentions, not by
+    position, because an explanation may deal with the distractors first.
+
+    If nothing can be told apart - a short explanation, or one that never names
+    another option - it stays one block, broken into paragraphs of two
+    sentences. Guessing structure that is not there would be worse than the
+    wall.
+    """
+    text = block.get("text") or ""
+    label = esc(block.get("label", "")).upper()
+    key = answer_phrase(blocks) if answer_side else ""
+
+    def dress(part: str) -> str:
+        out = with_key(part)
+        return emphasise(out, key) if answer_side else out
+
+    sentences = [s.strip() for s in SENTENCE_END.split(text.strip()) if s.strip()]
+    others = [b.get("text", "").strip(" .") for b in blocks
+              if b["type"] == "option" and not b.get("correct")]
+    others = [o for o in others if len(o) >= 4]
+
+    # Matched on words rather than on the option's exact string: an
+    # explanation writes "radial-radial delay" where the option said
+    # "Radial-radial pulse delay", and a substring test misses that.
+    #
+    # But an overlap test on its own is not enough either, and the way it fails
+    # is instructive. "...the classic finding of an atrial septal defect,
+    # caused by delayed pulmonary valve closure" shares two words out of three
+    # with the option "Pulmonary valve stenosis", so it scored as a sentence
+    # about that option - when it is plainly about the right answer's own
+    # mechanism. A sentence is only about a distractor if it looks MORE like
+    # that distractor than it looks like the correct answer.
+    def about(words: set[str], said: set[str]) -> float:
+        return len(words & said) / len(words) if words else 0.0
+
+    right = content_words(key)
+
+    def mentions(sentence: str) -> bool:
+        said = content_words(sentence)
+        best = max((about(content_words(o), said) for o in others), default=0.0)
+        return best >= 0.6 and best > about(right, said)
+
+    core, traps = [], []
+    for sentence in sentences:
+        (traps if mentions(sentence) else core).append(sentence)
+
+    # A core left empty means every sentence names another option, and then
+    # there is nothing to separate. Two sentences are enough to be worth
+    # splitting, though: "here is why E is right. Here is why B tempts you" is
+    # the commonest shape an explanation takes, and it is exactly the one that
+    # reads as a wall when the two halves are run together.
+    if not traps or not core:
+        core, traps = sentences, []
+
+    def paragraphs(group, per=2):
+        return "".join(
+            f"<p>{dress(' '.join(group[i:i + per]))}</p>"
+            for i in range(0, len(group), per))
+
+    parts = [f'<div class="note-label">{label}</div>',
+             f'<div class="note-text">{paragraphs(core)}</div>']
+    if traps:
+        parts.append('<div class="note-label alt">WHY NOT THE OTHERS</div>')
+        parts.append(f'<div class="note-text traps">{paragraphs(traps, per=1)}</div>')
+    return '<div class="why">' + "".join(parts) + "</div>"
+
+
 def render_blocks(blocks, answer_side: bool) -> str:
     out, bullets = [], []
 
@@ -597,12 +688,7 @@ def render_blocks(blocks, answer_side: bool) -> str:
             out.append(f'<div class="{cls}"><span class="letter">{esc(b["letter"])}'
                        f'</span>{inline(b["text"])}</div>')
         elif kind == "note":
-            body = with_key(b["text"])
-            if answer_side:
-                body = emphasise(body, answer_phrase(blocks))
-            out.append(f'<div class="why"><div class="note-label">'
-                       f'{esc(b["label"]).upper()}</div>'
-                       f'<div class="note-text">{body}</div></div>')
+            out.append(explanation(b, blocks, answer_side))
     flush()
     return "\n".join(out)
 

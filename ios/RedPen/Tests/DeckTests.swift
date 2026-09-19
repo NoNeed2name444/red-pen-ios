@@ -171,3 +171,59 @@ ok(StudySetKind.allCases.filter { !DeckBuilder.printsAsPDF($0) } == [.anki],
 
 print(failures == 0 ? "\nALL DECK TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)
+
+// MARK: the explanation, arranged
+
+let asdOptions: [DeckBlock] = [
+    .option(letter: "A", text: "Pulmonary valve stenosis", correct: false),
+    .option(letter: "B", text: "Ventricular septal defect", correct: false),
+    .option(letter: "E", text: "Atrial septal defect", correct: true),
+]
+let asdWhy = "Fixed splitting of S2 that doesn't vary with respiration is the classic "
+    + "finding of an atrial septal defect. Ventricular septal defect is tempting because "
+    + "it is also a left-to-right shunt, but it produces a pansystolic murmur."
+let arranged = Explanation.split(asdWhy, options: asdOptions)
+
+ok(arranged.traps.count == 1, "the sentence about another option is lifted out")
+ok(arranged.core.contains("Fixed splitting") && !arranged.core.contains("tempting"),
+   "and what makes the right answer right is left behind")
+ok(arranged.traps.first?.hasPrefix("Ventricular septal defect") == true,
+   "the lifted sentence is the whole sentence, not a fragment")
+
+// The match is on words, because an explanation rarely repeats an option
+// verbatim - this is the case that a substring test got wrong.
+let looseOptions: [DeckBlock] = [
+    .option(letter: "B", text: "Radial-radial pulse delay", correct: false),
+    .option(letter: "D", text: "Femoral pulses", correct: true),
+]
+let looseWhy = "Femoral pulses must be palpated on every examination. "
+    + "Radial-radial delay is a tempting near-miss, but the finding described is weak."
+ok(Explanation.split(looseWhy, options: looseOptions).traps.count == 1,
+   "a near-miss worded differently is still recognised")
+
+ok(Explanation.split("One sentence only.", options: asdOptions).traps.isEmpty,
+   "a single sentence is never split")
+ok(Explanation.split(asdWhy, options: []).core == asdWhy,
+   "and with no other options to talk about, nothing is lifted")
+
+let allTraps = "Ventricular septal defect is wrong. Pulmonary valve stenosis is wrong."
+ok(Explanation.split(allTraps, options: asdOptions).traps.isEmpty,
+   "an explanation that is nothing but traps keeps its own shape")
+
+ok(Explanation.sentences("A. B! C?").count == 3, "sentences end where punctuation says")
+
+// The false positive that an overlap test alone produces: this sentence is
+// about the right answer's mechanism, but shares "pulmonary" and "valve" with
+// one of the distractors.
+let mechanismOptions: [DeckBlock] = [
+    .option(letter: "A", text: "Pulmonary valve stenosis", correct: false),
+    .option(letter: "E", text: "Atrial septal defect", correct: true),
+]
+let mechanismWhy = "Fixed splitting is the classic finding of an atrial septal defect, "
+    + "caused by delayed pulmonary valve closure. Pulmonary valve stenosis gives an "
+    + "ejection click instead."
+let mechanism = Explanation.split(mechanismWhy, options: mechanismOptions)
+ok(mechanism.traps.count == 1,
+   "a sentence is a trap only when it looks more like the distractor than like the answer")
+ok(mechanism.core.contains("delayed pulmonary valve closure"),
+   "so the right answer's own mechanism stays in the core")

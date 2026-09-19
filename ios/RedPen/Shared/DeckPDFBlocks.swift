@@ -172,14 +172,38 @@ extension DeckPDF {
                 y += size * 0.7
 
             case .note(let label, let text):
-                // Its own card, so the reasoning reads as a separate thing from
-                // the options above it rather than as more of the same column.
-                let marked = marking(key, in: text)
+                // Its own card, and inside it the reasoning is arranged rather
+                // than poured out: what makes the right answer right, then,
+                // under its own heading, what makes the tempting ones wrong.
+                // Run together those two jobs are indistinguishable, and six
+                // lines of unbroken text is a wall to be got through rather
+                // than something to learn from.
+                let split = Explanation.split(text, options: blocks)
+                let inset: CGFloat = 17
+                let bodyWidth = width - inset * 2
                 let body = DeckPDF.round(size * 0.94)
-                let inset: CGFloat = 12
-                let textHeight = write(marked, x: margin + inset, y: y, width: width - inset * 2,
-                                       font: body, color: .black, measuring: true)
-                let cardHeight = textHeight + size * 2.4
+                let core = marking(key, in: split.core)
+                let traps = split.traps.map { marking(key, in: $0) }
+                // Room around the words is what stops six lines of reasoning
+                // reading as a wall: generous leading inside a paragraph, a
+                // clear gap between paragraphs, and each trap on its own
+                // tinted row so the eye can take them one at a time.
+                let lead: CGFloat = 0.46
+                let rowPadY = size * 0.5
+                let rowTextX = inset + size * 0.95
+                let rowTextWidth = bodyWidth - size * 1.45
+
+                var height = size * 1.9
+                height += write(core, x: margin + inset, y: 0, width: bodyWidth,
+                                font: body, color: .black, measuring: true, leading: lead)
+                for trap in traps {
+                    height += rowPadY * 2 + size * 0.34
+                    height += write(trap, x: 0, y: 0, width: rowTextWidth,
+                                    font: body, color: .black, measuring: true, leading: lead)
+                }
+                if !traps.isEmpty { height += size * 2.1 }
+                let cardHeight = height + size * 1.1
+
                 if !measuring {
                     let card = CGRect(x: margin - 6, y: y, width: width + 12, height: cardHeight)
                     UIColor.white.setFill()
@@ -188,21 +212,64 @@ extension DeckPDF {
                     UIBezierPath(roundedRect: CGRect(x: card.minX, y: card.minY,
                                                      width: 3.4, height: card.height),
                                  cornerRadius: 1.7).fill()
-                    label.uppercased().draw(at: CGPoint(x: margin + inset, y: y + size * 0.5),
-                                            withAttributes: [
-                        .font: DeckPDF.round(size * 0.78, weight: .heavy),
-                        .foregroundColor: color(palette.shade(0.2)),
-                        .kern: 0.8,
-                    ])
+                    heading(label.uppercased(), at: CGPoint(x: margin + inset, y: y + size * 0.5),
+                            size: size, palette: palette, quiet: false)
                 }
-                _ = write(marked, x: margin + inset, y: y + size * 1.7, width: width - inset * 2,
-                      font: body, color: UIColor(white: 0.16, alpha: 1), measuring: measuring,
-                      accent: color(palette.shade(0.22)))
+
+                var inner = y + size * 1.9
+                inner += write(core, x: margin + inset, y: inner, width: bodyWidth,
+                               font: body, color: UIColor(white: 0.14, alpha: 1),
+                               measuring: measuring, accent: color(palette.shade(0.22)),
+                               leading: lead)
+                if !traps.isEmpty {
+                    if !measuring {
+                        heading("WHY NOT THE OTHERS",
+                                at: CGPoint(x: margin + inset, y: inner + size * 0.85),
+                                size: size, palette: palette, quiet: true)
+                    }
+                    inner += size * 2.1
+                    for trap in traps {
+                        let textHeight = write(trap, x: 0, y: 0, width: rowTextWidth,
+                                               font: body, color: .black, measuring: true,
+                                               leading: lead)
+                        if !measuring {
+                            let row = CGRect(x: margin + inset - size * 0.2, y: inner,
+                                             width: bodyWidth + size * 0.4,
+                                             height: textHeight + rowPadY * 2)
+                            color(palette, 0.93).setFill()
+                            UIBezierPath(roundedRect: row, cornerRadius: size * 0.34).fill()
+                            color(palette, 0.45).setFill()
+                            UIBezierPath(ovalIn: CGRect(x: margin + inset + size * 0.2,
+                                                        y: inner + rowPadY + size * 0.36,
+                                                        width: size * 0.28,
+                                                        height: size * 0.28)).fill()
+                        }
+                        _ = write(trap, x: margin + rowTextX, y: inner + rowPadY,
+                                  width: rowTextWidth, font: body,
+                                  color: UIColor(white: 0.14, alpha: 1),
+                                  measuring: measuring,
+                                  accent: color(palette.shade(0.22)), leading: lead)
+                        inner += textHeight + rowPadY * 2 + size * 0.34
+                    }
+                }
                 y += cardHeight + size * 0.4
 
             }
         }
         return y
+    }
+
+    /// A section heading inside the explanation card.
+    ///
+    /// The second one is deliberately quieter: it is support rather than
+    /// headline, and two headings of equal weight would just be two walls.
+    static func heading(_ text: String, at point: CGPoint, size: CGFloat,
+                        palette: DeckPalette, quiet: Bool) {
+        text.draw(at: point, withAttributes: [
+            .font: DeckPDF.round(size * 0.78, weight: quiet ? .bold : .heavy),
+            .foregroundColor: color(palette.shade(0.2), quiet ? 0.75 : 1),
+            .kern: 0.8,
+        ])
     }
 
     /// The answer's own phrase, for cards written without any marking.
@@ -281,10 +348,10 @@ extension DeckPDF {
     /// the colour.
     static func write(_ text: String, x: CGFloat, y: CGFloat, width: CGFloat,
                       font: UIFont, color textColor: UIColor, measuring: Bool,
-                      accent: UIColor? = nil) -> CGFloat {
+                      accent: UIColor? = nil, leading: CGFloat = 0.22) -> CGFloat {
         guard !text.isEmpty else { return 0 }
         let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = font.pointSize * 0.22
+        paragraph.lineSpacing = font.pointSize * leading
 
         let body = NSMutableAttributedString()
         let descriptor = font.fontDescriptor.withSymbolicTraits(.traitBold)
