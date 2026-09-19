@@ -32,7 +32,7 @@ struct SourcePreviewView: View {
     @State var page: Int
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.horizontalSizeClass) private var width
+    @Environment(\.windowSpan) private var span
 
     @State private var term = ""
     @State private var showingPages = false
@@ -48,7 +48,9 @@ struct SourcePreviewView: View {
         SourceSearch.hits(for: term, in: source.pages)
     }
 
-    private var wide: Bool { width == .regular }
+    /// A sheet is only as wide as the window it opens in, so a page beside a
+    /// search result is a luxury of a big window rather than of a big device.
+    private var wide: Bool { span == .broad }
 
     var body: some View {
         NavigationStack {

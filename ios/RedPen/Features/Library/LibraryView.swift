@@ -69,11 +69,45 @@ struct LibraryView: View {
     @State private var opened: [StudySet] = []
     @State private var columns: NavigationSplitViewVisibility = .all
 
-    @Environment(\.horizontalSizeClass) var width
+    /// The window, not the screen: an iPad app can be a third of one, and the
+    /// rows read this to choose between selecting and pushing.
+    @State var span: WindowSpan = .slim
 
     var body: some View {
+        layout
+            .environment(\.windowSpan, span)
+            .background {
+                Color.clear
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+                        let now = WindowSpan(width: w)
+                        // Animated, because in iPadOS 26 this changes while the
+                        // student is dragging the window's edge, and a layout
+                        // that jumps between one column and two mid-drag is
+                        // alarming in a way a quick crossfade is not.
+                        guard now != span else { return }
+                        withAnimation(.snappy(duration: 0.25)) {
+                            // Dropping to one column with a set selected would
+                            // leave that choice invisible and unreachable, so
+                            // the selection becomes a pushed screen instead.
+                            if span.splits, !now.splits {
+                                if let set = store.library.first(where: { $0.id == chosen }) {
+                                    opened = [set]
+                                }
+                                chosen = nil
+                            } else if !span.splits, now.splits {
+                                chosen = opened.last?.id
+                                opened = []
+                            }
+                            span = now
+                        }
+                    }
+            }
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         Group {
-            if width == .regular {
+            if span.splits {
                 // iPad, and a phone held sideways in Split View: the sets stay
                 // on screen beside whatever is open, because a tablet's whole
                 // advantage is not having to leave one thing to look at
@@ -94,7 +128,10 @@ struct LibraryView: View {
                 }
                 .navigationSplitViewStyle(.balanced)
             } else {
-                NavigationStack {
+                // The same path the detail column uses, so a set stays open
+                // across a resize: widen the window and it moves into the
+                // second column, narrow it and it becomes a pushed screen.
+                NavigationStack(path: $opened) {
                     attachingSheets(to: screen)
                 }
             }

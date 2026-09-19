@@ -88,7 +88,7 @@ extension LibraryView {
                     }
                 }
                 .buttonStyle(.pressableRow)
-            } else if width == .regular {
+            } else if span.splits {
                 // Two columns: the row chooses what the other column shows,
                 // rather than pushing a screen over the list it came from.
                 Button { chosen = set.id } label: { setRow(set) }
