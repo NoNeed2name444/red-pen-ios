@@ -32,17 +32,23 @@ jobs:
         run: |
           set -euo pipefail
           # iOS ignores an orientation request from an iPad app that supports
-          # multitasking - which is why the first landscape pass came back as
-          # six portrait screenshots. UIRequiresFullScreen restores the app's
-          # control over its own orientation.
-          #
-          # Patched into the generated Info.plist HERE rather than declared in
-          # project.yml, because the shipping app should keep Split View and
-          # Stage Manager. This is a screenshot rig's concession, not a
-          # decision about the product.
+          # multitasking. UIRequiresFullScreen restores the app's control over
+          # its own orientation - patched into the GENERATED Info.plist here
+          # rather than declared in project.yml, because the shipping app
+          # should keep Split View and Stage Manager. A screenshot rig's
+          # concession, not a decision about the product.
           /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" ios/RedPen/Info.plist \
             || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" ios/RedPen/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :UIRequiresFullScreen" ios/RedPen/Info.plist
+          # And make landscape the FIRST orientation offered: iOS picks the
+          # launch orientation from the head of this list, so a portrait-first
+          # list means every launch starts portrait and has to be turned.
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" ios/RedPen/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad array" ios/RedPen/Info.plist
+          for o in UIInterfaceOrientationLandscapeRight UIInterfaceOrientationLandscapeLeft \
+                   UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown; do
+            /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad: string $o" ios/RedPen/Info.plist
+          done
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" ios/RedPen/Info.plist
 
       - name: Pick an iPad
         id: sim
@@ -61,7 +67,7 @@ jobs:
                   if not name.startswith("iPad"):
                       continue
                   # Match the MODEL, not the word "Pro" anywhere in the name:
-                  # the first run picked an "iPad mini (A17 Pro)", which is the
+                  # an earlier run picked an "iPad mini (A17 Pro)", the
                   # smallest iPad Apple makes - the opposite of the wide screen
                   # a split view needs to be judged on.
                   if name.startswith("iPad Pro"):
@@ -72,7 +78,6 @@ jobs:
                       rank = 0
                   else:
                       rank = 1
-                  # "13-inch" beats "11-inch" within the same model.
                   big = 1 if "13" in name else 0
                   best.append(((rank, big, version, name), d["udid"], name, runtime))
           best.sort()
@@ -124,6 +129,16 @@ jobs:
               xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
                 "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
                 || echo "shot failed: $screen ($orient)" >> ipad/shots.log
+              # The app writes down what happened when it asked to turn. A
+              # print from a simctl launch goes nowhere, so this is the only
+              # way to learn WHY a rotation was refused rather than guessing.
+              if [ "$orient" = landscape ]; then
+                CONTAINER=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
+                if [ -n "$CONTAINER" ] && [ -f "$CONTAINER/Documents/rotation.log" ]; then
+                  echo "--- rotation.log for $screen" >> ipad/rotation.log
+                  cat "$CONTAINER/Documents/rotation.log" >> ipad/rotation.log
+                fi
+              fi
             done
           done
           # A landscape shot that came out portrait means the rotation did not
