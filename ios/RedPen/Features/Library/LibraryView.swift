@@ -63,12 +63,57 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
+    /// Which set the detail column is showing, on a screen wide enough to have
+    /// one. The phone pushes instead, and leaves this alone.
+    @State var chosen: StudySet.ID?
+    @State private var opened: [StudySet] = []
+
+    @Environment(\.horizontalSizeClass) var width
+
     var body: some View {
-        NavigationStack {
-            attachingSheets(to: screen)
+        Group {
+            if width == .regular {
+                // iPad, and a phone held sideways in Split View: the sets stay
+                // on screen beside whatever is open, because a tablet's whole
+                // advantage is not having to leave one thing to look at
+                // another. A stack here would be a phone app blown up.
+                NavigationSplitView {
+                    attachingSheets(to: screen)
+                } detail: {
+                    NavigationStack(path: $opened) {
+                        detailColumn
+                            .navigationDestination(for: StudySet.self) { destination(for: $0) }
+                    }
+                }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                NavigationStack {
+                    attachingSheets(to: screen)
+                }
+            }
         }
         .tint(pen)
         .animation(.snappy(duration: 0.28), value: tab)
+    }
+
+    /// What fills the second column before a set has been chosen.
+    @ViewBuilder
+    private var detailColumn: some View {
+        if let set = store.library.first(where: { $0.id == chosen }) {
+            destination(for: set)
+        } else {
+            VStack(spacing: 14) {
+                Brand.Mark(size: 54, tint: .secondary)
+                    .opacity(0.5)
+                Text("Choose a set")
+                    .font(.title3.weight(.semibold))
+                Text(Brand.line)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(LibraryBackdrop())
+        }
     }
 
     private var screen: some View {

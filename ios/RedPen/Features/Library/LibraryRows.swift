@@ -88,6 +88,13 @@ extension LibraryView {
                     }
                 }
                 .buttonStyle(.pressableRow)
+            } else if width == .regular {
+                // Two columns: the row chooses what the other column shows,
+                // rather than pushing a screen over the list it came from.
+                Button { chosen = set.id } label: { setRow(set) }
+                    .buttonStyle(.pressableRow)
+                    .listRowBackground(chosen == set.id
+                                       ? set.kind.tint.opacity(0.10) : Color.clear)
             } else {
                 NavigationLink(value: set) { setRow(set) }
             }
