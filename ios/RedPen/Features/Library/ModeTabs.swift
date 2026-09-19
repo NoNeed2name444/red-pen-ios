@@ -1,18 +1,15 @@
 import SwiftUI
 
-/// Moving between modes by swiping, the way WhatsApp moves between its chats
-/// and its updates.
+/// Moving between modes from a dock that floats over the library.
 ///
-/// The library used to be one undifferentiated list of every set in every
-/// mode, and the only way to see just the OSCE stations was to scroll past
-/// everything else. A pager fixes that without adding a screen to get lost in:
-/// the tabs are always visible, a sideways swipe moves one tab, and the bar
-/// underneath the labels slides with the swipe rather than jumping when it
-/// ends - which is what makes the gesture feel attached to the content instead
-/// of merely triggering it.
+/// It sits at the bottom, where a thumb is, rather than at the top where a
+/// strip of tabs is a stretch away on a big phone. Each mode gets its icon and
+/// its name, the chosen one sits in a lifted capsule and takes its own colour,
+/// and a sideways swipe on the list moves one along - so the dock says where
+/// you are while the gesture does the moving.
 ///
-/// Only the modes the student actually has sets in get a tab. A row of six
-/// tabs where four are empty is a menu of disappointments.
+/// Only the modes the student actually has sets in get a place. A dock of six
+/// where four are empty is a menu of disappointments.
 struct LibraryTab: Hashable, Identifiable {
     /// nil is the "All" tab - every set, in one list.
     let kind: StudySetKind?
@@ -20,6 +17,7 @@ struct LibraryTab: Hashable, Identifiable {
     var id: String { kind?.rawValue ?? "all" }
     var title: String { kind?.label ?? "All" }
     var tint: Color { kind?.tint ?? StudySetKind.mcq.tint }
+    var symbol: String { kind?.symbol ?? "square.stack" }
 
     static let all = LibraryTab(kind: nil)
 
@@ -31,65 +29,78 @@ struct LibraryTab: Hashable, Identifiable {
     }
 }
 
-/// The tab strip: pills for each mode, with a sliding underline.
-struct ModeTabBar: View {
+/// The dock: one glass capsule holding every mode.
+struct ModeDock: View {
     let tabs: [LibraryTab]
     @Binding var selection: LibraryTab
     /// How many sets sit behind each tab, so a tab says what it holds.
     var count: (LibraryTab) -> Int
 
-    @Namespace private var underline
+    @Namespace private var lift
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(tabs) { tab in
-                        button(tab)
-                            .id(tab.id)
+        GlassEffectContainer(spacing: 6) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(tabs) { tab in
+                            item(tab).id(tab.id)
+                        }
                     }
+                    .padding(5)
                 }
-                .padding(.horizontal, 14)
-                .padding(.top, 2)
-            }
-            .onChange(of: selection) { _, tab in
-                withAnimation(.snappy) { proxy.scrollTo(tab.id, anchor: .center) }
+                // Room for four before it scrolls: past that the labels are too
+                // narrow to read, and a dock you cannot read is a row of dots.
+                .frame(maxWidth: 4 * 92 + 10)
+                .fixedSize(horizontal: tabs.count <= 4, vertical: false)
+                .onChange(of: selection) { _, tab in
+                    withAnimation(.snappy) { proxy.scrollTo(tab.id, anchor: .center) }
+                }
             }
         }
+        .liquidGlassPanel(cornerRadius: 30)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
     }
 
-    private func button(_ tab: LibraryTab) -> some View {
+    private func item(_ tab: LibraryTab) -> some View {
         let chosen = tab == selection
         return Button {
-            withAnimation(.snappy(duration: 0.28)) { selection = tab }
+            withAnimation(.snappy(duration: 0.3)) { selection = tab }
         } label: {
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    Text(tab.title)
-                        .font(.subheadline.weight(chosen ? .semibold : .medium))
-                    Text("\(count(tab))")
-                        .font(.caption2.weight(.semibold).monospacedDigit())
-                        .opacity(chosen ? 0.9 : 0.55)
-                }
-                .foregroundStyle(chosen ? AnyShapeStyle(tab.tint) : AnyShapeStyle(.secondary))
-                .padding(.horizontal, 10)
-
-                // The underline is one shape moved between tabs rather than
-                // one per tab shown and hidden, so it travels instead of
-                // blinking out here and in again there.
-                Group {
-                    if chosen {
-                        Capsule()
-                            .fill(tab.tint)
-                            .matchedGeometryEffect(id: "underline", in: underline)
-                            .frame(height: 2.5)
-                    } else {
-                        Capsule().fill(.clear).frame(height: 2.5)
+            VStack(spacing: 3) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: tab.symbol)
+                        .font(.system(size: 21, weight: .semibold))
+                        .frame(height: 24)
+                    if count(tab) > 0 {
+                        Text("\(count(tab))")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(tab.tint, in: Capsule())
+                            .offset(x: 13, y: -5)
                     }
                 }
-                .padding(.horizontal, 6)
+                Text(tab.title)
+                    .font(.footnote.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .contentShape(Rectangle())
+            .foregroundStyle(chosen ? AnyShapeStyle(tab.tint) : AnyShapeStyle(.secondary))
+            .frame(width: 84)
+            .padding(.vertical, 9)
+            .background {
+                // One capsule that moves between the tabs rather than one per
+                // tab shown and hidden: it travels with the choice instead of
+                // blinking out here and in again there.
+                if chosen {
+                    Capsule()
+                        .fill(tab.tint.opacity(0.14))
+                        .matchedGeometryEffect(id: "chosen", in: lift)
+                }
+            }
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(tab.title), \(count(tab)) sets")

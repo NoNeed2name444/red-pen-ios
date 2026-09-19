@@ -69,7 +69,16 @@ struct LibraryView: View {
             .navigationTitle(Brand.name)
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }
-            .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
+            .safeAreaInset(edge: .bottom) {
+                // The selection bar takes the dock's place while it is up:
+                // two floating bars stacked on one another is a pile, and
+                // picking sets is a different job from choosing a mode.
+                if selecting {
+                    selectionBar
+                } else if tabs.count > 1 {
+                    ModeDock(tabs: tabs, selection: $tab) { sets(in: $0).count }
+                }
+            }
             .sheet(isPresented: $showAccount) { AccountView() }
             // A tab whose last set has just been deleted would otherwise leave
             // the library showing an empty shelf with no way back.
@@ -84,14 +93,6 @@ struct LibraryView: View {
             emptyState
         } else {
             List {
-                if tabs.count > 1 {
-                    Section {
-                        ModeTabBar(tabs: tabs, selection: $tab) { sets(in: $0).count }
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 2, trailing: 0))
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    }
-                }
                 Section {
                     dueBanner
                     summaryStrip
