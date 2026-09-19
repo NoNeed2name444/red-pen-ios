@@ -1,0 +1,26 @@
+name: apply
+on:
+  workflow_dispatch:
+    inputs:
+      sha256:
+        required: true
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild and apply the patch
+        run: |
+          set -euo pipefail
+          cat .transfer/q-* > /tmp/p.b64
+          echo "${{ inputs.sha256 }}  /tmp/p.b64" | sha256sum -c -
+          base64 -d /tmp/p.b64 | xz -d > /tmp/p.patch
+          git apply --whitespace=nowarn /tmp/p.patch
+          rm -rf .transfer
+          git config user.name "red-pen-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -m "why: one sentence per line in both halves"
+          git push origin HEAD:main
