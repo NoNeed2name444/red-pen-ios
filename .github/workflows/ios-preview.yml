@@ -80,10 +80,14 @@ jobs:
           grep -q "BUILD SUCCEEDED" ../build.log
 
       - name: Screenshots
+        if: always()
         env:
           UDID: ${{ steps.sim.outputs.udid }}
         run: |
-          set -e
+          # NOT set -e. A screen that fails to launch used to abort the whole
+          # step, so one bad screen cost all thirty-six and left nothing to say
+          # which one it was. Each screen now records its own failure and the
+          # run carries on.
           APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
           BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
           xcrun simctl boot "$UDID" || true
@@ -99,13 +103,22 @@ jobs:
             xcrun simctl ui "$UDID" appearance "$mode"
             for screen in library new quiz quiz-checked summary anki anki-revealed book qa qa-revealed osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen"
+              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" >> previews/shots.log 2>&1; then
+                echo "launch failed: $screen ($mode)" >> previews/shots.log
+                continue
+              fi
               sleep 7
-              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "previews/$screen-$mode.png"
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "previews/$screen-$mode.png" \
+                >> previews/shots.log 2>&1 || echo "shot failed: $screen ($mode)" >> previews/shots.log
             done
           done
+          # A crash on launch is the one failure the log above cannot explain,
+          # so the report itself comes back with the screenshots.
+          for report in ~/Library/Logs/DiagnosticReports/RedPen*.ips; do
+            [ -f "$report" ] && cp "$report" previews/ && echo "crash report: $(basename "$report")" >> previews/shots.log
+          done
           # phone-sized copies are plenty for a web page (the originals are 3x)
-          for f in previews/*.png; do sips --resampleWidth 780 "$f" --out "$f" >/dev/null; done
+          for f in previews/*.png; do sips --resampleWidth 780 "$f" --out "$f" >/dev/null || true; done
           ls -la previews
 
       - name: Record the outcome
