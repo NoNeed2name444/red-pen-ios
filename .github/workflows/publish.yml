@@ -16,13 +16,17 @@ on:
         description: release tag and branch name (reused, not accumulated)
         required: false
         default: preview
+      height:
+        description: shrink any video to this height (0 keeps the original)
+        required: false
+        default: '900'
 permissions:
   contents: write
   actions: read
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Collect
@@ -39,6 +43,25 @@ jobs:
             while IFS= read -r -d '' f; do
               cp "$f" "out/$(echo "${f#dl/}" | tr '/' '-')"
             done
+          ls -la out
+
+      - name: Shrink the video
+        if: inputs.height != '0'
+        run: |
+          set -euo pipefail
+          # A simulator records at the device's full 3x resolution, which for a
+          # ten-minute tour is a couple of hundred megabytes - too big to hand
+          # to somebody on a phone, and most of those pixels are a screenshot
+          # of a screenshot. Re-encoded at a sensible height it is watchable
+          # and a twentieth of the size.
+          shopt -s nullglob
+          for f in out/*.mp4; do
+            ffmpeg -nostdin -loglevel error -i "$f" \
+              -vf "scale=-2:${{ inputs.height }}" -r 24 \
+              -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p \
+              -movflags +faststart -an "${f%.mp4}-small.mp4"
+            mv "${f%.mp4}-small.mp4" "$f"
+          done
           ls -la out
 
       - name: Drop on a branch
@@ -64,11 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git checkout -q "$GITHUB_SHA" -- . 2>/dev/null || true
           mkdir -p rel
-          git show "refs/heads/drop-${{ inputs.tag }}" --stat >/dev/null 2>&1 || true
-          # Take the files back off the drop branch rather than keeping a
-          # second copy around through the steps above.
           git fetch -q origin "drop-${{ inputs.tag }}"
           git --work-tree=rel checkout FETCH_HEAD -- . || true
           # Stills go in one zip; a release with two hundred PNG assets is not
@@ -79,6 +98,6 @@ jobs:
           ls -la rel
           gh release delete "${{ inputs.tag }}" -y --cleanup-tag || true
           gh release create "${{ inputs.tag }}" rel/* \
-            -t "Red Pen preview" \
+            -t "CramDown preview" \
             -n "Artifacts from run ${{ inputs.run_id }}. Tap an asset to download; the MP4 plays in place."
           gh release view "${{ inputs.tag }}" --json url -q .url
