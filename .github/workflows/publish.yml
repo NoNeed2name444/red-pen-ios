@@ -26,7 +26,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Collect
@@ -50,10 +50,9 @@ jobs:
         run: |
           set -euo pipefail
           # A simulator records at the device's full 3x resolution, which for a
-          # ten-minute tour is a couple of hundred megabytes - too big to hand
-          # to somebody on a phone, and most of those pixels are a screenshot
-          # of a screenshot. Re-encoded at a sensible height it is watchable
-          # and a twentieth of the size.
+          # ten-minute tour is a couple of hundred megabytes - most of those
+          # pixels being a screenshot of a screenshot. Re-encoded at a sensible
+          # height it is watchable and a fraction of the size.
           shopt -s nullglob
           for f in out/*.mp4; do
             ffmpeg -nostdin -loglevel error -i "$f" \
@@ -61,6 +60,23 @@ jobs:
               -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p \
               -movflags +faststart -an "${f%.mp4}-small.mp4"
             mv "${f%.mp4}-small.mp4" "$f"
+          done
+          ls -la out
+
+      - name: Split what git will not take
+        run: |
+          set -euo pipefail
+          # GitHub refuses a file over 100 MB, so anything near that is cut
+          # into numbered pieces and put back together on the other side:
+          #     cat NAME.part* > NAME
+          shopt -s nullglob
+          for f in out/*; do
+            size=$(stat -c%s "$f")
+            if [ "$size" -gt 90000000 ]; then
+              split -b 80M -d -a 2 "$f" "$f.part"
+              rm -f "$f"
+              echo "split $(basename "$f") into $(ls "$f".part* | wc -l) pieces"
+            fi
           done
           ls -la out
 
@@ -90,8 +106,6 @@ jobs:
           mkdir -p rel
           git fetch -q origin "drop-${{ inputs.tag }}"
           git --work-tree=rel checkout FETCH_HEAD -- . || true
-          # Stills go in one zip; a release with two hundred PNG assets is not
-          # something anybody wants to scroll past on a phone.
           if ls rel/*.png >/dev/null 2>&1; then
             (cd rel && zip -q screens.zip ./*.png && rm -f ./*.png)
           fi
