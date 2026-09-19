@@ -413,23 +413,34 @@ def read_image_text(data_uri: str) -> str:
 CSS = """
 @page { size: A4; margin: 0 }
 * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact }
-body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-       color: #1a1a1a }
+body { margin: 0; color: #1a1a1a;
+       /* Nunito is the rounded face; ui-rounded picks up SF Pro Rounded when a
+          Mac or an iPad opens the file, and the rest is an ordinary fallback so
+          a machine with neither still prints something sane. */
+       font-family: Nunito, ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN",
+                    Quicksand, -apple-system, "Helvetica Neue", Arial, sans-serif }
 .page { width: 210mm; height: 297mm; overflow: hidden; page-break-after: always;
         display: flex; flex-direction: column; position: relative }
 .bar { height: 12mm; flex: 0 0 auto; display: flex; align-items: center;
        justify-content: space-between; padding: 0 16mm; color: #fff;
-       font-size: 8pt; font-weight: 700; letter-spacing: .14em }
+       font-size: 8pt; font-weight: 800; letter-spacing: .14em }
+/* A page of pure white with one coloured strip reads as a form. The ground
+   carries the faintest wash of the mode's colour instead, which is enough to
+   tell two decks apart on a desk without touching how the text prints. */
+.page { background: var(--paper) }
+.page::after { content: ""; position: absolute; left: 0; right: 0; top: 12mm;
+               height: 1.1mm; background: linear-gradient(90deg,
+               var(--accent), var(--soft)) }
 .body { flex: 1 1 auto; padding: 9mm 16mm 0; display: flex; flex-direction: column;
         overflow: hidden }
 .topic { font-size: 19pt; font-weight: 700; margin: 0 0 2mm; text-wrap: balance }
 .sub { font-size: 8.5pt; color: #4a4a4a; margin: 0 0 3mm }
 .chip { display: inline-block; font-size: 6.5pt; font-weight: 800; letter-spacing: .1em;
-        padding: 1.4mm 3mm; border-radius: 3mm }
+        padding: 1.4mm 3.4mm; border-radius: 3mm }
 .rule { height: .3mm; margin: 4mm 0 5mm }
 .content { flex: 1 1 auto; overflow: hidden }
-.q { font-size: 17pt; font-weight: 600; line-height: 1.5; color: #121212 }
-.a { font-size: 13pt; line-height: 1.55; color: #121212 }
+.q { font-size: 13.5pt; font-weight: 600; line-height: 1.55; color: #121212 }
+.a { font-size: 13.5pt; line-height: 1.55; color: #121212 }
 ul { margin: 0; padding-left: 5mm }
 li { margin-bottom: 2mm }
 li::marker { color: var(--accent) }
@@ -438,16 +449,23 @@ b, strong { color: var(--deep) }
 /* The opening phrase of a bullet, up to its colon or dash: what the line is
    about, which is what the eye should land on first. */
 .key { font-weight: 700; color: var(--deep) }
-.opt { margin-bottom: 2.4mm; padding-left: 7mm; position: relative }
-.opt .letter { position: absolute; left: 0; font-weight: 700; color: #2b2b2b }
-.opt.correct { font-weight: 700; background: var(--soft); border-radius: 1.6mm;
-               padding-top: 1.2mm; padding-bottom: 1.2mm }
-.opt.correct .letter { font-weight: 800 }
-.opt.correct::before { content: ""; position: absolute; left: -3mm; top: .4mm;
-                       bottom: .4mm; width: .9mm; background: var(--accent) }
-.note-label { font-size: 9pt; font-weight: 800; letter-spacing: .1em; margin-top: 4mm;
-              color: var(--deep) }
-.note-text { font-size: 11.5pt; color: #2b2b2b }
+/* Every letter sits in a badge of exactly the same size, whatever the letter
+   and however many lines the option runs to. The old treatment drew a box
+   around the glyph itself, so a wide letter got a wide box and a narrow one a
+   narrow box, and the column looked accidental. */
+.opt { margin-bottom: 2.2mm; padding: 1.6mm 3mm 1.6mm 11mm; position: relative;
+       border-radius: 2.4mm }
+.opt .letter { position: absolute; left: 3mm; top: 1.4mm; width: 6.2mm; height: 6.2mm;
+               border-radius: 50%; background: var(--soft); color: var(--deep);
+               font-weight: 800; font-size: 10.5pt; display: flex;
+               align-items: center; justify-content: center }
+.opt.correct { font-weight: 700; background: var(--soft) }
+.opt.correct .letter { background: var(--accent); color: #fff }
+.note-label { font-size: 9pt; font-weight: 800; letter-spacing: .1em;
+              color: var(--deep); margin-bottom: 1mm }
+.note-text { font-size: 12pt; color: #2b2b2b }
+.note { background: #fff; border-radius: 2.6mm; padding: 3mm 4mm; margin-top: 3mm;
+        border-left: 1.2mm solid var(--accent) }
 figure { margin: 0 0 5mm; text-align: center }
 figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
 .answer figure img { max-height: 80mm }
@@ -455,7 +473,8 @@ figure img { max-width: 100%; max-height: 95mm; object-fit: contain }
         font-weight: 700; line-height: 1; user-select: none }
 .foot { flex: 0 0 auto; height: 12mm; display: flex; align-items: center;
         justify-content: space-between; padding: 0 16mm; font-size: 8.5pt; color: #4a4a4a }
-.foot .next { font-weight: 700; letter-spacing: .08em }
+.foot .next { font-weight: 800; letter-spacing: .08em }
+.foot .n { font-weight: 800; color: var(--deep) }
 .src { font-size: 8pt; color: #555; font-style: italic; margin-top: 3mm }
 
 .cover .hero { height: 72mm; padding: 18mm 16mm 0; color: #fff }
@@ -566,14 +585,15 @@ def render_blocks(blocks, answer_side: bool) -> str:
             out.append(f"<p>{inline(b['text'])}</p>")
         elif kind == "option":
             cls = "opt correct" if b["correct"] else "opt"
-            out.append(f'<div class="{cls}"><span class="letter">{esc(b["letter"])}.'
+            out.append(f'<div class="{cls}"><span class="letter">{esc(b["letter"])}'
                        f'</span>{inline(b["text"])}</div>')
         elif kind == "note":
             body = with_key(b["text"])
             if answer_side:
                 body = emphasise(body, answer_phrase(blocks))
-            out.append(f'<div class="note-label">{esc(b["label"]).upper()}</div>'
-                       f'<div class="note-text">{body}</div>')
+            out.append(f'<div class="note"><div class="note-label">'
+                       f'{esc(b["label"]).upper()}</div>'
+                       f'<div class="note-text">{body}</div></div>')
     flush()
     return "\n".join(out)
 
@@ -622,7 +642,7 @@ def card_pages(card: Card, pal: Palette, total: int) -> str:
     src = f'<div class="src">{esc(card.source)}</div>' if card.source else ""
 
     return f"""
-<section class="page" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex}">
+<section class="page" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex}">
   {page_head(card, pal, card.subject, total)}
   <div class="body">
     {heading(f"c{card.number}")}
@@ -633,7 +653,7 @@ def card_pages(card: Card, pal: Palette, total: int) -> str:
   <div class="foot"><span>Question {card.number} of {total}</span>
     <span class="next" style="color:{pal.shade(0.18).hex}">ANSWER OVERLEAF ›</span></div>
 </section>
-<section class="page answer" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex}">
+<section class="page answer" style="--accent:{pal.hex};--soft:{pal.tint(0.88).hex};--deep:{pal.shade(0.34).hex};--paper:{pal.tint(0.975).hex}">
   {page_head(card, pal, "Answer", total)}
   <div class="body">
     {heading()}
@@ -656,7 +676,9 @@ def build_html(title: str, cards: list[Card], pal: Palette) -> str:
 
     pages = "".join(card_pages(c, pal, total) for c in cards)
     return f"""<!doctype html>
-<html><head><meta charset="utf-8"><title>{esc(title)}</title><style>{CSS}</style></head>
+<html><head><meta charset="utf-8"><title>{esc(title)}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<style>{CSS}</style></head>
 <body>
 <section class="page cover">
   <div class="hero" style="background:{pal.bar.hex}">
@@ -730,7 +752,7 @@ INDEX_JS = r"""
   // exactly two pages, and one answer spilling onto a third would print every
   // later question opposite the previous card's answer.
   const ladder = [1, .94, .88, .82, .76, .7, .64];
-  const BASE = { q: 17, a: 13 };
+  const BASE = { q: 13.5, a: 13.5 };
   const picked = {}, stubborn = {};
 
   for (const side of ['q', 'a']) {
@@ -913,8 +935,8 @@ async def build(study_sets: list[dict], title: str, out: Path,
     print(f"  {len(cards)} cards, {len(cards) * 2 + 2} pages")
     scale = fit.get("scale") or {}
     if scale:
-        print(f"  set at {round(17 * scale.get('q', 1), 1)}pt questions, "
-              f"{round(13 * scale.get('a', 1), 1)}pt answers"
+        print(f"  set at {round(13.5 * scale.get('q', 1), 1)}pt questions, "
+              f"{round(13.5 * scale.get('a', 1), 1)}pt answers"
               + (f" - {fit['stubborn']} card(s) still tight" if fit.get("stubborn") else ""))
     if held:
         print(f"  {held} picture(s) held back to the answer page")

@@ -52,19 +52,42 @@ extension DeckPDF {
         return scale
     }
 
-    /// The band behind the right answer, drawn before the text so it sits under it.
+    /// The band behind the right answer, sized to the answer it sits behind.
     ///
     /// A hairline rule in the margin was too quiet on paper: printed at A4 and
     /// read at arm's length, the right answer has to be findable without
     /// hunting for a change in font weight.
-    static func drawBand(correct: Bool, y: CGFloat, size: CGFloat, width: CGFloat,
-                         palette: DeckPalette) {
+    static func band(correct: Bool, y: CGFloat, height: CGFloat, width: CGFloat,
+                     palette: DeckPalette) {
         guard correct else { return }
-        let box = CGRect(x: margin - 8, y: y - size * 0.3, width: width + 16, height: size * 1.85)
+        let box = CGRect(x: margin - 10, y: y - 4,
+                         width: width + 20, height: height + 9)
         color(palette.tint(0.88)).setFill()
-        UIBezierPath(roundedRect: box, cornerRadius: 4).fill()
-        color(palette, 0.9).setFill()
-        UIBezierPath(rect: CGRect(x: box.minX, y: box.minY, width: 2.5, height: box.height)).fill()
+        UIBezierPath(roundedRect: box, cornerRadius: 7).fill()
+    }
+
+    /// The option's letter, in a circle of one fixed size.
+    ///
+    /// Drawn as a disc with the glyph centred in it rather than as a box around
+    /// the glyph: a box takes the width of whatever letter is inside it, so A
+    /// and I came out different widths and the column of letters looked
+    /// accidental. The disc is the same for every option on every card.
+    static func badge(_ letter: String, at point: CGPoint, size: CGFloat,
+                      correct: Bool, palette: DeckPalette) {
+        let diameter = size * 1.45
+        let circle = CGRect(x: point.x, y: point.y - 1, width: diameter, height: diameter)
+        color(correct ? palette : palette.tint(0.86)).setFill()
+        UIBezierPath(ovalIn: circle).fill()
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: DeckPDF.round(size * 0.78, weight: .heavy),
+            .foregroundColor: correct ? UIColor.white : color(palette.shade(0.34)),
+        ]
+        let glyph = letter as NSString
+        let measured = glyph.size(withAttributes: attrs)
+        glyph.draw(at: CGPoint(x: circle.midX - measured.width / 2,
+                               y: circle.midY - measured.height / 2),
+                   withAttributes: attrs)
     }
 
     static func height(_ blocks: [DeckBlock], palette: DeckPalette, size: CGFloat) -> CGFloat {
@@ -91,7 +114,7 @@ extension DeckPDF {
         for block in blocks {
             if !measuring, y > limit {
                 "\u{2026}".draw(at: CGPoint(x: margin, y: min(y, limit)), withAttributes: [
-                    .font: UIFont.systemFont(ofSize: size),
+                    .font: DeckPDF.round(size),
                     .foregroundColor: UIColor(white: 0.5, alpha: 1),
                 ])
                 break
@@ -99,7 +122,7 @@ extension DeckPDF {
             switch block {
             case .text(let text):
                 y += write(text, x: margin, y: y, width: width,
-                           font: .systemFont(ofSize: size, weight: .semibold),
+                           font: DeckPDF.round(size, weight: .semibold),
                            color: UIColor(white: 0.07, alpha: 1), measuring: measuring,
                            accent: color(palette.shade(0.22)))
                 y += size * 0.5
@@ -108,7 +131,7 @@ extension DeckPDF {
                 let indent: CGFloat = 14
                 if !measuring {
                     "\u{2022}".draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                        .font: UIFont.systemFont(ofSize: size),
+                        .font: DeckPDF.round(size),
                         .foregroundColor: color(palette, 0.9),
                     ])
                 }
@@ -118,38 +141,56 @@ extension DeckPDF {
                 y += size * 0.42
 
             case .option(let letter, let text, let correct):
-                let indent: CGFloat = 20
+                let indent = size * 2.1
+                // Measured first, so the band behind a right answer is the
+                // height of the answer rather than a guess: an option that
+                // wraps onto two lines used to get the same short box as a
+                // one-line option, and the column looked broken.
+                let textHeight = write(text, x: margin + indent, y: y, width: width - indent,
+                                       font: DeckPDF.round(size, weight: correct ? .semibold : .regular),
+                                       color: .black, measuring: true)
                 if !measuring {
-                    let marker = (letter + ".") as NSString
-                    drawBand(correct: correct, y: y, size: size, width: width, palette: palette)
-                    marker.draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                        .font: UIFont.systemFont(ofSize: size, weight: correct ? .bold : .regular),
-                        .foregroundColor: correct ? color(palette.shade(0.14))
-                                                  : UIColor(white: 0.22, alpha: 1),
-                    ])
+                    band(correct: correct, y: y, height: textHeight, width: width,
+                         palette: palette)
+                    badge(letter, at: CGPoint(x: margin + size * 0.35, y: y),
+                          size: size, correct: correct, palette: palette)
                 }
-                y += write(text, x: margin + indent, y: y, width: width - indent,
-                           font: .systemFont(ofSize: size, weight: correct ? .semibold : .regular),
+                y += write(text, x: margin + indent, y: y + size * 0.1, width: width - indent,
+                           font: DeckPDF.round(size, weight: correct ? .semibold : .regular),
                            color: correct ? UIColor(white: 0.07, alpha: 1)
                                           : UIColor(white: 0.16, alpha: 1),
                            measuring: measuring, accent: color(palette.shade(0.22)))
-                y += size * 0.45
+                y += size * 0.7
 
             case .note(let label, let text):
-                y += size * 0.3
+                // Its own card, so the reasoning reads as a separate thing from
+                // the options above it rather than as more of the same column.
+                let marked = marking(key, in: text)
+                let body = DeckPDF.round(size * 0.94)
+                let inset: CGFloat = 12
+                let textHeight = write(marked, x: margin + inset, y: y, width: width - inset * 2,
+                                       font: body, color: .black, measuring: true)
+                let cardHeight = textHeight + size * 2.4
                 if !measuring {
-                    label.uppercased().draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                        .font: UIFont.systemFont(ofSize: size * 0.78, weight: .heavy),
+                    let card = CGRect(x: margin - 6, y: y, width: width + 12, height: cardHeight)
+                    UIColor.white.setFill()
+                    UIBezierPath(roundedRect: card, cornerRadius: 7).fill()
+                    color(palette, 0.9).setFill()
+                    UIBezierPath(roundedRect: CGRect(x: card.minX, y: card.minY,
+                                                     width: 3.4, height: card.height),
+                                 cornerRadius: 1.7).fill()
+                    label.uppercased().draw(at: CGPoint(x: margin + inset, y: y + size * 0.5),
+                                            withAttributes: [
+                        .font: DeckPDF.round(size * 0.78, weight: .heavy),
                         .foregroundColor: color(palette.shade(0.2)),
                         .kern: 0.8,
                     ])
                 }
-                y += size * 1.05
-                y += write(marking(key, in: text), x: margin, y: y, width: width,
-                           font: .systemFont(ofSize: size * 0.94),
-                           color: UIColor(white: 0.16, alpha: 1), measuring: measuring,
-                           accent: color(palette.shade(0.22)))
-                y += size * 0.5
+                _ = write(marked, x: margin + inset, y: y + size * 1.7, width: width - inset * 2,
+                      font: body, color: UIColor(white: 0.16, alpha: 1), measuring: measuring,
+                      accent: color(palette.shade(0.22)))
+                y += cardHeight + size * 0.4
+
             }
         }
         return y
@@ -191,13 +232,13 @@ extension DeckPDF {
         let body = NSMutableAttributedString()
         if let lead, !lead.isEmpty {
             body.append(NSAttributedString(string: text.isEmpty ? lead : lead + ": ", attributes: [
-                .font: UIFont.systemFont(ofSize: size, weight: .bold),
+                .font: DeckPDF.round(size, weight: .bold),
                 .foregroundColor: color(palette.shade(0.16)),
             ]))
         }
         if !text.isEmpty {
-            let plain = UIFont.systemFont(ofSize: size)
-            let strong = UIFont.systemFont(ofSize: size, weight: .bold)
+            let plain = DeckPDF.round(size)
+            let strong = DeckPDF.round(size, weight: .bold)
             for run in Highlight.runs(text) {
                 body.append(NSAttributedString(string: run.text, attributes: [
                     .font: run.bold ? strong : plain,
@@ -239,7 +280,7 @@ extension DeckPDF {
         let body = NSMutableAttributedString()
         let descriptor = font.fontDescriptor.withSymbolicTraits(.traitBold)
         let bold = descriptor.map { UIFont(descriptor: $0, size: font.pointSize) }
-            ?? UIFont.systemFont(ofSize: font.pointSize, weight: .bold)
+            ?? DeckPDF.round(font.pointSize, weight: .bold)
         for run in Highlight.runs(text) {
             body.append(NSAttributedString(string: run.text, attributes: [
                 .font: run.bold ? bold : font,

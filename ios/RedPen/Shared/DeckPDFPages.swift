@@ -8,10 +8,19 @@ extension DeckPDF {
 
     static let barHeight: CGFloat = 34
 
+    /// The deck's face: SF Rounded, falling back to the system font if a
+    /// platform has no rounded design (it always does on iOS, but asking for a
+    /// design that is not there returns nil rather than trapping).
+    static func round(_ size: CGFloat, weight: UIFont.Weight = .regular) -> UIFont {
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
+        return UIFont(descriptor: descriptor, size: size)
+    }
+
     // Set for reading at arm's length off a printed A4 page, not for fitting
     // as much as possible onto one.
-    static let questionSize: CGFloat = 17
-    static let answerSize: CGFloat = 13
+    static let questionSize: CGFloat = 13.5
+    static let answerSize: CGFloat = 13.5
     static let questionPictureLimit = pageSize.height * 0.42
     static let answerPictureLimit = pageSize.height * 0.36
 
@@ -20,6 +29,16 @@ extension DeckPDF {
     }
 
     // MARK: the furniture every page shares
+
+    /// The page's own ground: the faintest wash of the mode's colour.
+    ///
+    /// A sheet of pure white with one coloured strip along the top reads as a
+    /// form. This is light enough not to touch how the text prints, and enough
+    /// to tell two decks apart lying on a desk.
+    static func paper(_ palette: DeckPalette) {
+        color(palette.tint(0.975)).setFill()
+        UIBezierPath(rect: CGRect(origin: .zero, size: pageSize)).fill()
+    }
 
     /// The coloured bar, and the y it leaves behind.
     @discardableResult
@@ -33,7 +52,7 @@ extension DeckPDF {
         UIBezierPath(rect: CGRect(x: 0, y: 0, width: pageSize.width, height: barHeight)).fill()
 
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 9, weight: .bold),
+            .font: round(9, weight: .bold),
             .foregroundColor: UIColor.white,
             .kern: 1.4,
         ]
@@ -42,7 +61,12 @@ extension DeckPDF {
         let text = right.uppercased() as NSString
         let width = text.size(withAttributes: attrs).width
         text.draw(at: CGPoint(x: pageSize.width - margin - width, y: y), withAttributes: attrs)
-        return barHeight
+
+        // A brighter strip under the bar, so the head of the page has some
+        // depth to it rather than one flat block of colour.
+        color(palette).setFill()
+        UIBezierPath(rect: CGRect(x: 0, y: barHeight, width: pageSize.width, height: 3)).fill()
+        return barHeight + 3
     }
 
     /// The topic, the "Subject · Question n of m" line, and the type chip.
@@ -52,7 +76,7 @@ extension DeckPDF {
         var y = top + 22
         let title = topic as NSString
         let titleAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 19, weight: .bold),
+            .font: round(19, weight: .bold),
             .foregroundColor: color(palette.shade(0.10)),
         ]
         let width = pageSize.width - margin * 2
@@ -62,7 +86,7 @@ extension DeckPDF {
         y += titleHeight + 5
 
         subtitle.draw(at: CGPoint(x: margin, y: y), withAttributes: [
-            .font: UIFont.systemFont(ofSize: 8.5, weight: .regular),
+            .font: round(8.5, weight: .regular),
             .foregroundColor: UIColor(white: 0.3, alpha: 1),
         ])
         y += 17
@@ -77,7 +101,7 @@ extension DeckPDF {
 
     static func chipBox(_ text: String, palette: DeckPalette, at point: CGPoint) {
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 7.5, weight: .heavy),
+            .font: round(7.5, weight: .heavy),
             .foregroundColor: color(palette.shade(0.28)),
             .kern: 0.9,
         ]
@@ -94,7 +118,7 @@ extension DeckPDF {
     /// mistake it for content.
     static func watermark(_ letter: String, palette: DeckPalette) {
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 132, weight: .bold),
+            .font: round(132, weight: .bold),
             .foregroundColor: color(palette.tint(0.80)),
         ]
         let text = letter as NSString
@@ -107,12 +131,12 @@ extension DeckPDF {
     static func footer(left: String, right: String?, palette: DeckPalette) {
         let y = pageSize.height - 34
         left.draw(at: CGPoint(x: margin, y: y), withAttributes: [
-            .font: UIFont.systemFont(ofSize: 7.5),
+            .font: round(7.5),
             .foregroundColor: UIColor(white: 0.32, alpha: 1),
         ])
         guard let right else { return }
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 7.5, weight: .bold),
+            .font: round(7.5, weight: .bold),
             .foregroundColor: color(palette.shade(0.18)),
             .kern: 0.8,
         ]
@@ -130,14 +154,14 @@ extension DeckPDF {
         UIBezierPath(rect: CGRect(x: 0, y: 0, width: pageSize.width, height: 190)).fill()
 
         set.kind.label.uppercased().draw(at: CGPoint(x: margin, y: 54), withAttributes: [
-            .font: UIFont.systemFont(ofSize: 10, weight: .bold),
+            .font: round(10, weight: .bold),
             .foregroundColor: UIColor.white.withAlphaComponent(0.85),
             .kern: 2,
         ])
         let name = (set.name.isEmpty ? "Red Pen deck" : set.name) as NSString
         name.draw(with: CGRect(x: margin, y: 76, width: pageSize.width - margin * 2, height: 96),
                   options: [.usesLineFragmentOrigin],
-                  attributes: [.font: UIFont.systemFont(ofSize: 27, weight: .bold),
+                  attributes: [.font: round(27, weight: .bold),
                                .foregroundColor: UIColor.white],
                   context: nil)
 
@@ -146,11 +170,11 @@ extension DeckPDF {
                                ("Cards", "\(cards.count)"),
                                ("Pages", "\(cards.count * 2 + 2)")] {
             label.uppercased().draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                .font: UIFont.systemFont(ofSize: 8, weight: .bold),
+                .font: round(8, weight: .bold),
                 .foregroundColor: UIColor(white: 0.34, alpha: 1), .kern: 1.2,
             ])
             value.draw(at: CGPoint(x: margin, y: y + 13), withAttributes: [
-                .font: UIFont.systemFont(ofSize: 15, weight: .semibold),
+                .font: round(15, weight: .semibold),
                 .foregroundColor: color(palette.shade(0.14)),
             ])
             y += 46
@@ -160,7 +184,7 @@ extension DeckPDF {
             .draw(with: CGRect(x: margin, y: pageSize.height - 120,
                                width: pageSize.width - margin * 2, height: 60),
                   options: [.usesLineFragmentOrigin],
-                  attributes: [.font: UIFont.systemFont(ofSize: 9.5),
+                  attributes: [.font: round(9.5),
                                .foregroundColor: UIColor(white: 0.3, alpha: 1)],
                   context: nil)
     }
@@ -177,9 +201,10 @@ extension DeckPDF {
         var index = 0
         while index < rows.count {
             context.beginPage()
+            paper(palette)
             var y = bar("Contents", right: set.subject, palette: palette) + 26
             "Contents".draw(at: CGPoint(x: margin, y: y), withAttributes: [
-                .font: UIFont.systemFont(ofSize: 17, weight: .bold),
+                .font: round(17, weight: .bold),
                 .foregroundColor: color(palette.shade(0.10)),
             ])
             y += 34
@@ -191,12 +216,12 @@ extension DeckPDF {
                 row.topic.draw(with: CGRect(x: margin, y: y,
                                             width: pageSize.width - margin * 2 - 60, height: 15),
                                options: [.usesLineFragmentOrigin],
-                               attributes: [.font: UIFont.systemFont(ofSize: 10),
+                               attributes: [.font: round(10),
                                             .foregroundColor: UIColor(white: 0.15, alpha: 1)],
                                context: nil)
                 let number = row.range as NSString
                 let attrs: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 9.5, weight: .semibold).monospacedDigits(),
+                    .font: round(9.5, weight: .semibold).monospacedDigits(),
                     .foregroundColor: color(palette.shade(0.18)),
                 ]
                 let width = number.size(withAttributes: attrs).width
@@ -219,13 +244,13 @@ extension DeckPDF {
         (topic as NSString).boundingRect(
             with: CGSize(width: pageSize.width - margin * 2, height: 70),
             options: [.usesLineFragmentOrigin],
-            attributes: [.font: UIFont.systemFont(ofSize: 19, weight: .bold)],
+            attributes: [.font: round(19, weight: .bold)],
             context: nil).height
     }
 
     /// The y a card's content starts at, given the bar and its heading.
     static func contentTop(topic: String, picture: UIImage?, limit: CGFloat) -> CGFloat {
-        var y = barHeight + 22 + titleHeight(topic) + 5 + 17 + 26 + 18
+        var y = barHeight + 3 + 22 + titleHeight(topic) + 5 + 17 + 26 + 18
         if let picture, picture.size.width > 0, picture.size.height > 0 {
             let scale = min((pageSize.width - margin * 2) / picture.size.width,
                             limit / picture.size.height)
@@ -238,6 +263,7 @@ extension DeckPDF {
                              picture: UIImage?, scale: CGFloat,
                              context: UIGraphicsPDFRendererContext) {
         context.beginPage()
+        paper(palette)
         let top = bar(set.subject.isEmpty ? set.kind.label : set.subject,
                       right: "Card \(card.number)", palette: palette)
         var y = heading(topic: card.topic,
@@ -259,6 +285,7 @@ extension DeckPDF {
                            picture: UIImage?, scale: CGFloat,
                            context: UIGraphicsPDFRendererContext) {
         context.beginPage()
+        paper(palette)
         let top = bar("Answer", right: "Card \(card.number)", palette: palette)
         var y = heading(topic: card.topic,
                         subtitle: "\(set.kind.label) \u{00B7} Question \(card.number) of \(total)",
@@ -270,7 +297,7 @@ extension DeckPDF {
         y = draw(card.answer, from: y, palette: palette, size: answerSize, scale: scale)
         if let source = card.source, !source.isEmpty {
             source.draw(at: CGPoint(x: margin, y: min(y + 10, pageSize.height - 58)),
-                        withAttributes: [.font: UIFont.italicSystemFont(ofSize: 8.5),
+                        withAttributes: [.font: round(8.5),
                                          .foregroundColor: UIColor(white: 0.34, alpha: 1)])
         }
         footer(left: "\(set.subject) \u{00B7} Answer \(card.number)", right: nil, palette: palette)
