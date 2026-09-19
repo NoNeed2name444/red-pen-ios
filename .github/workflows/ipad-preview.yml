@@ -4,12 +4,6 @@
 # job is the compile check that must stay fast and must not be cancelled by
 # this, and an iPad run answers a different question - does the split view
 # actually look like a tablet app, or like a phone app stretched?
-#
-# Landscape works because the APP turns itself: simctl cannot rotate a
-# simulator, so the run passes -uiPreviewOrientation and PreviewLaunch asks
-# the window scene for landscape. Without that the landscape pass would
-# quietly produce more portrait screenshots - pictures that look like
-# evidence and are not.
 name: iPad preview
 on:
   workflow_dispatch:
@@ -34,6 +28,22 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: Let this build turn
+        run: |
+          set -euo pipefail
+          # iOS ignores an orientation request from an iPad app that supports
+          # multitasking - which is why the first landscape pass came back as
+          # six portrait screenshots. UIRequiresFullScreen restores the app's
+          # control over its own orientation.
+          #
+          # Patched into the generated Info.plist HERE rather than declared in
+          # project.yml, because the shipping app should keep Split View and
+          # Stage Manager. This is a screenshot rig's concession, not a
+          # decision about the product.
+          /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" ios/RedPen/Info.plist \
+            || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" ios/RedPen/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :UIRequiresFullScreen" ios/RedPen/Info.plist
+
       - name: Pick an iPad
         id: sim
         run: |
@@ -50,10 +60,21 @@ jobs:
                   name = d["name"]
                   if not name.startswith("iPad"):
                       continue
-                  # Pro first, then Air, then the base model - a bigger screen
-                  # is the more honest test of a split view.
-                  rank = 2 if "Pro" in name else 1 if "Air" in name else 0
-                  best.append(((version, rank, name), d["udid"], name, runtime))
+                  # Match the MODEL, not the word "Pro" anywhere in the name:
+                  # the first run picked an "iPad mini (A17 Pro)", which is the
+                  # smallest iPad Apple makes - the opposite of the wide screen
+                  # a split view needs to be judged on.
+                  if name.startswith("iPad Pro"):
+                      rank = 3
+                  elif name.startswith("iPad Air"):
+                      rank = 2
+                  elif name.startswith("iPad mini"):
+                      rank = 0
+                  else:
+                      rank = 1
+                  # "13-inch" beats "11-inch" within the same model.
+                  big = 1 if "13" in name else 0
+                  best.append(((rank, big, version, name), d["udid"], name, runtime))
           best.sort()
           if not best:
               print("no iPad simulator on this runner", file=sys.stderr)
@@ -97,9 +118,8 @@ jobs:
                 echo "launch failed: $screen ($orient)" >> ipad/shots.log
                 continue
               fi
-              # Longer than the phone job: the rotation animation has to
-              # finish before the picture is taken, or the screenshot catches
-              # the app mid-turn.
+              # Longer than the phone job: the rotation animation has to finish
+              # before the picture is taken, or it catches the app mid-turn.
               sleep 9
               xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
                 "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
