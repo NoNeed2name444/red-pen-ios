@@ -44,29 +44,44 @@ struct ModeDock: View {
         // the right-hand edge - a switcher whose options cannot be seen is not
         // a switcher. Only the chosen mode is named; the rest are their symbol,
         // which is what makes seven fit across a phone.
+        //
+        // Seven modes across a phone is one width; seven across an iPad's
+        // 340-point sidebar is another, and the first version only knew the
+        // first. In the sidebar the row ran past both edges and clipped the
+        // last mode's badge. ViewThatFits tries the roomy row, then a tighter
+        // one, and settles on whichever the column can actually hold.
+        ViewThatFits(in: .horizontal) {
+            row(scale: 1)
+            row(scale: 0.86)
+            row(scale: 0.74)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+    }
+
+    private func row(scale: CGFloat) -> some View {
         GlassEffectContainer(spacing: 6) {
-            HStack(spacing: 2) {
+            HStack(spacing: 2 * scale) {
                 ForEach(tabs) { tab in
-                    item(tab)
+                    item(tab, scale: scale)
                 }
             }
             .padding(5)
         }
         .liquidGlassPanel(cornerRadius: 30)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 12)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private func item(_ tab: LibraryTab) -> some View {
+    private func item(_ tab: LibraryTab, scale: CGFloat) -> some View {
         let chosen = tab == selection
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = tab }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 6 * scale) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: tab.symbol)
-                        .font(.system(size: 19, weight: .semibold))
-                        .frame(width: 26, height: 24)
+                        .font(.system(size: 19 * scale, weight: .semibold))
+                        .frame(width: 26 * scale, height: 24)
                     if count(tab) > 0 {
                         Text("\(count(tab))")
                             .font(.system(size: 9, weight: .bold))
@@ -78,7 +93,7 @@ struct ModeDock: View {
                             // notifications rather than as six counts.
                             .background(chosen ? AnyShapeStyle(tab.tint)
                                                : AnyShapeStyle(.quaternary), in: Capsule())
-                            .offset(x: 11, y: -6)
+                            .offset(x: 11 * scale, y: -6)
                     }
                 }
                 if chosen {
@@ -95,7 +110,7 @@ struct ModeDock: View {
             // actually in.
             .foregroundStyle(chosen ? AnyShapeStyle(tab.tint)
                                     : AnyShapeStyle(tab.tint.opacity(0.55)))
-            .padding(.horizontal, chosen ? 13 : 9)
+            .padding(.horizontal, (chosen ? 13 : 9) * scale)
             .padding(.vertical, 9)
             .background {
                 // One capsule that moves between the tabs rather than one per
