@@ -26,8 +26,14 @@ enum Brand {
     /// The page. Warm rather than white, so long reading is easy on the eye.
     static let paper = Color(red: 0.97, green: 0.96, blue: 0.93)
 
-    /// Used for exactly one thing: how long is left.
-    static let signal = Color(red: 0.90, green: 0.33, blue: 0.17)
+    /// The icon's scarlet, and the colour of the one thing that should ever
+    /// shout: how long is left.
+    static let signal = Color(red: 0.886, green: 0.243, blue: 0.188)
+
+    /// The cool mark struck through the icon's page. The only other colour the
+    /// brand owns, kept for the answer to whatever the signal is counting down
+    /// to - and deliberately the opposite of scarlet, so the two never blur.
+    static let mark = Color(red: 0.549, green: 0.784, blue: 0.941)
 
     /// The mark: three stacked rules pressed down into one.
     ///
