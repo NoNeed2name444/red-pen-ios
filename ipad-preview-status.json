@@ -1,0 +1,23 @@
+{
+  "commit": "c58a95bd15345425cfc8aac926878d257c3886b2",
+  "when": "2026-09-19T07:19:09+00:00",
+  "device": "iPad Pro 13-inch (M5)",
+  "runtime": "iOS-26-5",
+  "build_ok": true,
+  "build_finished": true,
+  "rotation_worked": false,
+  "screens": [
+    "anki-revealed-landscape.png",
+    "anki-revealed-portrait.png",
+    "book-landscape.png",
+    "book-portrait.png",
+    "library-landscape.png",
+    "library-portrait.png",
+    "osce-revealed-landscape.png",
+    "osce-revealed-portrait.png",
+    "quiz-checked-landscape.png",
+    "quiz-checked-portrait.png",
+    "quiz-landscape.png",
+    "quiz-portrait.png"
+  ]
+}
