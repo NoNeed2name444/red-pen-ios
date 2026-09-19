@@ -1,0 +1,32 @@
+# The app icon is drawn by a script, not pasted in as a picture.
+#
+# Which means it can be changed by editing numbers in tools/make_icon.py and
+# running this - no image editor, no Mac, and the composed icon and the flat
+# layers for the layered iOS 26 icon can never drift apart, because they come
+# out of the same run.
+name: Icon
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Draw
+        run: |
+          python -m pip install --quiet pillow
+          python3 tools/make_icon.py
+          ls -la ios/RedPen/Assets.xcassets/AppIcon.appiconset design/icon
+      - name: Commit
+        run: |
+          set -euo pipefail
+          git config user.name "red-pen-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A ios/RedPen/Assets.xcassets/AppIcon.appiconset design/icon
+          git diff --cached --quiet || git commit -m "icon: redraw from tools/make_icon.py"
+          git push origin HEAD:main
