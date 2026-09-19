@@ -1,0 +1,51 @@
+# Artifacts, republished where a phone can actually get at them.
+#
+# A GitHub Actions artifact can only be downloaded by a signed-in browser
+# session, which makes it useless to somebody holding a phone. A release asset
+# on a public repository is a plain URL: it downloads, and an MP4 even plays in
+# place. So this takes a finished run's artifacts and puts them on a release.
+name: Publish artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: the run whose artifacts should be published
+        required: true
+      tag:
+        description: release tag to write to (reused, not accumulated)
+        required: false
+        default: preview
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dl out
+          gh run download "${{ inputs.run_id }}" -R "$GITHUB_REPOSITORY" -D dl
+          # Flattened, because an artifact's folders mean nothing once the
+          # files are assets on a release.
+          find dl -type f \( -name '*.mp4' -o -name '*.png' -o -name '*.log' \
+                             -o -name '*.json' -o -name '*.txt' \) -print0 |
+            while IFS= read -r -d '' f; do
+              cp "$f" "out/$(echo "${f#dl/}" | tr '/' '-')"
+            done
+          # Stills go in one zip; a release with two hundred PNG assets is not
+          # something anybody wants to scroll past on a phone.
+          if ls out/*.png >/dev/null 2>&1; then
+            (cd out && zip -q screens.zip ./*.png && rm -f ./*.png)
+          fi
+          ls -la out
+          gh release delete "${{ inputs.tag }}" -y --cleanup-tag || true
+          gh release create "${{ inputs.tag }}" out/* \
+            -t "Red Pen preview" \
+            -n "Artifacts from run ${{ inputs.run_id }}. Tap an asset to download; the MP4 plays in place."
+          gh release view "${{ inputs.tag }}" --json url -q .url
