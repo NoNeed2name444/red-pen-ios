@@ -3,10 +3,10 @@ import SwiftUI
 /// Moving between modes from a dock that floats over the library.
 ///
 /// It sits at the bottom, where a thumb is, rather than at the top where a
-/// strip of tabs is a stretch away on a big phone. Each mode gets its icon and
-/// its name, the chosen one sits in a lifted capsule and takes its own colour,
-/// and a sideways swipe on the list moves one along - so the dock says where
-/// you are while the gesture does the moving.
+/// strip of tabs is a stretch away on a big phone. Every mode is shown at once
+/// as its symbol; the chosen one widens into a lifted capsule, takes its own
+/// colour and says its name. A sideways swipe on the list moves one along - so
+/// the dock says where you are while the gesture does the moving.
 ///
 /// Only the modes the student actually has sets in get a place. A dock of six
 /// where four are empty is a menu of disappointments.
@@ -39,24 +39,18 @@ struct ModeDock: View {
     @Namespace private var lift
 
     var body: some View {
+        // Every mode is visible at once. The first version let the dock scroll
+        // once there were more than four, which hid Cases, OSCE and Narrate off
+        // the right-hand edge - a switcher whose options cannot be seen is not
+        // a switcher. Only the chosen mode is named; the rest are their symbol,
+        // which is what makes seven fit across a phone.
         GlassEffectContainer(spacing: 6) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 2) {
-                        ForEach(tabs) { tab in
-                            item(tab).id(tab.id)
-                        }
-                    }
-                    .padding(5)
-                }
-                // Room for four before it scrolls: past that the labels are too
-                // narrow to read, and a dock you cannot read is a row of dots.
-                .frame(maxWidth: 4 * 92 + 10)
-                .fixedSize(horizontal: tabs.count <= 4, vertical: false)
-                .onChange(of: selection) { _, tab in
-                    withAnimation(.snappy) { proxy.scrollTo(tab.id, anchor: .center) }
+            HStack(spacing: 2) {
+                ForEach(tabs) { tab in
+                    item(tab)
                 }
             }
+            .padding(5)
         }
         .liquidGlassPanel(cornerRadius: 30)
         .padding(.horizontal, 16)
@@ -68,27 +62,34 @@ struct ModeDock: View {
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = tab }
         } label: {
-            VStack(spacing: 3) {
+            HStack(spacing: 6) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: tab.symbol)
-                        .font(.system(size: 21, weight: .semibold))
-                        .frame(height: 24)
+                        .font(.system(size: 19, weight: .semibold))
+                        .frame(width: 26, height: 24)
                     if count(tab) > 0 {
                         Text("\(count(tab))")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(tab.tint, in: Capsule())
-                            .offset(x: 13, y: -5)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(chosen ? .white : Color.secondary)
+                            .padding(.horizontal, 3.5).padding(.vertical, 0.5)
+                            // Grey unless this is the mode you are in: a
+                            // coloured pip on every icon reads as six unread
+                            // notifications rather than as six counts.
+                            .background(chosen ? AnyShapeStyle(tab.tint)
+                                               : AnyShapeStyle(.quaternary), in: Capsule())
+                            .offset(x: 11, y: -6)
                     }
                 }
-                Text(tab.title)
-                    .font(.footnote.weight(.bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                if chosen {
+                    Text(tab.title)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(1)
+                        .fixedSize()
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
+                }
             }
             .foregroundStyle(chosen ? AnyShapeStyle(tab.tint) : AnyShapeStyle(.secondary))
-            .frame(width: 84)
+            .padding(.horizontal, chosen ? 13 : 9)
             .padding(.vertical, 9)
             .background {
                 // One capsule that moves between the tabs rather than one per

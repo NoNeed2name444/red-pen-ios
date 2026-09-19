@@ -112,6 +112,9 @@ struct LibraryView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            // The dock floats over the list, so the last row needs somewhere
+            // to end that is not behind glass.
+            .safeAreaPadding(.bottom, tabs.count > 1 ? 8 : 0)
             .id(tab)
             .transition(.opacity)
             .gesture(
