@@ -86,6 +86,20 @@ final class AccountStore: ObservableObject {
         }
     }
 
+    // MARK: personal build
+
+    /// Personal build only: sign in as yourself with no Apple or Google
+    /// account and no server. The session never expires and never syncs;
+    /// the library stays on this device.
+    func useThisDeviceOnly(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        adopt(Session(
+            account: Account(id: "local-" + UUID().uuidString, provider: .email,
+                             email: nil, displayName: trimmed.isEmpty ? "Me" : trimmed),
+            token: Session.localToken, refreshToken: nil,
+            expiresAt: Date.distantFuture))
+    }
+
     private func adopt(_ session: Session) {
         Keychain.save(session)
         state = .signedIn(session)

@@ -60,7 +60,7 @@ final class SyncEngine: ObservableObject {
     // MARK: a run
 
     func syncNow() async {
-        guard !running, let token = account.token else { return }
+        guard !running, let token = account.token, token != Session.localToken else { return }
         running = true
         status = .syncing
         copiesKept = 0

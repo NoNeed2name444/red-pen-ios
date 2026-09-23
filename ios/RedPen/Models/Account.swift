@@ -42,6 +42,11 @@ struct Account: Codable, Equatable, Identifiable {
 /// the whole reason this is its own type - a bearer token in a JSON file next
 /// to the flashcards is a bearer token in every backup that file lands in.
 struct Session: Codable, Equatable {
+    /// The token a this-device-only session carries (personal build). It is
+    /// never sent anywhere: sync skips a session that has it.
+    static let localToken = "local-only"
+    var isLocalOnly: Bool { token == Session.localToken }
+
     var account: Account
     var token: String
     var refreshToken: String?

@@ -12,6 +12,8 @@ import AuthenticationServices
 struct SignInView: View {
     @EnvironmentObject var account: AccountStore
 
+    @State private var localName = ""
+
     var body: some View {
         ZStack {
             LibraryBackdrop()
@@ -81,6 +83,25 @@ struct SignInView: View {
             }
             .buttonStyle(.glass)
             .disabled(account.busy)
+
+            // Personal build: no Apple or Google account, no server.
+            VStack(spacing: 8) {
+                TextField("Your name", text: $localName)
+                    .textContentType(.name)
+                    .textFieldStyle(.roundedBorder)
+                Button {
+                    account.useThisDeviceOnly(name: localName)
+                } label: {
+                    Text("Use on this device only").fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                }
+                .buttonStyle(.glassProminent)
+                Text("No account needed. Your sets stay on this device and aren't synced.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 8)
         }
     }
 

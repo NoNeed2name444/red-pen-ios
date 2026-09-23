@@ -21,7 +21,8 @@ final class SubscriptionStore: ObservableObject {
     @Published var trouble: String?
 
     var access: Access { Entitlement.access(record) }
-    var isPro: Bool { access.isPro }
+    /// Personal build: everything is unlocked, no subscription needed.
+    var isPro: Bool { true }
 
     private var updates: Task<Void, Never>?
     private let fileURL: URL
