@@ -40,7 +40,7 @@ struct CaseChatView: View {
         ContentUnavailableView {
             Label("Choose a model to play the patient", systemImage: "stethoscope")
         } description: {
-            Text("Download Doctor-R1 to run on this device, or add a hosted model. Add MedVAL too and every patient answer is checked against the case before you see it.")
+            Text("With Pro, use Doctor-R1 on this device or CramDown Cloud; Apple's own model works for free where Apple Intelligence is on. Add MedVAL and every patient answer is checked against the case before you see it.")
         } actions: {
             Button("AI models") { showModels = true }.buttonStyle(.glassProminent)
         }

@@ -21,7 +21,7 @@ struct ModelSettingsView: View {
                         Picker(role.title, selection: binding(for: role)) {
                             Text("Off").tag(LLMChoice.off)
                             if llm.status[role.onDeviceModel] != .unsupported {
-                                Text("\(role.onDeviceModel.displayName) \u{00B7} free").tag(LLMChoice.device)
+                                Text("\(role.onDeviceModel.displayName) \u{00B7} Pro").tag(LLMChoice.device)
                             }
                             Text("CramDown Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
                             ForEach(llm.providers) { provider in
@@ -57,7 +57,7 @@ struct ModelSettingsView: View {
                         modelRow(model)
                     }
                 } header: {
-                    Text("On this device \u{00B7} free")
+                    Text("On this device \u{00B7} Pro")
                 } footer: {
                     Text("This device has \(String(format: "%.1f", MedicalModel.deviceMemoryGB)) GB of memory. The app picks the largest build that fits; devices without room for a model use a hosted one instead. Downloads are one-time and run fully offline afterwards.")
                 }
@@ -121,6 +121,12 @@ struct ModelSettingsView: View {
                 if !llm.isPro { showPaywall = true }
                 return
             }
+            // the medical models on the device are Pro too
+            if choice == .device, !llm.isPro {
+                cloudNote = "Doctor-R1 and MedVAL are part of Pro."
+                showPaywall = true
+                return
+            }
             cloudNote = nil
             llm.setChoice(choice, for: role)
         })
@@ -143,7 +149,7 @@ struct ModelSettingsView: View {
                 Text("Too large for this device \u{2014} add a hosted model below.")
                     .font(.footnote).foregroundStyle(.orange)
             case .notDownloaded:
-                Button { llm.download(model) } label: {
+                Button { if llm.isPro { llm.download(model) } else { showPaywall = true } } label: {
                     Label("Download", systemImage: "arrow.down.circle")
                 }
             case .downloading(let fraction):

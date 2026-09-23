@@ -4,9 +4,9 @@ import SwiftUI
 ///
 /// Where the paywall sits, and it sits in one place on purpose. Reading a file,
 /// typing questions, importing a deck and reviewing everything you already have
-/// stay free, and so does generating on the device - Apple's model, Gemma or
-/// Doctor-R1 cost nothing to run. What Pro buys is CramDown Cloud: the larger
-/// hosted models, which cost real money per request.
+/// stay free, and so does generating with Apple's model or the Gemma fallback.
+/// What Pro buys is the medical models: Doctor-R1 and MedVAL on the device,
+/// and CramDown Cloud, the larger hosted models.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
@@ -65,8 +65,8 @@ struct MCQGenerateForm: View {
             backendSection
 
             Section {
-                if llm.writerChoice == .cloud, !subscriptions.isPro {
-                    Label("CramDown Cloud is part of Pro. On-device models are free \u{2014} switch in AI models.",
+                if llm.needsPro(.writer) {
+                    Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",
                           systemImage: "lock.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 } else if activeBackend == .medical, let summary = llm.summary(for: .writer) {
@@ -84,7 +84,7 @@ struct MCQGenerateForm: View {
                 }
                 .buttonStyle(.glassProminent)
                 .disabled(isGenerating
-                          || (activeBackend == nil && llm.writerChoice != .cloud)
+                          || (activeBackend == nil && !llm.needsPro(.writer))
                           || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
                 if isGenerating {
                     Button("Cancel", role: .cancel) { generationTask?.cancel() }
@@ -107,7 +107,7 @@ struct MCQGenerateForm: View {
 
     private var generateLabel: String {
         if isGenerating { return generationStatus ?? "Writing\u{2026}" }
-        return llm.writerChoice == .cloud && !subscriptions.isPro ? "Unlock CramDown Cloud" : "Generate questions"
+        return llm.needsPro(.writer) ? "Unlock the medical models" : "Generate questions"
     }
 
     /// Apple's on-device model is tried first; this only appears when that is
@@ -149,10 +149,10 @@ struct MCQGenerateForm: View {
     // MARK: generating
 
     private func startGenerating() {
-        // On-device models are free. Only CramDown Cloud is Pro, and then the
-        // paywall opens instead of the work starting; nothing is generated and
-        // then taken away, which is the version of this people hate.
-        if llm.writerChoice == .cloud, !subscriptions.isPro { showPaywall = true; return }
+        // Apple's model and Gemma are free; the medical models are Pro, and
+        // then the paywall opens instead of the work starting - nothing is
+        // generated and then taken away, which is the version people hate.
+        if llm.needsPro(.writer) { showPaywall = true; return }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true

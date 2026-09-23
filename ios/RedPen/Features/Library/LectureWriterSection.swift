@@ -89,9 +89,9 @@ struct LectureWriterSection: View {
 
     private var modelLine: String {
         if let backend = llm.writerOrApple() {
-            return "Written by \(backend.label)\(backend.isOnDevice ? " on this device, free" : ""). The \(noun)s land below to check and edit before you create the set."
+            return "Written by \(backend.label)\(backend.isOnDevice ? " on this device" : ""). The \(noun)s land below to check and edit before you create the set."
         }
-        return "No model is ready: turn on Apple Intelligence, download Doctor-R1 in AI models, or use CramDown Cloud with Pro."
+        return "No model is ready: turn on Apple Intelligence, or use Doctor-R1 or CramDown Cloud with Pro."
     }
 
     static var readableTypes: [UTType] {
