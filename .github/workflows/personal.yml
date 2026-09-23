@@ -50,9 +50,17 @@ jobs:
         run: xcodegen generate
       - name: Build for a device
         working-directory: ios
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
           set -o pipefail
+          # CramDown Cloud's owner key, worked out here from the AI_API_KEY
+          # secret exactly as the worker's deploy does, so it never sits in the
+          # repository. Personal builds only.
+          OWNER=""
+          [ -n "${AI_API_KEY:-}" ] && OWNER=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | shasum -a 256 | cut -c1-64)
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Release \
+            RED_PEN_OWNER_KEY="$OWNER" \
             -destination 'generic/platform=iOS' -derivedDataPath build \
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
