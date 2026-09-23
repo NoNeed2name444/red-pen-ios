@@ -50,6 +50,10 @@ struct OsceReviewView: View {
             }
         }
         .modeScreen(.osce)
+        .accuracyCheck(set: studySet,
+                       instruction: "Write an OSCE station checklist, in the order the steps are performed, from the source.") {
+            checklist.map { $0.title + "\n" + $0.steps.map { "- " + $0 }.joined(separator: "\n") }
+        }
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: resume)

@@ -1,0 +1,319 @@
+import Foundation
+#if canImport(LocalLLMClientLlama)
+import LocalLLMClient
+import LocalLLMClientLlama
+#endif
+
+/// One turn of a conversation with a model, in the shape every backend -
+/// llama.cpp on the device, or any of the hosted APIs - can be given.
+struct ChatTurn: Codable, Hashable {
+    enum Role: String, Codable { case system, user, assistant }
+    var role: Role
+    var text: String
+
+    static func system(_ text: String) -> ChatTurn { ChatTurn(role: .system, text: text) }
+    static func user(_ text: String) -> ChatTurn { ChatTurn(role: .user, text: text) }
+    static func assistant(_ text: String) -> ChatTurn { ChatTurn(role: .assistant, text: text) }
+}
+
+/// Anything that can finish a conversation. The on-device models and every
+/// hosted provider sit behind this, so a mode never knows which one it got.
+protocol LLMBackend: Sendable {
+    var label: String { get }
+    /// True when this backend runs on the device and sends nothing anywhere.
+    var isOnDevice: Bool { get }
+    /// How much source text is worth putting in one prompt. On a phone the
+    /// context window is small; a hosted model can take a whole lecture.
+    var promptBudgetChars: Int { get }
+    func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String
+}
+
+enum LLMError: LocalizedError {
+    case notReady(String)
+    case emptyReply
+    case http(Int, String)
+    case badResponse
+    case missingKey(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notReady(let why): return why
+        case .emptyReply: return "The model returned nothing usable \u{2014} try again."
+        case .http(let code, let body):
+            return "The hosted model refused the request (HTTP \(code)). \(body.prefix(160))"
+        case .badResponse: return "The hosted model answered in a shape the app doesn't understand."
+        case .missingKey(let name): return "Add an API key for \(name) in AI models."
+        }
+    }
+}
+
+/// The two jobs a model does in the app.
+///
+/// `writer` writes questions, stations and plays the patient (Doctor-R1 on the
+/// device, or a hosted model such as Baichuan-M2-32B). `checker` reads what the
+/// writer produced and grades it for medical accuracy (MedVAL-4B on the device,
+/// or a hosted model given MedVAL's prompt).
+enum LLMRole: String, CaseIterable, Identifiable {
+    case writer, checker
+    var id: String { rawValue }
+    var title: String { self == .writer ? "Writing & patient" : "Accuracy checker" }
+    var onDeviceModel: MedicalModel { self == .writer ? .doctorR1 : .medval }
+}
+
+/// What a role is set to use. Stored as a plain string so it survives in
+/// UserDefaults: "off", "device", or a hosted provider's id.
+enum LLMChoice: Hashable {
+    case off
+    case device
+    case hosted(UUID)
+
+    init(stored: String?) {
+        switch stored {
+        case nil, "off": self = .off
+        case "device": self = .device
+        case let s?: self = UUID(uuidString: s).map { .hosted($0) } ?? .off
+        }
+    }
+
+    var stored: String {
+        switch self {
+        case .off: return "off"
+        case .device: return "device"
+        case .hosted(let id): return id.uuidString
+        }
+    }
+}
+
+/// Owns the on-device medical models and decides, for each role, which backend
+/// answers. Everything that wants a model asks here.
+@MainActor
+final class LocalLLMService: ObservableObject {
+    static let shared = LocalLLMService()
+
+    enum Status: Equatable {
+        case notDownloaded
+        case downloading(fraction: Double)
+        case ready
+        case failed(String)
+        /// This device has too little memory for any build of the model.
+        case unsupported
+    }
+
+    @Published private(set) var status: [MedicalModel: Status] = [:]
+    @Published private(set) var providers: [HostedProvider] = []
+    @Published var writerChoice: LLMChoice { didSet { save(writerChoice, for: .writer) } }
+    @Published var checkerChoice: LLMChoice { didSet { save(checkerChoice, for: .checker) } }
+    /// Check generated questions and stations before they reach the set.
+    @Published var checkGenerated: Bool {
+        didSet { UserDefaults.standard.set(checkGenerated, forKey: Self.checkGeneratedKey) }
+    }
+
+    private var downloads: [MedicalModel: Task<Void, Never>] = [:]
+    private static let checkGeneratedKey = "llm.checkGenerated"
+
+    private init() {
+        let defaults = UserDefaults.standard
+        writerChoice = LLMChoice(stored: defaults.string(forKey: "llm.choice.writer"))
+        checkerChoice = LLMChoice(stored: defaults.string(forKey: "llm.choice.checker"))
+        checkGenerated = defaults.object(forKey: Self.checkGeneratedKey) as? Bool ?? true
+        providers = HostedProvider.loadAll()
+        refreshStatus()
+    }
+
+    private func save(_ choice: LLMChoice, for role: LLMRole) {
+        UserDefaults.standard.set(choice.stored, forKey: "llm.choice.\(role.rawValue)")
+    }
+
+    func choice(for role: LLMRole) -> LLMChoice { role == .writer ? writerChoice : checkerChoice }
+
+    func setChoice(_ choice: LLMChoice, for role: LLMRole) {
+        if role == .writer { writerChoice = choice } else { checkerChoice = choice }
+    }
+
+    // MARK: which backend answers
+
+    /// The backend a role would use right now, or nil when it is off or not
+    /// ready (model not downloaded, provider deleted).
+    func backend(for role: LLMRole) -> LLMBackend? {
+        switch choice(for: role) {
+        case .off:
+            return nil
+        case .device:
+            let model = role.onDeviceModel
+            guard status[model] == .ready, let variant = model.variant() else { return nil }
+            return OnDeviceBackend(model: model, variant: variant)
+        case .hosted(let id):
+            guard let provider = providers.first(where: { $0.id == id }) else { return nil }
+            return HostedLLMClient(provider: provider)
+        }
+    }
+
+    /// A short line saying what a role is using, for the generate screens.
+    func summary(for role: LLMRole) -> String? {
+        backend(for: role).map { $0.isOnDevice ? "\($0.label), on this device" : "\($0.label), hosted" }
+    }
+
+    // MARK: on-device models
+
+    func refreshStatus() {
+        for model in MedicalModel.allCases {
+            if case .downloading = status[model] { continue }
+            if model.variant() == nil { status[model] = .unsupported }
+            else { status[model] = model.isDownloaded ? .ready : .notDownloaded }
+        }
+    }
+
+    func download(_ model: MedicalModel) {
+        guard downloads[model] == nil, let variant = model.variant() else { return }
+        status[model] = .downloading(fraction: 0)
+        downloads[model] = Task {
+            do {
+                try FileManager.default.createDirectory(at: MedicalModel.directory,
+                                                        withIntermediateDirectories: true)
+                let partial = MedicalModel.directory.appendingPathComponent(variant.filename + ".part")
+                try await GemmaModel.download(from: variant.url, to: partial) { fraction in
+                    Task { @MainActor in self.status[model] = .downloading(fraction: fraction) }
+                }
+                try Task.checkCancellation()
+                model.removeOtherVariants(keeping: variant)
+                try GemmaModel.replace(model.localURL(variant), with: partial)
+                self.status[model] = .ready
+            } catch is CancellationError {
+                self.status[model] = model.isDownloaded ? .ready : .notDownloaded
+            } catch {
+                self.status[model] = .failed(error.localizedDescription)
+            }
+            self.downloads[model] = nil
+        }
+    }
+
+    func cancelDownload(_ model: MedicalModel) { downloads[model]?.cancel() }
+
+    func delete(_ model: MedicalModel) {
+        cancelDownload(model)
+        Task { await OnDeviceRunner.shared.unload() }
+        model.removeOtherVariants(keeping: nil)
+        refreshStatus()
+    }
+
+    // MARK: hosted providers
+
+    func upsert(_ provider: HostedProvider, key: String?) {
+        if let index = providers.firstIndex(where: { $0.id == provider.id }) {
+            providers[index] = provider
+        } else {
+            providers.append(provider)
+        }
+        if let key { Keychain.set(Data(key.utf8), for: provider.keychainAccount) }
+        HostedProvider.saveAll(providers)
+    }
+
+    func remove(_ provider: HostedProvider) {
+        providers.removeAll { $0.id == provider.id }
+        Keychain.remove(provider.keychainAccount)
+        HostedProvider.saveAll(providers)
+        for role in LLMRole.allCases where choice(for: role) == .hosted(provider.id) {
+            setChoice(.off, for: role)
+        }
+    }
+}
+
+// MARK: - running a GGUF on the device
+
+/// One on-device model at a time. Doctor-R1 and MedVAL together are larger
+/// than any iPhone's memory allowance, so asking for the other one unloads the
+/// first. The actor also keeps two screens from generating at once.
+actor OnDeviceRunner {
+    static let shared = OnDeviceRunner()
+
+    #if canImport(LocalLLMClientLlama)
+    private var loaded: (url: URL, client: LlamaClient)?
+    #endif
+
+    func unload() {
+        #if canImport(LocalLLMClientLlama)
+        loaded = nil
+        #endif
+    }
+
+    func complete(url: URL, turns: [ChatTurn], maxTokens: Int,
+                  temperature: Double, context: Int) async throws -> String {
+        #if canImport(LocalLLMClientLlama)
+        let client: LlamaClient
+        if let loaded, loaded.url == url {
+            client = loaded.client
+        } else {
+            loaded = nil // free the other model before loading this one
+            client = try await LocalLLMClient.llama(
+                url: url,
+                parameter: .init(context: context, temperature: Float(temperature),
+                                 topK: 40, topP: 0.9))
+            loaded = (url, client)
+        }
+        let input = LLMInput.chat(turns.map { turn -> LLMInput.Message in
+            switch turn.role {
+            case .system: return .system(turn.text)
+            case .user: return .user(turn.text)
+            case .assistant: return .assistant(turn.text)
+            }
+        })
+        var text = ""
+        // llama.cpp has no per-call token limit here, so the reply is cut off
+        // by length instead: about four characters to a token.
+        let limit = maxTokens * 4
+        for try await chunk in try await client.textStream(from: input) {
+            try Task.checkCancellation()
+            text += chunk
+            if text.count >= limit { break }
+        }
+        return text
+        #else
+        throw LLMError.notReady("On-device medical models aren't available in this build \u{2014} add a hosted model in AI models.")
+        #endif
+    }
+}
+
+struct OnDeviceBackend: LLMBackend {
+    let model: MedicalModel
+    let variant: MedicalModel.Variant
+
+    var label: String { model.displayName }
+    var isOnDevice: Bool { true }
+    /// About 2,000 tokens of source, leaving room for the instructions and the
+    /// answer inside an 8K context.
+    var promptBudgetChars: Int { 8_000 }
+
+    func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
+        let raw = try await OnDeviceRunner.shared.complete(
+            url: model.localURL(variant), turns: turns, maxTokens: maxTokens,
+            temperature: temperature, context: 8192)
+        let text = LLMText.stripThinking(raw)
+        guard !text.isEmpty else { throw LLMError.emptyReply }
+        return text
+    }
+}
+
+// MARK: - text helpers shared by every backend
+
+enum LLMText {
+    /// Doctor-R1 and MedVAL are reasoning models: their answer follows a
+    /// `<think>...</think>` block that is working, not output.
+    static func stripThinking(_ raw: String) -> String {
+        var text = raw
+        if let end = text.range(of: "</think>", options: .backwards) {
+            text = String(text[end.upperBound...])
+        } else if text.contains("<think>") {
+            // cut off mid-thought: nothing after it is an answer
+            text = ""
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The outermost `{...}` in a reply, for models that wrap JSON in prose or
+    /// a code fence even when told not to.
+    static func jsonObject(in raw: String) -> Data? {
+        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
+              start < end else { return nil }
+        return String(raw[start...end]).data(using: .utf8)
+    }
+}
