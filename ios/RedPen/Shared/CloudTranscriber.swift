@@ -50,7 +50,9 @@ enum CloudTranscriber {
     static func transcribe(fileAt url: URL, vocabulary: [String],
                            config: Config? = nil,
                            onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> [LectureTranscriber.Line] {
-        let config = try await (config ?? self.config())
+        // not `config ?? await ...`: an autoclosure can't await
+        let settings: Config
+        if let config { settings = config } else { settings = try await self.config() }
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
         guard duration.isFinite, duration > 0 else { throw Failure.noAudio }
@@ -64,7 +66,7 @@ enum CloudTranscriber {
         var lines: [LectureTranscriber.Line] = []
         // the model that last worked is tried first: once the first is out of
         // quota there is no point asking it again for every chunk
-        var models = config.models
+        var models = settings.models
         for (i, start) in starts.enumerated() {
             try Task.checkCancellation()
             onProgress(i + 1, starts.count)
@@ -72,7 +74,7 @@ enum CloudTranscriber {
             let piece = folder.appendingPathComponent("\(i).m4a")
             try await exportChunk(of: asset, start: start, length: end - start, to: piece)
             let audio = try Data(contentsOf: piece)
-            let (phrases, used) = try await ask(audio: audio, prompt: prompt, config: config, models: models)
+            let (phrases, used) = try await ask(audio: audio, prompt: prompt, config: settings, models: models)
             if let at = models.firstIndex(of: used), at > 0 { models = Array(models[at...]) }
             lines += CloudTranscript.lines(from: phrases, offset: start, length: end - start)
         }
