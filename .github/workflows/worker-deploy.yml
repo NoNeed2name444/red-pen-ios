@@ -101,6 +101,23 @@ jobs:
           if [ -n "${AI_API_KEY:-}" ]; then
             printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64 | tr -d '\n' | $W secret put OWNER_KEY
           fi
+          # Doctor-R1 and MedVAL hosts (spaces-deploy.yml), when they exist:
+          # found from the Hugging Face account the AI_API_KEY belongs to
+          if [ -n "${AI_API_KEY:-}" ]; then
+            HFUSER=$(curl -sf -H "Authorization: Bearer $AI_API_KEY" https://huggingface.co/api/whoami-v2 | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).name||"")}catch{}})' || true)
+            SPACE_KEY=$(printf 'cramdown-space:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+            for m in doctor medval; do
+              if [ -n "$HFUSER" ] && curl -sf "https://huggingface.co/api/spaces/$HFUSER/cramdown-$m" >/dev/null; then
+                LOWER=$(echo "$HFUSER" | tr '[:upper:]' '[:lower:]')
+                UP=$(echo "$m" | tr '[:lower:]' '[:upper:]')
+                printf '%s' "https://$LOWER-cramdown-$m.hf.space/v1" | $W secret put "AI_${UP}_URL"
+                printf '%s' "$SPACE_KEY" | $W secret put "AI_${UP}_KEY"
+                echo "cramdown-$m -> https://$LOWER-cramdown-$m.hf.space/v1"
+              else
+                echo "(no cramdown-$m Space yet - skipped)"
+              fi
+            done
+          fi
           for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
