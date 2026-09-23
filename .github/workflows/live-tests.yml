@@ -60,29 +60,30 @@ jobs:
           LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
           build/live/run 2>&1 | tee out/cloud.log
 
-      - name: On-device models (Doctor-R1 + MedVAL) via llama.cpp
+      - name: Doctor-R1 + MedVAL on a GPU (Modal)
         if: inputs.targets != 'cloud'
         continue-on-error: true
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          set -x
-          brew list llama.cpp >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install llama.cpp
-          mkdir -p models
-          # the same builds an 8 GB phone downloads
-          curl -sSL -o models/doctor.gguf https://huggingface.co/mradermacher/Doctor-R1-GGUF/resolve/main/Doctor-R1.Q3_K_M.gguf
-          curl -sSL -o models/medval.gguf https://huggingface.co/stanfordmimi/MedVAL-4B-GGUF/resolve/main/MedVAL-4B.Q3_K_M.gguf
-          ls -la models
-          llama-server -m models/doctor.gguf --port 8081 -c 8192 --jinja -ngl 0 --device none -t 3 > out/doctor-server.log 2>&1 &
-          llama-server -m models/medval.gguf --port 8082 -c 8192 --jinja -ngl 0 --device none -t 3 > out/medval-server.log 2>&1 &
-          for p in 8081 8082; do
-            for i in $(seq 1 120); do curl -sf localhost:$p/health >/dev/null && break; sleep 2; done
+          # the same GGUF weights the app downloads, on an L4 GPU instead of
+          # the runner's CPU (modal-deploy.yml puts them there)
+          pip3 install -q --break-system-packages modal 2>/dev/null || pip3 install -q modal
+          printf '%s\n' 'import modal' 'for n in ("doctor", "medval"):' \
+            '    print(n.upper() + "_URL=" + modal.Function.from_name("cramdown-medical", n).get_web_url())' > urls.py
+          eval "$(python3 urls.py)"
+          echo "doctor: $DOCTOR_URL  medval: $MEDVAL_URL"
+          KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | shasum -a 256 | cut -c1-64)
+          for u in "$DOCTOR_URL" "$MEDVAL_URL"; do
+            for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' -m 60 "$u/health")" = 200 ] && break; sleep 10; done
           done
-          LIVE_URL=http://localhost:8081/v1/chat/completions LIVE_CHECKER_URL=http://localhost:8082/v1/chat/completions \
-          LIVE_KEY= LIVE_WRITER=doctor-r1 LIVE_CHECKER=medval \
-          LIVE_LABEL="On-device: Doctor-R1 (Q3_K_M) + MedVAL-4B (Q3_K_M), CPU on a GitHub Mac" LIVE_ON_DEVICE=1 \
+          LIVE_URL="$DOCTOR_URL/v1/chat/completions" LIVE_CHECKER_URL="$MEDVAL_URL/v1/chat/completions" \
+          LIVE_KEY="$KEY" LIVE_WRITER=doctor-r1 LIVE_CHECKER=medval \
+          LIVE_LABEL="Doctor-R1 (Q4_K_M) + MedVAL-4B (Q4_K_M): the app's own model files, on an L4 GPU" LIVE_ON_DEVICE=1 \
           LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
           build/live/run 2>&1 | tee out/on-device.log
-          grep -hE "eval time|prompt eval" out/doctor-server.log | tail -4 >> out/speed.txt || true
-          grep -hE "eval time|prompt eval" out/medval-server.log | tail -4 >> out/speed.txt || true
 
       - name: Push the report
         if: always()
