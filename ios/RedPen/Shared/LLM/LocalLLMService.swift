@@ -61,6 +61,10 @@ enum LLMChoice: Hashable {
 /// answers. Everything that wants a model asks here.
 @MainActor
 final class LocalLLMService: ObservableObject {
+    /// Whether the worker has Doctor-R1 and MedVAL hosts to send
+    /// "cloud-medical" to. Off until a host exists (server/spaces).
+    nonisolated static let cloudMedicalHosted = false
+
     static let shared = LocalLLMService()
 
     enum Status: Equatable {
