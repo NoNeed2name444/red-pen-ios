@@ -48,6 +48,8 @@ export default {
       if (path.startsWith('/blobs/') && path !== '/blobs/missing') {
         const id = await holder(request, env);
         if (!id) return fail(401, 'Please sign in again.');
+        // deployed without picture storage (no R2): documents still sync
+        if (!env.BLOBS) return fail(503, 'Picture sync is not set up on this server.');
         const name = path.slice('/blobs/'.length);
         if (request.method === 'PUT') return await putBlob(env, id, name, request, BLOB_BUDGET);
         if (request.method === 'GET') return await getBlob(env, id, name);
@@ -67,7 +69,10 @@ export default {
         case '/account/subscription': return await setSubscription(request, body, env);
         case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
         case '/sync/push': return await guarded(request, env, id => push(env, id, body));
-        case '/blobs/missing': return await guarded(request, env, id => missingBlobs(env, id, body));
+        // Without picture storage nothing is asked for, so a device never
+        // tries to upload and the documents' own sync carries on regardless.
+        case '/blobs/missing': return await guarded(request, env, id =>
+          env.BLOBS ? missingBlobs(env, id, body) : json({ missing: [] }));
         // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
         // special case - the session token is the key
         case '/v1/chat/completions': return await guarded(request, env, id => chat(env, id, body));
