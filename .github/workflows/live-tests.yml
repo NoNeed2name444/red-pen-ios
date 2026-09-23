@@ -1,0 +1,15 @@
+name: Live model tests
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        required: false
+        default: both
+      only:
+        required: false
+        default: ""
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Run this workflow on the personal branch."
