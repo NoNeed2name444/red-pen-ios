@@ -17,10 +17,22 @@ bucket_name = "redpen-blobs"
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.
-APPLE_BUNDLE_ID = "com.redpen.app"
+APPLE_BUNDLE_ID = "com.cramdown.app"
 GOOGLE_CLIENT_ID = ""
+# CramDown Cloud (Pro): an OpenAI-compatible upstream and the model for each
+# job. Baichuan-M2-32B is served on Hugging Face's router by featherless-ai.
+AI_BASE_URL = "https://router.huggingface.co/v1"
+AI_WRITER_MODEL = "baichuan-inc/Baichuan-M2-32B"
+AI_CHECKER_MODEL = "baichuan-inc/Baichuan-M2-32B"
+AI_DAILY_LIMIT = "400"
+# Accounts that are always Pro for the cloud models (comma-separated ids).
+OWNER_ACCOUNT_IDS = ""
 
 # Secrets are NOT in this file, and must never be added to it - it is in the
 # repository. Set each one with `wrangler secret put NAME`:
 #   SESSION_SECRET        a long random string; signs sessions and peppers codes
 #   GOOGLE_CLIENT_SECRET  from the Google Cloud console
+#   AI_API_KEY            the upstream key (a Hugging Face token for the router)
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY
+#                         an App Store Connect in-app purchase key, so the worker
+#                         can ask Apple whether a subscription is live

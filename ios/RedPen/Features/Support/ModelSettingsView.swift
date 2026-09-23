@@ -10,6 +10,8 @@ struct ModelSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editing: HostedProvider?
     @State private var editingIsNew = false
+    @State private var showPaywall = false
+    @State private var cloudNote: String?
 
     var body: some View {
         NavigationStack {
@@ -19,14 +21,18 @@ struct ModelSettingsView: View {
                         Picker(role.title, selection: binding(for: role)) {
                             Text("Off").tag(LLMChoice.off)
                             if llm.status[role.onDeviceModel] != .unsupported {
-                                Text("\(role.onDeviceModel.displayName) (this device)").tag(LLMChoice.device)
+                                Text("\(role.onDeviceModel.displayName) \u{00B7} free").tag(LLMChoice.device)
                             }
+                            Text("CramDown Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
                             ForEach(llm.providers) { provider in
                                 Text(provider.name).tag(LLMChoice.hosted(provider.id))
                             }
                         }
                     }
                     Toggle("Check generated questions and stations", isOn: $llm.checkGenerated)
+                    if let cloudNote {
+                        Text(cloudNote).font(.footnote).foregroundStyle(.orange)
+                    }
                 } header: {
                     Text("Use")
                 } footer: {
@@ -34,11 +40,24 @@ struct ModelSettingsView: View {
                 }
 
                 Section {
+                    LabeledContent("Writer", value: "Baichuan-M2-32B")
+                    LabeledContent("Checker", value: "Baichuan-M2-32B with MedVAL's rubric")
+                    LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
+                    if !llm.isPro {
+                        Button("See Pro") { showPaywall = true }
+                    }
+                } header: {
+                    Text("CramDown Cloud \u{00B7} Pro")
+                } footer: {
+                    Text("The larger medical models, run on our servers. Works on every device, including ones too small for the on-device models. Your text is sent to the model provider to answer and is not kept.")
+                }
+
+                Section {
                     ForEach(MedicalModel.allCases) { model in
                         modelRow(model)
                     }
                 } header: {
-                    Text("On this device")
+                    Text("On this device \u{00B7} free")
                 } footer: {
                     Text("This device has \(String(format: "%.1f", MedicalModel.deviceMemoryGB)) GB of memory. The app picks the largest build that fits; devices without room for a model use a hosted one instead. Downloads are one-time and run fully offline afterwards.")
                 }
@@ -70,7 +89,7 @@ struct ModelSettingsView: View {
                         Label("Add a hosted model", systemImage: "plus.circle")
                     }
                 } header: {
-                    Text("Hosted models")
+                    Text("Your own key \u{00B7} advanced")
                 } footer: {
                     Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms. Baichuan-M2-32B is too large for any phone, so it runs hosted.")
                 }
@@ -89,11 +108,22 @@ struct ModelSettingsView: View {
                 ProviderEditor(provider: provider, isNew: editingIsNew)
             }
             .onAppear { llm.refreshStatus() }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
         }
     }
 
     private func binding(for role: LLMRole) -> Binding<LLMChoice> {
-        Binding(get: { llm.choice(for: role) }, set: { llm.setChoice($0, for: role) })
+        Binding(get: { llm.choice(for: role) }, set: { choice in
+            // CramDown Cloud only once it can actually answer: Pro opens the
+            // paywall, a missing sign-in says so, and the choice stays put
+            if choice == .cloud, let blocker = llm.cloudBlocker {
+                cloudNote = blocker
+                if !llm.isPro { showPaywall = true }
+                return
+            }
+            cloudNote = nil
+            llm.setChoice(choice, for: role)
+        })
     }
 
     @ViewBuilder

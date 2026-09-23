@@ -24,7 +24,17 @@ CREATE TABLE IF NOT EXISTS accounts (
   -- makes "sign out on every device" - the only thing a student can do about a
   -- phone they have lost - mean anything.
   -- Existing deployments: ALTER TABLE accounts ADD COLUMN signed_out_before INTEGER NOT NULL DEFAULT 0;
-  signed_out_before INTEGER NOT NULL DEFAULT 0
+  signed_out_before INTEGER NOT NULL DEFAULT 0,
+  -- CramDown Cloud: the App Store subscription this account paid with, and
+  -- until when Apple last confirmed it. Unlike `plan`, these ARE what the
+  -- cloud models check, because they are Apple's answer rather than the app's.
+  -- Existing deployments:
+  --   ALTER TABLE accounts ADD COLUMN original_transaction_id TEXT;
+  --   ALTER TABLE accounts ADD COLUMN verified_until INTEGER NOT NULL DEFAULT 0;
+  --   ALTER TABLE accounts ADD COLUMN checked_at INTEGER NOT NULL DEFAULT 0;
+  original_transaction_id TEXT,
+  verified_until INTEGER NOT NULL DEFAULT 0,
+  checked_at INTEGER NOT NULL DEFAULT 0
 );
 
 -- One person, one account per provider. Signing in with Apple and then with
@@ -64,4 +74,13 @@ CREATE INDEX IF NOT EXISTS docs_by_rev ON docs (account_id, rev);
 CREATE TABLE IF NOT EXISTS sync_state (
   account_id  TEXT PRIMARY KEY,
   rev         INTEGER NOT NULL DEFAULT 0
+);
+
+-- Cloud model requests per account per UTC day, so one account cannot run up
+-- the provider bill for everybody.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  account_id TEXT NOT NULL,
+  day        TEXT NOT NULL,
+  requests   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (account_id, day)
 );

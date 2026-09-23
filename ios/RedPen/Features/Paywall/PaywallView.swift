@@ -56,7 +56,8 @@ struct PaywallView: View {
                 .multilineTextAlignment(.center)
             VStack(alignment: .leading, spacing: 8) {
                 perk("doc.text.viewfinder", "Read PDFs, Word and PowerPoint handouts")
-                perk("sparkles", "Generate questions and cards on this phone")
+                perk("cloud", "CramDown Cloud: Baichuan-M2-32B, the larger medical model, for questions, stations and patient cases")
+                perk("checkmark.shield", "Every cloud answer checked for medical accuracy")
                 perk("rectangle.dashed", "Turn labelled diagrams into occlusion cards")
                 perk("waveform", "Transcribe a recorded lecture, in Arabic or English")
             }

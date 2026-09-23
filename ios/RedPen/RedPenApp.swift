@@ -40,16 +40,18 @@ struct RedPenApp: App {
             .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
             : ReviewStore()
         _reviews = StateObject(wrappedValue: reviews)
-        _subscriptions = StateObject(wrappedValue: seeded
+        let subscriptions = seeded
             ? SubscriptionStore(fileURL: scratch
                 .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
-            : SubscriptionStore())
+            : SubscriptionStore()
+        _subscriptions = StateObject(wrappedValue: subscriptions)
         // A screenshot run is signed in to nobody's account in particular: the
         // alternative is every preview screen being a picture of a sign-in
         // page.
         let account = seeded ? AccountStore(session: PreviewLaunch.pretendSession())
                              : AccountStore()
         _account = StateObject(wrappedValue: account)
+        LocalLLMService.shared.attach(account: account, subscriptions: subscriptions)
         // A screenshot run reconciles with nothing: there is no server, and a
         // failed sync badge in every preview would be noise in the one place
         // that exists to make changes visible.
@@ -80,6 +82,9 @@ struct RedPenApp: App {
                             // library edited on the other device last night.
                             await account.refreshIfNeeded()
                             await subscriptions.refreshIfNeeded()
+                            // CramDown Cloud checks with Apple, server side;
+                            // this tells it which subscription to ask about
+                            await subscriptions.report(token: account.token)
                             await sync.syncNow()
                         }
                         // Coming back to the app is the moment somebody expects

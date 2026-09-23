@@ -19,6 +19,10 @@ final class SubscriptionStore: ObservableObject {
     @Published private(set) var record = EntitlementRecord()
     @Published var busy = false
     @Published var trouble: String?
+    /// The App Store's id for this subscription, sent to the worker so it can
+    /// ask Apple itself before CramDown Cloud answers. Not stored: StoreKit
+    /// hands it back on every refresh.
+    private(set) var originalTransactionID: String?
 
     var access: Access { Entitlement.access(record) }
     /// Personal build: everything is unlocked, no subscription needed.
@@ -141,6 +145,7 @@ final class SubscriptionStore: ObservableObject {
                expiry > (found.expiresAt ?? .distantPast) {
                 found.plan = plan
                 found.expiresAt = expiry
+                originalTransactionID = String(transaction.originalID)
             }
         }
 
@@ -156,6 +161,25 @@ final class SubscriptionStore: ObservableObject {
         found.verifiedAt = Date()
         record = found
         save()
+    }
+
+    /// Tells the worker which subscription this account holds. The worker
+    /// confirms it with Apple; nothing here is taken on trust. Quietly does
+    /// nothing when offline, signed out or on a this-device-only session.
+    func report(token: String?) async {
+        guard let token, token != Session.localToken else { return }
+        if originalTransactionID == nil { await refresh() }
+        guard let original = originalTransactionID else { return }
+        struct Report: Encodable {
+            var plan: String?
+            var expiresAt: Date?
+            var originalTransactionId: String
+        }
+        _ = try? await AuthAPI.send("account/subscription",
+                                    body: Report(plan: record.plan?.rawValue,
+                                                 expiresAt: record.expiresAt,
+                                                 originalTransactionId: original),
+                                    token: token)
     }
 
     // MARK: keeping it between launches
