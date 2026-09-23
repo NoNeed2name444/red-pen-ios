@@ -152,15 +152,47 @@ export function geminiBody(messages, maxTokens, temperature) {
   return body;
 }
 
+/// A Firebase App Check token for the Gemini calls. Firebase AI Logic now
+/// refuses requests without one (and from November 2026 enforcement cannot be
+/// switched off), so the worker exchanges the project's registered debug token
+/// (APPCHECK_DEBUG_TOKEN, for the app FIREBASE_APP_ID) for a real App Check
+/// token and reuses it until shortly before it expires.
+let appCheckCache = { token: '', until: 0 };
+export async function appCheckToken(env, fetcher = fetch, clock = Date.now) {
+  if (!env.APPCHECK_DEBUG_TOKEN || !env.FIREBASE_APP_ID || !env.FIREBASE_API_KEY) return '';
+  if (appCheckCache.token && appCheckCache.until > clock()) return appCheckCache.token;
+  const project = env.FIREBASE_APP_ID.split(':')[1] || env.FIREBASE_PROJECT_ID;
+  const response = await fetcher(
+    `https://firebaseappcheck.googleapis.com/v1/projects/${project}/apps/${env.FIREBASE_APP_ID}:exchangeDebugToken`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY },
+      body: JSON.stringify({ debugToken: env.APPCHECK_DEBUG_TOKEN }),
+    });
+  if (!response.ok) {
+    console.error('app check', response.status, await readError(response));
+    return '';
+  }
+  const answer = await response.json();
+  const seconds = parseInt(String(answer.ttl || '3600'), 10) || 3600;
+  // five minutes' margin, so a token never runs out mid-request
+  appCheckCache = { token: answer.token || '', until: clock() + Math.max(60, seconds - 300) * 1000 };
+  return appCheckCache.token;
+}
+export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
+
 async function askGemini(env, messages, maxTokens, temperature, fetcher) {
   const models = (env.CLOUD_MODELS || env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
     .split(',').map(m => m.trim()).filter(Boolean);
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
+  const appCheck = await appCheckToken(env, fetcher);
   for (const model of models) {
     const response = await fetcher(
       `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY },
+        headers: {
+          'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
+          ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
+        },
         body: JSON.stringify(geminiBody(messages, maxTokens, temperature)),
       });
     if (!response.ok) {

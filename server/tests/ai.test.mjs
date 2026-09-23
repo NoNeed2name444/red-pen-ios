@@ -231,16 +231,46 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await whisper(req, { audio: 'A'.repeat(200) }, tight)).status === 429, 'and it is rationed per address');
 }
 
+// App Check: the registered debug token is exchanged once, reused, and sent
+{
+  const { appCheckToken, forgetAppCheck } = await import('../ai.js');
+  forgetAppCheck();
+  let exchanges = 0, sentHeader = '';
+  const fetcher = async (url, init) => {
+    if (url.includes('exchangeDebugToken')) {
+      exchanges++;
+      ok(url.includes('projects/880702682763/apps/1:880702682763:web:abc:exchangeDebugToken') && JSON.parse(init.body).debugToken === 'dbg',
+         'the debug token is exchanged for the registered app');
+      return new Response(JSON.stringify({ token: 'ac-token', ttl: '3600s' }), { status: 200 });
+    }
+    sentHeader = init.headers['x-firebase-appcheck'] || '';
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'hi' }] } }] }), { status: 200 });
+  };
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p',
+                         FIREBASE_APP_ID: '1:880702682763:web:abc', APPCHECK_DEBUG_TOKEN: 'dbg' });
+  await chat(env, 'a1', request, fetcher);
+  await chat(env, 'a1', request, fetcher);
+  ok(sentHeader === 'ac-token' && exchanges === 1, 'Gemini calls carry the App Check token, exchanged once and reused');
+  let t = 0;
+  forgetAppCheck();
+  await appCheckToken(env, fetcher, () => t);
+  t = 3_600_000;
+  await appCheckToken(env, fetcher, () => t);
+  ok(exchanges === 3, 'and a fresh one is fetched before the old one expires');
+  ok(await appCheckToken({ FIREBASE_API_KEY: 'fk' }, fetcher) === '', 'with no debug token set, nothing is sent');
+  forgetAppCheck();
+}
+
 // Narrate's transcription settings
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');
-  const none = transcribeConfig({});
+  const none = await transcribeConfig({});
   ok(none.status === 503, 'transcription config says so when Firebase is not set up');
-  const set = await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' }).json();
+  const set = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' })).json();
   ok(set.apiKey === 'fk' && set.projectId === 'cramdown-x', 'and hands back the project once it is');
   ok(set.models[0] === 'gemini-3.5-flash' && set.models.includes('gemini-3.5-flash-lite'),
      'with Gemini 3.5 Flash first and Flash-Lite as the fallback');
-  const swapped = await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' }).json();
+  const swapped = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' })).json();
   ok(swapped.models.join('|') === 'gemini-3.8-flash|gemini-3.5-flash', 'a model swap is a server setting, not an app update');
   const routed = await worker.fetch(new Request('https://x/transcribe/config', { method: 'POST' }),
                                     { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });

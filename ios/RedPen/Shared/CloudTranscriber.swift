@@ -31,6 +31,9 @@ enum CloudTranscriber {
         var apiKey: String
         var projectId: String
         var models: [String]
+        /// Firebase App Check token from the worker: Firebase AI Logic
+        /// refuses Gemini calls without one.
+        var appCheck: String?
     }
 
     static func config() async throws -> Config {
@@ -133,6 +136,9 @@ enum CloudTranscriber {
         request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(config.apiKey, forHTTPHeaderField: "x-goog-api-key")
+        if let token = config.appCheck, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "X-Firebase-AppCheck")
+        }
         if let bundle = Bundle.main.bundleIdentifier {
             request.setValue(bundle, forHTTPHeaderField: "x-ios-bundle-identifier")
         }

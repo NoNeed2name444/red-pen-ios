@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, whisper } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, whisper, appCheckToken, spend } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -42,13 +42,20 @@ const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
 /// kind every Firebase app ships in its bundle (App Check, not secrecy, is what
 /// protects it), and the model list is here so a model Google retires or
 /// throttles can be swapped without an app update.
-export function transcribeConfig(env) {
+export async function transcribeConfig(env, request, fetcher = fetch) {
   if (!env.FIREBASE_API_KEY || !env.FIREBASE_PROJECT_ID) {
     return fail(503, "Cloud transcription isn't set up on this server.");
   }
   const models = (env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
     .split(',').map(m => m.trim()).filter(Boolean);
-  return json({ apiKey: env.FIREBASE_API_KEY, projectId: env.FIREBASE_PROJECT_ID, models });
+  // an App Check token for the phone's Gemini calls (see appCheckToken);
+  // handed out a limited number of times a day per address
+  let appCheck = '';
+  const address = request?.headers?.get?.('cf-connecting-ip') || 'unknown';
+  if (env.DB && env.APPCHECK_DEBUG_TOKEN && await spend(env, `appcheck:${address}`, Number(env.APPCHECK_DAILY) || 50)) {
+    appCheck = await appCheckToken(env, fetcher);
+  }
+  return json({ apiKey: env.FIREBASE_API_KEY, projectId: env.FIREBASE_PROJECT_ID, models, ...(appCheck ? { appCheck } : {}) });
 }
 
 export default {
@@ -94,7 +101,7 @@ export default {
         // Narrate's cloud transcription: the app sends the audio straight to
         // Gemini through Firebase AI Logic, and only asks here which project
         // and models to use, so neither is baked into a build
-        case '/transcribe/config': return transcribeConfig(env);
+        case '/transcribe/config': return await transcribeConfig(env, request);
         case '/transcribe/whisper': return await whisper(request, body, env);
         default: return fail(404, 'No such endpoint.');
       }
