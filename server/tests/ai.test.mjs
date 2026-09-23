@@ -138,5 +138,19 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(r.status === 200, 'the owner path answers with no account and no subscription');
 }
 
+// Doctor-R1 and MedVAL: their own hosts, and a clear answer before they exist
+{
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1' });
+  const r = await chat(env, 'a1', { ...request, model: 'cramdown-doctor' }, fakeFetch({}));
+  ok(r.status === 503 && (await r.json()).message.includes('Doctor-R1'), 'Doctor-R1 not hosted yet says so (503)');
+  const hosted = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_MEDVAL_URL: 'https://medval.example/v1', AI_MEDVAL_KEY: 'mk' });
+  const seen = [];
+  const spy = async (url, init) => { seen.push({ url, init }); return new Response(JSON.stringify({ choices: [{ message: { content: 'Level 1' } }] })); };
+  const m = await chat(hosted, 'a1', { ...request, model: 'cramdown-medval' }, spy);
+  ok(m.status === 200, 'MedVAL answers once its host is set');
+  ok(seen[0].url === 'https://medval.example/v1/chat/completions', 'and the request goes to the MedVAL host');
+  ok(seen[0].init.headers.authorization === 'Bearer mk', 'with the MedVAL host key, not the provider key');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

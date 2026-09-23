@@ -68,6 +68,17 @@ struct HostedProvider: Identifiable, Codable, Hashable {
                        needsKey: false)
     }
 
+    /// Doctor-R1 or MedVAL on CramDown's own llama.cpp hosts, through the
+    /// same worker and the same Pro check as CramDown Cloud.
+    static func cloudMedical(for role: LLMRole) -> HostedProvider {
+        HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10E")!,
+                       name: role == .writer ? "Doctor-R1 (cloud)" : "MedVAL (cloud)",
+                       kind: .openAICompatible,
+                       baseURL: AuthAPI.baseURL.absoluteString + "/v1",
+                       model: role == .writer ? "cramdown-doctor" : "cramdown-medval",
+                       needsKey: false)
+    }
+
     private static let storeKey = "llm.providers"
 
     static func loadAll() -> [HostedProvider] {
@@ -101,7 +112,12 @@ struct HostedLLMClient: LLMBackend {
         if bearer == nil && provider.needsKey && key.isEmpty { throw LLMError.missingKey(provider.name) }
         var request: URLRequest
         switch provider.kind {
-        case .openAICompatible: request = try openAIRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
+        case .openAICompatible:
+            // Doctor-R1 and MedVAL skip their hidden reasoning in the cloud
+            // too, for the same reason as on the phone (LLMText.noThinking)
+            let qwen3 = provider.model == "cramdown-doctor" || provider.model == "cramdown-medval"
+            request = try openAIRequest(qwen3 ? LLMText.noThinking(turns) : turns, key: key,
+                                        maxTokens: maxTokens, temperature: temperature)
         case .anthropic: request = try anthropicRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
         case .gemini: request = try geminiRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
         }

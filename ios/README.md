@@ -88,7 +88,9 @@ Settings ▸ **AI models** chooses two things:
 
 A writer chosen here takes priority over Apple's on-device model and Gemma. With neither chosen, the app behaves exactly as before.
 
-**Tiers.** Free: Apple's on-device model and the Gemma fallback. Pro: Doctor-R1 and MedVAL on the device, and CramDown Cloud. A hosted model added with your own API key is not gated (you pay that provider).
+**Tiers.** Free: Apple's on-device model and the Gemma fallback. Pro: Doctor-R1 and MedVAL on the device *or in the cloud*, and CramDown Cloud (Baichuan-M2-32B).
+
+**Doctor-R1 and MedVAL in the cloud.** No provider hosts them, so each runs in its own Hugging Face Space with llama.cpp (`server/spaces`). Add an `HF_WRITE_TOKEN` repository secret (a Hugging Face token with write access), run **Deploy the medical model Spaces**, then **Deploy the worker**. Free CPU hardware to start; a GPU is a hardware switch in the Space settings. A hosted model added with your own API key is not gated (you pay that provider).
 
 ### On the device
 Tap **Download** next to a model. The app picks the largest build this device has memory for:

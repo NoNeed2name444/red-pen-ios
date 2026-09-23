@@ -12,6 +12,10 @@
 // swapped without an app update:
 //   cramdown-writer  -> AI_WRITER_MODEL   (default Baichuan-M2-32B)
 //   cramdown-checker -> AI_CHECKER_MODEL  (default the same model, given MedVAL's prompt)
+//   cramdown-doctor  -> Doctor-R1 on its own host  (AI_DOCTOR_URL, AI_DOCTOR_KEY)
+//   cramdown-medval  -> MedVAL-4B on its own host  (AI_MEDVAL_URL, AI_MEDVAL_KEY)
+// The last two are llama.cpp servers (see server/spaces/) - no provider offers
+// these models, so they run where we put them.
 
 import { decodeClaims } from './tokens.js';
 
@@ -42,9 +46,9 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     }
   }
 
-  const model = { 'cramdown-writer': env.AI_WRITER_MODEL || DEFAULT_MODEL,
-                  'cramdown-checker': env.AI_CHECKER_MODEL || env.AI_WRITER_MODEL || DEFAULT_MODEL }[body.model];
-  if (!model) return fail(400, 'Unknown model.');
+  const route = routeFor(env, body.model);
+  if (!route) return fail(400, 'Unknown model.');
+  if (!route.base) return fail(503, `${route.name} in the cloud isn't set up yet.`);
 
   const messages = clean(body.messages);
   if (!messages) return fail(400, 'Nothing to send.');
@@ -54,12 +58,12 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     return fail(429, `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`);
   }
 
-  if (!env.AI_API_KEY) return fail(503, 'CramDown Cloud is not set up yet.');
-  const upstream = await fetcher(`${(env.AI_BASE_URL || DEFAULT_BASE).replace(/\/+$/, '')}/chat/completions`, {
+  if (!route.key) return fail(503, 'CramDown Cloud is not set up yet.');
+  const upstream = await fetcher(`${route.base.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.AI_API_KEY}` },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${route.key}` },
     body: JSON.stringify({
-      model,
+      model: route.model,
       messages,
       max_tokens: Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS),
       temperature: Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5),
@@ -75,6 +79,24 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   if (typeof content !== 'string') return fail(502, 'The cloud model sent back nothing usable.');
   // only what the app reads, never the upstream's own metadata
   return json({ choices: [{ message: { role: 'assistant', content } }] });
+}
+
+/// Where each of the app's model names goes: which server, which key, which
+/// model name that server expects. Unknown names get nothing.
+export function routeFor(env, name) {
+  const provider = { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
+  switch (name) {
+    case 'cramdown-writer':
+      return { ...provider, name: 'CramDown Cloud', model: env.AI_WRITER_MODEL || DEFAULT_MODEL };
+    case 'cramdown-checker':
+      return { ...provider, name: 'CramDown Cloud', model: env.AI_CHECKER_MODEL || env.AI_WRITER_MODEL || DEFAULT_MODEL };
+    case 'cramdown-doctor':
+      return { name: 'Doctor-R1', base: env.AI_DOCTOR_URL, key: env.AI_DOCTOR_KEY, model: 'doctor-r1' };
+    case 'cramdown-medval':
+      return { name: 'MedVAL', base: env.AI_MEDVAL_URL, key: env.AI_MEDVAL_KEY, model: 'medval' };
+    default:
+      return null;
+  }
 }
 
 /// Roles and strings only, and a ceiling on the total, so the proxy cannot be
