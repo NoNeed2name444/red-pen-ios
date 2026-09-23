@@ -340,31 +340,6 @@ struct OnDeviceBackend: LLMBackend {
     }
 }
 
-// MARK: - text helpers shared by every backend
-
-enum LLMText {
-    /// Doctor-R1 and MedVAL are reasoning models: their answer follows a
-    /// `<think>...</think>` block that is working, not output.
-    static func stripThinking(_ raw: String) -> String {
-        var text = raw
-        if let end = text.range(of: "</think>", options: .backwards) {
-            text = String(text[end.upperBound...])
-        } else if text.contains("<think>") {
-            // cut off mid-thought: nothing after it is an answer
-            text = ""
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// The outermost `{...}` in a reply, for models that wrap JSON in prose or
-    /// a code fence even when told not to.
-    static func jsonObject(in raw: String) -> Data? {
-        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
-              start < end else { return nil }
-        return String(raw[start...end]).data(using: .utf8)
-    }
-}
-
 // MARK: - Apple's on-device model as a backend
 
 /// Apple Intelligence's on-device model behind the same interface, so the
