@@ -39,7 +39,7 @@ struct RecordingTermsView: View {
                       "\(Brand.name) is a study tool. It is not associated with, and does not approve of, recording or transcribing anyone without their consent, or any other misuse of the app.")
                 point("cloud",
                       "Cloud transcription",
-                      "When you choose cloud transcription, the audio is sent to Google (Gemini) or Cloudflare (Whisper) to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
+                      "When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
