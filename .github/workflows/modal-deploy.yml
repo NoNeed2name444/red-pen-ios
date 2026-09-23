@@ -1,4 +1,4 @@
-# Puts Doctor-R1 and MedVAL-4B on a GPU at Modal (server/modal/medical.py) and
+# Puts Doctor-R1, MedVAL-4B and Baichuan-M2-32B on a GPU at Modal (server/modal/medical.py) and
 # points the worker at them. Free while Modal's $30/month Starter credit lasts;
 # the GPUs scale to zero when nobody is using them.
 #
@@ -43,7 +43,7 @@ jobs:
           modal deploy server/modal/medical.py 2>&1 | tee deploy.log
           python - <<'PY' > urls.env
           import modal
-          for name in ("doctor", "medval"):
+          for name in ("doctor", "medval", "baichuan"):
               url = modal.Function.from_name("cramdown-medical", name).get_web_url()
               print(f"{name.upper()}_URL={url}")
           PY
@@ -53,10 +53,10 @@ jobs:
           set -uo pipefail
           . ./urls.env
           KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
-          for pair in "Doctor-R1 $DOCTOR_URL" "MedVAL $MEDVAL_URL"; do
+          for pair in "Doctor-R1 $DOCTOR_URL" "MedVAL $MEDVAL_URL" "Baichuan $BAICHUAN_URL"; do
             set -- $pair
             start=$(date +%s)
-            for i in $(seq 1 60); do
+            for i in $(seq 1 120); do
               code=$(curl -s -o /dev/null -w '%{http_code}' -m 60 "$2/health")
               [ "$code" = 200 ] && break
               sleep 10
@@ -78,4 +78,6 @@ jobs:
           printf '%s' "$KEY" | $W secret put AI_DOCTOR_KEY
           printf '%s' "$MEDVAL_URL/v1" | $W secret put AI_MEDVAL_URL
           printf '%s' "$KEY" | $W secret put AI_MEDVAL_KEY
-          echo "Worker now sends cramdown-doctor and cramdown-medval to Modal." | tee -a "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$BAICHUAN_URL/v1" | $W secret put AI_WRITER_URL
+          printf '%s' "$KEY" | $W secret put AI_WRITER_KEY
+          echo "Worker now sends CramDown Cloud (Baichuan), Doctor-R1 and MedVAL to Modal." | tee -a "$GITHUB_STEP_SUMMARY"
