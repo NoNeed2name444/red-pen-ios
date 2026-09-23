@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
 import FoundationModels
 #endif
 
@@ -33,7 +33,7 @@ enum MCQGenerator {
     }
 
     static var availability: Availability {
-        #if canImport(FoundationModels)
+        #if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
         if #available(iOS 26.0, *) {
             switch SystemLanguageModel.default.availability {
             case .available:
@@ -120,7 +120,7 @@ enum MCQGenerator {
         sourceText: String, count: Int, subject: String, highYield: Bool,
         onProgress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [MCQQuestion] {
-        #if canImport(FoundationModels)
+        #if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
         guard #available(iOS 26.0, *) else {
             throw GenerationError.unavailable("Generating questions needs iOS 26 or later.")
         }
@@ -179,7 +179,7 @@ enum MCQGenerator {
     }
 }
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedQuestion {
