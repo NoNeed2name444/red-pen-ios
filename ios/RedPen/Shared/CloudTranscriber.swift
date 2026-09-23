@@ -6,10 +6,8 @@ import AVFoundation
 /// Nobody brings a key: the worker says which Firebase project and models to
 /// use (`/transcribe/config`), and the audio goes from the phone straight to
 /// Firebase AI Logic's Gemini endpoint - the same one the Firebase SDK calls -
-/// in ten-minute pieces. When Gemini refuses (out of quota, or the project's
-/// App Check is on) the pieces go to Whisper large-v3 on CramDown's
-/// Cloudflare account instead; Apple's on-device recogniser stays as the
-/// offline path and the last fallback.
+/// in ten-minute pieces. Apple's on-device recogniser stays as the offline
+/// path and the fallback when Gemini can't be reached.
 enum CloudTranscriber {
 
     enum Failure: LocalizedError, Equatable {
@@ -52,10 +50,9 @@ enum CloudTranscriber {
     static func transcribe(fileAt url: URL, vocabulary: [String],
                            config: Config? = nil,
                            onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> [LectureTranscriber.Line] {
-        // not `config ?? await ...`: an autoclosure can't await. No Gemini
-        // settings is not the end: Whisper below still answers.
-        let settings: Config?
-        if let config { settings = config } else { settings = try? await self.config() }
+        // not `config ?? await ...`: an autoclosure can't await
+        let settings: Config
+        if let config { settings = config } else { settings = try await self.config() }
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
         guard duration.isFinite, duration > 0 else { throw Failure.noAudio }
@@ -69,8 +66,7 @@ enum CloudTranscriber {
         var lines: [LectureTranscriber.Line] = []
         // the model that last worked is tried first: once the first is out of
         // quota there is no point asking it again for every chunk
-        var models = settings?.models ?? []
-        var geminiRefused = settings == nil
+        var models = settings.models
         for (i, start) in starts.enumerated() {
             try Task.checkCancellation()
             onProgress(i + 1, starts.count)
@@ -78,57 +74,11 @@ enum CloudTranscriber {
             let piece = folder.appendingPathComponent("\(i).m4a")
             try await exportChunk(of: asset, start: start, length: end - start, to: piece)
             let audio = try Data(contentsOf: piece)
-            var phrases: [CloudTranscript.Phrase] = []
-            var geminiError: Error?
-            if let settings, !geminiRefused {
-                do {
-                    let (found, used) = try await ask(audio: audio, prompt: prompt, config: settings, models: models)
-                    phrases = found
-                    if let at = models.firstIndex(of: used), at > 0 { models = Array(models[at...]) }
-                } catch is CancellationError {
-                    throw CancellationError()
-                } catch {
-                    // quota, App Check, Google down: the rest of the lecture
-                    // goes straight to Whisper instead of failing each piece
-                    geminiError = error
-                    geminiRefused = true
-                }
-            }
-            if phrases.isEmpty {
-                do {
-                    phrases = try await whisper(audio: audio, vocabulary: vocabulary)
-                } catch {
-                    throw geminiError ?? error
-                }
-            }
+            let (phrases, used) = try await ask(audio: audio, prompt: prompt, config: settings, models: models)
+            if let at = models.firstIndex(of: used), at > 0 { models = Array(models[at...]) }
             lines += CloudTranscript.lines(from: phrases, offset: start, length: end - start)
         }
         return lines
-    }
-
-    // MARK: Whisper (the second transcriber)
-
-    /// One piece through Whisper large-v3 on CramDown's Cloudflare account,
-    /// for when Gemini refuses. Arabic first, with the lecture's terms as the
-    /// prompt so the English words come out spelled.
-    static func whisper(audio: Data, vocabulary: [String]) async throws -> [CloudTranscript.Phrase] {
-        var request = URLRequest(url: AuthAPI.baseURL.appendingPathComponent("transcribe/whisper"))
-        request.httpMethod = "POST"
-        request.timeoutInterval = 300
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "audio": audio.base64EncodedString(),
-            "language": "ar",
-            "prompt": vocabulary.prefix(60).joined(separator: ", "),
-        ])
-        let (data, response) = try await URLSession.shared.data(for: request)
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        struct Reply: Decodable { var phrases: [CloudTranscript.Phrase]? ; var message: String? }
-        let reply = try? JSONDecoder().decode(Reply.self, from: data)
-        guard code == 200, let phrases = reply?.phrases else {
-            throw code == 429 ? Failure.busy : Failure.failed(reply?.message ?? "The cloud transcriber answered \(code).")
-        }
-        return phrases
     }
 
     // MARK: Gemini
