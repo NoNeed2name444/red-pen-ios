@@ -23,7 +23,12 @@ struct ModelSettingsView: View {
                             if llm.status[role.onDeviceModel] != .unsupported {
                                 Text("\(role.onDeviceModel.displayName) \u{00B7} Pro").tag(LLMChoice.device)
                             }
-                            Text("\(role.onDeviceModel.displayName), cloud \u{00B7} Pro").tag(LLMChoice.cloudMedical)
+                            // Doctor-R1 and MedVAL in the cloud need a host: Hugging
+                            // Face now charges for Docker Spaces, so the choice
+                            // stays hidden until one is paid for
+                            if LocalLLMService.cloudMedicalHosted {
+                                Text("\(role.onDeviceModel.displayName), cloud \u{00B7} Pro").tag(LLMChoice.cloudMedical)
+                            }
                             Text("CramDown Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
                             ForEach(llm.providers) { provider in
                                 Text(provider.name).tag(LLMChoice.hosted(provider.id))
