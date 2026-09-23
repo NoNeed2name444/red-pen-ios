@@ -146,7 +146,7 @@ struct SettingsPage: View {
                     Label("AI models", systemImage: "cpu")
                 }
             } footer: {
-                Text("Doctor-R1 and MedVAL on this device, or CramDown Cloud (Baichuan-M2).")
+                Text("Doctor-R1 and MedVAL on this device, or CramDown Cloud (Gemini).")
             }
 
             Section {
