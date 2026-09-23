@@ -152,6 +152,15 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(seen[0].init.headers.authorization === 'Bearer mk', 'with the MedVAL host key, not the provider key');
 }
 
+// Baichuan on CramDown's own GPU once it is deployed
+{
+  const { routeFor } = await import('../ai.js');
+  const hosted = routeFor({ AI_API_KEY: 'hf' }, 'cramdown-writer');
+  ok(hosted.base.includes('huggingface') && hosted.key === 'hf', 'Baichuan goes to the hosted provider by default');
+  const own = routeFor({ AI_API_KEY: 'hf', AI_WRITER_URL: 'https://gpu.example/v1', AI_WRITER_KEY: 'gk' }, 'cramdown-checker');
+  ok(own.base === 'https://gpu.example/v1' && own.key === 'gk', 'and to the GPU, writer and checker both, once AI_WRITER_URL is set');
+}
+
 // Narrate's transcription settings
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');

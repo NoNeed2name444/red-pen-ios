@@ -92,7 +92,11 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 /// Where each of the app's model names goes: which server, which key, which
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
-  const provider = { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
+  // Baichuan on CramDown's own GPU (server/modal) when it is deployed; the
+  // hosted provider otherwise
+  const provider = env.AI_WRITER_URL
+    ? { base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY }
+    : { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
   switch (name) {
     case 'cramdown-writer':
       return { ...provider, name: 'CramDown Cloud', model: env.AI_WRITER_MODEL || DEFAULT_MODEL };
