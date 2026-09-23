@@ -250,6 +250,7 @@ function isHash(name) { return /^[0-9a-f]{64}$/.test(name || ''); }
 export async function wipe(env, account) {
   await env.DB.prepare('DELETE FROM docs WHERE account_id = ?').bind(account).run();
   await env.DB.prepare('DELETE FROM sync_state WHERE account_id = ?').bind(account).run();
+  if (!env.BLOBS) return; // deployed without picture storage
   // R2 has no "delete by prefix", so the keys have to be listed and removed in
   // batches. A page at a time, because an account with a term of lectures in it
   // has thousands.
