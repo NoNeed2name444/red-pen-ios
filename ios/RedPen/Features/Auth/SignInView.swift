@@ -12,7 +12,7 @@ import AuthenticationServices
 struct SignInView: View {
     @EnvironmentObject var account: AccountStore
 
-    @State private var localName = ""
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ZStack {
@@ -57,52 +57,57 @@ struct SignInView: View {
 
     private var buttons: some View {
         VStack(spacing: 12) {
+            // Personal build: straight in, no Apple or Google account and no
+            // server. First, because it is the one that works on its own.
+            Button {
+                account.useThisDeviceOnly(name: "")
+            } label: {
+                doorLabel("Use on this device only", symbol: "iphone.gen3")
+                    .foregroundStyle(.white)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(red: 0.78, green: 0.16, blue: 0.16)))
+            }
+            .buttonStyle(.plain)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityIdentifier("localSignIn")
+
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
                 request.nonce = account.beginApple()
             } onCompletion: { result in
                 Task { await account.finishApple(result) }
             }
-            .signInWithAppleButtonStyle(.black)
+            .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
             .frame(height: 50)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
+            // Drawn to match Apple's button - same height, corners, weight and
+            // colours - so the three read as one set of choices.
             Button {
                 Task { await account.signInWithGoogle() }
             } label: {
-                HStack(spacing: 10) {
-                    if account.busy {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "globe")
-                    }
-                    Text("Continue with Google").fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                doorLabel("Sign in with Google", symbol: "globe", busy: account.busy)
+                    .foregroundStyle(scheme == .dark ? Color.black : Color.white)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(scheme == .dark ? Color.white : Color.black))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.plain)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .disabled(account.busy)
 
-            // Personal build: no Apple or Google account, no server.
-            VStack(spacing: 8) {
-                TextField("Your name", text: $localName)
-                    .textContentType(.name)
-                    .textFieldStyle(.roundedBorder)
-                Button {
-                    account.useThisDeviceOnly(name: localName)
-                } label: {
-                    Text("Use on this device only").fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                }
-                .buttonStyle(.glassProminent)
-                Text("No account needed. Your sets stay on this device and aren't synced.")
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, 8)
+            Text("\u{201C}This device only\u{201D} needs no account: your sets stay here and aren\u{2019}t synced.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+    }
+
+    private func doorLabel(_ title: String, symbol: String, busy: Bool = false) -> some View {
+        HStack(spacing: 8) {
+            if busy { ProgressView().controlSize(.small) } else { Image(systemName: symbol).font(.system(size: 17, weight: .semibold)) }
+            Text(title).font(.system(size: 19, weight: .medium))
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
     }
 
     private var smallPrint: some View {

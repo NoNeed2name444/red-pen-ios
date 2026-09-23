@@ -92,11 +92,27 @@ targets:
         # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
         # doesn't propagate to a plain .xcodeproj app target automatically.
         OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
+  RedPenUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: RedPen
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: RedPen
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.uitests
 schemes:
   RedPen:
     build:
       targets:
         RedPen: all
+        RedPenUITests: [test]
+    test:
+      targets:
+        - RedPenUITests
     run:
       config: Debug
       # Products come from this file until they exist in App Store Connect, so
