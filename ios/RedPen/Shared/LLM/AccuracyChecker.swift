@@ -10,8 +10,6 @@ import Foundation
 /// against standard teaching, and the sheet says that is a weaker check.
 enum AccuracyChecker {
 
-    @MainActor static var backend: LLMBackend? { LocalLLMService.shared.backend(for: .checker) }
-    @MainActor static var isAvailable: Bool { backend != nil }
 
     static let noSourceNote = "No source document was provided. Judge the output against standard, current medical teaching for students; treat any claim that contradicts it as a fabricated claim."
 
@@ -30,13 +28,6 @@ enum AccuracyChecker {
         return parse(reply, checkedBy: backend.label)
     }
 
-    @MainActor
-    static func check(instruction: String, input: String, output: String) async throws -> AccuracyVerdict {
-        guard let backend else {
-            throw LLMError.notReady("Choose an accuracy checker in AI models first.")
-        }
-        return try await check(instruction: instruction, input: input, output: output, using: backend)
-    }
 
     // MARK: MedVAL's prompt and answer (in LLMParsing, where they are tested)
 

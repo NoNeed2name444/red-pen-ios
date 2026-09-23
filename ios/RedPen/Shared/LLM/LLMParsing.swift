@@ -193,6 +193,18 @@ enum LLMText {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Doctor-R1 and MedVAL are Qwen3 models: "/no_think" on the last user
+    /// turn skips the hidden reasoning. On a phone that reasoning can use the
+    /// whole length budget before the answer starts, so on-device calls always
+    /// skip it; the prompts already say exactly what to produce.
+    static func noThinking(_ turns: [ChatTurn]) -> [ChatTurn] {
+        guard let last = turns.lastIndex(where: { $0.role == .user }),
+              !turns[last].text.contains("/no_think") else { return turns }
+        var out = turns
+        out[last].text += "\n/no_think"
+        return out
+    }
+
     /// The outermost `{...}` in a reply, for models that wrap JSON in prose or
     /// a code fence even when told not to.
     static func jsonObject(in raw: String) -> Data? {
