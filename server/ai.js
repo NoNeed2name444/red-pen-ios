@@ -20,6 +20,7 @@
 // these models, so they run where we put them.
 
 import { decodeClaims } from './tokens.js';
+import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages } from './evidence.js';
 
 const DEFAULT_BASE = 'https://router.huggingface.co/v1';
 const DEFAULT_MODEL = 'baichuan-inc/Baichuan-M2-32B';
@@ -63,17 +64,20 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS);
   const temperature = Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5);
 
-  // Each job tries its sources in order until one answers: Baichuan-M2-32B
-  // on Novita, then Gemini,
-  // then Cloudflare's free models. Only "busy/out of quota/down" moves on; a
-  // real refusal stops.
-  let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
-  for (const source of route.sources) {
-    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
-    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
-    else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
-    if (result.ok || ![408, 429, 500, 502, 503, 504].includes(result.status)) break;
+  // The checker is shown current evidence from official sources as well as
+  // the lecture (see evidence.js), so an outdated or wrong claim is caught
+  // even when the lecture says it too.
+  let sent = messages;
+  let evidence = [];
+  const checked = body.model === 'cramdown-checker' && medvalParts(messages[messages.length - 1]?.content);
+  if (checked && checked.output) {
+    const picked = await complete(env, route, termsPrompt(checked.output), 200, 0, fetcher);
+    if (picked.ok) {
+      evidence = await gather(parseTerms(picked.content), fetcher);
+      sent = groundedMessages(messages, evidence);
+    }
   }
+  const result = await complete(env, route, sent, maxTokens, temperature, fetcher);
   if (!result.ok) {
     console.error('upstream', result.status, result.detail);
     // the owner sees the provider's own words, so a clipped error still says
@@ -82,7 +86,30 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     return fail(502, `The cloud model is unavailable right now (${result.status}). Try again, or use an on-device model.`);
   }
   // only what the app reads, never the upstream's own metadata
-  return json({ choices: [{ message: { role: 'assistant', content: result.content } }] });
+  return json({
+    choices: [{ message: { role: 'assistant', content: result.content } }],
+    // what the checker was shown, so the app can cite it
+    ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
+  });
+}
+
+/// Each job tries its sources in order until one answers: Baichuan on Novita
+/// (once its key exists), then Gemini, then Cloudflare's free models. Only
+/// "busy / out of quota / down" moves on; a real refusal stops.
+async function complete(env, route, messages, maxTokens, temperature, fetcher) {
+  let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
+  for (const source of route.sources) {
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
+    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
+    else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
+    if (result.ok) break;
+    // busy, out of quota, down - or, for Gemini, locked by the Firebase
+    // project's App Check: the next source may still answer
+    const next = [408, 429, 500, 502, 503, 504].includes(result.status)
+      || (source.kind === 'gemini' && [401, 403].includes(result.status));
+    if (!next) break;
+  }
+  return result;
 }
 
 async function readError(response) {
@@ -147,7 +174,7 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher) {
 
 /// Cloudflare Workers AI, on the account's free daily allowance.
 async function askWorkersAI(env, messages, maxTokens, temperature) {
-  const model = env.FALLBACK_MODEL || '@cf/google/gemma-4-26b-a4b-it';
+  const model = env.FALLBACK_MODEL || '@cf/nvidia/nemotron-3-120b-a12b';
   try {
     const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
     const content = out?.response ?? out?.choices?.[0]?.message?.content;
