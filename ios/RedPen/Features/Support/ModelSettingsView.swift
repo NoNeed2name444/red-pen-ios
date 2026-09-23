@@ -46,8 +46,8 @@ struct ModelSettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Writer", value: "Baichuan-M2-32B")
-                    LabeledContent("Checker", value: "Baichuan-M2-32B with MedVAL's rubric")
+                    LabeledContent("Writer", value: "Gemini 3.5 Flash")
+                    LabeledContent("Checker", value: "Gemini with MedVAL's rubric")
                     LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
                     if !llm.isPro {
                         Button("See Pro") { showPaywall = true }
@@ -55,7 +55,7 @@ struct ModelSettingsView: View {
                 } header: {
                     Text("CramDown Cloud \u{00B7} Pro")
                 } footer: {
-                    Text("The larger medical models, run on our servers. Works on every device, including ones too small for the on-device models. Your text is sent to the model provider to answer and is not kept.")
+                    Text("Google's Gemini, through CramDown's own account, with Cloudflare's models as a backup when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; CramDown does not keep it.")
                 }
 
                 Section {
@@ -97,7 +97,7 @@ struct ModelSettingsView: View {
                 } header: {
                     Text("Your own key \u{00B7} advanced")
                 } footer: {
-                    Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms. Baichuan-M2-32B is too large for any phone, so it runs hosted.")
+                    Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms.")
                 }
 
                 Section {

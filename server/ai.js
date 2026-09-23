@@ -10,8 +10,11 @@
 //
 // Two model names are accepted, one per job, and mapped here so a model can be
 // swapped without an app update:
-//   cramdown-writer  -> AI_WRITER_MODEL   (default Baichuan-M2-32B)
-//   cramdown-checker -> AI_CHECKER_MODEL  (default the same model, given MedVAL's prompt)
+//   cramdown-writer  -> Gemini 3.5 Flash through CramDown's Firebase project
+//   cramdown-checker -> the same, given MedVAL's prompt
+// (Gemini's free tier: no new account and no card. When it is out of quota for
+// the day the request falls back to Cloudflare Workers AI's free allowance.
+// AI_WRITER_URL, when set, sends both to an OpenAI-compatible server instead.)
 //   cramdown-doctor  -> Doctor-R1 on its own host  (AI_DOCTOR_URL, AI_DOCTOR_KEY)
 //   cramdown-medval  -> MedVAL-4B on its own host  (AI_MEDVAL_URL, AI_MEDVAL_KEY)
 // The last two are llama.cpp servers (see server/spaces/) - no provider offers
@@ -58,45 +61,113 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     return fail(429, `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`);
   }
 
-  if (!route.key) return fail(503, 'CramDown Cloud is not set up yet.');
+  const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS);
+  const temperature = Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5);
+
+  let result;
+  if (route.kind === 'gemini') {
+    result = await askGemini(env, messages, maxTokens, temperature, fetcher);
+    // out of free quota (or Google down): Cloudflare's own free models
+    if (!result.ok && [429, 500, 503].includes(result.status) && env.AI) {
+      result = await askWorkersAI(env, messages, maxTokens, temperature);
+    }
+  } else {
+    if (!route.key) return fail(503, 'CramDown Cloud is not set up yet.');
+    result = await askOpenAI(route, messages, maxTokens, temperature, fetcher);
+  }
+  if (!result.ok) {
+    console.error('upstream', result.status, result.detail);
+    // the owner sees the provider's own words, so a clipped error still says
+    // what went wrong; everyone else sees a plain sentence
+    if (owner) return fail(502, `Provider ${result.status}: ${String(result.detail).slice(0, 240)}`);
+    return fail(502, `The cloud model is unavailable right now (${result.status}). Try again, or use an on-device model.`);
+  }
+  // only what the app reads, never the upstream's own metadata
+  return json({ choices: [{ message: { role: 'assistant', content: result.content } }] });
+}
+
+async function readError(response) {
+  const detail = (await response.text()).slice(0, 400);
+  try {
+    const parsed = JSON.parse(detail);
+    return parsed?.error?.message || (typeof parsed?.error === 'string' ? parsed.error : detail);
+  } catch { return detail; }
+}
+
+/// An OpenAI-compatible server (a llama.cpp host, Hugging Face's router).
+async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
   const upstream = await fetcher(`${route.base.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${route.key}` },
-    body: JSON.stringify({
-      model: route.model,
-      messages,
-      max_tokens: Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS),
-      temperature: Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5),
-      stream: false,
-    }),
+    body: JSON.stringify({ model: route.model, messages, max_tokens: maxTokens, temperature, stream: false }),
   });
-  if (!upstream.ok) {
-    const detail = (await upstream.text()).slice(0, 300);
-    console.error('upstream', upstream.status, detail);
-    // the status says whether it is credits (402), the key (401/403) or the
-    // provider being down (5xx); the provider's own words go to the owner only
-    // the owner sees the provider's own words first, so a clipped error
-    // still says what went wrong
-    let said = detail;
-    try { said = JSON.parse(detail)?.error?.message || JSON.parse(detail)?.error || detail; } catch {}
-    if (owner) return fail(502, `Provider ${upstream.status}: ${String(said).slice(0, 240)}`);
-    return fail(502, `The cloud model is unavailable right now (${upstream.status}). Try again, or use an on-device model.`);
+  if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
+  const content = (await upstream.json())?.choices?.[0]?.message?.content;
+  return typeof content === 'string' ? { ok: true, content }
+    : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.' };
+}
+
+/// Gemini through Firebase AI Logic, the same project Narrate transcribes with.
+/// OpenAI-style turns become Gemini's: system text is the system instruction,
+/// "assistant" is "model".
+export function geminiBody(messages, maxTokens, temperature) {
+  const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+  const contents = messages.filter(m => m.role !== 'system').map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content.replace(/\n?\/no_think\s*$/, '') }],
+  }));
+  const body = { contents, generationConfig: { maxOutputTokens: maxTokens, temperature } };
+  if (system) body.systemInstruction = { parts: [{ text: system }] };
+  return body;
+}
+
+async function askGemini(env, messages, maxTokens, temperature, fetcher) {
+  const models = (env.CLOUD_MODELS || env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
+    .split(',').map(m => m.trim()).filter(Boolean);
+  let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
+  for (const model of models) {
+    const response = await fetcher(
+      `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY },
+        body: JSON.stringify(geminiBody(messages, maxTokens, temperature)),
+      });
+    if (!response.ok) {
+      last = { ok: false, status: response.status, detail: await readError(response) };
+      // out of quota on this model, or it is not offered: the next may be
+      if ([429, 404].includes(response.status)) continue;
+      return last;
+    }
+    const parts = (await response.json())?.candidates?.[0]?.content?.parts || [];
+    const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
+    if (content) return { ok: true, content };
+    last = { ok: false, status: 502, detail: 'Gemini sent back nothing usable.' };
   }
-  const answer = await upstream.json();
-  const content = answer?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string') return fail(502, 'The cloud model sent back nothing usable.');
-  // only what the app reads, never the upstream's own metadata
-  return json({ choices: [{ message: { role: 'assistant', content } }] });
+  return last;
+}
+
+/// Cloudflare Workers AI, on the account's free daily allowance.
+async function askWorkersAI(env, messages, maxTokens, temperature) {
+  const model = env.FALLBACK_MODEL || '@cf/google/gemma-4-26b-a4b-it';
+  try {
+    const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
+    const content = out?.response ?? out?.choices?.[0]?.message?.content;
+    return typeof content === 'string' && content ? { ok: true, content }
+      : { ok: false, status: 502, detail: 'Workers AI sent back nothing usable.' };
+  } catch (error) {
+    return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
+  }
 }
 
 /// Where each of the app's model names goes: which server, which key, which
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
-  // Baichuan on CramDown's own GPU (server/modal) when it is deployed; the
-  // hosted provider otherwise
+  // Gemini unless an OpenAI-compatible server has been set up for the job
   const provider = env.AI_WRITER_URL
     ? { base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY }
-    : { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
+    : env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID
+      ? { kind: 'gemini', base: 'firebase' }
+      : { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
   switch (name) {
     case 'cramdown-writer':
       return { ...provider, name: 'CramDown Cloud', model: env.AI_WRITER_MODEL || DEFAULT_MODEL };
