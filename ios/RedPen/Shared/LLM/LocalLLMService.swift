@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 #if canImport(LocalLLMClientLlama)
 import LocalLLMClient
 import LocalLLMClientLlama
@@ -39,6 +42,8 @@ enum LLMError: LocalizedError {
         switch self {
         case .notReady(let why): return why
         case .emptyReply: return "The model returned nothing usable \u{2014} try again."
+        case .http(402, let body), .http(429, let body):
+            return String(body.prefix(200))
         case .http(let code, let body):
             return "The hosted model refused the request (HTTP \(code)). \(body.prefix(160))"
         case .badResponse: return "The hosted model answered in a shape the app doesn't understand."
@@ -61,16 +66,22 @@ enum LLMRole: String, CaseIterable, Identifiable {
 }
 
 /// What a role is set to use. Stored as a plain string so it survives in
-/// UserDefaults: "off", "device", or a hosted provider's id.
+/// UserDefaults: "off", "device", "cloud", or a hosted provider's id.
+///
+/// The tiers: on-device models are free; CramDown Cloud - the larger hosted
+/// models, through our own worker - is Pro; a provider added with the
+/// student's own key is theirs to pay for, so it is not gated.
 enum LLMChoice: Hashable {
     case off
     case device
+    case cloud
     case hosted(UUID)
 
     init(stored: String?) {
         switch stored {
         case nil, "off": self = .off
         case "device": self = .device
+        case "cloud": self = .cloud
         case let s?: self = UUID(uuidString: s).map { .hosted($0) } ?? .off
         }
     }
@@ -79,6 +90,7 @@ enum LLMChoice: Hashable {
         switch self {
         case .off: return "off"
         case .device: return "device"
+        case .cloud: return "cloud"
         case .hosted(let id): return id.uuidString
         }
     }
@@ -109,6 +121,10 @@ final class LocalLLMService: ObservableObject {
     }
 
     private var downloads: [MedicalModel: Task<Void, Never>] = [:]
+    /// Who is signed in and whether they are Pro, for CramDown Cloud. Held
+    /// weakly: both are owned by the app.
+    private weak var account: AccountStore?
+    private weak var subscriptions: SubscriptionStore?
     private static let checkGeneratedKey = "llm.checkGenerated"
 
     private init() {
@@ -122,6 +138,27 @@ final class LocalLLMService: ObservableObject {
 
     private func save(_ choice: LLMChoice, for role: LLMRole) {
         UserDefaults.standard.set(choice.stored, forKey: "llm.choice.\(role.rawValue)")
+    }
+
+    func attach(account: AccountStore, subscriptions: SubscriptionStore) {
+        self.account = account
+        self.subscriptions = subscriptions
+    }
+
+    /// A real account session (not "this device only", which the server has
+    /// never heard of) - the cloud models' key.
+    private var cloudToken: String? {
+        guard let token = account?.token, token != Session.localToken else { return nil }
+        return token
+    }
+
+    var isPro: Bool { subscriptions?.isPro ?? false }
+
+    /// Why CramDown Cloud can't be used right now, or nil when it can.
+    var cloudBlocker: String? {
+        if !isPro { return "CramDown Cloud is part of Pro." }
+        if cloudToken == nil { return "Sign in with Apple or Google to use CramDown Cloud." }
+        return nil
     }
 
     func choice(for role: LLMRole) -> LLMChoice { role == .writer ? writerChoice : checkerChoice }
@@ -142,10 +179,20 @@ final class LocalLLMService: ObservableObject {
             let model = role.onDeviceModel
             guard status[model] == .ready, let variant = model.variant() else { return nil }
             return OnDeviceBackend(model: model, variant: variant)
+        case .cloud:
+            guard cloudBlocker == nil, let token = cloudToken else { return nil }
+            return HostedLLMClient(provider: .cloud(for: role), bearer: token)
         case .hosted(let id):
             guard let provider = providers.first(where: { $0.id == id }) else { return nil }
             return HostedLLMClient(provider: provider)
         }
+    }
+
+    /// The writer for a free, on-device job when nothing is chosen: Apple's own
+    /// model where the device has it. Used by the lecture writers that had no
+    /// generator before (Anki, Cases, Textbook).
+    func writerOrApple() -> LLMBackend? {
+        backend(for: .writer) ?? (AppleFoundationBackend.isAvailable ? AppleFoundationBackend() : nil)
     }
 
     /// A short line saying what a role is using, for the generate screens.
@@ -315,5 +362,36 @@ enum LLMText {
         guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
               start < end else { return nil }
         return String(raw[start...end]).data(using: .utf8)
+    }
+}
+
+// MARK: - Apple's on-device model as a backend
+
+/// Apple Intelligence's on-device model behind the same interface, so the
+/// lecture writers work for free on any device that has it.
+struct AppleFoundationBackend: LLMBackend {
+    var label: String { "Apple on-device model" }
+    var isOnDevice: Bool { true }
+    var promptBudgetChars: Int { 10_000 }
+
+    static var isAvailable: Bool { MCQGenerator.availability.isAvailable }
+
+    func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
+        #if canImport(FoundationModels)
+        guard #available(iOS 26.0, *) else { throw LLMError.notReady("Needs iOS 26.") }
+        let system = turns.filter { $0.role == .system }.map(\.text).joined(separator: "\n\n")
+        let conversation = turns.filter { $0.role != .system }
+            .map { ($0.role == .user ? "" : "Assistant: ") + $0.text }
+            .joined(separator: "\n\n")
+        let session = LanguageModelSession(instructions: Instructions { system })
+        let response = try await session.respond(
+            to: conversation,
+            options: GenerationOptions(temperature: temperature, maximumResponseTokens: maxTokens))
+        let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { throw LLMError.emptyReply }
+        return text
+        #else
+        throw LLMError.notReady("Apple's on-device model isn't available in this build.")
+        #endif
     }
 }

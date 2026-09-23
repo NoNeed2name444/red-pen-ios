@@ -12,6 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
+import { chat, linkSubscription } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -67,6 +68,9 @@ export default {
         case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
         case '/sync/push': return await guarded(request, env, id => push(env, id, body));
         case '/blobs/missing': return await guarded(request, env, id => missingBlobs(env, id, body));
+        // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
+        // special case - the session token is the key
+        case '/v1/chat/completions': return await guarded(request, env, id => chat(env, id, body));
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {
@@ -242,6 +246,9 @@ async function setSubscription(request, body, env) {
   const expires = Math.floor(new Date(body.expiresAt || 0).getTime() / 1000) || null;
   await env.DB.prepare('UPDATE accounts SET plan = ?, expires_at = ? WHERE id = ?')
     .bind(text(body.plan, 40), expires, id).run();
+  // The one part Apple is asked about: which subscription this is, for the
+  // cloud models. The plan above stays a convenience.
+  if (body.originalTransactionId) return await linkSubscription(env, id, body);
   // Recorded as a convenience so a second phone knows what to expect. The App
   // Store remains the authority - this row is never what unlocks the app.
   return json({ ok: true });

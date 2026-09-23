@@ -4,9 +4,9 @@ import SwiftUI
 ///
 /// Where the paywall sits, and it sits in one place on purpose. Reading a file,
 /// typing questions, importing a deck and reviewing everything you already have
-/// stay free: those cost nothing to run and a student who cannot afford a
-/// subscription should still be able to study. Generating is the part that
-/// takes the phone minutes of work, and it is what Pro buys.
+/// stay free, and so does generating on the device - Apple's model, Gemma or
+/// Doctor-R1 cost nothing to run. What Pro buys is CramDown Cloud: the larger
+/// hosted models, which cost real money per request.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
@@ -44,14 +44,14 @@ struct MCQGenerateForm: View {
                               onOcclusionSet: onGenerated)
 
             Section {
-                Text("One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation")
+                Text("The questions are written from this text \u{2014} a lecture read above lands here too.")
                     .font(.caption).foregroundStyle(.secondary)
                 TextEditor(text: $sourceText)
                     .frame(minHeight: 160)
                     .font(.system(.footnote, design: .monospaced))
                     .disabled(isGenerating)
             } header: {
-                Text("Paste your notes")
+                Text("Or paste notes")
             }
 
             Section {
@@ -65,8 +65,8 @@ struct MCQGenerateForm: View {
             backendSection
 
             Section {
-                if !subscriptions.isPro {
-                    Label("Generating questions is part of Red Pen Pro.",
+                if llm.writerChoice == .cloud, !subscriptions.isPro {
+                    Label("CramDown Cloud is part of Pro. On-device models are free \u{2014} switch in AI models.",
                           systemImage: "lock.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 } else if activeBackend == .medical, let summary = llm.summary(for: .writer) {
@@ -84,7 +84,7 @@ struct MCQGenerateForm: View {
                 }
                 .buttonStyle(.glassProminent)
                 .disabled(isGenerating
-                          || (subscriptions.isPro && activeBackend == nil)
+                          || (activeBackend == nil && llm.writerChoice != .cloud)
                           || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
                 if isGenerating {
                     Button("Cancel", role: .cancel) { generationTask?.cancel() }
@@ -107,7 +107,7 @@ struct MCQGenerateForm: View {
 
     private var generateLabel: String {
         if isGenerating { return generationStatus ?? "Writing\u{2026}" }
-        return subscriptions.isPro ? "Generate questions" : "Unlock generating"
+        return llm.writerChoice == .cloud && !subscriptions.isPro ? "Unlock CramDown Cloud" : "Generate questions"
     }
 
     /// Apple's on-device model is tried first; this only appears when that is
@@ -115,7 +115,7 @@ struct MCQGenerateForm: View {
     /// touches anyone's account.
     @ViewBuilder
     private var backendSection: some View {
-        if subscriptions.isPro, !MCQGenerator.availability.isAvailable {
+        if activeBackend != .medical, !MCQGenerator.availability.isAvailable {
             Section {
                 if case .unavailable(let reason) = MCQGenerator.availability {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
@@ -149,9 +149,10 @@ struct MCQGenerateForm: View {
     // MARK: generating
 
     private func startGenerating() {
-        // the paywall opens instead of the work starting; nothing is generated
-        // and then taken away, which is the version of this people hate
-        guard subscriptions.isPro else { showPaywall = true; return }
+        // On-device models are free. Only CramDown Cloud is Pro, and then the
+        // paywall opens instead of the work starting; nothing is generated and
+        // then taken away, which is the version of this people hate.
+        if llm.writerChoice == .cloud, !subscriptions.isPro { showPaywall = true; return }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true

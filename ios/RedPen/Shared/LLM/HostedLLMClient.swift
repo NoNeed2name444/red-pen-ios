@@ -57,6 +57,17 @@ struct HostedProvider: Identifiable, Codable, Hashable {
                        model: "gemini-2.5-flash"),
     ]
 
+    /// CramDown Cloud: our own worker, the student's session as the key, and
+    /// a model name per job that the worker maps to whatever it currently runs
+    /// (Baichuan-M2-32B by default). Pro only - the worker checks with Apple.
+    static func cloud(for role: LLMRole) -> HostedProvider {
+        HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10D")!,
+                       name: "CramDown Cloud", kind: .openAICompatible,
+                       baseURL: AuthAPI.baseURL.absoluteString + "/v1",
+                       model: role == .writer ? "cramdown-writer" : "cramdown-checker",
+                       needsKey: false)
+    }
+
     private static let storeKey = "llm.providers"
 
     static func loadAll() -> [HostedProvider] {
@@ -78,14 +89,16 @@ struct HostedProvider: Identifiable, Codable, Hashable {
 /// nothing else in the app changes.
 struct HostedLLMClient: LLMBackend {
     let provider: HostedProvider
+    /// Used instead of a stored key: CramDown Cloud's session token.
+    var bearer: String? = nil
 
     var label: String { provider.name }
     var isOnDevice: Bool { false }
     var promptBudgetChars: Int { 40_000 }
 
     func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
-        let key = provider.apiKey ?? ""
-        if provider.needsKey && key.isEmpty { throw LLMError.missingKey(provider.name) }
+        let key = bearer ?? provider.apiKey ?? ""
+        if bearer == nil && provider.needsKey && key.isEmpty { throw LLMError.missingKey(provider.name) }
         var request: URLRequest
         switch provider.kind {
         case .openAICompatible: request = try openAIRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
@@ -97,7 +110,12 @@ struct HostedLLMClient: LLMBackend {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw LLMError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+            // our worker and most providers put a readable reason in "message"
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let message = object?["message"] as? String
+                ?? (object?["error"] as? [String: Any])?["message"] as? String
+                ?? String(data: data, encoding: .utf8) ?? ""
+            throw LLMError.http(http.statusCode, message)
         }
         let text = LLMText.stripThinking(try parse(data))
         guard !text.isEmpty else { throw LLMError.emptyReply }
