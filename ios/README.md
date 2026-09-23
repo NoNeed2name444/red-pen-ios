@@ -88,6 +88,8 @@ Settings ▸ **AI models** chooses two things:
 
 A writer chosen here takes priority over Apple's on-device model and Gemma. With neither chosen, the app behaves exactly as before.
 
+**Tiers.** Free: Apple's on-device model and the Gemma fallback. Pro: Doctor-R1 and MedVAL on the device, and CramDown Cloud. A hosted model added with your own API key is not gated (you pay that provider).
+
 ### On the device
 Tap **Download** next to a model. The app picks the largest build this device has memory for:
 

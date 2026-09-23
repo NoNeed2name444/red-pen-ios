@@ -68,8 +68,9 @@ enum LLMRole: String, CaseIterable, Identifiable {
 /// What a role is set to use. Stored as a plain string so it survives in
 /// UserDefaults: "off", "device", "cloud", or a hosted provider's id.
 ///
-/// The tiers: on-device models are free; CramDown Cloud - the larger hosted
-/// models, through our own worker - is Pro; a provider added with the
+/// The tiers: Apple's own model and the Gemma fallback are free. Pro buys the
+/// medical models - Doctor-R1 and MedVAL on the device, and CramDown Cloud,
+/// the larger hosted models through our own worker. A provider added with the
 /// student's own key is theirs to pay for, so it is not gated.
 enum LLMChoice: Hashable {
     case off
@@ -162,6 +163,16 @@ final class LocalLLMService: ObservableObject {
 
     var isPro: Bool { subscriptions?.isPro ?? false }
 
+    /// True when a role is set to something only Pro can use and this
+    /// account isn't Pro - the moment to show the paywall rather than fail.
+    func needsPro(_ role: LLMRole) -> Bool {
+        guard !isPro else { return false }
+        switch choice(for: role) {
+        case .device, .cloud: return true
+        case .off, .hosted: return false
+        }
+    }
+
     /// Why CramDown Cloud can't be used right now, or nil when it can.
     var cloudBlocker: String? {
         if !isPro { return "CramDown Cloud is part of Pro." }
@@ -185,7 +196,7 @@ final class LocalLLMService: ObservableObject {
             return nil
         case .device:
             let model = role.onDeviceModel
-            guard status[model] == .ready, let variant = model.variant() else { return nil }
+            guard isPro, status[model] == .ready, let variant = model.variant() else { return nil }
             return OnDeviceBackend(model: model, variant: variant)
         case .cloud:
             guard cloudBlocker == nil, let token = cloudToken else { return nil }
