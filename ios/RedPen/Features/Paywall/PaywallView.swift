@@ -57,7 +57,7 @@ struct PaywallView: View {
             VStack(alignment: .leading, spacing: 8) {
                 perk("doc.text.viewfinder", "Read PDFs, Word and PowerPoint handouts")
                 perk("stethoscope", "Doctor-R1 and MedVAL, the medical models, on this device")
-                perk("cloud", "CramDown Cloud: Google's Gemini writes and checks questions, stations and patient cases on any device")
+                perk("cloud", "CramDown Cloud: Baichuan-M3, a medical model, writes and checks questions, stations and patient cases on any device")
                 perk("checkmark.shield", "Every cloud answer checked for medical accuracy")
                 perk("rectangle.dashed", "Turn labelled diagrams into occlusion cards")
                 perk("waveform", "Transcribe a recorded lecture, in Arabic or English")

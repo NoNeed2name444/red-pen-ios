@@ -10,11 +10,10 @@
 //
 // Two model names are accepted, one per job, and mapped here so a model can be
 // swapped without an app update:
-//   cramdown-writer  -> Gemini 3.5 Flash through CramDown's Firebase project
-//   cramdown-checker -> the same, given MedVAL's prompt
-// (Gemini's free tier: no new account and no card. When it is out of quota for
-// the day the request falls back to Cloudflare Workers AI's free allowance.
-// AI_WRITER_URL, when set, sends both to an OpenAI-compatible server instead.)
+//   cramdown-writer  -> Baichuan-M3 on Baichuan's own API (AI_WRITER_URL/KEY/MODEL),
+//   cramdown-checker    the same, given MedVAL's prompt; then Gemini through
+//                       CramDown's Firebase project, then Cloudflare Workers AI,
+//                       each taking over when the one before is busy or out of quota
 //   cramdown-doctor  -> Doctor-R1 on its own host  (AI_DOCTOR_URL, AI_DOCTOR_KEY)
 //   cramdown-medval  -> MedVAL-4B on its own host  (AI_MEDVAL_URL, AI_MEDVAL_KEY)
 // The last two are llama.cpp servers (see server/spaces/) - no provider offers
@@ -64,16 +63,16 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS);
   const temperature = Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5);
 
-  let result;
-  if (route.kind === 'gemini') {
-    result = await askGemini(env, messages, maxTokens, temperature, fetcher);
-    // out of free quota (or Google down): Cloudflare's own free models
-    if (!result.ok && [429, 500, 503].includes(result.status) && env.AI) {
-      result = await askWorkersAI(env, messages, maxTokens, temperature);
-    }
-  } else {
-    if (!route.key) return fail(503, 'CramDown Cloud is not set up yet.');
-    result = await askOpenAI(route, messages, maxTokens, temperature, fetcher);
+  // Each job tries its sources in order until one answers: Baichuan-M3 on
+  // Baichuan's own API (5 requests a minute on the free credit), then Gemini,
+  // then Cloudflare's free models. Only "busy/out of quota/down" moves on; a
+  // real refusal stops.
+  let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
+  for (const source of route.sources) {
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
+    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
+    else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
+    if (result.ok || ![408, 429, 500, 502, 503, 504].includes(result.status)) break;
   }
   if (!result.ok) {
     console.error('upstream', result.status, result.detail);
@@ -162,21 +161,28 @@ async function askWorkersAI(env, messages, maxTokens, temperature) {
 /// Where each of the app's model names goes: which server, which key, which
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
-  // Gemini unless an OpenAI-compatible server has been set up for the job
-  const provider = env.AI_WRITER_URL
-    ? { base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY }
-    : env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID
-      ? { kind: 'gemini', base: 'firebase' }
-      : { base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY };
+  const sources = [];
+  // Baichuan-M3 (Baichuan's API) or any OpenAI-compatible server, when set
+  if (env.AI_WRITER_URL && env.AI_WRITER_KEY) {
+    sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY,
+                   model: env.AI_WRITER_MODEL || 'Baichuan-M3' });
+  }
+  if (env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) sources.push({ kind: 'gemini' });
+  if (env.AI) sources.push({ kind: 'workers-ai' });
+  if (!sources.length && env.AI_API_KEY) {
+    sources.push({ kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY,
+                   model: env.AI_WRITER_MODEL || DEFAULT_MODEL });
+  }
   switch (name) {
     case 'cramdown-writer':
-      return { ...provider, name: 'CramDown Cloud', model: env.AI_WRITER_MODEL || DEFAULT_MODEL };
     case 'cramdown-checker':
-      return { ...provider, name: 'CramDown Cloud', model: env.AI_CHECKER_MODEL || env.AI_WRITER_MODEL || DEFAULT_MODEL };
+      return { name: 'CramDown Cloud', base: sources.length ? 'set' : '', sources };
     case 'cramdown-doctor':
-      return { name: 'Doctor-R1', base: env.AI_DOCTOR_URL, key: env.AI_DOCTOR_KEY, model: 'doctor-r1' };
+      return { name: 'Doctor-R1', base: env.AI_DOCTOR_URL,
+               sources: [{ kind: 'openai', base: env.AI_DOCTOR_URL, key: env.AI_DOCTOR_KEY, model: 'doctor-r1' }] };
     case 'cramdown-medval':
-      return { name: 'MedVAL', base: env.AI_MEDVAL_URL, key: env.AI_MEDVAL_KEY, model: 'medval' };
+      return { name: 'MedVAL', base: env.AI_MEDVAL_URL,
+               sources: [{ kind: 'openai', base: env.AI_MEDVAL_URL, key: env.AI_MEDVAL_KEY, model: 'medval' }] };
     default:
       return null;
   }
