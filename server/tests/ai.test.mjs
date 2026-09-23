@@ -161,6 +161,36 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(own.base === 'https://gpu.example/v1' && own.key === 'gk', 'and to the GPU, writer and checker both, once AI_WRITER_URL is set');
 }
 
+// CramDown Cloud on Gemini, with Workers AI when Gemini is out of quota
+{
+  const { geminiBody } = await import('../ai.js');
+  const g = geminiBody([{ role: 'system', content: 'Be exact.' }, { role: 'user', content: 'Q\n/no_think' },
+                        { role: 'assistant', content: 'A' }], 100, 0.2);
+  ok(g.systemInstruction.parts[0].text === 'Be exact.' && g.contents.length === 2, 'system text becomes the system instruction');
+  ok(g.contents[0].parts[0].text === 'Q' && g.contents[1].role === 'model', 'turns carry over, without the Qwen /no_think tag');
+
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-redpen', OWNER_ACCOUNT_IDS: 'a1' };
+  const seen = [];
+  const gemini = status => async (url, init) => {
+    seen.push(url);
+    if (status !== 200) return new Response(JSON.stringify({ error: { message: 'quota' } }), { status });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'thinking', thought: true }, { text: 'answer' }] } }] }), { status: 200 });
+  };
+  const r = await chat(freshEnv(firebase), 'a1', request, gemini(200));
+  const body = await r.json();
+  ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
+  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.5-flash:generateContent'), 'through the Firebase project, Flash first');
+
+  let workersAsked = 0;
+  const env = freshEnv({ ...firebase, AI: { run: async (model, input) => { workersAsked++; return { response: `from ${model}` }; } } });
+  const f = await chat(env, 'a1', request, gemini(429));
+  const fb = await f.json();
+  ok(f.status === 200 && workersAsked === 1 && fb.choices[0].message.content.startsWith('from @cf/'), 'out of Gemini quota, Workers AI answers');
+
+  const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
+  ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
+}
+
 // Narrate's transcription settings
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');

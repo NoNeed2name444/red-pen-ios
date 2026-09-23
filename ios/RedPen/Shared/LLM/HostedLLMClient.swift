@@ -59,7 +59,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
 
     /// CramDown Cloud: our own worker, the student's session as the key, and
     /// a model name per job that the worker maps to whatever it currently runs
-    /// (Baichuan-M2-32B by default). Pro only - the worker checks with Apple.
+    /// (Gemini through CramDown's Firebase project). Pro only - the worker checks with Apple.
     static func cloud(for role: LLMRole) -> HostedProvider {
         HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10D")!,
                        name: "CramDown Cloud", kind: .openAICompatible,

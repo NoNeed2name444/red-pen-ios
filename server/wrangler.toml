@@ -14,17 +14,25 @@ database_id = ""
 binding = "BLOBS"
 bucket_name = "redpen-blobs"
 
+# Cloudflare's own models, on the account's free daily allowance: CramDown
+# Cloud's fallback when Gemini's free quota is spent.
+[ai]
+binding = "AI"
+
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.
 APPLE_BUNDLE_ID = "com.cramdown.app"
 GOOGLE_CLIENT_ID = ""
-# CramDown Cloud (Pro): an OpenAI-compatible upstream and the model for each
-# job. Baichuan-M2-32B is served on Hugging Face's router by featherless-ai.
+# CramDown Cloud (Pro) answers with Gemini through the Firebase project
+# (FIREBASE_* secrets), then Workers AI below when Gemini is out of free quota.
+# The Hugging Face route is only used when no Firebase project is set.
 AI_BASE_URL = "https://router.huggingface.co/v1"
 AI_WRITER_MODEL = "baichuan-inc/Baichuan-M2-32B"
 AI_CHECKER_MODEL = "baichuan-inc/Baichuan-M2-32B"
 AI_DAILY_LIMIT = "400"
+CLOUD_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite"
+FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it"
 # Accounts that are always Pro for the cloud models (comma-separated ids).
 OWNER_ACCOUNT_IDS = ""
 
