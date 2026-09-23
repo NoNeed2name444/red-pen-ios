@@ -99,6 +99,8 @@ struct ModelSettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(LibraryBackdrop())
             .navigationTitle("AI models")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

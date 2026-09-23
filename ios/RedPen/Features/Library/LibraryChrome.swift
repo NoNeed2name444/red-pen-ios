@@ -1,18 +1,16 @@
 import SwiftUI
 
-/// The library's own backdrop: a warm paper tone with a whisper of pen red,
-/// matching the web app's cream-and-red identity.
+/// The library's own backdrop: the brand's pen red with indigo and teal, or
+/// the colours of the mode whose tab is open, so switching tabs changes the
+/// room you are in.
 struct LibraryBackdrop: View {
-    @Environment(\.colorScheme) private var scheme
+    var kind: StudySetKind? = nil
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-            RadialGradient(colors: [StudySetKind.mcq.tint.opacity(scheme == .dark ? 0.22 : 0.14), .clear],
-                           center: .init(x: 1.0, y: 0.0), startRadius: 0, endRadius: 380)
-            RadialGradient(colors: [StudySetKind.anki.tint.opacity(scheme == .dark ? 0.16 : 0.10), .clear],
-                           center: .init(x: 0.0, y: 1.0), startRadius: 0, endRadius: 360)
+        if let kind {
+            ModeBackdrop(kind: kind)
+        } else {
+            LivingBackdrop(hues: [StudySetKind.mcq.tint, StudySetKind.anki.tint, StudySetKind.book.tint])
         }
-        .ignoresSafeArea()
     }
 }
 

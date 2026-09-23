@@ -58,6 +58,15 @@ extension StudySetKind {
                      opacity: Double(a))
     }
 
+    /// A neighbouring hue, for the second and third colours of a backdrop.
+    func hueShifted(_ dh: Double, brightness db: Double = 0) -> Color {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard UIColor(tint).getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return tint }
+        var hue = Double(h) + dh
+        hue -= hue.rounded(.down)
+        return Color(hue: hue, saturation: Double(s), brightness: min(1, max(0, Double(b) + db)))
+    }
+
     var gradient: LinearGradient {
         LinearGradient(colors: [tint, tint.opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -86,50 +95,87 @@ struct ModeTile: View {
     }
 }
 
-/// A faint wash of the mode's colour behind a whole screen. Two soft blobs
-/// top-right and bottom-left, over the system grouped background, so it
-/// stays quiet in both light and dark mode.
-struct ModeBackdrop: View {
-    let kind: StudySetKind
+/// The colour a screen lives in: a slow mesh of three hues over paper (or ink
+/// in the dark), drifting so the glass above it always has something to
+/// refract. It replaced two faint blobs on flat grey, which read as washed out.
+struct LivingBackdrop: View {
+    /// The three hues, strongest first.
+    let hues: [Color]
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var drift = false
 
     var body: some View {
+        let dark = scheme == .dark
+        // strong enough to be colour, not a tint someone has to squint for;
+        // the middle stays calm so text on cards reads first
+        let o: [Double] = dark ? [0.55, 0.30, 0.45, 0.28, 0.06, 0.22, 0.42, 0.24, 0.50]
+                               : [0.50, 0.28, 0.42, 0.24, 0.04, 0.20, 0.38, 0.22, 0.46]
+        let h = hues + Array(repeating: hues.last ?? .accentColor, count: max(0, 3 - hues.count))
+        let colors: [Color] = [
+            h[0].opacity(o[0]), h[1].opacity(o[1]), h[2].opacity(o[2]),
+            h[1].opacity(o[3]), h[0].opacity(o[4]), h[0].opacity(o[5]),
+            h[2].opacity(o[6]), h[0].opacity(o[7]), h[1].opacity(o[8]),
+        ]
+        let m: Float = drift ? 0.08 : -0.06
         ZStack {
-            Color(.systemGroupedBackground)
-            // two soft blobs that drift very slowly, so the glass above them
-            // has something living to refract
-            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.30 : 0.22), .clear],
-                           center: .init(x: drift ? 0.85 : 0.98, y: drift ? 0.08 : -0.02), startRadius: 0, endRadius: 440)
-            RadialGradient(colors: [kind.tint.opacity(scheme == .dark ? 0.20 : 0.13), .clear],
-                           center: .init(x: drift ? 0.12 : 0.02, y: drift ? 0.92 : 1.04), startRadius: 0, endRadius: 400)
-            RadialGradient(colors: [.white.opacity(scheme == .dark ? 0.0 : 0.35), .clear],
-                           center: .init(x: 0.5, y: 0.35), startRadius: 0, endRadius: 320)
+            (dark ? Color(red: 0.06, green: 0.06, blue: 0.08) : Color(red: 0.98, green: 0.97, blue: 0.95))
+            MeshGradient(width: 3, height: 3, points: [
+                [0, 0], [0.5 + m, 0], [1, 0],
+                [0, 0.5 - m], [0.5 + m, 0.45 - m], [1, 0.5 + m],
+                [0, 1], [0.5 - m, 1], [1, 1],
+            ], colors: colors, smoothsColors: true)
         }
         .ignoresSafeArea()
         .onAppear {
             guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) { drift = true }
+            withAnimation(.easeInOut(duration: 11).repeatForever(autoreverses: true)) { drift = true }
         }
+    }
+}
+
+/// Each mode's screen: its own hue, a neighbour of it, and a lighter partner.
+struct ModeBackdrop: View {
+    let kind: StudySetKind
+    var body: some View {
+        LivingBackdrop(hues: [kind.tint, kind.hueShifted(0.07), kind.hueShifted(-0.10, brightness: 0.12)])
+    }
+}
+
+/// A row's own background: frosted, with the set's colour coming in from the
+/// leading edge, so a list reads as coloured cards rather than white strips.
+struct TintedRowBackground: View {
+    let tint: Color
+    var body: some View {
+        Rectangle()
+            .fill(.regularMaterial)
+            .overlay(LinearGradient(colors: [tint.opacity(0.20), tint.opacity(0.04)],
+                                    startPoint: .leading, endPoint: .trailing))
     }
 }
 
 /// A content card: the reading surface each mode places its question, card
 /// or page on. Rounded, elevated a touch off the backdrop.
 struct ContentCard: ViewModifier {
+    @Environment(\.modeTint) private var tint
+    @Environment(\.colorScheme) private var scheme
+
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            // frosted, so the backdrop's colour comes through, with a wash of
+            // the mode's own hue across the top
+            .background(.regularMaterial, in: shape)
+            .background(LinearGradient(colors: [tint.opacity(scheme == .dark ? 0.22 : 0.14), .clear],
+                                       startPoint: .top, endPoint: .center), in: shape)
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
-                    .blendMode(.plusLighter)
+                shape.strokeBorder(LinearGradient(colors: [tint.opacity(0.45), .white.opacity(0.25), tint.opacity(0.10)],
+                                                  startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)   // contact shadow
-            .shadow(color: .black.opacity(0.07), radius: 16, y: 8)    // ambient lift
+            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)       // contact shadow
+            .shadow(color: tint.opacity(0.22), radius: 18, y: 10)         // coloured lift
     }
 }
 
