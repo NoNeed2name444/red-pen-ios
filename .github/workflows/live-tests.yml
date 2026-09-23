@@ -1,10 +1,10 @@
 # Every AI mode, run for real against real models, with the answers written
 # to a report on the live-tests branch (live-report.md).
 #
-#   cloud     - CramDown Cloud (Baichuan-M2-32B) through the deployed worker,
+#   cloud     - CramDown Cloud (Gemini via Firebase) through the deployed worker,
 #               using the owner key derived from AI_API_KEY
 #   on-device - the exact Doctor-R1 and MedVAL GGUF files the app downloads,
-#               served by llama.cpp on this Mac with the same prompts
+#               served by llama.cpp on this Mac's GPU (Metal) with the same prompts
 name: Live model tests
 on:
   workflow_dispatch:
@@ -47,7 +47,7 @@ jobs:
           test -x build/live/run
           printf '# Live model test\n\nRun %s on %s (UTC).\n' "$GITHUB_RUN_ID" "$(date -u '+%Y-%m-%d %H:%M')" > out/live-report.md
 
-      - name: CramDown Cloud (Baichuan-M2-32B)
+      - name: CramDown Cloud (Gemini, through the worker)
         if: inputs.targets != 'on-device'
         continue-on-error: true
         env:
@@ -56,34 +56,37 @@ jobs:
           OWNER=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | shasum -a 256 | cut -c1-64)
           LIVE_URL=https://redpen-auth.vv7sh4rnnw.workers.dev/v1/chat/completions \
           LIVE_KEY="$OWNER" LIVE_WRITER=cramdown-writer LIVE_CHECKER=cramdown-checker \
-          LIVE_LABEL="CramDown Cloud: Baichuan-M2-32B" LIVE_ON_DEVICE=0 \
+          LIVE_LABEL="CramDown Cloud: Gemini 3.5 Flash (Workers AI when out of quota)" LIVE_ON_DEVICE=0 \
           LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
           build/live/run 2>&1 | tee out/cloud.log
 
-      - name: Doctor-R1 + MedVAL on a GPU (Modal)
+      - name: Doctor-R1 + MedVAL on the Mac's GPU (Metal), one model at a time
         if: inputs.targets != 'cloud'
         continue-on-error: true
-        env:
-          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
-          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          # the same GGUF weights the app downloads, on an L4 GPU instead of
-          # the runner's CPU (modal-deploy.yml puts them there)
-          pip3 install -q --break-system-packages modal 2>/dev/null || pip3 install -q modal
-          printf '%s\n' 'import modal' 'for n in ("doctor", "medval"):' \
-            '    print(n.upper() + "_URL=" + modal.Function.from_name("cramdown-medical", n).get_web_url())' > urls.py
-          eval "$(python3 urls.py)"
-          echo "doctor: $DOCTOR_URL  medval: $MEDVAL_URL"
-          KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | shasum -a 256 | cut -c1-64)
-          for u in "$DOCTOR_URL" "$MEDVAL_URL"; do
-            for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' -m 60 "$u/health")" = 200 ] && break; sleep 10; done
-          done
-          LIVE_URL="$DOCTOR_URL/v1/chat/completions" LIVE_CHECKER_URL="$MEDVAL_URL/v1/chat/completions" \
-          LIVE_KEY="$KEY" LIVE_WRITER=doctor-r1 LIVE_CHECKER=medval \
-          LIVE_LABEL="Doctor-R1 (Q4_K_M) + MedVAL-4B (Q4_K_M): the app's own model files, on an L4 GPU" LIVE_ON_DEVICE=1 \
-          LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
-          build/live/run 2>&1 | tee out/on-device.log
+          # The runner's GPU hung with both models loaded at once (7 GB of
+          # memory for 6 GB of weights), so each loads alone, on Metal - the
+          # same backend the app uses on an iPhone - with a 4k context.
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install llama.cpp >/dev/null 2>&1 || true
+          mkdir -p models
+          curl -sSL -o models/doctor.gguf https://huggingface.co/mradermacher/Doctor-R1-GGUF/resolve/main/Doctor-R1.Q3_K_M.gguf
+          curl -sSL -o models/medval.gguf https://huggingface.co/stanfordmimi/MedVAL-4B-GGUF/resolve/main/MedVAL-4B.Q3_K_M.gguf
+          serve() {
+            pkill -f llama-server || true; sleep 2
+            llama-server -m "models/$1.gguf" --port 8081 -c 4096 -ngl 99 --jinja -np 1 > "out/$1-server.log" 2>&1 &
+            for i in $(seq 1 90); do curl -sf localhost:8081/health >/dev/null && return 0; sleep 2; done
+            return 1
+          }
+          run() {
+            LIVE_URL=http://localhost:8081/v1/chat/completions LIVE_KEY= LIVE_WRITER=local LIVE_CHECKER=local \
+            LIVE_LABEL="$1" LIVE_ON_DEVICE=1 LIVE_ONLY="$2" LIVE_REPORT=out/live-report.md \
+            build/live/run 2>&1 | tee -a out/on-device.log
+          }
+          serve doctor && run "On-device Doctor-R1 (Q3_K_M, the 8 GB-phone build) on Metal" "mcq,osce,anki,cases,book"
+          grep -hE "eval time|prompt eval" out/doctor-server.log | tail -3 >> out/speed.txt || true
+          serve medval && run "On-device MedVAL-4B (Q3_K_M) on Metal" "check"
+          grep -hE "eval time|prompt eval" out/medval-server.log | tail -3 >> out/speed.txt || true
+          pkill -f llama-server || true
 
       - name: Push the report
         if: always()
