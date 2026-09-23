@@ -152,13 +152,31 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(seen[0].init.headers.authorization === 'Bearer mk', 'with the MedVAL host key, not the provider key');
 }
 
-// Baichuan on CramDown's own GPU once it is deployed
+// Where CramDown Cloud goes: Baichuan-M3 first when its key is set, then
+// Gemini, then Workers AI
 {
   const { routeFor } = await import('../ai.js');
-  const hosted = routeFor({ AI_API_KEY: 'hf' }, 'cramdown-writer');
-  ok(hosted.base.includes('huggingface') && hosted.key === 'hf', 'Baichuan goes to the hosted provider by default');
-  const own = routeFor({ AI_API_KEY: 'hf', AI_WRITER_URL: 'https://gpu.example/v1', AI_WRITER_KEY: 'gk' }, 'cramdown-checker');
-  ok(own.base === 'https://gpu.example/v1' && own.key === 'gk', 'and to the GPU, writer and checker both, once AI_WRITER_URL is set');
+  const old = routeFor({ AI_API_KEY: 'hf' }, 'cramdown-writer');
+  ok(old.sources.length === 1 && old.sources[0].base.includes('huggingface'), 'with nothing else set it is the old Hugging Face route');
+  const all = routeFor({ AI_API_KEY: 'hf', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
+                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', AI: {} }, 'cramdown-checker');
+  ok(all.sources.map(x => x.kind).join('>') === 'openai>gemini>workers-ai', 'Baichuan-M3, then Gemini, then Workers AI');
+  ok(all.sources[0].model === 'Baichuan-M3' && all.sources[0].key === 'bk', 'Baichuan-M3 by default, with its own key');
+
+  const seen = [];
+  const fetcher = async (url) => {
+    seen.push(url);
+    if (url.includes('baichuan')) return new Response(JSON.stringify({ error: { message: 'rate limit' } }), { status: 429 });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from gemini' }] } }] }), { status: 200 });
+  };
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
+                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
+  const r = await chat(env, 'a1', request, fetcher);
+  ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
+     'Baichuan-M3 busy (5 a minute): Gemini answers instead');
+  const refused = async () => new Response(JSON.stringify({ error: { message: 'bad key' } }), { status: 401 });
+  const x = await chat(env, 'a1', request, refused, { owner: true });
+  ok(x.status === 502 && (await x.json()).message.startsWith('Provider 401'), 'a real refusal is reported, not hidden behind a fallback');
 }
 
 // CramDown Cloud on Gemini, with Workers AI when Gemini is out of quota
