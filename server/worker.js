@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, whisper } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -95,6 +95,7 @@ export default {
         // Gemini through Firebase AI Logic, and only asks here which project
         // and models to use, so neither is baked into a build
         case '/transcribe/config': return transcribeConfig(env);
+        case '/transcribe/whisper': return await whisper(request, body, env);
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {

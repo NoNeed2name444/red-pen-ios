@@ -16,9 +16,8 @@ struct RedPenApp: App {
     /// than through the environment: it is not a view and has no business
     /// waiting for one.
     @StateObject private var sync: SyncEngine
-    /// Accounts that agreed to the recording terms this launch (the stored
-    /// answer is in RecordingTerms; this makes the screen go away at once).
-    @State private var agreedNow: Set<String> = []
+    /// Who has agreed to the recording terms (see RecordingTermsView).
+    @StateObject private var terms = RecordingTermsStore()
     // GemmaModel is a true singleton (its download must survive view
     // teardown), so it's observed here rather than owned by @StateObject.
     @ObservedObject private var gemma = GemmaModel.shared
@@ -76,15 +75,10 @@ struct RedPenApp: App {
                     } else {
                         PreviewRoot(screen: screen)
                     }
-                } else if let signedIn = account.account,
-                          !agreedNow.contains(signedIn.id),
-                          !RecordingTerms.accepted(by: signedIn.id) {
+                } else if let signedIn = account.account, !terms.hasAgreed(signedIn.id) {
                     // once per account, before anything else: recordings are
                     // only transcribed with the speakers' permission
-                    RecordingTermsView {
-                        RecordingTerms.accept(for: signedIn.id)
-                        agreedNow.insert(signedIn.id)
-                    }
+                    RecordingTermsView { terms.agree(signedIn.id) }
                 } else if account.isSignedIn {
                     LibraryView()
                         .task {

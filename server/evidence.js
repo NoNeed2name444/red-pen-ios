@@ -166,11 +166,24 @@ export function groundedMessages(messages, evidence) {
     content:
       'You are checking medical study material for accuracy. Besides comparing the output with the input as instructed, ' +
       'use the REFERENCE EVIDENCE below: current reviews, guidelines, NLM MedlinePlus and FDA drug labels. ' +
-      'If the output states something that contradicts the reference evidence (for example an outdated first-line treatment, ' +
-      'a wrong dose, a wrong diagnostic criterion), list it as an error even if the input (the lecture) says the same, ' +
-      'write "Other: contradicts current evidence [Sn]" with the source number, and raise the risk level accordingly. ' +
-      'Do not invent sources and do not flag claims the evidence simply does not mention. Keep the exact output format asked for.\n\n' +
+      'If the output states something that contradicts the reference evidence or well-established current medical consensus ' +
+      '(for example an outdated first-line treatment, a wrong dose, a wrong diagnostic criterion, a wrong answer to a clinical question), ' +
+      'list it as an error even if the input (the lecture) says the same: write "Other: contradicts current evidence [Sn]" citing the source, ' +
+      'or "Other: contradicts current medical consensus" when no source covers it, and set the risk level to 3 or 4. ' +
+      'Do not invent sources. Keep the exact output format asked for.\n\n' +
       'REFERENCE EVIDENCE\n\n' + evidenceBlock(evidence),
   };
   return [note, ...messages];
+}
+
+/// For a question rather than a check: the evidence goes first, with the
+/// instruction to use it and to say when it does not cover the question.
+export function answerWithEvidence(messages, evidence) {
+  if (!evidence.length) return messages;
+  return [{
+    role: 'system',
+    content: 'Use the REFERENCE EVIDENCE below (current reviews, guidelines, NLM MedlinePlus, FDA labels) where it is relevant, ' +
+      'cite it as [Sn], and prefer it over older teaching. If it does not cover the question, answer from established medical knowledge.\n\n' +
+      'REFERENCE EVIDENCE\n\n' + evidenceBlock(evidence),
+  }, ...messages];
 }

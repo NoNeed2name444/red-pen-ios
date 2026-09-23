@@ -17,6 +17,7 @@ struct RecordingTermsView: View {
     @State private var remaining = RecordingTermsView.waitSeconds
 
     var body: some View {
+        VStack(spacing: 0) {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: "waveform.badge.exclamationmark")
@@ -38,14 +39,16 @@ struct RecordingTermsView: View {
                       "\(Brand.name) is a study tool. It is not associated with, and does not approve of, recording or transcribing anyone without their consent, or any other misuse of the app.")
                 point("cloud",
                       "Cloud transcription",
-                      "When you choose Gemini, the audio is sent to Google to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
+                      "When you choose cloud transcription, the audio is sent to Google (Gemini) or Cloudflare (Whisper) to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
-        .safeAreaInset(edge: .bottom) {
-            Button(action: onAccept) {
+            Button {
+                guard remaining == 0 else { return }
+                onAccept()
+            } label: {
                 Text(remaining > 0 ? "\(remaining)" : "I understand and agree")
                     .font(.headline.monospacedDigit())
                     .frame(maxWidth: .infinity)
@@ -57,7 +60,7 @@ struct RecordingTermsView: View {
             .accessibilityLabel(remaining > 0 ? "Agree, available in \(remaining) seconds" : "I understand and agree")
             .accessibilityIdentifier("acceptRecordingTerms")
             .padding(.horizontal, 24)
-            .padding(.bottom, 12)
+            .padding(.vertical, 12)
         }
         .background(ModeBackdrop(kind: .narrate).ignoresSafeArea())
         .interactiveDismissDisabled()
@@ -82,6 +85,24 @@ struct RecordingTermsView: View {
                 Text(detail).font(.subheadline).foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// Which accounts on this device have agreed, observed like the app's other
+/// stores so the terms screen goes away the moment the button is pressed.
+/// (A plain @State set on the App struct did not reliably redraw in Swift
+/// Playgrounds, which left the button looking dead.)
+@MainActor
+final class RecordingTermsStore: ObservableObject {
+    @Published private(set) var agreed: Set<String> = []
+
+    func hasAgreed(_ accountId: String) -> Bool {
+        agreed.contains(accountId) || RecordingTerms.accepted(by: accountId)
+    }
+
+    func agree(_ accountId: String) {
+        RecordingTerms.accept(for: accountId)
+        withAnimation { agreed.insert(accountId) }
     }
 }
 

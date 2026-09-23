@@ -20,7 +20,7 @@
 // these models, so they run where we put them.
 
 import { decodeClaims } from './tokens.js';
-import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages } from './evidence.js';
+import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages, answerWithEvidence } from './evidence.js';
 
 const DEFAULT_BASE = 'https://router.huggingface.co/v1';
 const DEFAULT_MODEL = 'baichuan-inc/Baichuan-M2-32B';
@@ -57,7 +57,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   if (!messages) return fail(400, 'Nothing to send.');
 
   const limit = Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
-  if (!await spend(env, accountId, limit)) {
+  // the owner's own builds and the accuracy benchmark are not rationed
+  if (!owner && !await spend(env, accountId, limit)) {
     return fail(429, `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`);
   }
 
@@ -69,12 +70,15 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // even when the lecture says it too.
   let sent = messages;
   let evidence = [];
-  const checked = body.model === 'cramdown-checker' && medvalParts(messages[messages.length - 1]?.content);
-  if (checked && checked.output) {
-    const picked = await complete(env, route, termsPrompt(checked.output), 200, 0, fetcher);
+  const last = messages[messages.length - 1]?.content || '';
+  const checked = body.model === 'cramdown-checker' && medvalParts(last);
+  // any other request can ask for the same evidence (the benchmark does)
+  const about = checked ? checked.output : (body.ground === true ? last : '');
+  if (about) {
+    const picked = await complete(env, route, termsPrompt(about), 200, 0, fetcher);
     if (picked.ok) {
       evidence = await gather(parseTerms(picked.content), fetcher);
-      sent = groundedMessages(messages, evidence);
+      sent = checked ? groundedMessages(messages, evidence) : answerWithEvidence(messages, evidence);
     }
   }
   const result = await complete(env, route, sent, maxTokens, temperature, fetcher);
@@ -88,6 +92,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // only what the app reads, never the upstream's own metadata
   return json({
     choices: [{ message: { role: 'assistant', content: result.content } }],
+    source: result.source,
     // what the checker was shown, so the app can cite it
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
@@ -102,7 +107,7 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
     else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
-    if (result.ok) break;
+    if (result.ok) { result.source = result.source || source.kind; break; }
     // busy, out of quota, down - or, for Gemini, locked by the Firebase
     // project's App Check: the next source may still answer
     const next = [408, 429, 500, 502, 503, 504].includes(result.status)
@@ -129,7 +134,7 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
   });
   if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
   const content = (await upstream.json())?.choices?.[0]?.message?.content;
-  return typeof content === 'string' ? { ok: true, content }
+  return typeof content === 'string' ? { ok: true, content, source: route.model }
     : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.' };
 }
 
@@ -166,7 +171,7 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher) {
     }
     const parts = (await response.json())?.candidates?.[0]?.content?.parts || [];
     const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
-    if (content) return { ok: true, content };
+    if (content) return { ok: true, content, source: model };
     last = { ok: false, status: 502, detail: 'Gemini sent back nothing usable.' };
   }
   return last;
@@ -178,7 +183,7 @@ async function askWorkersAI(env, messages, maxTokens, temperature) {
   try {
     const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
     const content = out?.response ?? out?.choices?.[0]?.message?.content;
-    return typeof content === 'string' && content ? { ok: true, content }
+    return typeof content === 'string' && content ? { ok: true, content, source: model }
       : { ok: false, status: 502, detail: 'Workers AI sent back nothing usable.' };
   } catch (error) {
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
@@ -232,7 +237,7 @@ export function clean(raw) {
 
 /// One more request today, if the allowance has room. The increment and the
 /// check are one statement, so two requests at once cannot both take the last one.
-async function spend(env, accountId, limit) {
+export async function spend(env, accountId, limit) {
   const day = today();
   const result = await env.DB.prepare(
     `INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, 1)
@@ -333,4 +338,37 @@ export function isOwnerKey(request, env) {
   let diff = 0;
   for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ given.charCodeAt(i);
   return diff === 0;
+}
+
+/// Narrate's second transcriber: Whisper large-v3 turbo on Cloudflare Workers
+/// AI, for when Gemini refuses (out of quota, or locked by App Check). One
+/// ten-minute piece per call, as base64 audio, answered as timed phrases in
+/// the shape the app already reads from Gemini. No sign-in, so it is rationed
+/// by address: 60 pieces (ten hours) a day.
+export async function whisper(request, body, env) {
+  if (!env.AI) return fail(503, "Cloud transcription isn't set up on this server.");
+  if (typeof body.audio !== 'string' || body.audio.length < 100 || body.audio.length > 12_000_000) {
+    return fail(400, 'Send one piece of audio, base64, under 9 MB.');
+  }
+  const address = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!await spend(env, `whisper:${address}`, Number(env.WHISPER_DAILY_PIECES) || 60)) {
+    return fail(429, "That's today's cloud transcription used on this network. On this phone still works.");
+  }
+  try {
+    const out = await env.AI.run('@cf/openai/whisper-large-v3-turbo', {
+      audio: body.audio,
+      language: typeof body.language === 'string' ? body.language.slice(0, 5) : undefined,
+      // the lecture's own terms, so English words inside Arabic come out spelled
+      initial_prompt: typeof body.prompt === 'string' ? body.prompt.slice(0, 800) : undefined,
+      vad_filter: true,
+      condition_on_previous_text: false,
+    });
+    const phrases = (out?.segments || [])
+      .map(s => ({ start: Number(s.start) || 0, end: Number(s.end) || 0, text: String(s.text || '').trim() }))
+      .filter(p => p.text);
+    return json({ phrases, text: out?.transcription_info?.text || out?.text || '' });
+  } catch (error) {
+    console.error('whisper', error);
+    return fail(502, 'The cloud transcriber could not read that piece.');
+  }
 }
