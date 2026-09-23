@@ -23,6 +23,7 @@ struct ModelSettingsView: View {
                             if llm.status[role.onDeviceModel] != .unsupported {
                                 Text("\(role.onDeviceModel.displayName) \u{00B7} Pro").tag(LLMChoice.device)
                             }
+                            Text("\(role.onDeviceModel.displayName), cloud \u{00B7} Pro").tag(LLMChoice.cloudMedical)
                             Text("CramDown Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
                             ForEach(llm.providers) { provider in
                                 Text(provider.name).tag(LLMChoice.hosted(provider.id))
@@ -118,7 +119,7 @@ struct ModelSettingsView: View {
         Binding(get: { llm.choice(for: role) }, set: { choice in
             // CramDown Cloud only once it can actually answer: Pro opens the
             // paywall, a missing sign-in says so, and the choice stays put
-            if choice == .cloud, let blocker = llm.cloudBlocker {
+            if choice == .cloud || choice == .cloudMedical, let blocker = llm.cloudBlocker {
                 cloudNote = blocker
                 if !llm.isPro { showPaywall = true }
                 return

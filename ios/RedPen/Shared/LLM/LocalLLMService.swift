@@ -31,6 +31,9 @@ enum LLMChoice: Hashable {
     case off
     case device
     case cloud
+    /// Doctor-R1 (writer) or MedVAL (checker), hosted - the on-device models
+    /// for devices too small to run them. Pro, like the rest of the cloud.
+    case cloudMedical
     case hosted(UUID)
 
     init(stored: String?) {
@@ -38,6 +41,7 @@ enum LLMChoice: Hashable {
         case nil, "off": self = .off
         case "device": self = .device
         case "cloud": self = .cloud
+        case "cloud-medical": self = .cloudMedical
         case let s?: self = UUID(uuidString: s).map { .hosted($0) } ?? .off
         }
     }
@@ -47,6 +51,7 @@ enum LLMChoice: Hashable {
         case .off: return "off"
         case .device: return "device"
         case .cloud: return "cloud"
+        case .cloudMedical: return "cloud-medical"
         case .hosted(let id): return id.uuidString
         }
     }
@@ -123,7 +128,7 @@ final class LocalLLMService: ObservableObject {
     func needsPro(_ role: LLMRole) -> Bool {
         guard !isPro else { return false }
         switch choice(for: role) {
-        case .device, .cloud: return true
+        case .device, .cloud, .cloudMedical: return true
         case .off, .hosted: return false
         }
     }
@@ -156,6 +161,9 @@ final class LocalLLMService: ObservableObject {
         case .cloud:
             guard cloudBlocker == nil, let token = cloudToken else { return nil }
             return HostedLLMClient(provider: .cloud(for: role), bearer: token)
+        case .cloudMedical:
+            guard cloudBlocker == nil, let token = cloudToken else { return nil }
+            return HostedLLMClient(provider: .cloudMedical(for: role), bearer: token)
         case .hosted(let id):
             guard let provider = providers.first(where: { $0.id == id }) else { return nil }
             return HostedLLMClient(provider: provider)
