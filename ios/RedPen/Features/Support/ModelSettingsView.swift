@@ -55,7 +55,7 @@ struct ModelSettingsView: View {
                 } header: {
                     Text("CramDown Cloud \u{00B7} Pro")
                 } footer: {
-                    Text("Baichuan-M2, a medical model, with Google's Gemini and then Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Baichuan, Google or Cloudflare to answer; CramDown does not keep it.")
+                    Text("Baichuan-M2, a medical model, with Google's Gemini and then Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Novita (which runs Baichuan), Google or Cloudflare to answer; CramDown does not keep it.")
                 }
 
                 Section {
