@@ -85,6 +85,9 @@ jobs:
                 $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
                 $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift \
                 $S/PlainTextImport.swift $S/OsceStations.swift
+          # the model layer's text handling: MedVAL's prompt and grade, JSON
+          # out of prose, and which part of a lecture a check reads
+          suite llm LLMTests.swift $S/LLM/LLMParsing.swift
           suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift
           suite deck DeckTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
                 $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
