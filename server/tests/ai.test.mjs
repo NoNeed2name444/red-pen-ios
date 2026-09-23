@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { chat, clean, linkSubscription } from '../ai.js';
+import { chat, clean, linkSubscription, isOwnerKey } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -124,6 +124,18 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1' });
   ok((await chat(env, 'a1', { ...request, model: 'gpt-5' }, fakeFetch({}))).status === 400, 'only the two cramdown models are accepted');
+}
+
+// the owner key
+{
+  const key = 'k'.repeat(64);
+  const req = auth => ({ headers: new Map([['authorization', auth]]) });
+  ok(isOwnerKey(req(`Bearer ${key}`), { OWNER_KEY: key }), 'the owner key is recognised');
+  ok(!isOwnerKey(req(`Bearer ${'j'.repeat(64)}`), { OWNER_KEY: key }), 'a different key is not');
+  ok(!isOwnerKey(req('Bearer '), { OWNER_KEY: '' }), 'an unset owner key never matches, even an empty one');
+  const env = freshEnv();
+  const r = await chat(env, 'owner', request, fakeFetch({}), { owner: true });
+  ok(r.status === 200, 'the owner path answers with no account and no subscription');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

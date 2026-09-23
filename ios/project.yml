@@ -82,12 +82,16 @@ targets:
         # opening a broken page.
         RedPenAuthBaseURL: $(RED_PEN_AUTH_URL)
         RedPenGoogleClientID: $(RED_PEN_GOOGLE_CLIENT_ID)
+        # Personal builds only: the owner key for CramDown Cloud, worked out
+        # on GitHub from the AI_API_KEY secret. Empty everywhere else.
+        RedPenOwnerKey: $(RED_PEN_OWNER_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Empty by default: a build that has not been given these says so.
-        RED_PEN_AUTH_URL: ""
+        RED_PEN_AUTH_URL: "https://redpen-auth.vv7sh4rnnw.workers.dev"
+        RED_PEN_OWNER_KEY: ""
         RED_PEN_GOOGLE_CLIENT_ID: ""
         # LocalLLMClientLlamaC's own header hard-errors ("needs to be
         # compiled in C++ interoperability mode") unless the CONSUMING

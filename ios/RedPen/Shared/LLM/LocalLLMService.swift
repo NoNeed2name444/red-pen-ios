@@ -148,9 +148,17 @@ final class LocalLLMService: ObservableObject {
     /// A real account session (not "this device only", which the server has
     /// never heard of) - the cloud models' key.
     private var cloudToken: String? {
-        guard let token = account?.token, token != Session.localToken else { return nil }
-        return token
+        if let token = account?.token, token != Session.localToken { return token }
+        return Self.ownerKey
     }
+
+    /// The owner key, present only in the owner's personal build: CramDown
+    /// Cloud without an Apple or Google account.
+    private static let ownerKey: String? = {
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "RedPenOwnerKey") as? String,
+              key.count >= 32 else { return nil }
+        return key
+    }()
 
     var isPro: Bool { subscriptions?.isPro ?? false }
 
