@@ -213,6 +213,24 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
 }
 
+// Narrate's second transcriber: Whisper on Workers AI
+{
+  const { whisper } = await import('../ai.js');
+  const req = { headers: new Map([['cf-connecting-ip', '1.2.3.4']]) };
+  req.headers.get = req.headers.get.bind(req.headers);
+  let asked;
+  const env = freshEnv({ AI: { run: async (model, input) => { asked = { model, input };
+    return { segments: [{ start: 0.5, end: 3, text: ' الـ malar rash ' }, { start: 3, end: 4, text: '' }], transcription_info: { text: 'x' } }; } } });
+  const r = await whisper(req, { audio: 'A'.repeat(200), language: 'ar', prompt: 'lupus, malar' }, env);
+  const j = await r.json();
+  ok(r.status === 200 && j.phrases.length === 1 && j.phrases[0].text === 'الـ malar rash', 'Whisper answers as timed phrases, empty ones dropped');
+  ok(asked.model.includes('whisper-large-v3') && asked.input.initial_prompt === 'lupus, malar' && asked.input.language === 'ar', 'with the lecture terms and the language');
+  ok((await whisper(req, { audio: 'x' }, env)).status === 400, 'no audio, no call');
+  const tight = freshEnv({ AI: env.AI, WHISPER_DAILY_PIECES: '1' });
+  await whisper(req, { audio: 'A'.repeat(200) }, tight);
+  ok((await whisper(req, { audio: 'A'.repeat(200) }, tight)).status === 429, 'and it is rationed per address');
+}
+
 // Narrate's transcription settings
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');
