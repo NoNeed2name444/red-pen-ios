@@ -46,8 +46,8 @@ struct ModelSettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Writer", value: "Baichuan-M3")
-                    LabeledContent("Checker", value: "Baichuan-M3 with MedVAL's rubric")
+                    LabeledContent("Writer", value: "Baichuan-M2")
+                    LabeledContent("Checker", value: "Baichuan-M2 with MedVAL's rubric")
                     LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
                     if !llm.isPro {
                         Button("See Pro") { showPaywall = true }
@@ -55,7 +55,7 @@ struct ModelSettingsView: View {
                 } header: {
                     Text("CramDown Cloud \u{00B7} Pro")
                 } footer: {
-                    Text("Baichuan-M3, a medical model, with Google's Gemini and then Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Baichuan, Google or Cloudflare to answer; CramDown does not keep it.")
+                    Text("Baichuan-M2, a medical model, with Google's Gemini and then Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Baichuan, Google or Cloudflare to answer; CramDown does not keep it.")
                 }
 
                 Section {
