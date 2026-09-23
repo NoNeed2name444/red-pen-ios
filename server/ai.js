@@ -71,8 +71,12 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     }),
   });
   if (!upstream.ok) {
-    console.error('upstream', upstream.status, (await upstream.text()).slice(0, 300));
-    return fail(502, 'The cloud model is unavailable right now. Try again, or use an on-device model.');
+    const detail = (await upstream.text()).slice(0, 300);
+    console.error('upstream', upstream.status, detail);
+    // the status says whether it is credits (402), the key (401/403) or the
+    // provider being down (5xx); the provider's own words go to the owner only
+    return fail(502, `The cloud model is unavailable right now (${upstream.status}). Try again, or use an on-device model.`
+      + (owner ? ` Provider said: ${detail}` : ''));
   }
   const answer = await upstream.json();
   const content = answer?.choices?.[0]?.message?.content;
