@@ -38,8 +38,12 @@ jobs:
           gh run download "${{ inputs.run_id }}" -R "$GITHUB_REPOSITORY" -D dl
           # Flattened, because an artifact's folders mean nothing once the
           # files are assets on a release.
+          # The list is explicit rather than "everything", because an
+          # artifact can carry a whole build directory. .ipa was missing from
+          # it, which is how a successful build published a log and no app.
           find dl -type f \( -name '*.mp4' -o -name '*.png' -o -name '*.log' \
-                             -o -name '*.json' -o -name '*.txt' \) -print0 |
+                             -o -name '*.json' -o -name '*.txt' \
+                             -o -name '*.ipa' -o -name '*.apkg' -o -name '*.pdf' \) -print0 |
             while IFS= read -r -d '' f; do
               cp "$f" "out/$(echo "${f#dl/}" | tr '/' '-')"
             done
