@@ -55,6 +55,8 @@ struct NarrateReviewView: View {
     @State private var lastOutcome: CorrectionOutcome?
     @State private var snapshot: [String] = []
     @State private var importing = false
+    @State private var choosingEngine = false
+    @State private var engine: LectureImporter.Engine = .cloud
 
     /// Word timings exist only when a recording was transcribed.
     var words: [TranscriptWord] {
@@ -109,7 +111,7 @@ struct NarrateReviewView: View {
             .onDisappear { timer?.invalidate(); player.stop() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { importing = true } label: {
+                    Button { choosingEngine = true } label: {
                         Label(player.hasAudio ? "Replace recording" : "Add recording",
                               systemImage: "waveform")
                     }
@@ -120,7 +122,14 @@ struct NarrateReviewView: View {
             // which is the shape LectureImporter.attach takes
             .fileImporter(isPresented: $importing, allowedContentTypes: [.audio],
                           allowsMultipleSelection: false) { picked in
-                Task { await importer.attach(picked, to: studySet, learned: learned) }
+                Task { await importer.attach(picked, to: studySet, learned: learned, engine: engine) }
+            }
+            .confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,
+                                titleVisibility: .visible) {
+                Button("Gemini \u{2014} best for Arabic + English") { engine = .cloud; importing = true }
+                Button("This phone only \u{2014} offline") { engine = .device; importing = true }
+            } message: {
+                Text("Gemini runs on Google's servers: the audio is sent to Google to transcribe, and on the free service Google may use it to improve its models. Only send lectures you're allowed to record. On this phone, nothing leaves the device, but mixed Arabic and English comes out far less accurate.")
             }
     }
 
@@ -141,6 +150,12 @@ struct NarrateReviewView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(importer.trouble ?? "")
+            }
+            .alert("Transcribed", isPresented: Binding(get: { importer.notice != nil },
+                                                       set: { if !$0 { importer.notice = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importer.notice ?? "")
             }
             .safeAreaInset(edge: .bottom) {
                 if let report { FixReport(summary: report, onUndo: undo) }

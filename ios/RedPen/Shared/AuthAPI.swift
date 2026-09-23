@@ -18,7 +18,8 @@ enum AuthAPI {
            let url = URL(string: override), !override.isEmpty {
             return url
         }
-        return URL(string: "https://auth.redpen.app")!
+        // builds without an Info.plist (Swift Playgrounds) use the deployed worker
+        return URL(string: "https://redpen-auth.vv7sh4rnnw.workers.dev")!
     }
 
     enum Failure: LocalizedError, Equatable {
