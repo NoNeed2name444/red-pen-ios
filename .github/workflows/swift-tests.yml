@@ -95,7 +95,8 @@ jobs:
                 $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
                 $S/LectureTranscriber.swift $S/Brand.swift $S/PlainTextImport.swift \
                 $S/BookPages.swift $S/Highlight.swift \
-                $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift
+                $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
+                $S/Explanation.swift
 
       - name: Fail the job if anything failed
         run: |
