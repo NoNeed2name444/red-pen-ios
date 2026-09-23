@@ -24,7 +24,9 @@ binding = "AI"
 # codes are sent from, and Google's public client id.
 APPLE_BUNDLE_ID = "com.cramdown.app"
 GOOGLE_CLIENT_ID = ""
-# CramDown Cloud (Pro): Baichuan-M2-32B on Novita's API (key in the
+# CramDown Cloud (Pro), for now: Gemini, then Workers AI - both free, nothing
+# to pay for or set up. At launch: add the NOVITA_API_KEY repository secret and
+# redeploy, and Baichuan-M2-32B on Novita's API goes first (key in the
 # AI_WRITER_KEY secret, from NOVITA_API_KEY; about $0.07 per million tokens,
 # not used for training), then Gemini through the Firebase project
 # (FIREBASE_* secrets), then Workers AI below. Each takes over when the one
