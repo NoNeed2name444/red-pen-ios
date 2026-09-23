@@ -96,6 +96,11 @@ jobs:
           if ! echo "$HAVE" | grep -q '"SESSION_SECRET"'; then
             openssl rand -hex 48 | $W secret put SESSION_SECRET
           fi
+          # the owner key: the personal build works out the same value from the
+          # same secret, so the two match without either being stored anywhere
+          if [ -n "${AI_API_KEY:-}" ]; then
+            printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64 | tr -d '\n' | $W secret put OWNER_KEY
+          fi
           for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
