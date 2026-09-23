@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription } from './ai.js';
+import { chat, linkSubscription, isOwnerKey } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -75,7 +75,9 @@ export default {
           env.BLOBS ? missingBlobs(env, id, body) : json({ missing: [] }));
         // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
         // special case - the session token is the key
-        case '/v1/chat/completions': return await guarded(request, env, id => chat(env, id, body));
+        case '/v1/chat/completions':
+          if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true });
+          return await guarded(request, env, id => chat(env, id, body));
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {

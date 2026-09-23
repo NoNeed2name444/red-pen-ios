@@ -30,12 +30,16 @@ const fail = (status, message) => json({ error: { message }, message }, status);
 const now = () => Math.floor(Date.now() / 1000);
 const today = () => new Date().toISOString().slice(0, 10);
 
-export async function chat(env, accountId, body, fetcher = fetch) {
-  const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?')
-    .bind(accountId).first();
-  if (!account) return fail(401, 'Please sign in again.');
-  if (!await isPro(env, account, fetcher)) {
-    return fail(402, 'CramDown Cloud is part of Pro.');
+export async function chat(env, accountId, body, fetcher = fetch, { owner = false } = {}) {
+  // The owner key (the app owner's own builds) skips the account and the
+  // subscription check, but not the daily allowance.
+  if (!owner) {
+    const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?')
+      .bind(accountId).first();
+    if (!account) return fail(401, 'Please sign in again.');
+    if (!await isPro(env, account, fetcher)) {
+      return fail(402, 'CramDown Cloud is part of Pro.');
+    }
   }
 
   const model = { 'cramdown-writer': env.AI_WRITER_MODEL || DEFAULT_MODEL,
@@ -178,4 +182,17 @@ async function appStoreToken(env) {
   const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key,
                                              new TextEncoder().encode(input));
   return `${input}.${b64url(signature)}`;
+}
+
+/// True when the request carries the owner key: a secret derived on GitHub
+/// from AI_API_KEY and baked only into the owner's personal build, for using
+/// CramDown Cloud without an Apple or Google account. Compared in constant
+/// time; an unset or short key never matches.
+export function isOwnerKey(request, env) {
+  const key = env.OWNER_KEY || '';
+  const given = (request.headers.get('authorization') || '').replace(/^Bearer /, '');
+  if (key.length < 32 || given.length !== key.length) return false;
+  let diff = 0;
+  for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ given.charCodeAt(i);
+  return diff === 0;
 }
