@@ -126,6 +126,7 @@ struct SettingsPage: View {
     @EnvironmentObject private var reviews: ReviewStore
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
+    @State private var showModels = false
 
     var body: some View {
         Form {
@@ -141,6 +142,14 @@ struct SettingsPage: View {
             }
 
             Section {
+                Button { showModels = true } label: {
+                    Label("AI models", systemImage: "cpu")
+                }
+            } footer: {
+                Text("Doctor-R1 and MedVAL on this device, or hosted models such as Baichuan-M2-32B.")
+            }
+
+            Section {
                 LabeledContent("Version", value: Bundle.main.shortVersion)
             } footer: {
                 Text(Brand.line)
@@ -148,6 +157,7 @@ struct SettingsPage: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showModels) { ModelSettingsView() }
     }
 }
 

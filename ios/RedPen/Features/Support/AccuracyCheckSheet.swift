@@ -1,0 +1,124 @@
+import SwiftUI
+
+extension View {
+    /// Adds a "Check accuracy" button to a study screen's toolbar. `text` is
+    /// read at the moment of the tap, so it is always the card or page on
+    /// screen.
+    func accuracyCheck(set: StudySet, instruction: String, text: @escaping () -> String?) -> some View {
+        modifier(AccuracyCheckToolbar(set: set, instruction: instruction, text: text))
+    }
+}
+
+private struct AccuracyCheckToolbar: ViewModifier {
+    let set: StudySet
+    let instruction: String
+    let text: () -> String?
+    @State private var request: AccuracyRequest?
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if let current = text(), !current.isEmpty {
+                            request = AccuracyRequest(set: set, instruction: instruction, text: current)
+                        }
+                    } label: {
+                        Label("Check accuracy", systemImage: "checkmark.shield")
+                    }
+                }
+            }
+            .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
+    }
+}
+
+struct AccuracyRequest: Identifiable {
+    let id = UUID()
+    let set: StudySet
+    let instruction: String
+    let text: String
+}
+
+/// MedVAL's grade of one card, question, page or station, with what it found.
+struct AccuracyCheckSheet: View {
+    let request: AccuracyRequest
+    @EnvironmentObject private var llm: LocalLLMService
+    @Environment(\.dismiss) private var dismiss
+    @State private var verdict: AccuracyVerdict?
+    @State private var trouble: String?
+    @State private var hadSource = true
+    @State private var showModels = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Checking") {
+                    Text(Highlight.plain(request.text)).font(.footnote).lineLimit(8)
+                }
+                if let verdict {
+                    Section {
+                        Label(verdict.riskTitle,
+                              systemImage: verdict.passed ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                            .foregroundStyle(verdict.passed ? Color.green : (verdict.riskLevel >= 4 ? Color.red : Color.orange))
+                            .font(.headline)
+                        if verdict.findings.isEmpty {
+                            Text("No errors found.")
+                        }
+                        ForEach(verdict.findings, id: \.self) { finding in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(finding.category.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                Text(finding.text).font(.footnote)
+                            }
+                        }
+                    } header: {
+                        Text("Result")
+                    } footer: {
+                        Text(hadSource
+                             ? "Checked by \(verdict.checkedBy) against the matching pages of this set's source."
+                             : "Checked by \(verdict.checkedBy) against standard teaching \u{2014} this set has no source attached, so this is a weaker check.")
+                    }
+                    if !verdict.reasoning.isEmpty {
+                        Section("Why") { Text(verdict.reasoning).font(.footnote) }
+                    }
+                } else if let trouble {
+                    Section {
+                        Text(trouble).foregroundStyle(.red)
+                        Button("AI models") { showModels = true }
+                    }
+                } else {
+                    Section {
+                        HStack {
+                            ProgressView()
+                            Text("Checking\u{2026}").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Accuracy")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+        }
+        .sheet(isPresented: $showModels) { ModelSettingsView() }
+        .task { await run() }
+    }
+
+    private func run() async {
+        guard let backend = llm.backend(for: .checker) else {
+            trouble = "Choose an accuracy checker in AI models \u{2014} MedVAL on this device, or a hosted model."
+            return
+        }
+        let reference = AccuracyChecker.reference(for: request.text, in: request.set,
+                                                  limit: backend.promptBudgetChars)
+        hadSource = reference != nil
+        do {
+            verdict = try await AccuracyChecker.check(
+                instruction: request.instruction,
+                input: reference ?? AccuracyChecker.noSourceNote,
+                output: request.text, using: backend)
+        } catch {
+            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+}

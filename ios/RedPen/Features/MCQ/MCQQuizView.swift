@@ -127,6 +127,19 @@ struct MCQQuizView: View {
             footer
         }
         .modeScreen(.mcq)
+        .accuracyCheck(set: studySet,
+                       instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.") {
+            // only once answered: the check shows the answer
+            guard studySet.questions.indices.contains(current),
+                  answers.indices.contains(current), answers[current].checked else { return nil }
+            let question = studySet.questions[current]
+            let letters = ["A", "B", "C", "D", "E", "F"]
+            let options = question.options.enumerated()
+                .map { "\(letters[min($0.offset, 5)]). \($0.element)" }
+            return ([question.stem] + options
+                    + ["Answer: \(letters[min(max(question.correctIndex, 0), 5)])",
+                       "Explanation: \(question.explanation)"]).joined(separator: "\n")
+        }
         .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

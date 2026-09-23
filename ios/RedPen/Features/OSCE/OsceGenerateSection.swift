@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 struct OsceGenerateSection: View {
     @Binding var bodyText: String
     let subject: String
+    @EnvironmentObject private var llm: LocalLLMService
 
     @State private var picking = false
     @State private var working = false
@@ -104,21 +105,45 @@ struct OsceGenerateSection: View {
         working = true
         let wanted = stationCount, subj = subject, text = sourceText
         status = "Writing 0 of \(wanted)\u{2026}"
+        // a writer chosen in AI models goes first; otherwise Apple's model
+        let writer = llm.backend(for: .writer)
+        let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
         task = Task {
             do {
-                let stations = try await OsceGenerator.generate(
-                    sourceText: text, count: wanted, subject: subj,
-                    onProgress: { done, total in
-                        Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
-                    })
+                let progress: (Int, Int) -> Void = { done, total in
+                    Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
+                }
+                var stations: [OsceChecklist]
+                if let writer {
+                    stations = try await MedicalGenerate.osce(
+                        sourceText: text, count: wanted, subject: subj,
+                        using: writer, onProgress: progress)
+                } else {
+                    stations = try await OsceGenerator.generate(
+                        sourceText: text, count: wanted, subject: subj, onProgress: progress)
+                }
+                var checkNote = ""
+                if let checker {
+                    let screened = await AccuracyChecker.screen(
+                        stations, source: text, using: checker,
+                        onProgress: { done, total in
+                            Task { @MainActor in status = "Checking \(done) of \(total) with \(checker.label)\u{2026}" }
+                        })
+                    stations = screened.kept
+                    if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
+                    if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk." }
+                }
+                guard !stations.isEmpty else { throw OsceGenerator.Trouble.nothingUsable }
+                let finalStations = stations
+                let note = checkNote
                 await MainActor.run {
                     working = false
-                    let written = OsceStations.format(stations)
+                    let written = OsceStations.format(finalStations)
                     // Appended, never replacing: a student who typed a station
                     // and then generated more means both.
                     let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
                     bodyText = existing.isEmpty ? written : existing + "\n\n" + written
-                    status = "\(stations.count) station\(stations.count == 1 ? "" : "s") written \u{2014} check them below."
+                    status = "\(finalStations.count) station\(finalStations.count == 1 ? "" : "s") written \u{2014} check them below." + note
                 }
             } catch is CancellationError {
                 await MainActor.run { working = false; status = nil }

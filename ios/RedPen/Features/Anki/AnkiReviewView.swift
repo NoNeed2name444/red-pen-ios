@@ -77,6 +77,14 @@ struct AnkiReviewView: View {
             }
         }
         .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set) }
+        .accuracyCheck(set: studySet,
+                       instruction: "Write a flashcard (question and answer) from the source.") {
+            current.map { item -> String in
+                let c = item.card
+                return ([c.front, c.clozeText] + c.bullets + [c.why])
+                    .filter { !$0.isEmpty }.joined(separator: "\n")
+            }
+        }
         // A sheet rather than a push: checking the slide is a glance in the
         // middle of a review, and the card underneath should still be there
         // when it closes.

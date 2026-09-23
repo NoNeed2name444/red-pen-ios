@@ -19,6 +19,9 @@ struct RedPenApp: App {
     // GemmaModel is a true singleton (its download must survive view
     // teardown), so it's observed here rather than owned by @StateObject.
     @ObservedObject private var gemma = GemmaModel.shared
+    // The medical models and hosted providers, shared the same way: a
+    // download has to outlive the screen that started it.
+    @ObservedObject private var llm = LocalLLMService.shared
 
     init() {
         // A CI screenshot launch (see PreviewLaunch) runs on a throwaway,
@@ -101,6 +104,7 @@ struct RedPenApp: App {
             .environmentObject(subscriptions)
             .environmentObject(sync)
             .environmentObject(gemma)
+            .environmentObject(llm)
             .tint(Color(red: 0.78, green: 0.16, blue: 0.16)) // the app's "pen" red
         }
     }

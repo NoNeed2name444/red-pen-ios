@@ -54,6 +54,10 @@ struct BookReaderView: View {
         }
         .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.book)
+        .accuracyCheck(set: studySet,
+                       instruction: "Write a textbook page for medical students from the source.") {
+            page.map { $0.title + "\n" + $0.markdown }
+        }
         .navigationTitle(studySet.subject.isEmpty ? "Textbook" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showToc) {

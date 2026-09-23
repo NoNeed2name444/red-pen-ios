@@ -9,6 +9,7 @@ import SwiftUI
 /// takes the phone minutes of work, and it is what Pro buys.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
+    @EnvironmentObject var llm: LocalLLMService
     @EnvironmentObject var subscriptions: SubscriptionStore
 
     @Binding var sourceText: String
@@ -24,10 +25,12 @@ struct MCQGenerateForm: View {
     @State private var generationTask: Task<Void, Never>?
     @State private var showPaywall = false
 
-    private enum Backend: Equatable { case apple, gemma }
+    private enum Backend: Equatable { case medical, apple, gemma }
     /// Which backend a tap on Generate would actually use. `nil` means neither
     /// is ready, and the UI says why rather than offering a button that fails.
     private var activeBackend: Backend? {
+        // a writer chosen in AI models is an explicit choice, so it goes first
+        if llm.backend(for: .writer) != nil { return .medical }
         if MCQGenerator.availability.isAvailable { return .apple }
         if gemma.status == .ready { return .gemma }
         return nil
@@ -66,6 +69,8 @@ struct MCQGenerateForm: View {
                     Label("Generating questions is part of Red Pen Pro.",
                           systemImage: "lock.fill")
                         .font(.footnote).foregroundStyle(.secondary)
+                } else if activeBackend == .medical, let summary = llm.summary(for: .writer) {
+                    Text("Using \(summary).").font(.footnote).foregroundStyle(.secondary)
                 } else if activeBackend == .gemma {
                     Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -153,6 +158,8 @@ struct MCQGenerateForm: View {
         generationStatus = "Writing 0 of \(questionCount) questions\u{2026}"
         let count = questionCount, subj = subject, hy = highYield, setName = name
         let cite = readSource
+        let writer = llm.backend(for: .writer)
+        let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
         generationTask = Task {
             do {
                 let progress: (Int, Int) -> Void = { done, total in
@@ -160,8 +167,13 @@ struct MCQGenerateForm: View {
                         generationStatus = "Writing \(done) of \(total) questions\u{2026}"
                     }
                 }
-                let questions: [MCQQuestion]
+                var questions: [MCQQuestion]
                 switch backend {
+                case .medical:
+                    guard let writer else { throw LLMError.notReady("Choose a writer in AI models.") }
+                    questions = try await MedicalGenerate.mcq(
+                        sourceText: text, count: count, subject: subj,
+                        highYield: hy, using: writer, onProgress: progress)
                 case .apple:
                     questions = try await MCQGenerator.generate(
                         sourceText: text, count: count, subject: subj,
@@ -171,9 +183,29 @@ struct MCQGenerateForm: View {
                         sourceText: text, count: count, subject: subj,
                         highYield: hy, onProgress: progress)
                 }
+                // every generated question checked against the lecture before it
+                // reaches the set; high-risk ones are dropped
+                var checkNote = ""
+                if let checker {
+                    let screened = await AccuracyChecker.screen(
+                        questions, source: text, using: checker,
+                        onProgress: { done, total in
+                            Task { @MainActor in
+                                generationStatus = "Checking \(done) of \(total) with \(checker.label)\u{2026}"
+                            }
+                        })
+                    questions = screened.kept
+                    if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
+                    if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk \u{2014} check them." }
+                }
+                guard !questions.isEmpty else {
+                    throw LLMError.notReady("The checker graded every question high risk \u{2014} try a clearer source.")
+                }
+                let finalQuestions = questions
+                let note = checkNote
                 await MainActor.run {
                     isGenerating = false
-                    generationStatus = "Done \u{2014} \(questions.count) question(s) written."
+                    generationStatus = "Done \u{2014} \(finalQuestions.count) question(s) written." + note
                     var set = StudySet(
                         name: setName.isEmpty
                             ? (subj.isEmpty || subj == "General" ? "Generated set" : subj)
@@ -183,8 +215,8 @@ struct MCQGenerateForm: View {
                     // shares; one that matches nothing is left uncited, which
                     // is itself worth seeing
                     set.questions = cite.map {
-                        Provenance.attribute(questions, to: $0.document, name: $0.name)
-                    } ?? questions
+                        Provenance.attribute(finalQuestions, to: $0.document, name: $0.name)
+                    } ?? finalQuestions
                     // The lecture goes with the set, so those citations lead
                     // somewhere instead of merely naming a page.
                     set.sources = cite.map { [$0.doc()] } ?? []

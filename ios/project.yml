@@ -56,6 +56,10 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         ITSAppUsesNonExemptEncryption: false
+        # A self-hosted model server on the home network (llama.cpp, Ollama)
+        # is usually plain http; this allows that and nothing else.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         # iOS terminates an app that reaches for either of these without a
         # stated reason, so these two strings are load-bearing, not paperwork.
         # They also say the honest thing: the recognition happens here, because

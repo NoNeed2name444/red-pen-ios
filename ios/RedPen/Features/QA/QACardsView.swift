@@ -9,6 +9,7 @@ struct QACardsView: View {
     @State private var revealed: Bool
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: Store
+    @State private var simulating: QACard?
 
     init(set studySet: StudySet, startIndex: Int = 0, startRevealed: Bool = false) {
         self.studySet = studySet
@@ -80,6 +81,19 @@ struct QACardsView: View {
         .modeScreen(.qa)
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { simulating = card } label: {
+                    Label("Simulate patient", systemImage: "stethoscope")
+                }
+                .disabled(card == nil)
+            }
+        }
+        .accuracyCheck(set: studySet,
+                       instruction: "Write a clinical case or recall question with its answer points, from the source.") {
+            card.map { ([$0.stem] + $0.answer).joined(separator: "\n") }
+        }
+        .sheet(item: $simulating) { CaseChatView(card: $0, subject: studySet.subject) }
     }
 
     private var footer: some View {
