@@ -1,0 +1,47 @@
+# Is CramDown Cloud medically accurate? MedQA (USMLE) questions with examiner
+# answers, through the deployed worker with official-source evidence, scored
+# with 95% confidence intervals. The report lands on the accuracy-bench branch.
+name: Medical accuracy benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: Questions (150 takes ~30 min; 1000 are needed to prove 98%)
+        required: false
+        default: '150'
+      seed:
+        description: Sample seed (same seed, same questions)
+        required: false
+        default: '20260923'
+permissions:
+  contents: write
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The benchmark's own tests
+        run: node server/tests/bench.test.mjs
+      - name: Run it
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          N: ${{ inputs.n }}
+          SEED: ${{ inputs.seed }}
+        run: |
+          mkdir -p out
+          KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          KEY="$KEY" REPORT=out/accuracy-report.md node server/bench/accuracy.mjs 2>&1 | tee out/run.log
+      - name: Push the report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q && git checkout -q -b accuracy-bench
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "accuracy bench $GITHUB_RUN_ID"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" accuracy-bench:accuracy-bench
