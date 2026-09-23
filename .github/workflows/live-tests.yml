@@ -1,0 +1,94 @@
+# Every AI mode, run for real against real models, with the answers written
+# to a report on the live-tests branch (live-report.md).
+#
+#   cloud     - CramDown Cloud (Baichuan-M2-32B) through the deployed worker,
+#               using the owner key derived from AI_API_KEY
+#   on-device - the exact Doctor-R1 and MedVAL GGUF files the app downloads,
+#               served by llama.cpp on this Mac with the same prompts
+name: Live model tests
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: cloud, on-device, or both
+        required: false
+        default: both
+      only:
+        description: comma-separated parts (mcq,osce,anki,cases,book,check,patient); empty = all
+        required: false
+        default: ''
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  live:
+    runs-on: macos-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the harness from the app's own files
+        run: |
+          set -o pipefail
+          S=ios/RedPen/Shared; M=ios/RedPen/Models
+          mkdir -p build/live out
+          cp ios/RedPen/Tests/LiveModelTests.swift build/live/main.swift
+          swiftc -O -DNO_FOUNDATION_MODELS build/live/main.swift -o build/live/run \
+            $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift $M/OsceChecklist.swift \
+            $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+            $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
+            $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+            $S/PlainTextImport.swift $S/BookPages.swift $S/Highlight.swift \
+            $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift $S/Explanation.swift \
+            $S/MCQGenerator.swift $S/MCQPrompt.swift $S/MCQCoverage.swift \
+            $S/OsceGenerator.swift $S/OsceStations.swift $S/CaseSimulator.swift \
+            $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/LLM/AccuracyChecker.swift \
+            $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift 2>&1 | tee out/compile.log | grep -E "error" | head -40
+          test -x build/live/run
+          printf '# Live model test\n\nRun %s on %s (UTC).\n' "$GITHUB_RUN_ID" "$(date -u '+%Y-%m-%d %H:%M')" > out/live-report.md
+
+      - name: CramDown Cloud (Baichuan-M2-32B)
+        if: inputs.targets != 'on-device'
+        continue-on-error: true
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          OWNER=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | shasum -a 256 | cut -c1-64)
+          LIVE_URL=https://redpen-auth.vv7sh4rnnw.workers.dev/v1/chat/completions \
+          LIVE_KEY="$OWNER" LIVE_WRITER=cramdown-writer LIVE_CHECKER=cramdown-checker \
+          LIVE_LABEL="CramDown Cloud: Baichuan-M2-32B" LIVE_ON_DEVICE=0 \
+          LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
+          build/live/run 2>&1 | tee out/cloud.log
+
+      - name: On-device models (Doctor-R1 + MedVAL) via llama.cpp
+        if: inputs.targets != 'cloud'
+        continue-on-error: true
+        run: |
+          set -x
+          brew list llama.cpp >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install llama.cpp
+          mkdir -p models
+          # the same builds an 8 GB phone downloads
+          curl -sSL -o models/doctor.gguf https://huggingface.co/mradermacher/Doctor-R1-GGUF/resolve/main/Doctor-R1.Q3_K_M.gguf
+          curl -sSL -o models/medval.gguf https://huggingface.co/stanfordmimi/MedVAL-4B-GGUF/resolve/main/MedVAL-4B.Q3_K_M.gguf
+          ls -la models
+          llama-server -m models/doctor.gguf --port 8081 -c 8192 --jinja > out/doctor-server.log 2>&1 &
+          llama-server -m models/medval.gguf --port 8082 -c 8192 --jinja > out/medval-server.log 2>&1 &
+          for p in 8081 8082; do
+            for i in $(seq 1 120); do curl -sf localhost:$p/health >/dev/null && break; sleep 2; done
+          done
+          LIVE_URL=http://localhost:8081/v1/chat/completions LIVE_CHECKER_URL=http://localhost:8082/v1/chat/completions \
+          LIVE_KEY= LIVE_WRITER=doctor-r1 LIVE_CHECKER=medval \
+          LIVE_LABEL="On-device: Doctor-R1 (Q3_K_M) + MedVAL-4B (Q3_K_M), CPU on a GitHub Mac" LIVE_ON_DEVICE=1 \
+          LIVE_ONLY="${{ inputs.only }}" LIVE_REPORT=out/live-report.md \
+          build/live/run 2>&1 | tee out/on-device.log
+          grep -hE "eval time|prompt eval" out/doctor-server.log | tail -4 >> out/speed.txt || true
+          grep -hE "eval time|prompt eval" out/medval-server.log | tail -4 >> out/speed.txt || true
+
+      - name: Push the report
+        if: always()
+        run: |
+          cd out
+          git init -q && git checkout -q -b live-tests
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "live tests $GITHUB_RUN_ID"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" live-tests:live-tests
