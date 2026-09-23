@@ -90,6 +90,8 @@ struct NewSetView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(ModeBackdrop(kind: kind).animation(.easeInOut(duration: 0.5), value: kind))
             .navigationTitle("New set")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -135,7 +135,7 @@ struct LibraryView: View {
 
     private var screen: some View {
         content
-            .background(LibraryBackdrop())
+            .background(LibraryBackdrop(kind: tab.kind).animation(.easeInOut(duration: 0.5), value: tab))
             .navigationTitle(Brand.name)
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }

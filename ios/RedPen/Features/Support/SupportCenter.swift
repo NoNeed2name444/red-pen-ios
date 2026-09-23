@@ -155,6 +155,8 @@ struct SettingsPage: View {
                 Text(Brand.line)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showModels) { ModelSettingsView() }
