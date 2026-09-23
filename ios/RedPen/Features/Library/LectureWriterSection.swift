@@ -281,23 +281,7 @@ enum LectureWriter {
         return written.joined(separator: "\n\n")
     }
 
-    /// Paragraph-aligned slices of roughly equal length.
     static func slice(_ text: String, into count: Int, maxChars: Int) -> [String] {
-        let paragraphs = text.components(separatedBy: "\n\n").filter {
-            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
-        guard !paragraphs.isEmpty else { return [] }
-        let target = min(maxChars, max(800, text.count / max(1, count)))
-        var slices: [String] = []
-        var current = ""
-        for p in paragraphs {
-            if !current.isEmpty && current.count + p.count > target {
-                slices.append(current)
-                current = ""
-            }
-            current += (current.isEmpty ? "" : "\n\n") + String(p.prefix(maxChars))
-        }
-        if !current.isEmpty { slices.append(current) }
-        return Array(slices.prefix(max(1, count)))
+        TextSlicing.slice(text, into: count, maxChars: maxChars)
     }
 }
