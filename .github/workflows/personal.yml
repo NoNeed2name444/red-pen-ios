@@ -1,0 +1,72 @@
+# A build of the app for one person, not for the App Store: main plus a small
+# patch (a this-device-only sign-in, everything unlocked, no sync). The patch
+# is kept on the "personal" branch so main never carries it.
+name: Personal build
+on:
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: xz-compressed, base64-encoded git diff against main
+        required: true
+      sha256:
+        description: sha256 of the decoded diff
+        required: true
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply the personal patch
+        env:
+          PATCH: ${{ inputs.patch }}
+          SUM: ${{ inputs.sha256 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PATCH" | base64 -d | xz -d > /tmp/p.diff
+          echo "$SUM  /tmp/p.diff" | shasum -a 256 -c -
+          git apply /tmp/p.diff
+          git config user.name "NoNeed2name444"
+          git config user.email "79jvshtz2r@privaterelay.appleid.com"
+          git checkout -B personal
+          git commit -qam "Personal build: this-device-only sign-in, everything unlocked"
+          git push -f origin personal
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build for a device
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Wrap it as an .ipa
+        run: |
+          set -euo pipefail
+          APP=$(find ios/build/Build/Products -maxdepth 2 -name 'RedPen.app' -type d | head -1)
+          test -n "$APP"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qry "CramDown-Personal.ipa" Payload && rm -rf Payload)
+      - name: Record
+        if: always()
+        run: |
+          mkdir -p out
+          cp build.log out/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -40 > out/errors.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ipa-personal
+          path: out/*
