@@ -10,7 +10,8 @@
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect in-app purchase key
 #   GOOGLE_CLIENT_SECRET   for Google sign-in
 #   NOVITA_API_KEY         Novita (novita.ai): Baichuan-M2-32B for CramDown Cloud
-#   FIREBASE_API_KEY, FIREBASE_PROJECT_ID   Gemini, for Narrate and as CramDown Cloud's backup
+#   FIREBASE_API_KEY, FIREBASE_PROJECT_ID   Gemini, for Narrate and CramDown Cloud
+#   APPCHECK_DEBUG_TOKEN, FIREBASE_APP_ID   App Check for those Gemini calls (a registered debug token)
 # SESSION_SECRET is generated on the first deploy and never changed after.
 name: Deploy the worker
 on:
@@ -39,7 +40,7 @@ jobs:
           node-version: '22'
       - name: Tests first
         working-directory: .
-        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs
+        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs && node server/tests/evidence.test.mjs
       - name: Check the secrets are there
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
@@ -94,6 +95,8 @@ jobs:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           NOVITA_API_KEY: ${{ secrets.NOVITA_API_KEY }}
+          APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -125,7 +128,7 @@ jobs:
           fi
           # Novita's key is the writer's key (Baichuan-M2-32B)
           if [ -n "${NOVITA_API_KEY:-}" ]; then printf '%s' "$NOVITA_API_KEY" | $W secret put AI_WRITER_KEY; else echo "(NOVITA_API_KEY not set - CramDown Cloud starts at Gemini)"; fi
-          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID; do
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
           done
