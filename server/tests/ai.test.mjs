@@ -205,6 +205,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const fb = await f.json();
   ok(f.status === 200 && workersAsked === 1 && fb.choices[0].message.content.startsWith('from @cf/'), 'out of Gemini quota, Workers AI answers');
 
+  const locked = freshEnv({ ...firebase, AI: { run: async () => ({ response: 'cloudflare' }) } });
+  const l = await chat(locked, 'a1', request, gemini(401));
+  ok(l.status === 200 && (await l.json()).choices[0].message.content === 'cloudflare', 'Gemini locked by App Check (401): Workers AI answers');
+
   const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
   ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
 }
