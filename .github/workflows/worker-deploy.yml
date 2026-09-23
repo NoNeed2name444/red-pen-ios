@@ -3,7 +3,8 @@
 # change to server/ or to a secret.
 #
 # Repository secrets it reads (Settings > Secrets and variables > Actions):
-#   CLOUDFLARE_API_TOKEN   required - "Edit Cloudflare Workers" template, plus D1 and R2 edit
+#   CLOUDFLARE_API_TOKEN   required - "Edit Cloudflare Workers" template plus D1 Edit
+#                          (and R2 Edit if a card is on file, for picture sync)
 #   CLOUDFLARE_ACCOUNT_ID  required
 #   AI_API_KEY             Hugging Face token (CramDown Cloud's upstream)
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect in-app purchase key
@@ -53,7 +54,16 @@ jobs:
             ID=$($W d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{process.stdout.write(JSON.parse(s).find(d=>d.name==="redpen-auth").uuid)})')
           fi
           sed -i "s/^database_id = \".*\"/database_id = \"$ID\"/" wrangler.toml
-          $W r2 bucket create redpen-blobs || true
+          # Picture sync needs R2, which Cloudflare only switches on once a card
+          # is on file. Without it the worker deploys anyway: documents sync,
+          # slide pictures stay on the device that has them.
+          if $W r2 bucket create redpen-blobs > r2.log 2>&1 || grep -qi "already exists\|already own" r2.log; then
+            echo "Picture storage: on"
+          else
+            cat r2.log
+            echo "::warning::No R2 picture storage (add a card in Cloudflare to turn it on). Deploying without picture sync."
+            node -e 'const fs=require("fs");const f="wrangler.toml";fs.writeFileSync(f,fs.readFileSync(f,"utf8").replace(/\[\[r2_buckets\]\][^\[]*/,""))'
+          fi
           # the schema is all CREATE ... IF NOT EXISTS; the columns added since
           # are ALTERs that fail harmlessly once they exist
           $W d1 execute redpen-auth --remote --file=schema.sql
