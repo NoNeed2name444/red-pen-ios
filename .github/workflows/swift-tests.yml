@@ -64,7 +64,7 @@ jobs:
                 $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift
           suite transcriber TranscriberTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
                 $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
-                $S/LectureTranscriber.swift
+                $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
@@ -83,7 +83,7 @@ jobs:
           suite osce OsceTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
                 $M/QACard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift \
                 $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
-                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift \
+                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
                 $S/PlainTextImport.swift $S/OsceStations.swift
           # the model layer's text handling: MedVAL's prompt and grade, JSON
           # out of prose, and which part of a lecture a check reads
@@ -93,7 +93,7 @@ jobs:
                 $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
                 $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
                 $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
-                $S/LectureTranscriber.swift $S/PlainTextImport.swift \
+                $S/LectureTranscriber.swift $S/Brand.swift $S/PlainTextImport.swift \
                 $S/BookPages.swift $S/Highlight.swift \
                 $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift
 
