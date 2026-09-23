@@ -1,0 +1,3 @@
+Test Case '-[RedPenUITests.LocalSignInUITests testThisDeviceOnlyOpensTheLibrary]' started.
+Test Case '-[RedPenUITests.LocalSignInUITests testThisDeviceOnlyOpensTheLibrary]' passed (44.818 seconds).
+PASS
