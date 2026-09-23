@@ -14,6 +14,21 @@ final class LocalSignInUITests: XCTestCase {
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: door)
         waitForExpectations(timeout: 15)
+
+        // then the recording terms: not pressable for five seconds, then pressable
+        let accept = app.buttons["acceptRecordingTerms"]
+        XCTAssertTrue(accept.waitForExistence(timeout: 10), "the recording terms didn't appear")
+        XCTAssertFalse(accept.isEnabled, "the terms could be accepted before the countdown ended")
+        let countdown = XCTAttachment(screenshot: app.screenshot())
+        countdown.name = "terms-countdown"
+        countdown.lifetime = .keepAlways
+        add(countdown)
+        let ready = NSPredicate(format: "isEnabled == true")
+        expectation(for: ready, evaluatedWith: accept)
+        waitForExpectations(timeout: 10)
+        accept.tap()
+        expectation(for: gone, evaluatedWith: accept)
+        waitForExpectations(timeout: 10)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.lifetime = .keepAlways
         add(shot)
