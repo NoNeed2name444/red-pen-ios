@@ -38,6 +38,19 @@ const text = (value, max) =>
 /// likes, and nothing in the design would notice.
 const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
 
+/// Where Narrate sends a recording to be transcribed. The Firebase key is the
+/// kind every Firebase app ships in its bundle (App Check, not secrecy, is what
+/// protects it), and the model list is here so a model Google retires or
+/// throttles can be swapped without an app update.
+export function transcribeConfig(env) {
+  if (!env.FIREBASE_API_KEY || !env.FIREBASE_PROJECT_ID) {
+    return fail(503, "Cloud transcription isn't set up on this server.");
+  }
+  const models = (env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
+    .split(',').map(m => m.trim()).filter(Boolean);
+  return json({ apiKey: env.FIREBASE_API_KEY, projectId: env.FIREBASE_PROJECT_ID, models });
+}
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -78,6 +91,10 @@ export default {
         case '/v1/chat/completions':
           if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true });
           return await guarded(request, env, id => chat(env, id, body));
+        // Narrate's cloud transcription: the app sends the audio straight to
+        // Gemini through Firebase AI Logic, and only asks here which project
+        // and models to use, so neither is baked into a build
+        case '/transcribe/config': return transcribeConfig(env);
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {

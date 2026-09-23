@@ -152,5 +152,21 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(seen[0].init.headers.authorization === 'Bearer mk', 'with the MedVAL host key, not the provider key');
 }
 
+// Narrate's transcription settings
+{
+  const { transcribeConfig, default: worker } = await import('../worker.js');
+  const none = transcribeConfig({});
+  ok(none.status === 503, 'transcription config says so when Firebase is not set up');
+  const set = await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' }).json();
+  ok(set.apiKey === 'fk' && set.projectId === 'cramdown-x', 'and hands back the project once it is');
+  ok(set.models[0] === 'gemini-3.5-flash' && set.models.includes('gemini-3.5-flash-lite'),
+     'with Gemini 3.5 Flash first and Flash-Lite as the fallback');
+  const swapped = await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' }).json();
+  ok(swapped.models.join('|') === 'gemini-3.8-flash|gemini-3.5-flash', 'a model swap is a server setting, not an app update');
+  const routed = await worker.fetch(new Request('https://x/transcribe/config', { method: 'POST' }),
+                                    { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
+  ok(routed.status === 200, 'and it is routed without a sign-in');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
