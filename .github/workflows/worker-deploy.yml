@@ -9,6 +9,8 @@
 #   AI_API_KEY             Hugging Face token (CramDown Cloud's upstream)
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect in-app purchase key
 #   GOOGLE_CLIENT_SECRET   for Google sign-in
+#   BAICHUAN_API_KEY       Baichuan's API (platform.baichuan-ai.com): Baichuan-M3 for CramDown Cloud
+#   FIREBASE_API_KEY, FIREBASE_PROJECT_ID   Gemini, for Narrate and as CramDown Cloud's backup
 # SESSION_SECRET is generated on the first deploy and never changed after.
 name: Deploy the worker
 on:
@@ -91,6 +93,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          BAICHUAN_API_KEY: ${{ secrets.BAICHUAN_API_KEY }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -120,6 +123,8 @@ jobs:
               fi
             done
           fi
+          # Baichuan-M3's key is the writer's key
+          if [ -n "${BAICHUAN_API_KEY:-}" ]; then printf '%s' "$BAICHUAN_API_KEY" | $W secret put AI_WRITER_KEY; else echo "(BAICHUAN_API_KEY not set - CramDown Cloud starts at Gemini)"; fi
           for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
