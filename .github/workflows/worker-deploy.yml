@@ -89,6 +89,8 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -118,7 +120,7 @@ jobs:
               fi
             done
           fi
-          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET; do
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
           done

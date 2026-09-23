@@ -65,6 +65,9 @@ jobs:
           suite transcriber TranscriberTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
                 $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
                 $S/LectureTranscriber.swift $S/Brand.swift
+          suite cloudtranscript CloudTranscriptTests.swift $S/CloudTranscript.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
+                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
