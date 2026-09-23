@@ -71,8 +71,8 @@ jobs:
           curl -sSL -o models/doctor.gguf https://huggingface.co/mradermacher/Doctor-R1-GGUF/resolve/main/Doctor-R1.Q3_K_M.gguf
           curl -sSL -o models/medval.gguf https://huggingface.co/stanfordmimi/MedVAL-4B-GGUF/resolve/main/MedVAL-4B.Q3_K_M.gguf
           ls -la models
-          llama-server -m models/doctor.gguf --port 8081 -c 8192 --jinja > out/doctor-server.log 2>&1 &
-          llama-server -m models/medval.gguf --port 8082 -c 8192 --jinja > out/medval-server.log 2>&1 &
+          llama-server -m models/doctor.gguf --port 8081 -c 8192 --jinja -ngl 0 --device none -t 3 > out/doctor-server.log 2>&1 &
+          llama-server -m models/medval.gguf --port 8082 -c 8192 --jinja -ngl 0 --device none -t 3 > out/medval-server.log 2>&1 &
           for p in 8081 8082; do
             for i in $(seq 1 120); do curl -sf localhost:$p/health >/dev/null && break; sleep 2; done
           done
