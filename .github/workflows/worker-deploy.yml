@@ -1,0 +1,108 @@
+# Deploys the server (sign-in, sync and CramDown Cloud) to Cloudflare from a
+# phone: run this workflow, nothing else. Idempotent - run it again after any
+# change to server/ or to a secret.
+#
+# Repository secrets it reads (Settings > Secrets and variables > Actions):
+#   CLOUDFLARE_API_TOKEN   required - "Edit Cloudflare Workers" template plus D1 Edit
+#                          (and R2 Edit if a card is on file, for picture sync)
+#   CLOUDFLARE_ACCOUNT_ID  required
+#   AI_API_KEY             Hugging Face token (CramDown Cloud's upstream)
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect in-app purchase key
+#   GOOGLE_CLIENT_SECRET   for Google sign-in
+# SESSION_SECRET is generated on the first deploy and never changed after.
+name: Deploy the worker
+on:
+  workflow_dispatch:
+    inputs:
+      owner_account_ids:
+        description: account ids that always get CramDown Cloud (comma-separated, optional)
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tests first
+        working-directory: .
+        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs
+      - name: Check the secrets are there
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repository secrets first."
+            exit 1
+          fi
+      - name: Database and bucket
+        run: |
+          set -euo pipefail
+          W="npx --yes wrangler@4"
+          ID=$($W d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s).find(d=>d.name==="redpen-auth");process.stdout.write(x?x.uuid:"")})')
+          if [ -z "$ID" ]; then
+            $W d1 create redpen-auth
+            ID=$($W d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{process.stdout.write(JSON.parse(s).find(d=>d.name==="redpen-auth").uuid)})')
+          fi
+          sed -i "s/^database_id = \".*\"/database_id = \"$ID\"/" wrangler.toml
+          # Picture sync needs R2, which Cloudflare only switches on once a card
+          # is on file. Without it the worker deploys anyway: documents sync,
+          # slide pictures stay on the device that has them.
+          if $W r2 bucket create redpen-blobs > r2.log 2>&1 || grep -qi "already exists\|already own" r2.log; then
+            echo "Picture storage: on"
+          else
+            cat r2.log
+            echo "::warning::No R2 picture storage (add a card in Cloudflare to turn it on). Deploying without picture sync."
+            node -e 'const fs=require("fs");const f="wrangler.toml";fs.writeFileSync(f,fs.readFileSync(f,"utf8").replace(/\[\[r2_buckets\]\][^\[]*/,""))'
+          fi
+          # the schema is all CREATE ... IF NOT EXISTS; the columns added since
+          # are ALTERs that fail harmlessly once they exist
+          $W d1 execute redpen-auth --remote --file=schema.sql
+          for col in "original_transaction_id TEXT" "verified_until INTEGER NOT NULL DEFAULT 0" "checked_at INTEGER NOT NULL DEFAULT 0" "signed_out_before INTEGER NOT NULL DEFAULT 0"; do
+            $W d1 execute redpen-auth --remote --command "ALTER TABLE accounts ADD COLUMN $col" || true
+          done
+      - name: Owner accounts
+        if: inputs.owner_account_ids != ''
+        env:
+          OWNERS: ${{ inputs.owner_account_ids }}
+        run: sed -i "s/^OWNER_ACCOUNT_IDS = \".*\"/OWNER_ACCOUNT_IDS = \"$OWNERS\"/" wrangler.toml
+      - name: Deploy
+        id: deploy
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 deploy | tee deploy.log
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Secrets
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          W="npx --yes wrangler@4"
+          HAVE=$($W secret list --format json 2>/dev/null || echo '[]')
+          if ! echo "$HAVE" | grep -q '"SESSION_SECRET"'; then
+            openssl rand -hex 48 | $W secret put SESSION_SECRET
+          fi
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET; do
+            value="${!name:-}"
+            if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
+          done
+      - name: Where it is
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "Deployed to $URL" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Set the app's RED_PEN_AUTH_URL to $URL" >> "$GITHUB_STEP_SUMMARY"
