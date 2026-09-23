@@ -10,7 +10,7 @@
 //
 // Two model names are accepted, one per job, and mapped here so a model can be
 // swapped without an app update:
-//   cramdown-writer  -> Baichuan-M3 on Baichuan's own API (AI_WRITER_URL/KEY/MODEL),
+//   cramdown-writer  -> Baichuan-M2-32B on Novita's API (AI_WRITER_URL/KEY/MODEL),
 //   cramdown-checker    the same, given MedVAL's prompt; then Gemini through
 //                       CramDown's Firebase project, then Cloudflare Workers AI,
 //                       each taking over when the one before is busy or out of quota
@@ -63,8 +63,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 800, 16), MAX_TOKENS);
   const temperature = Math.min(Math.max(Number(body.temperature ?? 0.7), 0), 1.5);
 
-  // Each job tries its sources in order until one answers: Baichuan-M3 on
-  // Baichuan's own API (5 requests a minute on the free credit), then Gemini,
+  // Each job tries its sources in order until one answers: Baichuan-M2-32B
+  // on Novita, then Gemini,
   // then Cloudflare's free models. Only "busy/out of quota/down" moves on; a
   // real refusal stops.
   let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
@@ -162,10 +162,10 @@ async function askWorkersAI(env, messages, maxTokens, temperature) {
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
   const sources = [];
-  // Baichuan-M3 (Baichuan's API) or any OpenAI-compatible server, when set
+  // Baichuan-M2-32B on Novita, or any OpenAI-compatible server, when set
   if (env.AI_WRITER_URL && env.AI_WRITER_KEY) {
     sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY,
-                   model: env.AI_WRITER_MODEL || 'Baichuan-M3' });
+                   model: env.AI_WRITER_MODEL || 'baichuan/baichuan-m2-32b' });
   }
   if (env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) sources.push({ kind: 'gemini' });
   if (env.AI) sources.push({ kind: 'workers-ai' });
