@@ -1,0 +1,108 @@
+# The app on real iPads, full screen, at their real widths.
+#
+# The widths workflow asks the app to lay itself out at a given width and
+# photographs it on a grey surround, because a simulator cannot be dragged
+# into Split View from a script. Useful, but it looks like a floating window
+# and it is not what anybody's iPad shows. This takes the other route: every
+# iPad simulator the runner has, each one full screen at its own size, so the
+# pictures are of the app filling a window rather than of a mock-up.
+name: iPad devices
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ipad-devices
+  cancel-in-progress: true
+jobs:
+  devices:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Pick the iPads
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          # One of each size the range actually has: the small one, the
+          # middle one, the big one. More than that is the same picture again.
+          want = [("iPad mini", 0), ("iPad Air", 0), ("iPad Pro", 0)]
+          picked, seen = [], set()
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in devs:
+                  name = d["name"]
+                  for prefix, _ in want:
+                      if name.startswith(prefix) and prefix not in seen:
+                          seen.add(prefix)
+                          picked.append((d["udid"], name))
+          if not picked:
+              print("no iPad simulator on this runner", file=sys.stderr)
+              raise SystemExit(1)
+          print("list=" + json.dumps(picked))
+          print("first=" + picked[0][0])
+          print("picked:", picked, file=sys.stderr)
+          PY
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.first }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Screenshots
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          mkdir -p devices
+          python3 - <<'PY' > /tmp/list.txt
+          import json, os
+          for udid, name in json.loads(os.environ["LIST"]):
+              print(udid, name.replace(" ", "-").replace("(", "").replace(")", ""))
+          PY
+          while read -r UDID NAME; do
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+              --batteryState charged --wifiBars 3
+            xcrun simctl install "$UDID" "$APP"
+            for screen in library quiz; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                >> devices/shots.log 2>&1 || { echo "launch failed $NAME $screen" >> devices/shots.log; continue; }
+              sleep 8
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
+                "devices/$NAME-$screen.png" >> devices/shots.log 2>&1 \
+                || echo "shot failed $NAME $screen" >> devices/shots.log
+            done
+            xcrun simctl shutdown "$UDID" || true
+          done < /tmp/list.txt
+          for f in devices/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
+          ls -la devices
+        env:
+          LIST: ${{ steps.sim.outputs.list }}
+      - name: Record
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p devices
+          cp build.log devices/build.log 2>/dev/null || true
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -40 > devices/errors.txt || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ipad-devices
+          path: devices
