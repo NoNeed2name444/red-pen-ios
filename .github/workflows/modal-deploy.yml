@@ -1,0 +1,81 @@
+# Puts Doctor-R1 and MedVAL-4B on a GPU at Modal (server/modal/medical.py) and
+# points the worker at them. Free while Modal's $30/month Starter credit lasts;
+# the GPUs scale to zero when nobody is using them.
+#
+# Secrets: MODAL_TOKEN_ID, MODAL_TOKEN_SECRET (modal.com > Settings > API
+# Tokens), plus the AI_API_KEY and CLOUDFLARE_* ones the worker already uses.
+name: Deploy the medical models (Modal GPU)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  modal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check the secrets are there
+        run: |
+          for n in MODAL_TOKEN_ID MODAL_TOKEN_SECRET AI_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            [ -n "${!n:-}" ] || { echo "::error::Add the $n repository secret first."; exit 1; }
+          done
+      - name: Deploy to Modal
+        run: |
+          set -euo pipefail
+          pip install -q modal
+          # the endpoints' key: worked out from AI_API_KEY, so it is never stored anywhere
+          KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$KEY"
+          modal secret create cramdown-medical "API_KEY=$KEY" --force >/dev/null
+          modal deploy server/modal/medical.py 2>&1 | tee deploy.log
+          python - <<'PY' > urls.env
+          import modal
+          for name in ("doctor", "medval"):
+              url = modal.Function.from_name("cramdown-medical", name).get_web_url()
+              print(f"{name.upper()}_URL={url}")
+          PY
+          cat urls.env
+      - name: Wake both and ask them one question
+        run: |
+          set -uo pipefail
+          . ./urls.env
+          KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          for pair in "Doctor-R1 $DOCTOR_URL" "MedVAL $MEDVAL_URL"; do
+            set -- $pair
+            start=$(date +%s)
+            for i in $(seq 1 60); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' -m 60 "$2/health")
+              [ "$code" = 200 ] && break
+              sleep 10
+            done
+            echo "$1 ready after $(( $(date +%s) - start )) s (health $code)" | tee -a "$GITHUB_STEP_SUMMARY"
+            curl -s -m 120 "$2/v1/chat/completions" -H "Authorization: Bearer $KEY" -H 'content-type: application/json' \
+              -d '{"messages":[{"role":"user","content":"In one sentence: what is the malar rash of SLE? /no_think"}],"max_tokens":120}' \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["choices"][0]["message"]["content"].strip()[:400]); print(d.get("timings",{}))' \
+              | tee -a "$GITHUB_STEP_SUMMARY" || echo "$1 did not answer" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Point the worker at them
+        working-directory: server
+        run: |
+          set -euo pipefail
+          . ../urls.env
+          KEY=$(printf 'cramdown-medical:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          W="npx --yes wrangler@4"
+          printf '%s' "$DOCTOR_URL/v1" | $W secret put AI_DOCTOR_URL
+          printf '%s' "$KEY" | $W secret put AI_DOCTOR_KEY
+          printf '%s' "$MEDVAL_URL/v1" | $W secret put AI_MEDVAL_URL
+          printf '%s' "$KEY" | $W secret put AI_MEDVAL_KEY
+          echo "Worker now sends cramdown-doctor and cramdown-medval to Modal." | tee -a "$GITHUB_STEP_SUMMARY"
