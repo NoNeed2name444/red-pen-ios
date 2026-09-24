@@ -1,61 +1,40 @@
 import Foundation
 import AVFoundation
 
-/// Transcribing a lecture with Gemini, through CramDown's Firebase project.
+/// Transcribing a lecture with Gemini, for Pro.
 ///
-/// Nobody brings a key: the worker says which Firebase project and models to
-/// use (`/transcribe/config`), and the audio goes from the phone straight to
-/// Firebase AI Logic's Gemini endpoint - the same one the Firebase SDK calls -
-/// in ten-minute pieces. Apple's on-device recogniser stays as the offline
-/// path and the fallback when Gemini can't be reached.
+/// The recording is cut into ten-minute pieces and each goes to CramDown's
+/// server (`/transcribe/chunk`) with the account's session, and the server
+/// asks Gemini. The Google key never reaches the phone, so only Pro accounts
+/// can use it, within a daily allowance and a monthly budget. Apple's
+/// on-device recogniser stays as the offline path and the fallback.
 enum CloudTranscriber {
 
     enum Failure: LocalizedError, Equatable {
         case notSetUp
-        /// Out of quota on every model, or Google is overloaded.
-        case busy
+        /// Not signed in to a Pro account.
+        case needsPro
+        /// Out of today's allowance or this month's budget, or Google is busy.
+        case busy(String)
         case noAudio
         case failed(String)
 
         var errorDescription: String? {
             switch self {
             case .notSetUp: return "Cloud transcription isn't set up yet."
-            case .busy: return "Cloud transcription has reached today's limit. Try again later, or transcribe on this phone."
+            case .needsPro: return "Cloud transcription is part of Pro."
+            case .busy(let why): return why
             case .noAudio: return "That file has no audio in it."
             case .failed(let why): return why
             }
         }
     }
 
-    struct Config: Decodable {
-        var apiKey: String
-        var projectId: String
-        var models: [String]
-        /// Firebase App Check token from the worker: Firebase AI Logic
-        /// refuses Gemini calls without one.
-        var appCheck: String?
-    }
-
-    static func config() async throws -> Config {
-        var request = URLRequest(url: AuthAPI.baseURL.appendingPathComponent("transcribe/config"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = Data("{}".utf8)
-        request.timeoutInterval = 20
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let config = try? JSONDecoder().decode(Config.self, from: data),
-              !config.apiKey.isEmpty, !config.models.isEmpty else { throw Failure.notSetUp }
-        return config
-    }
-
-    /// The whole recording as timed lines.
-    static func transcribe(fileAt url: URL, vocabulary: [String],
-                           config: Config? = nil,
+    /// The whole recording as timed lines. `token` is the account's session
+    /// (or the owner key in the owner's build).
+    static func transcribe(fileAt url: URL, vocabulary: [String], token: String?,
                            onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> [LectureTranscriber.Line] {
-        // not `config ?? await ...`: an autoclosure can't await
-        let settings: Config
-        if let config { settings = config } else { settings = try await self.config() }
+        guard let token, !token.isEmpty else { throw Failure.needsPro }
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
         guard duration.isFinite, duration > 0 else { throw Failure.noAudio }
@@ -67,9 +46,6 @@ enum CloudTranscriber {
         defer { try? FileManager.default.removeItem(at: folder) }
 
         var lines: [LectureTranscriber.Line] = []
-        // the model that last worked is tried first: once the first is out of
-        // quota there is no point asking it again for every chunk
-        var models = settings.models
         for (i, start) in starts.enumerated() {
             try Task.checkCancellation()
             onProgress(i + 1, starts.count)
@@ -77,100 +53,51 @@ enum CloudTranscriber {
             let piece = folder.appendingPathComponent("\(i).m4a")
             try await exportChunk(of: asset, start: start, length: end - start, to: piece)
             let audio = try Data(contentsOf: piece)
-            let (phrases, used) = try await ask(audio: audio, prompt: prompt, config: settings, models: models)
-            if let at = models.firstIndex(of: used), at > 0 { models = Array(models[at...]) }
+            let phrases = try await ask(audio: audio, prompt: prompt, token: token)
             lines += CloudTranscript.lines(from: phrases, offset: start, length: end - start)
         }
         return lines
     }
 
-    // MARK: Gemini
+    // MARK: the server
 
-    /// One chunk, trying each model in turn while the answer is "no quota" or
-    /// "no such model"; anything else is a real failure and says so.
-    static func ask(audio: Data, prompt: String, config: Config,
-                    models: [String]) async throws -> ([CloudTranscript.Phrase], String) {
-        var lastError: Failure = .busy
-        for model in models {
-            for attempt in 0..<2 {
-                do {
-                    let reply = try await generate(audio: audio, prompt: prompt, model: model, config: config)
-                    if let phrases = CloudTranscript.phrases(fromReply: reply) { return (phrases, model) }
-                    lastError = .failed("Gemini's answer couldn't be read.")
-                    // an unreadable answer is worth one more try on the same model
-                    if attempt == 0 { continue }
-                } catch let status as Status {
-                    switch status.code {
-                    case 429:
-                        lastError = .busy
-                    case 403 where status.quota:
-                        lastError = .busy
-                    case 404, 400 where status.message.localizedCaseInsensitiveContains("model"):
-                        // this model isn't offered (retired, or not on the free
-                        // tier): the next one may be
-                        lastError = .failed(status.message)
-                    case 500...504:
-                        lastError = .busy
-                        if attempt == 0 { try await Task.sleep(nanoseconds: 3_000_000_000); continue }
-                    default:
-                        throw Failure.failed(status.message)
-                    }
-                }
-                break
+    /// One chunk. An unreadable answer or a server hiccup gets one more try;
+    /// anything the server says in words is passed on as it is.
+    static func ask(audio: Data, prompt: String, token: String) async throws -> [CloudTranscript.Phrase] {
+        var lastError: Failure = .failed("Gemini's answer couldn't be read.")
+        for attempt in 0..<2 {
+            let (code, object) = try await post(audio: audio, prompt: prompt, token: token)
+            let message = object?["message"] as? String
+            switch code {
+            case 200:
+                if let text = object?["text"] as? String, let phrases = CloudTranscript.phrases(fromReply: text) { return phrases }
+                lastError = .failed("Gemini's answer couldn't be read.")
+            case 401: throw Failure.failed("Please sign in again to use cloud transcription.")
+            case 402: throw Failure.needsPro
+            case 429: throw Failure.busy(message ?? "Cloud transcription is busy. Try again later, or transcribe on this phone.")
+            case 404, 410, 503: throw Failure.notSetUp
+            case 500...599:
+                lastError = .failed(message ?? "The server couldn't transcribe that (\(code)).")
+                if attempt == 0 { try await Task.sleep(nanoseconds: 3_000_000_000) }
+            default:
+                throw Failure.failed(message ?? "The server couldn't transcribe that (\(code)).")
             }
         }
         throw lastError
     }
 
-    struct Status: Error {
-        var code: Int
-        var message: String
-        var quota: Bool { message.localizedCaseInsensitiveContains("quota") }
-    }
-
-    static func generate(audio: Data, prompt: String, model: String, config: Config) async throws -> String {
-        let address = "https://firebasevertexai.googleapis.com/v1beta/projects/\(config.projectId)/models/\(model):generateContent"
-        guard let url = URL(string: address) else { throw Failure.notSetUp }
-        var request = URLRequest(url: url)
+    static func post(audio: Data, prompt: String, token: String) async throws -> (Int, [String: Any]?) {
+        var request = URLRequest(url: AuthAPI.baseURL.appendingPathComponent("transcribe/chunk"))
         request.httpMethod = "POST"
         request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(config.apiKey, forHTTPHeaderField: "x-goog-api-key")
-        if let token = config.appCheck, !token.isEmpty {
-            request.setValue(token, forHTTPHeaderField: "X-Firebase-AppCheck")
-        }
-        if let bundle = Bundle.main.bundleIdentifier {
-            request.setValue(bundle, forHTTPHeaderField: "x-ios-bundle-identifier")
-        }
-        let body: [String: Any] = [
-            "contents": [[
-                "role": "user",
-                "parts": [
-                    ["inlineData": ["mimeType": "audio/mp4", "data": audio.base64EncodedString()]],
-                    ["text": prompt],
-                ],
-            ]],
-            "generationConfig": [
-                "temperature": 0,
-                "maxOutputTokens": 16384,
-                "responseMimeType": "application/json",
-                "responseSchema": CloudTranscript.responseSchema,
-            ],
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "audio": audio.base64EncodedString(), "prompt": prompt,
+        ])
         let (data, response) = try await URLSession.shared.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-        guard code == 200 else {
-            let message = ((object?["error"] as? [String: Any])?["message"] as? String)
-                ?? "Gemini answered \(code)."
-            throw Status(code: code, message: message)
-        }
-        let parts = (((object?["candidates"] as? [[String: Any]])?.first?["content"] as? [String: Any])?["parts"]
-                     as? [[String: Any]]) ?? []
-        // a thinking model can return its thoughts as parts of their own
-        return parts.filter { ($0["thought"] as? Bool) != true }
-            .compactMap { $0["text"] as? String }.joined()
+        return (code, (try? JSONSerialization.jsonObject(with: data)) as? [String: Any])
     }
 
     // MARK: cutting the recording

@@ -303,20 +303,47 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   forgetAppCheck();
 }
 
-// Narrate's transcription settings
+// Narrate's cloud transcription: Pro only, through the server
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');
-  const none = await transcribeConfig({});
-  ok(none.status === 503, 'transcription config says so when Firebase is not set up');
-  const set = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' })).json();
-  ok(set.apiKey === 'fk' && set.projectId === 'cramdown-x', 'and hands back the project once it is');
-  ok(set.models[0] === 'gemini-3.5-flash' && set.models.includes('gemini-3.5-flash-lite') && !set.models.some(m => m.includes('3.6')),
-     'with Gemini 3.5 Flash first and Flash-Lite as the fallback, no 3.6');
-  const swapped = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' })).json();
-  ok(swapped.models.join('|') === 'gemini-3.8-flash|gemini-3.5-flash', 'a model swap is a server setting, not an app update');
-  const routed = await worker.fetch(new Request('https://x/transcribe/config', { method: 'POST' }),
-                                    { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
-  ok(routed.status === 200, 'and it is routed without a sign-in');
+  const { transcribeChunk } = await import('../ai.js');
+  const old = await transcribeConfig();
+  ok(old.status === 410 && !JSON.stringify(await old.json()).includes('fk'), 'the old config endpoint no longer hands the Google key to a phone');
+
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
+  const asked = [];
+  const google = async (url, init) => { asked.push({ url, body: JSON.parse(init.body), key: init.headers['x-goog-api-key'] });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '[{"start":0,"end":2,"text":"malar rash"}]' }] } }],
+                                         usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 50 } }), { status: 200 }); };
+  const chunk = { audio: 'QUJD'.repeat(50), prompt: 'Transcribe this lecture.' };
+
+  const free = freshEnv(firebase); // a1 is not Pro here
+  ok((await transcribeChunk(free, 'a1', chunk, google)).status === 402 && asked.length === 0, 'a free account is refused before Google is asked');
+
+  const pro = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1' });
+  const r = await transcribeChunk(pro, 'a1', chunk, google);
+  const j = await r.json();
+  ok(r.status === 200 && j.text.includes('malar rash') && j.model === 'gemini-3.5-flash', 'a Pro account gets the transcript, from 3.5 Flash');
+  const sent = asked[0];
+  ok(sent.key === 'fk' && sent.body.contents[0].parts[0].inlineData.data === chunk.audio && sent.body.generationConfig.responseSchema.type === 'ARRAY',
+     'the server sends the audio to Gemini with its own key and asks for timed phrases');
+  ok((await transcribeChunk(pro, 'a1', { audio: '', prompt: 'x' }, google)).status === 400, 'no audio, no call');
+
+  const capped = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', TRANSCRIBE_DAILY: '1' });
+  await transcribeChunk(capped, 'a1', chunk, google);
+  ok((await transcribeChunk(capped, 'a1', chunk, google)).status === 429, 'a daily number of chunks per account');
+
+  const billed = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '0.001',
+                            GEMINI_PRICES: 'gemini-3.5-flash:1/1' });
+  ok((await transcribeChunk(billed, 'a1', chunk, google)).status === 200, 'with billing on, a Pro account transcribes within its budget');
+  const over = await transcribeChunk(billed, 'a1', chunk, google);
+  ok(over.status === 429 && (await over.json()).message.includes('month'), 'over its monthly budget it is told to use the phone (Gemma cannot hear)');
+
+  const busy = await transcribeChunk(pro, 'a1', chunk, async () => new Response('{"error":{"message":"quota"}}', { status: 429 }));
+  ok(busy.status === 429, 'Gemini out of quota comes back as busy, so the app falls back to the phone');
+
+  const unsigned = await worker.fetch(new Request('https://x/transcribe/chunk', { method: 'POST', body: JSON.stringify(chunk) }), pro);
+  ok(unsigned.status === 401, 'the route needs a signed-in session');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

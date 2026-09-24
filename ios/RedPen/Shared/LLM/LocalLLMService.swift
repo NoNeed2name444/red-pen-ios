@@ -112,7 +112,7 @@ final class LocalLLMService: ObservableObject {
 
     /// A real account session (not "this device only", which the server has
     /// never heard of) - the cloud models' key.
-    private var cloudToken: String? {
+    var cloudToken: String? {
         if let token = account?.token, token != Session.localToken { return token }
         return Self.ownerKey
     }

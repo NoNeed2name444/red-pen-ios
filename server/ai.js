@@ -41,12 +41,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // The owner key (the app owner's own builds) skips the account and the
   // subscription check, but not the daily allowance.
   if (!owner) {
-    const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?')
-      .bind(accountId).first();
-    if (!account) return fail(401, 'Please sign in again.');
-    if (!await isPro(env, account, fetcher)) {
-      return fail(402, 'CramDown Cloud is part of Pro.');
-    }
+    const refused = await proGate(env, accountId, fetcher, 'CramDown Cloud is part of Pro.');
+    if (refused) return refused;
   }
 
   const route = routeFor(env, body.model);
@@ -98,6 +94,61 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     // what the checker was shown, so the app can cite it
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
+}
+
+/// Null for a signed-in Pro account, otherwise the refusal to send back.
+async function proGate(env, accountId, fetcher, why) {
+  const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(accountId).first();
+  if (!account) return fail(401, 'Please sign in again.');
+  if (!await isPro(env, account, fetcher)) return fail(402, why);
+  return null;
+}
+
+// MARK: Narrate's cloud transcription
+
+/// What Gemini is asked to send back for a stretch of lecture: timed phrases.
+const PHRASES = {
+  type: 'ARRAY',
+  items: { type: 'OBJECT', properties: { start: { type: 'NUMBER' }, end: { type: 'NUMBER' }, text: { type: 'STRING' } },
+           required: ['start', 'end', 'text'] },
+};
+const MAX_AUDIO_CHARS = 9_000_000; // base64 of ~6.7 MB: a ten-minute chunk is ~3.2 MB
+
+/// One chunk of a lecture recording, transcribed by Gemini for a Pro account.
+///
+/// The audio comes through here rather than going from the phone to Google
+/// so that the Google key never leaves the server: only Pro accounts can
+/// use it, each within a daily number of chunks and, once Pro pays for
+/// Gemini, within its monthly budget.
+export async function transcribeChunk(env, accountId, body, fetcher = fetch, { owner = false } = {}) {
+  if (!env.FIREBASE_API_KEY || !env.FIREBASE_PROJECT_ID) return fail(503, "Cloud transcription isn't set up on this server.");
+  if (!owner) {
+    const refused = await proGate(env, accountId, fetcher, 'Cloud transcription is part of Pro.');
+    if (refused) return refused;
+  }
+  const audio = typeof body?.audio === 'string' ? body.audio : '';
+  const prompt = typeof body?.prompt === 'string' ? body.prompt.slice(0, 20000) : '';
+  if (!audio || audio.length > MAX_AUDIO_CHARS || !/^[A-Za-z0-9+/=]+$/.test(audio.slice(0, 200)) || !prompt) {
+    return fail(400, 'That audio could not be sent.');
+  }
+  const limit = Number(env.TRANSCRIBE_DAILY) || 36; // ten-minute chunks: six hours a day
+  if (!owner && !await spend(env, `transcribe:${accountId}`, limit)) {
+    return fail(429, "That's today's cloud transcription used. It resets at midnight UTC; this phone can still transcribe.");
+  }
+  const models = await geminiModels(env, accountId, owner, 'transcribe');
+  if (!models.length) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
+  const result = await generate(env, models, () => ({
+    contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'audio/mp4', data: audio } }, { text: prompt }] }],
+    generationConfig: { temperature: 0, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: PHRASES },
+  }), fetcher);
+  if (!result.ok) {
+    console.error('transcribe', result.status, result.detail);
+    const busy = [429, 500, 502, 503, 504].includes(result.status);
+    return fail(busy ? 429 : 502, busy ? 'Gemini is busy or out of quota right now. Try again later, or transcribe on this phone.'
+                                      : `Gemini couldn't transcribe that (${result.status}).`);
+  }
+  if (!owner) await charge(env, accountId, result.source, result.usage).catch(e => console.error('charge', e));
+  return json({ text: result.content, model: result.source });
 }
 
 /// Each job tries its sources in order until one answers: Baichuan on Novita
@@ -195,6 +246,12 @@ export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 
 async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen) {
   const models = chosen?.length ? chosen : list(env.CLOUD_MODELS || FREE_MODELS);
+  return generate(env, models, model => geminiBody(messages, maxTokens, temperature, model), fetcher);
+}
+
+/// One Gemini request, trying each model in turn while the answer is "busy",
+/// "out of quota" or "not offered".
+async function generate(env, models, bodyFor, fetcher) {
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
   // the free tier counts requests per minute: when every model says "too
@@ -209,7 +266,7 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen)
             'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
             ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
           },
-          body: JSON.stringify(geminiBody(messages, maxTokens, temperature, model)),
+          body: JSON.stringify(bodyFor(model)),
         });
       if (!response.ok) {
         const raw = await response.text();
@@ -251,6 +308,7 @@ export function retryDelay(raw) {
 
 const FREE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
 const PAID_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const TRANSCRIBE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
 const month = () => new Date().toISOString().slice(0, 7);
 
@@ -263,9 +321,11 @@ const month = () => new Date().toISOString().slice(0, 7);
 /// month reaches PRO_MONTHLY_BUDGET_USD - a share of what its subscription
 /// brings in - and after that the free Gemma model, so no account can cost
 /// more than it pays.
-export async function geminiModels(env, accountId, owner = false) {
-  if (env.GEMINI_BILLING !== 'on') return list(env.CLOUD_MODELS || FREE_MODELS);
-  const paid = list(env.PAID_MODELS || PAID_MODELS);
+export async function geminiModels(env, accountId, owner = false, purpose = 'modes') {
+  const audio = purpose === 'transcribe';
+  if (env.GEMINI_BILLING !== 'on') return list(audio ? env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS : env.CLOUD_MODELS || FREE_MODELS);
+  const paid = list(audio ? env.PAID_TRANSCRIBE_MODELS || env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS
+                          : env.PAID_MODELS || PAID_MODELS);
   if (owner) return paid;
   const budget = Number(env.PRO_MONTHLY_BUDGET_USD) || 2;
   let row = null;
@@ -273,7 +333,9 @@ export async function geminiModels(env, accountId, owner = false) {
     row = await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
       .bind(accountId, month()).first();
   } catch { /* no table yet: nothing spent */ }
-  if ((row?.micro_usd || 0) >= budget * 1e6) return list(env.BUDGET_MODELS || 'gemma-4-31b-it');
+  // over budget: the free Gemma for the modes; Gemma cannot hear, so
+  // transcription goes back to the phone
+  if ((row?.micro_usd || 0) >= budget * 1e6) return audio ? [] : list(env.BUDGET_MODELS || 'gemma-4-31b-it');
   return paid;
 }
 

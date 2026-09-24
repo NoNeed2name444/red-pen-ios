@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, whisper, appCheckToken, spend } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, whisper, transcribeChunk } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -38,24 +38,11 @@ const text = (value, max) =>
 /// likes, and nothing in the design would notice.
 const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
 
-/// Where Narrate sends a recording to be transcribed. The Firebase key is the
-/// kind every Firebase app ships in its bundle (App Check, not secrecy, is what
-/// protects it), and the model list is here so a model Google retires or
-/// throttles can be swapped without an app update.
-export async function transcribeConfig(env, request, fetcher = fetch) {
-  if (!env.FIREBASE_API_KEY || !env.FIREBASE_PROJECT_ID) {
-    return fail(503, "Cloud transcription isn't set up on this server.");
-  }
-  const models = (env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
-    .split(',').map(m => m.trim()).filter(Boolean);
-  // an App Check token for the phone's Gemini calls (see appCheckToken);
-  // handed out a limited number of times a day per address
-  let appCheck = '';
-  const address = request?.headers?.get?.('cf-connecting-ip') || 'unknown';
-  if (env.DB && env.APPCHECK_DEBUG_TOKEN && await spend(env, `appcheck:${address}`, Number(env.APPCHECK_DAILY) || 50)) {
-    appCheck = await appCheckToken(env, fetcher);
-  }
-  return json({ apiKey: env.FIREBASE_API_KEY, projectId: env.FIREBASE_PROJECT_ID, models, ...(appCheck ? { appCheck } : {}) });
+/// Old builds asked here for the Firebase key and sent audio to Google
+/// themselves. The key now stays on the server (see transcribeChunk), so this
+/// only says so: an old build falls back to transcribing on the phone.
+export async function transcribeConfig() {
+  return fail(410, 'Cloud transcription now goes through CramDown; update the app.');
 }
 
 export default {
@@ -98,10 +85,13 @@ export default {
         case '/v1/chat/completions':
           if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true });
           return await guarded(request, env, id => chat(env, id, body));
-        // Narrate's cloud transcription: the app sends the audio straight to
-        // Gemini through Firebase AI Logic, and only asks here which project
-        // and models to use, so neither is baked into a build
-        case '/transcribe/config': return await transcribeConfig(env, request);
+        // Narrate's cloud transcription, for Pro: the audio comes here in
+        // ten-minute chunks and the server asks Gemini, so the Google key
+        // never reaches a phone
+        case '/transcribe/config': return await transcribeConfig();
+        case '/transcribe/chunk':
+          if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
+          return await guarded(request, env, id => transcribeChunk(env, id, body));
         case '/transcribe/whisper': return await whisper(request, body, env);
         default: return fail(404, 'No such endpoint.');
       }

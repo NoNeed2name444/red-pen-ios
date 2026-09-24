@@ -68,7 +68,8 @@ final class LectureImporter: ObservableObject {
             if engine == .cloud {
                 working = "Sending the lecture to Gemini"
                 do {
-                    lines = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary) { part, parts in
+                    lines = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
+                                                                  token: LocalLLMService.shared.cloudToken) { part, parts in
                         Task { @MainActor [weak self] in
                             self?.working = parts > 1 ? "Gemini is transcribing part \(part) of \(parts)"
                                                       : "Gemini is transcribing"
