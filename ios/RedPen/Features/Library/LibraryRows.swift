@@ -13,6 +13,38 @@ extension LibraryView {
     /// a number on the first screen nobody knows which of them is waiting - so
     /// the schedule goes unused however well it works underneath.
     @ViewBuilder
+    /// "43 days to PLAB": set in AI models → Your exam, with the pace that
+    /// gets through every question in the library before then.
+    var examCountdown: some View {
+        let stamp = UserDefaults.standard.double(forKey: ExamTrack.dateKey)
+        if stamp > 0 {
+            let calendar = Calendar.current
+            let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: Date()),
+                                               to: calendar.startOfDay(for: Date(timeIntervalSince1970: stamp))).day ?? 0
+            let questions = store.library.filter { $0.kind == .mcq }.reduce(0) { $0 + $1.questions.count }
+            let exam = ExamTrack.current
+            HStack(spacing: 14) {
+                VStack(spacing: 0) {
+                    Text("\(max(0, days))").font(.title2.weight(.bold).monospacedDigit())
+                    Text(days == 1 ? "day" : "days").font(.caption2).foregroundStyle(.secondary)
+                }
+                .frame(minWidth: 48)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(days > 0 ? "to \(exam == .general ? "your exam" : exam.title)" : days == 0 ? "Exam day \u{2014} good luck" : "Exam date has passed")
+                        .font(.body.weight(.semibold))
+                    if days > 0 && questions > 0 {
+                        Text("About \(Int((Double(questions) / Double(days)).rounded(.up))) questions a day covers your library")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 2)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    @ViewBuilder
     var dueBanner: some View {
         let due = reviews.dueAcross(store.library).count
         if store.library.contains(where: { $0.kind == .anki }) {
@@ -150,7 +182,7 @@ extension LibraryView {
             else { exportFailedSetName = set.name }
         }
         Divider()
-        Button("Delete", systemImage: "trash", role: .destructive) { store.deleteSet(set.id) }
+        Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }
     }
 
     /// The floating action bar shown in selection mode.

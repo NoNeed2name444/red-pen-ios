@@ -46,6 +46,7 @@ final class SyncEngine: ObservableObject {
     let blobs: BlobCache
     let bookmarks: SyncStateStore
     private var running = false
+    private var again = false
 
     init(store: Store, reviews: ReviewStore, account: AccountStore,
          blobs: BlobCache? = nil, bookmarks: SyncStateStore? = nil) {
@@ -60,11 +61,20 @@ final class SyncEngine: ObservableObject {
     // MARK: a run
 
     func syncNow() async {
-        guard !running, let token = account.token, token != Session.localToken else { return }
+        guard let token = account.token, token != Session.localToken else { return }
+        // a change made while a run is out is sent by a second run straight
+        // after, not left until the app is next opened
+        if running { again = true; return }
         running = true
         status = .syncing
         copiesKept = 0
-        defer { running = false }
+        defer {
+            running = false
+            if again {
+                again = false
+                Task { await syncNow() }
+            }
+        }
 
         do {
             try await pull(token: token)

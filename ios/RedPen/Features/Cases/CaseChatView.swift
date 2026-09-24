@@ -66,8 +66,14 @@ private struct CaseSession: View {
         case .preparing:
             ProgressView(simulator.status ?? "Preparing\u{2026}").frame(maxHeight: .infinity)
         case .failed(let message):
-            ContentUnavailableView("Couldn't set up the case", systemImage: "exclamationmark.triangle",
-                                   description: Text(message))
+            ContentUnavailableView {
+                Label("Couldn't set up the case", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("Try again") { Task { await simulator.prepare() } }
+                    .buttonStyle(.glassProminent)
+            }
         case .interviewing:
             VStack(spacing: 0) {
                 coverageBar

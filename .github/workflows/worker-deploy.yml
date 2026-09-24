@@ -40,7 +40,7 @@ jobs:
           node-version: '22'
       - name: Tests first
         working-directory: .
-        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs && node server/tests/jobs.test.mjs && node server/tests/evidence.test.mjs
+        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs && node server/tests/jobs.test.mjs && node server/tests/pair.test.mjs && node server/tests/evidence.test.mjs
       - name: Check the secrets are there
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then

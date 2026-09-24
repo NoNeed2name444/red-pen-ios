@@ -100,3 +100,21 @@ CREATE TABLE IF NOT EXISTS ai_cost (
   micro_usd  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (account_id, month)
 );
+
+-- Linking a second device (pair.js): a short code, shown on a device that is
+-- already in, typed on the new one. Single use, ten minutes.
+CREATE TABLE IF NOT EXISTS pair_codes (
+  code        TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  expires_at  INTEGER NOT NULL
+);
+
+-- Wrong codes and new device accounts, counted per address per hour, so a
+-- code cannot be guessed and accounts cannot be minted without end.
+CREATE TABLE IF NOT EXISTS pair_attempts (
+  ip      TEXT NOT NULL,
+  hour    INTEGER NOT NULL,
+  what    TEXT NOT NULL,
+  n       INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (ip, hour, what)
+);

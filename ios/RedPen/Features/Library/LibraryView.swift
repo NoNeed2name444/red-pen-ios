@@ -15,6 +15,8 @@ struct LibraryView: View {
 
     // selection mode - the "Combine" / folder toggles
     @State var selecting = false
+    /// What the search field holds: set names, subjects and question stems.
+    @State var query = ""
     @State var selected: Set<UUID> = []
     @State var naming: NamingSheet?
     @State var renaming: StudySet?
@@ -33,8 +35,15 @@ struct LibraryView: View {
 
     var tabs: [LibraryTab] { LibraryTab.present(in: store.library) }
     func sets(in tab: LibraryTab) -> [StudySet] {
-        guard let kind = tab.kind else { return store.library }
-        return store.library.filter { $0.kind == kind }
+        let inTab = tab.kind.map { kind in store.library.filter { $0.kind == kind } } ?? store.library
+        let words = query.trimmingCharacters(in: .whitespaces)
+        guard !words.isEmpty else { return inTab }
+        return inTab.filter { set in
+            set.name.localizedCaseInsensitiveContains(words)
+                || set.subject.localizedCaseInsensitiveContains(words)
+                || set.questions.contains { $0.stem.localizedCaseInsensitiveContains(words) }
+                || set.cards.contains { $0.front.localizedCaseInsensitiveContains(words) }
+        }
     }
 
     enum NamingSheet: Identifiable {
@@ -137,6 +146,7 @@ struct LibraryView: View {
         content
             .background(LibraryBackdrop())
             .navigationTitle(Brand.name)
+            .searchable(text: $query, prompt: "Sets, subjects, questions")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) {
@@ -166,6 +176,7 @@ struct LibraryView: View {
         } else {
             List {
                 Section {
+                    examCountdown
                     dueBanner
                 }
                 if !loose.isEmpty {
@@ -200,6 +211,9 @@ struct LibraryView: View {
     @ViewBuilder
     private func folderSection(_ folder: StudyFolder) -> some View {
         let inside = members(of: folder)
+        // a folder with nothing of this mode (or nothing matching the
+        // search) is not shown as an empty header
+        if !inside.isEmpty || (tab.kind == nil && query.isEmpty) {
         Section {
             ForEach(Array(inside.enumerated()), id: \.element.id) { i, set in
                 row(set)
@@ -221,6 +235,7 @@ struct LibraryView: View {
                 }
             }
             .textCase(nil)
+        }
         }
     }
 

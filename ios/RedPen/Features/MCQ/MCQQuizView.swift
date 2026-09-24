@@ -181,6 +181,11 @@ struct MCQQuizView: View {
     private func checkForResume() {
         guard shuffle, let p = store.quizProgress[studySet.id],
               p.questionIds == studySet.questions.map(\.id),
+              // an option added or removed since then would leave the saved
+              // order pointing past the end of the list
+              p.optionOrders.count == studySet.questions.count,
+              p.answers.count == studySet.questions.count,
+              zip(p.optionOrders, studySet.questions).allSatisfy({ $0.count == $1.options.count }),
               p.answers.contains(where: \.checked) else { return }
         pendingResume = p
     }
@@ -343,6 +348,9 @@ struct MCQQuizView: View {
     private func onCheckOrNext() {
         if !a.checked {
             answers[current].checked = true
+            // felt as well as seen: right and wrong answers buzz differently
+            let right = answers[current].selected == studySet.questions[current].correctIndex
+            UINotificationFeedbackGenerator().notificationOccurred(right ? .success : .error)
             persist()
             return
         }

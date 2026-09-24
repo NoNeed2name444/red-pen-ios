@@ -14,6 +14,7 @@ import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget } from './ai.js';
 import { jobsRoute } from './jobs.js';
+import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -93,6 +94,10 @@ export default {
         case '/auth/apple': return await withApple(body, env);
         case '/auth/google': return await withGoogle(body, env);
         case '/auth/refresh': return await refresh(body, env);
+        // a second device, by a code shown on the first (pair.js)
+        case '/auth/device': return await deviceAccount(request, env);
+        case '/auth/pair': return await pairDevice(request, body, env);
+        case '/pair/start': return await guarded(request, env, async id => json(await startPairing(env, id)));
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/signout': return await signOutEverywhere(request, env);
         case '/account/subscription': return await setSubscription(request, body, env);
@@ -215,6 +220,28 @@ async function withGoogle(body, env) {
   return await session(env, account);
 }
 
+// MARK: a device of its own, and a second one
+
+const clientIP = request => request.headers.get('cf-connecting-ip') || 'unknown';
+
+/// An account for a device that started "on this device only", so it can
+/// sync: no name, no email, just a random id.
+async function deviceAccount(request, env) {
+  if (!await allowed(env, clientIP(request), 'device', DEVICES_PER_HOUR)) {
+    return fail(429, 'Too many new accounts from this network. Try again in an hour.');
+  }
+  const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
+  return await session(env, account);
+}
+
+async function pairDevice(request, body, env) {
+  const result = await finishPairing(env, clientIP(request), body.code);
+  if (result.error) return fail(result.status, result.error);
+  const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(result.accountId).first();
+  if (!account) return fail(404, 'That code is wrong or has expired.');
+  return await session(env, account);
+}
+
 // MARK: staying and leaving
 
 async function refresh(body, env) {
@@ -287,6 +314,7 @@ async function deleteAccount(request, env) {
   // The month's AI spend and today's allowance stay: they hold no personal
   // data, and deleting them would let a new account on the same subscription
   // start the month over.
+  await env.DB.prepare('DELETE FROM pair_codes WHERE account_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }

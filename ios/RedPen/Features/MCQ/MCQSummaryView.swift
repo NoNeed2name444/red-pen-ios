@@ -20,6 +20,35 @@ struct MCQSummaryView: View {
         self.onSave = onSave
     }
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: Store
+    @State private var mistakesSaved = false
+
+    /// The questions answered wrongly, for a set of their own.
+    private var mistakes: [MCQQuestion] {
+        studySet.questions.indices.filter {
+            answers.indices.contains($0) && answers[$0].selected != studySet.questions[$0].correctIndex
+        }.map { studySet.questions[$0] }
+    }
+
+    /// "Mistakes - Cardiology": one per set, topped up each time, so the
+    /// questions still getting wrong collect in one place to practise.
+    private func saveMistakes() {
+        let name = "Mistakes \u{2013} \(studySet.name.replacingOccurrences(of: "Mistakes \u{2013} ", with: ""))"
+        if var existing = store.library.first(where: { $0.kind == .mcq && $0.name == name }) {
+            let known = Set(existing.questions.map(\.stem))
+            existing.questions += mistakes.filter { !known.contains($0.stem) }
+            existing.updatedAt = Date()
+            store.update(existing)
+        } else {
+            var set = StudySet(name: name, subject: studySet.subject, kind: .mcq)
+            set.questions = mistakes
+            set.sources = studySet.sources
+            set.folderId = studySet.folderId
+            store.addSet(set)
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.snappy) { mistakesSaved = true }
+    }
 
     private var correctCount: Int {
         answers.enumerated().filter { $0.element.selected == studySet.questions[$0.offset].correctIndex }.count
@@ -64,6 +93,17 @@ struct MCQSummaryView: View {
                     }
                     .buttonStyle(.glassProminent)
                     .disabled(saved.wrappedValue)
+                }
+
+                if !mistakes.isEmpty && !isUnsaved {
+                    Button(action: saveMistakes) {
+                        Label(mistakesSaved ? "In your library as \u{201C}Mistakes\u{201D}"
+                                            : "Practise the \(mistakes.count) I got wrong",
+                              systemImage: mistakesSaved ? "checkmark" : "arrow.uturn.backward.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(mistakesSaved)
                 }
 
                 if let onRetake {

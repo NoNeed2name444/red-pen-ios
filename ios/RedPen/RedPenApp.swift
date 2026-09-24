@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 @main
@@ -93,6 +94,22 @@ struct RedPenApp: App {
                         .task { await SampleLectures.seed(into: store) }
                         // sets the cloud finished while the app was closed
                         .task { await CloudJobCollector.collect(into: store) }
+                        // An edit reaches the other device in seconds, not at
+                        // the next launch: a sync shortly after the library or
+                        // the review schedule changes...
+                        .onReceive(store.$library.map { _ in () }
+                            .merge(with: store.$folders.map { _ in () }, reviews.objectWillChange.map { _ in () })
+                            .debounce(for: .seconds(4), scheduler: RunLoop.main)) { _ in
+                            Task { await sync.syncNow() }
+                        }
+                        // ...and a look for the other device's every minute
+                        // while this one is open
+                        .task {
+                            while !Task.isCancelled {
+                                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                                if phase == .active { await sync.syncNow() }
+                            }
+                        }
                         .task {
                             // All three are cheap and all three are wrong to
                             // leave stale: a session that expires mid-sentence,

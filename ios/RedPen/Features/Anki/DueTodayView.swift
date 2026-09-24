@@ -122,6 +122,7 @@ struct DueTodayView: View {
     }
 
     private func rate(_ rating: AnkiRating, _ due: ReviewPlan.Due) {
+        UISelectionFeedbackGenerator().selectionChanged()
         let kept = reviews.rate(rating, card: due.card)
         reviewedCount += 1
         queue.removeAll { $0.id == due.id }

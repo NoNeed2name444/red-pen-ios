@@ -17,6 +17,9 @@ enum ExamTrack: String, CaseIterable, Identifiable {
     static let storageKey = "examTrack"
 
     /// The one the student picked, or general revision.
+    /// Where the exam date is kept (seconds since 1970, 0 for none).
+    static let dateKey = "exam.date"
+
     static var current: ExamTrack {
         ExamTrack(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .general
     }

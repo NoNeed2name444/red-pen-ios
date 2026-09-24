@@ -3,12 +3,15 @@ import Foundation
 /// How someone proved who they are.
 enum AuthProvider: String, Codable, CaseIterable {
     case apple, google, email
+    /// No Apple or Google account: a device linked by code (pair.js).
+    case device
 
     var label: String {
         switch self {
         case .apple: return "Apple"
         case .google: return "Google"
         case .email: return "Email"
+        case .device: return "a linked device"
         }
     }
 }

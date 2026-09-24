@@ -13,6 +13,7 @@ struct SignInView: View {
     @EnvironmentObject var account: AccountStore
 
     @Environment(\.colorScheme) private var scheme
+    @State private var joining = false
 
     var body: some View {
         ZStack {
@@ -30,6 +31,7 @@ struct SignInView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .sheet(isPresented: $joining) { LinkDeviceView(joinOnly: true) }
         .alert("Couldn't sign in", isPresented: Binding(
             get: { account.trouble != nil }, set: { if !$0 { account.trouble = nil } }
         )) {
@@ -47,7 +49,7 @@ struct SignInView: View {
                         .rotationEffect(.degrees(kind == .anki ? 0 : (kind == .mcq ? -10 : 10)))
                 }
             }
-            Text("Red Pen").font(.largeTitle.weight(.bold))
+            Text(Brand.name).font(.largeTitle.weight(.bold))
             Text("Your lectures, turned into questions and cards \u{2014} on every device you study on.")
                 .font(.subheadline).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -95,7 +97,19 @@ struct SignInView: View {
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .disabled(account.busy)
 
-            Text("\u{201C}This device only\u{201D} needs no account: your sets stay here and aren\u{2019}t synced.")
+            // a second iPhone or iPad joins the library of the first
+            Button {
+                joining = true
+            } label: {
+                Label("I have a code from my other device", systemImage: "ipad.and.iphone")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glass)
+            .disabled(account.busy)
+            .accessibilityIdentifier("joinWithCode")
+
+            Text("\u{201C}This device only\u{201D} needs no account. To keep an iPhone and an iPad the same later: Account \u{2192} Link another device.")
                 .font(.caption2).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }

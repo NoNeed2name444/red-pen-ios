@@ -179,7 +179,9 @@ struct NarrateReviewView: View {
         segments = made
         texts = made.map(\.text)
         index = 0
-        var updated = studySet
+        // the set as it is now, not as it was when this screen opened: a
+        // rename or a synced edit since then is kept
+        var updated = store.library.first { $0.id == studySet.id } ?? studySet
         updated.narrateSegments = made
         store.update(updated)
         if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording) }
@@ -210,7 +212,9 @@ struct NarrateReviewView: View {
     func persistText() {
         guard texts.count == segments.count else { return }
         for i in segments.indices { segments[i].text = texts[i] }
-        var updated = studySet
+        // the set as it is now, not as it was when this screen opened: a
+        // rename or a synced edit since then is kept
+        var updated = store.library.first { $0.id == studySet.id } ?? studySet
         updated.narrateSegments = segments
         store.update(updated)
     }

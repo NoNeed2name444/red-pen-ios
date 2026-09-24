@@ -13,6 +13,8 @@ struct ModelSettingsView: View {
     @State private var showPaywall = false
     @State private var cloudNote: String?
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
+    /// Seconds since 1970; 0 for no date. The library counts down to it.
+    @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
 
     var body: some View {
         NavigationStack {
@@ -20,6 +22,15 @@ struct ModelSettingsView: View {
                 Section {
                     Picker("Exam", selection: $exam) {
                         ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                    Toggle("I have an exam date", isOn: Binding(
+                        get: { examDate > 0 },
+                        set: { examDate = $0 ? Date().addingTimeInterval(60 * 86_400).timeIntervalSince1970 : 0 }))
+                    if examDate > 0 {
+                        DatePicker("Exam date", selection: Binding(
+                            get: { Date(timeIntervalSince1970: examDate) },
+                            set: { examDate = $0.timeIntervalSince1970 }),
+                                   in: Date()..., displayedComponents: .date)
                     }
                 } header: {
                     Text("Your exam")

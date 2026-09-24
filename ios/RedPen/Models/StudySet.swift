@@ -91,3 +91,34 @@ struct StudyFolder: Identifiable, Codable, Hashable {
     var name: String
     var updatedAt: Date = Date()
 }
+
+/// Read tolerantly: a set written by an older or newer version of the app -
+/// on this device, or arriving by sync from the other one - may lack a field
+/// this version has. Swift's own decoding would then refuse the whole set
+/// (and a whole library with it); here a missing field takes its default.
+extension StudySet {
+    private enum Keys: String, CodingKey {
+        case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
+             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        self.init(name: try c.decodeIfPresent(String.self, forKey: .name) ?? "Untitled",
+                  kind: try c.decode(StudySetKind.self, forKey: .kind))
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? id
+        subject = try c.decodeIfPresent(String.self, forKey: .subject) ?? subject
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? createdAt
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        folderId = try c.decodeIfPresent(UUID.self, forKey: .folderId)
+        questions = try c.decodeIfPresent([MCQQuestion].self, forKey: .questions) ?? []
+        cards = try c.decodeIfPresent([AnkiCard].self, forKey: .cards) ?? []
+        bookMarkdown = try c.decodeIfPresent(String.self, forKey: .bookMarkdown) ?? ""
+        qaCards = try c.decodeIfPresent([QACard].self, forKey: .qaCards) ?? []
+        osceChecklists = try c.decodeIfPresent([OsceChecklist].self, forKey: .osceChecklists) ?? []
+        narrateSegments = try c.decodeIfPresent([NarrateSegment].self, forKey: .narrateSegments) ?? []
+        images = try c.decodeIfPresent([String].self, forKey: .images) ?? []
+        sources = try c.decodeIfPresent([SourceDoc].self, forKey: .sources) ?? []
+    }
+}
+

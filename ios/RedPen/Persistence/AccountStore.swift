@@ -100,6 +100,52 @@ final class AccountStore: ObservableObject {
             expiresAt: Date.distantFuture))
     }
 
+    // MARK: linking devices
+
+    /// The session to sync with, making a server account for a device that
+    /// started "on this device only" (its name kept). Nil with a reason in
+    /// `trouble` when the server cannot be reached.
+    func ensureServerSession() async -> Session? {
+        guard let current = state.session else { return nil }
+        guard current.isLocalOnly else { return current }
+        busy = true
+        trouble = nil
+        defer { busy = false }
+        do {
+            var made = try await AuthAPI.deviceAccount()
+            made.account.displayName = current.account.displayName
+            carryAgreement(from: current, to: made)
+            adopt(made)
+            return made
+        } catch {
+            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Joins the account another device shows a code for. True when it worked.
+    func join(code: String) async -> Bool {
+        let before = state.session
+        busy = true
+        trouble = nil
+        defer { busy = false }
+        do {
+            let joined = try await AuthAPI.pair(code: code)
+            if let before { carryAgreement(from: before, to: joined) }
+            adopt(joined)
+            return true
+        } catch {
+            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return false
+        }
+    }
+
+    /// Someone who already agreed to the recording terms on this device is
+    /// not asked again just because the account under it changed.
+    private func carryAgreement(from old: Session, to new: Session) {
+        if RecordingTerms.accepted(by: old.account.id) { RecordingTerms.accept(for: new.account.id) }
+    }
+
     private func adopt(_ session: Session) {
         Keychain.save(session)
         state = .signedIn(session)

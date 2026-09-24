@@ -80,6 +80,26 @@ enum AuthAPI {
         ])
     }
 
+    /// An account for a device that has none, so its library can sync.
+    static func deviceAccount() async throws -> Session {
+        try await session(at: "/auth/device", body: [:])
+    }
+
+    /// Joins the account a code from another device belongs to.
+    static func pair(code: String) async throws -> Session {
+        try await session(at: "/auth/pair", body: ["code": code])
+    }
+
+    /// A one-time code, shown on this device, for another device to join with.
+    static func pairingCode(token: String) async throws -> (code: String, expiresIn: Int) {
+        struct Reply: Decodable { var code: String; var expiresIn: Int }
+        let data = try await send("/pair/start", body: [String: String](), token: token)
+        guard let reply = try? JSONDecoder().decode(Reply.self, from: data) else {
+            throw Failure.server("The server sent something unexpected.")
+        }
+        return (reply.code, reply.expiresIn)
+    }
+
     static func refresh(_ refreshToken: String) async throws -> Session {
         try await session(at: "/auth/refresh", body: ["refreshToken": refreshToken])
     }

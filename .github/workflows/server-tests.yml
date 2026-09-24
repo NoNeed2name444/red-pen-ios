@@ -27,3 +27,5 @@ jobs:
         run: node server/tests/ai.test.mjs
       - name: Background generation jobs
         run: node server/tests/jobs.test.mjs
+      - name: Linking a second device
+        run: node server/tests/pair.test.mjs

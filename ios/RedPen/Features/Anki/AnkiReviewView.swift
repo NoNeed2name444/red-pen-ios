@@ -204,6 +204,7 @@ struct AnkiReviewView: View {
 
     private func rate(_ rating: AnkiRating) {
         guard let item = current else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
         let kept = reviews.rate(rating, card: item.card)
         reviewedCount += 1
         queue.removeAll { $0.id == item.id }

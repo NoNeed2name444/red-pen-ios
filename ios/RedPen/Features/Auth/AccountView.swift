@@ -15,6 +15,7 @@ struct AccountView: View {
 
     @State private var showPaywall = false
     @State private var confirmingDelete = false
+    @State private var linking = false
 
     var body: some View {
         Group {
@@ -33,8 +34,16 @@ struct AccountView: View {
 
             Section {
                 LabeledContent("Sync", value: syncSummary)
-                Button("Sync now") { Task { await sync.syncNow() } }
-                    .disabled(sync.status == .syncing)
+                if account.state.session?.isLocalOnly == true {
+                    Text("This library is only on this device. Link another device to keep them the same.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    Button("Sync now") { Task { await sync.syncNow() } }
+                        .disabled(sync.status == .syncing)
+                }
+                Button { linking = true } label: {
+                    Label("Link another device", systemImage: "ipad.and.iphone")
+                }
                 if sync.copiesKept > 0 {
                     Text("\(sync.copiesKept) deck\(sync.copiesKept == 1 ? " was" : "s were") edited in two places. Both versions are in your library \u{2014} check them and delete the one you don't want.")
                         .font(.caption).foregroundStyle(.orange)
@@ -81,6 +90,7 @@ struct AccountView: View {
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .sheet(isPresented: $linking) { LinkDeviceView() }
         .alert("Delete your account?", isPresented: $confirmingDelete) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {

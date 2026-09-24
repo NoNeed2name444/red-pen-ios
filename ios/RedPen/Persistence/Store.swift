@@ -72,7 +72,14 @@ final class Store: ObservableObject {
 
     func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data) else { return }
+        guard let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data) else {
+            // never overwritten unread: the file is put aside first, so a
+            // library this version cannot read is still there to recover
+            let aside = fileURL.deletingLastPathComponent()
+                .appendingPathComponent("library-unreadable-\(Int(Date().timeIntervalSince1970)).json")
+            try? FileManager.default.copyItem(at: fileURL, to: aside)
+            return
+        }
         library = snapshot.library
         folders = snapshot.folders
         quizProgress = snapshot.quizProgress ?? [:]

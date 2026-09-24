@@ -72,3 +72,24 @@ struct AnkiQueueItem: Identifiable {
         self.intervalMin = intervalMin
     }
 }
+
+/// Read tolerantly, like StudySet: a card from another version of the app
+/// may lack a field this one has.
+extension AnkiCard {
+    private enum Keys: String, CodingKey {
+        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        self.init(type: try c.decode(AnkiCardType.self, forKey: .type))
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? id
+        front = try c.decodeIfPresent(String.self, forKey: .front) ?? ""
+        bullets = try c.decodeIfPresent([String].self, forKey: .bullets) ?? []
+        clozeText = try c.decodeIfPresent(String.self, forKey: .clozeText) ?? ""
+        why = try c.decodeIfPresent(String.self, forKey: .why) ?? ""
+        imageIndex = try c.decodeIfPresent(Int.self, forKey: .imageIndex)
+        occlusion = try c.decodeIfPresent(OcclusionBox.self, forKey: .occlusion)
+        source = try c.decodeIfPresent(String.self, forKey: .source)
+    }
+}
