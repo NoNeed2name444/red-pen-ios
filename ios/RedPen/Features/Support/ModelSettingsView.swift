@@ -3,143 +3,197 @@ import SwiftUI
 /// Which model writes and which one checks, the on-device downloads, and the
 /// hosted models the student has added.
 ///
-/// A sheet with its own navigation, so it opens the same way from Settings,
-/// from a generate screen and from a case.
+/// A sheet with its own navigation, so it opens the same way from a generate
+/// screen, a case and the accuracy check; Settings pushes it `embedded`,
+/// inside its own stack, with no Done.
 struct ModelSettingsView: View {
+    /// Pushed inside someone else's navigation: no stack of its own, no Done.
+    let embedded: Bool
+
     @EnvironmentObject private var llm: LocalLLMService
     @Environment(\.dismiss) private var dismiss
     @State private var editing: HostedProvider?
     @State private var editingIsNew = false
     @State private var showPaywall = false
     @State private var cloudNote: String?
-    @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
-    /// Seconds since 1970; 0 for no date. The library counts down to it.
-    @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
+
+    init(embedded: Bool = false) {
+        self.embedded = embedded
+    }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Exam", selection: $exam) {
-                        ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
+        if embedded {
+            form
+        } else {
+            NavigationStack {
+                form
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
                     }
-                    Toggle("I have an exam date", isOn: Binding(
-                        get: { examDate > 0 },
-                        set: { examDate = $0 ? Date().addingTimeInterval(60 * 86_400).timeIntervalSince1970 : 0 }))
-                    if examDate > 0 {
-                        DatePicker("Exam date", selection: Binding(
-                            get: { Date(timeIntervalSince1970: examDate) },
-                            set: { examDate = $0.timeIntervalSince1970 }),
-                                   in: Date()..., displayedComponents: .date)
-                    }
-                } header: {
-                    Text("Your exam")
-                } footer: {
-                    Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
-                }
-
-                Section {
-                    ForEach(LLMRole.allCases) { role in
-                        Picker(role.title, selection: binding(for: role)) {
-                            Text("Off").tag(LLMChoice.off)
-                            if llm.status[role.onDeviceModel] != .unsupported {
-                                Text("\(role.onDeviceModel.displayName) \u{00B7} Pro").tag(LLMChoice.device)
-                            }
-                            // Doctor-R1 and MedVAL in the cloud need a host: Hugging
-                            // Face now charges for Docker Spaces, so the choice
-                            // stays hidden until one is paid for
-                            if LocalLLMService.cloudMedicalHosted {
-                                Text("\(role.onDeviceModel.displayName), cloud \u{00B7} Pro").tag(LLMChoice.cloudMedical)
-                            }
-                            Text("\(Brand.name) Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
-                            ForEach(llm.providers) { provider in
-                                Text(provider.name).tag(LLMChoice.hosted(provider.id))
-                            }
-                        }
-                    }
-                    Toggle("Check generated questions and stations", isOn: $llm.checkGenerated)
-                    if let cloudNote {
-                        Text(cloudNote).font(.footnote).foregroundStyle(.orange)
-                    }
-                } header: {
-                    Text("Use")
-                } footer: {
-                    Text("The writer plays the patient in Cases and can write MCQs and OSCE stations. The checker grades answers against their source \u{2014} every patient reply, generated questions and stations, and any card or page you ask it to check.")
-                }
-
-                Section {
-                    LabeledContent("Writer", value: "Gemini 3.1 Pro")
-                    LabeledContent("Checker", value: "Gemini 3.1 Pro with MedVAL's rubric")
-                    LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
-                    if !llm.isPro {
-                        Button("See Pro") { showPaywall = true }
-                    }
-                } header: {
-                    Text("\(Brand.name) Cloud \u{00B7} Pro")
-                } footer: {
-                    Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; \(Brand.name) does not keep it.")
-                }
-
-                Section {
-                    ForEach(MedicalModel.allCases) { model in
-                        modelRow(model)
-                    }
-                } header: {
-                    Text("On this device \u{00B7} Pro")
-                } footer: {
-                    Text("This device has \(String(format: "%.1f", MedicalModel.deviceMemoryGB)) GB of memory. The app picks the largest build that fits; devices without room for a model use a hosted one instead. Downloads are one-time and run fully offline afterwards.")
-                }
-
-                Section {
-                    ForEach(llm.providers) { provider in
-                        Button {
-                            editingIsNew = false
-                            editing = provider
-                        } label: {
-                            LabeledContent(provider.name, value: provider.model)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                    .onDelete { offsets in
-                        let doomed = offsets.map { llm.providers[$0] }
-                        for provider in doomed { llm.remove(provider) }
-                    }
-                    Menu {
-                        ForEach(HostedProvider.presets, id: \.name) { preset in
-                            Button(preset.name) {
-                                var fresh = preset
-                                fresh.id = UUID()
-                                editingIsNew = true
-                                editing = fresh
-                            }
-                        }
-                    } label: {
-                        Label("Add a hosted model", systemImage: "plus.circle")
-                    }
-                } header: {
-                    Text("Your own key \u{00B7} advanced")
-                } footer: {
-                    Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms.")
-                }
-
-                Section {
-                    Text("A study aid, not medical advice. Generated text can be wrong even when checked.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
-            .navigationTitle("AI models")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-            .sheet(item: $editing) { provider in
-                ProviderEditor(provider: provider, isNew: editingIsNew)
-            }
-            .onAppear { llm.refreshStatus() }
-            .sheet(isPresented: $showPaywall) { PaywallView() }
         }
+    }
+
+    private var form: some View {
+        Form {
+            useSection
+            deviceSection
+            cloudSection
+            ownKeySection
+            Section {
+                Text("A study aid, not medical advice. Generated text can be wrong even when checked.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
+        .navigationTitle("AI models")
+        .navigationBarTitleDisplayMode(.inline)
+        // the one way to Pro on this screen, under the thumb
+        .safeAreaInset(edge: .bottom, spacing: 0) { proBar }
+        .sheet(item: $editing) { provider in
+            ProviderEditor(provider: provider, isNew: editingIsNew)
+        }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
+        .onAppear { llm.refreshStatus() }
+    }
+
+    @ViewBuilder
+    private var proBar: some View {
+        if !llm.isPro {
+            StudyActionBar {
+                Button("See Pro") { showPaywall = true }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+
+    // MARK: Sections
+
+    private var useSection: some View {
+        Section {
+            ForEach(LLMRole.allCases) { role in
+                rolePicker(role)
+            }
+            Toggle("Check generated questions and stations", isOn: $llm.checkGenerated)
+            if let cloudNote {
+                Text(cloudNote).font(.footnote).foregroundStyle(.orange)
+            }
+        } header: {
+            Text("Use")
+        } footer: {
+            Text("The writer plays the patient in Cases and can write MCQs and OSCE stations. The checker grades answers against their source \u{2014} every patient reply, generated questions and stations, and any card or page you ask it to check.")
+        }
+    }
+
+    private func rolePicker(_ role: LLMRole) -> some View {
+        let device: String = role.onDeviceModel.displayName
+        let onDevice: String = "\(device) \u{00B7} Pro"
+        let medicalCloud: String = "\(device), cloud \u{00B7} Pro"
+        let brandCloud: String = "\(Brand.name) Cloud \u{00B7} Pro"
+        return Picker(role.title, selection: binding(for: role)) {
+            Text("Off").tag(LLMChoice.off)
+            if llm.status[role.onDeviceModel] != .unsupported {
+                Text(onDevice).tag(LLMChoice.device)
+            }
+            // Doctor-R1 and MedVAL in the cloud need a host: Hugging
+            // Face now charges for Docker Spaces, so the choice
+            // stays hidden until one is paid for
+            if LocalLLMService.cloudMedicalHosted {
+                Text(medicalCloud).tag(LLMChoice.cloudMedical)
+            }
+            Text(brandCloud).tag(LLMChoice.cloud)
+            ForEach(llm.providers) { provider in
+                Text(provider.name).tag(LLMChoice.hosted(provider.id))
+            }
+        }
+    }
+
+    private var deviceSection: some View {
+        Section {
+            ForEach(MedicalModel.allCases) { model in
+                modelRow(model)
+            }
+        } header: {
+            Text("On this device \u{00B7} Pro")
+        } footer: {
+            Text(ModelSettingsView.deviceFooter)
+        }
+    }
+
+    private static var deviceFooter: String {
+        let memory: String = String(format: "%.1f", MedicalModel.deviceMemoryGB)
+        let size: String = "This device has \(memory) GB of memory."
+        let rest: String = "The app picks the largest build that fits; devices without room for a model use a hosted one instead. Downloads are one-time and run fully offline afterwards."
+        return size + " " + rest
+    }
+
+    private var cloudSection: some View {
+        Section {
+            LabeledContent("Writer", value: "Gemini 3.1 Pro")
+            LabeledContent("Checker", value: "Gemini 3.1 Pro with MedVAL's rubric")
+            LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
+        } header: {
+            Text("\(Brand.name) Cloud \u{00B7} Pro")
+        } footer: {
+            Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; \(Brand.name) does not keep it.")
+        }
+    }
+
+    private var ownKeySection: some View {
+        Section {
+            ForEach(llm.providers) { provider in
+                providerRow(provider)
+            }
+            .onDelete { offsets in
+                let doomed = offsets.map { llm.providers[$0] }
+                for provider in doomed { llm.remove(provider) }
+            }
+            // the presets live in a system menu (its rows cannot be styled),
+            // so the chip that opens it is what stands out of the glass
+            Menu {
+                ForEach(HostedProvider.presets, id: \.name) { preset in
+                    Button(preset.name) { add(preset) }
+                }
+            } label: {
+                Label("Add a hosted model", systemImage: "plus.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 44)
+                    .liquidGlassChip(plane: .raised)
+            }
+        } header: {
+            Text("Your own key \u{00B7} advanced")
+        } footer: {
+            Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms.")
+        }
+    }
+
+    /// Tap to edit; swipe, or press and hold, to delete.
+    private func providerRow(_ provider: HostedProvider) -> some View {
+        Button {
+            edit(provider)
+        } label: {
+            LabeledContent(provider.name, value: provider.model)
+        }
+        .foregroundStyle(.primary)
+        .contextMenu {
+            Button("Edit", systemImage: "pencil") { edit(provider) }
+            Button("Delete", systemImage: "trash", role: .destructive) { llm.remove(provider) }
+        }
+    }
+
+    private func edit(_ provider: HostedProvider) {
+        editingIsNew = false
+        editing = provider
+    }
+
+    private func add(_ preset: HostedProvider) {
+        var fresh = preset
+        fresh.id = UUID()
+        editingIsNew = true
+        editing = fresh
     }
 
     private func binding(for role: LLMRole) -> Binding<LLMChoice> {
@@ -182,6 +236,7 @@ struct ModelSettingsView: View {
                 Button { if llm.isPro { llm.download(model) } else { showPaywall = true } } label: {
                     Label("Download", systemImage: "arrow.down.circle")
                 }
+                .buttonStyle(.bigSecondary)
             case .downloading(let fraction):
                 ProgressView(value: fraction) {
                     Text("Downloading \u{2014} \(Int(fraction * 100))%").font(.footnote)
@@ -197,8 +252,11 @@ struct ModelSettingsView: View {
             case .failed(let message):
                 Text("Download failed: \(message)").font(.footnote).foregroundStyle(.red)
                 Button("Try again") { llm.download(model) }
+                    .buttonStyle(.bigSecondary)
             }
         }
+        // the small ones (Cancel download, Remove) stay flat; the one thing
+        // to do next - Download, Try again - stands out of the glass
         .buttonStyle(.borderless)
         .padding(.vertical, 4)
     }
@@ -238,22 +296,31 @@ private struct ProviderEditor: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Every row here is something you type into or set, so each
+                // is its own raised slab (the picker and toggle too, so the
+                // section reads as one stack rather than half cells, half slabs).
                 Section {
                     TextField("Name", text: $provider.name)
+                        .popFieldRow()
                     Picker("API", selection: $provider.kind) {
                         ForEach(HostedProvider.Kind.allCases) { Text($0.title).tag($0) }
                     }
+                    .popFieldRow()
                     TextField("Address", text: $provider.baseURL)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .popFieldRow()
                     TextField("Model", text: $provider.model)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .popFieldRow()
                 }
                 Section {
                     Toggle("Needs an API key", isOn: $provider.needsKey)
+                        .popFieldRow()
                     if provider.needsKey {
                         SecureField(isNew ? "API key" : "API key (leave empty to keep)", text: $key)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .popFieldRow()
                     }
                 } footer: {
                     Text("Stored in the keychain on this device. Never synced, never sent anywhere except to this address.")
@@ -271,22 +338,40 @@ private struct ProviderEditor: View {
                     if let testResult { Text(testResult).font(.footnote).foregroundStyle(.secondary) }
                 }
             }
-            .navigationTitle(isNew ? "Add hosted model" : provider.name)
+            .scrollContentBackground(.hidden)
+            .background(LibraryBackdrop())
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        llm.upsert(provider, key: key.isEmpty ? nil : key)
-                        dismiss()
-                    }
-                    .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.model.isEmpty
-                              || !Self.safeAddress(provider.baseURL)
-                              // a new address needs its key typed again
-                              || (provider.needsKey && key.isEmpty && provider.baseURL != savedBaseURL))
+                    Button("Save") { save() }
+                        .keyboardShortcut("s", modifiers: .command)
+                        .disabled(!canSave)
                 }
             }
         }
+    }
+
+    private var title: String {
+        if isNew { return "Add hosted model" }
+        return provider.name
+    }
+
+    /// Everything filled in, a safe address, and a key wherever one is needed.
+    private var canSave: Bool {
+        if provider.name.isEmpty || provider.baseURL.isEmpty || provider.model.isEmpty { return false }
+        if !Self.safeAddress(provider.baseURL) { return false }
+        // a new address needs its key typed again
+        let moved: Bool = provider.baseURL != savedBaseURL
+        if provider.needsKey && key.isEmpty && moved { return false }
+        return true
+    }
+
+    private func save() {
+        let typedKey: String? = key.isEmpty ? nil : key
+        llm.upsert(provider, key: typedKey)
+        dismiss()
     }
 
     private func test() async {

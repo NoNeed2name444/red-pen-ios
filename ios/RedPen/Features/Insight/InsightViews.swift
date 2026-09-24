@@ -94,9 +94,13 @@ struct ReadinessCard: View {
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                     }
+                    // the whole 44 points answer a tap, not just the words
+                    .frame(minHeight: 44)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
+                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .hoverEffect(.highlight)
                 .accessibilityHint("Opens a drill of \(lever.subject)")
             }
         }
@@ -180,14 +184,37 @@ private struct RangeBar: View {
 
 /// A list of questions with their answers, for the reasons that call for
 /// reading rather than a quiz: changed answers and lookalikes, and the
-/// confident mistakes.
+/// confident mistakes. Once they are read, Quiz these - in the slab at the
+/// bottom, under the thumb - asks the same questions again.
 struct InsightQuestionList: View {
     let title: String
     let tip: String?
     let picks: [QuestionPick]
+    @State private var quiz: StudySet?
 
     var body: some View {
-        List {
+        // the list never changes under the screen, so the slab is either
+        // there from the start or not at all
+        Group {
+            if picks.isEmpty {
+                questions
+            } else {
+                questions
+                    .studyBar { quizButton }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $quiz) { set in
+            MCQQuizView(set: set, keepsProgress: false)
+        }
+    }
+
+    private var questions: some View {
+        let count: Int = picks.count
+        let plural: String = count == 1 ? "" : "s"
+        let footer: String = "\(count) question\(plural). Tap one to see its answer."
+        return List {
             if let tip {
                 Section {
                     Label(tip, systemImage: "lightbulb")
@@ -202,35 +229,77 @@ struct InsightQuestionList: View {
             } else {
                 Section {
                     ForEach(picks, id: \.question.id) { pick in
-                        DisclosureGroup {
-                            let q = pick.question
-                            VStack(alignment: .leading, spacing: 6) {
-                                if q.options.indices.contains(q.correctIndex) {
-                                    Label(q.options[q.correctIndex], systemImage: "checkmark.circle")
-                                        .font(.subheadline.weight(.semibold))
-                                }
-                                if !q.explanation.isEmpty {
-                                    Text(q.explanation)
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(pick.question.stem)
-                                    .font(.subheadline)
-                                    .lineLimit(3)
-                                Text(Store.subjectName(pick.set))
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+                        InsightQuestionRow(pick: pick)
                     }
                 } footer: {
-                    Text("\(picks.count) question\(picks.count == 1 ? "" : "s"). Tap one to see its answer.")
+                    Text(footer)
                 }
             }
         }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
+    }
+
+    private var quizButton: some View {
+        let capped: Bool = picks.count > Self.quizLimit
+        let hint: String = capped
+            ? "A quiz of \(Self.quizLimit) of these questions, in a new order, not saved to your library"
+            : "A quiz of these questions, in a new order, not saved to your library"
+        return Button {
+            quiz = Self.makeQuiz(named: title, from: picks)
+        } label: {
+            Label("Quiz these", systemImage: "list.bullet.rectangle")
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.defaultAction)
+        .accessibilityHint(hint)
+    }
+
+    /// The most questions Quiz these asks - the same cap as the confident
+    /// mistakes quiz.
+    static let quizLimit: Int = 20
+
+    /// These questions as a quiz of their own: one subject's name when they
+    /// all share it, "Mixed" otherwise. Shuffled and capped, like
+    /// `confidentMistakesQuiz`, so it is not asked in the order just read.
+    @MainActor
+    static func makeQuiz(named name: String, from picks: [QuestionPick]) -> StudySet {
+        let chosen: [QuestionPick] = Array(picks.shuffled().prefix(quizLimit))
+        let subjects: Set<String> = Set(chosen.map { Store.subjectName($0.set) })
+        let subject: String = subjects.count == 1 ? (subjects.first ?? "Mixed") : "Mixed"
+        return Store.temporaryQuiz(named: name, subject: subject, from: chosen)
+    }
+}
+
+/// One question, folded: the stem and its subject, opening on a tap to the
+/// right answer and why.
+private struct InsightQuestionRow: View {
+    let pick: QuestionPick
+
+    var body: some View {
+        let q = pick.question
+        let hasAnswer: Bool = q.options.indices.contains(q.correctIndex)
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 6) {
+                if hasAnswer {
+                    Label(q.options[q.correctIndex], systemImage: "checkmark.circle")
+                        .font(.subheadline.weight(.semibold))
+                }
+                if !q.explanation.isEmpty {
+                    Text(q.explanation)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(q.stem)
+                    .font(.subheadline)
+                    .lineLimit(3)
+                Text(Store.subjectName(pick.set))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .hoverEffect(.highlight)
     }
 }

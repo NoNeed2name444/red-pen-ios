@@ -60,7 +60,8 @@ struct LectureWriterSection: View {
                         inputs: [kind.rawValue, subject, style.rawValue, String(sourceText.count),
                                  String(bookFigures.count), String(diagrams.cards.count)], run: start)
         .onChange(of: style) { _, now in
-            if kind == .anki { diagrams.included = now.usesDiagrams && !diagrams.cards.isEmpty && (now == .image || !bodyText.isEmpty) }
+            guard kind == .anki else { return }
+            diagrams.included = diagramsWanted(now)
         }
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
@@ -76,20 +77,20 @@ struct LectureWriterSection: View {
     /// Step 2: a lecture file, or notes pasted in, or both.
     private var addSection: some View {
         Section {
+            // raised, but second to the dock's Next
             Button { picking = true } label: {
                 HStack {
                     if reading { ProgressView().controlSize(.small) }
-                    Label(reading ? "Reading\u{2026}" : (readSource == nil ? "Choose a lecture file" : "Choose a different file"),
-                          systemImage: "doc.badge.plus")
+                    Label(pickTitle, systemImage: "doc.badge.plus")
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.bigSecondary)
             .disabled(working || reading)
+            .frame(maxWidth: .infinity)
             if let readSource {
-                Label("\(readSource.name) \u{2014} \(readSource.document.pages.count) pages",
-                      systemImage: "checkmark.circle.fill")
+                let pages: Int = readSource.document.pages.count
+                let line: String = "\(readSource.name) \u{2014} \(pages) pages"
+                Label(line, systemImage: "checkmark.circle.fill")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let diagramProgress {
@@ -104,40 +105,47 @@ struct LectureWriterSection: View {
                 TextEditor(text: $pastedNotes)
                     .frame(minHeight: 120)
                     .font(.footnote)
+                    .popEditor()
                     .disabled(working)
             }
             .padding(.vertical, 4)
         } header: {
             Text("Add a file")
         } footer: {
-            Text("PDF, Word or PowerPoint. It is read on this phone.")
+            Text("PDF, Word or PowerPoint. It is read on this device.")
         }
     }
 
-    /// Step 3: how many, the one big button, and the rest behind More options.
+    /// Step 3: the card type (Cards only), how many, the one big button,
+    /// and the rest behind More options. Stopping is the progress card's
+    /// Cancel, at the bottom, so the button never turns into Stop.
     private var makeSection: some View {
         Section {
+            if kind == .anki {
+                Picker("Card type", selection: $style) {
+                    ForEach(CardStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .disabled(working)
+                if style.usesDiagrams, readSource != nil {
+                    Text(diagramNote)
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
             if style.writesText || kind != .anki {
-                CountField(title: "How many \(noun)s", value: $count,
-                           range: kind == .book ? 1...1_000 : 1...10_000)
+                CountField(title: "How many \(noun)s", value: $count, range: countRange)
                     .disabled(working)
             }
-            Button {
-                working ? stop() : start()
-            } label: {
+            // the hero slab, the same as its floating copy in the dock
+            Button { start() } label: {
                 HStack {
                     if working || reading { ProgressView().controlSize(.small) }
-                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : actionTitle)
+                    Text(primaryLabel)
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.glassProminent)
-            .disabled((!canWrite && !working) || reading)
+            .buttonStyle(.bigPrimary)
+            .disabled(!canWrite || working || reading)
+            .frame(maxWidth: .infinity)
             .floatingActionAnchor("writer")
-            if working {
-                Button("Stop", role: .cancel) { stop() }
-            }
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -151,25 +159,44 @@ struct LectureWriterSection: View {
             }
             if let trouble {
                 Text(trouble).font(.footnote).foregroundStyle(.red)
-                Button("AI models") { showModels = true }.font(.footnote)
+                Button("AI models") { showModels = true }
+                    .buttonStyle(.bordered)
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .popField()
                     .disabled(working)
-                if kind == .anki {
-                    Picker("Card type", selection: $style) {
-                        ForEach(CardStyle.allCases) { Text($0.title).tag($0) }
-                    }
-                    .disabled(working)
-                    if style.usesDiagrams, readSource != nil {
-                        Text(diagramNote)
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
                 Text(modelLine)
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// Step 2's file button: what it does now.
+    private var pickTitle: String {
+        if reading { return "Reading\u{2026}" }
+        if readSource == nil { return "Choose a lecture file" }
+        return "Choose a different file"
+    }
+
+    /// Step 3's button: what it will make, or how far it has got.
+    private var primaryLabel: String {
+        if reading { return "Reading\u{2026}" }
+        if working { return status ?? "Writing\u{2026}" }
+        return actionTitle
+    }
+
+    private var countRange: ClosedRange<Int> {
+        kind == .book ? 1...1_000 : 1...10_000
+    }
+
+    /// Whether the diagrams' picture cards go into the set, for a card
+    /// type: only when it uses them, some were found, and there is either
+    /// nothing else (picture cards alone) or written cards beside them.
+    private func diagramsWanted(_ chosen: CardStyle) -> Bool {
+        let found: Bool = !diagrams.cards.isEmpty
+        let alongside: Bool = chosen == .image || !bodyText.isEmpty
+        return chosen.usesDiagrams && found && alongside
     }
 
     private var diagramNote: String {
@@ -220,8 +247,8 @@ struct LectureWriterSection: View {
                 .filter { BookFigures.parse($0.trimmingCharacters(in: .whitespaces)) == nil }
                 .joined(separator: "\n")
             let name = url.deletingPathExtension().lastPathComponent
-            readSource = ReadSource(name: name, document: read.document,
-                                    kind: ext == "pdf" ? .pdf : ext == "pptx" ? .powerpoint : .word)
+            let fileKind: SourceDoc.Kind = LectureWriterSection.fileKind(ext)
+            readSource = ReadSource(name: name, document: read.document, kind: fileKind)
             if suggestedName.trimmingCharacters(in: .whitespaces).isEmpty { suggestedName = name }
             if kind == .book { count = min(30, max(1, read.document.pages.count / 3)) }
             else {
@@ -276,9 +303,25 @@ struct LectureWriterSection: View {
 
     private var actionTitle: String {
         if kind == .anki && style == .image {
-            return "Add \(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s")"
+            let found: Int = diagrams.cards.count
+            let plural: String = found == 1 ? "" : "s"
+            return "Add \(found) image card\(plural)"
         }
-        return "Make \(count) \(noun)\(count == 1 ? "" : "s")"
+        let plural: String = count == 1 ? "" : "s"
+        return "Make \(count) \(noun)\(plural)"
+    }
+
+    /// PDF, PowerPoint or Word, by the file's extension.
+    nonisolated static func fileKind(_ ext: String) -> SourceDoc.Kind {
+        if ext == "pdf" { return .pdf }
+        if ext == "pptx" { return .powerpoint }
+        return .word
+    }
+
+    /// Where the accuracy check runs, for a cloud job's recipe: nil for none.
+    nonisolated static func checkPlace(_ checking: Bool, onServer: Bool) -> String? {
+        guard checking else { return nil }
+        return onServer ? "server" : "device"
     }
 
     private var canWrite: Bool {
@@ -303,10 +346,14 @@ struct LectureWriterSection: View {
                 return try? await OfficeIngest.read(url, findingFigures: true)
             }.value
             guard !Task.isCancelled else { return }
-            bookFigures = read.map { mode == .book ? Self.figures(from: $0) : [] } ?? []
-            diagrams = read.map { mode == .anki ? Self.diagramCards(from: $0, name: name) : DiagramCards() } ?? DiagramCards()
+            var figures: [BookFigure] = []
+            var cards = DiagramCards()
+            if let read, mode == .book { figures = Self.figures(from: read) }
+            if let read, mode == .anki { cards = Self.diagramCards(from: read, name: name) }
+            bookFigures = figures
+            diagrams = cards
             // found after the text cards were written: still in the set
-            diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty && (style == .image || !bodyText.isEmpty)
+            diagrams.included = diagramsWanted(style)
             diagramProgress = nil
         }
     }
@@ -319,9 +366,10 @@ struct LectureWriterSection: View {
         if kind == .anki {
             diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty
             if style == .image {
-                status = diagrams.cards.isEmpty ? nil
-                    : "\(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s") ready \u{2014} save the set below."
-                if diagrams.cards.isEmpty { trouble = "No labelled diagrams were found in this file." }
+                let found: Int = diagrams.cards.count
+                let plural: String = found == 1 ? "" : "s"
+                status = found == 0 ? nil : "\(found) image card\(plural) ready \u{2014} save the set below."
+                if found == 0 { trouble = "No labelled diagrams were found in this file." }
                 return
             }
         }
@@ -333,7 +381,9 @@ struct LectureWriterSection: View {
         let text = sourceText, wanted = count, subj = subject, mode = kind, cardStyle = style, pending = figureTask
         working = true
         status = "Writing\u{2026}"
-        let job = GenerationCenter.shared.begin("Writing \(wanted) \(noun)\(wanted == 1 ? "" : "s")", total: wanted) {
+        let plural: String = wanted == 1 ? "" : "s"
+        let jobTitle: String = "Writing \(wanted) \(noun)\(plural)"
+        let job = GenerationCenter.shared.begin(jobTitle, total: wanted) {
             task?.cancel()
             task = nil
             working = false
@@ -351,13 +401,15 @@ struct LectureWriterSection: View {
                 let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
                 // kept with a cloud job, so the set is still made if the app
                 // is closed before the server finishes
-                let recipe = await MainActor.run {
-                    CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: wanted,
-                                source: readSource?.doc(),
-                                figures: mode == .book ? figures.map(\.imageBase64) : nil,
-                                diagramCards: mode == .anki && diagrams.included ? diagrams.cards : nil,
-                                diagramImages: mode == .anki && diagrams.included ? diagrams.images : nil,
-                                check: checker == nil ? nil : onServer ? "server" : "device").encoded
+                let check: String? = LectureWriterSection.checkPlace(checker != nil, onServer: onServer)
+                let recipe: Data? = await MainActor.run { () -> Data? in
+                    let pictures: Bool = mode == .anki && diagrams.included
+                    let figureImages: [String]? = mode == .book ? figures.map(\.imageBase64) : nil
+                    let cards: [AnkiCard]? = pictures ? diagrams.cards : nil
+                    let images: [String]? = pictures ? diagrams.images : nil
+                    return CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: wanted,
+                                       source: readSource?.doc(), figures: figureImages,
+                                       diagramCards: cards, diagramImages: images, check: check).encoded
                 }
                 let written = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
@@ -379,14 +431,17 @@ struct LectureWriterSection: View {
                         instruction: "Write study material for medical students from the source.",
                         input: AccuracyChecker.nearest(text, to: written, limit: checker.promptBudgetChars),
                         output: written, using: checker) {
-                        note = verdict.passed ? " Checked: \(verdict.riskTitle.lowercased())."
-                            : " Checker: \(verdict.riskTitle.lowercased()) \u{2014} \(verdict.findings.first?.text ?? "read it carefully")."
+                        let risk: String = verdict.riskTitle.lowercased()
+                        let finding: String = verdict.findings.first?.text ?? "read it carefully"
+                        note = verdict.passed ? " Checked: \(risk)." : " Checker: \(risk) \u{2014} \(finding)."
                     }
                 }
                 let finalNote = note
                 try Task.checkCancellation()
                 await MainActor.run {
-                    GenerationCenter.shared.end(job, finished: mode == .book ? "Your textbook is ready" : "Your \(mode == .qa ? "cases" : "cards") are ready")
+                    let made: String = mode == .qa ? "cases" : "cards"
+                    let finished: String = mode == .book ? "Your textbook is ready" : "Your \(made) are ready"
+                    GenerationCenter.shared.end(job, finished: finished)
                     let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
                     bodyText = existing.isEmpty ? written : existing + "\n" + written
                     working = false
@@ -409,5 +464,4 @@ struct LectureWriterSection: View {
         }
     }
 
-    private func stop() { GenerationCenter.shared.cancel() }
 }

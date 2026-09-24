@@ -8,6 +8,7 @@ struct QACardsView: View {
     @State private var index: Int
     @State private var revealed: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
     @EnvironmentObject private var store: Store
     @State private var simulating: QACard?
 
@@ -22,21 +23,8 @@ struct QACardsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            StudyProgressHeader(headerStatus, detail: headerDetail,
-                                fraction: Double(index + 1) / Double(max(1, cards.count)))
-            ScrollView {
-                if let card {
-                    cardView(card)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
-                        .readableColumn()
-                } else {
-                    FinishHero(symbol: "tray", title: "No cards yet", message: "This set has no cards.")
-                        .padding(.top, 32)
-                }
-            }
-            footer
+            StudyProgressHeader(headerStatus, detail: headerDetail, fraction: headerFraction)
+            cardScroll
         }
         .onAppear {
             // Only when opened at the start: a caller that asked for a
@@ -60,6 +48,27 @@ struct QACardsView: View {
 
     private var headerStatus: String {
         cards.isEmpty ? "No cards" : "Card \(index + 1) of \(cards.count)"
+    }
+
+    private var headerFraction: Double {
+        Double(index + 1) / Double(max(1, cards.count))
+    }
+
+    /// The card, scrolling under the bar.
+    private var cardScroll: some View {
+        ScrollView {
+            if let card {
+                cardView(card)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
+                    .readableColumn()
+            } else {
+                FinishHero(symbol: "tray", title: "No cards yet", message: "This set has no cards.")
+                    .padding(.top, 32)
+            }
+        }
+        .studyBar { footer }
     }
 
     private var headerDetail: String {
@@ -118,38 +127,78 @@ struct QACardsView: View {
         return HowToReachCard.lectureLabel(for: text, in: studySet)
     }
 
-    /// Back on the left, small; Reveal, then Next, filling the rest.
+    /// Back on the left, small; Reveal, then Next, at the trailing end - and
+    /// once the answer is showing, the patient from this case beside them.
     private var footer: some View {
-        let last = index >= cards.count - 1
-        return StudyActionBar {
-            HStack(spacing: 12) {
-                Button { index = max(0, index - 1); revealed = false } label: {
-                    Label("Back", systemImage: "chevron.left")
-                }
-                .buttonStyle(.bigCompanion)
-                .disabled(index == 0)
-                .accessibilityLabel("Previous card")
-
-                if revealed {
-                    Button {
-                        if last {
-                            store.clearReading(for: studySet.id)
-                            dismiss()
-                        } else { index += 1; revealed = false }
-                    } label: {
-                        Label(last ? "Done" : "Next", systemImage: last ? "checkmark" : "arrow.right")
-                    }
-                    .buttonStyle(.bigPrimary)
-                    .keyboardShortcut(.return, modifiers: [])
-                } else {
-                    Button { withAnimation(.snappy) { revealed = true } } label: {
-                        Label("Reveal answer", systemImage: "eye")
-                    }
-                    .buttonStyle(.bigPrimary)
-                    .keyboardShortcut(.return, modifiers: [])
-                    .disabled(card == nil)
-                }
+        HStack(spacing: 12) {
+            Button(action: goBack) {
+                Label("Back", systemImage: "chevron.left")
             }
+            .buttonStyle(.bigCompanion)
+            .keyboardShortcut(.leftArrow, modifiers: [])
+            .disabled(index == 0)
+            .accessibilityLabel("Previous card")
+
+            if revealed && card != nil { patientButton }
+
+            if span == .broad { Spacer(minLength: 16) }
+
+            if revealed {
+                nextButton
+            } else {
+                Button { withAnimation(.snappy) { revealed = true } } label: {
+                    Label("Reveal answer", systemImage: "eye")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
+                .disabled(card == nil)
+            }
+        }
+    }
+
+    /// Next, or Done on the last card. Return presses it; so does the right
+    /// arrow, until the last card.
+    private var nextButton: some View {
+        let last: Bool = index >= cards.count - 1
+        let title: String = last ? "Done" : "Next"
+        let symbol: String = last ? "checkmark" : "arrow.right"
+        return Button(action: goNext) {
+            Label(title, systemImage: symbol)
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.return, modifiers: [])
+        .background {
+            if !last { QAExtraKey(key: .rightArrow, action: goNext) }
+        }
+    }
+
+    /// Talk it through with the patient in this case - the same as More's
+    /// "Practise with a pretend patient". Words when there is room for them,
+    /// the stethoscope alone on a phone.
+    private var patientButton: some View {
+        Button { simulating = card } label: {
+            ViewThatFits(in: .horizontal) {
+                Label("Talk to the patient", systemImage: "stethoscope")
+                Image(systemName: "stethoscope")
+            }
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Talk to the patient")
+        .accessibilityHint("Opens this case as a patient you can question")
+    }
+
+    private func goBack() {
+        index = max(0, index - 1)
+        revealed = false
+    }
+
+    private func goNext() {
+        if index >= cards.count - 1 {
+            store.clearReading(for: studySet.id)
+            dismiss()
+        } else {
+            index += 1
+            revealed = false
         }
     }
 
@@ -158,4 +207,21 @@ struct QACardsView: View {
     /// is not Markdown, and reading it as if it were quietly eats the
     /// underscores and brackets medical writing is full of.
     private func hl(_ s: String) -> AttributedString { Highlight.attributed(s) }
+}
+
+/// A second key for a button that already has one: an invisible button that
+/// does the same thing, since a button takes only one keyboard shortcut.
+private struct QAExtraKey: View {
+    let key: KeyEquivalent
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Color.clear.frame(width: 1, height: 1)
+        }
+        .keyboardShortcut(key, modifiers: [])
+        .buttonStyle(.plain)
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
 }

@@ -227,21 +227,96 @@ nonisolated enum GraphFraming {
 
     /// How far back, along +z, the camera must stand (looking at the origin
     /// down -z) for every point, plus `pad` round it, to fit within `fill`
-    /// of the screen in both directions. `aspect` is width over height.
-    /// Points nearer the camera (larger z) need more room, so each is taken
-    /// at its own depth.
+    /// of the whole screen in both directions. `aspect` is width over height.
     static func distance(points: [SIMD3<Float>], pad: Float, aspect: Float) -> Float {
-        let half: Float = fieldOfView * Float.pi / 360
-        let tanUp: Float = tan(half) * fill
-        let tanSide: Float = tanUp * max(aspect, 0.1)
+        let whole = GraphWindow(aspect: aspect, share: 1, across: 0, up: 0)
+        return distance(points: points, pad: pad, window: whole)
+    }
+
+    /// How far back the camera must stand for every point, plus `pad` round
+    /// it, to fit within `fill` of `window` - the part of the view not under
+    /// glass - in both directions, with the camera then moved to
+    /// `cameraHome` so the origin sits in the window's middle. Points nearer
+    /// the camera (larger z) need more room, so each is taken at its own
+    /// depth; and since the window's middle is off the camera's axis, a
+    /// point nearer or further than the origin sits a little to one side of
+    /// it, which is allowed for too.
+    static func distance(points: [SIMD3<Float>], pad: Float, window: GraphWindow) -> Float {
+        let tanFull: Float = tan(halfField)
+        let tanUp: Float = tanFull * fill * window.share
+        let tanSide: Float = tanUp * max(window.aspect, 0.1)
+        let leanX: Float = window.across * 2 * tanFull
+        let leanY: Float = window.up * 2 * tanFull
         var need: Float = 1
         for p in points {
-            let across: Float = (abs(p.x) + pad) / tanSide
-            let upDown: Float = (abs(p.y) + pad) / tanUp
+            let x: Float = p.x + leanX * p.z
+            let y: Float = p.y + leanY * p.z
+            let across: Float = (abs(x) + pad) / tanSide
+            let upDown: Float = (abs(y) + pad) / tanUp
             let back: Float = p.z + pad
             let here: Float = back + max(across, upDown)
             need = max(need, here)
         }
         return need
     }
+
+    /// Where the camera stands, `distance` back and looking down -z, so the
+    /// origin shows in the middle of `window` rather than of the whole view.
+    static func cameraHome(distance: Float, window: GraphWindow) -> SIMD3<Float> {
+        let reach: Float = 2 * distance * tan(halfField)
+        let x: Float = -window.across * reach
+        let y: Float = -window.up * reach
+        return SIMD3<Float>(x, y, distance)
+    }
+
+    /// The part of a `width` by `height` view (points) that is not under
+    /// glass: the bars at the top, and the switcher, capture row, dock or
+    /// keyboard at the bottom. Never less than a third of the view each way.
+    static func window(width: Float, height: Float, insets: GraphInsets) -> GraphWindow {
+        let wide: Float = max(width, 1)
+        let tall: Float = max(height, 1)
+        let sides: Float = insets.left + insets.right
+        let ends: Float = insets.top + insets.bottom
+        let seenWidth: Float = max(wide - sides, wide / 3)
+        let seenHeight: Float = max(tall - ends, tall / 3)
+        let aspect: Float = seenWidth / seenHeight
+        let share: Float = seenHeight / tall
+        // the window's middle from the view's, in view heights
+        let across: Float = (insets.left - insets.right) / 2 / tall
+        let up: Float = (insets.bottom - insets.top) / 2 / tall
+        return GraphWindow(aspect: aspect, share: share, across: across, up: up)
+    }
+
+    /// Half the vertical field of view, in radians.
+    private static var halfField: Float {
+        fieldOfView * Float.pi / 360
+    }
+}
+
+/// How much of the space's view, on each side, is under glass, in points.
+/// Left and right as on screen, whatever the writing direction.
+nonisolated struct GraphInsets: Equatable {
+    var top: Float = 0
+    var left: Float = 0
+    var bottom: Float = 0
+    var right: Float = 0
+
+    init(top: Float = 0, left: Float = 0, bottom: Float = 0, right: Float = 0) {
+        self.top = top
+        self.left = left
+        self.bottom = bottom
+        self.right = right
+    }
+}
+
+/// The part of the view the graph is fitted to (GraphFraming.window).
+nonisolated struct GraphWindow: Equatable {
+    /// Its width over its height.
+    let aspect: Float
+    /// Its height, as a share of the whole view's.
+    let share: Float
+    /// How far its middle is right of the view's middle, in view heights.
+    let across: Float
+    /// How far its middle is above the view's middle, in view heights.
+    let up: Float
 }

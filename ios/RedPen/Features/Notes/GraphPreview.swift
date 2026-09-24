@@ -12,11 +12,16 @@ import SwiftUI
 ///   a second after the space appears, carry it along an arc for two
 ///   seconds and let go (see GraphSCNView.Coordinator), so a screenshot can
 ///   catch the moving look.
+/// - `-graphPreview` alone has the app choose the most-linked note a moment
+///   (1.5 s) after the space appears, as one tap would, so the picture at
+///   rest shows one name on its solid pill.
 ///
 /// The space is exposed to UI tests as the element "graph3D".
 enum GraphPreview {
     static let isOn: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreview")
     static let drags: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreviewDrag")
+    /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
+    static let chooses: Bool = isOn && !drags
 
     /// The groin hernia examples (13 notes: Examples, Inguinal, Femoral) and
     /// a Cardiology folder of 12 more, on a file in the temporary folder.

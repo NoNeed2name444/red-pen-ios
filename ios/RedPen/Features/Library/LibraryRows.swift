@@ -32,10 +32,14 @@ extension LibraryView {
     /// dashboard before it was a library. The count of due cards still matters
     /// most: twenty lectures means twenty decks, and without a number on the
     /// first screen nobody knows which of them is waiting.
+    ///
+    /// It stands a little out of the glass as one raised slab - it holds the
+    /// page's most useful button - while the rows below lie flat on it.
     var todayCard: some View {
         let due = reviews.dueAcross(store.library).count
         let hasDecks = store.library.contains { $0.kind == .anki }
         let flagged = store.flaggedQuestions
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         return VStack(alignment: .leading, spacing: 8) {
             Text("Today").font(.headline)
             if let days = examDays { examLine(days) }
@@ -45,6 +49,9 @@ extension LibraryView {
             }
             todayAction(due: due, flagged: flagged.count)
         }
+        .padding(16)
+        .background(.regularMaterial, in: shape)
+        .popOut(.raised, in: shape)
     }
 
     /// The Today card's one button - due cards first, because the schedule
@@ -53,7 +60,8 @@ extension LibraryView {
     @ViewBuilder
     private func todayAction(due: Int, flagged: Int) -> some View {
         if due > 0 {
-            let title: String = "Study \(due) due card\(due == 1 ? "" : "s")"
+            let plural: String = due == 1 ? "" : "s"
+            let title: String = "Study \(due) due card\(plural)"
             todayButton(title, symbol: "play.fill") { showingDue = true }
         } else if flagged > 0 {
             todayButton(flaggedTitle(flagged), symbol: "flag.fill") { startFlaggedQuiz() }
@@ -100,6 +108,7 @@ extension LibraryView {
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.glassProminent)
+        .popOut(.hero, in: Capsule(), tint: .accentColor)
         .padding(.top, 8)
     }
 
@@ -110,7 +119,8 @@ extension LibraryView {
         let examName = exam == .general ? "your exam" : exam.title
         var text: String
         if days > 0 {
-            text = "\(days) day\(days == 1 ? "" : "s") to \(examName)"
+            let plural: String = days == 1 ? "" : "s"
+            text = "\(days) day\(plural) to \(examName)"
             if questions > 0 {
                 let share: Double = Double(questions) / Double(days)
                 let perDay: Int = Int(share.rounded(.up))
@@ -207,8 +217,9 @@ extension LibraryView {
     }
 
     /// One library row - a navigation link normally, a tickable row in
-    /// selection mode, with the per-set actions in a long-press menu and as
-    /// swipe actions.
+    /// selection mode, with the per-set actions in a long-press menu, behind
+    /// the row's own ellipsis (for a pointer, and for anyone who never
+    /// thought to hold a row) and as swipe actions.
     @ViewBuilder
     func row(_ set: StudySet) -> some View {
         Group {
@@ -230,8 +241,14 @@ extension LibraryView {
                 .buttonStyle(.pressableRow)
                 .accessibilityAddTraits(selected.contains(set.id) ? [.isSelected] : [])
             } else {
-                NavigationLink(value: set) { setRow(set) }
-                    .accessibilityIdentifier("setRow-\(set.kind.rawValue)")
+                // The ellipsis sits beside the link rather than inside its
+                // label: a control inside a link's label fights the row for
+                // the tap, and VoiceOver folds it into the row.
+                HStack(spacing: 8) {
+                    NavigationLink(value: set) { setRow(set) }
+                        .accessibilityIdentifier("setRow-\(set.kind.rawValue)")
+                    rowMoreMenu(set)
+                }
             }
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -247,6 +264,18 @@ extension LibraryView {
 
     @ViewBuilder
     func rowMenu(_ set: StudySet) -> some View {
+        // picking several sets starts from any one of them, ticked; while
+        // already picking, it adds this one rather than starting over
+        Button("Select", systemImage: "checkmark.circle") {
+            withAnimation(.snappy) {
+                if selecting {
+                    selected.insert(set.id)
+                } else {
+                    selecting = true
+                    selected = [set.id]
+                }
+            }
+        }
         Button("Rename", systemImage: "pencil") { renaming = set }
         // any mode into any other: rearranged on the spot where it can be,
         // written from the lecture where it cannot
@@ -304,37 +333,126 @@ extension LibraryView {
         Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }
     }
 
-    /// The floating action bar shown in selection mode.
+    /// The floating action bar shown in selection mode: one glass slab like
+    /// the dock, in the dock's place. Done at the leading end; Move, Quiz and
+    /// Combine, then Delete last, at the trailing end, and it asks first.
     var selectionBar: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 10) {
-                Text(selected.isEmpty ? "Select sets" : "\(selected.count) selected")
-                    .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-                Spacer()
-                Button { naming = .folder } label: {
-                    Label("Folder", systemImage: "folder.badge.plus")
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        // the buttons' glass in a container of its own, as the dock's is, so
+        // it is drawn as glass on the slab rather than sampling the slab
+        return GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                selectionDoneButton
+                selectionCount
+                Spacer(minLength: 0)
+                ViewThatFits(in: .horizontal) {
+                    selectionActions(compact: false)
+                    selectionActions(compact: true)
                 }
-                .buttonStyle(.glass)
-                .disabled(selected.isEmpty)
-                Button { startMixedQuiz() } label: {
-                    Label("Quiz", systemImage: "shuffle")
-                }
-                .buttonStyle(.glass)
-                .disabled(!selectedSets.contains { $0.kind == .mcq && !$0.questions.isEmpty })
-                Button { naming = .combine } label: {
-                    Label("Combine", systemImage: "square.stack.3d.down.forward")
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canCombine)
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+            .padding(10)
         }
-        .padding(.horizontal, 10).padding(.bottom, 6)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .liquidGlassPanel(cornerRadius: 28)
+        .popOut(.floating, in: shape)
+        .frame(maxWidth: 700)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+    }
+
+    private var selectionDoneButton: some View {
+        Button {
+            withAnimation(.snappy) { selecting = false; selected = [] }
+        } label: {
+            Image(systemName: "xmark")
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .contentShape(.hoverEffect, Circle())
+        .hoverEffect(.highlight)
+        .keyboardShortcut(.cancelAction)
+        .accessibilityLabel("Done")
+        .accessibilityHint("Stop choosing sets")
+        .accessibilityIdentifier("selectionDone")
+    }
+
+    private var selectionCount: some View {
+        let count: Int = selected.count
+        let text: String = count == 0 ? "Select sets" : "\(count) selected"
+        return Text(text)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+    }
+
+    /// Whether the selection holds any questions to mix into one quiz.
+    var canMixQuiz: Bool {
+        selectedSets.contains { $0.kind == .mcq && !$0.questions.isEmpty }
+    }
+
+    /// Every selected set into a folder.
+    func moveSelected(to folderId: UUID?) {
+        for id in selected { store.move(id, to: folderId) }
+        withAnimation(.snappy) { selecting = false; selected = [] }
+    }
+
+    /// Move, Quiz, Combine, then Delete - with their names, or as symbols
+    /// alone when the names do not fit.
+    private func selectionActions(compact: Bool) -> some View {
+        HStack(spacing: 6) {
+            moveMenu(compact: compact)
+            quizButton(compact: compact)
+            combineButton(compact: compact)
+            deleteSelectedButton(compact: compact)
+        }
+    }
+
+    private func moveMenu(compact: Bool) -> some View {
+        Menu {
+            ForEach(store.folders) { folder in
+                Button(folder.name, systemImage: "folder") { moveSelected(to: folder.id) }
+            }
+            Button("New folder\u{2026}", systemImage: "folder.badge.plus") { naming = .folder }
+        } label: {
+            ActionLabel(title: "Move", symbol: "folder", compact: compact)
+        }
+        .buttonStyle(.glass)
+        .disabled(selected.isEmpty)
+    }
+
+    private func quizButton(compact: Bool) -> some View {
+        Button { startMixedQuiz() } label: {
+            ActionLabel(title: "Quiz", symbol: "shuffle", compact: compact)
+        }
+        .buttonStyle(.glass)
+        .disabled(!canMixQuiz)
+    }
+
+    private func combineButton(compact: Bool) -> some View {
+        Button { naming = .combine } label: {
+            ActionLabel(title: "Combine", symbol: "square.stack.3d.down.forward", compact: compact)
+        }
+        .buttonStyle(.glassProminent)
+        .disabled(!canCombine)
+    }
+
+    /// Last, at the trailing end, away from Combine's glow by the bar's own
+    /// order; it asks first unless "Ask before deleting a set" is off.
+    private func deleteSelectedButton(compact: Bool) -> some View {
+        Button(role: .destructive) { delete(Array(selected)) } label: {
+            ActionLabel(title: "Delete", symbol: "trash", compact: compact)
+                .foregroundStyle(.red)
+        }
+        .buttonStyle(.glass)
+        .disabled(selected.isEmpty)
     }
 
     func setRow(_ set: StudySet) -> some View {
         let due = set.kind == .anki ? reviews.dueCount(for: set.cards) : 0
+        let plural: String = set.itemCount == 1 ? "" : "s"
+        let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"
         return HStack(spacing: 16) {
             ModeTile(kind: set.kind)
             VStack(alignment: .leading, spacing: 3) {
@@ -344,7 +462,7 @@ extension LibraryView {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Text("\u{00b7}").foregroundStyle(.tertiary)
-                    Text("\(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")")
+                    Text(amount)
                         .font(.caption).foregroundStyle(.secondary)
                     if !set.subject.isEmpty && set.subject != "General" {
                         Text("\u{00b7}").foregroundStyle(.tertiary)
@@ -367,6 +485,39 @@ extension LibraryView {
         .contentShape(Rectangle())
     }
 
+    /// The ellipsis at the end of a row: rename, turn into, export, delete -
+    /// the same menu holding the row opens, in plain sight. Not shown while
+    /// ticking sets.
+    private func rowMoreMenu(_ set: StudySet) -> some View {
+        let spoken: String = "More for \(set.name)"
+        return Menu {
+            rowMenu(set)
+        } label: {
+            moreMenuFace
+        }
+        // its own control inside the row, not a tap on the row
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .contentShape(.hoverEffect, Circle())
+        .hoverEffect(.highlight)
+        .accessibilityLabel(spoken)
+    }
+
+    /// The face of a "more" menu - a row's, a folder's: an ellipsis on a
+    /// small glass disc that stands a little out of the glass like any other
+    /// control, inside a 44-point target.
+    var moreMenuFace: some View {
+        let disc = Circle()
+        return Image(systemName: "ellipsis")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.primary)
+            .frame(width: 34, height: 34)
+            .glassEffect(.regular.interactive(), in: disc)
+            .popOut(.raised, in: disc)
+            .frame(width: 44, height: 44)
+            .contentShape(disc)
+    }
+
     /// An empty library: what the app does in one sentence, one big button
     /// to start, and two quiet links for anyone who wants to look around
     /// first. A card at the top of the page rather than the whole page, so
@@ -375,8 +526,7 @@ extension LibraryView {
         VStack(spacing: 14) {
             HStack(spacing: -10) {
                 ForEach([StudySetKind.mcq, .anki, .qa], id: \.self) { kind in
-                    ModeTile(kind: kind, size: 52)
-                        .rotationEffect(.degrees(kind == .anki ? 0 : (kind == .mcq ? -10 : 10)))
+                    fannedTile(kind)
                 }
             }
             .accessibilityHidden(true)
@@ -391,6 +541,8 @@ extension LibraryView {
                     .frame(maxWidth: 280, minHeight: 44)
             }
             .buttonStyle(.glassProminent)
+            .popOut(.hero, in: Capsule(), tint: .accentColor)
+            .keyboardShortcut("n", modifiers: .command)
             .accessibilityHint("Make questions or cards from a lecture")
             .accessibilityIdentifier("newSetButton")
             // the rest of the app is there from the start, not only once
@@ -400,7 +552,7 @@ extension LibraryView {
                     Label("Your lectures", systemImage: "doc.richtext")
                 }
                 Button { support = .help } label: {
-                    Label("How it works", systemImage: "lightbulb")
+                    Label("How it works", systemImage: "questionmark.app")
                 }
             }
             .font(.subheadline)
@@ -409,5 +561,63 @@ extension LibraryView {
         }
         .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
+    }
+
+    /// One of the empty library's three fanned tiles, each at its own height
+    /// out of the glass, so the fan reads as three cards held up in the air.
+    ///
+    /// Lifted before it is turned, so the slab side and the sheen are turned
+    /// with the tile and stay the tile's own shape.
+    private func fannedTile(_ kind: StudySetKind) -> some View {
+        let corner: CGFloat = 52 * 0.28
+        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+        let plane: PopOutPlane = LibraryView.fanPlane(kind)
+        let angle: Double = LibraryView.fanAngle(kind)
+        let layer: Double = Double(plane.rawValue)
+        return ModeTile(kind: kind, size: 52)
+            .popOut(plane, in: shape)
+            .rotationEffect(.degrees(angle))
+            // drawn in the order of their heights, so a higher tile is never
+            // covered by a lower one where they overlap
+            .zIndex(layer)
+    }
+
+    /// The fan: questions to the left, cards upright in the middle, cases to
+    /// the right.
+    static func fanAngle(_ kind: StudySetKind) -> Double {
+        switch kind {
+        case .anki: return 0
+        case .mcq: return -10
+        default: return 10
+        }
+    }
+
+    /// The middle tile highest, the right one next, the left one lowest.
+    static func fanPlane(_ kind: StudySetKind) -> PopOutPlane {
+        switch kind {
+        case .anki: return .hero
+        case .qa: return .floating
+        default: return .raised
+        }
+    }
+}
+
+/// A selection bar action's face: its name and symbol, or the symbol alone
+/// (still named for VoiceOver), at least 44 points tall with the glass.
+private struct ActionLabel: View {
+    let title: String
+    let symbol: String
+    let compact: Bool
+
+    var body: some View {
+        if compact {
+            Label(title, systemImage: symbol)
+                .labelStyle(.iconOnly)
+                .frame(minWidth: 22, minHeight: 30)
+        } else {
+            Label(title, systemImage: symbol)
+                .lineLimit(1)
+                .frame(minHeight: 30)
+        }
     }
 }

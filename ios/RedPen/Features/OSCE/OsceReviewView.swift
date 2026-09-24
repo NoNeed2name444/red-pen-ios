@@ -9,6 +9,7 @@ import SwiftUI
 struct OsceReviewView: View {
     let studySet: StudySet
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var llm: LocalLLMService
     /// The station being practised aloud with a spoken patient, while open.
@@ -80,6 +81,8 @@ struct OsceReviewView: View {
             }
             .environmentObject(store)
             .environmentObject(llm)
+            // a voice screen: the camera stays off while it listens
+            .popOutFacePaused()
         }
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
@@ -145,15 +148,18 @@ struct OsceReviewView: View {
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(ink)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .liquidGlassChip()
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Station clock, \(left / 60) minutes \(left % 60) seconds")
                 .accessibilityHint(running ? "Pauses the clock" : (left == 0 ? "Resets the clock" : "Starts the clock"))
             }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .contentShape(Capsule())
+            .liquidGlassChip(plane: .raised)
         }
         .buttonStyle(.plain)
+        .contentShape(.hoverEffect, Capsule())
+        .hoverEffect(.highlight)
     }
 
     private func secondsLeft(at date: Date) -> Int {
@@ -203,7 +209,6 @@ struct OsceReviewView: View {
 
     // MARK: step
 
-    @ViewBuilder
     private func stepBody(_ checklist: OsceChecklist) -> some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -215,7 +220,7 @@ struct OsceReviewView: View {
                         .contentCard()
                         .transition(.scale(scale: 0.96).combined(with: .opacity))
                 } else {
-                    Text(inRepeat ? "You missed this one. What was step \(currentStepIdx + 1)? Say it out loud, then tap Reveal." : "What comes next? Say it out loud, then tap Reveal.")
+                    Text(promptLine)
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -232,73 +237,108 @@ struct OsceReviewView: View {
             .padding(.bottom, 12)
             .readableColumn()
         }
-        footer
+        .studyBar { footer }
     }
 
-    /// Reveal; then "Missed it" beside the big "Knew it", in the same place.
-    private var footer: some View {
-        StudyActionBar {
-            if revealed {
-                HStack(spacing: 12) {
-                    Button { grade(knewIt: false) } label: {
-                        Label("Missed it", systemImage: "xmark")
-                    }
-                    .buttonStyle(.bigSecondary)
-                    .accessibilityHint("It comes round again at the end")
+    private var promptLine: String {
+        if inRepeat {
+            return "You missed this one. What was step \(currentStepIdx + 1)? Say it out loud, then tap Reveal."
+        }
+        return "What comes next? Say it out loud, then tap Reveal."
+    }
 
-                    Button { grade(knewIt: true) } label: {
-                        Label("Knew it", systemImage: "checkmark")
-                    }
-                    .buttonStyle(.bigPrimary)
-                    .keyboardShortcut(.return, modifiers: [])
+    /// Reveal; then "Missed it" beside the big "Knew it", in the same place -
+    /// on a wide iPad, Missed under the left hand and Knew under the right.
+    @ViewBuilder
+    private var footer: some View {
+        if revealed {
+            HStack(spacing: 12) {
+                Button { grade(knewIt: false) } label: {
+                    Label("Missed it", systemImage: "xmark")
                 }
-            } else {
-                Button { withAnimation(.snappy) { revealed = true } } label: {
-                    Label("Reveal", systemImage: "eye")
+                .buttonStyle(.bigSecondary)
+                .keyboardShortcut("m", modifiers: [])
+                .accessibilityHint("It comes round again at the end")
+
+                if span == .broad { Spacer(minLength: 16) }
+
+                Button { grade(knewIt: true) } label: {
+                    Label("Knew it", systemImage: "checkmark")
                 }
                 .buttonStyle(.bigPrimary)
-                .keyboardShortcut(.space, modifiers: [])
+                .keyboardShortcut(.return, modifiers: [])
             }
+        } else {
+            Button { withAnimation(.snappy) { revealed = true } } label: {
+                Label("Reveal", systemImage: "eye")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
         }
     }
 
     // MARK: complete
 
     /// The finish: how many steps came back first time, large, and one big
-    /// button - on to the next station, or Done.
+    /// button - on to the next station, named in the message, or Done. Under
+    /// the result, the same station practised aloud with a spoken patient.
     private func completeBody(_ checklist: OsceChecklist) -> some View {
-        let hasNext = checklistIndex < checklists.count - 1
-        let total = checklist.steps.count
-        let missedCount = missed.count
+        let hasNext: Bool = checklistIndex < checklists.count - 1
+        let total: Int = checklist.steps.count
+        let missedCount: Int = missed.count
         let title: String = "\(total - missedCount) of \(total) first time"
-        let message: String
-        if missedCount == 0 {
-            message = hasNext ? "You recalled every step of \(checklist.title)." : "You recalled every step. All stations done!"
-        } else {
-            message = "The \(missedCount) you missed came round again."
-                + (hasNext ? "" : " All stations done!")
-        }
-        return VStack(spacing: 0) {
-            ScrollView {
+        let message: String = completeMessage(checklist, missedCount: missedCount)
+        return ScrollView {
+            VStack(spacing: 16) {
                 FinishHero(symbol: "checkmark.seal.fill", title: title, message: message)
-                    .padding(.top, 16)
-                    .readableColumn()
-            }
-            StudyActionBar {
-                if hasNext {
-                    Button { nextChecklist() } label: {
-                        Label("Next station: \(checklists[checklistIndex + 1].title)", systemImage: "arrow.right")
-                    }
-                    .buttonStyle(.bigPrimary)
-                    .keyboardShortcut(.return, modifiers: [])
-                    Button("Done for now") { dismiss() }
-                        .buttonStyle(.bigSecondary)
-                } else {
-                    Button("Done") { dismiss() }
-                        .buttonStyle(.bigPrimary)
-                        .keyboardShortcut(.return, modifiers: [])
+                Button { spoken = checklist } label: {
+                    Label("Practise it with a spoken patient", systemImage: "person.wave.2")
                 }
+                .buttonStyle(.bigSecondary)
+                .accessibilityHint("Runs this station out loud, with a patient who answers")
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .studyBar { completeButtons(hasNext: hasNext) }
+    }
+
+    /// What the result means, and where the student goes from here.
+    private func completeMessage(_ checklist: OsceChecklist, missedCount: Int) -> String {
+        let recall: String
+        if missedCount == 0 {
+            recall = "You recalled every step of \(checklist.title)."
+        } else {
+            recall = "The \(missedCount) you missed came round again."
+        }
+        let nextIndex: Int = checklistIndex + 1
+        guard checklists.indices.contains(nextIndex) else {
+            return recall + " All stations done!"
+        }
+        let nextTitle: String = checklists[nextIndex].title
+        return recall + " Next up: \(nextTitle)."
+    }
+
+    /// Done for now beside the big Next station; or Done alone at the end.
+    @ViewBuilder
+    private func completeButtons(hasNext: Bool) -> some View {
+        if hasNext {
+            HStack(spacing: 12) {
+                Button("Done for now") { dismiss() }
+                    .buttonStyle(.bigCompanion)
+                if span == .broad { Spacer(minLength: 16) }
+                Button { nextChecklist() } label: {
+                    Label("Next station", systemImage: "arrow.right")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
+            }
+        } else {
+            Button("Done") { dismiss() }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
         }
     }
 

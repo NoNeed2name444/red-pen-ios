@@ -74,13 +74,18 @@ struct NarrateLine: View, Equatable {
         let words: [String] = text.split(separator: " ").map(String.init)
         let ink: Color = current ? tint : Color.primary
         let lit: Color = current ? tint.opacity(0.14) : Color.clear
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
                 word(words[w], at: w, ink: ink)
             }
         }
         .padding(.vertical, 6).padding(.horizontal, 8)
-        .background(lit, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(lit, in: shape)
+        // a pointer lights the whole line, which is what a click jumps to;
+        // one modifier per line, not one per word
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.highlight)
         .animation(.easeInOut(duration: 0.2), value: current)
         .environment(\.layoutDirection, rtl ? .rightToLeft : .leftToRight)
         .onGeometryChange(for: CGRect.self) { proxy in

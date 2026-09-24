@@ -142,136 +142,140 @@ struct NewSetView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    stepHeader
+            form
+                .scrollContentBackground(.hidden)
+                .floatingAction(id: "create", title: saveTitle, symbol: "checkmark",
+                                enabled: canCreate, run: create)
+                // the one bottom container: Back and the step's main button,
+                // or the progress card while something is being written
+                .safeAreaInset(edge: .bottom, spacing: 0) { dock }
+                .onDisappear {
+                    FloatingAction.shared.clear()
+                    // closing New set stops what it started, so nothing keeps
+                    // running unseen or turns up as a stray card next time
+                    GenerationCenter.shared.cancel()
                 }
-                .listRowBackground(Color.clear)
-
-                if step == .kind {
-                    Section { modeGrid }
-                }
-                if step == .material {
-                    Section { pathPicker }
-                }
-                if step == .make {
-                    nameSection
-                }
-
-                material
-
-                if step == .make && showsCreate {
-                    createSection
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .floatingAction(id: "create", title: "Save \(kind.label) set", symbol: "checkmark",
-                            enabled: canCreate, run: create)
-            .floatingActionBar(expecting: floatingID)
-            .safeAreaInset(edge: .bottom, spacing: 0) { nextBar }
-            .onDisappear {
-                FloatingAction.shared.clear()
-                // closing New set stops what it started, so nothing keeps
-                // running unseen or turns up as a stray card next time
-                GenerationCenter.shared.cancel()
-            }
-            .interactiveDismissDisabled(generation.job != nil)
-            .background(ModeBackdrop(kind: kind))
-            .navigationTitle("New set")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                if step == .make && showsCreate {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") { create() }.disabled(!canCreate)
+                .interactiveDismissDisabled(generation.job != nil)
+                .background(ModeBackdrop(kind: kind))
+                // the chosen kind's colour, for the big buttons at the bottom
+                // as much as for the backdrop
+                .tint(kind.tint)
+                .environment(\.modeTint, kind.tint)
+                .navigationTitle("New set")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                            .keyboardShortcut(.cancelAction)
                     }
                 }
-            }
-            .onChange(of: kind) { _, now in
-                if !Self.paths(for: now).contains(path) { path = Self.paths(for: now)[0] }
-                // each mode's draft is in its own format: Anki lines are not
-                // textbook pages, so a draft never carries over to another mode
-                GenerationCenter.shared.cancel()
-                bodyText = ""
-                bookFigures = []
-                diagrams = DiagramCards()
-            }
-            .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
-                handleImport(result)
-            }
-            .fullScreenCover(item: $generatedSet) { set in
-                NavigationStack {
-                    MCQQuizView(set: set, isUnsaved: true, saved: $generatedSetSaved,
-                                onSave: { store.addSet(set) })
+                .onChange(of: kind) { _, now in
+                    if !Self.paths(for: now).contains(path) { path = Self.paths(for: now)[0] }
+                    // each mode's draft is in its own format: Anki lines are not
+                    // textbook pages, so a draft never carries over to another mode
+                    GenerationCenter.shared.cancel()
+                    bodyText = ""
+                    bookFigures = []
+                    diagrams = DiagramCards()
                 }
+                .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
+                    handleImport(result)
+                }
+                .fullScreenCover(item: $generatedSet) { set in
+                    NavigationStack {
+                        MCQQuizView(set: set, isUnsaved: true, saved: $generatedSetSaved,
+                                    onSave: { store.addSet(set) })
+                    }
+                }
+        }
+    }
+
+    /// Only the step you are on, and the material for the chosen path.
+    private var form: some View {
+        Form {
+            Section {
+                stepHeader
+            }
+            .listRowBackground(Color.clear)
+
+            if step == .kind {
+                Section { modeGrid }
+            }
+            if step == .material {
+                Section { pathPicker }
+            }
+            if step == .make {
+                nameSection
+            }
+
+            material
+
+            if step == .make && showsCreate {
+                createSection
             }
         }
-        // the floating progress card, over the whole sheet
-        .generationHUD()
     }
+
+    private var saveTitle: String { "Save \(kind.label) set" }
 
     // MARK: moving between the steps
 
-    /// "1 Choose — 2 Add — 3 Make", the step's question, and Back.
+    /// "1 Choose — 2 Add — 3 Make" and the step's question. A step already
+    /// done is a button back to it; Back itself is at the bottom, under the
+    /// thumb.
     private var stepHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 ForEach(NewSetStep.allCases) { one in
                     stepDot(one)
                     if one != .make {
-                        Capsule()
-                            .fill(one < step ? kind.tint : Color.secondary.opacity(0.25))
-                            .frame(height: 2)
+                        stepLink(after: one)
                     }
                 }
             }
-            .accessibilityElement(children: .ignore)
+            .accessibilityElement(children: .contain)
             .accessibilityLabel("Step \(step.rawValue) of 3")
-            HStack(alignment: .firstTextBaseline) {
-                Text(step.question).font(.title2.weight(.bold))
-                Spacer(minLength: 8)
-                if step != .kind {
-                    Button { goBack() } label: {
-                        Label("Back", systemImage: "chevron.left")
-                            .font(.body.weight(.semibold))
-                            .frame(minHeight: 44)
-                    }
-                    .buttonStyle(.borderless)
-                    // leaving the step while it is writing would lose sight
-                    // of the work, so Back waits for it
-                    .disabled(generation.job != nil)
-                    .accessibilityIdentifier("newSetBack")
-                }
-            }
+            Text(step.question)
+                .font(.title2.weight(.bold))
+                .accessibilityAddTraits(.isHeader)
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
+    private func stepLink(after one: NewSetStep) -> some View {
+        let passed: Bool = one < step
+        let fill: Color = passed ? kind.tint : Color.secondary.opacity(0.25)
+        return Capsule()
+            .fill(fill)
+            .frame(height: 2)
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
     private func stepDot(_ one: NewSetStep) -> some View {
-        let reached = one <= step
-        return HStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(reached ? kind.tint : Color.secondary.opacity(0.2))
-                    .frame(width: 28, height: 28)
-                if one < step {
-                    Image(systemName: "checkmark").font(.caption.weight(.bold)).foregroundStyle(.white)
-                } else {
-                    Text("\(one.rawValue)")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(reached ? Color.white : Color.secondary)
-                }
-            }
-            Text(one.short)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(one == step ? Color.primary : Color.secondary)
-                .fixedSize()
+        let dot = NewSetStepDot(one: one, current: step, tint: kind.tint)
+        if one < step {
+            let spoken: String = "Back to step \(one.rawValue), \(one.short)"
+            // borderless, so in a Form row only the dot takes the tap
+            Button { goTo(one) } label: { dot }
+                .buttonStyle(.borderless)
+                .hoverEffect(.highlight)
+                // the step being written stays in sight until it is done
+                .disabled(generation.job != nil)
+                .accessibilityLabel(spoken)
+        } else {
+            dot
         }
     }
 
     private func goBack() {
         guard let before = NewSetStep(rawValue: step.rawValue - 1) else { return }
         withAnimation(.snappy) { step = before }
+    }
+
+    private func goTo(_ earlier: NewSetStep) {
+        guard earlier < step else { return }
+        withAnimation(.snappy) { step = earlier }
     }
 
     private func goForward() {
@@ -283,29 +287,29 @@ struct NewSetView: View {
         withAnimation(.snappy) { step = next }
     }
 
-    /// The big Next at the foot of step 2. Step 1 needs none - tapping a kind
-    /// moves on by itself - and step 3's big button is Make.
-    @ViewBuilder
-    private var nextBar: some View {
-        if step == .material && path != .importFile {
-            VStack(spacing: 4) {
-                Button { goForward() } label: {
-                    Label("Next", systemImage: "arrow.right")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canGoOn)
-                .accessibilityIdentifier("newSetNext")
-                if !canGoOn {
-                    Text(path == .type ? "Type or paste something first" : "Add a lecture file or paste your notes first")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: 560)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+    /// The bottom slab: Back at the leading end, and at the trailing end
+    /// Next on step 2 (or the file picker for a saved set), then on step 3
+    /// the floating copy of Make or Save while the real one is scrolled away.
+    private var dock: some View {
+        NewSetDock(step: step, primary: dockPrimary, hint: dockHint,
+                   back: goBack, next: goForward, chooseSaved: { showImporter = true })
+    }
+
+    private var dockPrimary: NewSetDockPrimary {
+        switch step {
+        case .kind: return .floating(nil)
+        case .material:
+            if path == .importFile { return .chooseSaved }
+            return .next(ready: canGoOn)
+        case .make: return .floating(floatingID)
         }
+    }
+
+    /// Why Next is greyed out, in the slab above it.
+    private var dockHint: String? {
+        guard step == .material, path != .importFile, !canGoOn else { return nil }
+        if path == .type { return "Type or paste something first" }
+        return "Add a lecture file or paste your notes first"
     }
 
     /// Whether step 2 has something to go on with. The lecture sections for
@@ -325,7 +329,7 @@ struct NewSetView: View {
     // MARK: the three choices
 
     private var modeGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 12)], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
             ForEach(StudySetKind.allCases) { option in
                 modeTile(option)
             }
@@ -334,10 +338,15 @@ struct NewSetView: View {
         .listRowBackground(Color.clear)
     }
 
-    /// One kind of set, as a big tile. Tapping it chooses it and moves on.
+    /// One kind of set, as a big tile standing out of the glass; the chosen
+    /// one stands higher. Tapping it chooses it and moves on.
     private func modeTile(_ option: StudySetKind) -> some View {
-        let chosen = kind == option
+        let chosen: Bool = kind == option
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let plane: PopOutPlane = chosen ? .floating : .raised
+        let fill: AnyShapeStyle = Self.tileFill(chosen: chosen, tint: option.tint)
+        let edge: Color = chosen ? option.tint : Color.clear
+        let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button {
             withAnimation(.snappy) {
                 kind = option
@@ -359,12 +368,18 @@ struct NewSetView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .background(chosen ? AnyShapeStyle(option.tint.opacity(0.12)) : AnyShapeStyle(.regularMaterial), in: shape)
-            .overlay(shape.strokeBorder(chosen ? option.tint : .clear, lineWidth: 2))
+            .background(fill, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: 2))
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(chosen ? .isSelected : [])
+        .buttonStyle(PopTileStyle(cornerRadius: 16, plane: plane))
+        .accessibilityAddTraits(traits)
+    }
+
+    /// A chosen tile is washed in its colour; the others are frosted.
+    private static func tileFill(chosen: Bool, tint: Color) -> AnyShapeStyle {
+        if chosen { return AnyShapeStyle(tint.opacity(0.12)) }
+        return AnyShapeStyle(.regularMaterial)
     }
 
     private var pathPicker: some View {
@@ -378,39 +393,46 @@ struct NewSetView: View {
     }
 
     private func pathTile(_ option: Path) -> some View {
-        let chosen = path == option
+        let chosen: Bool = path == option
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let plane: PopOutPlane = chosen ? .floating : .raised
+        let fill: AnyShapeStyle = Self.tileFill(chosen: chosen, tint: kind.tint)
+        let edge: Color = chosen ? kind.tint : Color.clear
+        let ink: Color = chosen ? kind.tint : Color.secondary
+        let mark: String = chosen ? "checkmark.circle.fill" : "circle"
+        let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button { withAnimation(.snappy) { path = option } } label: {
             HStack(spacing: 16) {
                 Image(systemName: option.symbol)
                     .font(.title2)
                     .frame(width: 32)
-                    .foregroundStyle(chosen ? kind.tint : Color.secondary)
+                    .foregroundStyle(ink)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(option.title).font(.headline)
                     Text(option.blurb).font(.subheadline).foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: chosen ? "checkmark.circle.fill" : "circle")
+                Image(systemName: mark)
                     .font(.title3)
-                    .foregroundStyle(chosen ? kind.tint : Color.secondary)
+                    .foregroundStyle(ink)
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-            .background(chosen ? AnyShapeStyle(kind.tint.opacity(0.12)) : AnyShapeStyle(.regularMaterial), in: shape)
-            .overlay(shape.strokeBorder(chosen ? kind.tint : .clear, lineWidth: 2))
+            .background(fill, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: 2))
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(chosen ? .isSelected : [])
+        .buttonStyle(PopTileStyle(cornerRadius: 16, plane: plane))
+        .accessibilityAddTraits(traits)
     }
 
     private var nameSection: some View {
         Section {
+            // the main field of New set: its own slab, standing out of the glass
             TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))
                 .font(.body)
-                .frame(minHeight: 44)
+                .popFieldRow()
         } header: {
             Text("Name your set")
         }
@@ -507,19 +529,21 @@ struct NewSetView: View {
         case .type:
             if step == .material { draftSection(title: "Type or paste") }
         case .importFile:
-            if step == .material {
-                Section {
-                    Button { showImporter = true } label: {
-                        Label("Choose a saved set", systemImage: "square.and.arrow.down")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                    }
-                    .buttonStyle(.glassProminent)
-                } footer: {
-                    Text(importError ?? "A .json set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. It goes straight into your library.")
-                        .foregroundStyle(importError == nil ? Color.secondary : Color.red)
-                }
-            }
+            if step == .material { importSection }
+        }
+    }
+
+    /// A shared set: what it can be, or why the chosen file could not be
+    /// read. The button that picks it is at the bottom, under the thumb.
+    private var importSection: some View {
+        let plain: String = "A .json set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. Choose it below \u{2014} it goes straight into your library."
+        let message: String = importError ?? plain
+        let ink: Color = importError == nil ? Color.secondary : Color.red
+        let symbol: String = importError == nil ? "square.and.arrow.down" : "exclamationmark.triangle"
+        return Section {
+            Label(message, systemImage: symbol)
+                .font(.footnote)
+                .foregroundStyle(ink)
         }
     }
 
@@ -530,16 +554,19 @@ struct NewSetView: View {
         Section {
             if !usesWriter {
                 DisclosureGroup("More options") {
+                    // a slab inside its cell: the rows around it stay cells
                     TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                        .popField()
                 }
             }
+            // the hero slab, the same as its floating copy in the dock
             Button { create() } label: {
-                Label("Save \(kind.label) set", systemImage: "checkmark")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                Label(saveTitle, systemImage: "checkmark")
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.bigPrimary)
             .disabled(!canCreate)
+            .keyboardShortcut("s", modifiers: .command)
+            .frame(maxWidth: .infinity)
             .floatingActionAnchor("create")
         } footer: {
             Text(readiness)
@@ -554,13 +581,15 @@ struct NewSetView: View {
 
     private func draftSection(title: String) -> some View {
         Section {
-            TextEditor(text: $bodyText)
-                .frame(minHeight: 180)
-                .font(.system(.footnote, design: .monospaced))
+            // what each line needs, before the box it goes in
             DisclosureGroup("How to lay it out", isExpanded: $showFormat) {
                 Text(formatHelp(for: kind))
                     .font(.caption).foregroundStyle(.secondary)
             }
+            TextEditor(text: $bodyText)
+                .frame(minHeight: 180)
+                .font(.system(.footnote, design: .monospaced))
+                .popEditor()
         } header: {
             Text(title)
         }
@@ -588,8 +617,13 @@ struct NewSetView: View {
     private var itemCount: Int {
         switch kind {
         case .mcq: return PlainTextImport.parseMCQ(bodyText).count
-        case .anki: return PlainTextImport.parseAnkiQA(bodyText).count + (diagrams.included ? diagrams.cards.count : 0)
-        case .book: return bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : BookPages.split(bodyText).count
+        case .anki:
+            let written: Int = PlainTextImport.parseAnkiQA(bodyText).count
+            let pictures: Int = diagrams.included ? diagrams.cards.count : 0
+            return written + pictures
+        case .book:
+            if bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return 0 }
+            return BookPages.split(bodyText).count
         case .qa: return PlainTextImport.parseQA(bodyText).count
         case .osce: return PlainTextImport.parseOsce(bodyText).count
         case .narrate: return PlainTextImport.parseNarrate(bodyText).count
@@ -610,9 +644,11 @@ struct NewSetView: View {
         case .osce: noun = "station"
         case .narrate: noun = "line"
         }
-        if count == 0 { return "Nothing readable yet \u{2014} open \u{201C}How to lay it out\u{201D} to see what each line needs each line needs." }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "\(count) \(noun)\(count == 1 ? "" : "s") ready. Give the set a name to save it." }
-        return "\(count) \(noun)\(count == 1 ? "" : "s") ready."
+        if count == 0 { return "Nothing readable yet \u{2014} open \u{201C}How to lay it out\u{201D} to see what each line needs." }
+        let plural: String = count == 1 ? "" : "s"
+        let ready: String = "\(count) \(noun)\(plural) ready."
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return ready + " Give the set a name to save it." }
+        return ready
     }
 
     private func create() {

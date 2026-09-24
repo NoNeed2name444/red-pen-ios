@@ -65,6 +65,9 @@ struct SpokenPatientsView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        // one comfortable column on a wide iPad
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
         .background(AppBackdrop(tint: StudySetKind.osce.tint))
         .navigationTitle("Talking patient")
         .navigationBarTitleDisplayMode(.inline)
@@ -140,6 +143,9 @@ struct DrawPracticeView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        // one comfortable column on a wide iPad
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
         .background(AppBackdrop(tint: StudySetKind.anki.tint))
         .navigationTitle("Draw from memory")
         .navigationBarTitleDisplayMode(.inline)

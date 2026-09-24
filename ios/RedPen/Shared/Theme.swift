@@ -31,23 +31,6 @@ extension StudySetKind {
         }
     }
 
-    /// Steps inside the mode's OWN hue, for controls that must be told apart
-    /// from one another.
-    ///
-    /// The four Anki rating buttons used to be red, orange, green and blue -
-    /// a traffic light borrowed wholesale from three other modes' identities,
-    /// sitting inside an indigo screen. Distinguishing four buttons does not
-    /// require four unrelated colours: depth inside one hue does it, and the
-    /// screen stays one colour. Anything that carries real meaning of its own
-    /// (a right answer, an error) keeps its own colour; this is for controls
-    /// that are merely different from each other.
-    func step(_ i: Int, of n: Int = 4) -> Color {
-        guard n > 1 else { return tint }
-        let t = Double(min(max(i, 0), n - 1)) / Double(n - 1)   // 0 ... 1
-        return shifted(brightness: 0.34 * (1 - t) - 0.16 * t,
-                       saturation: -0.30 * (1 - t))
-    }
-
     /// The same hue, lighter or darker, for washes and quiet states.
     func shifted(brightness: Double, saturation: Double = 0) -> Color {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -56,19 +39,6 @@ extension StudySetKind {
                      saturation: min(1, max(0, Double(s) + saturation)),
                      brightness: min(1, max(0, Double(b) + brightness)),
                      opacity: Double(a))
-    }
-
-    /// A neighbouring hue, for the second and third colours of a backdrop.
-    func hueShifted(_ dh: Double, brightness db: Double = 0) -> Color {
-        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard UIColor(tint).getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return tint }
-        var hue = Double(h) + dh
-        hue -= hue.rounded(.down)
-        return Color(hue: hue, saturation: Double(s), brightness: min(1, max(0, Double(b) + db)))
-    }
-
-    var gradient: LinearGradient {
-        LinearGradient(colors: [tint, tint.opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }
 
@@ -96,17 +66,6 @@ struct ModeTile: View {
     }
 }
 
-/// The colour a screen lives in. Once its own three-hue mesh; now a name for
-/// the one shared backdrop, led by the first hue, so every screen that still
-/// asks for it looks like every other.
-struct LivingBackdrop: View {
-    /// The hues, strongest first. Only the first is used.
-    let hues: [Color]
-    var body: some View {
-        AppBackdrop(tint: hues.first)
-    }
-}
-
 /// Each mode's screen: the shared backdrop, faintly in the mode's colour.
 struct ModeBackdrop: View {
     let kind: StudySetKind
@@ -115,40 +74,31 @@ struct ModeBackdrop: View {
     }
 }
 
-/// A row's own background: frosted, with the set's colour coming in from the
-/// leading edge, so a list reads as coloured cards rather than white strips.
-struct TintedRowBackground: View {
-    let tint: Color
-    var body: some View {
-        Rectangle()
-            .fill(.regularMaterial)
-            .overlay(LinearGradient(colors: [tint.opacity(0.20), tint.opacity(0.04)],
-                                    startPoint: .leading, endPoint: .trailing))
-    }
-}
-
 /// A content card: the reading surface each mode places its question, card
-/// or page on. Rounded, elevated a touch off the backdrop.
+/// or page on. It lies ON the glass (the screen plane): readable things never
+/// move with the pop-out, only what you can touch rises out of it. A thin
+/// contact line and a lit rim are all the depth it needs.
 struct ContentCard: ViewModifier {
     @Environment(\.modeTint) private var tint
     @Environment(\.colorScheme) private var scheme
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let washAlpha: Double = scheme == .dark ? 0.22 : 0.14
+        let wash: [Color] = [tint.opacity(washAlpha), Color.clear]
+        let rim: [Color] = [tint.opacity(0.45), Color.white.opacity(0.25), tint.opacity(0.10)]
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             // frosted, so the backdrop's colour comes through, with a wash of
             // the mode's own hue across the top
             .background(.regularMaterial, in: shape)
-            .background(LinearGradient(colors: [tint.opacity(scheme == .dark ? 0.22 : 0.14), .clear],
-                                       startPoint: .top, endPoint: .center), in: shape)
+            .background(LinearGradient(colors: wash, startPoint: .top, endPoint: .center), in: shape)
             .overlay(
-                shape.strokeBorder(LinearGradient(colors: [tint.opacity(0.45), .white.opacity(0.25), tint.opacity(0.10)],
-                                                  startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+                shape.strokeBorder(LinearGradient(colors: rim, startPoint: .topLeading, endPoint: .bottomTrailing),
+                                   lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)       // contact shadow
-            .shadow(color: tint.opacity(0.22), radius: 18, y: 10)         // coloured lift
+            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)       // contact line
     }
 }
 
@@ -231,7 +181,6 @@ struct ScoreRing: View {
                 // be the app's default.
                 .stroke(.tint, style: StrokeStyle(lineWidth: 14, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
@@ -400,6 +349,12 @@ extension View {
 /// grows with the reader's own text size setting. The quiet version is for a
 /// second choice sitting beside the main one - "Missed it" next to "Knew it",
 /// "Back" next to "Next" - so there is never any doubt which is the main one.
+///
+/// Depth: the primary is the screen's hero - it stands highest out of the
+/// glass; the quiet ones are raised, and sit flush inside a floating bar. A
+/// pressed or disabled button sinks flat onto the glass. On a wide iPad a
+/// filling button stops at 360 points, so a lone primary lands under the
+/// right hand instead of stretching across the whole window.
 struct BigButtonStyle: ButtonStyle {
     enum Weight { case primary, secondary }
     var weight: Weight = .primary
@@ -407,30 +362,70 @@ struct BigButtonStyle: ButtonStyle {
     /// room its words need, leaving the rest of the bar to the main button.
     var fills = true
 
+    func makeBody(configuration: Configuration) -> some View {
+        BigButtonFace(label: configuration.label, isPressed: configuration.isPressed,
+                      weight: weight, fills: fills)
+    }
+}
+
+private struct BigButtonFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let isPressed: Bool
+    let weight: BigButtonStyle.Weight
+    let fills: Bool
+
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.modeTint) private var tint
+    @Environment(\.windowSpan) private var span
 
-    func makeBody(configuration: Configuration) -> some View {
+    private var primary: Bool { weight == .primary }
+
+    // a button that can't be pressed yet goes grey, rather than staying the
+    // screen's colour a little fainter, so "not yet" is unmistakable
+    private var fill: Color {
+        if !isEnabled { return Color.primary.opacity(0.08) }
+        if primary { return tint }
+        return tint.opacity(0.14)
+    }
+
+    private var ink: Color {
+        if !isEnabled { return Color.secondary }
+        if primary { return Color.white }
+        return tint
+    }
+
+    private var edge: Color {
+        if primary || !isEnabled { return Color.clear }
+        return tint.opacity(0.35)
+    }
+
+    private var maxWidth: CGFloat? {
+        if !fills { return nil }
+        if span == .broad { return 360 }
+        return CGFloat.infinity
+    }
+
+    var body: some View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-        let primary = weight == .primary
-        // a button that can't be pressed yet goes grey, rather than staying
-        // the screen's colour a little fainter, so "not yet" is unmistakable
-        let fill: Color = !isEnabled ? Color.primary.opacity(0.08)
-            : (primary ? tint : tint.opacity(0.14))
-        let ink: Color = !isEnabled ? Color.secondary : (primary ? Color.white : tint)
-        let edge: Color = primary || !isEnabled ? Color.clear : tint.opacity(0.35)
-        return configuration.label
+        let plane: PopOutPlane = primary ? .hero : .raised
+        let slabTint: Color? = primary && isEnabled ? tint : nil
+        let sunk: Bool = isPressed || !isEnabled
+        let scale: CGFloat = isPressed ? 0.97 : 1
+        label
             .font(.headline)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .frame(minWidth: 56, maxWidth: fills ? CGFloat.infinity : nil, minHeight: 56)
+            .frame(minWidth: 56, maxWidth: maxWidth, minHeight: 56)
             .background(fill, in: shape)
             .overlay(shape.strokeBorder(edge, lineWidth: 1))
             .contentShape(shape)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(scale)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+            .popOut(plane, in: shape, tint: slabTint, pressed: sunk)
+            .contentShape(.hoverEffect, shape)
+            .hoverEffect(.lift)
     }
 }
 
@@ -445,29 +440,44 @@ extension ButtonStyle where Self == BigButtonStyle {
 
 /// The bar across the bottom of a study screen, where the thumb rests.
 ///
-/// It holds the screen's main button and, now and then, a small companion
-/// beside it. Always at the bottom and always the same height, so the next
-/// step is in the same place on every screen.
+/// A floating slab of glass that stands out of the screen, holding the
+/// screen's main button and, now and then, a small companion beside it.
+/// Always at the bottom, so the next step is in the same place on every
+/// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
+/// still works as the last child of a VStack.
+///
+/// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
+/// under the right hand.
 struct StudyActionBar<Content: View>: View {
     private let content: Content
+    @Environment(\.windowSpan) private var span
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
     var body: some View {
+        let broad: Bool = span == .broad
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        let innerCap: CGFloat? = broad ? nil : 700
+        let outerCap: CGFloat = broad ? 1000 : 700
+        let side: Alignment = broad ? .trailing : .center
         VStack(spacing: 12) { content }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 12)
-            .frame(maxWidth: 700)
+            .padding(12)
+            .frame(maxWidth: innerCap)
+            .liquidGlassPanel(cornerRadius: 28)
+            .popOut(.floating, in: shape)
+            .frame(maxWidth: outerCap, alignment: side)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
-            .background(.bar)
-            .overlay(alignment: .top) { Divider() }
     }
 }
 
 /// The top of a study screen: where you are, and how far there is to go.
+///
+/// A thin raised slab: it stands a little out of the glass, above the
+/// content that scrolls beneath it.
 ///
 /// `status` is the one thing to read ("3 of 20"); `detail` is a quieter second
 /// fact ("2 right"); the bar underneath shows the same thing as a length.
@@ -488,6 +498,7 @@ struct StudyProgressHeader<Accessory: View>: View {
     }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -512,10 +523,15 @@ struct StudyProgressHeader<Accessory: View>: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: 700)
+        // frosted rather than glass, so the glass chips in `accessory` are
+        // not glass on glass
+        .background(.regularMaterial, in: shape)
+        .popOut(.raised, in: shape)
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
         .frame(maxWidth: .infinity)
     }
 }
@@ -557,7 +573,10 @@ struct FinishHero<Graphic: View>: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            // the result stands a touch out of the screen and leans with the
+            // tilt; it is not pressable, so no slab or sheen
             graphic
+                .popOut(.raised, in: Circle(), cues: [.lean])
             Text(title)
                 .font(.title.weight(.bold))
                 .multilineTextAlignment(.center)

@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// A category's tiles: its modes above the sets, then every way to practise
-/// them and the tools, each under a small heading, and at the very bottom the
-/// pages that belong to every category.
+/// A category's tiles: its modes above the sets (where it has more than one),
+/// then every way to practise them and the tools, each under a small heading,
+/// and at the very bottom the pages that belong to every category.
+///
+/// The tiles are what you press, so they stand a little out of the glass; the
+/// rows and headings lie flat on it.
 extension LibraryView {
 
     /// Two tiles across a phone, more on a wider window.
@@ -10,7 +13,9 @@ extension LibraryView {
         [GridItem(.adaptive(minimum: 150), spacing: 12)]
     }
 
-    /// One tile per kind of set here - the modes the old dock had a tab for.
+    /// One tile per kind of set here - the modes the old dock had a tab
+    /// for. Only shown for a category with more than one kind; the library
+    /// decides.
     var modesSection: some View {
         tileSection(.modes)
     }
@@ -18,8 +23,36 @@ extension LibraryView {
     /// Ways to practise, then tools.
     @ViewBuilder
     var featureSection: some View {
-        tileSection(.practise)
+        practiseSection
         tileSection(.tools)
+    }
+
+    /// The first four ways to practise, and the rest behind "More ways to
+    /// practise", so the page is short enough to take in at a glance.
+    @ViewBuilder
+    private var practiseSection: some View {
+        let features: [CategoryFeature] = category.features(in: .practise)
+        let first: [CategoryFeature] = Array(features.prefix(4))
+        let rest: [CategoryFeature] = Array(features.dropFirst(4))
+        if !features.isEmpty {
+            Section {
+                tileGrid(first)
+                if !rest.isEmpty {
+                    DisclosureGroup(isExpanded: $morePractise) {
+                        tileGrid(rest)
+                    } label: {
+                        Text("More ways to practise")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minHeight: 44, alignment: .leading)
+                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
+            } header: {
+                CategoryHeading(title: FeatureGroup.practise.title)
+            }
+        }
     }
 
     @ViewBuilder
@@ -27,19 +60,24 @@ extension LibraryView {
         let features: [CategoryFeature] = category.features(in: group)
         if !features.isEmpty {
             Section {
-                LazyVGrid(columns: tileColumns, spacing: 12) {
-                    ForEach(features) { feature in
-                        tileButton(feature)
-                    }
-                }
-                .padding(.vertical, 4)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                tileGrid(features)
             } header: {
                 CategoryHeading(title: group.title)
             }
         }
+    }
+
+    /// Tiles two across a phone, more on a wider window, in one clear row.
+    private func tileGrid(_ features: [CategoryFeature]) -> some View {
+        LazyVGrid(columns: tileColumns, spacing: 12) {
+            ForEach(features) { feature in
+                tileButton(feature)
+            }
+        }
+        .padding(.vertical, 4)
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func tileButton(_ feature: CategoryFeature) -> some View {
@@ -47,9 +85,10 @@ extension LibraryView {
         return Button { start(feature) } label: {
             FeatureTile(feature: feature, tint: category.tint, detail: line)
         }
-        // a style of its own, so each tile in the one list row
-        // is its own button rather than the row being one
-        .buttonStyle(.pressableRow)
+        // a style of its own, so each tile in the one list row is its own
+        // button rather than the row being one; it stands out of the glass
+        // and sinks under the finger
+        .buttonStyle(.popTile)
         .accessibilityIdentifier("feature-\(feature.rawValue)")
     }
 
@@ -61,10 +100,11 @@ extension LibraryView {
         return count == 1 ? "1 set" : "\(count) sets"
     }
 
-    /// The pages about the whole app rather than one category - also behind
-    /// the gear, and here so they can be found without it.
+    /// The pages about the whole app rather than one category - also in the
+    /// account menu, and here so they can be found without it. (Ideas has
+    /// its own place in the dock.)
     var moreSection: some View {
-        let pages: [SupportPage] = [.notes, .analytics, .sources]
+        let pages: [SupportPage] = [.analytics, .sources]
         return Section {
             ForEach(pages) { page in
                 Button { support = page } label: {
@@ -82,7 +122,6 @@ extension LibraryView {
 
     private static func moreDetail(_ page: SupportPage) -> String {
         switch page {
-        case .notes: return "Idea dump, board and 3D map"
         case .analytics: return "Readiness, trends and what to do next"
         case .sources: return "Every lecture you have added"
         default: return ""
@@ -115,7 +154,8 @@ extension LibraryView {
             Spacer(minLength: 8)
             Button("Make one") { newSetKind = category.mainKind }
                 .font(.subheadline.weight(.semibold))
-                .buttonStyle(.borderless)
+                .buttonStyle(.glass)
+                .popOut(.raised, in: Capsule())
         }
         .frame(minHeight: 56)
         .frostedListRow()
@@ -143,7 +183,8 @@ extension LibraryView {
             // mode tab's empty page did
             if feature.shelfSets(store).isEmpty { newSetKind = kind } else { featurePage = feature }
         case .support(let page):
-            support = page
+            // Ideas is a place in the dock, not a pushed page
+            if page == .notes { goToIdeas() } else { support = page }
         case .addMaterial:
             addingKind = category.mainKind
         case .audioLecture:

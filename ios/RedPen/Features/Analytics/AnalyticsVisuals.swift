@@ -34,14 +34,19 @@ struct ProgressRing<Centre: View>: View {
     var spoken: String
     var size: CGFloat
     var lineWidth: CGFloat
+    /// A ring that can be pressed: it sits on a frosted disc that stands a
+    /// little out of the glass (see `RingButtonStyle`). The ring itself and
+    /// its fill never move on their own.
+    var raised: Bool
     let centre: Centre
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.ringPressed) private var pressed
     @State private var shown = false
 
     init(value: Double, total: Double = 1, segments: [RingSegment] = [], tint: Color = .accentColor,
          label: String, marker: Double? = nil, spoken: String = "", size: CGFloat = 64,
-         lineWidth: CGFloat = 7, @ViewBuilder centre: () -> Centre) {
+         lineWidth: CGFloat = 7, raised: Bool = false, @ViewBuilder centre: () -> Centre) {
         self.value = value
         self.total = total
         self.segments = segments
@@ -51,6 +56,7 @@ struct ProgressRing<Centre: View>: View {
         self.spoken = spoken
         self.size = size
         self.lineWidth = lineWidth
+        self.raised = raised
         self.centre = centre()
     }
 
@@ -113,6 +119,7 @@ struct ProgressRing<Centre: View>: View {
                 centre
             }
             .frame(width: size, height: size)
+            .modifier(RingDisc(raised: raised, pressed: pressed))
             if !label.isEmpty {
                 Text(label)
                     .font(.caption2)
@@ -132,6 +139,50 @@ struct ProgressRing<Centre: View>: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken.isEmpty ? label : "\(label), \(spoken)")
+    }
+}
+
+/// A pressable ring's disc: a frosted face under the ring, raised out of the
+/// glass, sinking flat while pressed. A plain ring is left as it is.
+private struct RingDisc: ViewModifier {
+    let raised: Bool
+    let pressed: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if raised {
+            content
+                .padding(3)
+                .background(.regularMaterial, in: Circle())
+                .popOut(.raised, in: Circle(), pressed: pressed)
+        } else {
+            content
+        }
+    }
+}
+
+private struct RingPressedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the button a raised ring belongs to is being pressed.
+    var ringPressed: Bool {
+        get { self[RingPressedKey.self] }
+        set { self[RingPressedKey.self] = newValue }
+    }
+}
+
+/// A ring (with `raised: true`) as a button: its disc sinks under the
+/// finger, and the ring and its label lift under the pointer.
+struct RingButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return configuration.label
+            .environment(\.ringPressed, configuration.isPressed)
+            .contentShape(shape)
+            .contentShape(.hoverEffect, shape)
+            .hoverEffect(.lift)
     }
 }
 

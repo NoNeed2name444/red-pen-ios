@@ -22,6 +22,9 @@ final class LectureImporter: ObservableObject {
     /// because Gemini was out of quota. Not an error: there is a transcript.
     @Published var notice: String?
 
+    /// True while Gemini has the recording, so the screen says where it went.
+    @Published var inCloud = false
+
     /// Who does the listening.
     enum Engine { case cloud, device }
 
@@ -67,6 +70,8 @@ final class LectureImporter: ObservableObject {
             var byLine = false
             if engine == .cloud {
                 working = "Sending the lecture to Gemini"
+                inCloud = true
+                defer { inCloud = false }
                 do {
                     lines = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
                                                                   token: LocalLLMService.shared.cloudToken) { part, parts in
@@ -126,55 +131,123 @@ final class LectureImporter: ObservableObject {
 }
 
 /// The reading-pace controls, for a set with no recording attached.
+///
+/// One row under the thumb: the way to add a recording at the leading end
+/// (while there is none), then the speed as a compact menu beside Play - the
+/// one main button - at the trailing end. With nothing to read yet, adding a
+/// recording is the only useful step, so it becomes the main button on its
+/// own. This is the bar's content: the screen hands it to `.studyBar { }`, so
+/// the transcript scrolls under the glass.
 struct NarrateReadingControls: View {
     @Binding var speed: Double
     let playing: Bool
     let finished: Bool
     let canPlay: Bool
+    /// True when the transcript has no lines yet.
+    var isEmpty: Bool = false
     let onPlayPause: () -> Void
     let onRestart: () -> Void
+    /// Adds a recording; nil hides the button (while one is being made).
+    var onAddAudio: (() -> Void)? = nil
 
+    @Environment(\.windowSpan) private var span
+
+    /// The three reading speeds, slowest first.
+    private static let speeds: [ReadingSpeed] = [
+        ReadingSpeed(value: 0.75, name: "Slow"),
+        ReadingSpeed(value: 1, name: "Normal"),
+        ReadingSpeed(value: 1.5, name: "Fast")
+    ]
+
+    @ViewBuilder
     var body: some View {
-        StudyActionBar {
-            HStack(spacing: 8) {
-                Text("Speed")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                speedButton(0.75, "Slow")
-                speedButton(1, "Normal")
-                speedButton(1.5, "Fast")
-            }
-            if finished {
-                Button(action: onRestart) {
-                    Label("Start again", systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.bigPrimary)
-                .keyboardShortcut(.space, modifiers: [])
-            } else {
-                Button(action: onPlayPause) {
-                    Label(playing ? "Pause" : "Play", systemImage: playing ? "pause.fill" : "play.fill")
-                }
-                .buttonStyle(.bigPrimary)
-                .keyboardShortcut(.space, modifiers: [])
-                .disabled(!canPlay)
-            }
+        if isEmpty, let onAddAudio {
+            addAudioMain(onAddAudio)
+        } else {
+            row
         }
     }
 
-    /// Slow, Normal, Fast: small choices, with the chosen one filled.
-    private func speedButton(_ value: Double, _ label: String) -> some View {
-        let on = speed == value
-        let tint = StudySetKind.narrate.tint
-        let fill: Color = on ? tint : Color.primary.opacity(0.07)
-        let ink: Color = on ? Color.white : Color.primary
-        return Button { speed = value } label: {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(ink)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(fill, in: Capsule())
+    /// Add audio to the left hand; speed right beside the Play it controls.
+    private var row: some View {
+        HStack(spacing: 12) {
+            if let onAddAudio {
+                addAudioButton(onAddAudio)
+                if span == .broad { Spacer(minLength: 16) }
+            }
+            speedMenu
+            playButton
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
+
+    /// An empty transcript: adding a recording is the main button, in words.
+    private func addAudioMain(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label("Add audio", systemImage: "waveform.badge.plus")
+        }
+        .buttonStyle(.bigPrimary)
+        .accessibilityLabel("Add an audio file")
+        .accessibilityHint("Transcribes a recording of the lecture and follows it word by word")
+        .accessibilityIdentifier("narrateAddAudio")
+    }
+
+    /// Always in reach while the lecture has no recording: the way to add one.
+    /// Words when there is room, the symbol alone on a phone.
+    private func addAudioButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ViewThatFits(in: .horizontal) {
+                Label("Add audio", systemImage: "waveform.badge.plus")
+                Image(systemName: "waveform.badge.plus")
+            }
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Add an audio file")
+        .accessibilityHint("Transcribes a recording of the lecture and follows it word by word")
+        .accessibilityIdentifier("narrateAddAudio")
+    }
+
+    /// Slow, Normal, Fast, in a compact menu showing the one chosen.
+    private var speedMenu: some View {
+        let shown: String = Self.name(for: speed)
+        return Menu {
+            // a picker inside the menu ticks the chosen speed by itself
+            Picker("Reading speed", selection: $speed) {
+                ForEach(Self.speeds, id: \.self) { option in
+                    Text(option.name).tag(option.value)
+                }
+            }
+        } label: {
+            Text(shown)
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Reading speed, \(shown)")
+    }
+
+    @ViewBuilder
+    private var playButton: some View {
+        if finished {
+            Button(action: onRestart) {
+                Label("Start again", systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
+        } else {
+            Button(action: onPlayPause) {
+                Label(playing ? "Pause" : "Play", systemImage: playing ? "pause.fill" : "play.fill")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
+            .disabled(!canPlay)
+        }
+    }
+
+    private static func name(for value: Double) -> String {
+        speeds.first { $0.value == value }?.name ?? String(format: "%g\u{00d7}", value)
+    }
+}
+
+/// One reading speed: how fast, and its name on the menu.
+private struct ReadingSpeed: Hashable {
+    let value: Double
+    let name: String
 }

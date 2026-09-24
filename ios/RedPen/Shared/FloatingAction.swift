@@ -7,8 +7,10 @@ import SwiftUI
 ///
 /// The section that owns the button registers what it does (`floatingAction`)
 /// and marks the button itself (`floatingActionAnchor`); the screen shows the
-/// floating copy (`floatingActionBar`) only for the section it expects, so a
-/// section left behind by switching mode can never leave its button floating.
+/// floating copy only for the section it expects, so a section left behind by
+/// switching mode can never leave its button floating. A screen with its own
+/// bottom slab puts `FloatingActionButton` in it; any other screen uses
+/// `floatingActionBar`, which brings a slab of its own.
 @MainActor
 final class FloatingAction: ObservableObject {
     static let shared = FloatingAction()
@@ -36,6 +38,15 @@ final class FloatingAction: ObservableObject {
         items = [:]
         visible = []
     }
+
+    /// The copy to float for `expecting`: only while its real button is out
+    /// of sight, and never while something is being generated (the progress
+    /// card has the bottom then).
+    func floating(expecting: String?, busy: Bool) -> Item? {
+        guard let expecting, !busy, let item = items[expecting] else { return nil }
+        if visible.contains(expecting) { return nil }
+        return item
+    }
 }
 
 extension View {
@@ -57,42 +68,77 @@ extension View {
         }
     }
 
-    /// Shows the floating copy of the action registered under `expecting`.
+    /// Shows the floating copy of the action registered under `expecting`,
+    /// in a floating slab of its own at the bottom of the screen.
     func floatingActionBar(expecting id: String?) -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) { FloatingActionBar(expecting: id) }
     }
 }
 
+/// Just the floating copy: the screen's hero button, for a screen that puts
+/// it in its own bottom slab. Draws nothing while the real button is in
+/// sight, or while something is being generated.
+struct FloatingActionButton: View {
+    let expecting: String?
+    /// A shortcut for the copy - Command S when it is a Save.
+    let shortcut: KeyboardShortcut?
+    @ObservedObject private var floating = FloatingAction.shared
+    @ObservedObject private var generation = GenerationCenter.shared
+
+    init(expecting: String?, shortcut: KeyboardShortcut? = nil) {
+        self.expecting = expecting
+        self.shortcut = shortcut
+    }
+
+    private var shown: FloatingAction.Item? {
+        floating.floating(expecting: expecting, busy: generation.job != nil)
+    }
+
+    var body: some View {
+        let item: FloatingAction.Item? = shown
+        let change: Animation = .snappy(duration: 0.25)
+        ZStack {
+            if let item {
+                FloatingActionFace(item: item, shortcut: shortcut)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(change, value: item?.id)
+        .animation(change, value: floating.visible)
+    }
+}
+
+private struct FloatingActionFace: View {
+    let item: FloatingAction.Item
+    let shortcut: KeyboardShortcut?
+
+    var body: some View {
+        Button(action: item.run) {
+            Label(item.title, systemImage: item.symbol)
+        }
+        .buttonStyle(.bigPrimary)
+        .disabled(!item.enabled)
+        .keyboardShortcut(shortcut)
+        .accessibilityIdentifier("floatingAction")
+    }
+}
+
+/// `floatingActionBar`'s slab: there only while there is a copy to float.
 private struct FloatingActionBar: View {
     let expecting: String?
     @ObservedObject private var floating = FloatingAction.shared
     @ObservedObject private var generation = GenerationCenter.shared
 
-    private var shown: FloatingAction.Item? {
-        guard let expecting, let item = floating.items[expecting],
-              !floating.visible.contains(expecting), generation.job == nil else { return nil }
-        return item
-    }
-
     var body: some View {
+        let showing: Bool = floating.floating(expecting: expecting, busy: generation.job != nil) != nil
         ZStack {
-            if let item = shown {
-                Button(action: item.run) {
-                    Label(item.title, systemImage: item.symbol)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+            if showing {
+                StudyActionBar {
+                    FloatingActionButton(expecting: expecting)
                 }
-                .buttonStyle(.glassProminent)
-                .disabled(!item.enabled)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-                .frame(maxWidth: 560)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .accessibilityIdentifier("floatingAction")
             }
         }
-        .animation(.snappy(duration: 0.25), value: shown?.id)
-        .animation(.snappy(duration: 0.25), value: floating.visible)
+        .animation(.snappy(duration: 0.25), value: showing)
     }
 }

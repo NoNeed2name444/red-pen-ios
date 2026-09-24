@@ -9,6 +9,7 @@ struct BookReaderView: View {
     @State private var showToc = false
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
 
     init(set studySet: StudySet, page: Int = 0) {
         self.studySet = studySet
@@ -22,24 +23,7 @@ struct BookReaderView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    if let page {
-                        ForEach(Array(BookPages.blocks(page.markdown).enumerated()), id: \.offset) { _, block in
-                            blockView(block)
-                        }
-                    } else {
-                        Text("This textbook is empty.").foregroundStyle(.secondary)
-                    }
-                }
-                .contentCard()
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .readableColumn()
-            }
-            .id(index)
-            if pages.count > 1 { footer }
+            pageScroll
         }
         .onAppear {
             if index == 0 { index = store.reading(for: studySet.id, count: pages.count) }
@@ -82,12 +66,53 @@ struct BookReaderView: View {
         }
     }
 
+    /// The page, scrolling under the bar. Keyed by the page, so a new page
+    /// starts at its top.
+    private var pageScroll: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                if let page {
+                    ForEach(Array(BookPages.blocks(page.markdown).enumerated()), id: \.offset) { _, block in
+                        blockView(block)
+                    }
+                } else {
+                    Text("This textbook is empty.").foregroundStyle(.secondary)
+                }
+            }
+            .contentCard()
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .id(index)
+        .studyBar { footer }
+    }
+
+    /// A heading's size by its level: # the largest, ### and below the
+    /// size of a headline.
+    static func headingFont(_ level: Int) -> Font {
+        switch level {
+        case 1: return .title2.weight(.bold)
+        case 2: return .title3.weight(.semibold)
+        default: return .headline
+        }
+    }
+
+    /// A table cell's font: the header row bold, the first column a touch
+    /// heavier than the rest.
+    static func cellFont(header: Bool, first: Bool) -> Font {
+        if header { return .subheadline.weight(.bold) }
+        if first { return .subheadline.weight(.semibold) }
+        return .subheadline
+    }
+
     @ViewBuilder
     private func blockView(_ block: BookPages.Block) -> some View {
         switch block {
         case .heading(let level, let text):
             Text(md(text))
-                .font(level == 1 ? .title2.weight(.bold) : level == 2 ? .title3.weight(.semibold) : .headline)
+                .font(Self.headingFont(level))
                 .padding(.top, 6)
         case .bullet(let text, let marker):
             HStack(alignment: .top, spacing: 8) {
@@ -100,7 +125,7 @@ struct BookReaderView: View {
             HStack(alignment: .top, spacing: 12) {
                 ForEach(Array(cells.enumerated()), id: \.offset) { i, cell in
                     Text(md(cell))
-                        .font(header ? .subheadline.weight(.bold) : i == 0 ? .subheadline.weight(.semibold) : .subheadline)
+                        .font(Self.cellFont(header: header, first: i == 0))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -173,30 +198,19 @@ struct BookReaderView: View {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
     }
 
-    /// "Page 3 of 10", and the way to the contents - the one control that
-    /// belongs at the top, because it is how you jump around the book.
+    /// "Page 3 of 10", and the page's title: what you glance at.
     private var header: some View {
         let status: String = pages.count > 1 ? "Page \(index + 1) of \(pages.count)" : "One page"
         let detail: String = page?.title ?? "\(wordCount.formatted()) words"
         let fraction: Double? = pages.count > 1 ? Double(index + 1) / Double(pages.count) : nil
-        return StudyProgressHeader(status, detail: detail, fraction: fraction) {
-            if pages.count > 1 {
-                Button { showToc = true } label: {
-                    Label("Contents", systemImage: "list.bullet")
-                        .labelStyle(.titleAndIcon)
-                        .font(.subheadline.weight(.semibold))
-                        .frame(minHeight: 36)
-                }
-                .buttonStyle(.glass)
-            }
-        }
+        return StudyProgressHeader(status, detail: detail, fraction: fraction)
     }
 
-    /// Back on the left, small; Next page filling the rest - and on the last
-    /// page, Done.
+    /// Back and Contents on the left, small; Next page at the trailing end -
+    /// and on the last page, or a book of one page, Done.
+    @ViewBuilder
     private var footer: some View {
-        let last = index >= pages.count - 1
-        return StudyActionBar {
+        if pages.count > 1 {
             HStack(spacing: 12) {
                 Button { index = max(0, index - 1) } label: {
                     Label("Back", systemImage: "chevron.left")
@@ -206,20 +220,50 @@ struct BookReaderView: View {
                 .accessibilityLabel("Previous page")
                 .keyboardShortcut(.leftArrow, modifiers: [])
 
-                if last {
-                    Button { dismiss() } label: {
-                        Label("Done", systemImage: "checkmark")
-                    }
-                    .buttonStyle(.bigPrimary)
-                } else {
-                    Button { index = min(pages.count - 1, index + 1) } label: {
-                        Label("Next page", systemImage: "arrow.right")
-                    }
-                    .buttonStyle(.bigPrimary)
-                    .keyboardShortcut(.rightArrow, modifiers: [])
-                }
+                contentsButton
+
+                if span == .broad { Spacer(minLength: 16) }
+
+                forwardButton
+            }
+        } else {
+            doneButton
+        }
+    }
+
+    /// The way to jump around the book: the list of pages, in a sheet.
+    /// Words when there is room, the list symbol alone on a phone.
+    private var contentsButton: some View {
+        Button { showToc = true } label: {
+            ViewThatFits(in: .horizontal) {
+                Label("Contents", systemImage: "list.bullet")
+                Image(systemName: "list.bullet")
             }
         }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Contents")
+        .accessibilityHint("Lists every page, to jump to one")
+    }
+
+    @ViewBuilder
+    private var forwardButton: some View {
+        if index >= pages.count - 1 {
+            doneButton
+        } else {
+            Button { index = min(pages.count - 1, index + 1) } label: {
+                Label("Next page", systemImage: "arrow.right")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.rightArrow, modifiers: [])
+        }
+    }
+
+    private var doneButton: some View {
+        Button { dismiss() } label: {
+            Label("Done", systemImage: "checkmark")
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.return, modifiers: [])
     }
 }
 

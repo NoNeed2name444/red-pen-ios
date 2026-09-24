@@ -11,39 +11,44 @@ import StoreKit
 struct PaywallView: View {
     @EnvironmentObject var subscriptions: SubscriptionStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
     @State private var chosen: SubscriptionPlan = .yearly
+
+    private static let title: String = Brand.name + " Pro"
+    private static let row = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+    /// A centred sheet, whatever the window behind it: on a wide iPad the
+    /// buy bar centres under the plans instead of hugging the trailing edge,
+    /// and Subscribe is not capped as it is on a full-width screen.
+    private var sheetSpan: WindowSpan { min(span, WindowSpan.middling) }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                LibraryBackdrop()
-                ScrollView {
-                    VStack(spacing: 20) {
-                        header
-                        plans
-                        buyButton
-                        footnotes
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 24)
-                    .frame(maxWidth: 480)
-                    .frame(maxWidth: .infinity)
+            ScrollView {
+                VStack(spacing: 20) {
+                    header
+                    plans
+                    billing
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
+                .frame(maxWidth: 480)
+                .frame(maxWidth: .infinity)
             }
-            .navigationTitle("Red Pen Pro")
+            .background(LibraryBackdrop())
+            // buying, restoring and the small print, under the thumb
+            .studyBar { buyBar }
+            .navigationTitle(PaywallView.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Not now") { dismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Restore") { Task { await subscriptions.restore() } }
-                        .disabled(subscriptions.busy)
-                }
             }
             .task { await subscriptions.loadProducts() }
             .onChange(of: subscriptions.isPro) { _, pro in if pro { dismiss() } }
         }
+        .environment(\.windowSpan, sheetSpan)
     }
 
     private var header: some View {
@@ -51,6 +56,7 @@ struct PaywallView: View {
             Image(systemName: "pencil.and.scribble")
                 .font(.system(size: 42))
                 .foregroundStyle(StudySetKind.mcq.tint)
+                .accessibilityHidden(true)
             Text("Everything, from any lecture")
                 .font(.title2.weight(.bold))
                 .multilineTextAlignment(.center)
@@ -71,6 +77,7 @@ struct PaywallView: View {
             Image(systemName: symbol)
                 .frame(width: 22)
                 .foregroundStyle(StudySetKind.anki.tint)
+                .accessibilityHidden(true)
             Text(text).font(.subheadline)
             Spacer(minLength: 0)
         }
@@ -91,14 +98,20 @@ struct PaywallView: View {
         }
     }
 
+    /// The chosen plan stands a little out of the glass; the other lies flat.
     private func planRow(_ plan: SubscriptionPlan, _ product: Product) -> some View {
-        let picked = chosen == plan
+        let picked: Bool = chosen == plan
+        let symbol: String = picked ? "largecircle.fill.circle" : "circle"
+        let mark: Color = picked ? StudySetKind.mcq.tint : Color.secondary
+        let edge: Color = picked ? StudySetKind.mcq.tint : Color.clear
+        let plane: PopOutPlane = picked ? .raised : .screen
+        let traits: AccessibilityTraits = picked ? .isSelected : []
         return Button {
             chosen = plan
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: picked ? "largecircle.fill.circle" : "circle")
-                    .foregroundStyle(picked ? StudySetKind.mcq.tint : .secondary)
+                Image(systemName: symbol)
+                    .foregroundStyle(mark)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(plan.label).font(.body.weight(.semibold))
                     if plan == .yearly, let saving = subscriptions.yearlySaving, saving > 0 {
@@ -110,48 +123,60 @@ struct PaywallView: View {
                 Text(product.displayPrice).font(.body.weight(.semibold))
             }
             .padding(14)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(picked ? StudySetKind.mcq.tint : .clear, lineWidth: 2))
+            .background(.thinMaterial, in: PaywallView.row)
+            .overlay(PaywallView.row.stroke(edge, lineWidth: 2))
+            .contentShape(PaywallView.row)
         }
         .buttonStyle(.plain)
+        .popOut(plane, in: PaywallView.row)
+        .animation(.snappy(duration: 0.2), value: picked)
+        .hoverEffect(.highlight)
+        .accessibilityAddTraits(traits)
     }
 
-    private var buyButton: some View {
-        VStack(spacing: 8) {
-            Button {
-                Task { await subscriptions.buy(chosen) }
-            } label: {
-                HStack {
-                    if subscriptions.busy { ProgressView().controlSize(.small) }
-                    Text("Subscribe")
-                }
-                .frame(maxWidth: .infinity).frame(height: 50)
-            }
-            .buttonStyle(.glassProminent)
-            .disabled(subscriptions.busy || subscriptions.product(for: chosen) == nil)
-
-            if let trouble = subscriptions.trouble {
-                Text(trouble).font(.footnote).foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-        }
+    /// What the button says: the plan's price when the App Store has sent it.
+    private var buyTitle: String {
+        guard let product = subscriptions.product(for: chosen) else { return "Subscribe" }
+        return "Subscribe \u{00B7} " + product.displayPrice
     }
 
-    private var footnotes: some View {
-        VStack(spacing: 6) {
-            Text("Billed through your Apple Account and renews until cancelled. Cancel any time in Settings.")
-            // required in the app itself, not only on a website
-            HStack(spacing: 14) {
-                Link("Terms", destination: URL(string: "https://redpen.app/terms")!)
-                Link("Privacy", destination: URL(string: "https://redpen.app/privacy")!)
-            }
-            .font(.caption)
+    private var cannotBuy: Bool {
+        subscriptions.busy || subscriptions.product(for: chosen) == nil
+    }
+
+    @ViewBuilder
+    private var buyBar: some View {
+        if let trouble = subscriptions.trouble {
+            Text(trouble).font(.footnote).foregroundStyle(.red)
+                .multilineTextAlignment(.center)
         }
-        .font(.caption2)
-        .foregroundStyle(.tertiary)
-        .multilineTextAlignment(.center)
-        .padding(.top, 4)
+        Button {
+            Task { await subscriptions.buy(chosen) }
+        } label: {
+            HStack(spacing: 8) {
+                if subscriptions.busy { ProgressView().controlSize(.small) }
+                Text(buyTitle)
+            }
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.defaultAction)
+        .disabled(cannotBuy)
+        // required in the app itself, not only on a website
+        HStack(spacing: 16) {
+            Button("Restore") { Task { await subscriptions.restore() } }
+                .disabled(subscriptions.busy)
+            Link("Terms", destination: URL(string: "https://redpen.app/terms")!)
+            Link("Privacy", destination: URL(string: "https://redpen.app/privacy")!)
+        }
+        .font(.footnote)
+        .buttonStyle(.borderless)
+    }
+
+    private var billing: some View {
+        Text("Billed through your Apple Account and renews until cancelled. Cancel any time in Settings.")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
+            .padding(.top, 4)
     }
 }

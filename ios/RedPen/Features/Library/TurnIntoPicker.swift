@@ -9,8 +9,9 @@ import SwiftUI
 /// lands in New set with the mode chosen and the material already in, one tap
 /// from Generate. The set it came from is never changed.
 ///
-/// The same sheet serves the long-press menu on a library row and the button
-/// on every mode's own screen, so turning works the same from anywhere.
+/// The same sheet serves the long-press menu on a library row and the More
+/// menu on every mode's own screen, so turning works the same from anywhere.
+/// The tiles stand out of the glass; this set's own mode lies flat.
 struct TurnIntoPicker: View {
     let source: StudySet
 
@@ -71,16 +72,23 @@ struct TurnIntoPicker: View {
     private func note(for kind: StudySetKind) -> (text: String, symbol: String) {
         if kind == source.kind { return ("This set", "checkmark") }
         if let made = ready[kind] {
-            let n = made.itemCount
-            return ("Instant \u{00B7} \(n) \(made.itemNoun)\(n == 1 ? "" : "s")", "bolt.fill")
+            let n: Int = made.itemCount
+            let plural: String = n == 1 ? "" : "s"
+            let text: String = "Instant \u{00B7} \(n) \(made.itemNoun)\(plural)"
+            return (text, "bolt.fill")
         }
         return (hasLecture ? "Written by AI from your lecture" : "Written by AI from this set", "sparkles")
     }
 
+    /// One mode, as a tile standing out of the glass. The set's own mode lies
+    /// flat on the screen, and cannot be chosen.
     private func tile(_ kind: StudySetKind) -> some View {
-        let current = kind == source.kind
+        let current: Bool = kind == source.kind
         let said = note(for: kind)
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let plane: PopOutPlane = current ? .screen : .raised
+        let spoken: String = "\(kind.label). \(said.text)"
+        let hint: String = current ? "The mode this set is in now" : "Makes a new set. This one stays as it is."
         return Button { pick(kind) } label: {
             VStack(alignment: .leading, spacing: 10) {
                 ModeTile(kind: kind, size: 40)
@@ -99,11 +107,11 @@ struct TurnIntoPicker: View {
             .overlay(shape.strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
             .contentShape(shape)
         }
-        .buttonStyle(.pressableRow)
+        .buttonStyle(PopTileStyle(cornerRadius: 20, plane: plane))
         .disabled(current)
-        .opacity(current ? 0.5 : 1)
-        .accessibilityLabel("\(kind.label). \(said.text)")
-        .accessibilityHint(current ? "The mode this set is in now" : "Makes a new set. This one stays as it is.")
+        .opacity(current ? 0.55 : 1)
+        .accessibilityLabel(spoken)
+        .accessibilityHint(hint)
         .accessibilityIdentifier("turnInto-\(kind.rawValue)")
     }
 
@@ -203,32 +211,5 @@ extension View {
         sheet(item: set, onDismiss: { ModeSwitch.shared.deliver() }) { source in
             TurnIntoPicker(source: source)
         }
-    }
-
-    /// A "Turn into…" button in a mode screen's toolbar, with its picker.
-    func turnIntoButton(_ set: StudySet, shown: Bool = true) -> some View {
-        modifier(TurnIntoButton(set: set, shown: shown))
-    }
-}
-
-/// The toolbar button a mode screen shows for "Turn into…".
-struct TurnIntoButton: ViewModifier {
-    let set: StudySet
-    let shown: Bool
-    @State private var turning: StudySet?
-
-    func body(content: Content) -> some View {
-        content
-            .toolbar {
-                if shown {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { turning = set } label: {
-                            Label("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                        .accessibilityIdentifier("turnInto")
-                    }
-                }
-            }
-            .turnIntoPicker(for: $turning)
     }
 }

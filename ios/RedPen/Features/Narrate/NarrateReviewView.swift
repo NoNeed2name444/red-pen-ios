@@ -87,6 +87,8 @@ struct NarrateReviewView: View {
 
     // MARK: the screen, in three shallow layers
 
+    /// What sits in the bottom bar: the recording's own player, or the
+    /// read-aloud controls with the way to add a recording beside them.
     @ViewBuilder
     private var controls: some View {
         if player.hasAudio {
@@ -94,18 +96,26 @@ struct NarrateReviewView: View {
         } else {
             NarrateReadingControls(speed: $speed, playing: playing, finished: finished,
                                    canPlay: !segments.isEmpty,
+                                   isEmpty: texts.isEmpty,
                                    onPlayPause: { playing ? pause() : play() },
-                                   onRestart: restart)
+                                   onRestart: restart,
+                                   onAddAudio: addAudioAction)
         }
+    }
+
+    /// Adding a recording, from the bar - hidden while one is being made.
+    private var addAudioAction: (() -> Void)? {
+        guard importer.working == nil else { return nil }
+        return { choosingEngine = true }
     }
 
     private var stage: some View {
         VStack(spacing: 0) {
             header
-            if let message = importer.working { TranscribingBanner(message: message) }
-            if !player.hasAudio && importer.working == nil { addAudioBar }
+            if let message = importer.working {
+                TranscribingBanner(message: message, onDevice: !importer.inCloud)
+            }
             transcript
-            controls
         }
         .modeScreen(.narrate)
         .navigationTitle(title)
@@ -116,6 +126,8 @@ struct NarrateReviewView: View {
         stage
             .onAppear(perform: seed)
             .onDisappear { voice.stop(); player.stop() }
+            // a recording screen: the camera stays off while it is open
+            .popOutFacePaused()
             // adding a recording is in the same More menu as every other
             // study screen's extras; this screen has no Turn into
             .studyMoreMenu(for: studySet, turnInto: false) {
@@ -169,25 +181,9 @@ struct NarrateReviewView: View {
             } message: {
                 Text(importer.notice ?? "")
             }
-            .safeAreaInset(edge: .bottom) {
-                if let report { FixReport(summary: report, onUndo: undo) }
-            }
     }
 
     // MARK: setting up
-
-    /// Always in sight while the lecture has no recording: the way to add one.
-    private var addAudioBar: some View {
-        Button { choosingEngine = true } label: {
-            Label("Add an audio file", systemImage: "waveform.badge.plus")
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.bordered)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 6)
-        .accessibilityIdentifier("narrateAddAudio")
-    }
 
     private func seed() {
         if Self.importOnOpen == studySet.id {
@@ -287,46 +283,86 @@ struct NarrateReviewView: View {
                                    fraction: min(1, max(0, fraction)))
     }
 
+    /// The transcript, scrolling under the bar; it follows the voice only
+    /// when the current line drifts out of the comfortable band.
     private var transcript: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                if texts.isEmpty {
-                    FinishHero(symbol: "waveform", title: "Nothing to read yet",
-                               message: "This transcript is empty. Add a recording from More.")
-                        .padding(.top, 32)
-                } else {
-                    NarrateWordFlow(texts: texts, langs: segments.map(\.lang),
-                                    currentIndex: index,
-                                    spokenWord: spokenWord,
-                                    band: band,
-                                    onJump: { jump(to: $0) },
-                                    onFix: { fixing = $0 })
-                        .contentCard()
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
-                        .readableColumn()
+            transcriptScroll
+                .onChange(of: index) { _, line in
+                    // follow the voice only when the line drifts out of the band,
+                    // and then gently, to a spot a third of the way down
+                    guard band.needsScroll(to: line) else { return }
+                    let anchor = UnitPoint(x: 0.5, y: 0.3)
+                    withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(line, anchor: anchor) }
                 }
-            }
-            .coordinateSpace(.named(NarrateScrollBand.space))
-            .onGeometryChange(for: CGFloat.self) { geometry in
-                geometry.size.height
-            } action: { height in
-                band.viewport = height
-            }
-            .onScrollPhaseChange { _, phase in
-                // the student's own scrolling wins for a few seconds
-                if phase == .interacting || phase == .decelerating {
-                    band.handsOffUntil = Date().addingTimeInterval(3)
-                }
-            }
-            .onChange(of: index) { _, line in
-                // follow the voice only when the line drifts out of the band,
-                // and then gently, to a spot a third of the way down
-                guard band.needsScroll(to: line) else { return }
-                let anchor = UnitPoint(x: 0.5, y: 0.3)
-                withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(line, anchor: anchor) }
+        }
+    }
+
+    private var transcriptScroll: some View {
+        ScrollView {
+            transcriptBody
+        }
+        .coordinateSpace(.named(NarrateScrollBand.space))
+        // the height the transcript can actually be read in: the floating
+        // bar is a safe-area inset here, so the part under it is left out
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            let hidden: CGFloat = geometry.safeAreaInsets.bottom
+            return max(0, geometry.size.height - hidden)
+        } action: { height in
+            band.viewport = height
+        }
+        .onScrollPhaseChange { _, phase in
+            // the student's own scrolling wins for a few seconds
+            if phase == .interacting || phase == .decelerating {
+                band.handsOffUntil = Date().addingTimeInterval(3)
             }
         }
+        // what a correction did, just above the bar, until undone or replaced
+        .overlay(alignment: .bottom) { fixToast }
+        .studyBar { controls }
+    }
+
+    @ViewBuilder
+    private var fixToast: some View {
+        if let report {
+            FixReport(summary: report, onUndo: undo)
+                // as compact as the bar on a wide iPad
+                .frame(maxWidth: 560)
+                .padding(.bottom, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var transcriptBody: some View {
+        if texts.isEmpty {
+            FinishHero(symbol: "waveform", title: "Nothing to read yet", message: emptyLine)
+                .padding(.top, 32)
+        } else {
+            NarrateWordFlow(texts: texts, langs: segments.map(\.lang),
+                            currentIndex: index,
+                            spokenWord: spokenWord,
+                            band: band,
+                            onJump: { jump(to: $0) },
+                            onFix: { fixing = $0 })
+                .contentCard()
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .readableColumn()
+        }
+    }
+
+    /// Where to go from an empty transcript: the Add audio button below, or
+    /// More, where a recording already attached can be replaced. While a
+    /// recording is being made into a transcript the button is hidden, so the
+    /// line says what is happening instead of pointing at it.
+    private var emptyLine: String {
+        if importer.working != nil {
+            return "Your recording is being transcribed. The transcript appears here when it's ready."
+        }
+        if player.hasAudio {
+            return "This transcript is empty. Replace the recording from More."
+        }
+        return "This transcript is empty. Tap Add audio below to add a recording of the lecture."
     }
 }

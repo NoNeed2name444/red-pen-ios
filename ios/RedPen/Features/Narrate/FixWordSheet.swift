@@ -36,12 +36,12 @@ struct FixWordSheet: View {
                 }
                 field("Should be") {
                     TextField("the correct spelling", text: $spelling)
-                        .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .focused($typing)
                         .submitLabel(.done)
                         .onSubmit { if usable { save() } }
+                        .popField()
                 }
                 // Said plainly up front, because the student is about to change
                 // more of the transcript than the word they tapped.
@@ -53,19 +53,29 @@ struct FixWordSheet: View {
                 Spacer(minLength: 0)
             }
             .padding()
+            // the one action, under the thumb and standing out of the glass;
+            // it rides above the keyboard while the spelling is typed
+            .studyBar {
+                Button("Fix", action: save)
+                    .buttonStyle(.bigPrimary)
+                    .disabled(!usable)
+            }
             .navigationTitle("Fix this word")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+                // kept for a hardware keyboard and for habit; the bar below
+                // is the one the thumb finds
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fix") { save() }.disabled(!usable)
                 }
             }
             .onAppear { typing = true }
         }
-        .presentationDetents([.height(320)])
+        // taller than before by the bar at the bottom
+        .presentationDetents([.height(390)])
     }
 
     @ViewBuilder
@@ -110,6 +120,8 @@ struct FixReport: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.regularMaterial, in: Capsule())
+        // a floating surface, on the same plane as the bar it sits above
+        .popOut(.floating, in: Capsule())
         .padding(.horizontal)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }

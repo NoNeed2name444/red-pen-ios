@@ -20,6 +20,7 @@ struct MCQSummaryView: View {
         self.onSave = onSave
     }
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
     @EnvironmentObject private var store: Store
     @State private var mistakesSaved = false
     /// How many rules the button below just added, once it has been pressed.
@@ -43,31 +44,47 @@ struct MCQSummaryView: View {
         }.map { studySet.questions[$0] }
     }
 
-    /// "Add 3 rules to your rule sheet", then a way to the sheet.
+    /// "Add 3 rules", then a way to the sheet. Short on screen, so it sits
+    /// beside Try again on a phone without wrapping; the full wording is
+    /// what VoiceOver reads.
     @ViewBuilder
     private var ruleSheetButton: some View {
-        if let added = rulesAdded {
+        if rulesAdded != nil {
             NavigationLink {
                 RuleSheetView()
             } label: {
-                Label(added == 0 ? "Open your rule sheet"
-                                 : "\(added) rule\(added == 1 ? "" : "s") added \u{00B7} open rule sheet",
-                      systemImage: "list.bullet.rectangle")
+                Label("Rule sheet", systemImage: "list.bullet.rectangle")
+                    .frame(maxHeight: .infinity)
             }
             .buttonStyle(.bigSecondary)
+            .accessibilityLabel("Open your rule sheet")
         } else {
             let fresh = store.questionsWithoutRules(checkedMistakes).count
             if fresh > 0 {
+                let plural: String = fresh == 1 ? "" : "s"
                 Button {
                     let added = store.addRules(for: checkedMistakes, subject: Store.subjectName(studySet))
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     withAnimation(.snappy) { rulesAdded = added }
                 } label: {
-                    Label("Add \(fresh) rule\(fresh == 1 ? "" : "s") to your rule sheet",
-                          systemImage: "text.badge.plus")
+                    Label("Add \(fresh) rule\(plural)", systemImage: "text.badge.plus")
+                        .frame(maxHeight: .infinity)
                 }
                 .buttonStyle(.bigSecondary)
+                .accessibilityLabel("Add \(fresh) rule\(plural) to your rule sheet")
             }
+        }
+    }
+
+    /// What adding rules did, said once above the buttons, so the button
+    /// itself can stay short.
+    @ViewBuilder
+    private var rulesAddedNote: some View {
+        if let added = rulesAdded, added > 0 {
+            let plural: String = added == 1 ? "" : "s"
+            Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -129,31 +146,29 @@ struct MCQSummaryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 16) {
-                    FinishHero(title: "\(correctCount) of \(total) right", message: verdict) {
-                        ScoreRing(fraction: fraction,
-                                  label: "\(shownPercent)%",
-                                  sublabel: "correct")
-                            .onAppear {
-                                withAnimation(.smooth(duration: 0.9)) {
-                                    shownPercent = Int((fraction * 100).rounded())
-                                }
+        ScrollView {
+            VStack(spacing: 16) {
+                FinishHero(title: "\(correctCount) of \(total) right", message: verdict) {
+                    ScoreRing(fraction: fraction,
+                              label: "\(shownPercent)%",
+                              sublabel: "correct")
+                        .onAppear {
+                            withAnimation(.smooth(duration: 0.9)) {
+                                shownPercent = Int((fraction * 100).rounded())
                             }
-                    }
-                    .contentCard()
-
-                    otherActions
-                    reviewList
+                        }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .readableColumn()
+                .contentCard()
+
+                otherActions
+                reviewList
             }
-            StudyActionBar { primaryButton }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .readableColumn()
         }
+        .studyBar { barButtons }
         .modeScreen(.mcq)
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
@@ -163,6 +178,19 @@ struct MCQSummaryView: View {
     }
 
     // MARK: the one main button, and the smaller ones
+
+    /// The bar: the one main button at the trailing end, and - whenever that
+    /// is not Done already - Done beside it, so there is only ever one Done.
+    private var barButtons: some View {
+        HStack(spacing: 12) {
+            if next != .done {
+                Button("Done") { dismiss() }
+                    .buttonStyle(.bigCompanion)
+                if span == .broad { Spacer(minLength: 16) }
+            }
+            primaryButton
+        }
+    }
 
     @ViewBuilder
     private var primaryButton: some View {
@@ -174,11 +202,13 @@ struct MCQSummaryView: View {
                 Label("Save to library", systemImage: "square.and.arrow.down")
             }
             .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.return, modifiers: [])
         case .practise:
             Button(action: practiseMistakes) {
                 Label("Practise mistakes (\(mistakes.count))", systemImage: "arrow.uturn.backward.circle")
             }
             .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.return, modifiers: [])
             .accessibilityHint("Saves the questions you got wrong as a set called Mistakes, and opens it")
         case .done:
             Button("Done") { dismiss() }
@@ -187,7 +217,8 @@ struct MCQSummaryView: View {
         }
     }
 
-    /// Everything else the results offer, smaller, under the score.
+    /// Everything else the results offer, smaller, under the score: what
+    /// has been saved, then one row of the two second choices.
     @ViewBuilder
     private var otherActions: some View {
         VStack(spacing: 12) {
@@ -202,22 +233,29 @@ struct MCQSummaryView: View {
                     .foregroundStyle(.secondary)
             }
 
-            ruleSheetButton
+            rulesAddedNote
 
-            if let onRetake {
-                // matches the web app's "Retake this set" button
-                Button {
-                    onRetake(); dismiss()
-                } label: {
-                    Label("Try this set again", systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.bigSecondary)
+            // the two slabs match in height even if one label wraps
+            HStack(spacing: 12) {
+                ruleSheetButton
+                retakeButton
             }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 
-            if next != .done {
-                Button("Done") { dismiss() }
-                    .buttonStyle(.bigSecondary)
+    /// Matches the web app's "Retake this set" button.
+    @ViewBuilder
+    private var retakeButton: some View {
+        if let onRetake {
+            Button {
+                onRetake(); dismiss()
+            } label: {
+                Label("Try again", systemImage: "arrow.counterclockwise")
+                    .frame(maxHeight: .infinity)
             }
+            .buttonStyle(.bigSecondary)
+            .accessibilityLabel("Try this set again")
         }
     }
 

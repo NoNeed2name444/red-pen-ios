@@ -46,28 +46,41 @@ struct AnalyticsView: View {
 
     var body: some View {
         let s: AnalyticsSnapshot = cached ?? snapshot()
-        List {
-            if s.includesExamples {
+        let items: [FocusItem] = focusItems(s)
+        ScrollViewReader { proxy in
+            List {
+                if s.includesExamples {
+                    Section {
+                        Label("Includes example data", systemImage: "info.circle")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                heroSection(s, proxy: proxy)
+                focusSection(items, sparks: s.sparks)
                 Section {
-                    Label("Includes example data", systemImage: "info.circle")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    ReadinessCard(estimate: s.readiness,
+                                  answered: s.recentCount,
+                                  includesExamples: s.includesExamples) { subject in
+                        startQuiz(store.drill(subject: subject))
+                    }
+                    .id(AnalyticsAnchor.readiness)
+                } header: {
+                    Text("Readiness")
                 }
+                trendsSection(s)
+                mistakesSection(s)
+                subjectsSection(s)
+                timeSection(s)
             }
-            heroSection(s)
-            focusSection(s)
-            Section {
-                ReadinessCard(estimate: s.readiness,
-                              answered: s.recentCount,
-                              includesExamples: s.includesExamples) { subject in
-                    startQuiz(store.drill(subject: subject))
-                }
-            } header: {
-                Text("Readiness")
+        }
+        // pushed bare from the examples hub too, so it brings its own backdrop
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
+        // the best next step, under the thumb; nothing there until there is one
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let top = items.first {
+                StudyActionBar { startButton(top) }
             }
-            trendsSection(s)
-            mistakesSection(s)
-            subjectsSection(s)
-            timeSection(s)
         }
         .navigationTitle("Analytics")
         .navigationBarTitleDisplayMode(.inline)
@@ -88,6 +101,26 @@ struct AnalyticsView: View {
         .navigationDestination(item: $route) { route in
             destination(route)
         }
+    }
+
+    /// "Start: Drill Renal" - the first of Focus next, as the screen's one
+    /// main button.
+    private func startButton(_ item: FocusItem) -> some View {
+        let title: String = "Start: " + item.title
+        return Button {
+            run(item.action)
+        } label: {
+            Label(title, systemImage: item.symbol)
+                .lineLimit(2)
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.defaultAction)
+        .accessibilityHint(item.detail)
+    }
+
+    /// Scrolls the list to one of its places, gently.
+    private func jump(_ proxy: ScrollViewProxy, to anchor: String) {
+        withAnimation(.snappy) { proxy.scrollTo(anchor, anchor: .top) }
     }
 
     // MARK: - Opening things
@@ -115,6 +148,8 @@ struct AnalyticsView: View {
         case .reason(let reason):
             InsightQuestionList(title: reason.title, tip: Self.tip(for: reason),
                                 picks: store.picks(for: reason))
+        case .bySubject:
+            StatsView()
         }
     }
 
@@ -311,35 +346,64 @@ struct AnalyticsView: View {
     }
 
     /// Four rings: readiness against the pass mark, accuracy this month, the
-    /// syllabus covered, and today against the day's target.
-    private func heroSection(_ s: AnalyticsSnapshot) -> some View {
-        let estimate = s.readiness
-        let accuracy: Double? = s.lastMonth.answered > 0 ? s.lastMonth.accuracy : nil
+    /// syllabus covered, and today against the day's target. Each is a
+    /// button: Readiness and Accuracy scroll to what is behind them, Syllabus
+    /// and Today open their pages.
+    private func heroSection(_ s: AnalyticsSnapshot, proxy: ScrollViewProxy) -> some View {
         let goal = dailyTarget()
+        let subjectsAnchor: String = s.stats.first?.id ?? AnalyticsAnchor.subjectsEmpty
+        let pace: String = goal.fromExam ? "the pace that gets through your library by the exam."
+                                         : "30 until you set an exam date."
+        let note: String = "Tap a ring for what is behind it. The tick on Readiness is the typical pass mark. Syllabus shows covered, thin and missing topics. Today\u{2019}s target is \(pace)"
         return Section {
             HStack(alignment: .top, spacing: 4) {
-                readinessRing(estimate)
-                ProgressRing(value: accuracy ?? 0, label: "Accuracy, 30 days",
-                             spoken: accuracy.map { "\(Self.percent($0)) of \(s.lastMonth.answered) answers right" }
-                                 ?? "no answers yet") {
-                    RingCentre(value: accuracy.map { Self.percent($0) } ?? "\u{2013}")
+                Button { jump(proxy, to: AnalyticsAnchor.readiness) } label: {
+                    readinessRing(s.readiness)
                 }
-                .frame(maxWidth: .infinity)
-                syllabusRing()
-                ProgressRing(value: Double(s.today), total: Double(goal.target),
-                             tint: StudySetKind.book.tint, label: "Today",
-                             spoken: "\(s.today) of \(goal.target) studied today") {
-                    RingCentre(value: "\(s.today)", caption: "of \(goal.target)")
+                .accessibilityHint("Shows the readiness estimate")
+                Button { jump(proxy, to: subjectsAnchor) } label: {
+                    accuracyRing(s)
                 }
-                .frame(maxWidth: .infinity)
+                .accessibilityHint("Shows accuracy subject by subject")
+                Button { route = .coverage } label: {
+                    syllabusRing()
+                }
+                .accessibilityHint("Opens the syllabus")
+                Button { route = .due } label: {
+                    todayRing(s, goal: goal.target)
+                }
+                .accessibilityHint("Opens the cards due today")
             }
+            .buttonStyle(RingButtonStyle())
             .padding(.vertical, 6)
         } footer: {
-            let pace: String = goal.fromExam ? "the pace that gets through your library by the exam."
-                                             : "30 until you set an exam date."
-            let note: String = "The tick on Readiness is the typical pass mark. Syllabus shows covered, thin and missing topics. Today\u{2019}s target is \(pace)"
             Text(note)
         }
+    }
+
+    private func accuracyRing(_ s: AnalyticsSnapshot) -> some View {
+        let accuracy: Double? = s.lastMonth.answered > 0 ? s.lastMonth.accuracy : nil
+        let spoken: String
+        if let accuracy {
+            spoken = "\(Self.percent(accuracy)) of \(s.lastMonth.answered) answers right"
+        } else {
+            spoken = "no answers yet"
+        }
+        let centre: String = accuracy.map { Self.percent($0) } ?? "\u{2013}"
+        return ProgressRing(value: accuracy ?? 0, label: "Accuracy, 30 days", spoken: spoken, raised: true) {
+            RingCentre(value: centre)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func todayRing(_ s: AnalyticsSnapshot, goal target: Int) -> some View {
+        let spoken: String = "\(s.today) of \(target) studied today"
+        return ProgressRing(value: Double(s.today), total: Double(target),
+                            tint: StudySetKind.book.tint, label: "Today",
+                            spoken: spoken, raised: true) {
+            RingCentre(value: "\(s.today)", caption: "of \(target)")
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func readinessRing(_ estimate: ReadinessEstimate?) -> some View {
@@ -349,10 +413,11 @@ struct AnalyticsView: View {
         } else {
             spoken = "answer at least \(Readiness.minimumAnswers) questions for an estimate"
         }
+        let mark: Double = estimate?.passMark ?? PassMark.typical(for: .current)
+        let centre: String = estimate.map { Self.percent($0.center) } ?? "\u{2013}"
         return ProgressRing(value: estimate?.center ?? 0, label: "Readiness",
-                            marker: estimate?.passMark ?? PassMark.typical(for: .current),
-                            spoken: spoken) {
-            RingCentre(value: estimate.map { Self.percent($0.center) } ?? "\u{2013}")
+                            marker: mark, spoken: spoken, raised: true) {
+            RingCentre(value: centre)
         }
         .frame(maxWidth: .infinity)
     }
@@ -374,7 +439,7 @@ struct AnalyticsView: View {
             centre = "\u{2026}"
             spoken = "still checking"
         }
-        return ProgressRing(value: 0, segments: segments, label: "Syllabus", spoken: spoken) {
+        return ProgressRing(value: 0, segments: segments, label: "Syllabus", spoken: spoken, raised: true) {
             RingCentre(value: centre)
         }
         .frame(maxWidth: .infinity)
@@ -458,18 +523,19 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder
-    private func focusSection(_ s: AnalyticsSnapshot) -> some View {
-        let items = focusItems(s)
+    private func focusSection(_ items: [FocusItem], sparks: [String: [SparkPoint]]) -> some View {
         Section {
             if items.isEmpty {
                 ContentUnavailableView("Nothing to focus on yet", systemImage: "scope",
                                        description: Text("Make an MCQ set and answer a few questions. The most useful next steps will show here, best first."))
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    let spark: [SparkPoint] = item.subject.flatMap { sparks[$0] } ?? []
                     Button { run(item.action) } label: {
-                        focusRow(item, rank: index + 1, spark: item.subject.flatMap { s.sparks[$0] } ?? [])
+                        focusRow(item, rank: index + 1, spark: spark)
                     }
                     .buttonStyle(.plain)
+                    .hoverEffect(.highlight)
                 }
             }
         } header: {
@@ -615,11 +681,7 @@ struct AnalyticsView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    Button {
-                        startQuiz(store.confidentMistakesQuiz())
-                    } label: {
-                        Label("Confident mistakes quiz", systemImage: "scope")
-                    }
+                    .hoverEffect(.highlight)
                 }
                 if subjects.count > 1 {
                     Picker("Subject", selection: $mistakeSubject) {
@@ -678,11 +740,18 @@ struct AnalyticsView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens this question on its own")
             if store.ruleSheet[q.id] != nil {
+                // a frosted disc standing out of the row, sinking under the
+                // finger; 22 points of corner on a 44-point face is a circle
                 Button { route = .rules } label: {
                     Image(systemName: "list.bullet.rectangle")
+                        .font(.body)
+                        .foregroundStyle(.tint)
+                        .frame(width: 44, height: 44)
+                        .background(.regularMaterial, in: Circle())
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(PopTileStyle(cornerRadius: 22))
                 .accessibilityLabel("Rule sheet")
+                .help("Rule sheet")
             }
         }
         .padding(.vertical, 2)
@@ -696,22 +765,50 @@ struct AnalyticsView: View {
             if s.stats.isEmpty {
                 ContentUnavailableView("No subjects yet", systemImage: "books.vertical",
                                        description: Text("Make an MCQ set and each subject you study will show here with its accuracy."))
+                    .id(AnalyticsAnchor.subjectsEmpty)
             } else {
                 ForEach(s.stats) { subject in
-                    subjectRow(subject, trend: s.trends[subject.subject])
+                    Button {
+                        startQuiz(store.drill(subject: subject.subject))
+                    } label: {
+                        subjectRow(subject, trend: s.trends[subject.subject])
+                    }
+                    .buttonStyle(.plain)
+                    .hoverEffect(.highlight)
+                    .accessibilityHint("Opens a drill of \(subject.subject)")
                 }
             }
         } header: {
-            Text("Subjects")
+            HStack {
+                Text("Subjects")
+                Spacer(minLength: 8)
+                // a glass chip standing out of the header; the finger's
+                // worth of target is taller than the chip
+                Button { route = .bySubject } label: {
+                    Label("By subject", systemImage: "chart.bar.doc.horizontal")
+                        .font(.footnote.weight(.semibold))
+                        .textCase(nil)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .liquidGlassChip(tint: nil, plane: .raised)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .hoverEffect(.highlight)
+                .accessibilityHint("Opens Progress, subject by subject")
+            }
         } footer: {
             if !s.stats.isEmpty {
-                Text("Weakest first. The arrow compares the last two weeks with before, when both have a few answers.")
+                Text("Weakest first; tap one to drill it. The arrow compares the last two weeks with before, when both have a few answers.")
             }
         }
     }
 
     private func subjectRow(_ s: SubjectStats, trend: Trend?) -> some View {
-        HStack(spacing: 10) {
+        let accuracy: Double = s.answered == 0 ? 0 : s.accuracy
+        let percent: String = s.answered == 0 ? "\u{2013}" : Self.percent(s.accuracy)
+        return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
                 Text("\(s.answered) answered").font(.caption).foregroundStyle(.secondary)
@@ -723,19 +820,22 @@ struct AnalyticsView: View {
                     .foregroundStyle(trend.color)
                     .accessibilityLabel(trend.label)
             }
-            ProgressRing(value: s.answered == 0 ? 0 : s.accuracy, label: "", size: 22, lineWidth: 3.5) {
+            ProgressRing(value: accuracy, label: "", size: 22, lineWidth: 3.5) {
                 EmptyView()
             }
             .accessibilityHidden(true)
-            Text(s.answered == 0 ? "\u{2013}" : "\(Int((s.accuracy * 100).rounded()))%")
+            Text(percent)
                 .font(.body.weight(.semibold).monospacedDigit())
                 .frame(minWidth: 40, alignment: .trailing)
-            Button("Drill") { startQuiz(store.drill(subject: s.subject)) }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .accessibilityLabel("Drill \(s.subject)")
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 2)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - 6. Time
@@ -910,4 +1010,12 @@ private enum AnalyticsRoute: Hashable {
     case rules
     case confident
     case reason(MistakeReason)
+    /// Progress, subject by subject.
+    case bySubject
+}
+
+/// The places in the list the rings at the top scroll to.
+private enum AnalyticsAnchor {
+    static let readiness = "analytics-readiness"
+    static let subjectsEmpty = "analytics-subjects-empty"
 }

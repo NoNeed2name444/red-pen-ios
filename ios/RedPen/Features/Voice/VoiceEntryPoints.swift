@@ -9,17 +9,15 @@ extension View {
         modifier(CommuteModeButton())
     }
 
-    /// A toolbar button that opens a spoken session for this station (the
-    /// OSCE drill). Nothing is shown when there is no station.
-    func spokenPatientButton(for station: OsceChecklist?) -> some View {
-        modifier(SpokenPatientButton(station: station))
+    /// Commute mode as a sheet, for a screen that puts its own button to it
+    /// where the thumb is - Due today's "Listen" beside Reveal - rather than
+    /// up in the toolbar.
+    func commuteModeSheet(isPresented: Binding<Bool>) -> some View {
+        modifier(CommuteModeSheet(isPresented: isPresented))
     }
 }
 
 private struct CommuteModeButton: ViewModifier {
-    @EnvironmentObject private var store: Store
-    @EnvironmentObject private var reviews: ReviewStore
-    @EnvironmentObject private var llm: LocalLLMService
     @State private var open = false
 
     func body(content: Content) -> some View {
@@ -32,50 +30,34 @@ private struct CommuteModeButton: ViewModifier {
                     .accessibilityHint("Reads your due cards and questions aloud and listens for the answers")
                 }
             }
-            .sheet(isPresented: $open) {
+            .commuteModeSheet(isPresented: $open)
+    }
+}
+
+/// The sheet half of commute mode: the spoken session in its own navigation
+/// stack, with Close where a sheet keeps it, and the camera kept off while it
+/// listens.
+private struct CommuteModeSheet: ViewModifier {
+    @Binding var isPresented: Bool
+    @EnvironmentObject private var store: Store
+    @EnvironmentObject private var reviews: ReviewStore
+    @EnvironmentObject private var llm: LocalLLMService
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $isPresented) {
                 NavigationStack {
                     CommuteModeView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") { open = false }
+                                Button("Close") { isPresented = false }
                             }
                         }
                 }
                 .environmentObject(store)
                 .environmentObject(reviews)
                 .environmentObject(llm)
-            }
-    }
-}
-
-private struct SpokenPatientButton: ViewModifier {
-    let station: OsceChecklist?
-    @EnvironmentObject private var store: Store
-    @EnvironmentObject private var llm: LocalLLMService
-    @State private var open: OsceChecklist?
-
-    func body(content: Content) -> some View {
-        content
-            .toolbar {
-                if let station {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { open = station } label: {
-                            Label("Practise with a spoken patient", systemImage: "person.wave.2")
-                        }
-                    }
-                }
-            }
-            .sheet(item: $open) { station in
-                NavigationStack {
-                    SpokenStationView(station: station)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") { open = nil }
-                            }
-                        }
-                }
-                .environmentObject(store)
-                .environmentObject(llm)
+                .popOutFacePaused()
             }
     }
 }

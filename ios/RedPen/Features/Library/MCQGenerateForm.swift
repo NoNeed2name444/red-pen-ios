@@ -64,6 +64,7 @@ struct MCQGenerateForm: View {
                     TextEditor(text: $sourceText)
                         .frame(minHeight: 160)
                         .font(.system(.footnote, design: .monospaced))
+                        .popEditorRow()
                         .disabled(isGenerating)
                 } header: {
                     Text("Or paste your notes")
@@ -73,16 +74,44 @@ struct MCQGenerateForm: View {
             }
 
             if step == .make {
-                makeSection
-                backendSection
+                // with no model ready, getting one is the first thing to do,
+                // so it comes before the button it unlocks
+                if needsOfflineModel {
+                    backendSection
+                    makeSection
+                } else {
+                    makeSection
+                    backendSection
+                }
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .onAppear { gemma.refreshStatus() }
-        .floatingAction(id: "mcq", title: "Make \(questionCount) questions", enabled: canStart,
+        .floatingAction(id: "mcq", title: makeTitle, enabled: canStart,
                         inputs: [name, subject, String(highYield), String(sourceText.count)],
                         run: startGenerating)
+    }
 
+    private var makeTitle: String { "Make \(questionCount) questions" }
+
+    /// No model can write yet, and none needs Pro: the offline model has to
+    /// be downloaded first.
+    private var needsOfflineModel: Bool {
+        activeBackend == nil && !llm.needsPro(.writer)
+    }
+
+    /// Why Make cannot be tapped yet, under it. Stopping is the progress
+    /// card's Cancel, at the bottom.
+    private var makeHint: String? {
+        if isGenerating { return nil }
+        if needsOfflineModel {
+            if case .downloading = gemma.status { return "The offline model is downloading \u{2014} Make works once it is done." }
+            return "Download the offline model first"
+        }
+        if sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "Nothing to write from yet \u{2014} go Back and add a lecture."
+        }
+        return nil
     }
 
     /// Step 3: how many, the one big button, and the rest behind More options.
@@ -96,29 +125,28 @@ struct MCQGenerateForm: View {
                       systemImage: "lock.fill")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            // the hero slab, the same as its floating copy in the dock, so
+            // it does not flatten when the real one takes over
             Button { startGenerating() } label: {
                 HStack {
                     if isGenerating { ProgressView().controlSize(.small) }
                     Text(generateLabel)
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.bigPrimary)
             .disabled(!canStart)
+            .frame(maxWidth: .infinity)
             .floatingActionAnchor("mcq")
-            if isGenerating {
-                Button("Stop", role: .cancel) { GenerationCenter.shared.cancel() }
-            }
             if let generationStatus, !isGenerating {
                 Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
             }
-            if sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
+            if let makeHint {
+                Text(makeHint)
                     .font(.footnote).foregroundStyle(.secondary)
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .popField()
                     .disabled(isGenerating)
                 Toggle("Focus on high-yield facts", isOn: $highYield)
                     .disabled(isGenerating)
@@ -140,7 +168,8 @@ struct MCQGenerateForm: View {
 
     private var generateLabel: String {
         if isGenerating { return generationStatus ?? "Writing\u{2026}" }
-        return llm.needsPro(.writer) ? "Unlock the medical models" : "Make \(questionCount) questions"
+        if llm.needsPro(.writer) { return "Unlock the medical models" }
+        return makeTitle
     }
 
     /// Apple's on-device model is tried first; this only appears when that is
@@ -165,8 +194,10 @@ struct MCQGenerateForm: View {
                     Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded \u{2014} works on hardware that can't run Apple's own on-device model, and can also read images.")
                         .font(.caption).foregroundStyle(.secondary)
                 case .downloading(let fraction):
+                    let percent: Int = Int(fraction * 100)
+                    let line: String = "Downloading offline model \u{2014} \(percent)%"
                     ProgressView(value: fraction) {
-                        Text("Downloading offline model \u{2014} \(Int(fraction * 100))%").font(.footnote)
+                        Text(line).font(.footnote)
                     }
                     Button("Cancel download", role: .cancel) { gemma.cancelDownload() }
                 case .failed(let message):
@@ -215,9 +246,9 @@ struct MCQGenerateForm: View {
                     // kept with a cloud job, so the set is still made if the
                     // app is closed before the server finishes
                     let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
+                    let check: String? = MCQGenerateForm.checkPlace(checker != nil, onServer: onServer)
                     let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
-                                             source: cite?.doc(),
-                                             check: checker == nil ? nil : onServer ? "server" : "device").encoded
+                                             source: cite?.doc(), check: check).encoded
                     questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
@@ -262,11 +293,11 @@ struct MCQGenerateForm: View {
                     GenerationCenter.shared.end(job, finished: "Your \(finalQuestions.count) questions are ready")
                     isGenerating = false
                     generationStatus = "Done \u{2014} \(finalQuestions.count) question(s) written." + note
-                    var set = StudySet(
-                        name: setName.isEmpty
-                            ? (subj.isEmpty || subj == "General" ? "Generated set" : subj)
-                            : setName,
-                        subject: subj.isEmpty ? "General" : subj, kind: .mcq)
+                    let plainSubject: Bool = subj.isEmpty || subj == "General"
+                    let fallback: String = plainSubject ? "Generated set" : subj
+                    let setTitle: String = setName.isEmpty ? fallback : setName
+                    let setSubject: String = subj.isEmpty ? "General" : subj
+                    var set = StudySet(name: setTitle, subject: setSubject, kind: .mcq)
                     // each question is matched back to the page whose words it
                     // shares; one that matches nothing is left uncited, which
                     // is itself worth seeing
@@ -296,5 +327,11 @@ struct MCQGenerateForm: View {
                 }
             }
         }
+    }
+
+    /// Where the accuracy check runs, for a cloud job's recipe: nil for none.
+    nonisolated static func checkPlace(_ checking: Bool, onServer: Bool) -> String? {
+        guard checking else { return nil }
+        return onServer ? "server" : "device"
     }
 }

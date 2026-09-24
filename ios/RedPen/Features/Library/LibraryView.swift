@@ -1,15 +1,23 @@
+import Combine
 import SwiftUI
+import UIKit
 
 /// The app's one screen at the top: the floating dock's five categories -
-/// Questions, Cards, Cases, OSCE, Audio - and, for the one chosen, its sets
-/// (tap to open, swipe to delete or export, hold for the rest), a tile for
-/// each of its modes above them and every way to practise them underneath.
+/// Questions, Cards, Cases, OSCE, Audio - and Ideas beside them. For the
+/// category chosen it shows its sets (tap to open, swipe to delete or export,
+/// hold or tap the ellipsis for the rest), a tile for each of its modes above
+/// them when it has more than one, and every way to practise them underneath.
+/// Ideas swaps the page for the idea dump, its board and the 3D map.
+///
+/// Where things sit, for the hand that reaches them: what is tapped again and
+/// again - the dock and New set - is at the bottom under the thumb (on a wide
+/// iPad the dock stands on the leading edge as a rail, under the left hand,
+/// and New set goes bottom-trailing, under the right); what is glanced at or
+/// rarely needed - the title, search, the account and settings menu - is at
+/// the top.
 ///
 /// The rows are in LibraryRows, the category's tiles in LibraryCategory and
 /// the sheets in LibrarySheets; what is left here is the shape of the screen.
-/// Everything that is about the app rather than a category - Ideas, Progress,
-/// lectures, the tour of examples, account, settings, help - is behind the
-/// gear.
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
@@ -52,6 +60,25 @@ struct LibraryView: View {
     /// Which category the dock has chosen. Questions first: it is where most
     /// of the studying is, and what the app opens on.
     @State var category: StudyCategory = .questions
+    /// Whether the page is Ideas rather than a category. Never kept between
+    /// launches: the app always opens on Questions.
+    @State var inIdeas = false
+    /// What the search field holds while Ideas is on show.
+    @State var ideasQuery = ""
+    /// Whether the software keyboard is up. The dock steps aside while it
+    /// is, so the field being typed in is not squeezed between the two.
+    @State var keyboardUp = false
+    /// Whether the rest of the ways to practise are open.
+    @State var morePractise = false
+    /// Sets waiting on "Delete?" - swiped, from a row's menu, or in bulk.
+    @State var pendingDelete: [UUID]?
+    /// A set just made by Turn into, to bring into view when the library
+    /// comes back from it.
+    @State var arrived: UUID?
+    @State private var restoredLastSet = false
+    @AppStorage("cramdown.confirmDelete") var confirmDelete = true
+    @AppStorage("cramdown.openLastSet") var openLastSet = false
+    @AppStorage("cramdown.lastSetId") var lastSetId = ""
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -113,7 +140,8 @@ struct LibraryView: View {
 
     /// The sets opened on the stack.
     @State var opened: [StudySet] = []
-    /// A page chosen from the gear menu (account, settings, help...), pushed.
+    /// A page chosen from the account and settings menu (Progress, lectures,
+    /// account, settings, help...), pushed.
     @State var support: SupportPage?
 
     /// The window, not the screen: an iPad app can be a third of one, and the
@@ -140,13 +168,13 @@ struct LibraryView: View {
             }
     }
 
-    /// One stack on every shape of window: the dock chooses what the page
-    /// shows, and the gear holds the pages about the app, so a sidebar would
-    /// only be the same places twice.
+    /// One stack on every shape of window: the dock (or the rail) chooses
+    /// what the page shows, and the account menu holds the pages about the
+    /// app, so a sidebar would only be the same places twice.
     private var layout: some View {
         NavigationStack(path: $opened) {
             attachingSheets(to: screen)
-                .navigationDestination(item: $support) { $0.page }
+                .navigationDestination(item: pushedSupport) { $0.page }
         }
         // one accent for the whole library rather than a colour per mode
         .tint(Color.accentColor)
@@ -154,6 +182,33 @@ struct LibraryView: View {
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
         .sheet(item: $modeSwitch.writing) { preset in NewSetView(preset: preset) }
+        // Ideas is a place in the dock now, not a pushed page: anything that
+        // still asks for the old page is taken there instead.
+        .onChange(of: support) { _, page in
+            if page == .notes {
+                support = nil
+                goToIdeas()
+            }
+        }
+        .task { restoreLastSet() }
+    }
+
+    /// The pushed support page - never Ideas, which is a place of its own.
+    private var pushedSupport: Binding<SupportPage?> {
+        Binding(get: {
+            support == .notes ? nil : support
+        }, set: { support = $0 })
+    }
+
+    /// "Open the last set on launch": once, at launch, if the set is still
+    /// in the library and nothing else has been opened yet.
+    private func restoreLastSet() {
+        guard !restoredLastSet else { return }
+        restoredLastSet = true
+        guard openLastSet, opened.isEmpty else { return }
+        guard let id = UUID(uuidString: lastSetId) else { return }
+        guard let set = store.library.first(where: { $0.id == id }) else { return }
+        opened = [set]
     }
 
     /// Opens a set that has just been made by turning another into it.
@@ -167,6 +222,8 @@ struct LibraryView: View {
         modeSwitch.opening = nil
         withAnimation(.snappy) {
             dockSelection.wrappedValue = StudyCategory(kind: set.kind)
+            inIdeas = false
+            arrived = set.id
             quickQuiz = nil
             featureQuiz = nil
             featurePage = nil
@@ -176,14 +233,38 @@ struct LibraryView: View {
     }
 
     /// The dock's choice, noting which way it moved on the way through.
+    /// Choosing any category also leaves Ideas.
     private var dockSelection: Binding<StudyCategory> {
         Binding(get: { category }, set: { new in
             let all: [StudyCategory] = StudyCategory.allCases
             let to: Int = all.firstIndex(of: new) ?? 0
-            let from: Int = all.firstIndex(of: category) ?? 0
+            let here: Int = all.firstIndex(of: category) ?? 0
+            let from: Int = inIdeas ? IdeasPlace.order : here
             forward = to >= from
+            inIdeas = false
+            ideasQuery = ""
             category = new
         })
+    }
+
+    /// The dock's Ideas pill. Leaving Ideas is choosing a category, so only
+    /// "on" does anything here.
+    private var ideasSelection: Binding<Bool> {
+        Binding(get: { inIdeas }, set: { on in
+            if on { goToIdeas() }
+        })
+    }
+
+    /// Ideas in place of the category's page. It sits after the five
+    /// categories, so it always slides in from the trailing side.
+    func goToIdeas() {
+        withAnimation(.snappy(duration: 0.3)) {
+            forward = true
+            selecting = false
+            selected = []
+            query = ""
+            inIdeas = true
+        }
     }
 
     /// The new page comes in from the side the dock moved towards.
@@ -193,19 +274,37 @@ struct LibraryView: View {
         return AnyTransition.asymmetric(insertion: arrive, removal: AnyTransition.opacity)
     }
 
+    /// The page and its chrome: the backdrop, the title and search at the
+    /// top, the account menu, the rail and the bottom bar.
     private var screen: some View {
-        ZStack {
-            // One category at a time, keyed by it, so a move along the dock
+        routedPage
+            // the shared backdrop - the deepest plane - easing into the
+            // category's colour, or Ideas' gold
+            .background(AppBackdrop(tint: backdropTint))
+            .navigationTitle(screenTitle)
+            .navigationBarTitleDisplayMode(titleMode)
+            // pinned in the bar's drawer at the top, so it never fights the
+            // dock at the bottom for the thumb
+            .searchable(text: searchText, placement: .navigationBarDrawer(displayMode: .automatic),
+                        prompt: searchPrompt)
+            .toolbar { toolbarItems }
+            // the wide iPad's rail, under the left hand
+            .safeAreaInset(edge: .leading, spacing: 0) { rail }
+            .safeAreaInset(edge: .bottom) { bottomBar }
+            .modifier(KeyboardWatch(up: $keyboardUp))
+    }
+
+    /// The page, and everything it can push.
+    private var routedPage: some View {
+        let pageKey: String = inIdeas ? "ideas" : category.rawValue
+        return ZStack {
+            // One page at a time, keyed by it, so a move along the dock
             // slides the new page in and fades the old one out rather than
             // swapping rows in place.
-            content
-                .id(category)
+            page
+                .id(pageKey)
                 .transition(pageTransition)
         }
-            // the shared backdrop, easing into the category's colour
-            .background(AppBackdrop(tint: category.tint))
-            .navigationTitle(Brand.name)
-            .searchable(text: $query, prompt: "Search your sets")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
             // off half way through the flagged quiz must not pull the
@@ -222,8 +321,53 @@ struct LibraryView: View {
             } message: { feature in
                 Text(feature.emptyText)
             }
-            .toolbar { toolbarItems }
-            .safeAreaInset(edge: .bottom) { bottomBar }
+    }
+
+    /// The category's page, or Ideas.
+    @ViewBuilder
+    private var page: some View {
+        if inIdeas {
+            IdeasView(query: $ideasQuery, dockClearance: ideasClearance)
+        } else {
+            categoryPage
+        }
+    }
+
+    /// The category's list; on a wide iPad, one column of a comfortable
+    /// width rather than rows stretched across the whole window.
+    @ViewBuilder
+    private var categoryPage: some View {
+        if span == .broad {
+            content
+                .frame(maxWidth: 820)
+                .frame(maxWidth: .infinity)
+        } else {
+            content
+        }
+    }
+
+    /// How far Ideas' lists run on past their last row, to clear the dock -
+    /// nothing while the keyboard has put the dock away.
+    private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
+
+    private var backdropTint: Color { inIdeas ? IdeasPlace.tint : category.tint }
+
+    private var screenTitle: String { inIdeas ? IdeasPlace.title : Brand.name }
+
+    private var titleMode: NavigationBarItem.TitleDisplayMode { inIdeas ? .inline : .automatic }
+
+    /// The one search field at the top searches whatever is on show.
+    private var searchText: Binding<String> { inIdeas ? $ideasQuery : $query }
+
+    private var searchPrompt: String { inIdeas ? "Search ideas" : "Search your sets" }
+
+    /// The dock on end, on a wide iPad, while no sets are being picked.
+    @ViewBuilder
+    private var rail: some View {
+        if span == .broad && !selecting {
+            CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
+                .transition(.move(edge: .leading).combined(with: .opacity))
+        }
     }
 
     /// The selection bar while picking sets; otherwise New set over the dock.
@@ -233,65 +377,120 @@ struct LibraryView: View {
         // floating bars stacked on one another is a pile, and picking sets
         // is a different job from choosing a category.
         if selecting {
+            // measured like the dock, so the rows can still be scrolled
+            // clear of it
             selectionBar
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                    dockHeight = $0
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        } else if keyboardUp {
+            // the dock steps aside while typing
+            EmptyView()
         } else {
             VStack(spacing: 10) {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
-                // to list.
-                if !store.library.isEmpty { newSetButton }
-                CategoryDock(selection: dockSelection) { count(in: $0) }
+                // to list; Ideas has its own capture row instead.
+                if !inIdeas && !store.library.isEmpty { newSetRow }
+                if span != .broad {
+                    CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
+                }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
+    /// New set on its own row over the dock, at the trailing end - under the
+    /// right thumb on a phone, bottom-right under the right hand on a wide
+    /// iPad.
+    private var newSetRow: some View {
+        let broad: Bool = span == .broad
+        let cap: CGFloat? = broad ? nil : 560
+        let side: CGFloat = broad ? 24 : 16
+        let below: CGFloat = broad ? 16 : 0
+        return HStack {
+            Spacer(minLength: 0)
+            newSetButton
+        }
+        .frame(maxWidth: cap)
+        .padding(.horizontal, side)
+        .padding(.bottom, below)
+    }
+
     private var content: some View {
-        List {
-            if store.library.isEmpty {
-                Section {
-                    emptyState
-                        .frostedListRow()
+        ScrollViewReader { proxy in
+            List {
+                if store.library.isEmpty {
+                    Section {
+                        emptyState
+                            .frostedListRow()
+                    }
                 }
-            }
-            // Everything about today - the exam, the streak, what is due,
-            // the flags - in one small card on the first page.
-            if category == .questions && hasTodayCard && !searching {
-                Section {
-                    todayCard
-                        .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
-                        // frosted, so the backdrop shows through while
-                        // the text on it stays easy to read
-                        .frostedListRow()
+                // Everything about today - the exam, the streak, what is
+                // due, the flags - in one small card at the top.
+                if showsTodayCard {
+                    Section {
+                        todayCard
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            // the card is its own raised slab; the row
+                            // under it stays clear
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
                 }
+                // The modes first - one tile per kind of set here - where
+                // there is more than one. A category of one kind has its
+                // "See all" beside the heading over its sets instead.
+                if !searching && category.kinds.count > 1 { modesSection }
+                listBody
             }
-            // the modes first - one tile per kind of set here - so each
-            // mode is one tap from the dock, as when it had a tab of its own
-            if !searching { modesSection }
-            setsSections
-            if !searching {
-                featureSection
-                moreSection
-                examplesSection
-            }
-            if !selecting {
-                // A row of empty space as tall as the bottom bar. Both
-                // safeAreaInset and contentMargins were supposed to keep
-                // the last card clear of the floating bar and neither did;
-                // a row cannot be ignored, because the list has to make
-                // room for it like any other.
-                Color.clear
-                    .frame(height: dockHeight + 8)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .accessibilityHidden(true)
+            .listSectionSpacing(16)
+            .scrollContentBackground(.hidden)
+            // Back from a set that Turn into just made: the new set in view,
+            // not somewhere below the fold.
+            .onChange(of: opened.isEmpty) { _, back in
+                guard back, let id = arrived else { return }
+                arrived = nil
+                withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
             }
         }
-        .listSectionSpacing(16)
-        .scrollContentBackground(.hidden)
+    }
+
+    /// The Today card: on Questions whenever it has something to say, and on
+    /// Cards when cards are waiting.
+    private var showsTodayCard: Bool {
+        if searching { return false }
+        let onQuestions: Bool = category == .questions && hasTodayCard
+        let dueNow: Int = category == .cards ? reviews.dueAcross(store.library).count : 0
+        let onCards: Bool = category == .cards && dueNow > 0
+        return onQuestions || onCards
+    }
+
+    /// Everything under the Today card and the modes: the sets, then the
+    /// tiles, then the pages about the whole app.
+    @ViewBuilder
+    private var listBody: some View {
+        setsSections
+        if !searching {
+            featureSection
+            moreSection
+            examplesSection
+        }
+        // A row of empty space as tall as the bottom bar - the dock, or
+        // the selection bar in its place. Both safeAreaInset and
+        // contentMargins were supposed to keep the last card clear of the
+        // floating bar and neither did; a row cannot be ignored, because
+        // the list has to make room for it like any other.
+        Color.clear
+            .frame(height: dockHeight + 8)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .accessibilityHidden(true)
     }
 
     /// The category's sets: the loose ones, then each folder that holds any.
@@ -315,25 +514,76 @@ struct LibraryView: View {
                     row(set)
                 }
                 .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
-            } header: { sectionHeader(searching ? "Found" : category.setsHeading) }
+            } header: { setsHeader(searching ? "Found" : category.setsHeading) }
         }
         ForEach(store.folders) { folder in
             folderSection(folder)
         }
     }
 
-    /// The big "New set" button that sits over the dock.
+    /// "New set": the library's one hero, standing highest out of the glass.
     private var newSetButton: some View {
         Button { newSetKind = category.mainKind } label: {
             Label("New set", systemImage: "plus")
                 .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.horizontal, 22)
+                .frame(minHeight: 50)
         }
         .buttonStyle(.glassProminent)
-        .frame(maxWidth: 560)
-        .padding(.horizontal, 16)
+        .popOut(.hero, in: Capsule(), tint: .accentColor)
+        .keyboardShortcut("n", modifiers: .command)
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
+    }
+
+    /// Over the category's loose sets: the heading, "See all" for a category
+    /// of one kind (its mode tile, since it has no Modes row), and Select.
+    func setsHeader(_ title: String) -> some View {
+        HStack(spacing: 12) {
+            CategoryHeading(title: title)
+            Spacer(minLength: 8)
+            if !searching { seeAllButton }
+            selectButton
+        }
+        .textCase(nil)
+    }
+
+    /// The mode's own page of sets, for a category with only one kind.
+    @ViewBuilder
+    private var seeAllButton: some View {
+        let single: Bool = category.kinds.count == 1
+        if single, let mode = category.features(in: .modes).first, !mode.shelfSets(store).isEmpty {
+            // a control, so it stands out of the glass like Make one
+            Button { start(mode) } label: { headerButtonFace("See all") }
+                .buttonStyle(.glass)
+                .popOut(.raised, in: Capsule())
+                .accessibilityHint("Every one of these sets, newest first")
+                .accessibilityIdentifier("feature-\(mode.rawValue)")
+        }
+    }
+
+    /// Select, to pick sets to move, mix, combine or delete; Done to stop.
+    private var selectButton: some View {
+        let title: String = selecting ? "Done" : "Select"
+        let hint: String = selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine"
+        return Button {
+            withAnimation(.snappy) { selecting.toggle(); selected = [] }
+        } label: {
+            headerButtonFace(title)
+        }
+        .buttonStyle(.glass)
+        .popOut(.raised, in: Capsule())
+        .accessibilityHint(hint)
+        .accessibilityIdentifier("selectSets")
+    }
+
+    /// A sets header button's words, tall enough that with the glass
+    /// around them the button is a 44-point target.
+    private func headerButtonFace(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .frame(minHeight: 30)
     }
 
     @ViewBuilder
@@ -354,16 +604,21 @@ struct LibraryView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Menu {
+                    Button("Select sets", systemImage: "checkmark.circle") {
+                        withAnimation(.snappy) { selecting = true; selected = [] }
+                    }
                     Button("Rename folder", systemImage: "pencil") {
                         draftName = folder.name; renamingFolder = folder
                     }
                     Button("Ungroup", systemImage: "folder.badge.minus") { store.ungroup(folder.id) }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.body)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                    // a control, so it stands out of the glass
+                    moreMenuFace
                 }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .contentShape(.hoverEffect, Circle())
+                .hoverEffect(.highlight)
                 .accessibilityLabel("Folder options")
             }
             .textCase(nil)
@@ -373,36 +628,43 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        // The gear: Ideas, Progress, the lectures, the tour of examples,
-        // account, settings and help - the pages that are about the app
-        // rather than one category. The studying itself is in the dock.
-        ToolbarItem(placement: .topBarLeading) {
+        // One item, top-trailing: Progress, the lectures, the tour of
+        // examples, account, settings and help - the pages about the app
+        // rather than one category, and seldom needed, so up here out of
+        // the thumb's way. The studying itself is in the dock; Select is
+        // beside the sets it picks from.
+        ToolbarItem(placement: .topBarTrailing) {
             // toolbar items already sit in the system's glass on iOS 26;
             // an extra .glass style here squashed the label into a circle
             Menu {
                 SupportMenuItems(chosen: $support)
             } label: {
-                Label("Settings and help", systemImage: "gearshape")
+                Label("Account and settings", systemImage: "person.crop.circle")
             }
             .accessibilityIdentifier("libraryMenu")
         }
-        if !store.library.isEmpty {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    withAnimation(.snappy) { selecting.toggle(); selected = [] }
-                } label: {
-                    Text(selecting ? "Done" : "Select").fixedSize()
-                }
-                .accessibilityHint(selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine")
-            }
+    }
+
+    /// Every delete - a swipe, a row's menu, the selection bar - comes
+    /// here, and asks first unless "Ask before deleting a set" is off.
+    func delete(_ ids: [UUID]) {
+        guard !ids.isEmpty else { return }
+        if confirmDelete {
+            pendingDelete = ids
+        } else {
+            performDelete(ids)
         }
     }
 
-    func delete(_ ids: [UUID]) {
+    func performDelete(_ ids: [UUID]) {
         ids.forEach { store.deleteSet($0) }
         // a deleted set's cards would otherwise keep their place in the
         // schedule for ever
         reviews.prune(keeping: store.library)
+        selected.subtract(ids)
+        if selecting && selected.isEmpty {
+            withAnimation(.snappy) { selecting = false }
+        }
     }
 
     /// Exports a set in whichever form keeps the most of it.
@@ -423,6 +685,41 @@ struct LibraryView: View {
     }
 
     private func destination(for set: StudySet) -> some View {
+        // remembered for "Open the last set on launch"
         StudySetScreen(set: set)
+            .onAppear { lastSetId = set.id.uuidString }
+    }
+}
+
+/// Whether the software keyboard is up, so the dock can step aside while
+/// something is being typed.
+private struct KeyboardWatch: ViewModifier {
+    @Binding var up: Bool
+
+    private static var shows: NotificationCenter.Publisher {
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+    }
+
+    private static var hides: NotificationCenter.Publisher {
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+    }
+
+    /// A keyboard tall enough to be the on-screen one - not the thin bar of
+    /// shortcuts an iPad shows over a hardware keyboard.
+    private static func isSoftKeyboard(_ note: Notification) -> Bool {
+        let value: NSValue? = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue
+        let frame: CGRect = value?.cgRectValue ?? .zero
+        return frame.height > 140
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(KeyboardWatch.shows) { note in
+                let soft: Bool = KeyboardWatch.isSoftKeyboard(note)
+                withAnimation(.snappy) { up = soft }
+            }
+            .onReceive(KeyboardWatch.hides) { _ in
+                withAnimation(.snappy) { up = false }
+            }
     }
 }

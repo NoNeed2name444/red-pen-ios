@@ -6,8 +6,8 @@ import SwiftUI
 // MARK: - One mode's sets
 
 /// Every set of one kind - the page a mode's tile opens, as the mode's own tab
-/// did before the dock had categories: the newest one to carry on with at the
-/// top, then all of them, then New.
+/// did before the dock had categories: all of them, newest first, and at the
+/// bottom, under the thumb, "Continue" on the newest with "New" beside it.
 ///
 /// Links carry their destination rather than a value: this page is pushed by
 /// item, and a value link from inside it would go through the library's typed
@@ -16,38 +16,68 @@ struct KindShelfView: View {
     let feature: CategoryFeature
     @EnvironmentObject private var store: Store
     @State private var making: StudySetKind?
+    /// For "Open the last set on launch": these links carry their own
+    /// destination, so they do not pass through the library's, which is
+    /// where it is otherwise remembered.
+    @AppStorage("cramdown.lastSetId") private var lastSetId = ""
 
     private var kind: StudySetKind { feature.shelfKind ?? .mcq }
 
     var body: some View {
         let sets: [StudySet] = feature.shelfSets(store)
+        let heading: String = sets.count == 1 ? "Your set" : "All \(sets.count)"
         List {
-            if let newest = sets.first {
-                Section {
-                    link(newest, id: "shelfContinue")
-                } header: {
-                    CategoryHeading(title: "Carry on")
-                }
-            }
             Section {
+                if sets.isEmpty {
+                    Text("None yet \u{2014} tap New to make one.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                }
                 ForEach(sets) { set in
                     link(set, id: "shelfSet-\(set.kind.rawValue)")
                 }
-                newButton
             } header: {
-                CategoryHeading(title: sets.count == 1 ? "Your set" : "All \(sets.count)")
+                CategoryHeading(title: heading)
             }
         }
         .scrollContentBackground(.hidden)
+        // one comfortable column on a wide iPad
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
         .background(AppBackdrop(tint: kind.tint))
         .navigationTitle(feature.title)
         .navigationBarTitleDisplayMode(.inline)
+        .studyBar { shelfBar(newest: sets.first) }
+        // the bar's buttons in this mode's colour
+        .environment(\.modeTint, kind.tint)
         .sheet(item: $making) { kind in NewSetView(kind: kind) }
+    }
+
+    /// New at the leading end; the hero - carry on with the newest set - at
+    /// the trailing end, under the right thumb.
+    private func shelfBar(newest: StudySet?) -> some View {
+        HStack(spacing: 12) {
+            newButton
+            if let newest { continueLink(newest) }
+        }
+    }
+
+    private func continueLink(_ set: StudySet) -> some View {
+        let title: String = "Continue: \(set.name)"
+        return NavigationLink {
+            opened(set)
+        } label: {
+            Label(title, systemImage: "play.fill")
+                .lineLimit(1)
+        }
+        .buttonStyle(.bigPrimary)
+        .accessibilityIdentifier("shelfContinue")
     }
 
     private func link(_ set: StudySet, id: String) -> some View {
         NavigationLink {
-            StudySetScreen(set: set)
+            opened(set)
         } label: {
             ShelfSetRow(set: set)
         }
@@ -55,14 +85,21 @@ struct KindShelfView: View {
         .frostedListRow()
     }
 
+    /// A set's screen, remembered as the last set opened.
+    private func opened(_ set: StudySet) -> some View {
+        let id: String = set.id.uuidString
+        return StudySetScreen(set: set)
+            .onAppear { lastSetId = id }
+    }
+
     private var newButton: some View {
-        Button { making = kind } label: {
-            Label("New \(feature.newNoun)", systemImage: "plus")
-                .font(.body.weight(.semibold))
-                .frame(minHeight: 44, alignment: .leading)
+        let spoken: String = "New \(feature.newNoun)"
+        return Button { making = kind } label: {
+            Label("New", systemImage: "plus")
         }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel(spoken)
         .accessibilityIdentifier("shelfNew")
-        .frostedListRow()
     }
 }
 
@@ -150,6 +187,9 @@ struct ReasoningToolPicker: View {
             }
         }
         .scrollContentBackground(.hidden)
+        // one comfortable column on a wide iPad
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
         .background(AppBackdrop(tint: StudySetKind.qa.tint))
         .navigationTitle(tool.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -211,6 +251,9 @@ struct TurnIntoListView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        // one comfortable column on a wide iPad
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
         .background(AppBackdrop(tint: Color.accentColor))
         .navigationTitle("Turn into\u{2026}")
         .navigationBarTitleDisplayMode(.inline)

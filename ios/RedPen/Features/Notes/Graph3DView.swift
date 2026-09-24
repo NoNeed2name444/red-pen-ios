@@ -7,20 +7,26 @@ import simd
 /// thread between two, the way Obsidian's graph shows a vault - but something
 /// to turn round in the hand rather than a flat picture.
 ///
-/// It is a piece of deep space. Every note is a small black hole - a black
-/// sphere, a thin photon ring hugging its rim and a tilted, streaky
-/// accretion disk, tinted a little by its folder - and every link a stream of
-/// plasma with an electric aura (see GraphLook). Pages are a little larger
-/// than ideas. Titles appear only for the few notes nearest you, fading in
-/// as you come closer. The only controls
-/// are two small buttons in the corner: one to filter, one to bring the view
-/// back to the middle.
+/// It is a piece of deep space, seen through the screen as through a window:
+/// it runs on under the bottom glass, and tilting the device turns it a
+/// hair (see GraphSim's tilt rig), so it reads as being BEHIND the glass
+/// while the controls stand out in front of it. Every note is a small black
+/// hole - a black sphere, a thin photon ring hugging its rim and a tilted,
+/// streaky accretion disk, tinted a little by its folder - and every link a
+/// stream of plasma with an electric aura (see GraphLook). Pages are a little
+/// larger than ideas.
+///
+/// Names stay out of the way: a note's name shows, on a solid dark pill just
+/// the size of the words, only while the pointer hovers over it (iPad
+/// trackpad, mouse or Pencil) or while it is pressed or dragged; it goes
+/// when the finger lifts. Tapping it twice opens it. The only other controls
+/// are two round tools: one to filter, one to bring the view back to the
+/// middle.
 ///
 /// It is alive rather than frozen: the notes drift gently, pop in with a small
 /// bounce, and a note dragged with a finger pulls its neighbours along and
 /// springs home when let go (see GraphSim). Drag empty space to turn it,
-/// pinch to come closer, tap a note to open it. With Reduce Motion on the
-/// space stands still.
+/// pinch to come closer. With Reduce Motion on the space stands still.
 ///
 /// Where each note belongs is worked out by ForceLayout3D, off the main
 /// thread, and again only when notes or links change.
@@ -30,6 +36,7 @@ struct Graph3DView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.layoutDirection) private var direction
     @State private var built: GraphScene?
     @State private var filter: GraphFilter = .all
     /// Bumped by the recentre button; the view notices the change.
@@ -41,25 +48,10 @@ struct Graph3DView: View {
                 ContentUnavailableView {
                     Label("Dump your first idea", systemImage: "cube.transparent")
                 } description: {
-                    Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar above.")
+                    Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
                 }
             } else if let built {
-                GraphSCNView(built: built, filter: filter, recenter: recenter, onTap: open)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Space of ideas")
-                    .accessibilityHint("Drag to turn, pinch to zoom, tap a note to open it.")
-                    .accessibilityIdentifier("graph3D")
-                    .overlay {
-                        if filter != .all && shownCount == 0 {
-                            Text("Nothing here for this filter.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .allowsHitTesting(false)
-                        }
-                    }
-                    .overlay(alignment: .bottomTrailing) { controls }
-                    // the space is always night, whatever the phone's setting
-                    .environment(\.colorScheme, .dark)
+                space(built)
             } else {
                 ProgressView()
             }
@@ -71,41 +63,72 @@ struct Graph3DView: View {
         }
     }
 
-    // MARK: the corner controls
-
-    /// The only controls on screen: filter, and back to the middle.
-    private var controls: some View {
-        GlassEffectContainer(spacing: 8) {
-            VStack(spacing: 8) {
-                Menu {
-                    filterMenu
-                } label: {
-                    Image(systemName: filter == .all
-                          ? "line.3.horizontal.decrease"
-                          : "line.3.horizontal.decrease.circle.fill")
-                        .font(.body.weight(.medium))
-                        .frame(width: 40, height: 40)
-                        .contentShape(Circle())
-                }
-                .foregroundStyle(.secondary)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel("Filter")
-
-                Button {
-                    recenter += 1
-                } label: {
-                    Image(systemName: "scope")
-                        .font(.body.weight(.medium))
-                        .frame(width: 40, height: 40)
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel("Recentre")
+    /// The space itself, running on under the glass, with its tools in the
+    /// safe area. The graph is fitted to the part of the view that is not
+    /// under glass (the safe area, read here), so no note starts hidden
+    /// under the bars. No SwiftUI transform ever touches the SceneKit view:
+    /// its own tilt comes from inside the scene.
+    private func space(_ built: GraphScene) -> some View {
+        ZStack {
+            GeometryReader { geo in
+                let insets: GraphInsets = screenInsets(geo.safeAreaInsets)
+                GraphSCNView(built: built, filter: filter, recenter: recenter,
+                             insets: insets, onTap: open)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Space of ideas")
+                    .accessibilityHint("Drag to turn, pinch to zoom. Press and hold a note to see its name; tap it twice to open it.")
+                    .accessibilityIdentifier("graph3D")
+            }
+            .ignoresSafeArea()
+        }
+        .overlay {
+            if filter != .all && shownCount == 0 {
+                Text("Nothing here for this filter.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .allowsHitTesting(false)
             }
         }
-        .padding(16)
+        .ideaTools { tools }
+        // the space is always night, whatever the phone's setting
+        .environment(\.colorScheme, .dark)
+    }
+
+    /// The safe area's insets, left and right as on screen.
+    private func screenInsets(_ edges: EdgeInsets) -> GraphInsets {
+        let rtl: Bool = direction == .rightToLeft
+        let left: CGFloat = rtl ? edges.trailing : edges.leading
+        let right: CGFloat = rtl ? edges.leading : edges.trailing
+        return GraphInsets(top: Float(edges.top), left: Float(left),
+                           bottom: Float(edges.bottom), right: Float(right))
+    }
+
+    // MARK: the tools
+
+    private var filterSymbol: String {
+        filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill"
+    }
+
+    /// The only controls on screen: filter, and back to the middle.
+    @ViewBuilder
+    private var tools: some View {
+        let filtering: Bool = filter != .all
+        let ink: Color = filtering ? Color.accentColor : Color.secondary
+        let glass: Glass = IdeaToolGlass.glass(active: filtering)
+        Menu {
+            filterMenu
+        } label: {
+            IdeaToolFace(symbol: filterSymbol)
+        }
+        .foregroundStyle(ink)
+        .glassEffect(glass, in: .circle)
+        .popOut(.floating, in: Circle())
+        .hoverEffect(.highlight)
+        .accessibilityLabel("Filter")
+
+        IdeaToolButton(symbol: "scope", label: "Recentre") {
+            recenter += 1
+        }
     }
 
     @ViewBuilder
@@ -163,12 +186,18 @@ struct Graph3DView: View {
         }
         parts.append("\(reduceMotion)")
         parts.append("\(bold)")
+        parts.append("\(highContrast)")
         return parts.joined(separator: "\n")
     }
 
     /// Reduce Transparency or Increase Contrast: brighter, solid links.
     private var bold: Bool {
-        reduceTransparency || contrast == .increased
+        reduceTransparency || highContrast
+    }
+
+    /// Increase Contrast: black name pills with a white rim.
+    private var highContrast: Bool {
+        contrast == .increased
     }
 
     private func rebuild() async {
@@ -194,7 +223,7 @@ struct Graph3DView: View {
         guard !Task.isCancelled else { return }
         built = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
                                         lively: !reduceMotion, bold: bold, shaders: worked.1,
-                                        pageRadius: worked.2)
+                                        pageRadius: worked.2, contrast: highContrast)
     }
 }
 
@@ -224,7 +253,13 @@ struct GraphScene {
 ///       ring holder (billboarded: always faces the camera)
 ///         ring stretch (lifted towards the camera; squash and stretch)
 ///           ring (the plane, turned back so its bright side stays right)
-///       label
+///       label (billboarded; hidden until hovered, pressed or chosen)
+///         rim, pill, words
+///
+/// and the whole graph hangs from the scene as root -> tilt rig -> world:
+/// the rig is turned a few hundredths of a radian by the device's tilt
+/// (GraphSim), so the notes shift against the sky like things seen through
+/// a window.
 ///
 /// The ring is lifted more than a radius towards the camera, so no part of
 /// its own sphere is ever in front of it and the rim shows all the way
@@ -235,14 +270,18 @@ struct GraphScene {
 enum GraphSceneBuilder {
     static func build(store: NoteStore, positions: [UUID: SIMD3<Float>], edges: [(UUID, UUID)],
                       lively: Bool, bold: Bool, shaders: GraphShaderSupport,
-                      pageRadius: Float) -> GraphScene {
+                      pageRadius: Float, contrast: Bool = false) -> GraphScene {
         let scene = SCNScene()
         // deep space: a sky of geometry kept round the camera (GraphSpace)
         scene.background.contents = UIColor.black
         let sky: SCNNode = GraphSpace.makeSky()
         scene.rootNode.addChildNode(sky)
+        // root -> tilt rig -> world: the rig turns with the device's tilt
+        let rig = SCNNode()
+        rig.name = "tiltRig"
+        scene.rootNode.addChildNode(rig)
         let world = SCNNode()
-        scene.rootNode.addChildNode(world)
+        rig.addChildNode(world)
         let ideaRadius: Float = pageRadius * 0.62
 
         let textColor = UIColor(red: 1, green: 0.95, blue: 0.88, alpha: 1)
@@ -342,7 +381,7 @@ enum GraphSceneBuilder {
 
             let title: String = note.title.isEmpty ? "Untitled" : note.title
             let labelHeight: Float = max(radius * 1.05, 0.17)
-            let label = Self.label(title, color: textColor, height: labelHeight)
+            let label = Self.label(title, color: textColor, height: labelHeight, contrast: contrast)
             let labelLift: Float = radius * 2.3 + 0.04
             label.simdPosition = SIMD3<Float>(0, labelLift, 0)
             node.addChildNode(label)
@@ -401,13 +440,13 @@ enum GraphSceneBuilder {
         cameraNode.simdPosition = cameraHome
         scene.rootNode.addChildNode(cameraNode)
 
-        // titles come within reach as the camera comes closer; from where it
-        // starts only a small space shows any
+        // kept for GraphSim's signature; names now show only when hovered,
+        // pressed or chosen, not by distance
         let scaledReach: Float = distance * 0.55
         let labelReach: Float = max(scaledReach, 5.5)
         let simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
                                      clocked: clocked, emitters: emitters, trails: trails, sky: sky)
-        let sim = GraphSim(world: world, infos: infos, edges: edges, lines: lines,
+        let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
         return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
     }
@@ -419,9 +458,13 @@ enum GraphSceneBuilder {
         return plane
     }
 
-    /// A small flat title that always faces the camera. It starts hidden;
-    /// GraphSim fades it in when the note is near enough.
-    private static func label(_ text: String, color: UIColor, height: Float) -> SCNNode {
+    /// A small flat title that always faces the camera, on a solid dark
+    /// pill just the size of the words, with a thin lighter rim round it.
+    /// Everything in it is fully opaque and drawn over the whole scene
+    /// without depth testing, so no link, glow or note ever shows through or
+    /// hides it. It starts hidden; GraphSim shows it for the hovered,
+    /// pressed or chosen note.
+    private static func label(_ text: String, color: UIColor, height: Float, contrast: Bool) -> SCNNode {
         let shown: String = text.count > 28 ? String(text.prefix(27)) + "\u{2026}" : text
         let geometry = SCNText(string: shown, extrusionDepth: 0)
         geometry.font = UIFont.systemFont(ofSize: 10, weight: .bold)
@@ -444,32 +487,42 @@ enum GraphSceneBuilder {
         let scale: Float = height / 10
         textNode.scale = SCNVector3(x: scale, y: scale, z: scale)
 
-        // a dark rounded pill just the size of the words behind them, so the
-        // title reads clearly over the glowing links
+        // the pill hugs the words: a little room each side, less above and
+        // below
         let textWidth: Float = (high.x - low.x) * scale
         let textHeight: Float = (high.y - low.y) * scale
-        let padX: Float = height * 0.45
-        let padY: Float = height * 0.28
+        let padX: Float = height * 0.22
+        let padY: Float = height * 0.10
         let pillWidth: Float = textWidth + padX * 2
         let pillHeight: Float = textHeight + padY * 2
+        let pillColor: UIColor = contrast ? UIColor.black : Self.pillFill
         let pill = SCNPlane(width: CGFloat(pillWidth), height: CGFloat(pillHeight))
         pill.cornerRadius = CGFloat(pillHeight / 2)
-        let pillLook = SCNMaterial()
-        pillLook.diffuse.contents = UIColor(red: 0.02, green: 0.03, blue: 0.07, alpha: 0.9)
-        pillLook.lightingModel = .constant
-        pillLook.isDoubleSided = true
-        pillLook.writesToDepthBuffer = false
-        pillLook.readsFromDepthBuffer = false
-        pill.materials = [pillLook]
+        pill.materials = [Self.solid(pillColor)]
         let pillNode = SCNNode(geometry: pill)
         pillNode.simdPosition = SIMD3<Float>(0, textHeight / 2, -0.002)
-        // drawn after the links, then the words on top of the pill
+
+        // the rim: one step behind the pill and a hair bigger all round
+        let edge: Float = height * 0.12
+        let rimWidth: Float = pillWidth + edge
+        let rimHeight: Float = pillHeight + edge
+        let rimColor: UIColor = contrast ? UIColor.white : Self.rimFill
+        let rim = SCNPlane(width: CGFloat(rimWidth), height: CGFloat(rimHeight))
+        rim.cornerRadius = CGFloat(rimHeight / 2)
+        rim.materials = [Self.solid(rimColor)]
+        let rimNode = SCNNode(geometry: rim)
+        rimNode.simdPosition = SIMD3<Float>(0, textHeight / 2, -0.004)
+
+        // drawn after everything else in the space: the rim, then the pill,
+        // then the words on top
+        rimNode.renderingOrder = 19
         pillNode.renderingOrder = 20
         textNode.renderingOrder = 21
 
         let holder = SCNNode()
         holder.name = "label"
         holder.renderingOrder = 20
+        holder.addChildNode(rimNode)
         holder.addChildNode(pillNode)
         holder.addChildNode(textNode)
         let billboard = SCNBillboardConstraint()
@@ -477,20 +530,56 @@ enum GraphSceneBuilder {
         holder.constraints = [billboard]
         return holder
     }
+
+    /// A solid dark slate: dark enough for the pale words, not so black it
+    /// reads as a hole.
+    private static let pillFill = UIColor(red: 0.12, green: 0.13, blue: 0.19, alpha: 1)
+    private static let rimFill = UIColor(red: 0.40, green: 0.43, blue: 0.55, alpha: 1)
+
+    /// Fully opaque, unlit, and never tested against depth: it replaces what
+    /// is behind it rather than blending with it.
+    private static func solid(_ colour: UIColor) -> SCNMaterial {
+        let look = SCNMaterial()
+        look.diffuse.contents = colour
+        look.lightingModel = .constant
+        look.transparency = 1
+        look.blendMode = .replace
+        look.isDoubleSided = true
+        look.writesToDepthBuffer = false
+        look.readsFromDepthBuffer = false
+        return look
+    }
 }
 
 /// SceneKit's view, wrapped so a tap can say which note it landed on and a
 /// drag on a note can move it - neither of which SwiftUI's SceneView offers.
 /// Turning and zooming, when the finger is not on a note, are SceneKit's own
 /// camera control.
+///
+/// - A finger (or Pencil, or click) down on a note shows its name for as
+///   long as it is held (FramingSCNView forwards touch down and lift).
+/// - One tap on a note chooses it: its ring brightens and there is a small
+///   selection tick. One tap on empty space lets it go. A single tap never
+///   opens anything, and never waits for a second.
+/// - Two taps on a note open it. Two taps on empty space are SceneKit's own
+///   (bring the camera back), which wait for ours to find no note there.
+/// - The pointer (trackpad, mouse, Pencil hover) shows the name of the note
+///   it is over.
+///
+/// A note is found by where it is on screen - the nearest within 28 points
+/// of a finger, 16 of the pointer - with SceneKit's own hit test as the
+/// fallback for a note drawn bigger than that up close.
 struct GraphSCNView: UIViewRepresentable {
     let built: GraphScene
     let filter: GraphFilter
     let recenter: Int
+    /// How much of the view is under glass on each side; the graph is
+    /// framed to the rest.
+    let insets: GraphInsets
     let onTap: (UUID) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onTap: onTap, recenter: recenter)
+        Coordinator(onTap: onTap, recenter: recenter, insets: insets)
     }
 
     func makeUIView(context: Context) -> FramingSCNView {
@@ -511,8 +600,18 @@ struct GraphSCNView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.view = view
         view.onResize = { [weak coordinator] size in coordinator?.resized(to: size) }
+        view.onPress = { [weak coordinator] point in coordinator?.pressed(at: point) }
         let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
+        tap.delegate = coordinator
         view.addGestureRecognizer(tap)
+        coordinator.tapper = tap
+        let twice = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.opened(_:)))
+        twice.numberOfTapsRequired = 2
+        twice.delegate = coordinator
+        view.addGestureRecognizer(twice)
+        coordinator.doubleTapper = twice
+        let hover = UIHoverGestureRecognizer(target: coordinator, action: #selector(Coordinator.hovered(_:)))
+        view.addGestureRecognizer(hover)
         let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.panned(_:)))
         pan.maximumNumberOfTouches = 1
         pan.delegate = coordinator
@@ -533,7 +632,10 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.apply(filter)
         if coordinator.recenterCount != recenter {
             coordinator.recenterCount = recenter
+            coordinator.insets = insets
             coordinator.recentre()
+        } else if coordinator.insets != insets {
+            coordinator.inset(to: insets)
         }
     }
 
@@ -545,9 +647,13 @@ struct GraphSCNView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onTap: (UUID) -> Void
         var recenterCount: Int
+        /// How much of the view is under glass; framing fits the rest.
+        var insets: GraphInsets
         private(set) var sim: GraphSim?
         weak var view: SCNView?
         weak var panner: UIPanGestureRecognizer?
+        weak var tapper: UITapGestureRecognizer?
+        weak var doubleTapper: UITapGestureRecognizer?
         private var camera: SCNNode?
         /// The notes' homes and how far each reaches, for framing.
         private var homes: [SIMD3<Float>] = []
@@ -555,6 +661,9 @@ struct GraphSCNView: UIViewRepresentable {
         /// Whether the graph was last framed for a wide (landscape) view;
         /// nil before the first framing.
         private var framedWide: Bool?
+        /// Where the last framing put the camera, to tell whether it has
+        /// been turned or zoomed since.
+        private var framedPose: simd_float4x4?
         private var shownFilter: GraphFilter?
         /// The note a drag is about to pick up, found when the drag begins.
         private var pending: Int?
@@ -565,14 +674,22 @@ struct GraphSCNView: UIViewRepresentable {
         private var dragOffset = SIMD3<Float>(0, 0, 0)
         /// True between a drag picking a note up and letting it go.
         private var dragging: Bool = false
-        /// The camera's own drag gestures already told to wait for ours.
+        /// The camera's own drags and double taps already told to wait for
+        /// ours.
         private var wired: Set<ObjectIdentifier> = []
         /// The design preview's drag has been started (see GraphPreview).
         private var previewDragged: Bool = false
+        /// The design preview's chosen note has been picked (see GraphPreview).
+        private var previewChosen: Bool = false
+        /// Where the pointer was when the hovered note was last looked for.
+        private var lastHover: CGPoint?
+        /// The small tick when a note is chosen.
+        private let chooser = UISelectionFeedbackGenerator()
 
-        init(onTap: @escaping (UUID) -> Void, recenter: Int) {
+        init(onTap: @escaping (UUID) -> Void, recenter: Int, insets: GraphInsets) {
             self.onTap = onTap
             self.recenterCount = recenter
+            self.insets = insets
         }
 
         /// Shows a newly built scene.
@@ -582,6 +699,7 @@ struct GraphSCNView: UIViewRepresentable {
             homes = built.homes
             pad = built.pad
             framedWide = nil
+            framedPose = nil
             shownFilter = nil
             // the simulation steps on SceneKit's render loop, once per frame
             view.delegate = built.sim
@@ -595,6 +713,21 @@ struct GraphSCNView: UIViewRepresentable {
             if GraphPreview.drags && !previewDragged {
                 previewDragged = true
                 runPreviewDrag()
+            } else if GraphPreview.chooses && !previewChosen {
+                previewChosen = true
+                runPreviewChoice()
+            }
+        }
+
+        /// For the design preview (`-graphPreview` alone): a moment after
+        /// the space appears, chooses the most-linked note and holds it as a
+        /// press would, so the picture at rest shows one name on its pill.
+        private func runPreviewChoice() {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard let self, let sim = self.sim, let i = sim.busiestNote() else { return }
+                sim.select(i)
+                sim.press(i)
             }
         }
 
@@ -640,6 +773,33 @@ struct GraphSCNView: UIViewRepresentable {
             frame(animated: true)
         }
 
+        /// The glass round the space changed (the switcher folded, the
+        /// keyboard or the dock came or went). While the camera is still
+        /// where the last framing left it, the graph glides to fit the new
+        /// window; once it has been turned or zoomed, it is left alone and
+        /// the next Recentre uses the new window.
+        func inset(to new: GraphInsets) {
+            insets = new
+            guard framedWide != nil, untouched else { return }
+            frame(animated: true)
+        }
+
+        /// Whether the camera is still where the last framing put it.
+        private var untouched: Bool {
+            guard let view, let camera, let pose = framedPose else { return false }
+            guard view.pointOfView === camera else { return false }
+            return Self.same(camera.simdTransform, pose)
+        }
+
+        private static func same(_ a: simd_float4x4, _ b: simd_float4x4) -> Bool {
+            let gaps: [SIMD4<Float>] = [a.columns.0 - b.columns.0, a.columns.1 - b.columns.1,
+                                        a.columns.2 - b.columns.2, a.columns.3 - b.columns.3]
+            for gap in gaps where gap.max() > 0.001 || gap.min() < -0.001 {
+                return false
+            }
+            return true
+        }
+
         /// The view changed size. The first time it has a size, and whenever
         /// it turns between upright and wide, the graph is framed again.
         func resized(to size: CGSize) {
@@ -651,7 +811,8 @@ struct GraphSCNView: UIViewRepresentable {
 
         /// Fits the whole graph to the screen (GraphFraming): its longest
         /// spread along the screen's long side, filling 80% of the shorter
-        /// one, centred, seen from the front.
+        /// one of the part not under glass, centred in that part, seen from
+        /// the front.
         private func frame(animated: Bool) {
             guard let view, let camera, let sim else { return }
             let size: CGSize = view.bounds.size
@@ -663,17 +824,20 @@ struct GraphSCNView: UIViewRepresentable {
             let angle: Float = wide ? -Float.pi / 2 : 0
             let turn = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 0, 1))
             let turned: [SIMD3<Float>] = homes.map { turn.act($0) }
-            let aspect = Float(size.width / size.height)
-            let distance: Float = GraphFraming.distance(points: turned, pad: pad, aspect: aspect)
+            let window: GraphWindow = GraphFraming.window(width: Float(size.width),
+                                                          height: Float(size.height), insets: insets)
+            let distance: Float = GraphFraming.distance(points: turned, pad: pad, window: window)
+            let home: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = animated ? 0.6 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             sim.world.simdOrientation = turn
-            camera.simdPosition = SIMD3<Float>(0, 0, distance)
+            camera.simdPosition = home
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
+            framedPose = camera.simdTransform
         }
 
         /// The view is going: stop drawing and let go of the simulation.
@@ -684,23 +848,36 @@ struct GraphSCNView: UIViewRepresentable {
 
         // MARK: gestures
 
-        /// SceneKit's camera control brings its own drag gestures. Each is
-        /// told to wait until ours has decided the finger is not on a note,
-        /// so a drag on a note moves the note and a drag anywhere else turns
-        /// the space.
+        /// SceneKit's camera control brings its own gestures. Each of its
+        /// drags is told to wait until ours has decided the finger is not on
+        /// a note, so a drag on a note moves the note and a drag anywhere
+        /// else turns the space; and each of its double taps waits for ours
+        /// to find no note under the finger, so two taps on a note open it
+        /// and two taps on empty space still bring the camera back.
         private func wireCameraGestures(in view: SCNView) {
-            guard let panner else { return }
             for other in view.gestureRecognizers ?? [] {
-                guard other !== panner, other is UIPanGestureRecognizer else { continue }
                 let key = ObjectIdentifier(other)
                 if wired.contains(key) { continue }
-                other.require(toFail: panner)
-                wired.insert(key)
+                if let panner, other !== panner, other is UIPanGestureRecognizer {
+                    other.require(toFail: panner)
+                    wired.insert(key)
+                } else if let doubleTapper, other !== doubleTapper,
+                          let tap = other as? UITapGestureRecognizer, tap.numberOfTapsRequired == 2 {
+                    other.require(toFail: doubleTapper)
+                    wired.insert(key)
+                }
             }
         }
 
         func gestureRecognizerShouldBegin(_ gesture: UIGestureRecognizer) -> Bool {
-            guard gesture === panner, let view else { return true }
+            guard let view else { return true }
+            if gesture === doubleTapper {
+                // only on a note; on empty space SceneKit's own double tap
+                // takes over
+                let point: CGPoint = gesture.location(in: view)
+                return pick(at: point, radius: 28, in: view) != nil
+            }
+            guard gesture === panner else { return true }
             let point: CGPoint = gesture.location(in: view)
             pending = noteIndex(at: point, in: view)
             guard pending != nil else { return false }
@@ -713,6 +890,15 @@ struct GraphSCNView: UIViewRepresentable {
                 other.isEnabled = true
             }
             return true
+        }
+
+        /// A single tap never holds up a double tap - ours or SceneKit's -
+        /// and is never held up by one: choosing a note is instant.
+        func gestureRecognizer(_ gesture: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            let involvesTap: Bool = gesture === tapper || other === tapper
+            guard involvesTap else { return false }
+            return gesture is UITapGestureRecognizer && other is UITapGestureRecognizer
         }
 
         @objc func panned(_ gesture: UIPanGestureRecognizer) {
@@ -754,12 +940,86 @@ struct GraphSCNView: UIViewRepresentable {
             return sim.world.simdConvertPosition(inScene, from: nil)
         }
 
+        /// One tap: chooses the note under the finger (its ring brightens;
+        /// its name showed only while it was pressed), or, on empty space,
+        /// lets the chosen one go. Never opens.
         @objc func tapped(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
             let point: CGPoint = gesture.location(in: view)
-            guard let i = noteIndex(at: point, in: view) else { return }
+            guard let i = pick(at: point, radius: 28, in: view) else {
+                sim.clearSelection()
+                return
+            }
+            // the second tap of a double tap lands here too: already chosen
+            if sim.selectedNote == i { return }
             sim.select(i)
+            chooser.selectionChanged()
+        }
+
+        /// Two taps on a note: open it.
+        @objc func opened(_ gesture: UITapGestureRecognizer) {
+            guard let view, let sim else { return }
+            let point: CGPoint = gesture.location(in: view)
+            guard let i = pick(at: point, radius: 28, in: view) else { return }
+            if sim.selectedNote != i { sim.select(i) }
             onTap(sim.ids[i])
+        }
+
+        /// The pointer over the space: the note under it shows its name.
+        /// Looked for again only once the pointer has moved 2 points.
+        @objc func hovered(_ gesture: UIHoverGestureRecognizer) {
+            guard let view, let sim else { return }
+            switch gesture.state {
+            case .began, .changed:
+                let point: CGPoint = gesture.location(in: view)
+                if let last = lastHover {
+                    let dx: CGFloat = point.x - last.x
+                    let dy: CGFloat = point.y - last.y
+                    let moved: CGFloat = dx * dx + dy * dy
+                    if moved <= 4 { return }
+                }
+                lastHover = point
+                sim.hover(pick(at: point, radius: 16, in: view))
+            default:
+                lastHover = nil
+                sim.hover(nil)
+            }
+        }
+
+        /// A finger, Pencil or click down on the space (`point`), or lifted
+        /// (nil): the note under it shows its name for as long as it is
+        /// held. Taps, double taps and drags see the same touches as before.
+        func pressed(at point: CGPoint?) {
+            guard let sim else { return }
+            guard let point, let view else {
+                sim.press(nil)
+                return
+            }
+            sim.press(pick(at: point, radius: 28, in: view))
+        }
+
+        /// The shown note nearest `point` on screen, within `radius` points;
+        /// SceneKit's hit test when none is that close (a note drawn large,
+        /// up close).
+        private func pick(at point: CGPoint, radius: CGFloat = 28, in view: SCNView) -> Int? {
+            guard let sim else { return nil }
+            var best: Int?
+            var bestSquared: CGFloat = radius * radius
+            for (i, local) in sim.visiblePositions() {
+                let world: SIMD3<Float> = sim.world.simdConvertPosition(local, to: nil)
+                let scenePoint = SCNVector3(x: world.x, y: world.y, z: world.z)
+                let projected: SCNVector3 = view.projectPoint(scenePoint)
+                let depth: Float = projected.z
+                guard depth >= 0, depth <= 1 else { continue }
+                let dx: CGFloat = CGFloat(projected.x) - point.x
+                let dy: CGFloat = CGFloat(projected.y) - point.y
+                let squared: CGFloat = dx * dx + dy * dy
+                if squared < bestSquared {
+                    best = i
+                    bestSquared = squared
+                }
+            }
+            return best ?? noteIndex(at: point, in: view)
         }
 
         /// Looks through everything under the finger for the nearest shown
@@ -792,10 +1052,35 @@ struct GraphSCNView: UIViewRepresentable {
 }
 
 /// An SCNView that says when its size changes, so the graph can be framed
-/// once it has a size and again when the phone turns.
+/// once it has a size and again when the phone turns; and when one finger
+/// goes down on it and lifts, so a pressed note can show its name while it
+/// is held. The touches still reach every gesture recogniser as before.
 final class FramingSCNView: SCNView {
     var onResize: ((CGSize) -> Void)?
+    /// Where a single finger went down, or nil when it lifts, is cancelled
+    /// or a second finger joins it.
+    var onPress: ((CGPoint?) -> Void)?
     private var lastSize: CGSize = .zero
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        let down: Int = event?.allTouches?.count ?? touches.count
+        guard down == 1, let touch = touches.first else {
+            onPress?(nil)
+            return
+        }
+        onPress?(touch.location(in: self))
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        onPress?(nil)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        onPress?(nil)
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()

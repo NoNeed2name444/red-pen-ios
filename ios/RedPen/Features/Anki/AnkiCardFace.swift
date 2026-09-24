@@ -240,6 +240,74 @@ extension View {
     }
 }
 
+/// What sits in a card screen's bottom bar: Reveal while the card is face
+/// down, then the four ratings.
+///
+/// Shared by the one-deck screen and Due today. `companion` is an optional
+/// small button at the leading end of the Reveal row (Due today's Listen);
+/// Reveal itself is the screen's one main button and sits at the trailing
+/// end, under the right thumb. Give it to `.studyBar { }`, so the card
+/// scrolls under the glass.
+struct AnkiFooter<Companion: View>: View {
+    let revealed: Bool
+    /// When each rating would bring the card back ("1m", "4d").
+    let labels: [AnkiRating: String]
+    let onReveal: () -> Void
+    let onRate: (AnkiRating) -> Void
+    private let companion: Companion
+    private let hasCompanion: Bool
+
+    @Environment(\.windowSpan) private var span
+
+    init(revealed: Bool, labels: [AnkiRating: String], onReveal: @escaping () -> Void,
+         onRate: @escaping (AnkiRating) -> Void, @ViewBuilder companion: () -> Companion) {
+        self.revealed = revealed
+        self.labels = labels
+        self.onReveal = onReveal
+        self.onRate = onRate
+        self.companion = companion()
+        self.hasCompanion = true
+    }
+
+    var body: some View {
+        if revealed {
+            AnkiRatingBar(labels: labels, onRate: onRate)
+        } else {
+            HStack(spacing: 12) {
+                if hasCompanion {
+                    companion
+                    // on a wide iPad the companion goes to the left hand
+                    if span == .broad { Spacer(minLength: 16) }
+                }
+                revealButton
+            }
+        }
+    }
+
+    private var revealButton: some View {
+        Button(action: onReveal) {
+            Text("Reveal")
+        }
+        .buttonStyle(.bigPrimary)
+        // Space turns the card over, as it does in Anki
+        .keyboardShortcut(.space, modifiers: [])
+        .accessibilityHint("Shows the answer. Say it to yourself first.")
+    }
+}
+
+extension AnkiFooter where Companion == EmptyView {
+    /// Reveal on its own, filling the bar.
+    init(revealed: Bool, labels: [AnkiRating: String], onReveal: @escaping () -> Void,
+         onRate: @escaping (AnkiRating) -> Void) {
+        self.revealed = revealed
+        self.labels = labels
+        self.onReveal = onReveal
+        self.onRate = onRate
+        self.companion = EmptyView()
+        self.hasCompanion = false
+    }
+}
+
 /// The four ratings after a card is turned over, as big buttons with plain
 /// words: Again, Hard, Good, Easy.
 ///
@@ -247,6 +315,10 @@ extension View {
 /// apart. Good is the filled one, because it is the answer most cards get
 /// and the one a thumb should find without looking; the other three are the
 /// quiet version of the same button.
+///
+/// On a phone they sit two by two, big enough to hit without looking; in any
+/// wider window, one row of four, Again to Easy from left to right like the
+/// 1 to 4 keys that press them.
 ///
 /// For the first few cards anybody rates, each button also says what it
 /// means in a few words ("I forgot it"), and a line above asks the question
@@ -261,22 +333,33 @@ struct AnkiRatingBar: View {
     /// How many cards have been rated while the hints were showing.
     @AppStorage("anki.ratingHintsShown") private var hintsShown = 0
     private static let hintCards = 5
+    @Environment(\.windowSpan) private var span
 
     var body: some View {
-        let hints = hintsShown < Self.hintCards
+        let hints: Bool = hintsShown < Self.hintCards
+        let oneRow: Bool = span > .slim
         VStack(spacing: 12) {
             if hints {
                 Text("How well did you remember it?")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            HStack(spacing: 12) {
-                button(.again, hints: hints)
-                button(.hard, hints: hints)
-            }
-            HStack(spacing: 12) {
-                button(.good, hints: hints)
-                button(.easy, hints: hints)
+            if oneRow {
+                HStack(spacing: 12) {
+                    button(.again, hints: hints)
+                    button(.hard, hints: hints)
+                    button(.good, hints: hints)
+                    button(.easy, hints: hints)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    button(.again, hints: hints)
+                    button(.hard, hints: hints)
+                }
+                HStack(spacing: 12) {
+                    button(.good, hints: hints)
+                    button(.easy, hints: hints)
+                }
             }
         }
     }

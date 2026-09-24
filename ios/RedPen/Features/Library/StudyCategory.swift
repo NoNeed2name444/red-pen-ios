@@ -463,22 +463,79 @@ struct CategoryHeading: View {
     }
 }
 
+/// Ideas: the idea dump, its board and the 3D map - a place of its own in
+/// the dock, beside the five categories rather than one of them. It holds no
+/// sets, so it is not a StudyCategory; the library shows IdeasView in its
+/// place when it is chosen.
+enum IdeasPlace {
+    static let title: String = "Ideas"
+    static let symbol: String = "lightbulb"
+    static let chosenSymbol: String = "lightbulb.fill"
+    /// Golden, so the page and the dock say "somewhere else" at a glance.
+    static let tint: Color = Color(red: 0.86, green: 0.64, blue: 0.10)
+    /// Where Ideas sits along the dock: after the five categories.
+    static var order: Int { StudyCategory.allCases.count }
+}
+
 /// The floating dock: the five categories, each a symbol over its name, in
-/// one glass capsule.
+/// one glass panel, and Ideas in a glass pill of its own beside it.
 ///
-/// Five equal slots across the width, so each is as wide as a phone allows:
-/// on a 375-point iPhone the pane is 351 points, which leaves about 67 for
-/// each - room for "Questions" at caption size, which shrinks a touch rather
-/// than truncating at the largest text sizes. The chosen one takes the accent
-/// and a lifted capsule that travels between them.
+/// On a phone (and a narrow iPad window) it runs along the bottom, under the
+/// thumb: five equal slots in the panel - on a 375-point iPhone about 52
+/// points each, room for "Questions" at caption2 size, which shrinks a touch
+/// rather than truncating at the largest text sizes - and the 64-point Ideas
+/// pill. On a wide iPad it stands on end as a rail on the leading edge, under
+/// the left hand, with Ideas last after a divider.
+///
+/// The chosen one takes its own colour and a lifted capsule that travels
+/// between them. The panel stands out of the glass as ONE unit: the items and
+/// the capsule inside it never move on their own.
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
+    /// Whether Ideas, rather than a category, is the page on show.
+    @Binding var inIdeas: Bool
+    /// Along the bottom, or on end as the wide iPad's rail.
+    var axis: Axis = .horizontal
     /// How many sets sit in each category.
     var count: (StudyCategory) -> Int
 
     @Namespace private var lift
 
+    init(selection: Binding<StudyCategory>, inIdeas: Binding<Bool>, axis: Axis = .horizontal,
+         count: @escaping (StudyCategory) -> Int) {
+        self._selection = selection
+        self._inIdeas = inIdeas
+        self.axis = axis
+        self.count = count
+    }
+
+    private var panelShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
+    }
+
     var body: some View {
+        if axis == .vertical {
+            rail
+        } else {
+            bar
+        }
+    }
+
+    // MARK: along the bottom
+
+    private var bar: some View {
+        HStack(spacing: 8) {
+            categoriesPanel
+            ideasPill
+        }
+        // the pill as tall as the panel, whatever the text size
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: 560)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+    }
+
+    private var categoriesPanel: some View {
         GlassEffectContainer(spacing: 4) {
             HStack(spacing: 2) {
                 ForEach(StudyCategory.allCases) { category in
@@ -488,51 +545,157 @@ struct CategoryDock: View {
             .padding(5)
         }
         .liquidGlassPanel(cornerRadius: 28)
-        .frame(maxWidth: 560)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 10)
+        .popOut(.floating, in: panelShape)
+    }
+
+    /// Ideas, in a glass pill of its own beside the panel.
+    private var ideasPill: some View {
+        let chosen: Bool = inIdeas
+        let shape: RoundedRectangle = panelShape
+        let wash: Color = chosen ? IdeasPlace.tint.opacity(0.22) : Color.clear
+        return Button(action: chooseIdeas) {
+            ideasFace(chosen: chosen)
+                .frame(width: 64)
+                .frame(minHeight: 56, maxHeight: .infinity)
+                .contentShape(shape)
+                .contentShape(.hoverEffect, shape)
+                .hoverEffect(.highlight)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.tint(wash).interactive(), in: shape)
+        .popOut(.floating, in: shape)
+        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
+        .accessibilityLabel(IdeasPlace.title)
+        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityAddTraits(chosen ? [.isSelected] : [])
+        .accessibilityIdentifier("dockCategory-ideas")
+    }
+
+    // MARK: on end, the wide iPad's rail
+
+    private var rail: some View {
+        GlassEffectContainer(spacing: 4) {
+            VStack(spacing: 2) {
+                ForEach(StudyCategory.allCases) { category in
+                    item(category)
+                }
+                Divider()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                ideasRailItem
+            }
+            .padding(5)
+        }
+        .frame(width: 76)
+        .liquidGlassPanel(cornerRadius: 28)
+        .popOut(.floating, in: panelShape)
+        .padding(.leading, 12)
+        .frame(maxHeight: .infinity)
+    }
+
+    /// Ideas in the rail: an item like the others, after the divider.
+    private var ideasRailItem: some View {
+        let chosen: Bool = inIdeas
+        return Button(action: chooseIdeas) {
+            ideasFace(chosen: chosen)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .padding(.vertical, 2)
+                .background {
+                    if chosen {
+                        Capsule()
+                            .fill(IdeasPlace.tint.opacity(0.14))
+                            .matchedGeometryEffect(id: "chosen", in: lift)
+                    }
+                }
+                .contentShape(Capsule())
+                .contentShape(.hoverEffect, Capsule())
+                .hoverEffect(.highlight)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
+        .accessibilityLabel(IdeasPlace.title)
+        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityAddTraits(chosen ? [.isSelected] : [])
+        .accessibilityIdentifier("dockCategory-ideas")
+    }
+
+    // MARK: the pieces
+
+    private func chooseIdeas() {
+        withAnimation(.snappy(duration: 0.3)) { inIdeas = true }
+    }
+
+    /// The lightbulb over the word Ideas, golden when chosen.
+    private func ideasFace(chosen: Bool) -> some View {
+        let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
+        let ink: Color = chosen ? IdeasPlace.tint : Color.secondary
+        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink)
     }
 
     private func item(_ category: StudyCategory) -> some View {
-        let chosen: Bool = category == selection
-        let ink: AnyShapeStyle = chosen ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary)
+        let chosen: Bool = !inIdeas && category == selection
+        let ink: Color = chosen ? category.tint : Color.secondary
+        let wash: Color = category.tint.opacity(0.14)
+        let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = category }
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: category.symbol)
-                    .font(.system(size: 19, weight: .semibold))
-                    .frame(height: 24)
-                Text(category.title)
-                    .font(.caption.weight(.bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .foregroundStyle(ink)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.vertical, 2)
-            .background {
-                // One capsule that moves between the categories rather than
-                // one per category shown and hidden: it travels with the
-                // choice instead of blinking out here and in again there.
-                if chosen {
-                    Capsule()
-                        .fill(Color.accentColor.opacity(0.12))
-                        .matchedGeometryEffect(id: "chosen", in: lift)
+            DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .padding(.vertical, 2)
+                .background {
+                    // One capsule that moves between the categories rather
+                    // than one per category shown and hidden: it travels with
+                    // the choice instead of blinking out here and in again
+                    // there.
+                    if chosen {
+                        Capsule()
+                            .fill(wash)
+                            .matchedGeometryEffect(id: "chosen", in: lift)
+                    }
                 }
-            }
-            .contentShape(Capsule())
+                .contentShape(Capsule())
+                .contentShape(.hoverEffect, Capsule())
+                .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
+        .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
         .accessibilityLabel(spoken(category))
         .accessibilityHint("Shows these sets and ways to practise")
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-\(category.rawValue)")
     }
 
+    /// Command 1 to 5 for the categories, Command 6 for Ideas.
+    private static func digit(_ number: Int) -> KeyEquivalent {
+        let text: String = String(number)
+        let character: Character = text.first ?? "1"
+        return KeyEquivalent(character)
+    }
+
     private func spoken(_ category: StudyCategory) -> String {
         let n: Int = count(category)
         let plural: String = n == 1 ? "" : "s"
         return "\(category.title), \(n) set\(plural)"
+    }
+}
+
+/// One dock item's face: a symbol over its name.
+private struct DockItemFace: View {
+    let symbol: String
+    let title: String
+    let ink: Color
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Image(systemName: symbol)
+                .font(.system(size: 19, weight: .semibold))
+                .frame(height: 24)
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .foregroundStyle(ink)
     }
 }

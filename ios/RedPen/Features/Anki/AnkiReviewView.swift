@@ -24,6 +24,7 @@ struct AnkiReviewView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
 
     /// Cards whose next appearance is this close still come back before you
     /// put the phone down; further out and the sitting is over for them.
@@ -43,32 +44,9 @@ struct AnkiReviewView: View {
         VStack(spacing: 0) {
             header
             if let current {
-                ScrollView {
-                    AnkiCardFace(card: current.card, images: studySet.images,
-                                 revealed: revealed,
-                                 sources: studySet.sources,
-                                 openSource: { source, page in
-                                     reading = SourceOpening(source: source, page: page)
-                                 },
-                                 deck: studySet.cards)
-                        .contentCard()
-                        .cardFlip(revealed: revealed, enabled: !startRevealed)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
-                        .readableColumn()
-                }
-                Spacer(minLength: 0)
-                footer(current)
+                cardScroll(current)
             } else {
-                ScrollView {
-                    nothingDue
-                        .padding(.horizontal, 16)
-                        .padding(.top, 32)
-                        .readableColumn()
-                }
-                Spacer(minLength: 0)
-                finishBar
+                finishScroll
             }
         }
         .modeScreen(.anki)
@@ -124,19 +102,69 @@ struct AnkiReviewView: View {
         }
     }
 
-    /// Study ahead when nothing is due and nothing was done; otherwise Done.
-    private var finishBar: some View {
-        StudyActionBar {
-            if !studySet.cards.isEmpty && reviewedCount == 0 {
+    /// The card, scrolling under the bar that turns it over and rates it.
+    private func cardScroll(_ item: AnkiQueueItem) -> some View {
+        ScrollView {
+            AnkiCardFace(card: item.card, images: studySet.images,
+                         revealed: revealed,
+                         sources: studySet.sources,
+                         openSource: { source, page in
+                             reading = SourceOpening(source: source, page: page)
+                         },
+                         deck: studySet.cards)
+                .contentCard()
+                .cardFlip(revealed: revealed, enabled: !startRevealed)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .readableColumn()
+        }
+        .studyBar { footer(item) }
+    }
+
+    /// The finish: what happened, the way to a quiz on the same cards, and
+    /// the bar with the one thing to do next.
+    private var finishScroll: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                nothingDue
+                // Quiz me needs five cards to find wrong answers among
+                if studySet.cards.count >= 5 { quizMeButton }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 32)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .studyBar { finishButtons }
+    }
+
+    /// The deck as a quiz, under the finish - the same as More's Quiz me.
+    private var quizMeButton: some View {
+        Button(action: buildQuiz) {
+            Label("Quiz me on this deck", systemImage: "list.bullet.rectangle")
+        }
+        .buttonStyle(.bigSecondary)
+        .accessibilityHint("A quiz whose wrong answers come from the other cards in this deck")
+    }
+
+    /// Study ahead when nothing is due and nothing was done, with Done beside
+    /// it; otherwise Done alone.
+    @ViewBuilder
+    private var finishButtons: some View {
+        if !studySet.cards.isEmpty && reviewedCount == 0 {
+            HStack(spacing: 12) {
+                Button("Done") { dismiss() }
+                    .buttonStyle(.bigCompanion)
+                if span == .broad { Spacer(minLength: 16) }
                 Button("Study it anyway") { studyAhead() }
-                    .buttonStyle(.bigPrimary)
-                Button("Done") { dismiss() }
-                    .buttonStyle(.bigSecondary)
-            } else {
-                Button("Done") { dismiss() }
                     .buttonStyle(.bigPrimary)
                     .keyboardShortcut(.return, modifiers: [])
             }
+        } else {
+            Button("Done") { dismiss() }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
         }
     }
 
@@ -166,20 +194,10 @@ struct AnkiReviewView: View {
 
     /// Reveal, then the four ratings, always in the same place.
     private func footer(_ item: AnkiQueueItem) -> some View {
-        StudyActionBar {
-            if !revealed {
-                Button { revealed = true } label: {
-                    Text("Reveal")
-                }
-                .buttonStyle(.bigPrimary)
-                // Space turns the card over, as it does in Anki
-                .keyboardShortcut(.space, modifiers: [])
-                .accessibilityHint("Shows the answer. Say it to yourself first.")
-            } else {
-                AnkiRatingBar(labels: AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin),
-                              onRate: { rate($0) })
-            }
-        }
+        let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
+        return AnkiFooter(revealed: revealed, labels: labels,
+                          onReveal: { revealed = true },
+                          onRate: { rate($0) })
     }
 
     // MARK: the sitting
@@ -225,10 +243,11 @@ struct AnkiReviewView: View {
     private func buildQuiz() {
         let built = QuizFromCards.build(from: studySet.cards)
         guard built.questions.count >= 3 else {
-            let reasons = Set(built.skipped.map(\.why)).sorted().prefix(2)
-            quizNote = "This deck made \(built.questions.count) usable question"
-                + (built.questions.count == 1 ? "" : "s") + ". "
-                + (reasons.isEmpty ? "" : reasons.joined(separator: " "))
+            let reasons: [String] = Array(Set(built.skipped.map(\.why)).sorted().prefix(2))
+            let count: Int = built.questions.count
+            let plural: String = count == 1 ? "" : "s"
+            let why: String = reasons.joined(separator: " ")
+            quizNote = "This deck made \(count) usable question\(plural). \(why)"
             return
         }
         var set = studySet

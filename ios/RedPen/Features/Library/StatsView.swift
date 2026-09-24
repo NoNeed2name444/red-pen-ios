@@ -2,10 +2,11 @@ import SwiftUI
 
 /// How the studying is going: the streak, and MCQ accuracy subject by subject.
 ///
-/// The point of splitting it by subject is the button at the top. A single
-/// overall percentage says "70%" and nothing about what to do next; by
-/// subject it says renal is at 48%, and the drill goes straight there,
-/// starting with the questions that were got wrong last time.
+/// The point of splitting it by subject is the button pinned at the bottom,
+/// under the thumb. A single overall percentage says "70%" and nothing about
+/// what to do next; by subject it says renal is at 48%, and the drill goes
+/// straight there, starting with the questions that were got wrong last time.
+/// Every subject's row drills that subject in the same way.
 ///
 /// Built from the answer history the quiz keeps (Store.answerHistory), so it
 /// only knows about questions answered since that history began, and only
@@ -27,6 +28,19 @@ struct StatsView: View {
         let stats = store.subjectStats()
         let tried = stats.filter { $0.answered > 0 }
         let due = reviews.dueAcross(store.library).count
+        let list = page(stats: stats, tried: tried, due: due)
+        // the one thing to do next, under the thumb
+        withDrillBar(list, weakest: tried.first)
+            .environment(\.modeTint, StudySetKind.mcq.tint)
+            .navigationDestination(item: $drill) { MCQQuizView(set: $0, keepsProgress: false) }
+            .navigationDestination(item: $insightQuiz) { quiz in
+                MCQQuizView(set: quiz.set, keepsProgress: false,
+                            minReadSeconds: quiz.minReadSeconds, startsTimed: quiz.timed)
+            }
+    }
+
+    /// Everything on the page, without the bar at the bottom.
+    private func page(stats: [SubjectStats], tried: [SubjectStats], due: Int) -> some View {
         List {
             Section {
                 ReadinessCard(estimate: store.readiness(dueCards: due),
@@ -37,22 +51,12 @@ struct StatsView: View {
                 }
             }
 
-            Section { overview(tried) }
-
-            if let weakest = tried.first {
-                Section {
-                    Button {
-                        let set = store.drill(subject: weakest.subject)
-                        if !set.questions.isEmpty { drill = set }
-                    } label: {
-                        Label("Drill weakest: \(weakest.subject)", systemImage: "scope")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                } footer: {
-                    Text("Up to 20 questions from \(weakest.subject): the ones you got wrong while sure first, then the rest you got wrong last time.")
+            Section {
+                overview(tried)
+            } footer: {
+                if let weakest = tried.first {
+                    Text(Self.drillNote(weakest.subject))
+                        .font(.caption)
                 }
             }
 
@@ -84,27 +88,65 @@ struct StatsView: View {
             } else {
                 Section {
                     ForEach(stats) { subject in
-                        subjectRow(subject)
-                            .contextMenu {
-                                Button("Drill \(subject.subject)", systemImage: "scope") {
-                                    let set = store.drill(subject: subject.subject)
-                                    if !set.questions.isEmpty { drill = set }
-                                }
-                            }
+                        subjectButton(subject)
                     }
                 } header: {
                     Text("By subject")
                 } footer: {
-                    Text("Every answer you have checked counts, so a question answered twice counts twice. Weakest first.")
+                    Text("Every answer you have checked counts, so a question answered twice counts twice. Weakest first. Tap a subject to drill it.")
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
         .navigationTitle("Progress")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $drill) { MCQQuizView(set: $0, keepsProgress: false) }
-        .navigationDestination(item: $insightQuiz) { quiz in
-            MCQQuizView(set: quiz.set, keepsProgress: false,
-                        minReadSeconds: quiz.minReadSeconds, startsTimed: quiz.timed)
+    }
+
+    /// The page with "Drill weakest" pinned at the bottom in the shared
+    /// study bar - only once there is a weakest.
+    @ViewBuilder
+    private func withDrillBar<Page: View>(_ list: Page, weakest: SubjectStats?) -> some View {
+        if let weakest {
+            list.studyBar { drillButton(weakest) }
+        } else {
+            list
+        }
+    }
+
+    /// "Drill weakest: renal".
+    private func drillButton(_ weakest: SubjectStats) -> some View {
+        let subject: String = weakest.subject
+        let title: String = "Drill weakest: \(subject)"
+        return Button { drillSubject(subject) } label: {
+            Label(title, systemImage: "scope")
+                .lineLimit(1)
+        }
+        .buttonStyle(.bigPrimary)
+        .keyboardShortcut(.defaultAction)
+        .accessibilityHint(Self.drillNote(subject))
+    }
+
+    private static func drillNote(_ subject: String) -> String {
+        "Up to 20 questions from \(subject): the ones you got wrong while sure first, then the rest you got wrong last time."
+    }
+
+    /// Opens a drill in one subject, if it has any questions.
+    private func drillSubject(_ subject: String) {
+        let set = store.drill(subject: subject)
+        if !set.questions.isEmpty { drill = set }
+    }
+
+    /// A subject's row: a tap drills it; holding it says so in words.
+    private func subjectButton(_ subject: SubjectStats) -> some View {
+        let name: String = subject.subject
+        return Button { drillSubject(name) } label: {
+            subjectRow(subject)
+                .foregroundStyle(.primary)
+        }
+        .accessibilityHint("Drills up to 20 questions in this subject")
+        .contextMenu {
+            Button("Drill \(name)", systemImage: "scope") { drillSubject(name) }
         }
     }
 
@@ -131,12 +173,12 @@ struct StatsView: View {
                         HStack(alignment: .firstTextBaseline) {
                             Text(row.confidence.title).font(.body.weight(.semibold))
                             Spacer(minLength: 8)
-                            Text("\(Int((row.accuracy * 100).rounded()))% right")
+                            Text("\(Self.percent(row.accuracy)) right")
                                 .font(.body.weight(.semibold).monospacedDigit())
                                 .foregroundStyle(.tint)
                         }
                         AccuracyBar(fraction: row.accuracy, color: .accentColor)
-                        Text("\(row.answered) answer\(row.answered == 1 ? "" : "s")")
+                        Text(Self.counted(row.answered, "answer"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
@@ -201,7 +243,7 @@ struct StatsView: View {
                 Label(share.reason.title, systemImage: share.reason.symbol)
                     .font(.body.weight(.semibold))
                 Spacer(minLength: 8)
-                Text("\(Int((share.share * 100).rounded()))%")
+                Text(Self.percent(share.share))
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.tint)
             }
@@ -214,7 +256,7 @@ struct StatsView: View {
     /// The one thing to do about each reason.
     @ViewBuilder
     private func reasonAction(_ reason: MistakeReason, count: Int) -> some View {
-        let questions = "\(count) question\(count == 1 ? "" : "s")"
+        let questions: String = Self.counted(count, "question")
         switch reason {
         case .didntKnow:
             Button {
@@ -264,14 +306,15 @@ struct StatsView: View {
 
     /// The streak, today, and everything answered so far.
     private func overview(_ tried: [SubjectStats]) -> some View {
-        let answered = tried.reduce(0) { $0 + $1.answered }
-        let correct = tried.reduce(0) { $0 + $1.correct }
+        let answered: Int = tried.reduce(0) { $0 + $1.answered }
+        let correct: Int = tried.reduce(0) { $0 + $1.correct }
+        let share: Double = answered == 0 ? 0 : Double(correct) / Double(answered)
+        let right: String = answered == 0 ? "\u{2013}" : Self.percent(share)
+        let streakWord: String = log.streak == 1 ? "day streak" : "days streak"
         return HStack(spacing: 0) {
-            figure("\(log.streak)", log.streak == 1 ? "day streak" : "days streak",
-                   symbol: "flame.fill", color: .orange)
+            figure("\(log.streak)", streakWord, symbol: "flame.fill", color: .orange)
             figure("\(log.today)", "today", symbol: "checkmark.circle.fill", color: .accentColor)
-            figure(answered == 0 ? "\u{2013}" : "\(Int((Double(correct) / Double(answered) * 100).rounded()))%",
-                   "of \(answered) right", symbol: "target", color: .green)
+            figure(right, "of \(answered) right", symbol: "target", color: .green)
         }
         .padding(.vertical, 4)
     }
@@ -289,20 +332,37 @@ struct StatsView: View {
 
     private func subjectRow(_ s: SubjectStats) -> some View {
         let color = Self.color(for: s)
+        let percent: String = s.answered == 0 ? "Not tried" : Self.percent(s.accuracy)
+        let fraction: Double = s.answered == 0 ? 0 : s.accuracy
+        let questions: String = Self.counted(s.questions, "question")
+        let line: String = "\(s.answered) answered \u{00B7} \(questions)"
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
                 Spacer(minLength: 8)
-                Text(s.answered == 0 ? "Not tried" : "\(Int((s.accuracy * 100).rounded()))%")
+                Text(percent)
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(color)
             }
-            AccuracyBar(fraction: s.answered == 0 ? 0 : s.accuracy, color: color)
-            Text("\(s.answered) answered \u{00B7} \(s.questions) question\(s.questions == 1 ? "" : "s")")
+            AccuracyBar(fraction: fraction, color: color)
+            Text(line)
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+
+    /// "48%", from a fraction.
+    private static func percent(_ fraction: Double) -> String {
+        let scaled: Double = fraction * 100
+        let whole: Int = Int(scaled.rounded())
+        return "\(whole)%"
+    }
+
+    /// "1 question", "3 questions".
+    private static func counted(_ count: Int, _ noun: String) -> String {
+        let plural: String = count == 1 ? "" : "s"
+        return "\(count) \(noun)\(plural)"
     }
 
     /// Green from three in four, amber from half, red below; grey for a

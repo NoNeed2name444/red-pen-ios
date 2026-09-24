@@ -1,7 +1,14 @@
-# Screenshots of a screen for the owner to check the design before trying the
-# app: the 3D idea map at rest, a moment later, in landscape and mid-drag, on
-# an iPhone simulator. A push to a preview/** branch runs it; the pictures land
-# on the design-preview branch.
+# Screenshots for the owner to check the design before trying the app, on an
+# iPhone simulator and an iPad simulator:
+# - the 3D idea map at rest, a moment later, in landscape and mid-drag
+#   (GraphPreviewUITests), with a screen recording of the iPhone's run;
+# - a tour of the redesigned app (DesignTourUITests): the library on each of
+#   the dock's categories, a category's tiles, New set, a quiz, a card, Ideas
+#   in each view with its switcher open and folded, the menu, Settings and
+#   Progress.
+# A push to a preview/** branch runs it; the pictures land on the
+# design-preview branch, in shots/iphone/ and shots/ipad/, with a README
+# that shows them all on one page.
 name: Design preview
 on:
   push:
@@ -15,7 +22,7 @@ concurrency:
 jobs:
   shots:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Tools
@@ -23,54 +30,175 @@ jobs:
       - name: Generate the project
         working-directory: ios
         run: xcodegen generate
+      - name: Pick the simulators
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          phones, pads = [], []
+          index = 0
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              # the newest iOS first: the app needs iOS 26
+              version = tuple(int(x) for x in re.findall(r"\d+", runtime.rsplit("iOS", 1)[-1]))
+              for d in devs:
+                  name = d["name"]
+                  index += 1
+                  if name.startswith("iPhone"):
+                      # a Pro, as before; a Pro Max next; any iPhone last
+                      rank = 2 if " Pro" in name and "Max" not in name else (1 if " Pro" in name else 0)
+                      phones.append((tuple(-v for v in version), -rank, index, name, d["udid"]))
+                  elif name.startswith("iPad"):
+                      # the first iPad Pro, or else any iPad
+                      rank = 1 if name.startswith("iPad Pro") else 0
+                      pads.append((tuple(-v for v in version), -rank, index, name, d["udid"]))
+          phones.sort()
+          pads.sort()
+          if not phones:
+              print("no iPhone simulator on this runner", file=sys.stderr)
+              raise SystemExit(1)
+          print(f"iphone_udid={phones[0][4]}")
+          print(f"iphone_name={phones[0][3]}")
+          print("iPhone:", phones[0][3], file=sys.stderr)
+          if pads:
+              print(f"ipad_udid={pads[0][4]}")
+              print(f"ipad_name={pads[0][3]}")
+              print("iPad:", pads[0][3], file=sys.stderr)
+          else:
+              print("no iPad simulator on this runner", file=sys.stderr)
+          PY
       - name: Take the pictures
         working-directory: ios
+        env:
+          IPHONE: ${{ steps.sim.outputs.iphone_udid }}
+          IPHONE_NAME: ${{ steps.sim.outputs.iphone_name }}
+          IPAD: ${{ steps.sim.outputs.ipad_udid }}
+          IPAD_NAME: ${{ steps.sim.outputs.ipad_name }}
+          GRAPH: "-only-testing:RedPenUITests/GraphPreviewUITests"
+          TOUR: "-only-testing:RedPenUITests/DesignTourUITests"
         run: |
           set -o pipefail
-          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone.*Pro" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
-          [ -z "$DEVICE" ] && DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
-          echo "Simulator: $DEVICE"
-          # a screen recording of the whole run, for the owner to watch
-          UDID=$(xcrun simctl list devices available | grep -m1 "$DEVICE (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b || true
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --force ../graph.mp4 &
+          # one xcodebuild run: the simulator, its result bundle and log, then
+          # which tests; the second and third runs reuse the first one's build
+          run_tests() {
+            local udid="$1" bundle="$2" log="$3"
+            shift 3
+            xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+              -destination "platform=iOS Simulator,id=$udid" -derivedDataPath build-sim \
+              -resultBundlePath "../$bundle" "$@" \
+              -skipMacroValidation -skipPackagePluginValidation \
+              SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              test 2>&1 | tee "../$log" | grep -E "error:|Test Case|TEST |\*\* " || true
+          }
+          boot() {
+            xcrun simctl boot "$1" || true
+            xcrun simctl bootstatus "$1" -b || true
+            xcrun simctl status_bar "$1" override --time "9:41" --batteryLevel 100 \
+              --batteryState charged --wifiBars 3 || true
+          }
+
+          echo "iPhone: $IPHONE_NAME ($IPHONE)"
+          boot "$IPHONE"
+          # a screen recording of the 3D map's run, for the owner to watch
+          xcrun simctl io "$IPHONE" recordVideo --codec=h264 --force ../graph.mp4 &
           REC=$!
           sleep 2
-          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
-            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
-            -resultBundlePath ../preview.xcresult \
-            -only-testing:RedPenUITests/GraphPreviewUITests \
-            -skipMacroValidation -skipPackagePluginValidation \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            test 2>&1 | tee ../preview.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          run_tests "$IPHONE" iphone-graph.xcresult iphone-graph.log "$GRAPH"
           kill -INT $REC || true
           sleep 3
+          # the tour, on the same phone, not recorded
+          run_tests "$IPHONE" iphone-tour.xcresult iphone-tour.log "$TOUR"
+          xcrun simctl shutdown "$IPHONE" || true
+
+          if [ -n "$IPAD" ]; then
+            echo "iPad: $IPAD_NAME ($IPAD)"
+            boot "$IPAD"
+            run_tests "$IPAD" ipad.xcresult ipad.log "$GRAPH" "$TOUR"
+            xcrun simctl shutdown "$IPAD" || true
+          else
+            echo "no iPad simulator on this runner" | tee ../ipad.log
+          fi
       - name: Push the pictures
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p out/shots
-          xcrun xcresulttool export attachments --path preview.xcresult --output-path out/raw || true
-          # name each picture after its attachment
-          if [ -f out/raw/manifest.json ]; then
-            python3 - <<'PY'
-          import json, os, shutil
-          m = json.load(open('out/raw/manifest.json'))
+          mkdir -p out/shots/iphone out/shots/ipad
+          # name each picture after its attachment; the 3D map's with graph-
+          # in front, so they sort apart from the tour's numbered steps
+          cat > "$RUNNER_TEMP/name_shots.py" <<'PY'
+          import json, os, shutil, sys
+          raw, dest = sys.argv[1], sys.argv[2]
+          m = json.load(open(os.path.join(raw, 'manifest.json')))
           for test in m:
+              graph = 'GraphPreview' in (test.get('testIdentifier') or '')
               for a in test.get('attachments', []):
                   name = a.get('suggestedHumanReadableName') or a['exportedFileName']
                   base = name.split('_')[0] if '_' in name else name
                   base = os.path.splitext(base)[0]
-                  shutil.copy(os.path.join('out/raw', a['exportedFileName']), f"out/shots/{base}.png")
+                  if graph:
+                      base = 'graph-' + base
+                  ext = os.path.splitext(a['exportedFileName'])[1] or '.png'
+                  target = os.path.join(dest, base + ext)
+                  n = 2
+                  while os.path.exists(target):
+                      target = os.path.join(dest, f"{base}-{n}{ext}")
+                      n += 1
+                  shutil.copy(os.path.join(raw, a['exportedFileName']), target)
           PY
-          fi
-          rm -rf out/raw
-          [ -f graph.mp4 ] && cp graph.mp4 out/shots/graph.mp4 || true
-          grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" preview.log | tail -30 > out/log.txt || true
-          grep -E "error:" preview.log | sed -E 's#^.*/ios/##' | sort -u | head -40 >> out/log.txt || true
+          for pair in iphone-graph.xcresult:iphone iphone-tour.xcresult:iphone ipad.xcresult:ipad; do
+            bundle="${pair%%:*}"
+            device="${pair##*:}"
+            [ -d "$bundle" ] || continue
+            rm -rf out/raw
+            xcrun xcresulttool export attachments --path "$bundle" --output-path out/raw || true
+            if [ -f out/raw/manifest.json ]; then
+              python3 "$RUNNER_TEMP/name_shots.py" out/raw "out/shots/$device" || true
+            fi
+            rm -rf out/raw
+          done
+          [ -f graph.mp4 ] && cp graph.mp4 out/shots/iphone/graph.mp4 || true
+
+          # the test lines and any errors, per run
+          : > out/log.txt
+          for log in iphone-graph.log iphone-tour.log ipad.log; do
+            [ -f "$log" ] || continue
+            echo "== $log" >> out/log.txt
+            grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" "$log" | tail -30 >> out/log.txt || true
+          done
+          for log in iphone-graph.log iphone-tour.log ipad.log; do
+            [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
+          done | sort -u | head -40 >> out/log.txt || true
+
+          # one page with every picture, for looking through on GitHub
+          {
+            echo "# Design preview"
+            echo
+            echo "Commit ${GITHUB_SHA}. Test output: [log.txt](log.txt)."
+            for device in iphone ipad; do
+              echo
+              echo "## $device"
+              for f in $(ls "out/shots/$device" | sort); do
+                case "$f" in
+                  *.png|*.jpg|*.jpeg|*.heic)
+                    echo
+                    echo "### ${f%.*}"
+                    echo
+                    echo "<img src=\"shots/$device/$f\" width=\"360\">"
+                    ;;
+                  *.mp4)
+                    echo
+                    echo "- Recording: [$f](shots/$device/$f)"
+                    ;;
+                esac
+              done
+            done
+          } > out/README.md
+
           cd out
           git init -q && git checkout -q -b design-preview
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com

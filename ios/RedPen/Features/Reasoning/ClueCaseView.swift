@@ -1,21 +1,28 @@
 import SwiftUI
 
 /// A set's clue-by-clue cases: each with how it went last time, and the
-/// strip for writing more.
+/// slab for writing more at the bottom, under the thumb.
 struct ClueCasesView: View {
     let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
     @State private var confirmClear = false
 
+    private var isExample: Bool { self.set.id == ReasoningExamples.setId }
+
     var body: some View {
         let cases = reasoning.pack(for: set.id).cases
         List {
             Section {
-                ReasoningWriteBar(tool: .cases, set: set)
-            } footer: {
                 Text("Clues come from the vaguest to the most specific. Commit whenever you are sure: a right answer with clues still hidden scores up to 2; a wrong one scores 0.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            if !cases.isEmpty {
+            if cases.isEmpty {
+                Section {
+                    Text("No cases yet. Write some from this set below.")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
                 Section("Cases") {
                     ForEach(Array(cases.enumerated()), id: \.element.id) { index, item in
                         NavigationLink {
@@ -23,27 +30,36 @@ struct ClueCasesView: View {
                         } label: {
                             row(item, number: index + 1)
                         }
+                        .hoverEffect(.highlight)
                     }
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
         .navigationTitle("Clue-by-clue cases")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !cases.isEmpty && set.id != ReasoningExamples.setId {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Clear", systemImage: "trash") { confirmClear = true }
+            if !cases.isEmpty && !isExample {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Delete cases", systemImage: "trash", role: .destructive) { confirmClear = true }
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                    }
                 }
             }
         }
         .confirmationDialog("Delete these cases and their scores?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Delete cases", role: .destructive) { reasoning.clear(.cases, for: set.id) }
         }
-        .generationHUD()
+        .reasoningWriteSlab(tool: .cases, set: set)
     }
 
     private func row(_ item: ClueCase, number: Int) -> some View {
         let last = reasoning.lastPlay(of: item.id)
+        let opening: String = item.clues.first ?? "Case \(number)"
+        let notPlayed: String = "\(item.clues.count) clues \u{00B7} not played"
         return HStack(spacing: 12) {
             Text("\(number)")
                 .font(.headline.monospacedDigit())
@@ -51,22 +67,30 @@ struct ClueCasesView: View {
                 .frame(width: 26)
             VStack(alignment: .leading, spacing: 3) {
                 // the first clue only: the diagnosis stays hidden until played
-                Text(item.clues.first ?? "Case \(number)").lineLimit(2)
+                Text(opening).lineLimit(2)
                 if let last {
-                    Text(last.correct ? "Right at clue \(last.cluesSeen) of \(last.totalClues) \u{00B7} \(String(format: "%.2f", last.score))"
-                                      : last.prematureClosure ? "Premature closure last time" : "Missed last time")
+                    Text(Self.lastLine(last))
                         .font(.caption)
                         .foregroundStyle(last.correct ? Color.green : Color.orange)
                 } else {
-                    Text("\(item.clues.count) clues \u{00B7} not played").font(.caption).foregroundStyle(.secondary)
+                    Text(notPlayed).font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
     }
+
+    private static func lastLine(_ last: CasePlay) -> String {
+        if last.correct {
+            let score: String = String(format: "%.2f", last.score)
+            return "Right at clue \(last.cluesSeen) of \(last.totalClues) \u{00B7} \(score)"
+        }
+        return last.prematureClosure ? "Premature closure last time" : "Missed last time"
+    }
 }
 
 /// One case, played: clues revealed one at a time, and at any point a commit
-/// to one of four diagnoses.
+/// to one of four diagnoses. Where it stands is at the top; Next clue and
+/// the four diagnoses are in the slab at the bottom, under the thumb.
 struct ClueCaseView: View {
     let clueCase: ClueCase
     let setId: UUID
@@ -88,40 +112,45 @@ struct ClueCaseView: View {
     private var total: Int { clueCase.clues.count }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                clueList
-                if let result {
-                    outcome(result)
-                } else {
-                    controls
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    clueList
+                    if let result {
+                        outcome(result)
+                    }
                 }
+                .padding(16)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
-            .padding()
-            .frame(maxWidth: 640)
-            .frame(maxWidth: .infinity)
+            .studyBar { bar }
         }
+        .background(LibraryBackdrop())
         .navigationTitle("Case")
         .navigationBarTitleDisplayMode(.inline)
         .animation(.snappy, value: shown)
         .animation(.snappy, value: result?.id)
     }
 
+    // MARK: where it stands
+
+    /// What a right answer is worth now: 2 on the first clue, falling to 1
+    /// on the last.
+    private var worth: Double {
+        let remaining: Double = Double(total - shown)
+        let whole: Double = Double(max(1, total))
+        return 1 + remaining / whole
+    }
+
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(result == nil ? "Clue \(shown) of \(total)" : "All \(total) clues")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
-                Spacer()
-                if result == nil {
-                    Text("Worth \(String(format: "%.2f", 1 + Double(total - shown) / Double(max(1, total)))) if right")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-            ProgressView(value: Double(result == nil ? shown : total), total: Double(max(1, total)))
-        }
+        let status: String = result == nil ? "Clue \(shown) of \(total)" : "All \(total) clues"
+        let worthText: String = String(format: "%.2f", worth)
+        let detail: String? = result == nil ? "Worth \(worthText) if right" : nil
+        let seen: Int = result == nil ? shown : total
+        let fraction: Double = Double(seen) / Double(max(1, total))
+        return StudyProgressHeader(status, detail: detail, fraction: fraction)
     }
 
     private var clueList: some View {
@@ -136,13 +165,18 @@ struct ClueCaseView: View {
     }
 
     private func clueRow(index: Int, clue: String) -> some View {
-        let decisive = result != nil && index + 1 == clueCase.decisiveClue
-        let unseen = result != nil && index >= (result?.cluesSeen ?? total)
+        let number: Int = index + 1
+        let decisive: Bool = result != nil && number == clueCase.decisiveClue
+        let seenCount: Int = result?.cluesSeen ?? total
+        let unseen: Bool = result != nil && index >= seenCount
+        let committedHere: Bool = result != nil && number == result?.cluesSeen
+        let dot: Color = decisive ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.15)
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(index + 1)")
+            Text("\(number)")
                 .font(.caption.weight(.bold).monospacedDigit())
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(decisive ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.15)))
+                .background(Circle().fill(dot))
             VStack(alignment: .leading, spacing: 4) {
                 Text(clue)
                     .foregroundStyle(unseen ? Color.secondary : Color.primary)
@@ -151,7 +185,7 @@ struct ClueCaseView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.tint)
                 }
-                if result != nil && index + 1 == result?.cluesSeen {
+                if committedHere {
                     Label("You committed here", systemImage: "hand.point.up.left.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -160,65 +194,40 @@ struct ClueCaseView: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.secondarySystemBackground)))
+        .background(.regularMaterial, in: shape)
     }
 
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                shown = min(total, shown + 1)
-            } label: {
-                Label(shown < total ? "Next clue" : "No more clues", systemImage: "arrow.down.circle")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .disabled(shown >= total)
+    // MARK: the bottom slab
 
-            Text("Commit to a diagnosis").font(.subheadline.weight(.semibold)).padding(.top, 4)
-            ForEach(options, id: \.self) { option in
-                Button {
-                    commit(option)
-                } label: {
-                    Text(option)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.bordered)
-                .tint(.primary)
+    @ViewBuilder
+    private var bar: some View {
+        if result == nil {
+            ClueCaseControls(options: options, canReveal: shown < total,
+                             onNext: { shown = min(total, shown + 1) },
+                             onCommit: commit)
+        } else {
+            Button {
+                shown = 1
+                options = Self.shuffled(clueCase)
+                result = nil
+            } label: {
+                Label("Play again", systemImage: "arrow.counterclockwise")
             }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.defaultAction)
         }
     }
 
+    // MARK: the result
+
     private func outcome(_ play: CasePlay) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: play.correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(play.correct ? Color.green : Color.red)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(play.correct ? "Right \u{2014} \(clueCase.diagnosis)" : "It was \(clueCase.diagnosis)")
-                        .font(.headline)
-                    Text("Score \(String(format: "%.2f", play.score)) of a possible \(String(format: "%.2f", 1 + Double(total - 1) / Double(max(1, total)))) \u{00B7} committed on clue \(play.cluesSeen) of \(play.totalClues)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
+            ClueCaseVerdict(play: play, diagnosis: clueCase.diagnosis, total: total)
             if !play.correct {
                 Text("You chose \(play.chosen).").font(.subheadline)
             }
             if play.prematureClosure {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Premature closure").font(.subheadline.weight(.semibold))
-                        Text("You settled on an answer after \(play.cluesSeen == 1 ? "one clue" : "two clues"), before anything ruled out the alternatives. Take the next clue when the ones you have fit more than one diagnosis.")
-                            .font(.footnote)
-                    }
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                }
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.orange.opacity(0.12)))
+                prematureNote(play)
             } else if play.correct && play.cluesSeen < clueCase.decisiveClue {
                 Text("You committed before the clue that settles it \u{2014} right this time, but check the reasoning holds.")
                     .font(.footnote)
@@ -231,28 +240,35 @@ struct ClueCaseView: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.1)))
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.accentColor.opacity(0.1)))
             }
             if let tiers = clueCase.differential, !tiers.isEmpty {
                 // the shipped example was written for the app, not from a lecture
-                HowToReachCard(differential: tiers,
-                               lecture: setId == ReasoningExamples.setId ? ReasoningExamples.sourceLabel : nil)
+                let lecture: String? = setId == ReasoningExamples.setId ? ReasoningExamples.sourceLabel : nil
+                HowToReachCard(differential: tiers, lecture: lecture)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Also considered").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Text(clueCase.differentials.joined(separator: " \u{00B7} "))
                     .font(.subheadline)
             }
-            Button {
-                shown = 1
-                options = Self.shuffled(clueCase)
-                result = nil
-            } label: {
-                Label("Play again", systemImage: "arrow.counterclockwise").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
         }
+    }
+
+    private func prematureNote(_ play: CasePlay) -> some View {
+        let when: String = play.cluesSeen == 1 ? "one clue" : "two clues"
+        let advice: String = "You settled on an answer after \(when), before anything ruled out the alternatives. Take the next clue when the ones you have fit more than one diagnosis."
+        return Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Premature closure").font(.subheadline.weight(.semibold))
+                Text(advice)
+                    .font(.footnote)
+            }
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.orange.opacity(0.12)))
     }
 
     private func commit(_ option: String) {
@@ -260,5 +276,110 @@ struct ClueCaseView: View {
                             chosen: option, correct: clueCase.isDiagnosis(option))
         reasoning.record(play)
         result = play
+    }
+}
+
+/// Right or wrong, and the score against the best there was.
+private struct ClueCaseVerdict: View {
+    let play: CasePlay
+    let diagnosis: String
+    let total: Int
+
+    private var headline: String {
+        play.correct ? "Right \u{2014} \(diagnosis)" : "It was \(diagnosis)"
+    }
+
+    /// The score, against what committing on the first clue would have made.
+    private var scoreLine: String {
+        let whole: Double = Double(max(1, total))
+        let best: Double = 1 + Double(total - 1) / whole
+        let score: String = String(format: "%.2f", play.score)
+        let possible: String = String(format: "%.2f", best)
+        let when: String = "committed on clue \(play.cluesSeen) of \(play.totalClues)"
+        return "Score \(score) of a possible \(possible) \u{00B7} \(when)"
+    }
+
+    var body: some View {
+        let symbol: String = play.correct ? "checkmark.circle.fill" : "xmark.circle.fill"
+        let colour: Color = play.correct ? Color.green : Color.red
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.title)
+                .foregroundStyle(colour)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(headline)
+                    .font(.headline)
+                Text(scoreLine)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The slab while a case is being played: Next clue, then a line saying that
+/// a diagnosis commits, then the four diagnoses two by two. Return takes the
+/// next clue; 1 to 4 commit.
+private struct ClueCaseControls: View {
+    let options: [String]
+    let canReveal: Bool
+    let onNext: () -> Void
+    let onCommit: (String) -> Void
+    @Environment(\.windowSpan) private var span
+
+    private let columns: [GridItem] = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    /// What the four buttons do, said before they are pressed - with the
+    /// number keys on a wide iPad, where a keyboard is likely.
+    private var commitCaption: String {
+        let keys: Int = min(options.count, 9)
+        guard span == .broad, keys > 1 else { return "Commit to a diagnosis" }
+        return "Commit to a diagnosis \u{00B7} keys 1\u{2013}\(keys)"
+    }
+
+    var body: some View {
+        let nextTitle: String = canReveal ? "Next clue" : "No more clues"
+        VStack(spacing: 12) {
+            Button(action: onNext) {
+                Label(nextTitle, systemImage: "arrow.down.circle")
+            }
+            .buttonStyle(.bigSecondary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canReveal)
+            // tapping one ends the case, so say so before the buttons
+            Text(commitCaption)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(options.enumerated()), id: \.element) { index, option in
+                    optionButton(option, number: index + 1)
+                }
+            }
+        }
+        .frame(maxWidth: 640)
+    }
+
+    /// 1 to 9 for the options; nothing past nine.
+    private static func shortcut(_ number: Int) -> KeyboardShortcut? {
+        guard number >= 1 && number <= 9, let digit = String(number).first else { return nil }
+        return KeyboardShortcut(KeyEquivalent(digit), modifiers: [])
+    }
+
+    private func optionButton(_ option: String, number: Int) -> some View {
+        let key: KeyboardShortcut? = Self.shortcut(number)
+        return Button {
+            onCommit(option)
+        } label: {
+            Text(option)
+                .lineLimit(3)
+                .minimumScaleFactor(0.8)
+        }
+        .buttonStyle(.bigSecondary)
+        .keyboardShortcut(key)
+        .accessibilityHint("Commits to this diagnosis")
     }
 }

@@ -11,28 +11,33 @@ struct SourceDocumentView: View {
     let source: SourceDoc
     let file: URL?
     @Binding var page: Int
+    /// Told whether picking a page can move what is shown. False only when
+    /// the file ended up in Quick Look, which has no pages to go to, so the
+    /// reader can leave out the page list rather than offer a dead one.
+    @Binding var followsPage: Bool
 
     @State private var pdf: URL?
     @State private var preparing = false
     /// The file, shown by Quick Look, when it could not be turned into pages.
     @State private var quickLook: URL?
 
-    /// One continuous column, top to bottom, for every kind of file.
-    private let horizontal = false
+    private var preparingLine: String {
+        "Preparing the \(source.kind.label.lowercased())\u{2026}"
+    }
 
+    /// One continuous column, top to bottom, for every kind of file.
     var body: some View {
         Group {
             if let pdf {
-                PDFDocumentView(url: pdf, page: $page, horizontal: horizontal)
+                PDFDocumentView(url: pdf, page: $page)
             } else if preparing {
-                ProgressView("Preparing the \(source.kind.label.lowercased())\u{2026}")
+                ProgressView(preparingLine)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let quickLook, !horizontal {
+            } else if let quickLook {
                 QuickLookView(url: quickLook)
             } else {
-                // no file on this device (or paging across a file Quick Look
-                // can only scroll): the text, a page at a time
-                TextPagesView(source: source, page: $page, horizontal: horizontal)
+                // no file on this device: the text, page by page
+                TextPagesView(source: source, page: $page)
             }
         }
         .task(id: file) { await prepare() }
@@ -41,7 +46,10 @@ struct SourceDocumentView: View {
     private func prepare() async {
         pdf = nil
         quickLook = nil
-        guard let file else { return }
+        guard let file else {
+            followsPage = true
+            return
+        }
         switch source.kind {
         case .pdf:
             pdf = file
@@ -56,16 +64,15 @@ struct SourceDocumentView: View {
         case .text:
             break
         }
+        followsPage = quickLook == nil
     }
 }
 
-/// A PDF, whole: a continuous column down, or one page at a time across.
-/// Reports the page on screen back, so the page list and the page reader
-/// open where the reader is.
+/// A PDF, whole, as one continuous column down. Reports the page on screen
+/// back, so the page list and the page reader open where the reader is.
 struct PDFDocumentView: UIViewRepresentable {
     let url: URL
     @Binding var page: Int
-    let horizontal: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(page: $page) }
 
@@ -74,7 +81,9 @@ struct PDFDocumentView: UIViewRepresentable {
         view.autoScales = true
         view.backgroundColor = .secondarySystemBackground
         view.document = PDFDocument(url: url)
-        arrange(view)
+        view.displayMode = .singlePageContinuous
+        view.displayDirection = .vertical
+        view.autoScales = true
         context.coordinator.watch(view)
         go(view, to: page)
         return view
@@ -83,29 +92,7 @@ struct PDFDocumentView: UIViewRepresentable {
     func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.page = $page
         if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
-        if context.coordinator.horizontal != horizontal {
-            let here = view.currentPage.flatMap { view.document?.index(for: $0) } ?? (page - 1)
-            arrange(view)
-            context.coordinator.horizontal = horizontal
-            go(view, to: here + 1)
-        } else {
-            go(view, to: page)
-        }
-    }
-
-    /// Down: one continuous column. Across: a page at a time, swiped like a
-    /// book - the page view controller gives it real page turns.
-    private func arrange(_ view: PDFView) {
-        if horizontal {
-            view.displayMode = .singlePage
-            view.displayDirection = .horizontal
-            view.usePageViewController(true, withViewOptions: nil)
-        } else {
-            view.usePageViewController(false, withViewOptions: nil)
-            view.displayMode = .singlePageContinuous
-            view.displayDirection = .vertical
-        }
-        view.autoScales = true
+        go(view, to: page)
     }
 
     /// Page numbers here start at one, as people read them; PDFKit's at zero.
@@ -118,7 +105,6 @@ struct PDFDocumentView: UIViewRepresentable {
 
     final class Coordinator: NSObject {
         var page: Binding<Int>
-        var horizontal: Bool?
         private var observer: NSObjectProtocol?
 
         init(page: Binding<Int>) { self.page = page }
@@ -136,46 +122,53 @@ struct PDFDocumentView: UIViewRepresentable {
     }
 }
 
-/// The extracted text of each page, as cards: down a column, or across one
-/// page at a time.
+/// The extracted text of each page, as cards down one column.
 struct TextPagesView: View {
     let source: SourceDoc
     @Binding var page: Int
-    let horizontal: Bool
+
+    /// The last page this column itself reported from scrolling, so a page
+    /// picked in the list (which differs from it) moves the column, and the
+    /// column's own reports do not jerk it back.
+    @State private var reported = 0
 
     var body: some View {
-        if horizontal {
-            TabView(selection: $page) {
-                ForEach(source.pages, id: \.number) { p in
-                    ScrollView { card(p).padding() }
-                        .tag(p.number)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .background(Color(.secondarySystemBackground))
-        } else {
-            ScrollViewReader { reader in
-                ScrollView {
-                    LazyVStack(spacing: 14) {
-                        ForEach(source.pages, id: \.number) { p in
-                            card(p).id(p.number)
-                                .onAppear { if abs(p.number - page) > 1 { page = p.number } }
-                        }
+        ScrollViewReader { reader in
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    ForEach(source.pages, id: \.number) { p in
+                        card(p).id(p.number)
+                            .onAppear { report(p.number) }
                     }
-                    .padding()
                 }
-                .background(Color(.secondarySystemBackground))
-                .onAppear { reader.scrollTo(page, anchor: .top) }
+                .padding()
+            }
+            .background(Color(.secondarySystemBackground))
+            .onAppear { reader.scrollTo(page, anchor: .top) }
+            // a page picked in the list or the sheet: go straight there
+            .onChange(of: page) { _, now in
+                if now != reported { reader.scrollTo(now, anchor: .top) }
             }
         }
     }
 
+    /// A card scrolled into view far enough from the current page becomes it.
+    private func report(_ number: Int) {
+        let gap: Int = abs(number - page)
+        guard gap > 1 else { return }
+        reported = number
+        page = number
+    }
+
     private func card(_ p: SourceDoc.Page) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\(source.kind.pageNoun) \(p.number)")
+        let noun: String = source.kind.pageNoun
+        let title: String = "\(noun) \(p.number)"
+        let blank: String = "No text on this \(noun.lowercased())"
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(title)
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             if p.isBlank {
-                Label("No text on this \(source.kind.pageNoun.lowercased())", systemImage: "photo")
+                Label(blank, systemImage: "photo")
                     .font(.footnote).foregroundStyle(.secondary)
             } else {
                 Text(p.text).font(.body).textSelection(.enabled)

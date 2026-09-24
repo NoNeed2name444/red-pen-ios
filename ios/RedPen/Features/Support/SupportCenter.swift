@@ -1,17 +1,23 @@
+import Combine
 import SwiftUI
 
-/// Everything behind the gear: the pages that belong to no one category.
+/// Everything behind the account menu: the pages that belong to no one
+/// category.
 ///
 /// The studying itself is in the library's dock - Questions, Cards, Cases,
-/// OSCE, Audio - each with its sets and its ways to practise. What is left is
-/// visited now and then rather than worked in: the idea dump, how it is going,
-/// the lectures, the tour of examples, and the account, settings and help.
-/// They push onto the library's stack. One definition, one way in.
+/// OSCE, Audio, and Ideas beside them. What is left is visited now and then
+/// rather than worked in: how it is going, the lectures, the tour of
+/// examples, and the account, settings and help. They push onto the
+/// library's stack. One definition, one way in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     case notes, analytics, progress, sources, examples, account, settings, help, faq
 
-    /// What the menu lists: the tour of examples only in the personal build.
-    static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
+    /// What the menu lists, in the order it lists them. Every page is kept,
+    /// but three are no longer listed, because each already has a home:
+    /// Ideas is a place in the dock (LibraryView routes `.notes` there), By
+    /// subject is the Questions › Tools tile and a link in Progress, and the
+    /// common questions are the end of How it works.
+    static var shown: [SupportPage] { allCases.filter { $0.isListed } }
 
     /// The pages the menu shows under one heading, in the order it lists them.
     static func shown(in section: SupportSection) -> [SupportPage] {
@@ -20,14 +26,24 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    /// Which heading the page sits under in the menu.
+    /// Whether the account menu lists this page. The tour of examples only
+    /// in the personal build.
+    var isListed: Bool {
+        switch self {
+        case .notes, .progress, .faq: return false
+        case .examples: return PersonalBuild.isOn
+        case .analytics, .sources, .account, .settings, .help: return true
+        }
+    }
+
+    /// Which heading the page sits under in the menu (or would, for the
+    /// pages it no longer lists).
     ///
-    /// Nine pages in one flat list is a wall to read through every time;
-    /// three short groups, each named for what you came to do, can be skimmed.
+    /// Two short groups, each named for what you came to do, can be skimmed;
+    /// a flat list is a wall to read through every time.
     var section: SupportSection {
         switch self {
-        case .notes, .sources, .examples: return .study
-        case .analytics, .progress: return .progress
+        case .notes, .analytics, .progress, .sources, .examples: return .study
         case .account, .settings, .help, .faq: return .account
         }
     }
@@ -42,7 +58,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
-        case .faq: return "Questions"
+        case .faq: return "Common questions"
         }
     }
 
@@ -64,35 +80,34 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var page: some View {
         switch self {
         case .notes: IdeasView()
-        case .analytics: AnalyticsView().scrollContentBackground(.hidden).background(LibraryBackdrop())
+        case .analytics: AnalyticsView()
         case .progress: StatsView()
         case .sources: SourcesLibraryView()
         case .examples: ExamplesHubView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()
         case .help: HelpPage()
-        case .faq: FAQPage()
+        case .faq: HelpPage(startsAtQuestions: true)
         }
     }
 }
 
-/// The three headings the gear's pages are grouped under.
+/// The headings the account menu's pages are grouped under.
 enum SupportSection: String, CaseIterable, Identifiable {
-    case study, progress, account
+    case study, account
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .study: return "Your work"
-        case .progress: return "Your progress"
         case .account: return "Account & help"
         }
     }
 }
 
-/// The gear menu's contents: the pages that belong to no one category, under
-/// their headings.
+/// The account menu's contents: the pages that belong to no one category,
+/// under their headings.
 ///
 /// Buttons rather than links: a NavigationLink cannot live inside a Menu, so
 /// choosing a page sets `chosen` and the screen pushes it.
@@ -113,90 +128,260 @@ struct SupportMenuItems: View {
     }
 }
 
-// MARK: - The pages
+// MARK: - Settings
 
+// Settings, How it works and the common questions have no raised control on
+// purpose. Their rows are toggles, pickers and reading, and rows sit on the
+// SCREEN plane by design (see PopOut.swift): only something you press to
+// act - a bar, a tile, a big button - stands out of the glass. The mesh
+// backdrop behind each list is the deep plane, so the layering still reads.
+
+/// How the app looks and behaves, the exam it writes for, and where the AI
+/// models are chosen.
 struct SettingsPage: View {
     @EnvironmentObject private var reviews: ReviewStore
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
-    @State private var showModels = false
+    @AppStorage(PopOutSettings.enabledKey) private var popOut = true
+    @AppStorage(PopOutSettings.faceKey) private var face = false
+    @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
+    /// Seconds since 1970; 0 for no date. The library counts down to it.
+    @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+    /// The camera was refused when face tracking was turned on.
+    @State private var denied = false
 
     var body: some View {
         Form {
-            Section {
-                Toggle("Ask before deleting a set", isOn: $confirmDelete)
-                Toggle("Open the last set on launch", isOn: $openLastSet)
-            } footer: {
-                Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
-            }
-
-            Section("Review") {
-                LabeledContent("Cards scheduled", value: "\(reviews.records.count)")
-            }
-
-            Section {
-                Button { showModels = true } label: {
-                    Label("AI models", systemImage: "cpu")
-                }
-            } footer: {
-                Text("Doctor-R1 and MedVAL on this device, or \(Brand.name) Cloud (Gemini).")
-            }
-
-            Section {
-                LabeledContent("Version", value: Bundle.main.shortVersion)
-            } footer: {
-                Text(Brand.line)
-            }
+            lookSection
+            examSection
+            studySection
+            reviewSection
+            modelsSection
+            versionSection
         }
         .scrollContentBackground(.hidden)
         .background(LibraryBackdrop())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showModels) { ModelSettingsView() }
+        .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
+        .onChange(of: face) { _, on in faceChanged(on) }
+        .onReceive(NotificationCenter.default
+            .publisher(for: Notification.Name.NSProcessInfoPowerStateDidChange)
+            .receive(on: RunLoop.main)) { _ in
+            lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+        }
+    }
+
+    // MARK: Look and feel
+
+    private var faceAvailable: Bool { PopOutMotion.faceTrackingAvailable }
+
+    private var faceLocked: Bool { !popOut || !faceAvailable }
+
+    private var lookSection: some View {
+        Section {
+            Toggle("Pop-out effect", isOn: $popOut)
+                .accessibilityIdentifier("popOutToggle")
+            Toggle("Pop-out with face tracking", isOn: $face)
+                .disabled(faceLocked)
+                .accessibilityIdentifier("popOutFaceToggle")
+        } header: {
+            Text("Look and feel")
+        } footer: {
+            Text(lookFooter)
+        }
+    }
+
+    /// What the two toggles will actually do on this device, right now.
+    private var lookFooter: String {
+        var parts: [String] = []
+        if !faceAvailable {
+            parts.append("Face tracking needs an iPhone or iPad with Face ID.")
+        } else if denied {
+            parts.append("Camera access is off, so the pop-out follows the tilt instead.")
+        }
+        if reduceMotion || lowPower {
+            parts.append("Reduce Motion (or Low Power Mode) is on, so everything stands out without moving.")
+        }
+        parts.append("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
+        let footer: String = parts.joined(separator: " ")
+        return footer
+    }
+
+    /// Turning face tracking on asks for the camera; a refusal turns the
+    /// toggle back off and says why in the footer.
+    private func faceChanged(_ on: Bool) {
+        PopOutMotion.shared.refresh()
+        guard on else { return }
+        denied = false
+        Task {
+            let granted: Bool = await PopOutMotion.shared.requestFaceTracking()
+            if !granted {
+                face = false
+                denied = true
+            }
+        }
+    }
+
+    // MARK: Your exam
+
+    private var examSection: some View {
+        Section {
+            Picker("Exam", selection: $exam) {
+                ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
+            }
+            Toggle("I have an exam date", isOn: hasExamDate)
+            if examDate > 0 {
+                DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)
+            }
+        } header: {
+            Text("Your exam")
+        } footer: {
+            Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
+        }
+    }
+
+    private var hasExamDate: Binding<Bool> {
+        Binding(get: { examDate > 0 }, set: { on in examDate = SettingsPage.defaultExamDate(on) })
+    }
+
+    private var examDay: Binding<Date> {
+        Binding(get: { Date(timeIntervalSince1970: examDate) },
+                set: { day in examDate = day.timeIntervalSince1970 })
+    }
+
+    /// Two months from today when a date is first asked for; 0 for none.
+    private static func defaultExamDate(_ on: Bool) -> Double {
+        guard on else { return 0 }
+        let twoMonths: TimeInterval = 60 * 86_400
+        let day: Date = Date().addingTimeInterval(twoMonths)
+        return day.timeIntervalSince1970
+    }
+
+    // MARK: The rest
+
+    private var studySection: some View {
+        Section {
+            Toggle("Ask before deleting a set", isOn: $confirmDelete)
+            Toggle("Open the last set on launch", isOn: $openLastSet)
+        } header: {
+            Text("Study")
+        } footer: {
+            Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
+        }
+    }
+
+    private var reviewSection: some View {
+        Section("Review") {
+            LabeledContent("Cards scheduled", value: "\(reviews.records.count)")
+        }
+    }
+
+    private var modelsSection: some View {
+        Section {
+            NavigationLink {
+                ModelSettingsView(embedded: true)
+            } label: {
+                Label("AI models", systemImage: "cpu")
+            }
+        } footer: {
+            Text("Doctor-R1 and MedVAL on this device, or \(Brand.name) Cloud (Gemini).")
+        }
+    }
+
+    private var versionSection: some View {
+        Section {
+            LabeledContent("Version", value: Bundle.main.shortVersion)
+        } footer: {
+            Text(Brand.line)
+        }
     }
 }
 
-/// What each mode is for, in the student's terms rather than the app's.
+// MARK: - How it works
+
+/// What each mode is for, in the student's terms rather than the app's, and
+/// the common questions at the end.
 struct HelpPage: View {
-    var body: some View {
-        List {
-            Section {
-                Text("Put your material in once, then study it in whichever shape suits the exam you are sitting.")
-                    .font(.callout)
-            }
-            Section("The modes") {
-                ForEach(StudySetKind.allCases, id: \.self) { kind in
-                    HStack(alignment: .top, spacing: 12) {
-                        ModeTile(kind: kind, size: 34)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(kind.label).font(.headline)
-                            Text(Self.what(kind))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            Section("Getting material in") {
-                bullet("Paste or type it into a new set.")
-                bullet("Import a lecture PDF or slide deck and let the app cut it into pages.")
-                bullet("Record a lecture and have it written out, then study the writing.")
-            }
-            Section("Getting it out") {
-                bullet("Swipe a set to export it: every mode prints as a flashcard deck.")
-                bullet("A Cards set exports as an .apkg deck instead, because paper keeps neither its schedule nor its masks.")
-            }
-        }
-        .navigationTitle("How it works")
-        .navigationBarTitleDisplayMode(.inline)
+    /// Opens already scrolled to the common questions.
+    let startsAtQuestions: Bool
+
+    init(startsAtQuestions: Bool = false) {
+        self.startsAtQuestions = startsAtQuestions
     }
 
-    private func bullet(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text("\u{2022}").foregroundStyle(.secondary)
-            Text(text).font(.footnote)
+    /// Where `startsAtQuestions` scrolls to: the first question.
+    static let questionsAnchor = "help.questions"
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            List {
+                introSection
+                modesSection
+                materialSection
+                exportSection
+                questionsSection
+            }
+            .scrollContentBackground(.hidden)
+            .background(LibraryBackdrop())
+            .navigationTitle("How it works")
+            .navigationBarTitleDisplayMode(.inline)
+            .task { await jumpToQuestions(proxy) }
         }
+    }
+
+    private func jumpToQuestions(_ proxy: ScrollViewProxy) async {
+        guard startsAtQuestions else { return }
+        // one beat, so the list has laid its rows out first
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        proxy.scrollTo(HelpPage.questionsAnchor, anchor: .top)
+    }
+
+    private var introSection: some View {
+        Section {
+            Text("Put your material in once, then study it in whichever shape suits the exam you are sitting.")
+                .font(.callout)
+        }
+    }
+
+    private var modesSection: some View {
+        Section("The modes") {
+            ForEach(StudySetKind.allCases, id: \.self) { kind in
+                HelpModeRow(kind: kind, detail: HelpPage.what(kind))
+            }
+        }
+    }
+
+    private var materialSection: some View {
+        Section("Getting material in") {
+            HelpBullet(text: "Paste or type it into a new set.")
+            HelpBullet(text: "Import a lecture PDF or slide deck and let the app cut it into pages.")
+            HelpBullet(text: "Record a lecture and have it written out, then study the writing.")
+        }
+    }
+
+    private var exportSection: some View {
+        Section("Getting it out") {
+            HelpBullet(text: "Tap the \u{2026} on a set (or swipe it) to export it: every mode prints as a flashcard deck.")
+            HelpBullet(text: "A Cards set exports as an .apkg deck instead, because paper keeps neither its schedule nor its masks.")
+        }
+    }
+
+    private var questionsSection: some View {
+        Section("Common questions") {
+            ForEach(Array(HelpPage.questions.enumerated()), id: \.offset) { index, entry in
+                HelpQuestionRow(question: entry.0, answer: entry.1)
+                    .id(HelpPage.questionID(index))
+            }
+        }
+    }
+
+    private static func questionID(_ index: Int) -> String {
+        if index == 0 { return questionsAnchor }
+        return "help.question.\(index)"
     }
 
     static func what(_ kind: StudySetKind) -> String {
@@ -209,10 +394,9 @@ struct HelpPage: View {
         case .narrate: return "A recorded lecture written out, so you can study what was actually said."
         }
     }
-}
 
-struct FAQPage: View {
-    private static let entries: [(String, String)] = [
+    /// What used to be its own Questions page.
+    static let questions: [(String, String)] = [
         ("Where is my material kept?",
          "On this device. If you sign in, your sets, folders and review schedule sync between your devices; recordings and learned pronunciations stay on the device that made them."),
         ("Does studying need a connection?",
@@ -226,22 +410,59 @@ struct FAQPage: View {
         ("How do I delete everything?",
          "Account, then Delete account. That removes the account and its synced copy from the server; the copy on this device stays until you delete the app."),
     ]
+}
+
+/// One mode on the help page: its tile, its name and what it is for.
+private struct HelpModeRow: View {
+    let kind: StudySetKind
+    let detail: String
 
     var body: some View {
-        List {
-            ForEach(Array(Self.entries.enumerated()), id: \.offset) { _, entry in
-                DisclosureGroup {
-                    Text(entry.1)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 2)
-                } label: {
-                    Text(entry.0).font(.subheadline.weight(.semibold))
-                }
+        HStack(alignment: .top, spacing: 12) {
+            ModeTile(kind: kind, size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(kind.label).font(.headline)
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Questions")
-        .navigationBarTitleDisplayMode(.inline)
+        .padding(.vertical, 2)
+    }
+}
+
+private struct HelpBullet: View {
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("\u{2022}").foregroundStyle(.secondary)
+            Text(text).font(.footnote)
+        }
+    }
+}
+
+private struct HelpQuestionRow: View {
+    let question: String
+    let answer: String
+
+    var body: some View {
+        DisclosureGroup {
+            Text(answer)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+        } label: {
+            Text(question).font(.subheadline.weight(.semibold))
+        }
+    }
+}
+
+/// The common questions, now the end of How it works. Kept so anything that
+/// still names it opens the same place.
+struct FAQPage: View {
+    var body: some View {
+        HelpPage(startsAtQuestions: true)
     }
 }
 

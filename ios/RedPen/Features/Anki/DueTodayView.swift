@@ -13,56 +13,85 @@ struct DueTodayView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
 
     private static let sittingMinutes: Double = 20
 
     @State private var queue: [ReviewPlan.Due] = []
     @State private var revealed = false
     @State private var reviewedCount = 0
+    /// Commute mode, open over the queue.
+    @State private var commuting = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             if let due = queue.first {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(due.setName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        AnkiCardFace(card: due.card, images: images(for: due),
-                                     revealed: revealed, deck: deck(for: due))
-                    }
-                    .contentCard()
-                    .cardFlip(revealed: revealed)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                    .readableColumn()
-                }
-                Spacer(minLength: 0)
-                footer(due)
+                dueScroll(due)
             } else {
-                ScrollView {
-                    FinishHero(symbol: reviewedCount > 0 ? "checkmark.seal.fill" : "clock",
-                               title: reviewedCount > 0 ? "That's everything" : "Nothing due today",
-                               message: emptyLine)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 32)
-                        .readableColumn()
-                }
-                Spacer(minLength: 0)
-                StudyActionBar {
-                    Button("Done") { dismiss() }
-                        .buttonStyle(.bigPrimary)
-                        .keyboardShortcut(.return, modifiers: [])
-                }
+                emptyScroll
             }
         }
         .modeScreen(.anki)
         .navigationTitle("Due today")
         .navigationBarTitleDisplayMode(.inline)
-        .commuteModeButton()
+        .commuteModeSheet(isPresented: $commuting)
         .onAppear(perform: load)
+    }
+
+    /// The card due first, scrolling under the bar that reveals and rates it.
+    private func dueScroll(_ due: ReviewPlan.Due) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(due.setName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                AnkiCardFace(card: due.card, images: images(for: due),
+                             revealed: revealed, deck: deck(for: due))
+            }
+            .contentCard()
+            .cardFlip(revealed: revealed)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .studyBar { footer(due) }
+    }
+
+    private var emptyScroll: some View {
+        let symbol: String = reviewedCount > 0 ? "checkmark.seal.fill" : "clock"
+        let title: String = reviewedCount > 0 ? "That's everything" : "Nothing due today"
+        return ScrollView {
+            FinishHero(symbol: symbol, title: title, message: emptyLine)
+                .padding(.horizontal, 16)
+                .padding(.top, 32)
+                .readableColumn()
+        }
+        // commute mode reads questions as well as due cards, so Listen
+        // stays in reach with nothing due
+        .studyBar { emptyBar }
+    }
+
+    private var emptyBar: some View {
+        HStack(spacing: 12) {
+            listenButton
+            if span == .broad { Spacer(minLength: 16) }
+            Button("Done") { dismiss() }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
+        }
+    }
+
+    /// Commute mode, beside Reveal (or Done): the same cards read aloud,
+    /// answered by voice, for when eyes and hands are busy.
+    private var listenButton: some View {
+        Button { commuting = true } label: {
+            Label("Listen", systemImage: "car.fill")
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Listen in commute mode")
+        .accessibilityHint("Reads your due cards and questions aloud and listens for the answers")
     }
 
     private var emptyLine: String {
@@ -81,22 +110,14 @@ struct DueTodayView: View {
         return StudyProgressHeader(status, detail: "\(done) done", fraction: fraction)
     }
 
-    /// Reveal, then the four ratings, always in the same place.
+    /// Listen and Reveal, then the four ratings, always in the same place.
     private func footer(_ due: ReviewPlan.Due) -> some View {
-        let interval = reviews.records[due.card.id]?.intervalMin ?? 0
-        return StudyActionBar {
-            if !revealed {
-                Button { revealed = true } label: {
-                    Text("Reveal")
-                }
-                .buttonStyle(.bigPrimary)
-                // Space turns the card over, as it does in Anki
-                .keyboardShortcut(.space, modifiers: [])
-                .accessibilityHint("Shows the answer. Say it to yourself first.")
-            } else {
-                AnkiRatingBar(labels: AnkiScheduler.previewLabels(currentIntervalMin: interval),
-                              onRate: { rate($0, due) })
-            }
+        let interval: Double = reviews.records[due.card.id]?.intervalMin ?? 0
+        let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: interval)
+        return AnkiFooter(revealed: revealed, labels: labels,
+                          onReveal: { revealed = true },
+                          onRate: { rate($0, due) }) {
+            listenButton
         }
     }
 

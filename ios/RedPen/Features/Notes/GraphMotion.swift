@@ -100,15 +100,28 @@ struct GraphSimLooks {
 /// positions each frame they move; their electric look is entirely in the
 /// link shader.
 ///
+/// Names: a note's name shows only for the note under the pointer, the
+/// note being pressed (held down) and the note being dragged. It pops in - from 85%
+/// to full size in about an eighth of a second - and goes at once when it is
+/// no longer wanted; it is never half see-through.
+///
+/// The window: the whole graph hangs from a tilt rig, which the device's
+/// tilt (PopOutMotion.snapshot, readable from this render thread) turns a
+/// few hundredths of a radian about the camera's own up and right, and the
+/// sky half as much - so the notes shift against the stars as if seen
+/// through the screen. It holds still while a note is dragged, and stays
+/// square with Reduce Motion, or when the pop-out effect is still or off.
+///
 /// The work each frame is one pass over the notes and one over the links -
 /// there is no every-note-against-every-note step here - so a few hundred
-/// notes stay cheap. Labels are sorted only every few frames. With Reduce
-/// Motion on there is no drifting, no popping, no overshoot, no spin, no
-/// shimmer and no sparks, and nothing is worked out at all while the space
-/// and the camera are still.
+/// notes stay cheap. With Reduce Motion on there is no drifting, no popping,
+/// no overshoot, no spin, no shimmer, no sparks and no tilt, and nothing is
+/// worked out at all while the space and the camera are still.
 nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked Sendable {
     /// The node every note and link hangs from.
     let world: SCNNode
+    /// The node `world` hangs from, turned by the device's tilt.
+    private let rig: SCNNode
     /// Which note sits at which index.
     let index: [UUID: Int]
     /// Which note sits at each index: the other way round from `index`.
@@ -145,8 +158,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let sky: SCNNode
     /// The note whose ring and disk are the bright ones. Main thread only.
     private var highlighted: Int?
-    /// Past this distance from the camera a note's label is not shown.
+    /// Kept from when names showed by distance; no longer read.
     private let labelReach: Float
+    /// The eye, smoothed once more for the rig. Render thread only.
+    private var tiltEye = SIMD2<Float>(0, 0)
+    /// True while the rig and the sky are square. Render thread only.
+    private var rigSquare: Bool = true
 
     /// Guards everything below that both the main thread and the render loop
     /// touch.
@@ -157,7 +174,11 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// Reused every step, so a frame allocates nothing for forces.
     private var force: [SIMD3<Float>]
     private var visible: [Bool]
-    private var labelOpacity: [Float]
+    /// How far each shown name is through popping in, 0 to 1.
+    private var labelPop: [Float]
+    /// The names up now, and the ones wanted this frame (at most three).
+    private var labelsUp: [Int] = []
+    private var labelsWanted: [Int] = []
     private var shownEdges: [Int] = []
     private var lineElement: SCNGeometryElement?
     /// Set when the shown links change; the render loop rebuilds them.
@@ -191,8 +212,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var grabbed: Int?
     private var grabTarget = SIMD3<Float>(0, 0, 0)
     private var dragVelocity = SIMD3<Float>(0, 0, 0)
-    /// The last note tapped or dragged; its label stays up.
+    /// The last note tapped or dragged; its ring stays bright (its name
+    /// shows only while it is pressed or hovered).
     private var selected: Int?
+    /// The note under the pointer (iPad trackpad, mouse, Pencil hover).
+    private var hovered: Int?
+    /// The note a finger, Pencil or click is down on right now; nil once it
+    /// lifts.
+    private var pressedNote: Int?
 
     /// Spring towards home: how hard it pulls, and how much of the motion
     /// each second it soaks up. Lively uses a damping ratio of about 0.5 for
@@ -204,8 +231,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let linkStiffness: Float = 4
     /// How far a note drifts from home in its slow loop.
     private let drift: Float = 0.07
-    /// How many labels may show at once, besides the selected note's.
-    private let labelBudget: Int = 8
+    /// How long a name takes to pop in, in seconds.
+    private let labelPopTime: Float = 0.12
+    /// How far the rig turns (radians) for a full unit of eye movement:
+    /// about the camera's up for left and right, its right for up and down.
+    private let tiltYaw: Float = 0.05
+    private let tiltPitch: Float = 0.035
     /// The longest single integration step; longer frames are split.
     private let maxSubstep: Float = 1.0 / 120.0
     /// The fastest a let-go note may fly off.
@@ -215,9 +246,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// Below this speed a note leaves no trail.
     private let trailSpeed: Float = 0.9
 
-    init(world: SCNNode, infos: [GraphNodeInfo], edges pairs: [(UUID, UUID)], lines: SCNNode,
-         looks: GraphSimLooks, lively: Bool, labelReach: Float) {
+    init(world: SCNNode, rig: SCNNode, infos: [GraphNodeInfo], edges pairs: [(UUID, UUID)],
+         lines: SCNNode, looks: GraphSimLooks, lively: Bool, labelReach: Float) {
         self.world = world
+        self.rig = rig
         self.lines = lines
         self.lineMaterial = looks.linkMaterial
         self.lively = lively
@@ -308,13 +340,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         velocity = [SIMD3<Float>](repeating: zero, count: infos.count)
         force = [SIMD3<Float>](repeating: zero, count: infos.count)
         visible = [Bool](repeating: true, count: infos.count)
-        labelOpacity = [Float](repeating: 0, count: infos.count)
+        labelPop = [Float](repeating: 0, count: infos.count)
         resting = !lively
         super.init()
 
         for (i, node) in nodes.enumerated() {
             node.simdPosition = position[i]
-            labels[i].opacity = 0
+            // names are either fully there or not there at all
+            labels[i].opacity = 1
             labels[i].isHidden = true
         }
         shownEdges = Array(edges.indices)
@@ -358,7 +391,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         node.runAction(SCNAction.sequence(steps), forKey: "pop")
     }
 
-    /// Marks a note as the one being looked at: its label stays up.
+    /// Marks a note as the one being looked at: its ring stays bright.
     func select(_ i: Int) {
         guard i >= 0, i < nodes.count else { return }
         lock.lock()
@@ -367,6 +400,64 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.unlock()
         highlight(i)
         pop(i)
+    }
+
+    /// Lets the chosen note go: its ring dims. Called without the lock held.
+    func clearSelection() {
+        lock.lock()
+        let had: Bool = selected != nil
+        selected = nil
+        resting = false
+        lock.unlock()
+        if had || highlighted != nil { highlight(nil) }
+    }
+
+    /// The chosen note, if any.
+    var selectedNote: Int? {
+        lock.lock()
+        defer { lock.unlock() }
+        return selected
+    }
+
+    /// The note under the pointer, or nil when the pointer is over none or
+    /// has left. Only noted here; the render loop shows its name.
+    func hover(_ i: Int?) {
+        var note: Int? = i
+        if let i, i < 0 || i >= nodes.count { note = nil }
+        lock.lock()
+        hovered = note
+        lock.unlock()
+    }
+
+    /// The note being pressed (touch down, held), or nil when the press
+    /// ends. Only noted here; the render loop shows its name while held.
+    func press(_ i: Int?) {
+        var note: Int? = i
+        if let i, i < 0 || i >= nodes.count { note = nil }
+        lock.lock()
+        pressedNote = note
+        lock.unlock()
+    }
+
+    /// Whether note `i` is let through by the filter.
+    func isVisible(_ i: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard i >= 0, i < visible.count else { return false }
+        return visible[i]
+    }
+
+    /// Every shown note and where it is now, in the space's own coordinates,
+    /// read under one lock - for finding the note nearest a finger.
+    func visiblePositions() -> [(Int, SIMD3<Float>)] {
+        lock.lock()
+        defer { lock.unlock() }
+        var found: [(Int, SIMD3<Float>)] = []
+        found.reserveCapacity(position.count)
+        for i in position.indices where visible[i] {
+            found.append((i, position[i]))
+        }
+        return found
     }
 
     /// Gives note `i` the bright ring and disk, and the one that had them
@@ -474,6 +565,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         shownEdges = kept
         linesDirty = true
         if let chosen = selected, !visible[chosen] { selected = nil }
+        if let pointed = hovered, !visible[pointed] { hovered = nil }
+        if let held = pressedNote, !visible[held] { pressedNote = nil }
         let stillSelected: Int? = selected
         resting = false
         lock.unlock()
@@ -500,6 +593,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let up = SIMD3<Float>(pose.columns.1.x, pose.columns.1.y, pose.columns.1.z)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
+        // the window: turned by the tilt before anything is stepped; the
+        // rig is touched outside the lock
+        lock.lock()
+        let held: Bool = grabbed != nil
+        lock.unlock()
+        tilt(right: right, up: up, held: held)
         if lively { tickShaders(time) }
         // the sky stays centred on the camera, so it is at infinity
         sky.simdWorldPosition = eye
@@ -507,6 +606,53 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         step(Float(raw), eye: eye, right: right, up: up)
         lock.unlock()
         SCNTransaction.commit()
+    }
+
+    /// Turns the rig a few hundredths of a radian with the device's tilt,
+    /// about the camera's own up (left and right) and right (up and down),
+    /// and the sky by half as much. Moving the eye right shows a little more
+    /// of the notes' right side. Holds its pose while a note is dragged, so
+    /// the note stays under the finger; square when not lively.
+    private func tilt(right: SIMD3<Float>, up: SIMD3<Float>, held: Bool) {
+        guard lively else {
+            if !rigSquare { squareRig() }
+            return
+        }
+        if held { return }
+        let raw: SIMD2<Float> = PopOutMotion.snapshot.read()
+        let change: SIMD2<Float> = (raw - tiltEye) * 0.2
+        tiltEye += change
+        let quiet: Bool = abs(tiltEye.x) < 0.0005 && abs(tiltEye.y) < 0.0005
+        if quiet {
+            if !rigSquare { squareRig() }
+            return
+        }
+        let upAxis: SIMD3<Float> = Self.axis(up, or: SIMD3<Float>(0, 1, 0))
+        let rightAxis: SIMD3<Float> = Self.axis(right, or: SIMD3<Float>(1, 0, 0))
+        let yawAngle: Float = -tiltEye.x * tiltYaw
+        let pitchAngle: Float = -tiltEye.y * tiltPitch
+        let yaw = simd_quatf(angle: yawAngle, axis: upAxis)
+        let pitch = simd_quatf(angle: pitchAngle, axis: rightAxis)
+        rig.simdOrientation = yaw * pitch
+        let skyYaw = simd_quatf(angle: yawAngle * 0.5, axis: upAxis)
+        let skyPitch = simd_quatf(angle: pitchAngle * 0.5, axis: rightAxis)
+        sky.simdOrientation = skyYaw * skyPitch
+        rigSquare = false
+    }
+
+    private func squareRig() {
+        let square = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+        rig.simdOrientation = square
+        sky.simdOrientation = square
+        tiltEye = SIMD2<Float>(0, 0)
+        rigSquare = true
+    }
+
+    /// `v` made unit length, or `fallback` when it has none.
+    private static func axis(_ v: SIMD3<Float>, or fallback: SIMD3<Float>) -> SIMD3<Float> {
+        let length: Float = simd_length(v)
+        guard length > 0.0001 else { return fallback }
+        return v / length
     }
 
     /// Hands the shaders the time, wrapped so a 32-bit float keeps it fine
@@ -536,8 +682,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             rebuildLineElement()
             linksStale = true
         }
-        // the labels follow the camera even when the notes are still
-        if frame % 3 == 0 { updateLabels(eye: eye) }
+        // names pop in and go every frame, even when the notes are still
+        let labelStep: Float = min(max(rawStep, 0.001), 0.05)
+        updateLabels(labelStep)
         if resting && grabbed == nil {
             // the ribbons face the camera and the rings are sized for it, so
             // both follow it even when nothing else moves
@@ -876,35 +1023,46 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     // MARK: labels
 
-    /// Shows the titles of the few notes nearest the camera, fading out with
-    /// distance, plus the selected note's. Coming closer brings more into
-    /// reach; far away, none show and the space is just points and threads.
-    private func updateLabels(eye: SIMD3<Float>) {
-        var near: [(Int, Float)] = []
-        for i in nodes.indices where visible[i] {
-            let d: Float = simd_distance(position[i], eye)
-            if d < labelReach { near.append((i, d)) }
+    /// Shows the names of the hovered, pressed and dragged notes (when they
+    /// are shown at all) and no others: a chosen note keeps its bright ring
+    /// but not its name once the finger lifts. A name pops in from 85% to
+    /// full size over about 0.12 s - at once without Reduce Motion's
+    /// liveliness - and goes the instant it is not wanted. Called with the
+    /// lock held.
+    private func updateLabels(_ dt: Float) {
+        labelsWanted.removeAll(keepingCapacity: true)
+        wantLabel(hovered)
+        wantLabel(pressedNote)
+        wantLabel(grabbed)
+        for i in labelsUp where !labelsWanted.contains(i) {
+            labels[i].isHidden = true
         }
-        near.sort { $0.1 < $1.1 }
-        var target = [Float](repeating: 0, count: nodes.count)
-        let fullAt: Float = labelReach * 0.6
-        let band: Float = max(labelReach - fullAt, 0.001)
-        for entry in near.prefix(labelBudget) {
-            let into: Float = (labelReach - entry.1) / band
-            target[entry.0] = min(max(into, 0), 1)
+        let growth: Float = dt / labelPopTime
+        for i in labelsWanted {
+            if !labelsUp.contains(i) {
+                labelPop[i] = lively ? 0 : 1
+                shapeLabel(i)
+                labels[i].isHidden = false
+            } else if labelPop[i] < 1 {
+                labelPop[i] = min(1, labelPop[i] + growth)
+                shapeLabel(i)
+            }
         }
-        if let chosen = selected, chosen < target.count, visible[chosen] { target[chosen] = 1 }
+        swap(&labelsUp, &labelsWanted)
+    }
 
-        for i in nodes.indices {
-            let now: Float = labelOpacity[i]
-            let goal: Float = target[i]
-            let shownNow: Bool = !labels[i].isHidden
-            if abs(goal - now) < 0.01 && (goal > 0) == shownNow { continue }
-            let eased: Float = lively ? now + (goal - now) * 0.35 : goal
-            let settled: Float = abs(goal - eased) < 0.02 ? goal : eased
-            labelOpacity[i] = settled
-            labels[i].opacity = CGFloat(settled)
-            labels[i].isHidden = settled <= 0
-        }
+    private func wantLabel(_ i: Int?) {
+        guard let i, i >= 0, i < nodes.count, visible[i] else { return }
+        if labelsWanted.contains(i) { return }
+        labelsWanted.append(i)
+    }
+
+    /// Sizes a popping name: 85% to 100%, easing out.
+    private func shapeLabel(_ i: Int) {
+        let t: Float = labelPop[i]
+        let left: Float = 1 - t
+        let eased: Float = 1 - left * left
+        let size: Float = 0.85 + 0.15 * eased
+        labels[i].simdScale = SIMD3<Float>(size, size, size)
     }
 }

@@ -42,6 +42,22 @@ enum IdeasMode: String, CaseIterable, Identifiable {
         case .space: return "Space"
         }
     }
+    /// The symbol on the switcher's segment and on its folded circle.
+    var symbol: String {
+        switch self {
+        case .list: return "list.bullet"
+        case .board: return "rectangle.3.group"
+        case .space: return "cube.transparent"
+        }
+    }
+    /// The switcher segment's accessibility identifier.
+    var identifier: String {
+        switch self {
+        case .list: return "ideasMode-list"
+        case .board: return "ideasMode-board"
+        case .space: return "ideasMode-space"
+        }
+    }
 }
 
 /// A note to open, by id, so the editor always reads the stored note rather

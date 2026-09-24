@@ -24,7 +24,6 @@ struct SourceOpening: Identifiable, Equatable {
 /// apologise for - it is what a student sees on their second device, and it has
 /// to be good enough to study from on its own.
 struct SourcePreviewView: View {
-    @Environment(\.modeTint) private var modeTint
     let source: SourceDoc
     /// The set this lecture belongs to, so a page can show what came off it.
     var set: StudySet?
@@ -39,6 +38,9 @@ struct SourcePreviewView: View {
     @State private var file: URL?
     /// The whole document, or one page with the cards made from it.
     @State private var whole = true
+    /// False while the whole document is in Quick Look, which cannot be sent
+    /// to a page - so no page list is offered there.
+    @State private var documentFollowsPage = true
 
     init(source: SourceDoc, set: StudySet? = nil, openAt: Int = 1) {
         self.source = source
@@ -50,17 +52,44 @@ struct SourcePreviewView: View {
         SourceSearch.hits(for: term, in: source.pages)
     }
 
-    /// A sheet is only as wide as the window it opens in, so a page beside a
-    /// search result is a luxury of a big window rather than of a big device.
+    /// A sheet is only as wide as the window it opens in, so a page list
+    /// beside the reader is a luxury of a big window rather than of a big
+    /// device.
     private var wide: Bool { span == .broad }
+
+    /// Whether picking a page moves what is on screen. Page view always
+    /// does; Document view does unless the file is in Quick Look.
+    private var pageAware: Bool { !whole || documentFollowsPage }
+
+    /// The page list beside the reader: a wide window, and a reader that
+    /// can follow it.
+    private var sidebar: Bool { wide && pageAware }
+
+    private var searchPrompt: String {
+        "Search this \(source.kind.label.lowercased())"
+    }
 
     var body: some View {
         NavigationStack {
             content
+                // the deep plane: the same slow mesh as every other screen,
+                // behind the glass, so the reader is not a flat sheet
+                .background(LibraryBackdrop())
                 .navigationTitle(source.name)
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar { toolbar }
-                .searchable(text: $term, prompt: "Search this \(source.kind.label.lowercased())")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+                // search stays at the top, out of the thumb's way
+                .searchable(text: $term, placement: .navigationBarDrawer(displayMode: .automatic),
+                            prompt: searchPrompt)
+                // Document / Page, the page list and the pager, under the
+                // thumb; out of the way while the results are showing
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if term.isEmpty { bar }
+                }
                 .sheet(isPresented: $showingPages) { pageSheet }
                 .task { file = SourceFiles.url(for: source) }
         }
@@ -73,53 +102,45 @@ struct SourcePreviewView: View {
                 page = found
                 term = ""
             }
-        } else if whole {
-            SourceDocumentView(source: source, file: file, page: $page)
-        } else if wide {
-            HStack(spacing: 0) {
-                SourcePageList(source: source, selected: $page)
-                    .frame(width: 240)
-                Divider()
-                reader
-            }
         } else {
-            reader
-        }
-    }
-
-    private var reader: some View {
-        SourcePageReader(source: source, page: $page, set: set, file: file)
-    }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Done") { dismiss() }
-        }
-        ToolbarItem(placement: .principal) {
-            Picker("View", selection: $whole) {
-                Text("Document").tag(true)
-                Text("Page").tag(false)
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 220)
-        }
-        if !wide && !whole {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingPages = true
-                } label: {
-                    Label("Pages", systemImage: "sidebar.squares.left")
+            // the page list stays beside the reader in both views; one
+            // HStack either way, so the reader is not rebuilt (and a Word
+            // file not converted again) when the list comes or goes
+            HStack(spacing: 0) {
+                if sidebar {
+                    SourcePageList(source: source, selected: $page)
+                        .frame(width: 240)
+                    Divider()
                 }
-                .accessibilityLabel("All \(source.kind.pageNoun.lowercased())s")
+                reading
             }
         }
+    }
+
+    @ViewBuilder
+    private var reading: some View {
+        if whole {
+            SourceDocumentView(source: source, file: file, page: $page,
+                               followsPage: $documentFollowsPage)
+        } else {
+            SourcePageReader(source: source, page: $page, set: set, file: file)
+        }
+    }
+
+    private var bar: some View {
+        let pagesButton: Bool = !wide && pageAware
+        return ReaderBar(whole: $whole, page: $page, pageCount: source.pageCount,
+                         pageNoun: source.kind.pageNoun, showsPages: pagesButton,
+                         openPages: { showingPages = true })
     }
 
     private var pageSheet: some View {
-        NavigationStack {
+        let noun: String = source.kind.pageNoun.lowercased()
+        let title: String = "\(source.pageCount) \(noun)s"
+        return NavigationStack {
             SourcePageList(source: source, selected: $page)
-                .navigationTitle("\(source.pageCount) \(source.kind.pageNoun.lowercased())s")
+                .background(LibraryBackdrop())
+                .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
@@ -159,11 +180,19 @@ struct SourcePageList: View {
                 .id(page.number)
             }
             .listStyle(.plain)
+            // clear, so the backdrop behind the reader shows through
+            .scrollContentBackground(.hidden)
             .onAppear { scroll.scrollTo(selected, anchor: .center) }
             .onChange(of: selected) { _, now in
                 withAnimation { scroll.scrollTo(now, anchor: .center) }
             }
         }
+    }
+
+    private func firstLine(_ page: SourceDoc.Page) -> String {
+        guard page.isBlank else { return page.heading }
+        let noun: String = source.kind.pageNoun.lowercased()
+        return "No text on this \(noun)"
     }
 
     private func row(_ page: SourceDoc.Page) -> some View {
@@ -173,8 +202,7 @@ struct SourcePageList: View {
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 22, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
-                Text(page.isBlank ? "No text on this \(source.kind.pageNoun.lowercased())"
-                                  : page.heading)
+                Text(firstLine(page))
                     .font(.subheadline)
                     .foregroundStyle(page.isBlank ? .secondary : .primary)
                     .lineLimit(2)
@@ -215,12 +243,22 @@ struct SourceResultsList: View {
                                 .buttonStyle(.plain)
                         }
                     } header: {
-                        Text("\(hits.count) \(hits.count == 1 ? "mention" : "mentions") on \(SourceSearch.pagesMatched(hits)) \(source.kind.pageNoun.lowercased())s")
+                        Text(heading)
                     }
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
+    }
+
+    /// "5 mentions on 3 pages".
+    private var heading: String {
+        let found: Int = hits.count
+        let mentions: String = found == 1 ? "mention" : "mentions"
+        let pages: Int = SourceSearch.pagesMatched(hits)
+        let noun: String = source.kind.pageNoun.lowercased()
+        return "\(found) \(mentions) on \(pages) \(noun)s"
     }
 
     private func row(_ hit: SourceSearch.Hit) -> some View {

@@ -19,6 +19,9 @@ struct DrawRecallView: View {
     let opening: RecallAttempt?
 
     @Environment(\.dismiss) private var dismiss
+    /// The window as the presenter measured it, until this screen has
+    /// measured its own.
+    @Environment(\.windowSpan) private var outerSpan
 
     @State private var drawing = PKDrawing()
     /// Changes whenever the drawing is replaced from here rather than drawn,
@@ -33,52 +36,52 @@ struct DrawRecallView: View {
     @State private var attempts: [RecallAttempt] = []
     @State private var paperSize: CGSize = .zero
     @State private var pendingOpen: RecallAttempt?
+    @State private var measuredSpan: WindowSpan?
+    /// The drawing as a picture of the paper it was drawn on, shown in place
+    /// of the canvas while comparing - see `paper`.
+    @State private var drawnPicture: UIImage?
+    /// Where the tool picker covers the window when it is docked, in window
+    /// points; null while it floats or is hidden.
+    @State private var pickerFrame: CGRect = .null
+    /// The Compare pill's row, in the same points, to keep it clear of the
+    /// docked tool picker.
+    @State private var pillRow: CGRect = .zero
 
     init(figure: RecallFigure, opening: RecallAttempt? = nil) {
         self.figure = figure
         self.opening = opening
     }
 
+    private var span: WindowSpan { measuredSpan ?? outerSpan }
+    /// Most of an iPad: Compare moves from the top corner to the bottom
+    /// right, under the right hand. On a phone PencilKit's tool picker docks
+    /// at the bottom, so Compare stays at the top there.
+    private var broad: Bool { span == .broad }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
                 prompt
                 paper
-                if comparing {
-                    comparePanel
-                }
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
-            .background(Color(.systemGroupedBackground))
+            // one bottom container: the compare panel, or on a wide iPad the
+            // Compare pill
+            .safeAreaInset(edge: .bottom, spacing: 0) { bottomContainer }
+            .modeScreen(.anki)
             .navigationTitle(comparing ? "Compare" : "Draw from memory")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                if comparing {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Draw again") { startAgain() }
-                    }
-                } else {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            drawing = PKDrawing()
-                            canvasVersion = UUID()
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .accessibilityLabel("Clear the drawing")
-                        .disabled(drawing.strokes.isEmpty)
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Compare") { compare() }
-                            .buttonStyle(.glassProminent)
-                    }
-                }
-            }
+            .toolbar { toolbarItems }
         }
+        .environment(\.windowSpan, span)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            let now = WindowSpan(width: width)
+            if now != measuredSpan { measuredSpan = now }
+        }
+        // PencilKit: the UI holds its still pose, and the camera stays off
+        .popOutFrozen()
+        .popOutFacePaused()
         .onAppear {
             attempts = RecallAttempts.load(figure.key)
             pendingOpen = opening
@@ -86,43 +89,106 @@ struct DrawRecallView: View {
         }
     }
 
-    // MARK: - Pieces
-
-    @ViewBuilder
-    private var prompt: some View {
-        HStack(alignment: .firstTextBaseline) {
-            if showTitle || comparing {
-                Text(figure.title.isEmpty ? "Untitled figure" : figure.title)
-                    .font(.subheadline.weight(.semibold))
-            } else {
-                Text("Draw it as you remember it, labels and all.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 8)
-            if !comparing && !figure.title.isEmpty {
-                Button(showTitle ? "Hide title" : "Show title") { showTitle.toggle() }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.borderless)
+    /// Close first, always (Esc too). While drawing: the ellipsis menu with
+    /// Clear drawing, and on a phone Compare.
+    @ToolbarContentBuilder
+    private var toolbarItems: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Close") { dismiss() }
+                .keyboardShortcut(.cancelAction)
+        }
+        if !comparing {
+            ToolbarItem(placement: .topBarTrailing) {
+                drawingMenu
             }
         }
+        if !comparing && !broad {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Compare") { compare() }
+                    .buttonStyle(.glassProminent)
+                    .keyboardShortcut(.return, modifiers: [])
+            }
+        }
+    }
+
+    /// The rare, destructive things, out of the way of the pen.
+    private var drawingMenu: some View {
+        Menu {
+            Button(role: .destructive) {
+                clearDrawing()
+            } label: {
+                Label("Clear drawing", systemImage: "trash")
+            }
+            .disabled(drawing.strokes.isEmpty)
+        } label: {
+            Label("More", systemImage: "ellipsis.circle")
+        }
+        .accessibilityLabel("More")
+    }
+
+    // MARK: - Pieces
+
+    private var prompt: some View {
+        HStack(alignment: .center, spacing: 8) {
+            promptText
+            Spacer(minLength: 8)
+            if !comparing && !figure.title.isEmpty {
+                titleEye
+            }
+        }
+        .frame(minHeight: 44)
         .padding(.top, 6)
+    }
+
+    @ViewBuilder
+    private var promptText: some View {
+        if showTitle || comparing {
+            Text(figure.title.isEmpty ? "Untitled figure" : figure.title)
+                .font(.subheadline.weight(.semibold))
+        } else {
+            Text("Draw it as you remember it, labels and all.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Shows or hides the figure's title: an eye beside the prompt.
+    private var titleEye: some View {
+        let symbol: String = showTitle ? "eye.slash" : "eye"
+        let label: String = showTitle ? "Hide title" : "Show title"
+        return Button {
+            showTitle.toggle()
+        } label: {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .frame(width: 40, height: 40)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .popOut(.raised, in: Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
+        .accessibilityLabel(label)
     }
 
     /// The drawing, with the original over it when comparing. Both share the
     /// picture's proportions, so what is drawn lines up with what is there.
+    /// It lies on the glass: never moved by the pop-out.
+    ///
+    /// The compare panel takes room from the paper, and the canvas's strokes
+    /// keep their point positions while the original shrinks with it. So
+    /// while comparing, the canvas stays in place but unseen, and a picture
+    /// of the drawing - taken on the whole paper it was drawn on - is shown
+    /// instead: it scales exactly as the original does.
     private var paper: some View {
         ZStack {
             Color.white
-            PencilCanvas(drawing: $drawing, enabled: !comparing, version: canvasVersion)
-                .opacity(comparing ? min(1, 2 * (1 - fade)) : 1)
+            PencilCanvas(drawing: $drawing, enabled: !comparing, version: canvasVersion,
+                         pickerFrame: $pickerFrame)
+                .opacity(comparing ? 0 : 1)
             if comparing {
-                Image(uiImage: figure.image)
-                    .resizable()
-                    .scaledToFit()
-                    .opacity(fade)
-                    .allowsHitTesting(false)
-                    .accessibilityLabel("The original figure")
+                RecallCompareLayers(drawn: drawnPicture, original: figure.image, fade: fade)
             }
         }
         .aspectRatio(paperRatio, contentMode: .fit)
@@ -149,41 +215,115 @@ struct DrawRecallView: View {
         return ratio
     }
 
+    /// The screen's one bottom container.
+    @ViewBuilder
+    private var bottomContainer: some View {
+        if comparing {
+            comparePanel
+                .frame(maxWidth: 820)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity)
+        } else if broad {
+            comparePillRow
+        }
+    }
+
+    /// Compare at the bottom right. A tool picker docked along the bottom
+    /// can cover it, so then the pill rises just clear of the picker. It
+    /// is moved, not re-laid-out, so the paper keeps its size.
+    private var comparePillRow: some View {
+        let lift: CGFloat = Self.pillLift(row: pillRow, picker: pickerFrame)
+        return HStack {
+            Spacer(minLength: 0)
+            comparePill
+                .offset(y: -lift)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+            if frame != pillRow { pillRow = frame }
+        }
+        .animation(.snappy(duration: 0.2), value: lift)
+    }
+
+    /// How far the Compare row must rise to sit above a docked tool picker.
+    /// Both frames are in window points.
+    static func pillLift(row: CGRect, picker: CGRect) -> CGFloat {
+        guard !picker.isNull, !picker.isEmpty, row.width > 0, row.height > 0 else { return 0 }
+        guard picker.intersects(row) else { return 0 }
+        let clear: CGFloat = row.maxY - picker.minY
+        return max(0, clear)
+    }
+
+    /// On a wide iPad: Compare as the screen's hero, bottom right.
+    private var comparePill: some View {
+        Button(action: compare) {
+            Label("Compare", systemImage: "square.on.square")
+                .font(.headline)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.glassProminent)
+        .controlSize(.large)
+        .popOut(.hero, in: Capsule())
+        .hoverEffect(.lift)
+        .keyboardShortcut(.return, modifiers: [])
+    }
+
     private var comparePanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text("Yours").font(.caption.weight(.semibold))
-                Slider(value: $fade, in: 0...1)
-                    .accessibilityLabel("Fade between your drawing and the original")
-                Text("Original").font(.caption.weight(.semibold))
-            }
-            if figure.labels.isEmpty {
-                Text("No labels are saved with this figure, so judge it by eye: shape, position, what connects to what.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Tick the labels you got \u{2014} \(got.count) of \(figure.labels.count)")
-                    .font(.caption.weight(.semibold))
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(figure.labels, id: \.self) { label in
-                            Button { toggle(label) } label: {
-                                Label(label, systemImage: got.contains(label) ? "checkmark.circle.fill" : "circle")
-                                    .font(.subheadline)
-                                    .foregroundStyle(got.contains(label) ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityAddTraits(got.contains(label) ? [.isSelected] : [])
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxHeight: 160)
-            }
+            labelsPart
             if attempts.count > 1 { pastAttempts }
+            fadeRow
         }
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // the screen's bottom slab, floating like every study bar's
+        .popOut(.floating, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var labelsPart: some View {
+        if figure.labels.isEmpty {
+            Text("No labels are saved with this figure, so judge it by eye: shape, position, what connects to what.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Tick the labels you got \u{2014} \(got.count) of \(figure.labels.count)")
+                .font(.caption.weight(.semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(figure.labels, id: \.self) { label in
+                        RecallLabelTick(label: label, ticked: got.contains(label)) { toggle(label) }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 176)
+        }
+    }
+
+    /// The panel's bottom row, under the thumbs: the fade between the two,
+    /// and Draw again - the hero - at the trailing end.
+    private var fadeRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(spacing: 2) {
+                Slider(value: $fade, in: 0...1)
+                    .accessibilityLabel("Fade between your drawing and the original")
+                HStack {
+                    Text("Yours")
+                    Spacer(minLength: 8)
+                    Text("Original")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            }
+            Button("Draw again") { startAgain() }
+                .buttonStyle(BigButtonStyle(weight: .primary, fills: false))
+                .keyboardShortcut(.return, modifiers: [])
+        }
     }
 
     private var pastAttempts: some View {
@@ -256,6 +396,9 @@ struct DrawRecallView: View {
             attemptID = id
             attempts = RecallAttempts.load(figure.key)
         }
+        // taken now, while the paper is still the size it was drawn on
+        let whole = CGRect(origin: .zero, size: paperSize)
+        drawnPicture = Self.render(drawing, in: whole, scale: 2)
         fade = 0.5
         comparing = true
     }
@@ -269,8 +412,14 @@ struct DrawRecallView: View {
         attempts = RecallAttempts.load(figure.key)
     }
 
+    private func clearDrawing() {
+        drawing = PKDrawing()
+        canvasVersion = UUID()
+    }
+
     private func startAgain() {
         drawing = PKDrawing()
+        drawnPicture = nil
         canvasVersion = UUID()
         attemptID = nil
         got = []
@@ -278,24 +427,46 @@ struct DrawRecallView: View {
         comparing = false
     }
 
-    /// Puts a kept attempt back on the paper, scaled to this screen.
+    /// Puts a kept attempt back on the paper, scaled to this screen. When it
+    /// opens in Compare, its picture is taken on the paper it was drawn on,
+    /// so it lines up with the original whatever size the paper is now.
     private func load(_ attempt: RecallAttempt, comparing showOriginal: Bool = true) {
         guard !attempt.drawing.isEmpty,
-              var kept = try? PKDrawing(data: attempt.drawing) else { return }
+              let kept = try? PKDrawing(data: attempt.drawing) else { return }
+        var fitted: PKDrawing = kept
         if attempt.width > 0, paperSize.width > 0 {
             let scale: CGFloat = paperSize.width / CGFloat(attempt.width)
             if scale.isFinite, scale > 0 {
-                kept = kept.transformed(using: CGAffineTransform(scaleX: scale, y: scale))
+                fitted = kept.transformed(using: CGAffineTransform(scaleX: scale, y: scale))
             }
         }
-        drawing = kept
+        drawing = fitted
         canvasVersion = UUID()
         attemptID = attempt.id
         got = Set(attempt.got)
         if showOriginal {
+            let drawnOn = CGRect(x: 0, y: 0, width: attempt.width, height: attempt.height)
+            let here = CGRect(origin: .zero, size: paperSize)
+            let own: UIImage? = Self.render(kept, in: drawnOn, scale: 2)
+            drawnPicture = own ?? Self.render(fitted, in: here, scale: 2)
             fade = 0.5
             comparing = true
         }
+    }
+
+    /// Draws strokes as a picture of `frame`, clear where nothing is drawn.
+    /// The ink stays black in dark mode, as it is on the canvas. Nil for an
+    /// empty drawing or a frame with no usable size.
+    static func render(_ strokes: PKDrawing, in frame: CGRect, scale: CGFloat) -> UIImage? {
+        guard !strokes.strokes.isEmpty else { return nil }
+        guard frame.width.isFinite, frame.height.isFinite,
+              frame.width > 0, frame.height > 0 else { return nil }
+        guard scale.isFinite, scale > 0 else { return nil }
+        var made: UIImage?
+        UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
+            made = strokes.image(from: frame, scale: scale)
+        }
+        return made
     }
 
     /// A small picture of an attempt, framed on the paper it was drawn on.
@@ -308,8 +479,58 @@ struct DrawRecallView: View {
         // a thumbnail 64 points wide, at twice the pixels for a sharp screen
         let perPoint: CGFloat = 64 / frame.width
         let scale: CGFloat = perPoint * 2
-        guard scale.isFinite, scale > 0 else { return nil }
-        return kept.image(from: frame, scale: scale)
+        return render(kept, in: frame, scale: scale)
+    }
+}
+
+/// What Compare lays on the paper: the drawing as a picture, and the original
+/// over it. Both are fitted to the paper the same way, so they line up, and
+/// the fade runs from one to the other.
+private struct RecallCompareLayers: View {
+    let drawn: UIImage?
+    let original: UIImage
+    /// 0 is only the drawing, 1 only the original.
+    let fade: Double
+
+    var body: some View {
+        let yours: Double = min(1, 2 * (1 - fade))
+        ZStack {
+            if let drawn {
+                Image(uiImage: drawn)
+                    .resizable()
+                    .scaledToFit()
+                    .opacity(yours)
+                    .accessibilityLabel("Your drawing")
+            }
+            Image(uiImage: original)
+                .resizable()
+                .scaledToFit()
+                .opacity(fade)
+                .accessibilityLabel("The original figure")
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// One figure label in the compare panel, ticked when the student got it.
+private struct RecallLabelTick: View {
+    let label: String
+    let ticked: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        let symbol: String = ticked ? "checkmark.circle.fill" : "circle"
+        let ink: AnyShapeStyle = ticked ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary)
+        Button(action: toggle) {
+            Label(label, systemImage: symbol)
+                .font(.subheadline)
+                .foregroundStyle(ink)
+                .frame(minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
+        .accessibilityAddTraits(ticked ? [.isSelected] : [])
     }
 }
 
@@ -329,6 +550,9 @@ struct PencilCanvas: UIViewRepresentable {
     /// Changes when the drawing is replaced from outside - cleared, or an
     /// earlier attempt loaded - so the canvas takes the new one.
     var version: UUID
+    /// Reported back: where the tool picker covers the window while it is
+    /// docked, in window points; null while it floats or is hidden.
+    @Binding var pickerFrame: CGRect
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -347,6 +571,7 @@ struct PencilCanvas: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.version = version
         coordinator.enabled = enabled
+        coordinator.canvas = canvas
         canvas.delegate = coordinator
         // weak both ways: the canvas must not keep its coordinator alive
         canvas.onWindowChange = { [weak coordinator] view in
@@ -379,10 +604,12 @@ struct PencilCanvas: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, PKCanvasViewDelegate {
+    final class Coordinator: NSObject, PKCanvasViewDelegate, PKToolPickerObserver {
         var parent: PencilCanvas
         var version: UUID?
         var enabled = true
+        /// The canvas looked after, to measure the tool picker against.
+        weak var canvas: PKCanvasView?
         /// True while the drawing is being set from outside, so that is not
         /// reported back as the student drawing.
         var applying = false
@@ -421,6 +648,7 @@ struct PencilCanvas: UIViewRepresentable {
             }
             if !observing {
                 tools.addObserver(canvas)
+                tools.addObserver(self)
                 observing = true
             }
             tools.setVisible(enabled, forFirstResponder: canvas)
@@ -438,12 +666,36 @@ struct PencilCanvas: UIViewRepresentable {
                 tools.setVisible(false, forFirstResponder: canvas)
                 if observing {
                     tools.removeObserver(canvas)
+                    tools.removeObserver(self)
                     observing = false
                 }
             }
             if canvas.isFirstResponder {
                 _ = canvas.resignFirstResponder()
             }
+        }
+
+        // MARK: where the tool picker sits
+
+        /// The picker was docked, undocked, resized or moved. Measured on the
+        /// next turn of the main loop, never in the middle of a SwiftUI
+        /// update, whichever thread PencilKit calls from.
+        nonisolated func toolPickerFramesObscuredDidChange(_ toolPicker: PKToolPicker) {
+            Task { @MainActor [weak self] in self?.reportPickerFrame() }
+        }
+
+        nonisolated func toolPickerVisibilityDidChange(_ toolPicker: PKToolPicker) {
+            Task { @MainActor [weak self] in self?.reportPickerFrame() }
+        }
+
+        /// Tells the screen where the docked picker covers the window, so
+        /// Compare can stay clear of it.
+        private func reportPickerFrame() {
+            var frame: CGRect = .null
+            if let tools = picker, tools.isVisible, let window = canvas?.window {
+                frame = tools.frameObscured(in: window)
+            }
+            if parent.pickerFrame != frame { parent.pickerFrame = frame }
         }
 
         /// Makes the canvas first responder - which is what brings the tool
@@ -493,6 +745,9 @@ struct DrawFromMemoryButton: View {
         } label: {
             Label("Draw it from memory", systemImage: "pencil.and.scribble")
                 .font(.caption.weight(.semibold))
+                // a whole finger's worth of target, not just the words
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
         .fullScreenCover(item: $figure) { DrawRecallView(figure: $0) }

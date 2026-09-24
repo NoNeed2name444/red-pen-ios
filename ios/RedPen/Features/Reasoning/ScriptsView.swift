@@ -1,8 +1,12 @@
 import SwiftUI
+import UIKit
 
 /// A set's disease scripts: one card per disease with who gets it, how it
 /// runs, what to look for, what settles it and what to do - and a way to keep
 /// them in Ideas, where their lookalikes join them up in the graph.
+///
+/// Writing more and Save all to Ideas sit in the slab at the bottom; Delete
+/// is in the More menu at the top, away from them.
 struct ScriptsView: View {
     let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
@@ -13,6 +17,8 @@ struct ScriptsView: View {
     /// The folder in Ideas that saved scripts go into.
     static let folderName = "Disease scripts"
 
+    private var isExample: Bool { self.set.id == ReasoningExamples.setId }
+
     var body: some View {
         let scripts = reasoning.pack(for: set.id).scripts
         let titles = notes.titleIndex()
@@ -20,22 +26,17 @@ struct ScriptsView: View {
         ScrollViewReader { reader in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if set.id != ReasoningExamples.setId {
-                        ReasoningWriteBar(tool: .scripts, set: set)
-                            .padding(14)
-                            .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(.secondarySystemBackground)))
-                    }
                     if scripts.isEmpty {
-                        Text("No scripts yet. Write them from this set's lecture above.")
+                        Text("No scripts yet. Write them from this set\u{2019}s lecture below.")
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                             .padding(.top, 30)
                     }
                     ForEach(scripts) { script in
+                        let key: String = script.disease.trimmingCharacters(in: .whitespaces).lowercased()
                         ScriptCard(
                             script: script,
-                            saved: titles[script.disease.trimmingCharacters(in: .whitespaces).lowercased()] != nil,
+                            saved: titles[key] != nil,
                             jumpable: here,
                             onSave: { save([script]) },
                             onJump: { name in
@@ -51,14 +52,31 @@ struct ScriptsView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .background(LibraryBackdrop())
+        .overlay(alignment: .top) {
+            if let savedMessage {
+                SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
+                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: savedMessage)
+        .task(id: savedMessage) {
+            // non-modal: it says what happened and goes by itself
+            guard savedMessage != nil else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            savedMessage = nil
+        }
         .navigationTitle("Disease scripts")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !scripts.isEmpty {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Save all to Ideas", systemImage: "lightbulb") { save(scripts) }
-                        if set.id != ReasoningExamples.setId {
+                        if !isExample {
                             Button("Delete scripts", systemImage: "trash", role: .destructive) { confirmClear = true }
                         }
                     } label: {
@@ -72,13 +90,25 @@ struct ScriptsView: View {
         } message: {
             Text("Scripts already saved to Ideas stay there.")
         }
-        .alert("Saved to Ideas", isPresented: Binding(get: { savedMessage != nil },
-                                                    set: { if !$0 { savedMessage = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(savedMessage ?? "")
+        .studyBar { bar(scripts) }
+    }
+
+    /// Write more, and Save all to Ideas once there is something to save.
+    private func bar(_ scripts: [IllnessScript]) -> some View {
+        VStack(spacing: 12) {
+            if !isExample {
+                ReasoningWriteBar(tool: .scripts, set: set)
+            }
+            if !scripts.isEmpty {
+                Button {
+                    save(scripts)
+                } label: {
+                    Label("Save all to Ideas", systemImage: "lightbulb")
+                }
+                .buttonStyle(.bigSecondary)
+                .accessibilityHint("Keeps every script here as a page in Ideas, with lookalikes linked")
+            }
         }
-        .generationHUD()
     }
 
     /// Saves scripts to Ideas as pages in the "Disease scripts" folder, each
@@ -105,10 +135,51 @@ struct ScriptsView: View {
             }
         }
         var parts: [String] = []
-        if added > 0 { parts.append("\(added) new page\(added == 1 ? "" : "s")") }
+        if added > 0 {
+            let plural: String = added == 1 ? "" : "s"
+            parts.append("\(added) new page\(plural)")
+        }
         if updated > 0 { parts.append("\(updated) updated") }
-        savedMessage = parts.joined(separator: ", ")
-            + " in \u{201C}\(Self.folderName)\u{201D}. Lookalikes are linked, so scripts that name each other join up in the graph."
+        let counts: String = parts.joined(separator: ", ")
+        let message: String = "\(counts) in \u{201C}\(Self.folderName)\u{201D}, lookalikes linked"
+        savedMessage = message
+        let spoken: String = "Saved to Ideas: " + message
+        UIAccessibility.post(notification: .announcement, argument: spoken)
+    }
+}
+
+/// "Saved to Ideas", for two seconds, at the top: a glass slip that stands a
+/// little out of the screen and does not stop anything. A tap puts it away.
+private struct SavedToIdeasToast: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        HStack(spacing: 12) {
+            Image(systemName: "lightbulb.fill")
+                .font(.title3)
+                .foregroundStyle(.yellow)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Saved to Ideas")
+                    .font(.subheadline.weight(.semibold))
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 520)
+        .liquidGlassPanel(cornerRadius: 18)
+        .popOut(.raised, in: shape)
+        .contentShape(shape)
+        .onTapGesture(perform: onDismiss)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isStaticText)
     }
 }
 
@@ -124,17 +195,12 @@ struct ScriptCard: View {
     let onJump: (String) -> Void
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center) {
                 Text(script.disease).font(.title3.weight(.bold))
                 Spacer(minLength: 8)
-                Button(action: onSave) {
-                    Label(saved ? "In Ideas" : "Save to Ideas",
-                          systemImage: saved ? "checkmark.circle.fill" : "lightbulb")
-                        .font(.caption.weight(.semibold))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                saveButton
             }
             line("person.2", "Who gets it", script.who)
             line("clock", "Time course", script.timeCourse)
@@ -148,27 +214,57 @@ struct ScriptCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(script.lookalikes, id: \.self) { name in
-                                let here = jumpable.contains(name.lowercased())
-                                Button {
-                                    onJump(name)
-                                } label: {
-                                    Text(name)
-                                        .font(.caption.weight(.medium))
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(Capsule().fill(here ? Color.accentColor.opacity(0.18)
-                                                                        : Color.secondary.opacity(0.12)))
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(!here)
+                                lookalikeChip(name)
                             }
                         }
+                        // room for a raised chip to lean without being cut
+                        // off at the ends; the row still lines up with the
+                        // heading above
+                        .padding(.horizontal, 6)
                     }
+                    .padding(.horizontal, -6)
                 }
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color(.secondarySystemBackground)))
+        .background(.regularMaterial, in: shape)
+    }
+
+    /// Save to Ideas as a 44-point icon on a frosted disc that stands out of
+    /// the card and sinks under the finger: a lightbulb, or a tick once it is
+    /// there.
+    private var saveButton: some View {
+        let symbol: String = saved ? "checkmark.circle.fill" : "lightbulb"
+        let title: String = saved ? "In Ideas \u{2014} save again" : "Save to Ideas"
+        let colour: Color = saved ? Color.green : Color.accentColor
+        return Button(action: onSave) {
+            Image(systemName: symbol)
+                .font(.title3)
+                .foregroundStyle(colour)
+                .frame(width: 44, height: 44)
+                .background(.regularMaterial, in: Circle())
+        }
+        // a 22-point corner on a 44-point face is a circle
+        .buttonStyle(PopTileStyle(cornerRadius: 22))
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    /// A lookalike with a card on this screen is a glass chip standing out of
+    /// the card; one without sits flat, since it goes nowhere.
+    private func lookalikeChip(_ name: String) -> some View {
+        let here: Bool = jumpable.contains(name.lowercased())
+        return Button {
+            onJump(name)
+        } label: {
+            LookalikeChipFace(name: name, here: here)
+                .frame(minHeight: 44)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
+        .disabled(!here)
     }
 
     private func heading(_ symbol: String, _ title: String) -> some View {
@@ -201,6 +297,25 @@ struct ScriptCard: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// One lookalike's face: raised glass when it jumps to a card here, a flat
+/// grey capsule when it does not.
+private struct LookalikeChipFace: View {
+    let name: String
+    let here: Bool
+
+    var body: some View {
+        let words = Text(name)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        if here {
+            words.liquidGlassChip(tint: nil, plane: .raised)
+        } else {
+            words.background(Capsule().fill(Color.secondary.opacity(0.12)))
         }
     }
 }

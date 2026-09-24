@@ -13,18 +13,38 @@ struct ReasoningView: View {
         let words = query.lowercased().split(whereSeparator: \.isWhitespace).map(String.init)
         return store.library
             .filter { set in
-                words.isEmpty || words.allSatisfy { (set.name + " " + set.subject).lowercased().contains($0) }
+                let haystack: String = (set.name + " " + set.subject).lowercased()
+                return words.isEmpty || words.allSatisfy { haystack.contains($0) }
             }
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
     var body: some View {
+        let found: [StudySet] = sets
+        let emptyLine: String = store.library.isEmpty
+            ? "Make a set from a lecture first, then come back here."
+            : "No set matches."
         List {
             Section {
                 Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise committing early, telling lookalikes apart, and holding a whole disease on one screen.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+            Section("Your sets") {
+                if found.isEmpty {
+                    Text(emptyLine)
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(found) { set in
+                    NavigationLink {
+                        ReasoningSetView(set: set)
+                    } label: {
+                        setRow(set)
+                    }
+                    .hoverEffect(.highlight)
+                }
+            }
+            // below the student's own sets: their work comes first
             if PersonalBuild.isOn {
                 Section("Examples") {
                     NavigationLink {
@@ -32,23 +52,12 @@ struct ReasoningView: View {
                     } label: {
                         setRow(ReasoningExamples.set)
                     }
-                }
-            }
-            Section("Your sets") {
-                if sets.isEmpty {
-                    Text(store.library.isEmpty ? "Make a set from a lecture first, then come back here."
-                                               : "No set matches.")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(sets) { set in
-                    NavigationLink {
-                        ReasoningSetView(set: set)
-                    } label: {
-                        setRow(set)
-                    }
+                    .hoverEffect(.highlight)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
         .navigationTitle("Reasoning")
         .searchable(text: $query, prompt: "Find a set")
         .generationHUD()
@@ -56,13 +65,15 @@ struct ReasoningView: View {
 
     private func setRow(_ set: StudySet) -> some View {
         let pack = reasoning.pack(for: set.id)
-        let made = ReasoningTool.allCases.map { tool in pack.count(of: tool) }
+        let made: [Int] = ReasoningTool.allCases.map { tool in pack.count(of: tool) }
+        let anyMade: Bool = made.contains(where: { $0 > 0 })
+        let counts: String = "\(made[0]) cases \u{00B7} \(made[1]) duels \u{00B7} \(made[2]) scripts"
         return VStack(alignment: .leading, spacing: 3) {
             Text(set.name).font(.body.weight(.medium)).lineLimit(2)
             HStack(spacing: 10) {
                 Text(set.subject).lineLimit(1)
-                if made.contains(where: { $0 > 0 }) {
-                    Text("\(made[0]) cases \u{00B7} \(made[1]) duels \u{00B7} \(made[2]) scripts")
+                if anyMade {
+                    Text(counts)
                         .monospacedDigit()
                 }
             }
@@ -73,54 +84,68 @@ struct ReasoningView: View {
     }
 }
 
-/// The three tools for one set.
+/// The three tools for one set: three tiles that stand out of the glass,
+/// stacked under the thumb on a phone and three across on a wide iPad, with
+/// how the cases have gone in a quiet card below.
+///
+/// It measures its own width rather than trusting the window's: it is also
+/// opened in a sheet (the library row's menu), which on an iPad is far
+/// narrower than the window it inherits `.broad` from.
 struct ReasoningSetView: View {
     let set: StudySet
+
+    var body: some View {
+        ReasoningSetBody(set: set)
+            .measuringWindow()
+    }
+}
+
+/// ReasoningSetView's content, laid out for the width it was measured at.
+private struct ReasoningSetBody: View {
+    let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
+    @Environment(\.windowSpan) private var span
+
+    private var isExample: Bool { self.set.id == ReasoningExamples.setId }
+
+    private var footnote: String {
+        if isExample { return "Ready-made examples, to try each tool without writing anything." }
+        let origin: String = set.sources.isEmpty ? "the set\u{2019}s own content" : "the lecture this set was made from"
+        return "Written from \(origin), by the model chosen in AI models."
+    }
 
     var body: some View {
         let pack = reasoning.pack(for: set.id)
-        List {
-            Section {
-                ForEach(ReasoningTool.allCases) { tool in
-                    NavigationLink {
-                        destination(tool)
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: tool.symbol)
-                                .font(.title3)
-                                .foregroundStyle(.tint)
-                                .frame(width: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(tool.title).font(.body.weight(.semibold))
-                                Text(tool.blurb).font(.caption).foregroundStyle(.secondary)
-                                let n = pack.count(of: tool)
-                                Text(n == 0 ? "None written yet" : "\(n) \(tool.noun)\(n == 1 ? "" : "s")")
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(n == 0 ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint))
-                            }
+        let broad: Bool = span == .broad
+        let across = AnyLayout(HStackLayout(alignment: .top, spacing: 14))
+        let stacked = AnyLayout(VStackLayout(spacing: 12))
+        let tiles: AnyLayout = broad ? across : stacked
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                tiles {
+                    ForEach(ReasoningTool.allCases) { tool in
+                        NavigationLink {
+                            destination(tool)
+                        } label: {
+                            ReasoningToolTile(tool: tool, count: pack.count(of: tool), tall: broad)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.popTile)
                     }
                 }
-            } footer: {
-                if set.id == ReasoningExamples.setId {
-                    Text("Ready-made examples, to try each tool without writing anything.")
-                } else {
-                    Text("Written from \(set.sources.isEmpty ? "the set's own content" : "the lecture this set was made from"), by the model chosen in AI models.")
+                Text(footnote)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+                if let stats = caseStats(pack) {
+                    ReasoningStatsCard(played: stats.played, right: stats.right,
+                                       average: stats.average, premature: stats.premature)
                 }
             }
-            if let stats = caseStats(pack) {
-                Section("Clue-by-clue so far") {
-                    LabeledContent("Cases played", value: "\(stats.played)")
-                    LabeledContent("Right", value: "\(stats.right)")
-                    LabeledContent("Average score", value: String(format: "%.2f of 2", stats.average))
-                    if stats.premature > 0 {
-                        LabeledContent("Premature closures", value: "\(stats.premature)")
-                    }
-                }
-            }
+            .padding(16)
+            .frame(maxWidth: 820)
+            .frame(maxWidth: .infinity)
         }
+        .background(LibraryBackdrop())
         .navigationTitle(set.name)
         .navigationBarTitleDisplayMode(.inline)
         .generationHUD()
@@ -139,58 +164,243 @@ struct ReasoningSetView: View {
         let ids = Set(pack.cases.map(\.id))
         let plays = reasoning.casePlays.filter { ids.contains($0.caseId) }
         guard !plays.isEmpty else { return nil }
-        let total = plays.reduce(0.0) { $0 + $1.score }
-        return (plays.count, plays.filter(\.correct).count, total / Double(plays.count),
-                plays.filter(\.prematureClosure).count)
+        let total: Double = plays.reduce(0.0) { $0 + $1.score }
+        let average: Double = total / Double(plays.count)
+        let right: Int = plays.filter(\.correct).count
+        let premature: Int = plays.filter(\.prematureClosure).count
+        return (plays.count, right, average, premature)
     }
 }
 
-/// How many to write, the Write button, and what went wrong last time -
-/// the same strip at the top of each tool.
+/// One tool as a tile: its symbol, its name, and one line - what it is
+/// before anything is written, how many there are after.
+private struct ReasoningToolTile: View {
+    let tool: ReasoningTool
+    let count: Int
+    /// Three across on a wide iPad: the tiles share one height.
+    let tall: Bool
+
+    private var line: String {
+        if count == 0 { return tool.blurb }
+        let plural: String = count == 1 ? "" : "s"
+        return "\(count) \(tool.noun)\(plural) written"
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let minHeight: CGFloat = tall ? 132 : 76
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: tool.symbol)
+                .font(.title2)
+                .foregroundStyle(.tint)
+                .frame(width: 36)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(tool.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(line)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+        }
+        .multilineTextAlignment(.leading)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
+        .background(.regularMaterial, in: shape)
+    }
+}
+
+/// How the clue-by-clue cases have gone: read, not pressed, so it lies flat
+/// on the glass.
+private struct ReasoningStatsCard: View {
+    let played: Int
+    let right: Int
+    let average: Double
+    let premature: Int
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let averageText: String = String(format: "%.2f of 2", average)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Clue-by-clue so far")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            LabeledContent("Cases played", value: "\(played)")
+            LabeledContent("Right", value: "\(right)")
+            LabeledContent("Average score", value: averageText)
+            if premature > 0 {
+                LabeledContent("Premature closures", value: "\(premature)")
+            }
+        }
+        .font(.subheadline)
+        .monospacedDigit()
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: shape)
+    }
+}
+
+/// How many to write, the Write button, and what went wrong last time - the
+/// bottom slab of each tool's list. Give it to `.studyBar { }` (or use
+/// `reasoningWriteSlab(tool:set:)`), so the list scrolls under the glass.
+///
+/// While anything is being written it shows that instead: how far it has
+/// got, and Stop - the slab stands in for the generation card on these
+/// screens, so there is one progress display, not two.
 struct ReasoningWriteBar: View {
     let tool: ReasoningTool
     let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
+    @ObservedObject private var center = GenerationCenter.shared
     @State private var count: Int
+    @Environment(\.windowSpan) private var span
 
     init(tool: ReasoningTool, set: StudySet) {
         self.tool = tool
         self.set = set
-        _count = State(initialValue: tool.defaultCount)
+        let start: Int = min(10, max(1, tool.defaultCount))
+        _count = State(initialValue: start)
     }
 
     var body: some View {
         if set.id != ReasoningExamples.setId {
             VStack(alignment: .leading, spacing: 8) {
-                if reasoning.isWriting(tool, for: set.id) {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Writing \(tool.noun)s\u{2026}").foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Stop", role: .destructive) { reasoning.cancelWriting() }
-                            .buttonStyle(.bordered)
-                    }
+                if let job = center.job {
+                    writingRow(job)
                 } else {
-                    HStack(spacing: 12) {
-                        Stepper("\(count) \(tool.noun)\(count == 1 ? "" : "s")", value: $count, in: 1...12)
-                            .monospacedDigit()
-                        Button {
-                            reasoning.write(tool, for: set, count: count)
-                        } label: {
-                            Label(reasoning.pack(for: set.id).count(of: tool) == 0 ? "Write" : "Write more",
-                                  systemImage: "sparkles")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(reasoning.writing != nil)
-                    }
+                    idleRow
                 }
                 if let why = reasoning.trouble[ReasoningStore.troubleKey(tool, set.id)] {
-                    Text(why).font(.footnote).foregroundStyle(.red)
-                }
-                if let who = LocalLLMService.shared.summary(for: .writer) {
-                    Text("Writer: \(who)").font(.caption2).foregroundStyle(.secondary)
+                    Text(why)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    private func counted(_ n: Int) -> String {
+        let plural: String = n == 1 ? "" : "s"
+        return "\(n) \(tool.noun)\(plural)"
+    }
+
+    private var writeTitle: String {
+        reasoning.pack(for: set.id).count(of: tool) == 0 ? "Write" : "Write more"
+    }
+
+    private var idleRow: some View {
+        HStack(spacing: 12) {
+            ReasoningCountMenu(count: $count, label: counted(count), options: countOptions,
+                               writer: LocalLLMService.shared.summary(for: .writer))
+            if span == .broad { Spacer(minLength: 16) }
+            Button {
+                reasoning.write(tool, for: set, count: count)
+            } label: {
+                Label(writeTitle, systemImage: "sparkles")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(reasoning.writing != nil)
+            .accessibilityHint("Writes \(counted(count)) from this set")
+        }
+    }
+
+    private var countOptions: [ReasoningCountOption] {
+        (1...10).map { n in ReasoningCountOption(id: n, title: counted(n)) }
+    }
+
+    private func writingRow(_ job: GenerationCenter.Job) -> some View {
+        let done: String = job.total > 0 ? "\(job.done) of \(job.total)" : "Starting\u{2026}"
+        return HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(job.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                ThinProgress(fraction: job.fraction)
+                Text(done)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 8)
+            Button("Stop", role: .destructive) { center.cancel() }
+                .buttonStyle(.bigCompanion)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityHint("Stops what is being written")
+        }
+    }
+}
+
+/// One choice in the count menu: "5 cases".
+private struct ReasoningCountOption: Identifiable {
+    let id: Int
+    let title: String
+}
+
+/// The "5 cases" chooser at the leading end of the write slab: a menu of
+/// 1 to 10, with the writer model named inside it.
+private struct ReasoningCountMenu: View {
+    @Binding var count: Int
+    let label: String
+    let options: [ReasoningCountOption]
+    let writer: String?
+    @Environment(\.modeTint) private var tint
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        Menu {
+            Picker("How many", selection: $count) {
+                ForEach(options) { option in
+                    Text(option.title).tag(option.id)
+                }
+            }
+            if let writer {
+                Text("Writer: \(writer)")
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label)
+                    .monospacedDigit()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            .font(.headline)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(minWidth: 56, minHeight: 56)
+            .background(tint.opacity(0.14), in: shape)
+            .overlay(shape.strokeBorder(tint.opacity(0.35), lineWidth: 1))
+            .contentShape(shape)
+            .popOut(.raised, in: shape)
+            .contentShape(.hoverEffect, shape)
+            .hoverEffect(.lift)
+        }
+        .accessibilityLabel("How many to write")
+        .accessibilityValue(label)
+    }
+}
+
+extension View {
+    /// A tool list's bottom slab: the write bar for a set of the student's
+    /// own; the ready-made examples have nothing to write, so they keep only
+    /// the generation card.
+    @ViewBuilder
+    func reasoningWriteSlab(tool: ReasoningTool, set: StudySet) -> some View {
+        if set.id == ReasoningExamples.setId {
+            generationHUD()
+        } else {
+            studyBar { ReasoningWriteBar(tool: tool, set: set) }
         }
     }
 }
@@ -250,5 +460,6 @@ private struct ReasoningSheet: View {
                 }
         }
         .tint(Color.accentColor)
+        .measuringWindow()
     }
 }

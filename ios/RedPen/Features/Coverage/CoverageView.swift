@@ -16,9 +16,10 @@ struct CoverageView: View {
     @State private var areas: [AreaCoverage] = []
     @State private var computing = true
     @State private var gapsOnly = false
+    /// One status picked from the counts at the top, or nil for the
+    /// Everything / Gaps only choice in the slab.
+    @State private var statusFilter: CoverageStatus?
     @State private var preset: NewSetPreset?
-    @State private var drawingExample: RecallFigure?
-    @State private var exampleAttempt: RecallAttempt?
 
     /// Re-run the keyword check when the exam, the library or the answers
     /// change - not on every redraw.
@@ -28,10 +29,19 @@ struct CoverageView: View {
         return "\(track.rawValue)-\(store.library.count)-\(edited)-\(answers)"
     }
 
+    /// Everything / Gaps only; choosing either lets go of a picked count.
+    private var showGaps: Binding<Bool> {
+        Binding(get: { gapsOnly }, set: { now in
+            gapsOnly = now
+            statusFilter = nil
+        })
+    }
+
+    private var ready: Bool { !(computing && areas.isEmpty) }
+
     var body: some View {
         List {
-            examSection
-            if computing && areas.isEmpty {
+            if !ready {
                 Section {
                     HStack(spacing: 10) {
                         ProgressView()
@@ -41,47 +51,30 @@ struct CoverageView: View {
             } else {
                 summarySection
                 aiSection
-                Section {
-                    Picker("Show", selection: $gapsOnly) {
-                        Text("Everything").tag(false)
-                        Text("Gaps only").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
                 ForEach(areas) { area in
                     areaSection(area)
-                }
-            }
-            if PersonalBuild.isOn {
-                Section {
-                    Button {
-                        exampleAttempt = RecallExamples.seedIfNeeded()
-                        drawingExample = RecallExamples.figure
-                    } label: {
-                        Label("Draw from memory: example figure", systemImage: "pencil.and.scribble")
-                    }
-                } header: {
-                    Text("Example")
-                } footer: {
-                    Text("A saved attempt is already there, so Compare can be tried straight away.")
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(LibraryBackdrop())
+        // the slab only once there is something to show and check
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if ready {
+                StudyActionBar { bar }
+            }
+        }
         .navigationTitle("Syllabus")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { examMenu }
+        }
         .task(id: assessmentKey) { await assess() }
         .onChange(of: track) { _, now in
             checker.cancel()
             checker.load(for: now, areas: [])
         }
         .sheet(item: $preset) { NewSetView(preset: $0) }
-        .fullScreenCover(item: $drawingExample) { figure in
-            DrawRecallView(figure: figure, opening: exampleAttempt)
-        }
     }
 
     // MARK: - Working it out
@@ -109,86 +102,147 @@ struct CoverageView: View {
         checker.check?.verdicts[sub.id]
     }
 
-    // MARK: - Sections
+    /// Whether a row is on show under the current filter.
+    private func passes(_ sub: SubtopicCoverage) -> Bool {
+        let status: CoverageStatus = shown(sub)
+        if let statusFilter { return status == statusFilter }
+        return !gapsOnly || status != .covered
+    }
 
-    private var examSection: some View {
-        Section {
+    // MARK: - The top: which exam
+
+    private static func shortName(_ exam: ExamTrack) -> String {
+        exam == .general ? "General" : exam.rawValue.uppercased()
+    }
+
+    /// The exam, as a menu in the top corner: chosen once, rarely changed.
+    private var examMenu: some View {
+        Menu {
             Picker("Exam", selection: $track) {
                 ForEach(ExamTrack.allCases) { exam in
                     Text(exam.title).tag(exam)
                 }
             }
-        } footer: {
-            Text("Condensed from \(Syllabus.blueprint(for: track)), so approximate: it shows where your gaps probably are, not what the exam will ask.")
+        } label: {
+            Label(Self.shortName(track), systemImage: "graduationcap")
+                .labelStyle(.titleAndIcon)
+        }
+        .accessibilityLabel("Exam")
+        .accessibilityValue(track.title)
+    }
+
+    // MARK: - The bottom slab
+
+    /// Everything or gaps only, and the AI check: Check with AI, Check again,
+    /// or Stop while it runs.
+    private var bar: some View {
+        VStack(spacing: 12) {
+            Picker("Show", selection: showGaps) {
+                Text("Everything").tag(false)
+                Text("Gaps only").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .frame(minHeight: 32)
+            .hoverEffect(.highlight)
+            checkControl
+        }
+        .frame(maxWidth: 560)
+    }
+
+    @ViewBuilder
+    private var checkControl: some View {
+        if checker.running {
+            CoverageCheckProgress(done: checker.done, total: checker.total) { checker.cancel() }
+        } else if checker.blocker == nil {
+            let fresh: Bool = checker.check == nil || checker.check?.isExample == true
+            let title: String = fresh ? "Check with AI" : "Check again"
+            Button {
+                checker.run(track: track, areas: areas, library: store.library)
+            } label: {
+                Label(title, systemImage: "sparkles")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(areas.isEmpty)
         }
     }
+
+    // MARK: - Sections
 
     private var summarySection: some View {
         let all = areas.flatMap(\.subtopics)
         let covered = all.filter { shown($0) == .covered }.count
         let thin = all.filter { shown($0) == .thin }.count
         let missing = all.filter { shown($0) == .notCovered }.count
+        let source: String = Syllabus.blueprint(for: track)
+        let footer: String = "Condensed from \(source), so approximate: it shows where your gaps probably are, not what the exam will ask. Tap a count to show only those."
         return Section {
-            HStack(spacing: 0) {
+            HStack(spacing: 10) {
                 figure(covered, CoverageStatus.covered)
                 figure(thin, CoverageStatus.thin)
                 figure(missing, CoverageStatus.notCovered)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
+            .listRowBackground(Color.clear)
+        } footer: {
+            Text(footer)
         }
     }
 
+    /// One count as a chip that filters to it; a second tap lets go.
+    ///
+    /// Picking one also moves Everything / Gaps only in the slab to the side
+    /// it belongs to (Covered is Everything, Thin and Not covered are Gaps
+    /// only), so the slab never says the opposite of what the list shows.
+    /// Setting the state directly, not through `showGaps`, keeps the pick.
     private func figure(_ count: Int, _ status: CoverageStatus) -> some View {
-        VStack(spacing: 2) {
-            Text("\(count)")
-                .font(.title2.weight(.bold).monospacedDigit())
-                .foregroundStyle(Self.color(status))
-            Text(status.label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        let chosen: Bool = statusFilter == status
+        let traits: AccessibilityTraits = chosen ? .isSelected : []
+        let hint: String = chosen ? "Shows every row again" : "Shows only these"
+        let isGap: Bool = status != .covered
+        return Button {
+            withAnimation(.snappy) {
+                if chosen {
+                    statusFilter = nil
+                } else {
+                    statusFilter = status
+                    gapsOnly = isGap
+                }
+            }
+        } label: {
+            CoverageCountChip(count: count, status: status, chosen: chosen)
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(traits)
+        .accessibilityHint(hint)
     }
 
     @ViewBuilder
     private var aiSection: some View {
+        let hasNews: Bool = checker.check != nil || checker.failure != nil || checker.blocker != nil
         Section {
-            if checker.running {
-                VStack(alignment: .leading, spacing: 6) {
-                    ProgressView(value: Double(checker.done), total: Double(max(checker.total, 1)))
-                    Text("Checking \(checker.done) of \(checker.total) areas\u{2026}")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Button("Stop", role: .cancel) { checker.cancel() }
-            } else {
-                if let check = checker.check {
-                    checkSummary(check)
-                }
-                if let failure = checker.failure {
-                    Text(failure)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                if let blocker = checker.blocker {
-                    Text(blocker)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    let fresh = checker.check == nil || checker.check?.isExample == true
-                    Button {
-                        checker.run(track: track, areas: areas, library: store.library)
-                    } label: {
-                        Label(fresh ? "Check with AI" : "Check again", systemImage: "sparkles")
-                    }
-                    .disabled(areas.isEmpty)
-                }
+            if let check = checker.check {
+                checkSummary(check)
+            }
+            if let failure = checker.failure {
+                Text(failure)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if let blocker = checker.blocker {
+                Text(blocker)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if !hasNews {
+                Text("The keyword check below is instant. Check with AI reads what your matching items actually say.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         } header: {
             Text("AI check")
         } footer: {
-            Text("Sends each area's subtopics and a short digest of your library \u{2014} set names, matching questions and cards, lecture headings \u{2014} to \(Brand.name) Cloud.")
+            Text("Sends each area\u{2019}s subtopics and a short digest of your library \u{2014} set names, matching questions and cards, lecture headings \u{2014} to \(Brand.name) Cloud.")
         }
     }
 
@@ -202,15 +256,17 @@ struct CoverageView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Checked by \(CoverageCloudCheck.displayName(check.source)) \u{00B7} \(check.date.formatted(.relative(presentation: .named)))")
+                let who: String = CoverageCloudCheck.displayName(check.source)
+                let when: String = check.date.formatted(.relative(presentation: .named))
+                Text("Checked by \(who) \u{00B7} \(when)")
                     .font(.subheadline.weight(.semibold))
                 if !check.byPreferredModel {
-                    Text("Gemini 3.1 Pro wasn't available, so \(CoverageCloudCheck.displayName(check.source)) checked it.")
+                    Text("Gemini 3.1 Pro wasn't available, so \(who) checked it.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 if !check.failedAreas.isEmpty {
-                    Text("\(check.failedAreas.count) area\(check.failedAreas.count == 1 ? "" : "s") could not be checked this time: \(check.failedAreas.joined(separator: ", ")).")
+                    Text(Self.failedLine(check.failedAreas))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -218,10 +274,18 @@ struct CoverageView: View {
         }
     }
 
+    private static func failedLine(_ failed: [String]) -> String {
+        let plural: String = failed.count == 1 ? "" : "s"
+        let names: String = failed.joined(separator: ", ")
+        return "\(failed.count) area\(plural) could not be checked this time: \(names)."
+    }
+
     @ViewBuilder
     private func areaSection(_ area: AreaCoverage) -> some View {
-        let rows = area.subtopics.filter { !gapsOnly || shown($0) != .covered }
+        let rows = area.subtopics.filter { passes($0) }
         if !rows.isEmpty {
+            let covered: Int = area.subtopics.filter { shown($0) == .covered }.count
+            let tally: String = "\(covered) of \(area.subtopics.count) covered"
             Section {
                 ForEach(rows) { sub in
                     row(sub, area: area.area.name)
@@ -230,17 +294,24 @@ struct CoverageView: View {
                 HStack {
                     Text(area.area.name)
                     Spacer()
-                    let covered = area.subtopics.filter { shown($0) == .covered }.count
-                    Text("\(covered) of \(area.subtopics.count) covered")
+                    Text(tally)
                         .textCase(nil)
                 }
             }
         }
     }
 
+    private func generate(_ sub: SubtopicCoverage, area: String) {
+        let ai = verdict(sub)
+        preset = NewSetPreset(syllabus: sub.subtopic.name, area: area, exam: track,
+                              suggestion: ai?.suggestion)
+    }
+
     private func row(_ sub: SubtopicCoverage, area: String) -> some View {
         let status = shown(sub)
         let ai = verdict(sub)
+        // the gaps carry the button; a covered topic keeps it in its menu
+        let isGap: Bool = status != .covered
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(sub.subtopic.name)
@@ -267,18 +338,31 @@ struct CoverageView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Button {
-                preset = NewSetPreset(syllabus: sub.subtopic.name, area: area, exam: track,
-                                      suggestion: ai?.suggestion)
-            } label: {
-                Label("Generate questions", systemImage: "wand.and.stars")
-                    .font(.caption.weight(.semibold))
+            if isGap {
+                // a glass chip standing out of the row; the finger's worth
+                // of target is taller than the chip
+                Button {
+                    generate(sub, area: area)
+                } label: {
+                    Label("Generate questions", systemImage: "wand.and.stars")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .liquidGlassChip(tint: nil, plane: .raised)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .hoverEffect(.highlight)
             }
-            .buttonStyle(.borderless)
-            .padding(.top, 2)
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
+        .contextMenu {
+            Button("Generate questions", systemImage: "wand.and.stars") {
+                generate(sub, area: area)
+            }
+        }
     }
 
     // MARK: - Words and colours
@@ -299,6 +383,72 @@ struct CoverageView: View {
         case .covered: return .green
         case .thin: return .orange
         case .notCovered: return .red
+        }
+    }
+}
+
+/// One of the three counts at the top, as a chip that filters the rows to
+/// its status. It stands a little out of the glass; the chosen one is filled.
+private struct CoverageCountChip: View {
+    let count: Int
+    let status: CoverageStatus
+    let chosen: Bool
+
+    var body: some View {
+        let colour: Color = CoverageView.color(status)
+        let fill: Color = chosen ? colour.opacity(0.22) : Color.clear
+        let edge: Color = chosen ? colour.opacity(0.6) : Color.primary.opacity(0.08)
+        let shape = Capsule()
+        VStack(spacing: 2) {
+            Text("\(count)")
+                .font(.title2.weight(.bold).monospacedDigit())
+                .foregroundStyle(colour)
+            Text(status.label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .background {
+            ZStack {
+                shape.fill(.regularMaterial)
+                shape.fill(fill)
+            }
+        }
+        .overlay(shape.strokeBorder(edge, lineWidth: 1))
+        .contentShape(shape)
+        .popOut(.raised, in: shape, tint: chosen ? colour : nil)
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.highlight)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// While the AI check runs: how many areas are done, and Stop.
+private struct CoverageCheckProgress: View {
+    let done: Int
+    let total: Int
+    let onStop: () -> Void
+
+    var body: some View {
+        let whole: Int = max(total, 1)
+        let fraction: Double = Double(done) / Double(whole)
+        let status: String = "Checking \(done) of \(total) areas\u{2026}"
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(status)
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                ThinProgress(fraction: fraction)
+            }
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 8)
+            Button("Stop", role: .cancel, action: onStop)
+                .buttonStyle(.bigCompanion)
+                .keyboardShortcut(.cancelAction)
         }
     }
 }

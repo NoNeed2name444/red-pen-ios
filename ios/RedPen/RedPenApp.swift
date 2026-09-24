@@ -100,8 +100,8 @@ struct RedPenApp: App {
                     // only transcribed with the speakers' permission
                     RecordingTermsView { terms.agree(signedIn.id) }
                 } else if account.isSignedIn {
-                    // the library, with the five categories in its dock and
-                    // everything else behind its gear
+                    // the library, with the five categories and Ideas in its
+                    // dock and the pages about the app in its account menu
                     LibraryView()
                         // a personal build's bundled lecture becomes examples,
                         // made by the app's own pipeline - only once the library
@@ -173,6 +173,9 @@ struct RedPenApp: App {
             .environmentObject(gemma)
             .environmentObject(llm)
             .tint(Color(red: 0.78, green: 0.16, blue: 0.16)) // the app's "pen" red
+            // the one motion source for the pop-out: started while the app
+            // is active, stopped in the background (see PopOut.swift)
+            .popOutLifecycle()
         }
     }
 }

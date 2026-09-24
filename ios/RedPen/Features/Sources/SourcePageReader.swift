@@ -11,6 +11,9 @@ import PDFKit
 /// Underneath either, the cards this page produced. That is the connection
 /// worth making: a card that makes no sense and the slide it came from, on one
 /// screen.
+///
+/// Moving between pages is the reader's pager, at the bottom under the
+/// thumb (ReaderBar), or the page list.
 struct SourcePageReader: View {
     let source: SourceDoc
     @Binding var page: Int
@@ -18,21 +21,18 @@ struct SourcePageReader: View {
     var file: URL?
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let file, source.kind == .pdf {
-                        SourcePDFPage(url: file, page: page)
-                            .frame(minHeight: 420)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    text
-                    cards
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if let file, source.kind == .pdf {
+                    SourcePDFPage(url: file, page: page)
+                        .frame(minHeight: 420)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .padding()
+                text
+                cards
             }
-            controls
+            .padding()
         }
         .background(Color(.systemBackground))
     }
@@ -75,41 +75,18 @@ struct SourcePageReader: View {
     private var cards: some View {
         let mine = fromHere
         if !mine.isEmpty {
+            let found: Int = mine.count
+            let noun: String = found == 1 ? "card" : "cards"
+            let place: String = source.kind.pageNoun.lowercased()
+            let line: String = "\(found) \(noun) from this \(place)"
             Divider()
             VStack(alignment: .leading, spacing: 6) {
-                Text("\(mine.count) \(mine.count == 1 ? "card" : "cards") from this \(source.kind.pageNoun.lowercased())")
+                Text(line)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-
-    private var controls: some View {
-        HStack {
-            Button {
-                page = max(1, page - 1)
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(page <= 1)
-
-            Spacer()
-            Text("\(source.kind.pageNoun) \(page) of \(source.pageCount)")
-                .font(.footnote.monospacedDigit())
-                .foregroundStyle(.secondary)
-            Spacer()
-
-            Button {
-                page = min(source.pageCount, page + 1)
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(page >= source.pageCount)
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.bar)
     }
 }
 

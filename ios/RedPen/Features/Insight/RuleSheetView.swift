@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The rule sheet: one line to remember for every question got wrong, grouped
 /// by subject, searchable, and shareable as plain text.
@@ -39,7 +40,34 @@ struct RuleSheetView: View {
 
     var body: some View {
         let shown = groups
-        let missed = store.missedWithoutRules.count
+        let hasActions: Bool = store.missedWithoutRules.count > 0 || canWrite || isWriting
+        sheet(shown)
+            // the same slab `.studyBar` puts there, but only while there is
+            // something to do - the list keeps its place when it goes
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if hasActions {
+                    StudyActionBar { actions }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .searchable(text: $query, prompt: "Search rules")
+            .navigationTitle("Rule sheet")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    ShareLink(item: store.ruleSheetText) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(store.ruleSheet.isEmpty)
+                    // swipe-to-delete, visibly: pointer users and first-timers
+                    if !store.ruleSheet.isEmpty {
+                        EditButton()
+                    }
+                }
+            }
+    }
+
+    private func sheet(_ shown: [RuleGroup]) -> some View {
         List {
             if store.ruleSheet.isEmpty {
                 Section {
@@ -48,37 +76,11 @@ struct RuleSheetView: View {
                 }
             }
 
-            if missed > 0 || canWrite || isWriting || note != nil {
+            if let note {
                 Section {
-                    if missed > 0 {
-                        Button {
-                            let added = store.addRulesForMissed()
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            withAnimation(.snappy) { note = "Added \(added) rule\(added == 1 ? "" : "s")." }
-                        } label: {
-                            Label("Add \(missed) from your recent mistakes", systemImage: "text.badge.plus")
-                        }
-                    }
-                    if isWriting {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                            Text("Writing rules with AI \u{00B7} \(writtenSoFar) of \(writingTotal)")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    } else if canWrite {
-                        Button(action: writeWithAI) {
-                            Label("Write \(plainRules.count) rule\(plainRules.count == 1 ? "" : "s") with AI",
-                                  systemImage: "sparkles")
-                        }
-                    }
-                    if let note {
-                        Text(note).font(.caption).foregroundStyle(.secondary)
-                    }
-                } footer: {
-                    if canWrite || isWriting {
-                        Text("The model rewrites each plain rule as one exam-style line, ten at a time. You can keep using the app while it works.")
-                    }
+                    Label(note, systemImage: "checkmark.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -102,17 +104,31 @@ struct RuleSheetView: View {
                 }
             }
         }
-        .searchable(text: $query, prompt: "Search rules")
-        .navigationTitle("Rule sheet")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(item: store.ruleSheetText) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .disabled(store.ruleSheet.isEmpty)
-            }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
+    }
+
+    // MARK: - The bottom slab
+
+    /// Add from mistakes (the main button) and Write with AI beside it; while
+    /// the model writes, how far it has got instead.
+    @ViewBuilder
+    private var actions: some View {
+        if isWriting {
+            RuleWritingProgress(done: writtenSoFar, total: writingTotal)
+        } else {
+            RuleSheetButtons(missed: store.missedWithoutRules.count,
+                             plain: canWrite ? plainRules.count : 0,
+                             onAdd: addFromMistakes,
+                             onWrite: writeWithAI)
         }
+    }
+
+    private func addFromMistakes() {
+        let added = store.addRulesForMissed()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        let plural: String = added == 1 ? "" : "s"
+        withAnimation(.snappy) { note = "Added \(added) rule\(plural)." }
     }
 
     /// Whether there is a writer model and something for it to rewrite.
@@ -162,11 +178,78 @@ struct RuleSheetView: View {
                 store.applyWrittenRules(lines)
                 writtenSoFar += lines.count
             }
-            let done = writtenSoFar
+            let done: Int = writtenSoFar
+            let plural: String = todo.count == 1 ? "" : "s"
+            let failed: String = "The model did not answer in a usable way; your rules are unchanged. Try again later."
+            let rewrote: String = "Rewrote \(done) of \(todo.count) rule\(plural)."
             isWriting = false
-            note = done == 0
-                ? "The model did not answer in a usable way; your rules are unchanged. Try again later."
-                : "Rewrote \(done) of \(todo.count) rule\(todo.count == 1 ? "" : "s")."
+            note = done == 0 ? failed : rewrote
         }
+    }
+}
+
+/// The rule sheet's slab: "Add N from your recent mistakes" as the main
+/// button at the trailing end, "Write N rules with AI" beside it. Stacked on
+/// a phone, where both would otherwise wrap.
+private struct RuleSheetButtons: View {
+    let missed: Int
+    /// Plain rules the model could rewrite; 0 when there is no model or
+    /// nothing to rewrite.
+    let plain: Int
+    let onAdd: () -> Void
+    let onWrite: () -> Void
+    @Environment(\.windowSpan) private var span
+
+    var body: some View {
+        let wide: Bool = span != .slim
+        let side = AnyLayout(HStackLayout(spacing: 12))
+        let stack = AnyLayout(VStackLayout(spacing: 12))
+        let layout: AnyLayout = wide ? side : stack
+        let writePlural: String = plain == 1 ? "" : "s"
+        let writeTitle: String = "Write \(plain) rule\(writePlural) with AI"
+        let addTitle: String = "Add \(missed) from your recent mistakes"
+        layout {
+            if plain > 0 {
+                Button(action: onWrite) {
+                    Label(writeTitle, systemImage: "sparkles")
+                }
+                .buttonStyle(.bigSecondary)
+                .accessibilityHint("Rewrites each plain rule as one exam-style line, ten at a time")
+            }
+            if span == .broad && plain > 0 && missed > 0 { Spacer(minLength: 16) }
+            if missed > 0 {
+                Button(action: onAdd) {
+                    Label(addTitle, systemImage: "text.badge.plus")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+}
+
+/// While the model rewrites the rules: how many so far, and that the app
+/// can still be used.
+private struct RuleWritingProgress: View {
+    let done: Int
+    let total: Int
+
+    var body: some View {
+        let fraction: Double = Double(done) / Double(max(1, total))
+        let status: String = "Writing rules with AI \u{00B7} \(done) of \(total)"
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ProgressView()
+                Text(status)
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
+            ThinProgress(fraction: fraction)
+            Text("Ten at a time. You can keep using the app while it works.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: 560, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }

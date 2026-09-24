@@ -51,12 +51,18 @@ struct AppBackdrop: View {
 
     var body: some View {
         ZStack {
+            // The deepest plane: behind the glass, so it moves WITH the eye
+            // while everything raised moves against it. Only the mesh moves;
+            // the vignette stays put, as the edge of the device's glass.
             TimelineView(.animation(minimumInterval: 1.0 / 30, paused: still)) { context in
                 mesh(at: context.date)
             }
+            .deepParallax()
             vignette
         }
         .ignoresSafeArea()
+        // the parallax overscans the mesh; never let it spill past the screen
+        .clipped()
         .accessibilityHidden(true)
         .allowsHitTesting(false)
         .onAppear { AppBackdrop.lastShown = BackdropTone(tint) }

@@ -40,4 +40,18 @@ extension View {
     func liquidGlassChip(tint: Color? = nil) -> some View {
         modifier(GlassChip(tint: tint))
     }
+
+    /// The glass panel, standing out of the screen at `plane` (see
+    /// PopOut.swift) as one unit.
+    func liquidGlassPanel(cornerRadius: CGFloat = 22, tint: Color = .clear, plane: PopOutPlane) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return liquidGlassPanel(cornerRadius: cornerRadius, tint: tint)
+            .popOut(plane, in: shape)
+    }
+
+    /// The glass chip, standing out of the screen at `plane`.
+    func liquidGlassChip(tint: Color? = nil, plane: PopOutPlane) -> some View {
+        liquidGlassChip(tint: tint)
+            .popOut(plane, in: Capsule())
+    }
 }

@@ -8,11 +8,18 @@ import SwiftUI
 /// - drag the background to move around, pinch to zoom;
 /// - drag a card to put it somewhere else (where it lands is kept);
 /// - long-press a card, then tap another, to connect the two - or to part
-///   them if they were already connected. "Connect" in the toolbar does the
-///   same with plain taps, for joining up a lot at once;
+///   them if they were already connected. "Connect", in the round tools at
+///   the bottom corner, does the same with plain taps, for joining up a lot
+///   at once;
 /// - double-tap empty space to put a new idea exactly there.
 ///
-/// Cards are tinted, faintly, by the folder they belong to.
+/// Cards are tinted, faintly, by the folder they belong to. They lie flat on
+/// the glass; the one being dragged, or starting a connection, rises off it
+/// to the floating plane, over every other card.
+///
+/// The canvas runs on under the bottom glass, but its middle - where the
+/// board's origin sits, and where "Back to the middle" returns to - is the
+/// middle of the part that is not under glass.
 struct IdeaBoardView: View {
     @EnvironmentObject private var notes: NoteStore
     let open: (UUID) -> Void
@@ -48,34 +55,73 @@ struct IdeaBoardView: View {
     }
 
     var body: some View {
+        // The canvas runs on under the bottom glass (the capture row and the
+        // Library's dock); the tools and the hint stay in the safe area.
+        ZStack {
+            canvas
+                .ignoresSafeArea(.container, edges: .bottom)
+        }
+        .overlay(alignment: .top) {
+            if source != nil || connecting {
+                hint
+            }
+        }
+        .ideaTools {
+            IdeaToolButton(symbol: "scope", label: "Back to the middle") {
+                withAnimation(.snappy) { pan = .zero; zoom = 1 }
+            }
+            IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting) {
+                connecting.toggle()
+                source = nil
+            }
+        }
+        .sensoryFeedback(.selection, trigger: source)
+        .sheet(item: $adding) { spot in
+            NameSheet(title: "New idea", prompt: "The idea", initial: "", confirm: "Add") { text in
+                _ = notes.create(title: text, kind: .idea, at: (x: spot.x, y: spot.y))
+            }
+        }
+    }
+
+    private var connectSymbol: String { connecting ? "link.circle.fill" : "link" }
+    private var connectLabel: String { connecting ? "Stop connecting" : "Connect" }
+
+    private var canvas: some View {
         GeometryReader { geo in
             let size = geo.size
-            let points = positions(in: size)
+            // the reader runs on under the bottom glass; this much is hidden
+            let hidden: CGFloat = geo.safeAreaInsets.bottom
+            let midY: CGFloat = Self.middle(of: size, hidden: hidden)
+            let points = positions(in: size, midY: midY)
             let edges = notes.allEdges()
-            let lineWidth = max(1, 1.5 * scale)
+            let lineWidth: CGFloat = max(1, 1.5 * scale)
             ZStack {
                 // the board itself: moved by dragging, added to by double-tap
                 Color.clear
                     .contentShape(Rectangle())
                     .gesture(panGesture)
                     .onTapGesture(count: 2) { location in
-                        ask(at: location, in: size)
+                        ask(at: location, in: size, midY: midY)
                     }
 
                 Canvas { context, _ in
+                    let ink: Color = Color.primary.opacity(0.28)
+                    let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     for (a, b) in edges {
                         guard let p = points[a], let q = points[b] else { continue }
-                        context.stroke(Self.curve(from: p, to: q),
-                                       with: .color(Color.primary.opacity(0.28)),
-                                       style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                        context.stroke(Self.curve(from: p, to: q), with: .color(ink), style: stroke)
                     }
                 }
                 .allowsHitTesting(false)
 
                 ForEach(notes.notes) { note in
+                    // a lifted card is drawn over the flat ones it passes
+                    let lifted: Bool = dragged == note.id || source == note.id
+                    let layer: Double = lifted ? 1 : 0
                     card(note)
                         .scaleEffect(scale)
                         .position(points[note.id] ?? .zero)
+                        .zIndex(layer)
                 }
 
                 if notes.notes.isEmpty {
@@ -87,39 +133,12 @@ struct IdeaBoardView: View {
                     }
                     .foregroundStyle(.secondary)
                     .allowsHitTesting(false)
+                    .position(x: size.width / 2, y: midY)
                 }
             }
             .coordinateSpace(.named(Self.space))
             .simultaneousGesture(pinchGesture)
             .clipped()
-        }
-        .overlay(alignment: .bottom) {
-            if source != nil || connecting {
-                hint
-            }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    withAnimation(.snappy) { pan = .zero; zoom = 1 }
-                } label: {
-                    Image(systemName: "scope")
-                }
-                .accessibilityLabel("Back to the middle")
-                Button {
-                    connecting.toggle()
-                    source = nil
-                } label: {
-                    Image(systemName: connecting ? "link.circle.fill" : "link")
-                }
-                .accessibilityLabel(connecting ? "Stop connecting" : "Connect")
-            }
-        }
-        .sensoryFeedback(.selection, trigger: source)
-        .sheet(item: $adding) { spot in
-            NameSheet(title: "New idea", prompt: "The idea", initial: "", confirm: "Add") { text in
-                _ = notes.create(title: text, kind: .idea, at: (x: spot.x, y: spot.y))
-            }
         }
     }
 
@@ -127,17 +146,26 @@ struct IdeaBoardView: View {
 
     private func card(_ note: Note) -> some View {
         let tone = NoteTone.color(for: note.folderId, in: notes)
-        let chosen = source == note.id
+        let chosen: Bool = source == note.id
+        // a card being dragged or starting a connection rises off the board
+        let lifted: Bool = dragged == note.id || chosen
+        let plane: PopOutPlane = lifted ? .floating : .screen
+        let grow: CGFloat = lifted ? 1.04 : 1
+        let ring: Color = chosen ? Color.accentColor : tone.opacity(0.4)
+        let ringWidth: CGFloat = chosen ? 2 : 1
+        let wash: Color = tone.opacity(0.14)
+        let place: String = notes.folder(note.folderId)?.name ?? note.kind.label
+        let title: String = note.title.isEmpty ? "Untitled" : note.title
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 5) {
                 Image(systemName: note.kind.symbol)
-                Text(notes.folder(note.folderId)?.name ?? note.kind.label)
+                Text(place)
                     .lineLimit(1)
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
-            Text(note.title.isEmpty ? "Untitled" : note.title)
+            Text(title)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
                 .lineLimit(4)
@@ -148,16 +176,18 @@ struct IdeaBoardView: View {
         .background {
             ZStack {
                 shape.fill(.regularMaterial)
-                shape.fill(tone.opacity(0.14))
+                shape.fill(wash)
             }
         }
         .overlay {
-            shape.strokeBorder(chosen ? Color.accentColor : tone.opacity(0.4),
-                               lineWidth: chosen ? 2 : 1)
+            shape.strokeBorder(ring, lineWidth: ringWidth)
         }
-        .shadow(color: .black.opacity(dragged == note.id ? 0.18 : 0.07),
-                radius: dragged == note.id ? 10 : 5, y: 2)
+        .scaleEffect(grow)
+        .popOut(plane, in: shape)
+        .animation(.snappy(duration: 0.2), value: lifted)
         .contentShape(shape)
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.lift)
         .onTapGesture { tapped(note.id) }
         .onLongPressGesture(minimumDuration: 0.4) { source = note.id }
         .gesture(cardDrag(note))
@@ -181,27 +211,43 @@ struct IdeaBoardView: View {
         }
     }
 
+    /// Up at the top while connecting, out of the way of the cards and the
+    /// thumb.
     private var hint: some View {
-        HStack(spacing: 10) {
+        let words: String = source == nil ? "Tap a card to start a connection."
+                                          : "Tap another card to connect them, or to part them."
+        return HStack(spacing: 10) {
             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-            Text(source == nil ? "Tap a card to start a connection."
-                               : "Tap another card to connect them, or to part them.")
+                .accessibilityHidden(true)
+            Text(words)
                 .font(.footnote)
             if source != nil {
                 Button("Cancel") { source = nil }
                     .font(.footnote.weight(.semibold))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .glassEffect(.regular, in: .capsule)
-        .padding(.bottom, 16)
+        .popOut(.raised, in: Capsule())
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
     }
 
     // MARK: where things are
 
-    /// Every card's centre on screen.
-    private func positions(in size: CGSize) -> [UUID: CGPoint] {
+    /// The height of the board's middle: the middle of the part of the
+    /// canvas not under the bottom glass.
+    private static func middle(of size: CGSize, hidden: CGFloat) -> CGFloat {
+        let seen: CGFloat = max(size.height - hidden, 0)
+        return seen / 2
+    }
+
+    /// Every card's centre on screen; the board's origin is at the middle
+    /// across, and `midY` down.
+    private func positions(in size: CGSize, midY: CGFloat) -> [UUID: CGPoint] {
         var result: [UUID: CGPoint] = [:]
         for note in notes.notes {
             var x = CGFloat(note.boardX)
@@ -211,16 +257,16 @@ struct IdeaBoardView: View {
                 y += dragOffset.height / scale
             }
             let screenX: CGFloat = size.width / 2 + offset.width + x * scale
-            let screenY: CGFloat = size.height / 2 + offset.height + y * scale
+            let screenY: CGFloat = midY + offset.height + y * scale
             result[note.id] = CGPoint(x: screenX, y: screenY)
         }
         return result
     }
 
     /// A double-tap on empty board: ask for the idea, to put it there.
-    private func ask(at location: CGPoint, in size: CGSize) {
+    private func ask(at location: CGPoint, in size: CGSize, midY: CGFloat) {
         let x = (location.x - size.width / 2 - offset.width) / scale
-        let y = (location.y - size.height / 2 - offset.height) / scale
+        let y = (location.y - midY - offset.height) / scale
         adding = BoardSpot(x: Double(x), y: Double(y))
     }
 

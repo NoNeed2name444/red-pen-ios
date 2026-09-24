@@ -1,61 +1,85 @@
 import SwiftUI
 
 /// A set's lookalike duels: each pair of conditions that get confused, with
-/// how the last duel went.
+/// how the last duel went, and the slab for writing more at the bottom.
 struct DuelsView: View {
     let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
     @State private var confirmClear = false
 
+    private var isExample: Bool { self.set.id == ReasoningExamples.setId }
+
     var body: some View {
         let duels = reasoning.pack(for: set.id).duels
         List {
             Section {
-                ReasoningWriteBar(tool: .duels, set: set)
-            } footer: {
                 Text("Features appear one at a time. Say whose each one is \u{2014} the first condition, the second, or both.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            if !duels.isEmpty {
+            if duels.isEmpty {
+                Section {
+                    Text("No duels yet. Write some from this set below.")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
                 Section("Duels") {
                     ForEach(duels) { pair in
                         NavigationLink {
                             DuelView(pair: pair, setId: set.id)
                         } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("\(pair.a) vs \(pair.b)").font(.body.weight(.medium))
-                                if let last = reasoning.lastDuel(of: pair.id) {
-                                    Text("Last time \(last.right) of \(last.total)")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text("\(pair.features.count) features \u{00B7} not played")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            row(pair)
                         }
+                        .hoverEffect(.highlight)
                     }
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(LibraryBackdrop())
         .navigationTitle("Lookalike duels")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !duels.isEmpty && set.id != ReasoningExamples.setId {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Clear", systemImage: "trash") { confirmClear = true }
+            if !duels.isEmpty && !isExample {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Delete duels", systemImage: "trash", role: .destructive) { confirmClear = true }
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                    }
                 }
             }
         }
         .confirmationDialog("Delete these duels and their scores?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Delete duels", role: .destructive) { reasoning.clear(.duels, for: set.id) }
         }
-        .generationHUD()
+        .reasoningWriteSlab(tool: .duels, set: set)
+    }
+
+    private func row(_ pair: LookalikePair) -> some View {
+        let title: String = "\(pair.a) vs \(pair.b)"
+        let fresh: String = "\(pair.features.count) features \u{00B7} not played"
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.body.weight(.medium))
+            if let last = reasoning.lastDuel(of: pair.id) {
+                Text("Last time \(last.right) of \(last.total)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(fresh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
 /// One duel, played: features one at a time, each swiped or tapped to the
 /// condition it belongs to, then the score and the reasons.
+///
+/// The feature card is the screen's hero: it stands highest out of the
+/// glass, and is what the thumb pulls. The three answers sit in the slab at
+/// the bottom in the same order as the swipes: first condition, both, second.
 struct DuelView: View {
     let pair: LookalikePair
     let setId: UUID
@@ -65,6 +89,7 @@ struct DuelView: View {
     @State private var index = 0
     @State private var drag: CGSize = .zero
     @State private var recorded = false
+    @Environment(\.windowSpan) private var span
 
     init(pair: LookalikePair, setId: UUID) {
         self.pair = pair
@@ -76,19 +101,15 @@ struct DuelView: View {
     private var right: Int { order.filter { answers[$0.id] == $0.side }.count }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                if finished {
-                    summary
-                } else {
-                    play
-                }
+        Group {
+            if finished {
+                summaryScreen
+            } else {
+                playScreen
             }
-            .padding()
-            .frame(maxWidth: 640)
-            .frame(maxWidth: .infinity)
         }
-        .navigationTitle("\(pair.a) vs \(pair.b)")
+        .background(LibraryBackdrop())
+        .navigationTitle("Duel")
         .navigationBarTitleDisplayMode(.inline)
         .animation(.snappy, value: index)
     }
@@ -103,38 +124,48 @@ struct DuelView: View {
 
     // MARK: playing
 
-    private var play: some View {
-        VStack(spacing: 18) {
-            HStack {
-                Text("Feature \(index + 1) of \(order.count)").font(.subheadline.weight(.semibold).monospacedDigit())
-                Spacer()
-                Text("\(right) right").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
-            }
-            if index > 0 { feedback(order[index - 1]) }
-            card(order[index])
-            // left to right as the swipes go: first condition, both, second
-            HStack(spacing: 10) {
-                ForEach(LookalikeSide.buttonOrder) { side in
-                    choice(side)
+    private var header: some View {
+        let status: String = "Feature \(min(index + 1, order.count)) of \(order.count)"
+        let detail: String = "\(right) right"
+        let fraction: Double = Double(index) / Double(max(1, order.count))
+        return StudyProgressHeader(status, detail: detail, fraction: fraction)
+    }
+
+    private var playScreen: some View {
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(spacing: 18) {
+                    Text("\(pair.a) vs \(pair.b)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    if index > 0 { feedback(order[index - 1]) }
+                    if order.indices.contains(index) {
+                        card(order[index])
+                    }
+                    Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
+                .padding(16)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
-            // the first condition stays on the left, as the swipe does, in
-            // a right-to-left language too
-            .environment(\.layoutDirection, .leftToRight)
-            Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            .studyBar { choices }
         }
     }
 
     private func card(_ feature: LookalikeFeature) -> some View {
-        Text(feature.text)
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let turn: Double = Double(drag.width) / 20
+        return Text(feature.text)
             .font(.title3.weight(.semibold))
             .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: .infinity, minHeight: 170)
-            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(.secondarySystemBackground)))
+            .background(shape.fill(Color(.secondarySystemBackground)))
             .overlay(alignment: .top) {
                 if let leaning = leaning {
                     Text(name(leaning))
@@ -144,8 +175,12 @@ struct DuelView: View {
                         .padding(8)
                 }
             }
+            // the hero plane: the card stands out of the glass. Lifted as a
+            // whole, so its sheen and its side travel with it when it is
+            // pulled; the pull itself is only ever the finger's.
+            .popOut(.hero, in: shape)
             .offset(drag)
-            .rotationEffect(.degrees(Double(drag.width) / 20))
+            .rotationEffect(.degrees(turn))
             .gesture(
                 DragGesture()
                     .onChanged { drag = $0.translation }
@@ -168,27 +203,50 @@ struct DuelView: View {
         LookalikeSide.swiped(width: Double(t.width), height: Double(t.height))
     }
 
+    /// A · Both · B, left to right as the swipes go, with the arrow keys
+    /// doing the same.
+    private var choices: some View {
+        HStack(spacing: 10) {
+            ForEach(LookalikeSide.buttonOrder) { side in
+                choice(side)
+            }
+        }
+        // the first condition stays on the left, as the swipe does, in a
+        // right-to-left language too
+        .environment(\.layoutDirection, .leftToRight)
+        .frame(maxWidth: 640)
+    }
+
+    private static func arrow(_ side: LookalikeSide) -> KeyEquivalent {
+        switch side {
+        case .a: return .leftArrow
+        case .both: return .upArrow
+        case .b: return .rightArrow
+        }
+    }
+
     private func choice(_ side: LookalikeSide) -> some View {
         Button {
             answer(side)
         } label: {
             Text(name(side))
-                .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.bigSecondary)
+        .keyboardShortcut(Self.arrow(side), modifiers: [])
     }
 
     private func feedback(_ feature: LookalikeFeature) -> some View {
-        let ok = answers[feature.id] == feature.side
+        let ok: Bool = answers[feature.id] == feature.side
+        let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
+        let colour: Color = ok ? Color.green : Color.red
+        let line: String = "\(feature.text) \u{2192} \(name(feature.side))"
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundStyle(ok ? Color.green : Color.red)
+            Image(systemName: symbol)
+                .foregroundStyle(colour)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(feature.text) \u{2192} \(name(feature.side))").font(.footnote.weight(.semibold))
+                Text(line).font(.footnote.weight(.semibold))
                 if !feature.why.isEmpty {
                     Text(feature.why).font(.footnote).foregroundStyle(.secondary)
                 }
@@ -196,8 +254,7 @@ struct DuelView: View {
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill((ok ? Color.green : Color.red).opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(colour.opacity(0.1)))
     }
 
     private func answer(_ side: LookalikeSide) {
@@ -210,15 +267,55 @@ struct DuelView: View {
         }
     }
 
+    private func again() {
+        order = pair.features.shuffled()
+        answers = [:]
+        recorded = false
+        index = 0
+    }
+
     // MARK: the result
 
+    private var summaryScreen: some View {
+        ScrollView {
+            summary
+                .padding(16)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
+        }
+        .studyBar { summaryButtons }
+    }
+
+    /// The table beside, Duel again as the one main button.
+    private var summaryButtons: some View {
+        HStack(spacing: 12) {
+            NavigationLink {
+                ComparisonTableView(pair: pair)
+            } label: {
+                Label("Comparison table", systemImage: "tablecells")
+            }
+            .buttonStyle(.bigCompanion)
+            if span == .broad { Spacer(minLength: 16) }
+            Button(action: again) {
+                Label("Duel again", systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.defaultAction)
+        }
+    }
+
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let score: String = "\(right) of \(order.count)"
+        return VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 4) {
-                Text("\(right) of \(order.count)")
+                Text(score)
                     .font(.largeTitle.weight(.bold).monospacedDigit())
                 Text(verdict).font(.subheadline).foregroundStyle(.secondary)
+                Text("\(pair.a) vs \(pair.b)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
 
             if !pair.bottomLine.isEmpty {
@@ -228,44 +325,10 @@ struct DuelView: View {
                     .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.1)))
             }
 
-            NavigationLink {
-                ComparisonTableView(pair: pair)
-            } label: {
-                Label("Comparison table", systemImage: "tablecells").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-
             Text("Feature by feature").font(.headline)
             ForEach(order) { feature in
-                let given = answers[feature.id]
-                let ok = given == feature.side
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(ok ? Color.green : Color.red)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(feature.text).font(.subheadline.weight(.medium))
-                        Text(ok ? name(feature.side) : "\(name(feature.side)) \u{2014} you said \(given.map { name($0) } ?? "nothing")")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tint)
-                        if !feature.why.isEmpty {
-                            Text(feature.why).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
+                DuelFeatureResult(feature: feature, given: answers[feature.id], name: name)
             }
-
-            Button {
-                order = pair.features.shuffled()
-                answers = [:]
-                recorded = false
-                index = 0
-            } label: {
-                Label("Duel again", systemImage: "arrow.counterclockwise").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
         }
     }
 
@@ -274,7 +337,42 @@ struct DuelView: View {
         let share = Double(right) / Double(order.count)
         if share >= 0.9 { return "You can tell these apart." }
         if share >= 0.7 { return "Nearly there \u{2014} look again at the ones you missed." }
-        return "These still blur together. The table below lines them up."
+        return "These still blur together. The comparison table lines them up."
+    }
+}
+
+/// One feature in the result: whose it was, what was said, and why.
+private struct DuelFeatureResult: View {
+    let feature: LookalikeFeature
+    let given: LookalikeSide?
+    let name: (LookalikeSide) -> String
+
+    private var ok: Bool { given == feature.side }
+
+    private var answerLine: String {
+        let right: String = name(feature.side)
+        if ok { return right }
+        let said: String = given.map { name($0) } ?? "nothing"
+        return "\(right) \u{2014} you said \(said)"
+    }
+
+    var body: some View {
+        let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
+        let colour: Color = ok ? Color.green : Color.red
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: symbol)
+                .foregroundStyle(colour)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(feature.text).font(.subheadline.weight(.medium))
+                Text(answerLine)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tint)
+                if !feature.why.isEmpty {
+                    Text(feature.why).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -287,6 +385,8 @@ struct ComparisonTableView: View {
         let aFeatures = pair.features.filter { $0.side == .a }
         let bFeatures = pair.features.filter { $0.side == .b }
         let shared = pair.features.filter { $0.side == .both }
+        let rows: Int = max(aFeatures.count, bFeatures.count)
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 10) {
@@ -295,7 +395,7 @@ struct ComparisonTableView: View {
                         Text(pair.b).font(.headline)
                     }
                     Divider().gridCellColumns(2)
-                    ForEach(0..<max(aFeatures.count, bFeatures.count), id: \.self) { row in
+                    ForEach(0..<rows, id: \.self) { row in
                         GridRow {
                             cell(row < aFeatures.count ? aFeatures[row] : nil)
                             cell(row < bFeatures.count ? bFeatures[row] : nil)
@@ -316,6 +416,8 @@ struct ComparisonTableView: View {
                         }
                     }
                 }
+                .padding(16)
+                .background(.regularMaterial, in: shape)
                 if !pair.bottomLine.isEmpty {
                     Text(pair.bottomLine)
                         .padding(12)
@@ -327,10 +429,11 @@ struct ComparisonTableView: View {
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }
+        .background(LibraryBackdrop())
         .navigationTitle("Comparison")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: pair.comparisonText, subject: Text("\(pair.a) vs \(pair.b)")) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }

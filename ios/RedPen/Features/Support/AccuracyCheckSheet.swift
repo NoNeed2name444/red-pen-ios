@@ -1,37 +1,5 @@
 import SwiftUI
 
-extension View {
-    /// Adds a "Check accuracy" button to a study screen's toolbar. `text` is
-    /// read at the moment of the tap, so it is always the card or page on
-    /// screen.
-    func accuracyCheck(set: StudySet, instruction: String, text: @escaping () -> String?) -> some View {
-        modifier(AccuracyCheckToolbar(set: set, instruction: instruction, text: text))
-    }
-}
-
-private struct AccuracyCheckToolbar: ViewModifier {
-    let set: StudySet
-    let instruction: String
-    let text: () -> String?
-    @State private var request: AccuracyRequest?
-
-    func body(content: Content) -> some View {
-        content
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if let current = text(), !current.isEmpty {
-                            request = AccuracyRequest(set: set, instruction: instruction, text: current)
-                        }
-                    } label: {
-                        Label("Check accuracy", systemImage: "checkmark.shield")
-                    }
-                }
-            }
-            .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
-    }
-}
-
 struct AccuracyRequest: Identifiable {
     let id = UUID()
     let set: StudySet
@@ -40,6 +8,9 @@ struct AccuracyRequest: Identifiable {
 }
 
 /// MedVAL's grade of one card, question, page or station, with what it found.
+///
+/// Opens at half height, so the card being checked stays in view above it;
+/// drag it up for the whole result.
 struct AccuracyCheckSheet: View {
     let request: AccuracyRequest
     @EnvironmentObject private var llm: LocalLLMService
@@ -56,35 +27,12 @@ struct AccuracyCheckSheet: View {
                     Text(Highlight.plain(request.text)).font(.footnote).lineLimit(8)
                 }
                 if let verdict {
-                    Section {
-                        Label(verdict.riskTitle,
-                              systemImage: verdict.passed ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
-                            .foregroundStyle(verdict.passed ? Color.green : (verdict.riskLevel >= 4 ? Color.red : Color.orange))
-                            .font(.headline)
-                        if verdict.findings.isEmpty {
-                            Text("No errors found.")
-                        }
-                        ForEach(verdict.findings, id: \.self) { finding in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(finding.category.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                                Text(finding.text).font(.footnote)
-                            }
-                        }
-                    } header: {
-                        Text("Result")
-                    } footer: {
-                        Text(hadSource
-                             ? "Checked by \(verdict.checkedBy) against the matching pages of this set's source."
-                             : "Checked by \(verdict.checkedBy) against standard teaching \u{2014} this set has no source attached, so this is a weaker check.")
-                    }
+                    resultSection(verdict)
                     if !verdict.reasoning.isEmpty {
                         Section("Why") { Text(verdict.reasoning).font(.footnote) }
                     }
                 } else if let trouble {
-                    Section {
-                        Text(trouble).foregroundStyle(.red)
-                        Button("AI models") { showModels = true }
-                    }
+                    troubleSection(trouble)
                 } else {
                     Section {
                         HStack {
@@ -94,14 +42,70 @@ struct AccuracyCheckSheet: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(LibraryBackdrop())
             .navigationTitle("Accuracy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .presentationDetents([.medium, .large])
         .sheet(isPresented: $showModels) { ModelSettingsView() }
         .task { await run() }
+    }
+
+    private func resultSection(_ verdict: AccuracyVerdict) -> some View {
+        let symbol: String = verdict.passed ? "checkmark.shield.fill" : "exclamationmark.shield.fill"
+        let colour: Color = AccuracyCheckSheet.riskColor(verdict)
+        let footer: String = footerText(verdict)
+        return Section {
+            Label(verdict.riskTitle, systemImage: symbol)
+                .foregroundStyle(colour)
+                .font(.headline)
+            if verdict.findings.isEmpty {
+                Text("No errors found.")
+            }
+            ForEach(verdict.findings, id: \.self) { finding in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(finding.category.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    Text(finding.text).font(.footnote)
+                }
+            }
+        } header: {
+            Text("Result")
+        } footer: {
+            Text(footer)
+        }
+    }
+
+    /// Nothing could check it: why, and the one place to fix that.
+    private func troubleSection(_ trouble: String) -> some View {
+        Section {
+            Text(trouble).foregroundStyle(.red)
+            // the one thing to do here, standing out of the glass
+            Button {
+                showModels = true
+            } label: {
+                Label("AI models", systemImage: "cpu")
+            }
+            .buttonStyle(.bigSecondary)
+        }
+    }
+
+    /// Green for a pass, red for a serious risk, orange for anything between.
+    static func riskColor(_ verdict: AccuracyVerdict) -> Color {
+        if verdict.passed { return Color.green }
+        if verdict.riskLevel >= 4 { return Color.red }
+        return Color.orange
+    }
+
+    private func footerText(_ verdict: AccuracyVerdict) -> String {
+        let who: String = verdict.checkedBy
+        if hadSource {
+            return "Checked by \(who) against the matching pages of this set's source."
+        }
+        return "Checked by \(who) against standard teaching \u{2014} this set has no source attached, so this is a weaker check."
     }
 
     private func run() async {

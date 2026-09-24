@@ -56,6 +56,9 @@ struct LecturePDFSection: View {
     @State private var images: [String] = []
     @State private var diagramTask: Task<Void, Never>?
     @State private var diagramProgress: String?
+    /// Asking first: the picture cards are saved as their own set, and New
+    /// set closes.
+    @State private var confirmingPictures = false
 
     /// Office files are zips, and a zip is not a type the picker offers by
     /// name, so Word's and PowerPoint's own identifiers are asked for directly.
@@ -91,17 +94,16 @@ struct LecturePDFSection: View {
 
     private var fileSection: some View {
         Section {
+            // raised, but second to the dock's Next
             Button { picking = true } label: {
                 HStack {
                     if reading { ProgressView().controlSize(.small) }
-                    Label(reading ? "Reading the file\u{2026}" : (readSource == nil ? "Choose a lecture file" : "Add another file"),
-                          systemImage: "doc.badge.plus")
+                    Label(pickTitle, systemImage: "doc.badge.plus")
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.bigSecondary)
             .disabled(reading || disabled)
+            .frame(maxWidth: .infinity)
 
             if let status {
                 Text(status).font(.caption).foregroundStyle(.secondary)
@@ -112,19 +114,44 @@ struct LecturePDFSection: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if !cards.isEmpty {
-                Button { makeOcclusionSet() } label: {
-                    Label("Also make \(cards.count) picture card\(cards.count == 1 ? "" : "s") from the diagrams",
-                          systemImage: "rectangle.dashed")
+                Button { confirmingPictures = true } label: {
+                    Label(picturesTitle, systemImage: "rectangle.dashed")
                 }
                 .disabled(disabled)
+                .confirmationDialog(picturesTitle, isPresented: $confirmingPictures,
+                                    titleVisibility: .visible) {
+                    Button(picturesConfirm) { makeOcclusionSet() }
+                    Button("Not now", role: .cancel) {}
+                } message: {
+                    Text("They are saved as a Cards set of their own, and New set closes. Make the questions first if you want those too.")
+                }
                 Text("One card per label on the diagrams, masking the label itself. Nothing was generated \u{2014} the labels are the slide's own words.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         } header: {
             Text("Add a file")
         } footer: {
-            Text("PDF, Word or PowerPoint. It is read on this phone, scanned pages too.")
+            Text("PDF, Word or PowerPoint. It is read on this device, scanned pages too.")
         }
+    }
+
+    private var picturesTitle: String {
+        let found: Int = cards.count
+        let plural: String = found == 1 ? "" : "s"
+        return "Also make \(found) picture card\(plural) from the diagrams"
+    }
+
+    private var picturesConfirm: String {
+        let found: Int = cards.count
+        let plural: String = found == 1 ? "" : "s"
+        return "Save \(found) picture card\(plural) and close"
+    }
+
+    /// The file button: what it does now.
+    private var pickTitle: String {
+        if reading { return "Reading the file\u{2026}" }
+        if readSource == nil { return "Choose a lecture file" }
+        return "Add another file"
     }
 
     private func read(_ result: Result<URL, Error>) async {
@@ -148,8 +175,8 @@ struct LecturePDFSection: View {
                 // then adds the slides means both, and silently discarding what
                 // they typed would be unforgivable
                 let existing = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-                sourceText = existing.isEmpty ? document.text
-                                              : existing + "\n\n" + document.text
+                let joined: String = existing + "\n\n" + document.text
+                sourceText = existing.isEmpty ? document.text : joined
                 // The file itself is kept on this device so the preview can show
                 // the real pages, diagrams and all. It is not synced - see
                 // SourceFiles - so the text above is what travels.
@@ -195,10 +222,14 @@ struct LecturePDFSection: View {
     }
 
     private func summary(pages: Int, ocr: Int) -> String {
-        "Read \(pages) page\(pages == 1 ? "" : "s")"
-            + (ocr > 0 ? ", \(ocr) by OCR" : "")
-            + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
-            + ". \(questionCount) questions suits this much material."
+        let pagePlural: String = pages == 1 ? "" : "s"
+        let read: String = "Read \(pages) page\(pagePlural)"
+        let recognised: String = ocr > 0 ? ", \(ocr) by OCR" : ""
+        let figureCount: Int = images.count
+        let figurePlural: String = figureCount == 1 ? "" : "s"
+        let figures: String = cards.isEmpty ? "" : ", \(figureCount) labelled diagram\(figurePlural)"
+        let advice: String = ". \(questionCount) questions suits this much material."
+        return read + recognised + figures + advice
     }
 
     /// Shrink the figures for storage, and renumber the cards as we go.
@@ -222,11 +253,11 @@ struct LecturePDFSection: View {
     }
 
     private func makeOcclusionSet() {
-        var set = StudySet(
-            name: name.isEmpty ? (subject.isEmpty || subject == "General"
-                                  ? "Diagrams" : subject + " diagrams")
-                               : name + " diagrams",
-            subject: subject.isEmpty ? "General" : subject, kind: .anki)
+        let plainSubject: Bool = subject.isEmpty || subject == "General"
+        let fromSubject: String = plainSubject ? "Diagrams" : subject + " diagrams"
+        let title: String = name.isEmpty ? fromSubject : name + " diagrams"
+        let setSubject: String = subject.isEmpty ? "General" : subject
+        var set = StudySet(name: title, subject: setSubject, kind: .anki)
         set.cards = cards
         set.images = images
         // The diagrams came off the same lecture, so it travels with them too:

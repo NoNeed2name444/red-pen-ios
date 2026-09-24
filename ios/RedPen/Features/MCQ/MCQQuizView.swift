@@ -8,6 +8,7 @@ struct MCQQuizView: View {
     let studySet: StudySet
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
 
     @State private var current: Int = 0
     @State private var answers: [MCQAnswer]
@@ -143,36 +144,7 @@ struct MCQQuizView: View {
     private var quiz: some View {
         VStack(spacing: 0) {
             header
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let p = pendingResume { resumeBanner(p) }
-                    questionCard
-
-                    VStack(spacing: 12) {
-                        ForEach(q.options.indices, id: \.self) { idx in
-                            optionRow(idx)
-                                .riseIn(index: idx + 1)
-                                .id("\(current)-\(idx)")
-                        }
-                    }
-
-                    if !a.checked && shuffle { confidencePicker }
-
-                    // in exam mode the explanation waits for the results,
-                    // as it would in the real paper
-                    if a.checked && !examMode { explanationBox }
-
-                    if a.checked && !examMode && !isRight(current)
-                        && shuffle && inLibrary(q.id) {
-                        whyChooser
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .readableColumn()
-            }
-            footer
+            questionScroll
         }
         .modeScreen(.mcq)
         // Exam mode, Check accuracy and Turn into, all in the one More menu.
@@ -198,9 +170,6 @@ struct MCQQuizView: View {
                     .buttonStyle(.glassProminent)
                     .disabled(saved.wrappedValue)
                 }
-            }
-            if let ends = examEndsAt {
-                ToolbarItem(placement: .topBarTrailing) { examClock(ends) }
             }
         }
         // Wakes once, when the paper's time is up. Keyed by the end time, so
@@ -249,33 +218,54 @@ struct MCQQuizView: View {
         pendingResume = p
     }
 
+    /// One quiet line over the question while the bar asks whether to pick
+    /// up where the student left off.
     private func resumeBanner(_ p: QuizProgress) -> some View {
-        let done = p.answers.filter(\.checked).count
+        let done: Int = p.answers.filter(\.checked).count
+        let total: Int = studySet.questions.count
+        let when: String = p.savedAt.formatted(.relative(presentation: .named))
+        let line: String = "You left off \(when) \u{00B7} \(done) of \(total) answered"
+        return Label(line, systemImage: "clock.arrow.circlepath")
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// The bar while a saved place is waiting: Start again beside the big
+    /// Resume.
+    private func resumeButtons(_ p: QuizProgress) -> some View {
+        let done: Int = p.answers.filter(\.checked).count
+        let total: Int = studySet.questions.count
+        let title: String = "Resume (\(done) of \(total))"
         return HStack(spacing: 12) {
-            Image(systemName: "clock.arrow.circlepath").font(.title3).foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Pick up where you left off?").font(.headline)
-                Text("\(done) of \(studySet.questions.count) answered · \(p.savedAt.formatted(.relative(presentation: .named)))")
-                    .font(.subheadline).foregroundStyle(.secondary)
+            Button("Start again") { startAgain() }
+                .buttonStyle(.bigCompanion)
+                .accessibilityLabel("Start again instead")
+                .accessibilityHint("Forgets where you left off and starts from the first question")
+            if span == .broad { Spacer(minLength: 16) }
+            Button { resume(p) } label: {
+                Label(title, systemImage: "clock.arrow.circlepath")
             }
-            Spacer(minLength: 0)
-            Button("Resume") {
-                withAnimation(.snappy) {
-                    answers = p.answers; orders = p.optionOrders
-                    current = min(p.current, max(0, studySet.questions.count - 1))
-                    pendingResume = nil
-                }
-            }
-            .buttonStyle(.glassProminent)
-            Button {
-                store.clearProgress(for: studySet.id)
-                withAnimation(.snappy) { pendingResume = nil }
-            } label: { Image(systemName: "xmark") }
-            .buttonStyle(.glass)
-            .accessibilityLabel("Start again instead")
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.return, modifiers: [])
+            .accessibilityLabel("Resume, \(done) of \(total) answered")
         }
-        .contentCard()
-        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private func resume(_ p: QuizProgress) {
+        withAnimation(.snappy) {
+            answers = p.answers; orders = p.optionOrders
+            current = min(p.current, max(0, studySet.questions.count - 1))
+            pendingResume = nil
+        }
+    }
+
+    private func startAgain() {
+        store.clearProgress(for: studySet.id)
+        withAnimation(.snappy) { pendingResume = nil }
     }
 
     /// Whether `persist()` really writes. Never from the screenshot launch,
@@ -348,15 +338,53 @@ struct MCQQuizView: View {
         }
     }
 
-    /// Time left, ticking once a second, red for the last minute.
+    /// Time left, ticking once a second, red for the last minute - a chip
+    /// in the header, where it is glanced at.
     private func examClock(_ ends: Date) -> some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let left = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
+            let left: Int = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
+            let ink: Color = left <= 60 ? Color.red : Color.primary
             Label(Self.clock(left), systemImage: "timer")
                 .labelStyle(.titleAndIcon)
                 .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(left <= 60 ? Color.red : Color.primary)
+                .foregroundStyle(ink)
                 .accessibilityLabel("\(left / 60) minutes \(left % 60) seconds left")
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 36)
+        .liquidGlassChip(plane: .raised)
+    }
+
+    /// Before the first answer: one tap turns this into a timed paper. The
+    /// same as More's Start timed exam.
+    private var timedChip: some View {
+        let track = ExamTrack.current
+        let hint: String = "The whole paper against the clock, \(track.secondsPerQuestion) seconds a question. Answers wait until the end."
+        return Button(action: startExam) {
+            Label("Timed", systemImage: "timer")
+                .labelStyle(.titleAndIcon)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .contentShape(Capsule())
+                .liquidGlassChip()
+        }
+        // lifted by the style, so it sinks flat under the finger
+        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
+        .contentShape(.hoverEffect, Capsule())
+        .hoverEffect(.highlight)
+        .accessibilityLabel("Start a timed exam, \(Self.clock(examSeconds))")
+        .accessibilityHint(hint)
+    }
+
+    /// The header's one control: the clock during a paper, or the way to
+    /// start one before the first answer.
+    @ViewBuilder
+    private var headerAccessory: some View {
+        if let ends = examEndsAt {
+            examClock(ends)
+        } else if canStartExam && pendingResume == nil {
+            timedChip
         }
     }
 
@@ -413,7 +441,9 @@ struct MCQQuizView: View {
                 .background(Color.primary.opacity(0.06), in: Capsule())
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
+        .contentShape(.hoverEffect, Capsule())
+        .hoverEffect(.highlight)
         .accessibilityLabel(on ? "Remove flag" : "Flag this question")
     }
 
@@ -425,13 +455,18 @@ struct MCQQuizView: View {
         let detail: String
         if examMode {
             detail = "\(s.checked) answered"
+        } else if pendingResume != nil {
+            detail = "Pick up where you left off?"
         } else if s.checked == 0 {
             detail = "Tap the answer you think is right"
         } else {
             detail = "\(s.correct) of \(s.checked) right so far"
         }
-        return StudyProgressHeader("Question \(current + 1) of \(total)", detail: detail,
-                                   fraction: Double(current) / Double(max(1, total)))
+        let status: String = "Question \(current + 1) of \(total)"
+        let fraction: Double = Double(current) / Double(max(1, total))
+        return StudyProgressHeader(status, detail: detail, fraction: fraction) {
+            headerAccessory
+        }
     }
 
     /// The question itself, with its picture if it has one.
@@ -467,6 +502,9 @@ struct MCQQuizView: View {
 
     private func optionRow(_ idx: Int) -> some View {
         let state = optionState(idx)
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        // the chosen answer stands a little out of the glass; the rest lie on it
+        let plane: PopOutPlane = idx == a.selected ? .raised : .screen
         return Button {
             guard !a.checked else { return }
             withAnimation(.snappy(duration: 0.2)) { answers[current].selected = idx }
@@ -490,10 +528,13 @@ struct MCQQuizView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(minHeight: 56)
-            .background(state.fill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(state.border, lineWidth: 1.5))
+            .background(state.fill, in: shape)
+            .overlay(shape.strokeBorder(state.border, lineWidth: 1.5))
         }
-        .buttonStyle(.pressableRow)
+        // the chosen answer is lifted by the style, so it sinks under the finger
+        .buttonStyle(PopPressStyle(plane: plane, shape: shape))
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.highlight)
         .numberKey(idx + 1)
         .accessibilityLabel("Answer \(letter(idx)): \(optionText(current, slot: idx))")
         .accessibilityAddTraits(idx == a.selected ? .isSelected : [])
@@ -588,7 +629,10 @@ struct MCQQuizView: View {
                         }
                     }
                 }
+                .padding(.vertical, 4)
             }
+            // the chips stand out of the glass; nothing of them is cut off
+            .scrollClipDisabled()
         }
         .transition(.opacity)
     }
@@ -612,8 +656,11 @@ struct MCQQuizView: View {
             .padding(.horizontal, 16)
             .frame(minHeight: 44)
             .background(fill, in: Capsule())
+            .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
+        .contentShape(.hoverEffect, Capsule())
+        .hoverEffect(.highlight)
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 
@@ -629,28 +676,76 @@ struct MCQQuizView: View {
         return out
     }
 
-    /// Back on the left, small; the one big button - Check, then Next -
-    /// filling the rest, in the same place for every question.
-    private var footer: some View {
-        StudyActionBar {
-            HStack(spacing: 12) {
-                Button { if current > 0 { current -= 1 } } label: {
-                    Label("Back", systemImage: "chevron.left")
-                }
-                .buttonStyle(.bigCompanion)
-                .disabled(current == 0)
-                .accessibilityLabel("Previous question")
+    /// The question, the options and what follows them, scrolling under the
+    /// bar at the bottom.
+    private var questionScroll: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if let p = pendingResume { resumeBanner(p) }
+                questionCard
 
-                Button {
-                    withAnimation(.snappy) { onCheckOrNext() }
-                } label: {
-                    Label(checkButtonTitle, systemImage: a.checked ? "arrow.right" : "checkmark")
-                        .labelStyle(.titleAndIcon)
+                VStack(spacing: 12) {
+                    ForEach(q.options.indices, id: \.self) { idx in
+                        optionRow(idx)
+                            .riseIn(index: idx + 1)
+                            .id("\(current)-\(idx)")
+                    }
                 }
-                .buttonStyle(.bigPrimary)
-                .keyboardShortcut(.return, modifiers: [])
-                .disabled(!a.checked && (a.selected == nil || holding))
+
+                if !a.checked && shuffle { confidencePicker }
+
+                // in exam mode the explanation waits for the results,
+                // as it would in the real paper
+                if a.checked && !examMode { explanationBox }
+
+                if a.checked && !examMode && !isRight(current)
+                    && shuffle && inLibrary(q.id) {
+                    whyChooser
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .studyBar { footer }
+    }
+
+    /// While a saved place waits, Start again and Resume; otherwise Back on
+    /// the left, small, and the one big button - Check, then Next - in the
+    /// same place for every question.
+    @ViewBuilder
+    private var footer: some View {
+        if let p = pendingResume {
+            resumeButtons(p)
+        } else {
+            answerButtons
+        }
+    }
+
+    private var answerButtons: some View {
+        let symbol: String = a.checked ? "arrow.right" : "checkmark"
+        let waiting: Bool = !a.checked && (a.selected == nil || holding)
+        return HStack(spacing: 12) {
+            Button { if current > 0 { current -= 1 } } label: {
+                Label("Back", systemImage: "chevron.left")
+            }
+            .buttonStyle(.bigCompanion)
+            .keyboardShortcut(.leftArrow, modifiers: [])
+            .disabled(current == 0)
+            .accessibilityLabel("Previous question")
+
+            if span == .broad { Spacer(minLength: 16) }
+
+            Button {
+                withAnimation(.snappy) { onCheckOrNext() }
+            } label: {
+                Label(checkButtonTitle, systemImage: symbol)
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.return, modifiers: [])
+            .disabled(waiting)
         }
     }
 
@@ -727,5 +822,23 @@ struct MCQQuizView: View {
     private func stripDataPrefix(_ s: String) -> String {
         guard s.hasPrefix("data:"), let commaIdx = s.firstIndex(of: ",") else { return s }
         return String(s[s.index(after: commaIdx)...])
+    }
+}
+
+/// A control that stands out of the glass at `plane` and sinks flat under the
+/// finger, the way BigButtonStyle and PopTileStyle do: the chosen answer, the
+/// confidence and why chips, Flag and Timed. A disabled one sits flat too
+/// (popOut reads isEnabled).
+private struct PopPressStyle<S: InsettableShape>: ButtonStyle {
+    let plane: PopOutPlane
+    let shape: S
+
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed: Bool = configuration.isPressed
+        let scale: CGFloat = pressed ? 0.975 : 1
+        return configuration.label
+            .scaleEffect(scale)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
+            .popOut(plane, in: shape, pressed: pressed)
     }
 }

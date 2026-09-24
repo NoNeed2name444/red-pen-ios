@@ -69,15 +69,13 @@ struct OsceGenerateSection: View {
     /// Step 2: the skills lecture or mark sheet.
     private var addSection: some View {
         Section {
+            // raised, but second to the dock's Next
             Button { picking = true } label: {
-                Label(sourceName.isEmpty ? "Choose a skills lecture or mark sheet"
-                                         : "Choose a different file",
-                      systemImage: "doc.badge.plus")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                Label(pickTitle, systemImage: "doc.badge.plus")
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.bigSecondary)
             .disabled(working)
+            .frame(maxWidth: .infinity)
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -100,21 +98,24 @@ struct OsceGenerateSection: View {
                 CountField(title: "How many stations", value: $stationCount,
                            range: 1...OsceGenerator.maxStationsTotal)
                     .disabled(working)
-                Button {
-                    working ? stop() : start()
-                } label: {
-                    Label(working ? "Stop" : makeTitle,
-                          systemImage: working ? "stop.circle" : "sparkles")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                // stopping is the progress card's Cancel, at the bottom, so
+                // this never turns into a second Stop
+                // the hero slab, the same as its floating copy in the dock
+                Button { start() } label: {
+                    HStack {
+                        if working { ProgressView().controlSize(.small) }
+                        Label(makeTitle, systemImage: "sparkles")
+                    }
                 }
-                .buttonStyle(.glassProminent)
-                .disabled(!canGenerate && !working)
+                .buttonStyle(.bigPrimary)
+                .disabled(!canGenerate)
+                .frame(maxWidth: .infinity)
                 .floatingActionAnchor("osce")
             }
             messages
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .popField()
                     .disabled(working)
             }
         } footer: {
@@ -130,6 +131,11 @@ struct OsceGenerateSection: View {
         if let trouble {
             Text(trouble).font(.caption).foregroundStyle(.red)
         }
+    }
+
+    private var pickTitle: String {
+        if sourceName.isEmpty { return "Choose a skills lecture or mark sheet" }
+        return "Choose a different file"
     }
 
     private var makeTitle: String {
@@ -154,7 +160,8 @@ struct OsceGenerateSection: View {
                              : try await OfficeIngest.read(url)
             sourceText = read.document.text
             sourceName = url.deletingPathExtension().lastPathComponent
-            status = "\(sourceName) \u{2014} \(read.document.pages.count) pages."
+            let pages: Int = read.document.pages.count
+            status = "\(sourceName) \u{2014} \(pages) pages."
             if !canGenerate {
                 trouble = "There is not much text in that file to work from."
             }
@@ -172,7 +179,9 @@ struct OsceGenerateSection: View {
         // a writer chosen in AI models goes first; otherwise Apple's model
         let writer = llm.backend(for: .writer)
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let job = GenerationCenter.shared.begin("Writing \(wanted) station\(wanted == 1 ? "" : "s")", total: wanted) {
+        let plural: String = wanted == 1 ? "" : "s"
+        let jobTitle: String = "Writing \(wanted) station\(plural)"
+        let job = GenerationCenter.shared.begin(jobTitle, total: wanted) {
             task?.cancel()
             task = nil
             working = false
@@ -187,8 +196,9 @@ struct OsceGenerateSection: View {
                 var stations: [OsceChecklist]
                 if let writer {
                     let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
+                    let check: String? = OsceGenerateSection.checkPlace(checker != nil, onServer: onServer)
                     let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil,
-                                             check: checker == nil ? nil : onServer ? "server" : "device").encoded
+                                             check: check).encoded
                     stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
@@ -218,15 +228,21 @@ struct OsceGenerateSection: View {
                 let finalStations = stations
                 let note = checkNote
                 try Task.checkCancellation()
+                let made: Int = finalStations.count
+                let verb: String = made == 1 ? " is" : "s are"
+                let madePlural: String = made == 1 ? "" : "s"
+                let finished: String = "Your \(made) OSCE station\(verb) ready"
+                let done: String = "\(made) station\(madePlural) written \u{2014} check them below."
                 await MainActor.run {
-                    GenerationCenter.shared.end(job, finished: "Your \(finalStations.count) OSCE station\(finalStations.count == 1 ? " is" : "s are") ready")
+                    GenerationCenter.shared.end(job, finished: finished)
                     working = false
                     let written = OsceStations.format(finalStations)
                     // Appended, never replacing: a student who typed a station
                     // and then generated more means both.
                     let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    bodyText = existing.isEmpty ? written : existing + "\n\n" + written
-                    status = "\(finalStations.count) station\(finalStations.count == 1 ? "" : "s") written \u{2014} check them below." + note
+                    let joined: String = existing + "\n\n" + written
+                    bodyText = existing.isEmpty ? written : joined
+                    status = done + note
                 }
             } catch is CancellationError {
                 await MainActor.run { GenerationCenter.shared.end(job); working = false }
@@ -246,5 +262,9 @@ struct OsceGenerateSection: View {
         }
     }
 
-    private func stop() { GenerationCenter.shared.cancel() }
+    /// Where the accuracy check runs, for a cloud job's recipe: nil for none.
+    nonisolated static func checkPlace(_ checking: Bool, onServer: Bool) -> String? {
+        guard checking else { return nil }
+        return onServer ? "server" : "device"
+    }
 }

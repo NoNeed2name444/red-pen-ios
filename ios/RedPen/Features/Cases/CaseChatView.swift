@@ -19,34 +19,49 @@ struct CaseChatView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let simulator {
-                    CaseSession(simulator: simulator, draft: $draft, assessment: $assessment)
-                } else {
-                    notReady
+            content
+                .navigationTitle(card.topic.isEmpty ? "Simulated patient" : card.topic)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 }
-            }
-            .navigationTitle(card.topic.isEmpty ? "Simulated patient" : card.topic)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
-            }
         }
         // a sheet of its own, so it says which screen's colour it is in
         // rather than trusting it to be passed down
         .tint(StudySetKind.qa.tint)
         .environment(\.modeTint, StudySetKind.qa.tint)
+        // the microphone may be listening: the camera stays off
+        .popOutFacePaused()
         .sheet(isPresented: $showModels) { ModelSettingsView() }
         .task(id: llm.writerChoice) { await start() }
     }
 
+    /// The consultation on the Cases backdrop, lists and forms included.
+    private var content: some View {
+        Group {
+            if let simulator {
+                CaseSession(simulator: simulator, draft: $draft, assessment: $assessment,
+                            onClose: { dismiss() })
+            } else {
+                notReady
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(ModeBackdrop(kind: .qa))
+    }
+
+    /// No model yet: the way to choose one is the main button, in the bar
+    /// under the thumb like every other study screen's.
     private var notReady: some View {
         ContentUnavailableView {
             Label("Choose a model to play the patient", systemImage: "stethoscope")
         } description: {
             Text("With Pro, use Doctor-R1 on this device or \(Brand.name) Cloud; Apple's own model works for free where Apple Intelligence is on. Add MedVAL and every patient answer is checked against the case before you see it.")
-        } actions: {
-            Button("AI models") { showModels = true }.buttonStyle(.glassProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .studyBar {
+            Button("AI models") { showModels = true }
+                .buttonStyle(.bigPrimary)
         }
     }
 
@@ -63,6 +78,8 @@ private struct CaseSession: View {
     @ObservedObject var simulator: CaseSimulator
     @Binding var draft: String
     @Binding var assessment: String
+    /// Closes the consultation, from the debrief's Done.
+    let onClose: () -> Void
     @FocusState private var typing: Bool
 
     var body: some View {
@@ -70,25 +87,30 @@ private struct CaseSession: View {
         case .preparing:
             ProgressView(simulator.status ?? "Preparing\u{2026}").frame(maxHeight: .infinity)
         case .failed(let message):
-            ContentUnavailableView {
-                Label("Couldn't set up the case", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(message)
-            } actions: {
-                Button("Try again") { Task { await simulator.prepare() } }
-                    .buttonStyle(.glassProminent)
-            }
+            failed(message)
         case .interviewing:
             VStack(spacing: 0) {
                 coverageBar
-                CaseVoiceBar(simulator: simulator)
                 transcript
-                composer
             }
         case .presenting, .grading:
             presentForm
         case .debrief:
             debrief
+        }
+    }
+
+    /// Setting up went wrong: Try again is the main button, in the bar.
+    private func failed(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("Couldn't set up the case", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .studyBar {
+            Button("Try again") { Task { await simulator.prepare() } }
+                .buttonStyle(.bigPrimary)
         }
     }
 
@@ -99,17 +121,25 @@ private struct CaseSession: View {
         let covered = simulator.coveredCount
         let fraction: Double = Double(covered) / Double(max(1, total))
         let detail: String? = simulator.checkerLabel.map { "Answers checked by \($0)" }
-        return StudyProgressHeader("\(covered) of \(total) checklist points", detail: detail, fraction: fraction) {
-            Button { simulator.endInterview() } label: {
-                Label("Finish", systemImage: "flag.checkered")
-                    .labelStyle(.titleAndIcon)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: 36)
+        let status: String = "\(covered) of \(total) checklist points"
+        return StudyProgressHeader(status, detail: detail, fraction: fraction) {
+            HStack(spacing: 8) {
+                CaseStationClock()
+                finishButton
             }
-            .buttonStyle(.glass)
-            .disabled(simulator.busy)
-            .accessibilityHint("Ends the interview so you can present your diagnosis and plan")
         }
+    }
+
+    private var finishButton: some View {
+        Button { simulator.endInterview() } label: {
+            Label("Finish", systemImage: "flag.checkered")
+                .labelStyle(.titleAndIcon)
+                .font(.subheadline.weight(.semibold))
+                .frame(minHeight: 36)
+        }
+        .buttonStyle(.glass)
+        .disabled(simulator.busy)
+        .accessibilityHint("Ends the interview so you can present your diagnosis and plan")
     }
 
     private var transcript: some View {
@@ -130,6 +160,7 @@ private struct CaseSession: View {
                 .padding()
                 .readableColumn()
             }
+            .studyBar { composer }
             .onChange(of: simulator.messages.count) { _, _ in
                 if let last = simulator.messages.last?.id {
                     withAnimation { proxy.scrollTo(last, anchor: .bottom) }
@@ -176,56 +207,67 @@ private struct CaseSession: View {
             .foregroundStyle(verdict.passed ? Color.secondary : Color.orange)
     }
 
-    private var composer: some View {
-        HStack(spacing: 8) {
-            TextField("Ask the patient, or say what you examine", text: $draft, axis: .vertical)
-                .font(.body)
-                .lineLimit(1...4)
-                .focused($typing)
-                .padding(12)
-                .frame(minHeight: 48)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            Button {
-                let text = draft
-                draft = ""
-                Task { await simulator.send(text) }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.largeTitle)
-                    .frame(minWidth: 48, minHeight: 48)
-            }
-            .keyboardShortcut(.return, modifiers: [.command])
-            .disabled(simulator.busy || draft.trimmingCharacters(in: .whitespaces).isEmpty)
-            .accessibilityLabel("Send")
-        }
-        .padding(.horizontal, 16).padding(.vertical, 8)
-        .background(.bar)
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Under the thumb: the question box, the speaker, and the microphone -
+    /// or Send, once something is typed.
+    private var composer: some View {
+        CaseVoiceButtons(simulator: simulator, hasDraft: !trimmedDraft.isEmpty, onSend: send) {
+            questionField
+        }
+    }
+
+    private var questionField: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return TextField("Ask the patient, or say what you examine", text: $draft, axis: .vertical)
+            .font(.body)
+            .lineLimit(1...4)
+            .focused($typing)
+            .padding(12)
+            .frame(minHeight: 48)
+            .background(Color.primary.opacity(0.06), in: shape)
+            // a field stands out of the glass but never leans under the finger
+            .popOut(.raised, in: shape, cues: .translateOnly)
+    }
+
+    private func send() {
+        let text: String = draft
+        guard !trimmedDraft.isEmpty, !simulator.busy else { return }
+        draft = ""
+        Task { await simulator.send(text) }
+    }
+
+    /// The student's differential and plan, with the one button that marks
+    /// the consultation at the bottom.
     private var presentForm: some View {
         Form {
             Section {
                 TextEditor(text: $assessment).frame(minHeight: 180)
+                    .popEditorRow()
             } header: {
                 Text("Your differential and plan")
             } footer: {
                 Text("Present as you would to the examiner: most likely diagnosis, differentials, investigations and management.")
             }
-            Section {
-                Button {
-                    Task { await simulator.finish(assessment: assessment) }
-                } label: {
-                    HStack {
-                        if simulator.phase == .grading { ProgressView().controlSize(.small) }
-                        Text(simulator.phase == .grading ? (simulator.status ?? "Marking\u{2026}") : "Finish and mark")
-                    }
-                }
-                .buttonStyle(.bigPrimary)
-                .disabled(simulator.phase == .grading)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+        }
+        .studyBar { markButton }
+    }
+
+    private var markButton: some View {
+        let grading: Bool = simulator.phase == .grading
+        let title: String = grading ? (simulator.status ?? "Marking\u{2026}") : "Finish and mark"
+        return Button {
+            Task { await simulator.finish(assessment: assessment) }
+        } label: {
+            HStack(spacing: 8) {
+                if grading { ProgressView().controlSize(.small) }
+                Text(title)
             }
         }
+        .buttonStyle(.bigPrimary)
+        .disabled(grading)
     }
 
     private var debrief: some View {
@@ -260,6 +302,11 @@ private struct CaseSession: View {
                 Text("A study aid, not medical advice. Generated patients can be wrong.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+        }
+        .studyBar {
+            Button("Done", action: onClose)
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
         }
     }
 }
