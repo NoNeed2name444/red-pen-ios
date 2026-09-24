@@ -442,9 +442,32 @@ enum GraphSceneBuilder {
         let scale: Float = height / 10
         textNode.scale = SCNVector3(x: scale, y: scale, z: scale)
 
+        // a dark rounded pill just the size of the words behind them, so the
+        // title reads clearly over the glowing links
+        let textWidth: Float = (high.x - low.x) * scale
+        let textHeight: Float = (high.y - low.y) * scale
+        let padX: Float = height * 0.45
+        let padY: Float = height * 0.28
+        let pillWidth: Float = textWidth + padX * 2
+        let pillHeight: Float = textHeight + padY * 2
+        let pill = SCNPlane(width: CGFloat(pillWidth), height: CGFloat(pillHeight))
+        pill.cornerRadius = CGFloat(pillHeight / 2)
+        let pillLook = SCNMaterial()
+        pillLook.diffuse.contents = UIColor(red: 0.03, green: 0.04, blue: 0.09, alpha: 0.82)
+        pillLook.lightingModel = .constant
+        pillLook.isDoubleSided = true
+        pillLook.writesToDepthBuffer = false
+        pill.materials = [pillLook]
+        let pillNode = SCNNode(geometry: pill)
+        pillNode.simdPosition = SIMD3<Float>(0, textHeight / 2, -0.002)
+        // drawn after the links, then the words on top of the pill
+        pillNode.renderingOrder = 20
+        textNode.renderingOrder = 21
+
         let holder = SCNNode()
         holder.name = "label"
         holder.renderingOrder = 20
+        holder.addChildNode(pillNode)
         holder.addChildNode(textNode)
         let billboard = SCNBillboardConstraint()
         billboard.freeAxes = .all
