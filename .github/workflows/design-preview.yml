@@ -30,6 +30,13 @@ jobs:
           DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone.*Pro" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
           [ -z "$DEVICE" ] && DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
           echo "Simulator: $DEVICE"
+          # a screen recording of the whole run, for the owner to watch
+          UDID=$(xcrun simctl list devices available | grep -m1 "$DEVICE (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b || true
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --force ../graph.mp4 &
+          REC=$!
+          sleep 2
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
             -resultBundlePath ../preview.xcresult \
@@ -38,6 +45,8 @@ jobs:
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO \
             test 2>&1 | tee ../preview.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          kill -INT $REC || true
+          sleep 3
       - name: Push the pictures
         if: always()
         env:
@@ -59,6 +68,7 @@ jobs:
           PY
           fi
           rm -rf out/raw
+          [ -f graph.mp4 ] && cp graph.mp4 out/shots/graph.mp4 || true
           grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" preview.log | tail -30 > out/log.txt || true
           grep -E "error:" preview.log | sed -E 's#^.*/ios/##' | sort -u | head -40 >> out/log.txt || true
           cd out
