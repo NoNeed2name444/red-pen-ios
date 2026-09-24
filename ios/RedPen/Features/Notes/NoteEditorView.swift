@@ -23,6 +23,8 @@ struct NoteEditorView: View {
     @State private var kind: NoteKind = .idea
     @State private var folderId: UUID?
     @State private var loaded = false
+    /// Read the note as Markdown instead of editing it; remembered.
+    @AppStorage("notesReadAsMarkdown") private var reading = false
     @State private var linking = false
     @State private var confirmingDelete = false
     /// What "Turn into cards" did, to say so.
@@ -53,10 +55,21 @@ struct NoteEditorView: View {
                 }
 
                 Section {
-                    TextEditor(text: $text)
-                        .frame(minHeight: kind == .page ? 260 : 140)
-                        .accessibilityLabel("Note")
-                    if !suggestions.isEmpty {
+                    Picker("View", selection: $reading) {
+                        Label("Write", systemImage: "pencil").tag(false)
+                        Label("Read", systemImage: "doc.richtext").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("noteMarkdownToggle")
+                    if reading {
+                        NoteMarkdownView(text: text) { name in openNote(named: name) }
+                            .frame(minHeight: kind == .page ? 260 : 140, alignment: .topLeading)
+                    } else {
+                        TextEditor(text: $text)
+                            .frame(minHeight: kind == .page ? 260 : 140)
+                            .accessibilityLabel("Note")
+                    }
+                    if !reading && !suggestions.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(suggestions) { note in
@@ -70,7 +83,7 @@ struct NoteEditorView: View {
                 } header: {
                     Text("Notes")
                 } footer: {
-                    Text("Type [[ and a note\u{2019}s title to link it, like [[Heart failure]]. Lines written \u{201C}Question | Answer\u{201D}, or bullet points, can be turned into cards.")
+                    Text("Type [[ and a note\u{2019}s title to link it, like [[Heart failure]]. Markdown works too: # headings, - bullets, **bold**, *italic*; switch to Read to see it laid out. Lines written \u{201C}Question | Answer\u{201D}, or bullet points, can be turned into cards.")
                 }
 
                 Section("Linked notes") {
@@ -214,6 +227,15 @@ struct NoteEditorView: View {
         commit()
         current = previous
         load()
+    }
+
+    /// A `[[Title]]` tapped while reading: that note, or a new page by that name.
+    private func openNote(named name: String) {
+        if let id = notes.titleIndex()[name.trimmingCharacters(in: .whitespaces).lowercased()] {
+            follow(id)
+        } else {
+            makePage(named: name)
+        }
     }
 
     private func makePage(named name: String) {
