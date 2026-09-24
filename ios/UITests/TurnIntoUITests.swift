@@ -18,6 +18,7 @@ final class TurnIntoUITests: XCTestCase {
 
     func testMCQTurnsIntoCardsAndOpens() {
         let app = XCUIApplication()
+        app.launchArguments += ["-personalBuild"]
         app.launch()
         let gone = NSPredicate(format: "exists == false")
 

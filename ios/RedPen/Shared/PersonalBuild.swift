@@ -38,5 +38,7 @@ enum AppResources {
 enum PersonalBuild {
     static let isOn: Bool =
         Bundle.main.bundleIdentifier?.hasSuffix(".personal") == true
+        // the simulator tests ask for it, to check the examples appear
+        || ProcessInfo.processInfo.arguments.contains("-personalBuild")
         || AppResources.sample("personal-build", "txt") != nil
 }
