@@ -22,6 +22,9 @@ struct MCQSummaryView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: Store
     @State private var mistakesSaved = false
+    /// The percentage as shown: it counts up from nothing as the ring fills,
+    /// rather than sitting there finished before the ring has started.
+    @State private var shownPercent = 0
 
     /// The questions answered wrongly, for a set of their own.
     private var mistakes: [MCQQuestion] {
@@ -70,8 +73,13 @@ struct MCQSummaryView: View {
             VStack(spacing: 16) {
                 VStack(spacing: 14) {
                     ScoreRing(fraction: fraction,
-                              label: "\(Int((fraction * 100).rounded()))%",
+                              label: "\(shownPercent)%",
                               sublabel: "\(correctCount) of \(total) correct")
+                        .onAppear {
+                            withAnimation(.smooth(duration: 0.9)) {
+                                shownPercent = Int((fraction * 100).rounded())
+                            }
+                        }
                     Text(verdict)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)

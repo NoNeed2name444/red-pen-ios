@@ -12,12 +12,15 @@ import SwiftUI
 /// On a phone there is no sidebar, so the same four live behind the toolbar
 /// menu and push onto the stack. One definition, two ways in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
-    case account, settings, help, faq
+    /// How the studying is going - not strictly about the app, but like the
+    /// others it is somewhere visited now and then rather than worked in.
+    case progress, account, settings, help, faq
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .progress: return "Progress"
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
@@ -27,6 +30,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
+        case .progress: return "chart.bar.xaxis"
         case .account: return "person.crop.circle"
         case .settings: return "gearshape"
         case .help: return "lightbulb"
@@ -36,6 +40,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var blurb: String {
         switch self {
+        case .progress: return "Accuracy by subject, and your streak"
         case .account: return "Signing in, syncing, subscription"
         case .settings: return "What the app does on its own"
         case .help: return "What each mode is for"
@@ -46,6 +51,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     @ViewBuilder
     var page: some View {
         switch self {
+        case .progress: StatsView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()
         case .help: HelpPage()

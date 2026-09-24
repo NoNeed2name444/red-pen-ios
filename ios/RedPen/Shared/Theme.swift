@@ -254,7 +254,11 @@ struct ScoreRing: View {
                 .rotationEffect(.degrees(-90))
                 .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
             VStack(spacing: 2) {
+                // digits that roll rather than blink when the label changes,
+                // and that keep their width while they do
                 Text(label).font(.system(size: 38, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
             }
         }

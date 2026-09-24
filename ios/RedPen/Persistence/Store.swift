@@ -41,6 +41,17 @@ final class Store: ObservableObject {
     /// closed it is the fastest way to stop using it. One number is enough for
     /// both - which card, or which page.
     @Published var readingProgress: [UUID: ReadingProgress] = [:]
+    /// Questions the student has flagged to come back to, by question id.
+    ///
+    /// By question rather than by set, so a question flagged in a combined
+    /// set or a Mistakes set is the same flag wherever it turns up again.
+    @Published var flagged: Set<UUID> = []
+    /// Every MCQ answer checked, right or wrong, oldest first, by question id.
+    ///
+    /// The quiz itself forgets a session once it is over; this is what is left
+    /// behind, so the Progress screen can say which subject is weakest and
+    /// the drill can go straight for the questions that were missed.
+    @Published var answerHistory: [UUID: [Bool]] = [:]
 
     private let fileURL: URL
 
@@ -68,6 +79,8 @@ final class Store: ObservableObject {
         var tombstones: [UUID: Date]?           // likewise
         var osceProgress: [UUID: OsceProgress]? // likewise
         var readingProgress: [UUID: ReadingProgress]? // likewise
+        var flagged: Set<UUID>?                 // likewise
+        var answerHistory: [UUID: [Bool]]?      // likewise
     }
 
     func load() {
@@ -86,13 +99,17 @@ final class Store: ObservableObject {
         tombstones = snapshot.tombstones ?? [:]
         osceProgress = snapshot.osceProgress ?? [:]
         readingProgress = snapshot.readingProgress ?? [:]
+        flagged = snapshot.flagged ?? []
+        answerHistory = snapshot.answerHistory ?? [:]
     }
 
     func save() {
         let snapshot = Snapshot(library: library, folders: folders,
                                 quizProgress: quizProgress, tombstones: tombstones,
                                 osceProgress: osceProgress,
-                                readingProgress: readingProgress)
+                                readingProgress: readingProgress,
+                                flagged: flagged,
+                                answerHistory: answerHistory)
         guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }

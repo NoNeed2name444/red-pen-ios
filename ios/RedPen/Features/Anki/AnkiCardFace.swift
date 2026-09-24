@@ -155,3 +155,45 @@ struct AnkiCardFace: View {
         return String(s[s.index(after: comma)...])
     }
 }
+
+/// Turns the card over when its answer is revealed.
+///
+/// Applied by the review screens to the whole card, background and all, since
+/// the card's panel is theirs rather than the face's. It is a quarter turn
+/// away and a quarter turn back, with the face swapped while the card is
+/// edge-on - a half turn in one go would leave the back reading mirror-wise.
+///
+/// Only the reveal turns the card. Moving on to the next one is a new card,
+/// not the old one turned back, so that simply appears.
+struct CardFlip: ViewModifier {
+    let revealed: Bool
+    /// Off for the screenshot launch, which opens on a revealed card and
+    /// should not be photographed half way round.
+    var enabled: Bool = true
+    @State private var angle: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+            .onChange(of: revealed) { _, now in
+                guard now, enabled, !reduceMotion else {
+                    angle = 0
+                    return
+                }
+                withAnimation(.easeIn(duration: 0.12)) {
+                    angle = 90
+                } completion: {
+                    // edge-on, so the jump to the other side cannot be seen
+                    angle = -90
+                    withAnimation(.easeOut(duration: 0.2)) { angle = 0 }
+                }
+            }
+    }
+}
+
+extension View {
+    func cardFlip(revealed: Bool, enabled: Bool = true) -> some View {
+        modifier(CardFlip(revealed: revealed, enabled: enabled))
+    }
+}

@@ -17,7 +17,17 @@ struct MCQQuizView: View {
     @State private var orders: [[Int]]
     @State private var showSummary = false
     @State private var pendingResume: QuizProgress?
+    /// Timed exam mode: the whole paper against the clock, with nothing
+    /// said about right or wrong until the results. Off unless asked for.
+    @State private var examMode = false
+    /// When the paper's time runs out; nil once it is over.
+    @State private var examEndsAt: Date?
     private let shuffle: Bool
+    /// False for a quiz put together on the spot - flagged questions, a
+    /// drill, a mix of sets - which is not in the library and so has no
+    /// place to be resumed from. Saving its position would leave a row
+    /// keyed by a set that will never be opened again.
+    private let keepsProgress: Bool
     /// True for a just-generated set that isn't in the library yet (the
     /// web app's equivalent: a quiz opened straight from generation, with
     /// its own "Save to library" button in the header, rather than one
@@ -33,9 +43,11 @@ struct MCQQuizView: View {
     /// PreviewLaunch) to open the quiz with an answer already checked; it
     /// also switches shuffling off so the screenshots are stable.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil, isUnsaved: Bool = false,
-         saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil) {
+         saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil,
+         keepsProgress: Bool = true) {
         self.studySet = studySet
         self.shuffle = initialAnswers == nil
+        self.keepsProgress = keepsProgress
         self.isUnsaved = isUnsaved
         self.saved = saved
         self.onSave = onSave
@@ -102,10 +114,14 @@ struct MCQQuizView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     if let p = pendingResume { resumeBanner(p) }
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Question \(current + 1) · single best answer")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tint)
-                            .textCase(.uppercase)
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Question \(current + 1) · single best answer")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tint)
+                                .textCase(.uppercase)
+                            Spacer(minLength: 8)
+                            if inLibrary(q.id) { flagButton }
+                        }
                         Text(q.stem)
                             .font(.title3.weight(.semibold))
                             .lineSpacing(3)
@@ -128,7 +144,9 @@ struct MCQQuizView: View {
                         }
                     }
 
-                    if a.checked { explanationBox }
+                    // in exam mode the explanation waits for the results,
+                    // as it would in the real paper
+                    if a.checked && !examMode { explanationBox }
                 }
                 .padding(.horizontal)
                 .padding(.top, 6)
@@ -141,7 +159,7 @@ struct MCQQuizView: View {
         .accuracyCheck(set: studySet,
                        instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.") {
             // only once answered: the check shows the answer
-            guard studySet.questions.indices.contains(current),
+            guard !examMode, studySet.questions.indices.contains(current),
                   answers.indices.contains(current), answers[current].checked else { return nil }
             let question = studySet.questions[current]
             let letters = ["A", "B", "C", "D", "E", "F"]
@@ -168,6 +186,20 @@ struct MCQQuizView: View {
                     .disabled(saved.wrappedValue)
                 }
             }
+            if let ends = examEndsAt {
+                ToolbarItem(placement: .topBarTrailing) { examClock(ends) }
+            } else if canStartExam {
+                ToolbarItem(placement: .topBarTrailing) { examMenu }
+            }
+        }
+        // Wakes once, when the paper's time is up. Keyed by the end time, so
+        // finishing early (which clears it) cancels the wait.
+        .task(id: examEndsAt) {
+            guard let ends = examEndsAt else { return }
+            let wait = ends.timeIntervalSinceNow
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            guard !Task.isCancelled, examEndsAt == ends else { return }
+            timeUp()
         }
         .navigationDestination(isPresented: $showSummary) {
             MCQSummaryView(set: studySet, answers: originalAnswers, onRetake: { retake() },
@@ -218,8 +250,14 @@ struct MCQQuizView: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
+    /// Whether `persist()` really writes. Never from the screenshot launch,
+    /// never for a quiz with no place in the library - and never in exam
+    /// mode: a timed paper is sat in one go, and resumed later it would carry
+    /// on without its clock, with the answers it had been hiding.
+    private var keepsPosition: Bool { shuffle && keepsProgress && !examMode }
+
     private func persist() {
-        guard shuffle else { return } // never from the screenshot launch
+        guard keepsPosition else { return }
         store.saveProgress(QuizProgress(current: current, answers: answers,
                                         questionIds: studySet.questions.map(\.id), optionOrders: orders),
                            for: studySet.id)
@@ -229,7 +267,99 @@ struct MCQQuizView: View {
         answers = Array(repeating: MCQAnswer(), count: studySet.questions.count)
         orders = Self.makeOrders(for: studySet, shuffle: shuffle)
         current = 0
+        examMode = false
+        examEndsAt = nil
         store.clearProgress(for: studySet.id)
+    }
+
+    // MARK: timed exam mode
+
+    /// Only before the first answer: a clock started half way through a
+    /// quiz already answered with the explanations showing is not a paper.
+    private var canStartExam: Bool {
+        shuffle && !examMode && !answers.contains(where: \.checked)
+    }
+
+    /// The whole paper's time: the exam's pace per question times the
+    /// number of questions.
+    private var examSeconds: Int {
+        ExamTrack.current.secondsPerQuestion * studySet.questions.count
+    }
+
+    private var examMenu: some View {
+        let track = ExamTrack.current
+        let pace: String = track == .general ? "revision" : track.title
+        let note = "\(track.secondsPerQuestion) seconds a question (\(pace) pace); answers and explanations wait for the results"
+        return Menu {
+            // A section title is the one piece of text a menu reliably shows.
+            Section(note) {
+                Button("Start timed exam \u{00B7} \(Self.clock(examSeconds))", systemImage: "timer") {
+                    startExam()
+                }
+            }
+        } label: {
+            Label("Exam mode", systemImage: "timer")
+        }
+    }
+
+    /// Time left, ticking once a second, red for the last minute.
+    private func examClock(_ ends: Date) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let left = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
+            Label(Self.clock(left), systemImage: "timer")
+                .labelStyle(.titleAndIcon)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(left <= 60 ? Color.red : Color.primary)
+                .accessibilityLabel("\(left / 60) minutes \(left % 60) seconds left")
+        }
+    }
+
+    private func startExam() {
+        store.clearProgress(for: studySet.id)
+        withAnimation(.snappy) {
+            pendingResume = nil
+            examMode = true
+            examEndsAt = Date().addingTimeInterval(TimeInterval(examSeconds))
+        }
+    }
+
+    private func timeUp() {
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        finish()
+    }
+
+    /// "1:05:00" or "12:30".
+    private static func clock(_ seconds: Int) -> String {
+        let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
+    }
+
+    // MARK: flags
+
+    /// Whether this question is one the library keeps, and so can be flagged
+    /// and found again. A quiz made on the spot from a deck of cards has
+    /// questions that exist only for this sitting.
+    private func inLibrary(_ id: UUID) -> Bool {
+        store.library.contains { set in
+            set.kind == .mcq && set.questions.contains { $0.id == id }
+        }
+    }
+
+    private var flagButton: some View {
+        let on = store.flagged.contains(q.id)
+        return Button {
+            UISelectionFeedbackGenerator().selectionChanged()
+            withAnimation(.snappy) { store.toggleFlag(q.id) }
+        } label: {
+            Image(systemName: on ? "flag.fill" : "flag")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(on ? Color.orange : Color.secondary)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(minWidth: 28, minHeight: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(on ? "Remove flag" : "Flag this question")
     }
 
     private var header: some View {
@@ -240,8 +370,11 @@ struct MCQQuizView: View {
                 Spacer()
                 let s = scoreSoFar
                 HStack(spacing: 5) {
-                    Image(systemName: "checkmark.circle.fill").font(.caption)
-                    Text("\(s.correct) / \(s.checked)")
+                    Image(systemName: examMode ? "pencil.circle.fill" : "checkmark.circle.fill").font(.caption)
+                    // how many are right is part of what exam mode holds back
+                    Text(examMode ? "\(s.checked) answered" : "\(s.correct) / \(s.checked)")
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
                 }
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.tint)
@@ -279,6 +412,7 @@ struct MCQQuizView: View {
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(state.border, lineWidth: 1.2))
         }
         .buttonStyle(.pressableRow)
+        .numberKey(idx + 1)
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
     }
@@ -290,7 +424,9 @@ struct MCQQuizView: View {
     private func optionState(_ idx: Int) -> OptionState {
         let tint = StudySetKind.mcq.tint
         let card = Color(.secondarySystemGroupedBackground)
-        if !a.checked {
+        // exam mode keeps showing only what was chosen: right and wrong
+        // wait for the results
+        if !a.checked || examMode {
             let on = idx == a.selected
             return OptionState(fill: on ? tint.opacity(0.10) : card,
                                border: on ? tint : .clear,
@@ -332,6 +468,7 @@ struct MCQQuizView: View {
                         .labelStyle(.titleAndIcon)
                 }
                 .buttonStyle(.glassProminent)
+                .keyboardShortcut(.return, modifiers: [])
                 .disabled(!a.checked && a.selected == nil)
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
@@ -341,26 +478,52 @@ struct MCQQuizView: View {
     }
 
     private var checkButtonTitle: String {
+        let last = current == studySet.questions.count - 1
+        if examMode && !a.checked { return last ? "Finish paper" : "Next" }
         if !a.checked { return "Check answer" }
-        return current == studySet.questions.count - 1 ? "See results" : "Next"
+        return last ? "See results" : "Next"
     }
 
     private func onCheckOrNext() {
         if !a.checked {
             answers[current].checked = true
+            // `selected` is the slot on screen, which after shuffling is not
+            // the option's place in the question - compare slot with slot
+            let right = answers[current].selected == correctSlot(current)
+            StudyLog.shared.record()
+            // the save that follows writes the history too, when there is one
+            if shuffle { store.recordAnswer(q.id, correct: right, saving: !keepsPosition) }
+            if examMode {
+                // nothing to read after answering in a paper, so one tap
+                // answers and moves on - and the buzz gives nothing away
+                UISelectionFeedbackGenerator().selectionChanged()
+                advance()
+                return
+            }
             // felt as well as seen: right and wrong answers buzz differently
-            let right = answers[current].selected == studySet.questions[current].correctIndex
             UINotificationFeedbackGenerator().notificationOccurred(right ? .success : .error)
             persist()
             return
         }
+        advance()
+    }
+
+    private func advance() {
         if current < studySet.questions.count - 1 {
             current += 1
             persist()
         } else {
-            store.clearProgress(for: studySet.id)
-            showSummary = true
+            finish()
         }
+    }
+
+    private func finish() {
+        store.clearProgress(for: studySet.id)
+        // the paper is over: coming back from the results shows the
+        // answers and explanations it was holding back
+        examEndsAt = nil
+        examMode = false
+        showSummary = true
     }
 
     private func letter(_ idx: Int) -> String {

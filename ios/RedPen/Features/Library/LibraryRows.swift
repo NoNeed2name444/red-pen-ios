@@ -71,6 +71,91 @@ extension LibraryView {
         }
     }
 
+    /// "5-day streak · 32 today" - only once there is a streak to show, so a
+    /// first launch is not greeted by a zero.
+    @ViewBuilder
+    var streakRow: some View {
+        let streak = studyLog.streak
+        let today = studyLog.today
+        if streak > 0 {
+            HStack(spacing: 12) {
+                Image(systemName: "flame.fill")
+                    .font(.title3)
+                    .foregroundStyle(today > 0 ? Color.orange : Color.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(streak)-day streak \u{00B7} \(today) today")
+                        .font(.body.weight(.semibold))
+                        .monospacedDigit()
+                    if today == 0 {
+                        // yesterday's streak, still alive until midnight
+                        Text("Answer one question or card to keep it going")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 2)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// Every flagged question in the library as one quiz.
+    ///
+    /// A button that builds the quiz when tapped, not a link holding one: the
+    /// quiz is a copy taken at that moment, so unflagging a question part way
+    /// through it leaves the quiz as it was.
+    @ViewBuilder
+    var flaggedRow: some View {
+        let picks = store.flaggedQuestions
+        if !picks.isEmpty {
+            Button {
+                quickQuiz = Store.temporaryQuiz(named: "Flagged questions", subject: "Flagged",
+                                                from: picks.shuffled())
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "flag.fill")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                    Text("Flagged questions (\(picks.count))")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Every question in the selected MCQ sets, shuffled together into one
+    /// quiz of at most fifty, and opened without being saved.
+    ///
+    /// Revising one lecture at a time teaches the order the lectures came
+    /// in; the exam mixes them, so practice should too.
+    func startMixedQuiz() {
+        let sets = selectedSets.filter { $0.kind == .mcq }
+        var seen: Set<UUID> = []
+        var picks: [QuestionPick] = []
+        for set in sets {
+            for question in set.questions {
+                // a Mistakes set holds copies of questions from its original
+                if seen.insert(question.id).inserted {
+                    picks.append(QuestionPick(set: set, question: question))
+                }
+            }
+        }
+        guard !picks.isEmpty else { return }
+        let subjects = Set(sets.map { Store.subjectName($0) })
+        let subject = subjects.count == 1 ? (subjects.first ?? "Mixed") : "Mixed"
+        let quiz = Store.temporaryQuiz(named: "Mixed quiz", subject: subject,
+                                       from: Array(picks.shuffled().prefix(50)))
+        withAnimation(.snappy) { selecting = false; selected = [] }
+        quickQuiz = quiz
+    }
+
     /// A row of small mode counters - how many of each kind of set the library
     /// holds.
     var summaryStrip: some View {
@@ -197,6 +282,11 @@ extension LibraryView {
                 }
                 .buttonStyle(.glass)
                 .disabled(selected.isEmpty)
+                Button { startMixedQuiz() } label: {
+                    Label("Quiz", systemImage: "shuffle")
+                }
+                .buttonStyle(.glass)
+                .disabled(!selectedSets.contains { $0.kind == .mcq && !$0.questions.isEmpty })
                 Button { naming = .combine } label: {
                     Label("Combine", systemImage: "square.stack.3d.down.forward")
                 }

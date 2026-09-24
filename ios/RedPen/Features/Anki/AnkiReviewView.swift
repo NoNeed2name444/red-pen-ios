@@ -50,6 +50,7 @@ struct AnkiReviewView: View {
                                      reading = SourceOpening(source: source, page: page)
                                  })
                         .contentCard()
+                        .cardFlip(revealed: revealed, enabled: !startRevealed)
                         .padding(.horizontal)
                         .padding(.top, 4)
                         .padding(.bottom, 24)
@@ -153,6 +154,8 @@ struct AnkiReviewView: View {
                         Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
                     }
                     .buttonStyle(.glassProminent)
+                    // Space turns the card over, as it does in Anki
+                    .keyboardShortcut(.space, modifiers: [])
                 } else {
                     let labels = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
                     HStack(spacing: 8) {
@@ -178,6 +181,8 @@ struct AnkiReviewView: View {
             .frame(maxWidth: .infinity).padding(.vertical, 4)
         }
         .buttonStyle(.glass).tint(color)
+        // 1 to 4, Again to Easy - Anki's own keys
+        .numberKey((AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1)
     }
 
     // MARK: the sitting
@@ -206,6 +211,7 @@ struct AnkiReviewView: View {
         guard let item = current else { return }
         UISelectionFeedbackGenerator().selectionChanged()
         let kept = reviews.rate(rating, card: item.card)
+        StudyLog.shared.record()
         reviewedCount += 1
         queue.removeAll { $0.id == item.id }
         if kept.intervalMin <= Self.sittingMinutes {

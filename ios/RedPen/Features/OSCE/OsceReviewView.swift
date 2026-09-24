@@ -18,6 +18,13 @@ struct OsceReviewView: View {
     @State private var repeatQueue: [Int] = []
     @State private var repeatPos = 0
     @State private var complete = false
+    /// The station clock: when it runs out while running, nil while stopped.
+    @State private var clockEndsAt: Date?
+    /// What is left on the clock while it is stopped. A station starts with
+    /// the time the student's exam gives one - eight minutes for PLAB 2, ten
+    /// for a PACES encounter - because practising against the real length is
+    /// the only way to learn what fits in it.
+    @State private var clockLeft = OsceReviewView.stationSeconds
 
     init(set studySet: StudySet, startChecklistIndex: Int = 0, startRevealed: Bool = false, startComplete: Bool = false, startMissed: [Int] = []) {
         self.studySet = studySet
@@ -62,7 +69,82 @@ struct OsceReviewView: View {
         .onChange(of: stepIndex) { _, _ in remember() }
         .onChange(of: checklistIndex) { _, _ in remember() }
         .onChange(of: repeatPos) { _, _ in remember() }
-        .onChange(of: complete) { _, _ in remember() }
+        .onChange(of: complete) { _, done in
+            remember()
+            if done { stopClock() }
+        }
+        // Two gentle taps from the clock: one with a minute left, one at the
+        // end, so it can be felt without looking away from the patient.
+        // Keyed by the end time, so pausing (which clears it) cancels both.
+        .task(id: clockEndsAt) {
+            guard let ends = clockEndsAt else { return }
+            let untilWarning = ends.timeIntervalSinceNow - 60
+            if untilWarning > 0 {
+                try? await Task.sleep(for: .seconds(untilWarning))
+                guard !Task.isCancelled, clockEndsAt == ends else { return }
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            }
+            let rest = ends.timeIntervalSinceNow
+            if rest > 0 { try? await Task.sleep(for: .seconds(rest)) }
+            guard !Task.isCancelled, clockEndsAt == ends else { return }
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            clockEndsAt = nil
+            clockLeft = 0
+        }
+    }
+
+    // MARK: station clock
+
+    /// One station's time in the exam the student is sitting.
+    nonisolated static var stationSeconds: TimeInterval {
+        TimeInterval(ExamTrack.current.stationMinutes * 60)
+    }
+
+    /// Start, pause, and - once it has run out - put back to a full station.
+    private var stationClock: some View {
+        Button(action: toggleClock) {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let left = secondsLeft(at: context.date)
+                let running = clockEndsAt != nil
+                HStack(spacing: 5) {
+                    Image(systemName: running ? "pause.fill" : (left == 0 ? "arrow.counterclockwise" : "play.fill"))
+                        .font(.caption2)
+                    Text(String(format: "%d:%02d", left / 60, left % 60))
+                        .monospacedDigit()
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(running && left <= 60 ? Color.red : Color.primary)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .liquidGlassChip()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Station clock, \(left / 60) minutes \(left % 60) seconds")
+                .accessibilityHint(running ? "Pauses the clock" : (left == 0 ? "Resets the clock" : "Starts the clock"))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func secondsLeft(at date: Date) -> Int {
+        let raw = clockEndsAt.map { $0.timeIntervalSince(date) } ?? clockLeft
+        return max(0, Int(raw.rounded(.up)))
+    }
+
+    private func toggleClock() {
+        UISelectionFeedbackGenerator().selectionChanged()
+        if clockEndsAt != nil {
+            stopClock()
+        } else if clockLeft <= 0 {
+            clockLeft = Self.stationSeconds
+        } else {
+            clockEndsAt = Date().addingTimeInterval(clockLeft)
+        }
+    }
+
+    /// Pauses, keeping whatever time is left.
+    private func stopClock() {
+        guard let ends = clockEndsAt else { return }
+        clockLeft = max(0, ends.timeIntervalSinceNow)
+        clockEndsAt = nil
     }
 
     // MARK: header
@@ -89,6 +171,7 @@ struct OsceReviewView: View {
                     }
                 }
                 Spacer()
+                if !complete { stationClock }
             }
             Text(checklist.title).font(.title3.weight(.semibold))
             ThinProgress(fraction: fraction)
@@ -185,6 +268,7 @@ struct OsceReviewView: View {
 
     private func grade(knewIt: Bool) {
         guard let checklist else { return }
+        StudyLog.shared.record()
         if inRepeat {
             repeatPos += 1
             if repeatPos >= repeatQueue.count {
@@ -246,6 +330,9 @@ struct OsceReviewView: View {
     }
 
     private func nextChecklist() {
+        // a new station gets a fresh clock
+        clockEndsAt = nil
+        clockLeft = Self.stationSeconds
         checklistIndex += 1
         stepIndex = 0
         revealed = false

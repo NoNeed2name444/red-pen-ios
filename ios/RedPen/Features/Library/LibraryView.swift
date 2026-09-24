@@ -25,6 +25,11 @@ struct LibraryView: View {
     @State var renamingFolder: StudyFolder?
     @State var editing: StudySet?
     @State var draftName = ""
+    /// A quiz put together on the spot - the flagged questions, or a mix of
+    /// the selected sets - opened without being saved to the library.
+    @State var quickQuiz: StudySet?
+    /// Today's count and the streak, for the strip at the top.
+    @ObservedObject var studyLog = StudyLog.shared
 
     /// Which mode's shelf is showing. The whole screen takes its colour from
     /// this, so a swipe to Anki turns the navigation bar indigo instead of
@@ -148,6 +153,10 @@ struct LibraryView: View {
             .navigationTitle(Brand.name)
             .searchable(text: $query, prompt: "Sets, subjects, questions")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
+            // Snapshotted when tapped rather than built live: a flag taken
+            // off half way through the flagged quiz must not pull the
+            // question out from under it.
+            .navigationDestination(item: $quickQuiz) { MCQQuizView(set: $0, keepsProgress: false) }
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) {
                 // The selection bar takes the dock's place while it is up:
@@ -177,7 +186,9 @@ struct LibraryView: View {
             List {
                 Section {
                     examCountdown
+                    streakRow
                     dueBanner
+                    flaggedRow
                 }
                 if !loose.isEmpty {
                     Section {

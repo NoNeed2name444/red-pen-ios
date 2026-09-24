@@ -34,6 +34,30 @@ enum ExamTrack: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Seconds a question gets in this exam's written paper, for timed exam
+    /// mode: the paper's length divided by its questions, rounded. General
+    /// revision gets a middling pace that is neither exam's.
+    var secondsPerQuestion: Int {
+        switch self {
+        case .general: return 75
+        case .usmle: return 90   // 40 questions in an hour-long block
+        case .plab: return 60    // 180 questions in three hours
+        case .mrcp: return 108   // 100 questions in three hours
+        case .mrcs: return 60    // Part A's pace, near enough
+        }
+    }
+
+    /// Minutes with the patient in one of this exam's clinical stations, for
+    /// the OSCE station timer.
+    var stationMinutes: Int {
+        switch self {
+        case .plab: return 8     // PLAB 2
+        case .mrcp: return 10    // a PACES encounter
+        case .mrcs: return 9     // MRCS Part B
+        case .usmle, .general: return 15
+        }
+    }
+
     /// The opening line of the MCQ writer's instructions.
     var mcqStyle: String {
         switch self {

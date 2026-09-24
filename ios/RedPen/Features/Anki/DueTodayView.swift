@@ -32,6 +32,7 @@ struct DueTodayView: View {
                                      revealed: revealed)
                     }
                     .contentCard()
+                    .cardFlip(revealed: revealed)
                     .padding(.horizontal)
                     .padding(.top, 4)
                     .padding(.bottom, 24)
@@ -83,6 +84,8 @@ struct DueTodayView: View {
                         Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
                     }
                     .buttonStyle(.glassProminent)
+                    // Space turns the card over, as it does in Anki
+                    .keyboardShortcut(.space, modifiers: [])
                 } else {
                     let labels = AnkiScheduler.previewLabels(currentIntervalMin: interval)
                     HStack(spacing: 8) {
@@ -109,6 +112,8 @@ struct DueTodayView: View {
             .frame(maxWidth: .infinity).padding(.vertical, 4)
         }
         .buttonStyle(.glass).tint(color)
+        // 1 to 4, Again to Easy - Anki's own keys
+        .numberKey((AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1)
     }
 
     private func images(for due: ReviewPlan.Due) -> [String] {
@@ -124,6 +129,7 @@ struct DueTodayView: View {
     private func rate(_ rating: AnkiRating, _ due: ReviewPlan.Due) {
         UISelectionFeedbackGenerator().selectionChanged()
         let kept = reviews.rate(rating, card: due.card)
+        StudyLog.shared.record()
         reviewedCount += 1
         queue.removeAll { $0.id == due.id }
         if kept.intervalMin <= Self.sittingMinutes {
