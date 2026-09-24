@@ -125,7 +125,7 @@ struct DrawRecallView: View {
                     .accessibilityLabel("The original figure")
             }
         }
-        .aspectRatio(figure.image.size, contentMode: .fit)
+        .aspectRatio(paperRatio, contentMode: .fit)
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -136,6 +136,17 @@ struct DrawRecallView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.quaternary))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The paper's width over its height: the picture's, or 4:3 when the
+    /// picture has no usable size - a zero or broken size would make the
+    /// layout divide by zero, and a view with no size cannot be drawn on.
+    private var paperRatio: CGFloat {
+        let size = figure.image.size
+        guard size.width.isFinite, size.height.isFinite,
+              size.width > 0, size.height > 0 else { return 4.0 / 3.0 }
+        let ratio: CGFloat = size.width / size.height
+        return ratio
     }
 
     private var comparePanel: some View {
@@ -219,7 +230,8 @@ struct DrawRecallView: View {
     // MARK: - What the buttons do
 
     private func measured(_ size: CGSize) {
-        guard size.width > 0, size.height > 0 else { return }
+        guard size.width.isFinite, size.height.isFinite,
+              size.width > 0, size.height > 0 else { return }
         paperSize = size
         openPendingIfReady()
     }
@@ -268,10 +280,13 @@ struct DrawRecallView: View {
 
     /// Puts a kept attempt back on the paper, scaled to this screen.
     private func load(_ attempt: RecallAttempt, comparing showOriginal: Bool = true) {
-        guard var kept = try? PKDrawing(data: attempt.drawing) else { return }
+        guard !attempt.drawing.isEmpty,
+              var kept = try? PKDrawing(data: attempt.drawing) else { return }
         if attempt.width > 0, paperSize.width > 0 {
-            let scale = paperSize.width / CGFloat(attempt.width)
-            kept = kept.transformed(using: CGAffineTransform(scaleX: scale, y: scale))
+            let scale: CGFloat = paperSize.width / CGFloat(attempt.width)
+            if scale.isFinite, scale > 0 {
+                kept = kept.transformed(using: CGAffineTransform(scaleX: scale, y: scale))
+            }
         }
         drawing = kept
         canvasVersion = UUID()
@@ -285,15 +300,29 @@ struct DrawRecallView: View {
 
     /// A small picture of an attempt, framed on the paper it was drawn on.
     static func picture(of attempt: RecallAttempt) -> UIImage? {
-        guard let kept = try? PKDrawing(data: attempt.drawing) else { return nil }
+        guard !attempt.drawing.isEmpty,
+              let kept = try? PKDrawing(data: attempt.drawing) else { return nil }
+        guard attempt.width.isFinite, attempt.height.isFinite,
+              attempt.width > 0, attempt.height > 0 else { return nil }
         let frame = CGRect(x: 0, y: 0, width: attempt.width, height: attempt.height)
-        guard frame.width > 0, frame.height > 0 else { return nil }
-        return kept.image(from: frame, scale: 64 / frame.width * 2)
+        // a thumbnail 64 points wide, at twice the pixels for a sharp screen
+        let perPoint: CGFloat = 64 / frame.width
+        let scale: CGFloat = perPoint * 2
+        guard scale.isFinite, scale > 0 else { return nil }
+        return kept.image(from: frame, scale: scale)
     }
 }
 
 /// PencilKit's canvas, for SwiftUI: draws with a Pencil or a finger, and
 /// shows the system tool picker while drawing is allowed.
+///
+/// The tool picker is the fragile part. It may only be shown for a canvas that
+/// is already on screen in a window, and the canvas may only be made first
+/// responder then; asking earlier - while SwiftUI is still building the view,
+/// or while a screen is being pushed or presented - is what used to bring the
+/// app down. So nothing about the picker happens in `makeUIView`: it is set up
+/// when the canvas arrives in a window (`didMoveToWindow`) and on later
+/// updates only while it is still in one, and taken down when it leaves.
 struct PencilCanvas: UIViewRepresentable {
     @Binding var drawing: PKDrawing
     var enabled: Bool
@@ -303,8 +332,9 @@ struct PencilCanvas: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeUIView(context: Context) -> PKCanvasView {
-        let canvas = PKCanvasView()
+    func makeUIView(context: Context) -> RecallCanvasView {
+        let canvas = RecallCanvasView()
+        // a finger draws as well as a Pencil, on iPhone and iPad alike
         canvas.drawingPolicy = .anyInput
         canvas.backgroundColor = .clear
         canvas.isOpaque = false
@@ -313,42 +343,54 @@ struct PencilCanvas: UIViewRepresentable {
         canvas.overrideUserInterfaceStyle = .light
         canvas.tool = PKInkingTool(.pen, color: .black, width: 4)
         canvas.drawing = drawing
-        canvas.delegate = context.coordinator
-        context.coordinator.version = version
-        context.coordinator.picker.addObserver(canvas)
-        context.coordinator.picker.setVisible(enabled, forFirstResponder: canvas)
-        DispatchQueue.main.async { canvas.becomeFirstResponder() }
+        canvas.isUserInteractionEnabled = enabled
+        let coordinator = context.coordinator
+        coordinator.version = version
+        coordinator.enabled = enabled
+        canvas.delegate = coordinator
+        // weak both ways: the canvas must not keep its coordinator alive
+        canvas.onWindowChange = { [weak coordinator] view in
+            coordinator?.windowChanged(view)
+        }
         return canvas
     }
 
-    func updateUIView(_ canvas: PKCanvasView, context: Context) {
-        context.coordinator.parent = self
-        if context.coordinator.version != version {
-            context.coordinator.version = version
-            context.coordinator.applying = true
+    func updateUIView(_ canvas: RecallCanvasView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.parent = self
+        if coordinator.version != version {
+            coordinator.version = version
+            coordinator.applying = true
             canvas.drawing = drawing
-            context.coordinator.applying = false
+            coordinator.applying = false
         }
         canvas.isUserInteractionEnabled = enabled
-        context.coordinator.picker.setVisible(enabled, forFirstResponder: canvas)
-        if enabled && !canvas.isFirstResponder {
-            DispatchQueue.main.async { canvas.becomeFirstResponder() }
+        coordinator.enabled = enabled
+        // only once it is on screen; before that didMoveToWindow does it
+        if canvas.window != nil {
+            coordinator.showPicker(on: canvas)
         }
     }
 
-    static func dismantleUIView(_ canvas: PKCanvasView, coordinator: Coordinator) {
-        coordinator.picker.setVisible(false, forFirstResponder: canvas)
-        coordinator.picker.removeObserver(canvas)
+    static func dismantleUIView(_ canvas: RecallCanvasView, coordinator: Coordinator) {
+        canvas.onWindowChange = nil
+        canvas.delegate = nil
+        coordinator.hidePicker(from: canvas)
     }
 
+    @MainActor
     final class Coordinator: NSObject, PKCanvasViewDelegate {
         var parent: PencilCanvas
-        /// Kept here: a tool picker nobody holds disappears.
-        let picker = PKToolPicker()
         var version: UUID?
+        var enabled = true
         /// True while the drawing is being set from outside, so that is not
         /// reported back as the student drawing.
         var applying = false
+        /// Held here, strongly: a tool picker nobody holds disappears. Made
+        /// the first time the canvas is on screen, not before.
+        private var picker: PKToolPicker?
+        private var observing = false
+        private var focusQueued = false
 
         init(_ parent: PencilCanvas) { self.parent = parent }
 
@@ -356,6 +398,78 @@ struct PencilCanvas: UIViewRepresentable {
             guard !applying else { return }
             parent.drawing = canvasView.drawing
         }
+
+        /// The canvas arrived in a window or left one.
+        func windowChanged(_ canvas: PKCanvasView) {
+            if canvas.window == nil {
+                hidePicker(from: canvas)
+            } else {
+                showPicker(on: canvas)
+            }
+        }
+
+        /// Shows the tool picker while drawing is allowed and hides it while
+        /// comparing. Does nothing unless the canvas is in a window.
+        func showPicker(on canvas: PKCanvasView) {
+            guard canvas.window != nil else { return }
+            let tools: PKToolPicker
+            if let existing = picker {
+                tools = existing
+            } else {
+                tools = PKToolPicker()
+                picker = tools
+            }
+            if !observing {
+                tools.addObserver(canvas)
+                observing = true
+            }
+            tools.setVisible(enabled, forFirstResponder: canvas)
+            if enabled {
+                focus(canvas)
+            } else if canvas.isFirstResponder {
+                _ = canvas.resignFirstResponder()
+            }
+        }
+
+        /// Takes the tool picker down and lets go of the keyboard focus. Safe
+        /// to call more than once.
+        func hidePicker(from canvas: PKCanvasView) {
+            if let tools = picker {
+                tools.setVisible(false, forFirstResponder: canvas)
+                if observing {
+                    tools.removeObserver(canvas)
+                    observing = false
+                }
+            }
+            if canvas.isFirstResponder {
+                _ = canvas.resignFirstResponder()
+            }
+        }
+
+        /// Makes the canvas first responder - which is what brings the tool
+        /// picker up - on the next turn of the main loop, not in the middle
+        /// of a SwiftUI update, and only if it is still on screen by then.
+        private func focus(_ canvas: PKCanvasView) {
+            guard !canvas.isFirstResponder, !focusQueued else { return }
+            focusQueued = true
+            DispatchQueue.main.async { [weak self, weak canvas] in
+                self?.focusQueued = false
+                guard let self, let canvas, self.enabled,
+                      canvas.window != nil, !canvas.isFirstResponder else { return }
+                _ = canvas.becomeFirstResponder()
+            }
+        }
+    }
+}
+
+/// A PencilKit canvas that says when it arrives in a window or leaves one,
+/// because that is the only safe moment to attach the tool picker.
+final class RecallCanvasView: PKCanvasView {
+    var onWindowChange: (@MainActor (RecallCanvasView) -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onWindowChange?(self)
     }
 }
 
@@ -382,5 +496,45 @@ struct DrawFromMemoryButton: View {
         }
         .buttonStyle(.borderless)
         .fullScreenCover(item: $figure) { DrawRecallView(figure: $0) }
+    }
+}
+
+/// The Examples tour's "Draw it from memory" row.
+///
+/// It presents the drawing screen full screen rather than pushing it: the
+/// drawing screen has its own navigation bar, and a navigation stack pushed
+/// inside another one - with a tool picker on top - is what crashed. The
+/// example attempt is saved to disk when the row is tapped, not while the
+/// list is being drawn.
+struct DrawRecallExampleRow: View {
+    @State private var figure: RecallFigure?
+    @State private var opening: RecallAttempt?
+
+    var body: some View {
+        Button {
+            opening = RecallExamples.seedIfNeeded()
+            figure = RecallExamples.figure
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "pencil.and.scribble")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Draw it from memory").font(.body.weight(.semibold))
+                    Text("An inguinal canal drawing ready to Compare")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("example-draw")
+        .fullScreenCover(item: $figure) { shown in
+            DrawRecallView(figure: shown, opening: opening)
+        }
     }
 }

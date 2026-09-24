@@ -100,6 +100,107 @@ check("a nerve is not branding", !OcclusionFilter.isBoilerplate("Ilioinguinal ne
 check("a Latin ending reads as medical", OcclusionFilter.isMedicalTerm("Pectineus"))
 check("a plain word does not", !OcclusionFilter.isMedicalTerm("Key points"))
 
+// MARK: only boxes that really hold recognised text
+
+/// A line as OCR reports it, with its confidence.
+func read(_ text: String, _ x: Double, _ y: Double, _ w: Double, _ h: Double,
+          sure: Double) -> OcclusionFilter.Line {
+    OcclusionFilter.Line(text: text, box: OcclusionBox(x: x, y: y, w: w, h: h), confidence: sure)
+}
+
+let unsure = kept([read("Femoral artery", 0.3, 0.4, 0.2, 0.04, sure: 0.3),
+                   read("Femoral vein", 0.3, 0.5, 0.2, 0.04, sure: 0.5)], figure: whole)
+check("an unsure OCR reading is not covered", !unsure.contains("Femoral artery"), "\(unsure)")
+check("a reading at 0.5 confidence is", unsure.contains("Femoral vein"), "\(unsure)")
+
+let boxes = kept([
+    line("Renal artery", 0.3, 0.3, 0.2, 0.0),                   // no height at all
+    line("Renal vein", 0.3, 0.4, 0.001, 0.001),                 // a speck
+    line("Ureter", 0.0, 0.3, 0.9, 0.5),                         // half the picture
+    line("   ", 0.3, 0.5, 0.2, 0.04),                           // nothing written
+    line("Hilum", 0.3, 0.6, 0.1, 0.04),                         // a real one
+], figure: whole)
+check("a box with no height is not covered", !boxes.contains("Renal artery"), "\(boxes)")
+check("a speck is not covered", !boxes.contains("Renal vein"), "\(boxes)")
+check("a box over half the picture is not covered", !boxes.contains("Ureter"), "\(boxes)")
+check("an empty box is not covered", !boxes.contains { $0.trimmingCharacters(in: .whitespaces).isEmpty },
+      "\(boxes)")
+check("a sane box with a term is covered", boxes == ["Hilum"], "\(boxes)")
+
+check("mostly symbols is not a label", !OcclusionFilter.looksLikeALabel("a1-2/3#"))
+check("two letters is not a label", !OcclusionFilter.looksLikeALabel("Ab"))
+check("ink on a fifth of a box is text", OcclusionFilter.hasInk(share: 0.2))
+check("a blank box is not", !OcclusionFilter.hasInk(share: 0))
+
+// MARK: words OCR split up are one label
+
+let split = kept([
+    line("Deep", 0.30, 0.40, 0.05, 0.04),
+    line("inguinal", 0.36, 0.40, 0.09, 0.04),
+    line("ring", 0.46, 0.40, 0.04, 0.04),
+    line("Pubic tubercle", 0.30, 0.60, 0.15, 0.04),
+    line("Aorta", 0.75, 0.40, 0.08, 0.04),                       // same line, far away
+], figure: whole)
+check("pieces side by side are joined into one label",
+      split.contains("Deep inguinal ring"), "\(split)")
+check("no lone piece of the joined label is left", !split.contains("Deep") && !split.contains("ring")
+      && !split.contains("inguinal"), "\(split)")
+check("a label far along the same line stays its own", split.contains("Aorta"), "\(split)")
+check("three labels after joining", split.count == 3, "\(split)")
+
+let joinedLine = OcclusionFilter.joinedOnLines([read("Superficial", 0.1, 0.1, 0.1, 0.04, sure: 0.9),
+                                                read("ring", 0.21, 0.1, 0.05, 0.04, sure: 0.6)])
+check("a joined label covers both pieces",
+      joinedLine.count == 1 && abs((joinedLine.first?.box.w ?? 0) - 0.16) < 0.0001, "\(joinedLine)")
+check("a joined label keeps the lower confidence",
+      joinedLine.first?.confidence == 0.6, "\(joinedLine)")
+let heading = OcclusionFilter.joinedOnLines([line("Kidney", 0.1, 0.1, 0.2, 0.1),
+                                             line("cortex", 0.31, 0.12, 0.1, 0.04)])
+check("a heading is not joined to a small label beside it", heading.count == 2, "\(heading)")
+let wide = OcclusionFilter.joinedOnLines([line("Liver", 0.1, 0.5, 0.1, 0.04),
+                                          line("lobe", 0.23, 0.5, 0.06, 0.04)], aspect: 1.78)
+check("a gap wider than a letter-height on a wide slide is two labels", wide.count == 2, "\(wide)")
+
+// MARK: words that mean nothing alone
+
+let generic = kept([
+    line("Left", 0.2, 0.3, 0.06, 0.04),
+    line("the", 0.2, 0.4, 0.05, 0.04),
+    line("Superior view", 0.2, 0.5, 0.15, 0.04),
+    line("Diagram", 0.2, 0.6, 0.1, 0.04),
+    line("See note", 0.2, 0.7, 0.1, 0.04),
+    line("Left atrium", 0.6, 0.3, 0.15, 0.04),
+    line("Deep", 0.6, 0.5, 0.06, 0.04),
+    line("Various", 0.6, 0.6, 0.1, 0.04),                         // a Latin-looking ending, not a term
+    line("Lumen", 0.6, 0.7, 0.08, 0.04),                          // one word, not a known term
+    line("Pectineus", 0.6, 0.8, 0.12, 0.04),                      // one word, an anatomical ending
+], figure: whole)
+check("'Left' alone is not covered", !generic.contains("Left"), "\(generic)")
+check("'the' is not covered", !generic.contains("the"), "\(generic)")
+check("'Superior view' is not covered", !generic.contains("Superior view"), "\(generic)")
+check("'Diagram' is not covered", !generic.contains("Diagram"), "\(generic)")
+check("'See note' is not covered", !generic.contains("See note"), "\(generic)")
+check("'Deep' alone is not covered", !generic.contains("Deep"), "\(generic)")
+check("a common word with a Latin-looking ending is not covered", !generic.contains("Various"))
+check("a short unknown single word is not covered", !generic.contains("Lumen"), "\(generic)")
+check("'Left atrium' is covered", generic.contains("Left atrium"), "\(generic)")
+check("a long single word with an anatomical ending on the figure is covered",
+      generic.contains("Pectineus"), "\(generic)")
+let offFigure = kept([line("Pectineus", 0.3, 0.5, 0.12, 0.04)], figure: nil)
+check("the same word with no figure to sit on is not", offFigure.isEmpty, "\(offFigure)")
+
+// MARK: a figure needs two labels
+
+func one(_ text: String, _ x: Double) -> FigureGrid.Label {
+    FigureGrid.Label(text: text, box: OcclusionBox(x: x, y: 0.4, w: 0.15, h: 0.04))
+}
+check("one testable label makes no cards when two are needed",
+      FigureGrid.cards(from: [one("Spermatic cord", 0.1)], imageIndex: 0, minimumLabels: 2).isEmpty)
+let pair = FigureGrid.cards(from: [one("Spermatic cord", 0.1), one("Deep ring", 0.5)],
+                            imageIndex: 0, minimumLabels: 2)
+check("two testable labels make two cards", pair.count == 2, "\(pair.count)")
+check("each covers only the other passing label", pair.allSatisfy { $0.siblings.count == 1 })
+
 // MARK: every card covers every label
 
 func label(_ text: String, _ x: Double, _ y: Double) -> FigureGrid.Label {

@@ -27,8 +27,11 @@ enum RecallExamples {
 
     /// Saves the example attempt the first time, and returns the kept one to
     /// open with.
+    ///
+    /// This reads and writes a file, so it is called when the example is
+    /// opened (a button's action), never while a view is being built.
     static func seedIfNeeded() -> RecallAttempt {
-        if let kept = RecallAttempts.load(key).first { return kept }
+        if let kept = RecallAttempts.load(key).first, !kept.drawing.isEmpty { return kept }
         let attempt = RecallAttempt(date: Date().addingTimeInterval(-86_400),
                                     drawing: drawing.dataRepresentation(),
                                     width: Double(size.width), height: Double(size.height),
@@ -101,35 +104,52 @@ enum RecallExamples {
 
     /// A freehand version: the same parts, wobbling a little, the canal
     /// drawn a touch too low and the labels left off.
+    ///
+    /// Built from plain, well-formed stroke points - every point finite, time
+    /// always moving forward, a real pen size - and any stroke that cannot be
+    /// made is simply left out, so at worst the example opens on a blank page
+    /// rather than taking the app down.
     static let drawing: PKDrawing = {
-        var strokes: [PKStroke] = []
+        var outlines: [[CGPoint]] = []
         // ligament
-        strokes.append(RecallExamples.stroke(RecallExamples.curve(from: CGPoint(x: 85, y: 118), to: CGPoint(x: 495, y: 330),
-                                    control: CGPoint(x: 250, y: 310))))
+        outlines.append(RecallExamples.curve(from: CGPoint(x: 85, y: 118), to: CGPoint(x: 495, y: 330),
+                                             control: CGPoint(x: 250, y: 310)))
         // canal
-        strokes.append(RecallExamples.stroke(RecallExamples.curve(from: CGPoint(x: 215, y: 180), to: CGPoint(x: 440, y: 272),
-                                    control: CGPoint(x: 320, y: 265))))
+        outlines.append(RecallExamples.curve(from: CGPoint(x: 215, y: 180), to: CGPoint(x: 440, y: 272),
+                                             control: CGPoint(x: 320, y: 265)))
         // deep and superficial rings
-        strokes.append(RecallExamples.stroke(RecallExamples.circle(CGPoint(x: 212, y: 175), radius: 22)))
-        strokes.append(RecallExamples.stroke(RecallExamples.circle(CGPoint(x: 445, y: 268), radius: 18)))
+        outlines.append(RecallExamples.circle(CGPoint(x: 212, y: 175), radius: 22))
+        outlines.append(RecallExamples.circle(CGPoint(x: 445, y: 268), radius: 18))
         // cord
-        strokes.append(RecallExamples.stroke(RecallExamples.curve(from: CGPoint(x: 447, y: 285), to: CGPoint(x: 460, y: 390),
-                                    control: CGPoint(x: 432, y: 340))))
+        outlines.append(RecallExamples.curve(from: CGPoint(x: 447, y: 285), to: CGPoint(x: 460, y: 390),
+                                             control: CGPoint(x: 432, y: 340)))
         // the two bony points, as small scribbled circles
-        strokes.append(RecallExamples.stroke(RecallExamples.circle(CGPoint(x: 84, y: 114), radius: 6)))
-        strokes.append(RecallExamples.stroke(RecallExamples.circle(CGPoint(x: 497, y: 326), radius: 6)))
+        outlines.append(RecallExamples.circle(CGPoint(x: 84, y: 114), radius: 6))
+        outlines.append(RecallExamples.circle(CGPoint(x: 497, y: 326), radius: 6))
+
+        var strokes: [PKStroke] = []
+        for outline in outlines {
+            if let made = RecallExamples.stroke(outline) { strokes.append(made) }
+        }
+        guard !strokes.isEmpty else { return PKDrawing() }
         return PKDrawing(strokes: strokes)
     }()
 
-    private static func stroke(_ points: [CGPoint]) -> PKStroke {
+    /// One pen stroke through `points`, or nil when there are too few usable
+    /// points to make one.
+    private static func stroke(_ points: [CGPoint]) -> PKStroke? {
+        let usable: [CGPoint] = points.filter { $0.x.isFinite && $0.y.isFinite }
+        guard usable.count >= 2 else { return nil }
         let ink = PKInk(.pen, color: .black)
+        let penSize = CGSize(width: 4, height: 4)
+        let upright: CGFloat = CGFloat.pi / 2
         var controls: [PKStrokePoint] = []
-        for i in points.indices {
+        for i in usable.indices {
             let offset: TimeInterval = TimeInterval(i) * 0.01
-            let upright: CGFloat = CGFloat.pi / 2
-            controls.append(PKStrokePoint(location: points[i], timeOffset: offset,
-                                          size: CGSize(width: 4, height: 4), opacity: 1, force: 1,
-                                          azimuth: 0, altitude: upright))
+            let point = PKStrokePoint(location: usable[i], timeOffset: offset,
+                                      size: penSize, opacity: 1, force: 1,
+                                      azimuth: 0, altitude: upright)
+            controls.append(point)
         }
         let path = PKStrokePath(controlPoints: controls, creationDate: Date())
         return PKStroke(ink: ink, path: path, transform: .identity, mask: nil)

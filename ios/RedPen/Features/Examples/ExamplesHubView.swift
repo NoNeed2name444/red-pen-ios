@@ -47,10 +47,8 @@ struct ExamplesHubView: View {
             } header: { Text("Voice") }
 
             Section {
-                row("Draw it from memory", "pencil.and.scribble",
-                    "An inguinal canal drawing ready to Compare", id: "draw") {
-                    DrawRecallView(figure: RecallExamples.figure, opening: RecallExamples.seedIfNeeded())
-                }
+                // presented full screen, not pushed: see DrawRecallExampleRow
+                DrawRecallExampleRow()
             } header: { Text("Drawing") }
 
             Section {

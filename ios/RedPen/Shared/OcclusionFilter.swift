@@ -11,6 +11,10 @@ import CoreGraphics
 ///
 /// The rules are plain text and geometry, no Vision and no UIKit, so all of
 /// them can be tested:
+///   - OCR that was unsure (confidence under 0.5), a box that is a speck or
+///     half the page, and text that is mostly not letters are never covered
+///   - words OCR read separately but that sit side by side on one line are
+///     joined first, so a label like "deep inguinal ring" is one card
 ///   - the header and footer bands of a page are the slide template, not the
 ///     diagram; a word there survives only if it sits on the figure AND reads
 ///     as an anatomical or clinical term
@@ -18,15 +22,21 @@ import CoreGraphics
 ///   - the slide's title (the tallest line near the top) is never a label
 ///   - branding, people, dates, page numbers, captions and references are
 ///     dropped by what they say
+///   - function words and generic words ("the", "left", "view") alone are
+///     never a label; one word by itself passes only if it is a known term or
+///     abbreviation, or a long word with an anatomical ending on the figure
 ///   - what is left passes if it reads as a medical term, or sits on the
 ///     figure
 enum OcclusionFilter {
 
     /// One line of text on the page, as fractions of the whole image with the
     /// origin at the top left - the way an occlusion box is stored.
+    /// `confidence` is how sure OCR was of the words, 0...1; a line made up by
+    /// hand (as in the tests) is taken as certain.
     struct Line: Equatable {
         var text: String
         var box: OcclusionBox
+        var confidence: Double = 1
     }
 
     /// The top of a page where the template puts its title bar and logos.
@@ -34,38 +44,177 @@ enum OcclusionFilter {
     /// The bottom of a page where the template puts its footer and page number.
     static let footerBand = 0.08
 
+    /// OCR below this confidence is as likely a smudge or a texture as a word,
+    /// and a cover over it hides nothing.
+    static let minimumConfidence = 0.5
+    /// Fewest letters a label may have. Two letters is a stray mark or half a
+    /// word far more often than it is a term worth testing.
+    static let minimumLetters = 3
+    /// A label box shorter than this share of the page is a speck, not text.
+    static let minimumHeight = 0.005
+    /// Taller than this is a heading or a whole paragraph, not a label.
+    static let maximumHeight = 0.15
+    /// Smallest and largest share of the page one label may cover.
+    static let minimumArea = 0.00003
+    static let maximumArea = 0.06
+    /// The least share of a label's box that must be ink, when the picture is
+    /// at hand to look: below this there is nothing under the cover.
+    static let minimumInkShare = 0.02
+    /// Words side by side on one line are one label when the space between
+    /// them is at most this many letter-heights.
+    static let joinGapInHeights = 1.0
+    /// The most words a joined label may have; FigureGrid keeps four at most.
+    static let maximumJoinedWords = 4
+
     /// The lines worth masking, in their original order.
     ///
     /// `figure` is the diagram's box when one was found. `pageBands` is off for
     /// a picture that is itself the diagram (an image pulled out of a slide
-    /// deck), where the top of the picture is not a page header.
+    /// deck), where the top of the picture is not a page header. `aspect` is
+    /// the picture's width over its height, so a gap across the page can be
+    /// measured in letter-heights.
     static func testable(_ lines: [Line], figure: OcclusionBox?,
-                         pageBands: Bool = true) -> [Line] {
-        let title = titleIndex(lines)
+                         pageBands: Bool = true, aspect: Double = 1) -> [Line] {
+        let readable = lines.filter { isReadable($0) }
+        let joined = joinedOnLines(readable, aspect: aspect)
+        let title = titleIndex(joined)
         var kept: [Line] = []
-        for (index, line) in lines.enumerated() {
+        for (index, line) in joined.enumerated() {
             if index == title { continue }
             let text = tidy(line.text)
             guard looksLikeALabel(text) else { continue }
             guard !isBoilerplate(text) else { continue }
+            guard hasSaneBox(line.box) else { continue }
 
-            let cx = line.box.x + line.box.w / 2
-            let cy = line.box.y + line.box.h / 2
+            let cx: Double = line.box.x + line.box.w / 2
+            let cy: Double = line.box.y + line.box.h / 2
             let onFigure = figure.map { isInside($0, x: cx, y: cy) } ?? false
             // the slide's own text, not the diagram's
             if figure != nil && !onFigure { continue }
+
+            // "the", "left", "view" and their kind say nothing on their own
+            let meaning = meaningfulWords(text)
+            guard !meaning.isEmpty else { continue }
 
             let medical = isMedicalTerm(text)
             let inBand = pageBands && (cy < headerBand || cy > 1 - footerBand)
             if inBand && !(onFigure && medical) { continue }
 
-            if medical || onFigure {
-                var cleaned = line
-                cleaned.text = text
-                kept.append(cleaned)
+            if meaning.count == 1 {
+                // one word by itself is a label only when it is plainly a term
+                guard singleWordPasses(meaning[0], onFigure: onFigure) else { continue }
+            } else if !(medical || onFigure) {
+                continue
             }
+            var cleaned = line
+            cleaned.text = text
+            kept.append(cleaned)
         }
         return kept
+    }
+
+    /// OCR that is sure of itself, with some words and a box of some size.
+    static func isReadable(_ line: Line) -> Bool {
+        guard line.confidence >= minimumConfidence else { return false }
+        guard line.box.w > 0, line.box.h > 0 else { return false }
+        return !tidy(line.text).isEmpty
+    }
+
+    /// A box the size a label is: not a speck and not half the page.
+    static func hasSaneBox(_ box: OcclusionBox) -> Bool {
+        guard box.w > 0, box.h >= minimumHeight, box.h <= maximumHeight else { return false }
+        let area: Double = box.w * box.h
+        return area >= minimumArea && area <= maximumArea
+    }
+
+    /// Whether a share of dark-on-light (or light-on-dark) pixels under a box
+    /// is enough to say there is really writing there.
+    static func hasInk(share: Double) -> Bool {
+        share >= minimumInkShare
+    }
+
+    /// Pieces OCR read separately but that sit side by side on one line, close
+    /// together and the same size, joined into one label - so "deep",
+    /// "inguinal" and "ring" become "deep inguinal ring" rather than three
+    /// cards about nothing. Order is kept by where each label starts.
+    static func joinedOnLines(_ lines: [Line], aspect: Double = 1) -> [Line] {
+        var out = lines
+        var changed = true
+        while changed {
+            changed = false
+            search: for i in out.indices {
+                for j in out.indices where j != i {
+                    if belongTogether(left: out[i], right: out[j], aspect: aspect) {
+                        out[i] = joined(out[i], out[j])
+                        out.remove(at: j)
+                        changed = true
+                        break search
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /// Whether `right` carries on the label `left` starts, on the same line.
+    static func belongTogether(left: Line, right: Line, aspect: Double = 1) -> Bool {
+        let a = left.box, b = right.box
+        guard a.h > 0, b.h > 0 else { return false }
+        let tall: Double = max(a.h, b.h)
+        let short: Double = min(a.h, b.h)
+        // a heading beside a label is not part of it
+        guard tall <= short * 1.5 else { return false }
+        let aMid: Double = a.y + a.h / 2
+        let bMid: Double = b.y + b.h / 2
+        guard abs(aMid - bMid) <= short * 0.5 else { return false }
+        // measured in letter-heights, whatever shape the picture is
+        let aRight: Double = a.x + a.w
+        let gap: Double = b.x - aRight
+        let across: Double = gap * max(aspect, 0.01)
+        let gapInHeights: Double = across / tall
+        guard gapInHeights >= -0.5, gapInHeights <= joinGapInHeights else { return false }
+        // a number or a figure reference beside a label is not part of it
+        guard left.text.contains(where: { $0.isLetter }),
+              right.text.contains(where: { $0.isLetter }) else { return false }
+        guard !isBoilerplate(left.text), !isBoilerplate(right.text) else { return false }
+        let words: Int = wordCount(left.text) + wordCount(right.text)
+        return words <= maximumJoinedWords
+    }
+
+    /// Two pieces of one label as one: the words in reading order, a box round
+    /// both, and the lower of the two confidences.
+    static func joined(_ left: Line, _ right: Line) -> Line {
+        let a = left.box, b = right.box
+        let minX: Double = min(a.x, b.x)
+        let minY: Double = min(a.y, b.y)
+        let maxX: Double = max(a.x + a.w, b.x + b.w)
+        let maxY: Double = max(a.y + a.h, b.y + b.h)
+        let box = OcclusionBox(x: minX, y: minY, w: maxX - minX, h: maxY - minY)
+        let text = tidy(left.text) + " " + tidy(right.text)
+        return Line(text: text, box: box, confidence: min(left.confidence, right.confidence))
+    }
+
+    /// The words of a label that carry meaning: everything left once the
+    /// function words, the generic words and the bare directions are gone.
+    static func meaningfulWords(_ text: String) -> [String] {
+        tokens(text.lowercased()).filter { word in
+            !stopWords.contains(word) && !directionWords.contains(word)
+        }
+    }
+
+    /// A label with one meaningful word passes only if that word is a known
+    /// term or abbreviation, or - on the figure itself - a long word with an
+    /// anatomical ending.
+    static func singleWordPasses(_ word: String, onFigure: Bool) -> Bool {
+        let lower = word.lowercased()
+        guard lower.count >= minimumLetters else { return false }
+        if medicalWords.contains(lower) || abbreviations.contains(lower) { return true }
+        guard onFigure, lower.count >= 6 else { return false }
+        return medicalEndings.contains { lower.hasSuffix($0) }
+    }
+
+    static func wordCount(_ text: String) -> Int {
+        text.split { $0.isWhitespace }.count
     }
 
     /// The slide's title: the tallest line in the top part of the page, when
@@ -83,15 +232,16 @@ enum OcclusionFilter {
         return found
     }
 
-    /// One to six words, mostly letters: the shape of a label rather than a
-    /// sentence, a number or a stray mark.
+    /// One to six words, at least three letters, and mostly letters: the
+    /// shape of a label rather than a sentence, a number or a stray mark.
     static func looksLikeALabel(_ text: String) -> Bool {
         let words = text.split { $0.isWhitespace }
         guard (1...6).contains(words.count) else { return false }
         let visible = text.filter { !$0.isWhitespace }
-        let letters = visible.filter { $0.isLetter }.count
-        guard letters >= 2 else { return false }
-        return Double(letters) / Double(max(visible.count, 1)) >= 0.6
+        let letters: Int = visible.filter { $0.isLetter }.count
+        guard letters >= minimumLetters else { return false }
+        let share: Double = Double(letters) / Double(max(visible.count, 1))
+        return share >= 0.7
     }
 
     /// Words that belong to the slide template, the people or the paperwork
@@ -178,6 +328,42 @@ enum OcclusionFilter {
         "superior", "inferior", "medial", "lateral", "proximal", "distal", "hernia",
         "tissue", "fibres", "fibers", "nucleus", "ducts", "lobule", "cavity",
         "floor", "roof", "apex", "hilum", "hilus", "pedicle", "lamina",
+    ]
+
+    /// Short forms that are labels in their own right on a diagram.
+    static let abbreviations: Set<String> = [
+        "ivc", "svc", "ica", "eca", "cca", "lad", "rca", "lcx", "sma", "ima", "tmj",
+        "acl", "pcl", "mcl", "lcl", "cns", "pns", "csf", "gcl", "ipl", "opl", "inl", "onl",
+        "pct", "dct",
+    ]
+
+    /// Function words and words about the picture rather than the body. Alone
+    /// they are never a label; beside a real term they are ignored.
+    static let stopWords: Set<String> = [
+        "the", "a", "an", "and", "or", "of", "with", "without", "to", "in", "on", "at",
+        "by", "for", "from", "into", "onto", "over", "under", "between", "through",
+        "is", "are", "was", "were", "be", "as", "this", "that", "these", "those", "its",
+        "it", "not", "no", "yes", "also", "etc", "eg", "ie", "vs", "via", "per", "here",
+        "there", "all", "each", "some", "other", "new", "old", "see", "note", "notes",
+        "view", "views", "image", "images", "diagram", "diagrams", "fig", "figure",
+        "picture", "photo", "photograph", "illustration", "shown", "show", "shows",
+        "showing", "label", "labels", "labelled", "labeled", "arrow", "arrows", "key",
+        "legend", "scale", "section", "sections", "cross", "part", "parts", "area",
+        "areas", "region", "side", "sides", "top", "bottom", "front", "back", "edge",
+        "line", "lines", "point", "points", "text", "title", "example", "normal",
+        "general", "usual", "typical", "several", "various", "previous", "total",
+        "actual", "special", "original", "level", "levels", "high", "low", "large",
+        "small", "big", "stain", "magnification", "detail", "details", "zoom",
+    ]
+
+    /// Where-words. They sharpen a term ("deep inguinal ring") but on their
+    /// own say nothing a student could be examined on.
+    static let directionWords: Set<String> = [
+        "left", "right", "above", "below", "upper", "lower", "middle", "central",
+        "superficial", "deep", "anterior", "posterior", "superior", "inferior",
+        "medial", "lateral", "proximal", "distal", "internal", "external", "inner",
+        "outer", "dorsal", "ventral", "cranial", "caudal", "horizontal", "vertical",
+        "transverse", "coronal", "axial", "sagittal",
     ]
 
     /// Endings that anatomical Latin and clinical adjectives share.

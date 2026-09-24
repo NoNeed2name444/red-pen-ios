@@ -57,11 +57,14 @@ enum FigureFinder {
 
         // Vision's boxes have their origin at the bottom left; the grid's is at
         // the top left, like every other box Red Pen stores.
-        let blocked = textBoxes.map { box in
-            CGRect(x: box.minX * CGFloat(width),
-                   y: (1 - box.maxY) * CGFloat(height),
-                   width: box.width * CGFloat(width),
-                   height: box.height * CGFloat(height)).insetBy(dx: -1, dy: -1)
+        let pixelWidth = CGFloat(width)
+        let pixelHeight = CGFloat(height)
+        let blocked: [CGRect] = textBoxes.map { (box: CGRect) -> CGRect in
+            let x: CGFloat = box.minX * pixelWidth
+            let y: CGFloat = (1 - box.maxY) * pixelHeight
+            let w: CGFloat = box.width * pixelWidth
+            let h: CGFloat = box.height * pixelHeight
+            return CGRect(x: x, y: y, width: w, height: h).insetBy(dx: -1, dy: -1)
         }
 
         var grid = Array(repeating: Array(repeating: false, count: width), count: height)
@@ -82,7 +85,9 @@ enum FigureFinder {
     /// fractions of the whole image, origin top-left.
     static func labels(_ lines: [OCRLine], on figure: OcclusionBox)
         -> [FigureGrid.Label] {
-        lines.compactMap { line in
+        lines.compactMap { (line: OCRLine) -> FigureGrid.Label? in
+            // an unsure reading is as likely a smudge as a word
+            guard Double(line.confidence) >= OcclusionFilter.minimumConfidence else { return nil }
             let box = OcclusionBox(x: Double(line.box.minX),
                                    y: Double(1 - line.box.maxY),
                                    w: Double(line.box.width),
@@ -100,18 +105,70 @@ enum FigureFinder {
     /// The labels on a figure worth hiding: every line OCR read on the page,
     /// put through OcclusionFilter so the slide's title, its header and footer,
     /// the college crest and the lecturer's name never become masks.
+    ///
+    /// OCR's own confidence goes along with each line, so a guess at a smudge
+    /// is thrown out. When the picture is given, a line with no ink under it -
+    /// OCR "reading" a texture or a blank patch - is thrown out too, so no
+    /// cover ever sits over nothing.
     static func testableLabels(_ lines: [OCRLine], on figure: OcclusionBox,
-                               pageBands: Bool = true) -> [FigureGrid.Label] {
-        let all = lines.map { line in
+                               pageBands: Bool = true,
+                               image: CGImage? = nil) -> [FigureGrid.Label] {
+        let all: [OcclusionFilter.Line] = lines.compactMap { (line: OCRLine) -> OcclusionFilter.Line? in
             // Vision's origin is the bottom left; a stored box's is the top left
-            OcclusionFilter.Line(text: line.text,
-                                 box: OcclusionBox(x: Double(line.box.minX),
-                                                   y: Double(1 - line.box.maxY),
-                                                   w: Double(line.box.width),
-                                                   h: Double(line.box.height)))
+            let box = OcclusionBox(x: Double(line.box.minX),
+                                   y: Double(1 - line.box.maxY),
+                                   w: Double(line.box.width),
+                                   h: Double(line.box.height))
+            if let image, !hasInk(image, under: box) { return nil }
+            return OcclusionFilter.Line(text: line.text, box: box,
+                                        confidence: Double(line.confidence))
         }
-        return OcclusionFilter.testable(all, figure: figure, pageBands: pageBands)
+        var aspect: Double = 1
+        if let image, image.width > 0, image.height > 0 {
+            aspect = Double(image.width) / Double(image.height)
+        }
+        return OcclusionFilter.testable(all, figure: figure, pageBands: pageBands, aspect: aspect)
             .map { FigureGrid.Label(text: $0.text, box: $0.box) }
+    }
+
+    /// Whether there is really writing under a box: the box's patch of the
+    /// picture, shrunk to a small grey bitmap, has enough pixels that differ
+    /// from its own background. When the patch cannot be read at all the
+    /// answer is yes, so a failure to look never throws a real label away.
+    static func hasInk(_ image: CGImage, under box: OcclusionBox) -> Bool {
+        let imageWidth = Double(image.width)
+        let imageHeight = Double(image.height)
+        guard imageWidth > 0, imageHeight > 0 else { return true }
+        let left: Double = max(0, box.x) * imageWidth
+        let top: Double = max(0, box.y) * imageHeight
+        let across: Double = box.w * imageWidth
+        let down: Double = box.h * imageHeight
+        let region = CGRect(x: left, y: top, width: across, height: down).integral
+        guard region.width >= 1, region.height >= 1 else { return false }
+        guard let patch = image.cropping(to: region) else { return true }
+
+        let width = max(1, min(patch.width, 128))
+        let height = max(1, min(patch.height, 40))
+        guard let space = CGColorSpace(name: CGColorSpace.linearGray),
+              let context = CGContext(data: nil, width: width, height: height,
+                                      bitsPerComponent: 8, bytesPerRow: width,
+                                      space: space,
+                                      bitmapInfo: CGImageAlphaInfo.none.rawValue)
+        else { return true }
+        context.setFillColor(gray: 1, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        context.draw(patch, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let raw = context.data else { return true }
+        let count = width * height
+        let pixels = raw.bindMemory(to: UInt8.self, capacity: count)
+
+        var histogram = [Int](repeating: 0, count: 256)
+        for i in 0..<count { histogram[Int(pixels[i])] += 1 }
+        let background = histogram.enumerated().max { $0.element < $1.element }?.offset ?? 255
+        var inked = 0
+        for i in 0..<count where abs(Int(pixels[i]) - background) > 30 { inked += 1 }
+        let share: Double = Double(inked) / Double(count)
+        return OcclusionFilter.hasInk(share: share)
     }
 
     /// What a page offers: the figure on it, and the cards its labels make.
@@ -136,8 +193,10 @@ enum FigureFinder {
               let box = FigureGrid.figures(in: grid).first else { return nil }
 
         let figure = FigureGrid.normalised(box, gridWidth: width, gridHeight: grid.count)
-        let cards = FigureGrid.cards(from: testableLabels(lines, on: figure, pageBands: pageBands),
-                                     imageIndex: imageIndex, question: question)
+        let labels = testableLabels(lines, on: figure, pageBands: pageBands, image: image)
+        // fewer than two labels that survive is not a labelled diagram
+        let cards = FigureGrid.cards(from: labels, imageIndex: imageIndex,
+                                     question: question, minimumLabels: 2)
         return cards.isEmpty ? nil : Found(figure: figure, cards: cards)
     }
 }
