@@ -112,7 +112,7 @@ struct LibraryView: View {
     @State private var dockHeight: CGFloat = 0
 
     /// The sets opened on the stack.
-    @State private var opened: [StudySet] = []
+    @State var opened: [StudySet] = []
     /// A page chosen from the gear menu (account, settings, help...), pushed.
     @State var support: SupportPage?
 

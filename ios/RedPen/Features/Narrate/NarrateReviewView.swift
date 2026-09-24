@@ -24,6 +24,10 @@ import UniformTypeIdentifiers
 /// view's whole modifier chain as one expression, and this screen has enough of
 /// them that the compiler gave up on it outright.
 struct NarrateReviewView: View {
+    /// A lecture made from the Audio page's "Add an audio file": its file
+    /// picker opens as soon as the screen does.
+    @MainActor static var importOnOpen: UUID?
+
     let studySet: StudySet
     /// Only used by the CI screenshot launch to open on the back of a card.
     var startRevealed: Bool = false
@@ -99,6 +103,7 @@ struct NarrateReviewView: View {
         VStack(spacing: 0) {
             header
             if let message = importer.working { TranscribingBanner(message: message) }
+            if !player.hasAudio && importer.working == nil { addAudioBar }
             transcript
             controls
         }
@@ -171,7 +176,24 @@ struct NarrateReviewView: View {
 
     // MARK: setting up
 
+    /// Always in sight while the lecture has no recording: the way to add one.
+    private var addAudioBar: some View {
+        Button { choosingEngine = true } label: {
+            Label("Add an audio file", systemImage: "waveform.badge.plus")
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.bordered)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .accessibilityIdentifier("narrateAddAudio")
+    }
+
     private func seed() {
+        if Self.importOnOpen == studySet.id {
+            Self.importOnOpen = nil
+            choosingEngine = true
+        }
         guard segments.isEmpty else { return }
         segments = studySet.narrateSegments
         texts = segments.map(\.text)

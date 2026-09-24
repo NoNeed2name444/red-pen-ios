@@ -146,6 +146,11 @@ extension LibraryView {
             support = page
         case .addMaterial:
             addingKind = category.mainKind
+        case .audioLecture:
+            let lecture = StudySet(name: "New lecture", subject: "Lectures", kind: .narrate)
+            store.addSet(lecture)
+            NarrateReviewView.importOnOpen = lecture.id
+            opened = [lecture]
         }
     }
 

@@ -188,6 +188,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         /// New set on the category's kind, at the step that asks where the
         /// material comes from: typing, a lecture, or a saved set.
         case addMaterial
+        /// A new lecture, opened on its audio file picker.
+        case audioLecture
     }
 
     var action: Action {
@@ -200,7 +202,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .lectures: return .shelf(.narrate)
         case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one: return .quiz
         case .due: return .due
-        case .record: return .newSet(.narrate)
+        case .record: return .audioLecture
         case .subjects: return .support(.progress)
         case .add: return .addMaterial
         case .rules, .coverage, .draw, .clues, .duels, .scripts, .reasoning,
@@ -243,7 +245,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .patient: return "Talking patient"
         case .commute: return "Commute mode"
         case .explain: return "Explain it back"
-        case .record: return "Record a lecture"
+        case .record: return "Add an audio file"
         case .add: return "Paste or import"
         case .turn: return "Turn into\u{2026}"
         }
@@ -278,7 +280,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .patient: return "Talk, then get marked"
         case .commute: return "Listen and answer aloud"
         case .explain: return "Say it, get it marked"
-        case .record: return "Write out what was said"
+        case .record: return "A lecture recording, written out and read along"
         case .add: return "Type it in, or open a saved set"
         case .turn: return "Make a set another mode"
         }
@@ -313,7 +315,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .patient: return "person.wave.2.fill"
         case .commute: return "car.fill"
         case .explain: return "text.bubble.fill"
-        case .record: return "mic.fill"
+        case .record: return "waveform.badge.plus"
         case .add: return "square.and.arrow.down"
         case .turn: return "arrow.triangle.2.circlepath"
         }
