@@ -207,7 +207,21 @@ enum SpokenAnswer {
     /// lower case, "ae" and "oe" as "e" (haem/hem, oedema/edema), and number
     /// words as digits.
     static func keyWords(_ text: String) -> Set<String> {
-        let words = tokens(Highlight.plain(text)).map(normalise)
+        // "SGLT2" and "SGLT 2" are the same thing said two ways: letters and
+        // digits are separate words (the digits are checked as numbers)
+        var pieces: [String] = []
+        for token in tokens(Highlight.plain(text)) {
+            var run = ""
+            for ch in token {
+                if let last = run.last, last.isNumber != ch.isNumber {
+                    pieces.append(run)
+                    run = ""
+                }
+                run.append(ch)
+            }
+            if !run.isEmpty { pieces.append(run) }
+        }
+        let words = pieces.map(normalise)
         let meaningful = words.filter { !general.contains($0) && !$0.allSatisfy(\.isNumber) }
         if !meaningful.isEmpty { return Set(meaningful) }
         // an answer made only of general words is still an answer
@@ -228,7 +242,7 @@ enum SpokenAnswer {
     }
 
     static func stem(_ word: String) -> String {
-        let endings: [String] = ["ies", "es", "s", "ic", "ia", "al", "ed", "ing", "y", "a", "e"]
+        let endings: [String] = ["ies", "es", "us", "um", "s", "ic", "ia", "al", "ed", "ing", "y", "a", "e", "i"]
         var out = word
         var changed = true
         // ending by ending, so "kidneys" and "kidney" come to the same stem
@@ -253,6 +267,15 @@ enum SpokenAnswer {
         for w in wanted {
             guard let opposite = opposites[w], said.contains(opposite), !said.contains(w) else { continue }
             return true
+        }
+        // a wanted word not said, but a different word with most of its
+        // letters was: "carcinoid" for "carcinoma" is another answer, not a
+        // mishearing of the same one
+        for w in wanted where w.count >= 6 && !said.contains(where: { close($0, w) }) {
+            for s in said where s.count >= 6 && !wanted.contains(s) {
+                let shared = zip(w, s).prefix { $0 == $1 }.count
+                if shared >= 6 && Double(shared) >= 0.7 * Double(min(w.count, s.count)) { return true }
+            }
         }
         for w in wanted where w.count >= 4 {
             for s in said where s != w && !wanted.contains(s) {

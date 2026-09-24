@@ -82,7 +82,7 @@ struct AnkiReviewView: View {
         .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSitting)
-        .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set) }
+        .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set, keepsProgress: false) }
         // A sheet rather than a push: checking the slide is a glance in the
         // middle of a review, and the card underneath should still be there
         // when it closes.

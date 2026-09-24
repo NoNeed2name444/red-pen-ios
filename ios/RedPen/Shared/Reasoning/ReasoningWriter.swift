@@ -240,10 +240,21 @@ enum ReasoningWriter {
     /// Which side a feature was put on: "A", "B", "both", or either
     /// condition's own name.
     static func sideOf(_ text: String, a: String, b: String) -> LookalikeSide? {
-        let t = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if t.contains("both") || t == "a and b" || t == "ab" { return .both }
-        if t == "a" || t == a.lowercased() { return .a }
-        if t == "b" || t == b.lowercased() { return .b }
+        var t = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        let nameA = a.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let nameB = b.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        // a condition's own name is checked before anything is trimmed off it
+        if !nameA.isEmpty && t == nameA { return .a }
+        if !nameB.isEmpty && t == nameB { return .b }
+        if t.contains("both") || t == "a and b" || t == "a & b" || t == "ab" { return .both }
+        // "Side A", "Condition B", "A only", "only B"
+        for prefix in ["side ", "condition ", "only "] where t.hasPrefix(prefix) {
+            t = String(t.dropFirst(prefix.count))
+        }
+        if t.hasSuffix(" only") { t = String(t.dropLast(5)) }
+        t = t.trimmingCharacters(in: .whitespaces)
+        if t == "a" || t == nameA { return .a }
+        if t == "b" || t == nameB { return .b }
         return nil
     }
 

@@ -107,6 +107,14 @@ jobs:
                 $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift
+          suite answers AnswerCheckingTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift $S/OptionOrder.swift \
+                $S/Voice/SpokenAnswer.swift $S/Reasoning/ReasoningModels.swift $S/Reasoning/ReasoningExamples.swift \
+                $S/Reasoning/ReasoningWriter.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/ExamTrack.swift
 
       - name: Fail the job if anything failed
         run: |

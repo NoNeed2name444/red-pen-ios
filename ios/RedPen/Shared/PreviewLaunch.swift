@@ -111,10 +111,10 @@ enum SampleData {
         kind: .mcq,
         questions: [
             MCQQuestion(
-                stem: "A 34-year-old presents with frothy urine, periorbital oedema and 6 g/day proteinuria. Serum albumin is 22 g/L. Which finding on light microscopy is most consistent with the most common primary cause in adults?",
+                stem: "A 34-year-old Black man presents with frothy urine, periorbital oedema and 6 g/day proteinuria. Serum albumin is 22 g/L. Which finding on light microscopy is most consistent with the most common primary cause of nephrotic syndrome in this patient?",
                 options: ["Normal glomeruli", "Segmental sclerosis in some glomeruli", "Diffuse thickening of the basement membrane", "Mesangial IgA deposits"],
                 correctIndex: 1,
-                explanation: "Focal segmental glomerulosclerosis is the most common primary nephrotic syndrome in adults; light microscopy shows sclerosis in some (focal) glomeruli, affecting part (segmental) of the tuft."
+                explanation: "Focal segmental glomerulosclerosis is the most common primary cause of nephrotic syndrome in Black adults; light microscopy shows sclerosis in some (focal) glomeruli, affecting part (segmental) of the tuft. In older white adults membranous nephropathy (basement membrane thickening) is commoner."
             ),
             MCQQuestion(
                 stem: "Which glomerular disease is classically associated with hepatitis C infection?",

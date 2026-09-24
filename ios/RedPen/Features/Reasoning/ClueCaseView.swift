@@ -82,7 +82,7 @@ struct ClueCaseView: View {
     }
 
     private static func shuffled(_ item: ClueCase) -> [String] {
-        ([item.diagnosis] + item.differentials).shuffled()
+        item.choices.shuffled()
     }
 
     private var total: Int { clueCase.clues.count }
@@ -252,7 +252,7 @@ struct ClueCaseView: View {
 
     private func commit(_ option: String) {
         let play = CasePlay(caseId: clueCase.id, setId: setId, cluesSeen: shown, totalClues: total,
-                            chosen: option, correct: option == clueCase.diagnosis)
+                            chosen: option, correct: clueCase.isDiagnosis(option))
         reasoning.record(play)
         result = play
     }

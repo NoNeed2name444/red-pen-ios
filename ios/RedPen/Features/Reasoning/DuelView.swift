@@ -112,11 +112,15 @@ struct DuelView: View {
             }
             if index > 0 { feedback(order[index - 1]) }
             card(order[index])
+            // left to right as the swipes go: first condition, both, second
             HStack(spacing: 10) {
-                choice(.a)
-                choice(.both)
-                choice(.b)
+                ForEach(LookalikeSide.buttonOrder) { side in
+                    choice(side)
+                }
             }
+            // the first condition stays on the left, as the swipe does, in
+            // a right-to-left language too
+            .environment(\.layoutDirection, .leftToRight)
             Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -161,10 +165,7 @@ struct DuelView: View {
     private var leaning: LookalikeSide? { sideFor(drag) }
 
     private func sideFor(_ t: CGSize) -> LookalikeSide? {
-        if t.height < -90 && abs(t.height) > abs(t.width) { return .both }
-        if t.width < -90 { return .a }
-        if t.width > 90 { return .b }
-        return nil
+        LookalikeSide.swiped(width: Double(t.width), height: Double(t.height))
     }
 
     private func choice(_ side: LookalikeSide) -> some View {

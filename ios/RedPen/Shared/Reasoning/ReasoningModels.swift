@@ -70,10 +70,61 @@ struct ClueCase: Identifiable, Codable, Hashable {
     var decisiveClue: Int
 }
 
+extension ClueCase {
+    /// A diagnosis as compared: case, spacing and trailing full stops do not
+    /// make two answers different.
+    static func normalized(_ name: String) -> String {
+        let lowered: String = name.lowercased()
+        let words: [Substring] = lowered.split { $0.isWhitespace }
+        let joined: String = words.joined(separator: " ")
+        return joined.trimmingCharacters(in: CharacterSet(charactersIn: ".;:,"))
+    }
+
+    /// What the student chooses from: the diagnosis and the differentials,
+    /// each once. A differential that is the diagnosis again under another
+    /// case or spacing is left out - otherwise the student could tap the copy,
+    /// see the right name, and be marked wrong.
+    var choices: [String] {
+        var out: [String] = []
+        var seen: Set<String> = []
+        for name in [diagnosis] + differentials {
+            let key: String = Self.normalized(name)
+            guard !key.isEmpty, seen.insert(key).inserted else { continue }
+            out.append(name.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return out
+    }
+
+    /// Whether `choice` is this case's diagnosis.
+    func isDiagnosis(_ choice: String) -> Bool {
+        let key: String = Self.normalized(choice)
+        return !key.isEmpty && key == Self.normalized(diagnosis)
+    }
+}
+
 /// Whose feature a discriminating feature is.
 enum LookalikeSide: String, Codable, CaseIterable, Identifiable {
     case a, both, b
     var id: String { rawValue }
+
+    /// The answer buttons, left to right: the first condition on the left,
+    /// "Both" in the middle, the second on the right - the same sides the
+    /// card is swiped to.
+    static let buttonOrder: [LookalikeSide] = [.a, .both, .b]
+
+    /// How far a card has to travel, in points, before a swipe counts.
+    static let swipeDistance: Double = 90
+
+    /// The side a swipe means: left for the first condition, right for the
+    /// second, up for both. Nil until it is far enough to count, and for a
+    /// swipe down. Mostly-up counts as up even if it drifts sideways.
+    static func swiped(width: Double, height: Double) -> LookalikeSide? {
+        if height < -swipeDistance && abs(height) > abs(width) { return .both }
+        if abs(height) > abs(width) { return nil }
+        if width < -swipeDistance { return .a }
+        if width > swipeDistance { return .b }
+        return nil
+    }
 }
 
 /// One feature in a duel, and which of the two conditions it belongs to.

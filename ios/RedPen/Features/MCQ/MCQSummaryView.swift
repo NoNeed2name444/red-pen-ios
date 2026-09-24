@@ -32,17 +32,14 @@ struct MCQSummaryView: View {
 
     /// The questions answered wrongly, for a set of their own.
     private var mistakes: [MCQQuestion] {
-        studySet.questions.indices.filter {
-            answers.indices.contains($0) && answers[$0].selected != studySet.questions[$0].correctIndex
-        }.map { studySet.questions[$0] }
+        studySet.questions.indices.filter { !isRight($0) }.map { studySet.questions[$0] }
     }
 
     /// The questions answered and checked wrongly - not the ones skipped,
     /// which there is nothing to learn a rule from.
     private var checkedMistakes: [MCQQuestion] {
         studySet.questions.indices.filter {
-            answers.indices.contains($0) && answers[$0].checked
-                && answers[$0].selected != studySet.questions[$0].correctIndex
+            answers.indices.contains($0) && answers[$0].checked && !isRight($0)
         }.map { studySet.questions[$0] }
     }
 
@@ -98,8 +95,17 @@ struct MCQSummaryView: View {
         withAnimation(.snappy) { mistakesSaved = true }
     }
 
+    /// Whether question `i` was answered right: checked, and the option
+    /// chosen (an index into the question's own options, as the quiz hands
+    /// them over) is the key. The same test as the running score and the
+    /// answer history, so the results never disagree with either.
+    private func isRight(_ i: Int) -> Bool {
+        guard answers.indices.contains(i), studySet.questions.indices.contains(i) else { return false }
+        return answers[i].isCorrect(for: studySet.questions[i])
+    }
+
     private var correctCount: Int {
-        answers.enumerated().filter { $0.element.selected == studySet.questions[$0.offset].correctIndex }.count
+        studySet.questions.indices.filter { isRight($0) }.count
     }
     private var total: Int { studySet.questions.count }
     private var fraction: Double { total == 0 ? 0 : Double(correctCount) / Double(total) }
@@ -232,7 +238,7 @@ struct MCQSummaryView: View {
 
     private func reviewRow(_ i: Int) -> some View {
         let q = studySet.questions[i]
-        let correct = answers.indices.contains(i) && answers[i].selected == q.correctIndex
+        let correct = isRight(i)
         return HStack(alignment: .top, spacing: 12) {
             Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundStyle(correct ? Color.green : Color.red)

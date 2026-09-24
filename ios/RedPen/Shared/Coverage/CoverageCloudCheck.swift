@@ -5,6 +5,22 @@ struct CoverageVerdict: Codable, Hashable {
     enum Status: String, Codable {
         case covered, thin, missing
 
+        /// A status as a model writes it: any case, spaced or not, and the
+        /// engine's own "not covered". Nil for anything else, rather than a
+        /// guess that could call a gap covered.
+        static func read(_ text: String) -> Status? {
+            let t = text.lowercased()
+                .replacingOccurrences(of: "_", with: " ")
+                .replacingOccurrences(of: "-", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+            switch t {
+            case "covered", "well covered", "fully covered": return .covered
+            case "thin", "partial", "partly covered", "partially covered": return .thin
+            case "missing", "not covered", "notcovered", "uncovered", "absent", "none": return .missing
+            default: return nil
+            }
+        }
+
         /// The same scale as the keyword engine's, so the two can be compared.
         var coverage: CoverageStatus {
             switch self {
@@ -193,8 +209,8 @@ enum CoverageCloudCheck {
             guard let id = entry["id"] as? String,
                   let number = Int(id.lowercased().replacingOccurrences(of: "s", with: "")),
                   area.subtopics.indices.contains(number - 1),
-                  let raw = (entry["status"] as? String)?.lowercased(),
-                  let status = CoverageVerdict.Status(rawValue: raw == "not covered" ? "missing" : raw)
+                  let raw = entry["status"] as? String,
+                  let status = CoverageVerdict.Status.read(raw)
             else { continue }
             out[area.subtopics[number - 1].id] = CoverageVerdict(
                 status: status,

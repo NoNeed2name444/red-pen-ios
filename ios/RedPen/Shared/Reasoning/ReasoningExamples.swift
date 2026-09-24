@@ -37,7 +37,9 @@ enum ReasoningExamples {
             diagnosis: "Indirect inguinal hernia",
             differentials: ["Direct inguinal hernia", "Femoral hernia", "Hydrocele"],
             teachingPoint: "Lateral to the inferior epigastric vessels means indirect; the deep-ring test only suggests it.",
-            decisiveClue: 6),
+            // the deep-ring test (clue 6) is unreliable, as the teaching point
+            // and the hernia duel both say: the vessels at operation settle it
+            decisiveClue: 7),
         ClueCase(
             id: fixed(102),
             clues: [

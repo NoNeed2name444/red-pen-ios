@@ -76,20 +76,36 @@ struct MCQQuizView: View {
 
     private static func makeOrders(for set: StudySet, shuffle: Bool) -> [[Int]] {
         set.questions.map { q in
-            let identity = Array(q.options.indices)
-            return shuffle ? identity.shuffled() : identity
+            OptionOrder.make(count: q.options.count, shuffle: shuffle)
         }
     }
 
     private var q: MCQQuestion { studySet.questions[current] }
     private var a: MCQAnswer { answers[current] }
-    /// The displayed slot that holds the correct option for `question`.
+    /// Question `qi`'s option order, checked against its options: a stale
+    /// order (the question edited while the quiz was open) falls back to the
+    /// written order rather than pointing past the end or at the wrong option.
+    private func order(_ qi: Int) -> [Int] {
+        let count: Int = studySet.questions[qi].options.count
+        let saved: [Int]? = orders.indices.contains(qi) ? orders[qi] : nil
+        return OptionOrder.valid(saved, count: count)
+    }
+    /// The displayed slot that holds the correct option for `question`, or
+    /// -1 when its key is missing (so no slot is painted right).
     private func correctSlot(_ qi: Int) -> Int {
-        orders[qi].firstIndex(of: studySet.questions[qi].correctIndex) ?? studySet.questions[qi].correctIndex
+        OptionOrder.slot(of: studySet.questions[qi].correctIndex, in: order(qi)) ?? -1
+    }
+    /// Whether the answer to question `qi` is right. `selected` is a slot;
+    /// it is turned back into the option's own index before it is compared
+    /// with `correctIndex`, the one comparison every mark goes through.
+    private func isRight(_ qi: Int) -> Bool {
+        guard answers.indices.contains(qi) else { return false }
+        let correctIndex: Int = studySet.questions[qi].correctIndex
+        return OptionOrder.isCorrect(slot: answers[qi].selected, correctIndex: correctIndex, order: order(qi))
     }
     private func optionText(_ qi: Int, slot: Int) -> String {
         let opts = studySet.questions[qi].options
-        let orig = orders[qi][slot]
+        guard let orig = OptionOrder.original(ofSlot: slot, in: order(qi)) else { return "" }
         return opts.indices.contains(orig) ? opts[orig] : ""
     }
     /// Answers translated back to original option indices — what the
@@ -97,7 +113,9 @@ struct MCQQuizView: View {
     private var originalAnswers: [MCQAnswer] {
         answers.enumerated().map { qi, ans in
             var out = ans
-            if let sel = ans.selected, orders[qi].indices.contains(sel) { out.selected = orders[qi][sel] }
+            if qi < studySet.questions.count {
+                out.selected = OptionOrder.original(ofSlot: ans.selected, in: order(qi))
+            }
             return out
         }
     }
@@ -106,7 +124,7 @@ struct MCQQuizView: View {
         var correct = 0, checked = 0
         for (i, ans) in answers.enumerated() where ans.checked {
             checked += 1
-            if ans.selected == correctSlot(i) { correct += 1 }
+            if isRight(i) { correct += 1 }
         }
         return (correct, checked)
     }
@@ -144,7 +162,7 @@ struct MCQQuizView: View {
                     // as it would in the real paper
                     if a.checked && !examMode { explanationBox }
 
-                    if a.checked && !examMode && a.selected != correctSlot(current)
+                    if a.checked && !examMode && !isRight(current)
                         && shuffle && inLibrary(q.id) {
                         whyChooser
                     }
@@ -352,6 +370,12 @@ struct MCQQuizView: View {
 
     private func timeUp() {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        // an answer chosen but not yet moved on from still counts when the
+        // time runs out, as it would on the paper - marked and recorded like
+        // the rest, rather than scored in the results but never recorded
+        for qi in answers.indices where !answers[qi].checked && answers[qi].selected != nil {
+            commit(qi)
+        }
         finish()
     }
 
@@ -502,7 +526,7 @@ struct MCQQuizView: View {
     }
 
     private var explanationBox: some View {
-        let correct = a.selected == correctSlot(current)
+        let correct = isRight(current)
         return VStack(alignment: .leading, spacing: 8) {
             Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
@@ -638,15 +662,7 @@ struct MCQQuizView: View {
 
     private func onCheckOrNext() {
         if !a.checked {
-            answers[current].checked = true
-            // `selected` is the slot on screen, which after shuffling is not
-            // the option's place in the question - compare slot with slot
-            let right = answers[current].selected == correctSlot(current)
-            StudyLog.shared.record()
-            // the save that follows writes the history too, when there is one
-            if shuffle {
-                store.recordAnswer(q.id, correct: right, confidence: confidences[q.id], saving: !keepsPosition)
-            }
+            let right = commit(current)
             if examMode {
                 // nothing to read after answering in a paper, so one tap
                 // answers and moves on - and the buzz gives nothing away
@@ -660,6 +676,26 @@ struct MCQQuizView: View {
             return
         }
         advance()
+    }
+
+    /// Checks question `qi` and records it: marked right or wrong, and the
+    /// option chosen, as its index in the question's own options (not the
+    /// slot on screen) - the same space as `correctIndex`. Returns whether it
+    /// was right.
+    @discardableResult
+    private func commit(_ qi: Int) -> Bool {
+        answers[qi].checked = true
+        let right: Bool = isRight(qi)
+        StudyLog.shared.record()
+        // the save that follows writes the history too, when there is one
+        if shuffle {
+            let question: MCQQuestion = studySet.questions[qi]
+            let picked: Int? = OptionOrder.original(ofSlot: answers[qi].selected, in: order(qi))
+            let sure: AnswerConfidence? = confidences[question.id]
+            store.recordAnswer(question.id, correct: right, confidence: sure,
+                               picked: picked, saving: !keepsPosition)
+        }
+        return right
     }
 
     private func advance() {
