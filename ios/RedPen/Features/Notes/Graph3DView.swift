@@ -245,7 +245,7 @@ enum GraphSceneBuilder {
         scene.rootNode.addChildNode(world)
         let ideaRadius: Float = pageRadius * 0.62
 
-        let textColor = UIColor(red: 1, green: 0.93, blue: 0.84, alpha: 0.9)
+        let textColor = UIColor(red: 1, green: 0.95, blue: 0.88, alpha: 1)
 
         // connections: camera-facing ribbons, all in one geometry that
         // GraphSim rebuilds as the notes move; the look is in the shader
@@ -341,7 +341,7 @@ enum GraphSceneBuilder {
             node.addChildNode(holder)
 
             let title: String = note.title.isEmpty ? "Untitled" : note.title
-            let labelHeight: Float = max(radius * 0.7, 0.11)
+            let labelHeight: Float = max(radius * 1.05, 0.17)
             let label = Self.label(title, color: textColor, height: labelHeight)
             let labelLift: Float = radius * 2.3 + 0.04
             label.simdPosition = SIMD3<Float>(0, labelLift, 0)
@@ -424,7 +424,7 @@ enum GraphSceneBuilder {
     private static func label(_ text: String, color: UIColor, height: Float) -> SCNNode {
         let shown: String = text.count > 28 ? String(text.prefix(27)) + "\u{2026}" : text
         let geometry = SCNText(string: shown, extrusionDepth: 0)
-        geometry.font = UIFont.systemFont(ofSize: 10, weight: .regular)
+        geometry.font = UIFont.systemFont(ofSize: 10, weight: .bold)
         geometry.flatness = 0.3
         let material = SCNMaterial()
         material.diffuse.contents = color

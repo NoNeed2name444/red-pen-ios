@@ -713,10 +713,10 @@ enum GraphSpace {
         ]
         var random = SplitMix64(seed: 0x0B1A)
         var blobs: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
-        for k in 0..<18 {
+        for k in 0..<30 {
             let near: SIMD3<Float> = onBand(&random, spread: 0.12)
             let reach: Float = 0.18 + (random.unit() * 0.5 + 0.5) * 0.3
-            let strength: Float = 0.04 + (random.unit() * 0.5 + 0.5) * 0.05
+            let strength: Float = 0.07 + (random.unit() * 0.5 + 0.5) * 0.09
             blobs.append((near, reach, hues[k % hues.count] * strength))
         }
         return blobs
@@ -739,11 +739,11 @@ enum GraphSpace {
         var small: [Int32] = []
         var medium: [Int32] = []
         var large: [Int32] = []
-        for k in 0..<6000 {
+        for k in 0..<14000 {
             let dir: SIMD3<Float> = k % 5 < 2 ? onBand(&random, spread: 0.18) : anywhere(&random)
             let roll: Float = random.unit() * 0.5 + 0.5
             let shine: Float = roll * roll * roll * roll
-            let brightness: Float = 0.22 + shine * 0.7
+            let brightness: Float = 0.42 + shine * 0.95
             let c: SIMD3<Float> = linear(tints[k % tints.count] * brightness)
             let index = Int32(positions.count)
             positions.append(SCNVector3(x: dir.x, y: dir.y, z: dir.z))
@@ -761,9 +761,9 @@ enum GraphSpace {
         let source = SCNGeometrySource(vertices: positions)
         let tint = colourSource(colours, count: positions.count)
         let elements: [SCNGeometryElement] = [
-            points(small, radius: 0.8),
-            points(medium, radius: 1.2),
-            points(large, radius: 1.7)
+            points(small, radius: 1.0),
+            points(medium, radius: 1.6),
+            points(large, radius: 2.3)
         ]
         let geometry = SCNGeometry(sources: [source, tint], elements: elements)
         let material = additive(UIColor.white)
@@ -792,14 +792,14 @@ enum GraphSpace {
         var uvs: [Float] = []
         var colours: [Float] = []
         var indices: [Int32] = []
-        let tint: SIMD3<Float> = linear(SIMD3<Float>(0.55, 0.64, 0.82))
-        for _ in 0..<10 {
+        let tint: SIMD3<Float> = linear(SIMD3<Float>(0.78, 0.85, 1.0))
+        for _ in 0..<36 {
             let dir: SIMD3<Float> = anywhere(&random)
             let helper: SIMD3<Float> = abs(dir.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
             let side: SIMD3<Float> = simd_normalize(simd_cross(dir, helper))
             let up: SIMD3<Float> = simd_cross(side, dir)
             // about 7 pixels from the middle to the card's edge on a phone
-            let size: Float = 0.0026 + (random.unit() * 0.5 + 0.5) * 0.0012
+            let size: Float = 0.0032 + (random.unit() * 0.5 + 0.5) * 0.0022
             let across: SIMD3<Float> = side * size
             let along: SIMD3<Float> = up * size
             let base = Int32(positions.count)
