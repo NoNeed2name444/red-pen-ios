@@ -28,6 +28,8 @@ struct LibraryView: View {
     /// A quiz put together on the spot - the flagged questions, or a mix of
     /// the selected sets - opened without being saved to the library.
     @State var quickQuiz: StudySet?
+    /// Whether the cards due across every deck are open, from the Today card.
+    @State var showingDue = false
     /// Today's count and the streak, for the strip at the top.
     @ObservedObject var studyLog = StudyLog.shared
 
@@ -202,12 +204,13 @@ struct LibraryView: View {
             // the shared backdrop, easing into the colour of the shelf
             .background(LibraryBackdrop(kind: tab.kind))
             .navigationTitle(Brand.name)
-            .searchable(text: $query, prompt: "Sets, subjects, questions")
+            .searchable(text: $query, prompt: "Search your sets")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
             // off half way through the flagged quiz must not pull the
             // question out from under it.
             .navigationDestination(item: $quickQuiz) { MCQQuizView(set: $0, keepsProgress: false) }
+            .navigationDestination(isPresented: $showingDue) { DueTodayView() }
             .toolbar { toolbarItems }
             .safeAreaInset(edge: .bottom) {
                 // The selection bar takes the dock's place while it is up:
@@ -215,11 +218,23 @@ struct LibraryView: View {
                 // picking sets is a different job from choosing a mode.
                 if selecting {
                     selectionBar
-                } else if tabs.count > 1 {
-                    ModeDock(tabs: tabs, selection: dockSelection) { sets(in: $0).count }
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                            dockHeight = $0
+                } else if !store.library.isEmpty {
+                    // The one thing to do on this screen, always in the same
+                    // place under the thumb, with the mode dock beneath it.
+                    // An empty library has its own big button in the middle,
+                    // so this stays away until there is something to list.
+                    VStack(spacing: 8) {
+                        newSetButton
+                        if tabs.count > 1 {
+                            ModeDock(tabs: tabs, selection: dockSelection) { sets(in: $0).count }
                         }
+                    }
+                    // the dock carries its own space underneath; the button
+                    // alone needs some to clear the home indicator
+                    .padding(.bottom, tabs.count > 1 ? 0 : 12)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        dockHeight = $0
+                    }
                 }
             }
             // A tab whose last set has just been deleted would otherwise leave
@@ -235,24 +250,25 @@ struct LibraryView: View {
             emptyState
         } else {
             List {
-                Section {
-                    // the personal build's tour of every feature
-                    if PersonalBuild.isOn {
-                        Button { support = .examples } label: {
-                            Label("Try every feature \u{2014} worked examples", systemImage: "sparkles.rectangle.stack")
-                                .font(.body.weight(.semibold))
-                        }
-                        .accessibilityIdentifier("examplesBanner")
+                // Everything about today - the exam, the streak, what is due,
+                // the flags - in one small card with one button, instead of
+                // four separate strips stacked above the sets.
+                if hasTodayCard {
+                    Section {
+                        todayCard
+                            .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+                            // frosted, so the backdrop shows through while
+                            // the text on it stays easy to read
+                            .listRowBackground(Rectangle().fill(.regularMaterial))
                     }
-                    Group {
-                        examCountdown
-                        streakRow
-                        dueBanner
-                        flaggedRow
+                }
+                if shown.isEmpty && !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // a search that found nothing says so, rather than
+                    // leaving a blank page
+                    Section {
+                        ContentUnavailableView.search(text: query)
+                            .listRowBackground(Color.clear)
                     }
-                    // frosted, so the backdrop shows through while the
-                    // text on it stays easy to read
-                    .listRowBackground(Rectangle().fill(.regularMaterial))
                 }
                 if !loose.isEmpty {
                     Section {
@@ -265,8 +281,8 @@ struct LibraryView: View {
                 ForEach(store.folders) { folder in
                     folderSection(folder)
                 }
-                if !selecting && tabs.count > 1 {
-                    // A row of empty space as tall as the dock. Both
+                if !selecting {
+                    // A row of empty space as tall as the bottom bar. Both
                     // safeAreaInset and contentMargins were supposed to keep
                     // the last card clear of the floating bar and neither did;
                     // a row cannot be ignored, because the list has to make
@@ -279,8 +295,23 @@ struct LibraryView: View {
                         .accessibilityHidden(true)
                 }
             }
+            .listSectionSpacing(16)
             .scrollContentBackground(.hidden)
         }
+    }
+
+    /// The big "New set" button that sits at the bottom of the library.
+    private var newSetButton: some View {
+        Button { showNewSet = true } label: {
+            Label("New set", systemImage: "plus")
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.glassProminent)
+        .frame(maxWidth: 560)
+        .padding(.horizontal, 16)
+        .accessibilityHint("Make questions or cards from a lecture")
+        .accessibilityIdentifier("newSetButton")
     }
 
     @ViewBuilder
@@ -306,8 +337,12 @@ struct LibraryView: View {
                     }
                     Button("Ungroup", systemImage: "folder.badge.minus") { store.ungroup(folder.id) }
                 } label: {
-                    Image(systemName: "ellipsis.circle").font(.body)
+                    Image(systemName: "ellipsis.circle")
+                        .font(.body)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("Folder options")
             }
             .textCase(nil)
         }
@@ -316,49 +351,50 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if store.library.isEmpty {
-                // toolbar items already sit in the system's glass on iOS 26; an
-                // extra .glass style here squashed the label into a circle
+        // The menu: every page that is about the app rather than a set, in
+        // its four groups. On a wide window the sidebar already lists them,
+        // so the button would only be the same list twice.
+        if !span.splits {
+            ToolbarItem(placement: .topBarLeading) {
+                // toolbar items already sit in the system's glass on iOS 26;
+                // an extra .glass style here squashed the label into a circle
                 Menu {
                     supportItems
                 } label: {
-                    Image(systemName: "person.crop.circle")
+                    Label("Menu", systemImage: "line.3.horizontal")
                 }
-            } else {
+                .accessibilityIdentifier("libraryMenu")
+            }
+        }
+        if !store.library.isEmpty {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     withAnimation(.snappy) { selecting.toggle(); selected = [] }
                 } label: {
                     Text(selecting ? "Done" : "Select").fixedSize()
                 }
+                .accessibilityHint(selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine")
             }
-        }
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button("New set", systemImage: "plus") { showNewSet = true }
-                Section { supportItems }
-            } label: {
-                Image(systemName: "plus")
-                    .font(.body.weight(.semibold))
-                    .frame(width: 30, height: 30)
-            } primaryAction: {
-                showNewSet = true
-            }
-            .buttonStyle(.glassProminent)
-            .clipShape(Circle())
         }
     }
 
-    /// Account, Settings, How it works, Questions - the sidebar's four, for a
-    /// window too narrow to have a sidebar. Same pages, pushed instead.
+    /// Every support page, under the same four headings as the iPad sidebar,
+    /// for a window too narrow to have a sidebar. Same pages, pushed instead.
     @ViewBuilder
     private var supportItems: some View {
-        ForEach(SupportPage.shown) { page in
-            // One state for both shapes: in the sidebar it decides what the
-            // main column shows, on a phone it is what gets pushed. A
-            // NavigationLink cannot live inside a Menu, so this is a button
-            // either way.
-            Button(page.title, systemImage: page.symbol) { support = page }
+        ForEach(SupportSection.allCases) { section in
+            let pages = SupportPage.shown(in: section)
+            if !pages.isEmpty {
+                Section(section.title) {
+                    ForEach(pages) { page in
+                        // One state for both shapes: in the sidebar it decides
+                        // what the main column shows, on a phone it is what
+                        // gets pushed. A NavigationLink cannot live inside a
+                        // Menu, so this is a button either way.
+                        Button(page.title, systemImage: page.symbol) { support = page }
+                    }
+                }
+            }
         }
     }
 

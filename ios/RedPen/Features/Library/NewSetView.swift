@@ -1,15 +1,54 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Making a set, in three decisions asked one at a time: what kind of set,
-/// what to call it, and where its material comes from. Only the path chosen is
-/// shown, so the screen is never every option at once.
+/// The three steps of New set, in the order they are asked.
+enum NewSetStep: Int, CaseIterable, Identifiable, Comparable {
+    /// What kind of set: questions, cards, a textbook...
+    case kind = 1
+    /// Where the material comes from: a lecture file, typing, a saved set.
+    case material
+    /// A name, how many, and the one button that makes it.
+    case make
+
+    var id: Int { rawValue }
+
+    /// The short name under the step's number in the indicator.
+    var short: String {
+        switch self {
+        case .kind: return "Choose"
+        case .material: return "Add"
+        case .make: return "Make"
+        }
+    }
+
+    /// The question the step asks, as the heading of its screen.
+    var question: String {
+        switch self {
+        case .kind: return "What do you want to make?"
+        case .material: return "Add your lecture"
+        case .make: return "Make it"
+        }
+    }
+
+    static func < (a: NewSetStep, b: NewSetStep) -> Bool { a.rawValue < b.rawValue }
+}
+
+/// Making a set, in three steps asked one at a time: what kind of set, where
+/// its material comes from, and then a name, a count and one big Make button.
+/// Only the step you are on is shown, so the screen is never every option at
+/// once, and the rarely-needed choices (subject, card style, which model is
+/// writing) wait behind "More options".
 ///
 /// Every path ends in the same place - text in the line format the typing path
-/// uses, checked by the student, then Create - except MCQ generation, which
+/// uses, checked by the student, then Save - except MCQ generation, which
 /// opens the quiz straight away (MCQGenerateForm owns that, with the model
 /// choice and the lecture reading, which together are larger than the rest of
 /// this screen).
+///
+/// The lecture sections stay in the view the whole time and only draw the
+/// part for the current step. That is what keeps a file read in step 2 still
+/// read in step 3: a section taken out of the view and put back starts again
+/// from nothing.
 struct NewSetView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var gemma: GemmaModel
@@ -22,6 +61,8 @@ struct NewSetView: View {
     @State private var showImporter = false
     @State private var importError: String?
     @State private var showFormat = false
+    /// Which of the three steps is showing.
+    @State private var step: NewSetStep = .kind
 
     /// Where the material comes from.
     enum Path: String, CaseIterable, Identifiable {
@@ -29,14 +70,22 @@ struct NewSetView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .lecture: return "A lecture"
+            case .lecture: return "From a lecture file"
             case .type: return "Type or paste"
-            case .importFile: return "A saved set"
+            case .importFile: return "Open a saved set"
+            }
+        }
+        /// One plain line under the title.
+        var blurb: String {
+            switch self {
+            case .lecture: return "A PDF, Word or PowerPoint file \u{2014} or notes you paste"
+            case .type: return "Write the questions or cards yourself"
+            case .importFile: return "A .json set someone shared with you"
             }
         }
         var symbol: String {
             switch self {
-            case .lecture: return "sparkles"
+            case .lecture: return "doc.text.viewfinder"
             case .type: return "keyboard"
             case .importFile: return "square.and.arrow.down"
             }
@@ -56,8 +105,9 @@ struct NewSetView: View {
     @ObservedObject private var generation = GenerationCenter.shared
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
-    /// Set when a set is being turned into another mode by the writer: the
-    /// mode is chosen and the material is in, so Generate is the next tap.
+    /// Set when a set is being turned into another mode by the writer, or
+    /// started from the syllabus: the mode is chosen and the material is in,
+    /// so New set opens on its last step with Make the next tap.
     private let preset: NewSetPreset?
 
     init(preset: NewSetPreset? = nil) {
@@ -69,6 +119,7 @@ struct NewSetView: View {
             _path = State(initialValue: .lecture)
             _readSource = State(initialValue: preset.lecture)
             _sourceText = State(initialValue: preset.text)
+            _step = State(initialValue: .make)
         }
     }
 
@@ -76,43 +127,31 @@ struct NewSetView: View {
         NavigationStack {
             Form {
                 Section {
-                    modeGrid
-                } header: {
-                    Text("What are you making?")
+                    stepHeader
                 }
+                .listRowBackground(Color.clear)
 
-                Section {
-                    TextField("Name", text: $name, prompt: Text("Name \u{2014} e.g. Cardiology week 3"))
-                    TextField("Subject", text: $subject)
-                } header: {
-                    Text("Details")
+                if step == .kind {
+                    Section { modeGrid }
                 }
-
-                Section {
-                    pathPicker
-                } header: {
-                    Text("Start from")
+                if step == .material {
+                    Section { pathPicker }
+                }
+                if step == .make {
+                    nameSection
                 }
 
                 material
 
-                if showsCreate {
-                    Section {
-                        Button { create() } label: {
-                            Text("Create \(kind.label) set").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.glassProminent)
-                        .disabled(!canCreate)
-                        .floatingActionAnchor("create")
-                    } footer: {
-                        Text(readiness)
-                    }
+                if step == .make && showsCreate {
+                    createSection
                 }
             }
             .scrollContentBackground(.hidden)
-            .floatingAction(id: "create", title: "Create \(kind.label) set", symbol: "checkmark",
+            .floatingAction(id: "create", title: "Save \(kind.label) set", symbol: "checkmark",
                             enabled: canCreate, run: create)
             .floatingActionBar(expecting: floatingID)
+            .safeAreaInset(edge: .bottom, spacing: 0) { nextBar }
             .onDisappear {
                 FloatingAction.shared.clear()
                 // closing New set stops what it started, so nothing keeps
@@ -125,9 +164,9 @@ struct NewSetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                if showsCreate {
+                if step == .make && showsCreate {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Create") { create() }.disabled(!canCreate)
+                        Button("Save") { create() }.disabled(!canCreate)
                     }
                 }
             }
@@ -154,59 +193,210 @@ struct NewSetView: View {
         .generationHUD()
     }
 
+    // MARK: moving between the steps
+
+    /// "1 Choose — 2 Add — 3 Make", the step's question, and Back.
+    private var stepHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                ForEach(NewSetStep.allCases) { one in
+                    stepDot(one)
+                    if one != .make {
+                        Capsule()
+                            .fill(one < step ? kind.tint : Color.secondary.opacity(0.25))
+                            .frame(height: 2)
+                    }
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Step \(step.rawValue) of 3")
+            HStack(alignment: .firstTextBaseline) {
+                Text(step.question).font(.title2.weight(.bold))
+                Spacer(minLength: 8)
+                if step != .kind {
+                    Button { goBack() } label: {
+                        Label("Back", systemImage: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.borderless)
+                    // leaving the step while it is writing would lose sight
+                    // of the work, so Back waits for it
+                    .disabled(generation.job != nil)
+                    .accessibilityIdentifier("newSetBack")
+                }
+            }
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+    }
+
+    private func stepDot(_ one: NewSetStep) -> some View {
+        let reached = one <= step
+        return HStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(reached ? kind.tint : Color.secondary.opacity(0.2))
+                    .frame(width: 28, height: 28)
+                if one < step {
+                    Image(systemName: "checkmark").font(.caption.weight(.bold)).foregroundStyle(.white)
+                } else {
+                    Text("\(one.rawValue)")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(reached ? Color.white : Color.secondary)
+                }
+            }
+            Text(one.short)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(one == step ? Color.primary : Color.secondary)
+                .fixedSize()
+        }
+    }
+
+    private func goBack() {
+        guard let before = NewSetStep(rawValue: step.rawValue - 1) else { return }
+        withAnimation(.snappy) { step = before }
+    }
+
+    private func goForward() {
+        guard let next = NewSetStep(rawValue: step.rawValue + 1) else { return }
+        // a sensible name to start from: the lecture's own
+        if next == .make, name.trimmingCharacters(in: .whitespaces).isEmpty, let readSource {
+            name = readSource.name
+        }
+        withAnimation(.snappy) { step = next }
+    }
+
+    /// The big Next at the foot of step 2. Step 1 needs none - tapping a kind
+    /// moves on by itself - and step 3's big button is Make.
+    @ViewBuilder
+    private var nextBar: some View {
+        if step == .material && path != .importFile {
+            VStack(spacing: 4) {
+                Button { goForward() } label: {
+                    Label("Next", systemImage: "arrow.right")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.glassProminent)
+                .disabled(!canGoOn)
+                .accessibilityIdentifier("newSetNext")
+                if !canGoOn {
+                    Text(path == .type ? "Type or paste something first" : "Add a lecture file or paste your notes first")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: 560)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+    }
+
+    /// Whether step 2 has something to go on with. The lecture sections for
+    /// cards, cases, textbooks and OSCE keep their file to themselves, so for
+    /// those step 3 says what is missing instead.
+    private var canGoOn: Bool {
+        switch (path, kind) {
+        case (.type, _), (.lecture, .narrate):
+            return !bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case (.lecture, .mcq):
+            return !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        default:
+            return true
+        }
+    }
+
     // MARK: the three choices
 
     private var modeGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 12)], spacing: 12) {
             ForEach(StudySetKind.allCases) { option in
-                Button { withAnimation(.snappy) { kind = option } } label: {
-                    HStack(spacing: 10) {
-                        ModeTile(kind: option, size: 34, selected: kind == option)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(option.label).font(.subheadline.weight(.semibold))
-                            Text(Self.blurb(option))
-                                .font(.caption2).foregroundStyle(.secondary)
-                                .lineLimit(2).multilineTextAlignment(.leading)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-                    .background(kind == option ? AnyShapeStyle(option.tint.opacity(0.12)) : AnyShapeStyle(.thinMaterial),
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(kind == option ? option.tint : .clear, lineWidth: 1.5))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(kind == option ? .isSelected : [])
+                modeTile(option)
             }
         }
-        .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
+        .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        .listRowBackground(Color.clear)
+    }
+
+    /// One kind of set, as a big tile. Tapping it chooses it and moves on.
+    private func modeTile(_ option: StudySetKind) -> some View {
+        let chosen = kind == option
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return Button {
+            withAnimation(.snappy) {
+                kind = option
+                step = .material
+            }
+        } label: {
+            HStack(spacing: 16) {
+                ModeTile(kind: option, size: 44, selected: chosen)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(Self.plainName(option)).font(.headline)
+                    Text(Self.blurb(option))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .lineLimit(2).multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            .background(chosen ? AnyShapeStyle(option.tint.opacity(0.12)) : AnyShapeStyle(.regularMaterial), in: shape)
+            .overlay(shape.strokeBorder(chosen ? option.tint : .clear, lineWidth: 2))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private var pathPicker: some View {
-        HStack(spacing: 10) {
+        VStack(spacing: 12) {
             ForEach(Self.paths(for: kind)) { option in
-                Button { withAnimation(.snappy) { path = option } } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: option.symbol).font(.title3)
-                        Text(option.title).font(.caption.weight(.semibold))
-                            .lineLimit(1).minimumScaleFactor(0.8)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 64)
-                    .foregroundStyle(path == option ? kind.tint : Color.primary)
-                    .background(path == option ? kind.tint.opacity(0.14) : Color.primary.opacity(0.04),
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(path == option ? kind.tint : .clear, lineWidth: 1.5))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(path == option ? .isSelected : [])
+                pathTile(option)
             }
         }
-        .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
+        .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        .listRowBackground(Color.clear)
+    }
+
+    private func pathTile(_ option: Path) -> some View {
+        let chosen = path == option
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return Button { withAnimation(.snappy) { path = option } } label: {
+            HStack(spacing: 16) {
+                Image(systemName: option.symbol)
+                    .font(.title2)
+                    .frame(width: 32)
+                    .foregroundStyle(chosen ? kind.tint : Color.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(option.title).font(.headline)
+                    Text(option.blurb).font(.subheadline).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: chosen ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(chosen ? kind.tint : Color.secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+            .background(chosen ? AnyShapeStyle(kind.tint.opacity(0.12)) : AnyShapeStyle(.regularMaterial), in: shape)
+            .overlay(shape.strokeBorder(chosen ? kind.tint : .clear, lineWidth: 2))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private var nameSection: some View {
+        Section {
+            TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))
+                .font(.body)
+                .frame(minHeight: 44)
+        } header: {
+            Text("Name your set")
+        }
     }
 
     /// Narrate's lecture path is recording, which lives in Narrate itself.
@@ -214,20 +404,35 @@ struct NewSetView: View {
         kind == .narrate ? [.type, .importFile] : Path.allCases
     }
 
-    static func blurb(_ kind: StudySetKind) -> String {
+    /// The kind's name in plain words, for the tiles: "Practice questions"
+    /// says what an MCQ set is to someone who has never met the letters.
+    static func plainName(_ kind: StudySetKind) -> String {
         switch kind {
-        case .mcq: return "Single-best-answer questions"
-        case .anki: return "Spaced-repetition flashcards"
-        case .book: return "Your lecture as readable pages"
-        case .qa: return "Clinical cases and recall, with a simulated patient"
-        case .osce: return "Station checklists, step by step"
-        case .narrate: return "A transcript read along with audio"
+        case .mcq: return "Practice questions (MCQ)"
+        case .anki: return "Flashcards"
+        case .book: return "Textbook"
+        case .qa: return "Cases"
+        case .osce: return "OSCE checklists"
+        case .narrate: return "Narrate"
         }
     }
 
-    /// Which button floats: the generator while there is nothing to create
-    /// yet, then Create once there is.
+    static func blurb(_ kind: StudySetKind) -> String {
+        switch kind {
+        case .mcq: return "Multiple-choice questions, like the exam"
+        case .anki: return "Cards that come back just before you forget"
+        case .book: return "Your lecture as easy pages to read"
+        case .qa: return "Patient cases to talk through"
+        case .osce: return "Step-by-step checklists for practical exams"
+        case .narrate: return "Your lecture written out to read along"
+        }
+    }
+
+    /// Which button floats: the generator while there is nothing to save yet,
+    /// then Save once there is - and only on the last step, which is the
+    /// only one with a button to float.
     private var floatingID: String? {
+        guard step == .make else { return nil }
         let generator: String?
         switch (path, kind) {
         case (.lecture, .mcq): generator = "mcq"
@@ -241,6 +446,9 @@ struct NewSetView: View {
 
     // MARK: the material, for the chosen path only
 
+    /// The lecture sections are always here, drawing only their part of the
+    /// current step (nothing in step 1), so what they have read survives a
+    /// trip back and forth between the steps.
     @ViewBuilder
     private var material: some View {
         switch path {
@@ -251,7 +459,8 @@ struct NewSetView: View {
                                 questionCount: $questionCount,
                                 highYield: $highYield,
                                 readSource: $readSource,
-                                name: name, subject: subject) { set in
+                                subject: $subject,
+                                name: name, step: step) { set in
                     // Diagram (occlusion) cards come back as an Anki set, which
                     // the quiz screen cannot show - opening it there crashed.
                     // Anything that is not a question set goes straight into
@@ -266,29 +475,64 @@ struct NewSetView: View {
                     generatedSet = set
                 }
             case .osce:
-                OsceGenerateSection(bodyText: $bodyText, subject: subject,
+                OsceGenerateSection(bodyText: $bodyText, subject: $subject, step: step,
                                     presetText: preset?.text ?? "", presetName: preset?.name ?? "")
-                if !bodyText.isEmpty { draftSection(title: "Check and edit") }
+                if step == .make && !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .anki, .qa, .book:
                 LectureWriterSection(kind: kind, bodyText: $bodyText, readSource: $readSource,
-                                     suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams, subject: subject,
+                                     suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams,
+                                     subject: $subject, step: step,
                                      presetNotes: preset?.notes ?? "")
-                if !bodyText.isEmpty { draftSection(title: "Check and edit") }
+                if step == .make && !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .narrate:
-                draftSection(title: "Type or paste")
+                if step == .material { draftSection(title: "Type or paste") }
             }
         case .type:
-            draftSection(title: "Type or paste")
+            if step == .material { draftSection(title: "Type or paste") }
         case .importFile:
-            Section {
-                Button { showImporter = true } label: {
-                    Label("Choose a .json set", systemImage: "square.and.arrow.down")
+            if step == .material {
+                Section {
+                    Button { showImporter = true } label: {
+                        Label("Choose a saved set", systemImage: "square.and.arrow.down")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.glassProminent)
+                } footer: {
+                    Text(importError ?? "A .json set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. It goes straight into your library.")
+                        .foregroundStyle(importError == nil ? Color.secondary : Color.red)
                 }
-            } footer: {
-                Text(importError ?? "A set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. It's added as it is, so there's nothing to create.")
-                    .foregroundStyle(importError == nil ? Color.secondary : Color.red)
             }
         }
+    }
+
+    /// Save, with how much is ready under it. On the typing path this is
+    /// also where the subject waits, behind More options, since there is no
+    /// lecture section to hold it.
+    private var createSection: some View {
+        Section {
+            if !usesWriter {
+                DisclosureGroup("More options") {
+                    TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                }
+            }
+            Button { create() } label: {
+                Label("Save \(kind.label) set", systemImage: "checkmark")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(!canCreate)
+            .floatingActionAnchor("create")
+        } footer: {
+            Text(readiness)
+        }
+    }
+
+    /// Whether a lecture section is doing the writing - and so holds the
+    /// subject and the other extra choices itself.
+    private var usesWriter: Bool {
+        path == .lecture && kind != .narrate
     }
 
     private func draftSection(title: String) -> some View {
@@ -296,7 +540,7 @@ struct NewSetView: View {
             TextEditor(text: $bodyText)
                 .frame(minHeight: 180)
                 .font(.system(.footnote, design: .monospaced))
-            DisclosureGroup("Format", isExpanded: $showFormat) {
+            DisclosureGroup("How to lay it out", isExpanded: $showFormat) {
                 Text(formatHelp(for: kind))
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -349,8 +593,8 @@ struct NewSetView: View {
         case .osce: noun = "station"
         case .narrate: noun = "line"
         }
-        if count == 0 { return "Nothing readable yet \u{2014} open Format to see the layout each line needs." }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "\(count) \(noun)\(count == 1 ? "" : "s") ready. Give the set a name to create it." }
+        if count == 0 { return "Nothing readable yet \u{2014} open \u{201C}How to lay it out\u{201D} to see what each line needs each line needs." }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "\(count) \(noun)\(count == 1 ? "" : "s") ready. Give the set a name to save it." }
         return "\(count) \(noun)\(count == 1 ? "" : "s") ready."
     }
 

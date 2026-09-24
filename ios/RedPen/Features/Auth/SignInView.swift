@@ -19,12 +19,12 @@ struct SignInView: View {
         ZStack {
             LibraryBackdrop()
             ScrollView {
-                VStack(spacing: 22) {
+                VStack(spacing: 24) {
                     masthead
                     buttons
                     smallPrint
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 24)
                 .padding(.top, 64)
                 .padding(.bottom, 32)
                 .frame(maxWidth: 480)
@@ -49,12 +49,13 @@ struct SignInView: View {
                         .rotationEffect(.degrees(kind == .anki ? 0 : (kind == .mcq ? -10 : 10)))
                 }
             }
+            .accessibilityHidden(true)
             Text(Brand.name).font(.largeTitle.weight(.bold))
-            Text("Your lectures, turned into questions and cards \u{2014} on every device you study on.")
-                .font(.subheadline).foregroundStyle(.secondary)
+            Text("Turn your lectures into questions and flashcards.")
+                .font(.body).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
     }
 
     private var buttons: some View {
@@ -64,13 +65,14 @@ struct SignInView: View {
             Button {
                 account.useThisDeviceOnly(name: "")
             } label: {
-                doorLabel("Use on this device only", symbol: "iphone.gen3")
+                doorLabel("Start without an account", symbol: "iphone.gen3")
                     .foregroundStyle(.white)
                     .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color(red: 0.78, green: 0.16, blue: 0.16)))
             }
             .buttonStyle(.plain)
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .accessibilityHint("Everything stays on this device")
             .accessibilityIdentifier("localSignIn")
 
             SignInWithAppleButton(.signIn) { request in
@@ -80,7 +82,7 @@ struct SignInView: View {
                 Task { await account.finishApple(result) }
             }
             .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
-            .frame(height: 50)
+            .frame(height: 56)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             // Drawn to match Apple's button - same height, corners, weight and
@@ -101,17 +103,14 @@ struct SignInView: View {
             Button {
                 joining = true
             } label: {
-                Label("I have a code from my other device", systemImage: "ipad.and.iphone")
-                    .font(.subheadline.weight(.semibold))
+                Label("I have a code from another device", systemImage: "ipad.and.iphone")
+                    .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.glass)
             .disabled(account.busy)
             .accessibilityIdentifier("joinWithCode")
 
-            Text("\u{201C}This device only\u{201D} needs no account. To keep an iPhone and an iPad the same later: Account \u{2192} Link another device.")
-                .font(.caption2).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
     }
 
@@ -121,13 +120,15 @@ struct SignInView: View {
             Text(title).font(.system(size: 19, weight: .medium))
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 50)
+        .frame(height: 56)
     }
 
     private var smallPrint: some View {
-        Text("Your account carries your decks between your devices. Nothing is shared with anyone else.")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
+        // one line of small print instead of two: what each choice means,
+        // and that nothing is shared
+        Text("No account needed to start \u{2014} you can link an iPad or another phone later in Account. Nothing is shared with anyone else.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .padding(.top, 8)
     }

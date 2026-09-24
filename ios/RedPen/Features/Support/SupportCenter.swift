@@ -19,17 +19,35 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// What the menus list: the tour of examples only in the personal build.
     static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
 
+    /// The pages the menus show under one heading, in the order they list them.
+    static func shown(in section: SupportSection) -> [SupportPage] {
+        shown.filter { $0.section == section }
+    }
+
     var id: String { rawValue }
+
+    /// Which heading the page sits under in the phone menu and the iPad sidebar.
+    ///
+    /// Eleven pages in one flat list was a wall to read through every time;
+    /// four short groups, each named for what you came to do, can be skimmed.
+    var section: SupportSection {
+        switch self {
+        case .examples, .sources: return .study
+        case .analytics, .progress, .coverage: return .progress
+        case .notes, .reasoning: return .tools
+        case .account, .settings, .help, .faq: return .account
+        }
+    }
 
     var title: String {
         switch self {
         case .examples: return "Try every feature"
-        case .analytics: return "Analytics"
-        case .sources: return "Sources"
+        case .analytics: return "Your mistakes"
+        case .sources: return "Your lectures"
         case .progress: return "Progress"
-        case .coverage: return "Syllabus"
+        case .coverage: return "Syllabus check"
         case .notes: return "Ideas"
-        case .reasoning: return "Reasoning"
+        case .reasoning: return "Reasoning practice"
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
@@ -55,17 +73,17 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var blurb: String {
         switch self {
-        case .examples: return "Every feature, with a worked example"
-        case .analytics: return "Your mistakes, and what to study next"
-        case .sources: return "Your lectures, to read again"
-        case .progress: return "Accuracy by subject, and your streak"
+        case .examples: return "See every feature with an example"
+        case .analytics: return "What you got wrong, and what to study next"
+        case .sources: return "Read your lecture files again"
+        case .progress: return "How well you are doing, by subject"
         case .coverage: return "What your exam covers that you haven't studied"
-        case .notes: return "Your idea dump, folders and maps"
-        case .reasoning: return "Clue-by-clue cases, lookalikes, disease scripts"
-        case .account: return "Signing in, syncing, subscription"
-        case .settings: return "What the app does on its own"
-        case .help: return "What each mode is for"
-        case .faq: return "Short answers"
+        case .notes: return "Jot down ideas and link them up"
+        case .reasoning: return "Work through cases one clue at a time"
+        case .account: return "Sign in, sync and subscription"
+        case .settings: return "Change how the app behaves"
+        case .help: return "What each kind of set is for"
+        case .faq: return "Short answers to common questions"
         }
     }
 
@@ -83,6 +101,22 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         case .settings: SettingsPage()
         case .help: HelpPage()
         case .faq: FAQPage()
+        }
+    }
+}
+
+/// The four headings the support pages are grouped under.
+enum SupportSection: String, CaseIterable, Identifiable {
+    case study, progress, tools, account
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .study: return "Study"
+        case .progress: return "Your progress"
+        case .tools: return "Tools"
+        case .account: return "Account & help"
         }
     }
 }
@@ -108,10 +142,22 @@ struct SupportSidebar: View {
                 .textCase(nil)
                 .padding(.bottom, 2)
             }
-            Section {
-                ForEach(SupportPage.shown) { page in
-                    row(title: page.title, symbol: page.symbol,
-                        blurb: page.blurb, page: page)
+            // One section per heading, so the list reads as four short
+            // groups rather than eleven rows in a row.
+            ForEach(SupportSection.allCases) { section in
+                let pages = SupportPage.shown(in: section)
+                if !pages.isEmpty {
+                    Section {
+                        ForEach(pages) { page in
+                            row(title: page.title, symbol: page.symbol,
+                                blurb: page.blurb, page: page)
+                        }
+                    } header: {
+                        Text(section.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(nil)
+                    }
                 }
             }
         }
@@ -130,7 +176,7 @@ struct SupportSidebar: View {
                     .font(.body)
                     .frame(width: 24)
                     .foregroundStyle(here ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.body.weight(here ? .semibold : .regular))
                         .foregroundStyle(.primary)
@@ -140,6 +186,8 @@ struct SupportSidebar: View {
                 }
                 Spacer(minLength: 0)
             }
+            // a finger-sized row, whatever the text size
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

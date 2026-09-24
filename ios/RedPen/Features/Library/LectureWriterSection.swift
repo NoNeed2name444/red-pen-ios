@@ -17,7 +17,12 @@ struct LectureWriterSection: View {
     @Binding var bookFigures: [BookFigure]
     /// Cards made from the lecture's labelled diagrams (Cards mode).
     @Binding var diagrams: DiagramCards
-    let subject: String
+    /// Kept by New set; asked for here, under More options.
+    @Binding var subject: String
+    /// Which step of New set is showing: the file and notes in step 2, the
+    /// count and the Make button in step 3, nothing in step 1. The section
+    /// stays in the view throughout, so what it read survives the steps.
+    let step: NewSetStep
     /// Notes to start from, when a set is being turned into this mode and
     /// kept no lecture: its own content, in the paste box, ready to write from.
     var presetNotes: String = ""
@@ -26,7 +31,7 @@ struct LectureWriterSection: View {
     @EnvironmentObject private var llm: LocalLLMService
     @State private var picking = false
     @State private var pastedNotes = ""
-    @State private var showPaste = false
+    @State private var showMore = false
     @State private var count = 12
     @State private var working = false
     @State private var reading = false
@@ -46,69 +51,9 @@ struct LectureWriterSection: View {
     private var noun: String { kind == .book ? "page" : "card" }
 
     var body: some View {
-        Section {
-            Button { picking = true } label: {
-                Label(readSource == nil ? "Choose a lecture file" : "Choose a different file",
-                      systemImage: "doc.badge.plus")
-            }
-            .disabled(working)
-            if let readSource {
-                Label("\(readSource.name) \u{2014} \(readSource.document.pages.count) pages",
-                      systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            DisclosureGroup("Or paste notes", isExpanded: $showPaste) {
-                TextEditor(text: $pastedNotes)
-                    .frame(minHeight: 120)
-                    .font(.footnote)
-                    .disabled(working)
-            }
-            if let diagramProgress {
-                Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            if kind == .anki {
-                Picker("Card type", selection: $style) {
-                    ForEach(CardStyle.allCases) { Text($0.title).tag($0) }
-                }
-                .disabled(working)
-                if style.usesDiagrams, readSource != nil {
-                    Text(diagrams.cards.isEmpty ? "No labelled diagrams were found in this file."
-                                                : "\(diagrams.cards.count) image occlusion card\(diagrams.cards.count == 1 ? "" : "s") from the file's diagrams.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-            if style.writesText || kind != .anki {
-            CountField(title: "\(noun.capitalized)s", value: $count,
-                       range: kind == .book ? 1...1_000 : 1...10_000)
-                .disabled(working)
-            }
-            Button {
-                working ? stop() : start()
-            } label: {
-                HStack {
-                    if working || reading { ProgressView().controlSize(.small) }
-                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : actionTitle)
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glassProminent)
-            .disabled((!canWrite && !working) || reading)
-            .floatingActionAnchor("writer")
-            if working {
-                Button("Stop", role: .cancel) { stop() }
-            }
-            if let status, !working {
-                Text(status).font(.footnote).foregroundStyle(.secondary)
-            }
-            if let trouble {
-                Text(trouble).font(.footnote).foregroundStyle(.red)
-                Button("AI models") { showModels = true }.font(.footnote)
-            }
-        } header: {
-            Text("From a lecture")
-        } footer: {
-            Text(modelLine)
+        Group {
+            if step == .material { addSection }
+            if step == .make { makeSection }
         }
         .floatingAction(id: "writer", title: actionTitle,
                         enabled: canWrite && !working && !reading,
@@ -124,14 +69,120 @@ struct LectureWriterSection: View {
         .onAppear {
             guard pastedNotes.isEmpty, !presetNotes.isEmpty else { return }
             pastedNotes = presetNotes
-            showPaste = true
         }
         .sheet(isPresented: $showModels) { ModelSettingsView() }
     }
 
+    /// Step 2: a lecture file, or notes pasted in, or both.
+    private var addSection: some View {
+        Section {
+            Button { picking = true } label: {
+                HStack {
+                    if reading { ProgressView().controlSize(.small) }
+                    Label(reading ? "Reading\u{2026}" : (readSource == nil ? "Choose a lecture file" : "Choose a different file"),
+                          systemImage: "doc.badge.plus")
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(working || reading)
+            if let readSource {
+                Label("\(readSource.name) \u{2014} \(readSource.document.pages.count) pages",
+                      systemImage: "checkmark.circle.fill")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if let diagramProgress {
+                Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if let trouble {
+                Text(trouble).font(.footnote).foregroundStyle(.red)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Or paste your notes").font(.subheadline.weight(.semibold))
+                TextEditor(text: $pastedNotes)
+                    .frame(minHeight: 120)
+                    .font(.footnote)
+                    .disabled(working)
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Add a file")
+        } footer: {
+            Text("PDF, Word or PowerPoint. It is read on this phone.")
+        }
+    }
+
+    /// Step 3: how many, the one big button, and the rest behind More options.
+    private var makeSection: some View {
+        Section {
+            if style.writesText || kind != .anki {
+                CountField(title: "How many \(noun)s", value: $count,
+                           range: kind == .book ? 1...1_000 : 1...10_000)
+                    .disabled(working)
+            }
+            Button {
+                working ? stop() : start()
+            } label: {
+                HStack {
+                    if working || reading { ProgressView().controlSize(.small) }
+                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : actionTitle)
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled((!canWrite && !working) || reading)
+            .floatingActionAnchor("writer")
+            if working {
+                Button("Stop", role: .cancel) { stop() }
+            }
+            if let diagramProgress {
+                Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if let status, !working {
+                Text(status).font(.footnote).foregroundStyle(.secondary)
+            }
+            if !hasSource && !(kind == .anki && style == .image) {
+                Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if let trouble {
+                Text(trouble).font(.footnote).foregroundStyle(.red)
+                Button("AI models") { showModels = true }.font(.footnote)
+            }
+            DisclosureGroup("More options", isExpanded: $showMore) {
+                TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .disabled(working)
+                if kind == .anki {
+                    Picker("Card type", selection: $style) {
+                        ForEach(CardStyle.allCases) { Text($0.title).tag($0) }
+                    }
+                    .disabled(working)
+                    if style.usesDiagrams, readSource != nil {
+                        Text(diagramNote)
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Text(modelLine)
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var diagramNote: String {
+        let found = diagrams.cards.count
+        if found == 0 { return "No labelled diagrams were found in this file." }
+        let plural: String = found == 1 ? "" : "s"
+        return "\(found) picture card\(plural) from the file's diagrams."
+    }
+
     private var modelLine: String {
         if let backend = llm.writerOrApple() {
-            return "Written by \(backend.label)\(backend.isOnDevice ? " on this device" : ""). The \(noun)s land below to check and edit before you create the set."
+            let place: String = backend.isOnDevice ? " on this device" : ""
+            return "Written by \(backend.label)\(place). The \(noun)s appear below to check before you save the set."
         }
         return "No model is ready: turn on Apple Intelligence, or use Doctor-R1 or \(Brand.name) Cloud with Pro."
     }
@@ -223,7 +274,7 @@ struct LectureWriterSection: View {
         if kind == .anki && style == .image {
             return "Add \(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s")"
         }
-        return "Write \(count) \(noun)\(count == 1 ? "" : "s")"
+        return "Make \(count) \(noun)\(count == 1 ? "" : "s")"
     }
 
     private var canWrite: Bool {
@@ -265,7 +316,7 @@ struct LectureWriterSection: View {
             diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty
             if style == .image {
                 status = diagrams.cards.isEmpty ? nil
-                    : "\(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s") ready \u{2014} create the set below."
+                    : "\(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s") ready \u{2014} save the set below."
                 if diagrams.cards.isEmpty { trouble = "No labelled diagrams were found in this file." }
                 return
             }

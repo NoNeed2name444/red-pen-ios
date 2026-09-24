@@ -12,7 +12,12 @@ import UniformTypeIdentifiers
 /// the new-set screen is already long enough to have been split once.
 struct OsceGenerateSection: View {
     @Binding var bodyText: String
-    let subject: String
+    /// Kept by New set; asked for here, under More options.
+    @Binding var subject: String
+    /// Which step of New set is showing: the file in step 2, the count and
+    /// the Make button in step 3, nothing in step 1. The section stays in
+    /// the view throughout, so the file it read survives the steps.
+    let step: NewSetStep
     /// Material to start from, when a set is being turned into stations: read
     /// already, as if its file had just been opened.
     var presetText: String = ""
@@ -27,6 +32,7 @@ struct OsceGenerateSection: View {
     @State private var sourceName = ""
     @State private var stationCount = 3
     @State private var task: Task<Void, Never>?
+    @State private var showMore = false
 
     private var readableTypes: [UTType] {
         [.pdf,
@@ -39,41 +45,12 @@ struct OsceGenerateSection: View {
     }
 
     var body: some View {
-        Section {
-            Button { picking = true } label: {
-                Label(sourceName.isEmpty ? "Read a skills lecture or mark sheet"
-                                         : "Read a different file",
-                      systemImage: "doc.badge.plus")
-            }
-            .disabled(working)
-
-            if !sourceName.isEmpty {
-                CountField(title: "Stations", value: $stationCount,
-                           range: 1...OsceGenerator.maxStationsTotal)
-                    .disabled(working)
-                Button {
-                    working ? stop() : start()
-                } label: {
-                    Label(working ? "Stop" : "Write the stations",
-                          systemImage: working ? "stop.circle" : "sparkles")
-                }
-                .disabled(!canGenerate && !working)
-                .floatingActionAnchor("osce")
-            }
-
-            if let status {
-                Text(status).font(.caption).foregroundStyle(.secondary)
-            }
-            if let trouble {
-                Text(trouble).font(.caption).foregroundStyle(.red)
-            }
-        } header: {
-            Text("Write them from a lecture")
-        } footer: {
-            Text("Stations land in the box below to check and edit before you create the set. A skills lecture or a mark sheet works best.")
+        Group {
+            if step == .material { addSection }
+            if step == .make { makeSection }
         }
         // only once a file is read is there a button to float
-        .floatingAction(id: sourceName.isEmpty ? "osce-unread" : "osce", title: "Write \(stationCount) station\(stationCount == 1 ? "" : "s")",
+        .floatingAction(id: sourceName.isEmpty ? "osce-unread" : "osce", title: makeTitle,
                         enabled: canGenerate, inputs: [subject, String(sourceText.count)], run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes,
                       allowsMultipleSelection: false) { result in
@@ -87,6 +64,77 @@ struct OsceGenerateSection: View {
                 trouble = "There is not much in this set to write stations from."
             }
         }
+    }
+
+    /// Step 2: the skills lecture or mark sheet.
+    private var addSection: some View {
+        Section {
+            Button { picking = true } label: {
+                Label(sourceName.isEmpty ? "Choose a skills lecture or mark sheet"
+                                         : "Choose a different file",
+                      systemImage: "doc.badge.plus")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(working)
+            if !sourceName.isEmpty {
+                Label(sourceName, systemImage: "checkmark.circle.fill")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            messages
+        } header: {
+            Text("Add a file")
+        } footer: {
+            Text("PDF, Word or PowerPoint. A skills lecture or a mark sheet works best.")
+        }
+    }
+
+    /// Step 3: how many stations, the one big button, and More options.
+    private var makeSection: some View {
+        Section {
+            if sourceName.isEmpty {
+                Text("Nothing to write from yet \u{2014} go Back and add a file.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else {
+                CountField(title: "How many stations", value: $stationCount,
+                           range: 1...OsceGenerator.maxStationsTotal)
+                    .disabled(working)
+                Button {
+                    working ? stop() : start()
+                } label: {
+                    Label(working ? "Stop" : makeTitle,
+                          systemImage: working ? "stop.circle" : "sparkles")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.glassProminent)
+                .disabled(!canGenerate && !working)
+                .floatingActionAnchor("osce")
+            }
+            messages
+            DisclosureGroup("More options", isExpanded: $showMore) {
+                TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .disabled(working)
+            }
+        } footer: {
+            Text("The stations appear below to check before you save the set.")
+        }
+    }
+
+    @ViewBuilder
+    private var messages: some View {
+        if let status {
+            Text(status).font(.caption).foregroundStyle(.secondary)
+        }
+        if let trouble {
+            Text(trouble).font(.caption).foregroundStyle(.red)
+        }
+    }
+
+    private var makeTitle: String {
+        let plural: String = stationCount == 1 ? "" : "s"
+        return "Make \(stationCount) station" + plural
     }
 
     private func read(_ result: Result<[URL], Error>) async {

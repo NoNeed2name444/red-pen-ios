@@ -16,14 +16,21 @@ struct MCQGenerateForm: View {
     @Binding var questionCount: Int
     @Binding var highYield: Bool
     @Binding var readSource: ReadSource?
+    /// Kept by New set; asked for here, under More options, because it only
+    /// matters once there is something to write.
+    @Binding var subject: String
     let name: String
-    let subject: String
+    /// Which step of New set is showing: the lecture in step 2, the count and
+    /// the Make button in step 3, nothing in step 1. The form stays in the
+    /// view throughout so a file read in step 2 is still read in step 3.
+    let step: NewSetStep
     let onGenerated: (StudySet) -> Void
 
     @State private var isGenerating = false
     @State private var generationStatus: String?
     @State private var generationTask: Task<Void, Never>?
     @State private var showPaywall = false
+    @State private var showMore = false
 
     private enum Backend: Equatable { case medical, apple, gemma }
     /// Which backend a tap on Generate would actually use. `nil` means neither
@@ -44,58 +51,82 @@ struct MCQGenerateForm: View {
 
     var body: some View {
         Group {
+            // Always built, only shown in step 2: it holds the diagrams it
+            // found, and leaving the view would forget them.
             LecturePDFSection(sourceText: $sourceText, questionCount: $questionCount,
                               readSource: $readSource, disabled: isGenerating,
                               name: name, subject: subject,
+                              visible: step == .material,
                               onOcclusionSet: onGenerated)
 
-            Section {
-                Text("The questions are written from this text \u{2014} a lecture read above lands here too.")
-                    .font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: $sourceText)
-                    .frame(minHeight: 160)
-                    .font(.system(.footnote, design: .monospaced))
-                    .disabled(isGenerating)
-            } header: {
-                Text("Or paste notes")
+            if step == .material {
+                Section {
+                    TextEditor(text: $sourceText)
+                        .frame(minHeight: 160)
+                        .font(.system(.footnote, design: .monospaced))
+                        .disabled(isGenerating)
+                } header: {
+                    Text("Or paste your notes")
+                } footer: {
+                    Text("The questions are written from this text. A file you add above lands here too.")
+                }
             }
 
-            Section {
-                CountField(title: "Questions", value: $questionCount,
-                           range: 3...MCQGenerator.maxQuestionsTotal)
-                    .disabled(isGenerating)
-                Toggle("High-yield focus", isOn: $highYield)
-                    .disabled(isGenerating)
+            if step == .make {
+                makeSection
+                backendSection
             }
+        }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
+        .onAppear { gemma.refreshStatus() }
+        .floatingAction(id: "mcq", title: "Make \(questionCount) questions", enabled: canStart,
+                        inputs: [name, subject, String(highYield), String(sourceText.count)],
+                        run: startGenerating)
 
-            backendSection
+    }
 
-            Section {
-                if llm.needsPro(.writer) {
-                    Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",
-                          systemImage: "lock.fill")
-                        .font(.footnote).foregroundStyle(.secondary)
-                } else if activeBackend == .medical, let summary = llm.summary(for: .writer) {
+    /// Step 3: how many, the one big button, and the rest behind More options.
+    private var makeSection: some View {
+        Section {
+            CountField(title: "How many questions", value: $questionCount,
+                       range: 3...MCQGenerator.maxQuestionsTotal)
+                .disabled(isGenerating)
+            if llm.needsPro(.writer) {
+                Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",
+                      systemImage: "lock.fill")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Button { startGenerating() } label: {
+                HStack {
+                    if isGenerating { ProgressView().controlSize(.small) }
+                    Text(generateLabel)
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(!canStart)
+            .floatingActionAnchor("mcq")
+            if isGenerating {
+                Button("Stop", role: .cancel) { GenerationCenter.shared.cancel() }
+            }
+            if let generationStatus, !isGenerating {
+                Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
+            }
+            if sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            DisclosureGroup("More options", isExpanded: $showMore) {
+                TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
+                    .disabled(isGenerating)
+                Toggle("Focus on high-yield facts", isOn: $highYield)
+                    .disabled(isGenerating)
+                if activeBackend == .medical, let summary = llm.summary(for: .writer) {
                     Text("Using \(summary).").font(.footnote).foregroundStyle(.secondary)
                 } else if activeBackend == .gemma {
                     Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
                         .font(.footnote).foregroundStyle(.secondary)
-                }
-                Button { startGenerating() } label: {
-                    HStack {
-                        if isGenerating { ProgressView().controlSize(.small) }
-                        Text(generateLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canStart)
-                .floatingActionAnchor("mcq")
-                if isGenerating {
-                    Button("Cancel", role: .cancel) { GenerationCenter.shared.cancel() }
-                }
-                if let generationStatus, !isGenerating {
-                    Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
                 }
                 if activeBackend == .gemma, !isGenerating {
                     Button("Remove downloaded model", role: .destructive) {
@@ -105,17 +136,11 @@ struct MCQGenerateForm: View {
                 }
             }
         }
-        .sheet(isPresented: $showPaywall) { PaywallView() }
-        .onAppear { gemma.refreshStatus() }
-        .floatingAction(id: "mcq", title: "Write \(questionCount) questions", enabled: canStart,
-                        inputs: [name, subject, String(highYield), String(sourceText.count)],
-                        run: startGenerating)
-
     }
 
     private var generateLabel: String {
         if isGenerating { return generationStatus ?? "Writing\u{2026}" }
-        return llm.needsPro(.writer) ? "Unlock the medical models" : "Generate questions"
+        return llm.needsPro(.writer) ? "Unlock the medical models" : "Make \(questionCount) questions"
     }
 
     /// Apple's on-device model is tried first; this only appears when that is
@@ -134,7 +159,7 @@ struct MCQGenerateForm: View {
                     EmptyView() // covered by the note in the generate section
                 case .notDownloaded:
                     Button { gemma.download() } label: {
-                        Label("Download offline model (~3.4 GB, one-time)",
+                        Label("Download the offline model (3.4 GB, once)",
                               systemImage: "arrow.down.circle")
                     }
                     Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded \u{2014} works on hardware that can't run Apple's own on-device model, and can also read images.")
@@ -149,7 +174,7 @@ struct MCQGenerateForm: View {
                     Button("Try again") { gemma.download() }
                 }
             } header: {
-                Text("Offline model")
+                Text("Needed first: an offline model")
             }
         }
     }

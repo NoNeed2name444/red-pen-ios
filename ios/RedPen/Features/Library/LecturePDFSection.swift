@@ -44,6 +44,9 @@ struct LecturePDFSection: View {
     let disabled: Bool
     let name: String
     let subject: String
+    /// Whether to draw anything. New set keeps this section alive on every
+    /// step so the diagrams it found survive, and shows it only on step 2.
+    var visible: Bool = true
     let onOcclusionSet: (StudySet) -> Void
 
     @State private var picking = false
@@ -78,14 +81,26 @@ struct LecturePDFSection: View {
     }
 
     var body: some View {
+        Group {
+            if visible { fileSection }
+        }
+        .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes) { result in
+            Task { await read(result) }
+        }
+    }
+
+    private var fileSection: some View {
         Section {
             Button { picking = true } label: {
                 HStack {
                     if reading { ProgressView().controlSize(.small) }
-                    Label(reading ? "Reading the file\u{2026}" : "Read a lecture file",
-                          systemImage: "doc.text.viewfinder")
+                    Label(reading ? "Reading the file\u{2026}" : (readSource == nil ? "Choose a lecture file" : "Add another file"),
+                          systemImage: "doc.badge.plus")
                 }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
             }
+            .buttonStyle(.glassProminent)
             .disabled(reading || disabled)
 
             if let status {
@@ -98,7 +113,7 @@ struct LecturePDFSection: View {
             }
             if !cards.isEmpty {
                 Button { makeOcclusionSet() } label: {
-                    Label("Make an image-occlusion deck (\(cards.count) card\(cards.count == 1 ? "" : "s"))",
+                    Label("Also make \(cards.count) picture card\(cards.count == 1 ? "" : "s") from the diagrams",
                           systemImage: "rectangle.dashed")
                 }
                 .disabled(disabled)
@@ -106,12 +121,9 @@ struct LecturePDFSection: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         } header: {
-            Text("From a file")
+            Text("Add a file")
         } footer: {
-            Text("PDF, Word and PowerPoint are read on this phone. A scanned page is read by OCR, in Arabic or English.")
-        }
-        .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes) { result in
-            Task { await read(result) }
+            Text("PDF, Word or PowerPoint. It is read on this phone, scanned pages too.")
         }
     }
 
@@ -186,8 +198,7 @@ struct LecturePDFSection: View {
         "Read \(pages) page\(pages == 1 ? "" : "s")"
             + (ocr > 0 ? ", \(ocr) by OCR" : "")
             + (cards.isEmpty ? "" : ", \(images.count) labelled diagram\(images.count == 1 ? "" : "s")")
-            + ". Set to \(questionCount) questions \u{2014} about what this much material can"
-            + " cover without repeating itself. Check anything garbled before generating."
+            + ". \(questionCount) questions suits this much material."
     }
 
     /// Shrink the figures for storage, and renumber the cards as we go.

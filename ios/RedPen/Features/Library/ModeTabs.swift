@@ -15,7 +15,7 @@ struct LibraryTab: Hashable, Identifiable {
     let kind: StudySetKind?
 
     var id: String { kind?.rawValue ?? "all" }
-    var title: String { kind?.label ?? "All" }
+    var title: String { kind?.label ?? "All sets" }
     var tint: Color { kind?.tint ?? StudySetKind.mcq.tint }
     var symbol: String { kind?.symbol ?? "square.stack" }
 
@@ -114,7 +114,8 @@ struct ModeDock: View {
             .foregroundStyle(chosen ? AnyShapeStyle(Color.accentColor)
                                     : AnyShapeStyle(.secondary))
             .padding(.horizontal, (chosen ? 13 : 9) * scale)
-            .padding(.vertical, 9)
+            // 24 points of symbol and 10 either side: the 44 a finger needs
+            .padding(.vertical, 10)
             .background {
                 // One capsule that moves between the tabs rather than one per
                 // tab shown and hidden: it travels with the choice instead of
@@ -128,7 +129,8 @@ struct ModeDock: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(tab.title), \(count(tab)) sets")
+        .accessibilityLabel("\(tab.title), \(count(tab)) set\(count(tab) == 1 ? "" : "s")")
+        .accessibilityHint("Shows only these sets")
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
     }
 }
