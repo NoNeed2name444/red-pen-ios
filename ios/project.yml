@@ -66,6 +66,7 @@ targets:
         # LectureTranscriber forces requiresOnDeviceRecognition and refuses
         # rather than falling back to a server.
         NSSpeechRecognitionUsageDescription: Vignette turns lecture recordings and your spoken answers into text, on this device where it can.
+        CADisableMinimumFrameDurationOnPhone: true
         NSMicrophoneUsageDescription: Vignette uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice.
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:

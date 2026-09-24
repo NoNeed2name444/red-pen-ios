@@ -7,9 +7,10 @@ import simd
 /// thread between two, the way Obsidian's graph shows a vault - but something
 /// to turn round in the hand rather than a flat picture.
 ///
-/// It is kept quiet on purpose. Pages are a little larger than ideas; each
-/// folder is the faintest of bubbles round its notes; titles appear only for
-/// the few notes nearest you, fading in as you come closer. The only controls
+/// It is kept quiet on purpose. Pages are a little larger than ideas; notes
+/// are matte pastel dots coloured by folder, with nothing drawn round them;
+/// titles appear only for the few notes nearest you, fading in as you come
+/// closer. The only controls
 /// are two small buttons in the corner: one to filter, one to bring the view
 /// back to the middle.
 ///
@@ -28,7 +29,6 @@ struct Graph3DView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var built: GraphScene?
     @State private var filter: GraphFilter = .all
-    @State private var showBubbles: Bool = true
     /// Bumped by the recentre button; the view notices the change.
     @State private var recenter: Int = 0
 
@@ -41,8 +41,7 @@ struct Graph3DView: View {
                     Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar above.")
                 }
             } else if let built {
-                GraphSCNView(built: built, filter: filter, showBubbles: showBubbles,
-                             recenter: recenter, onTap: open)
+                GraphSCNView(built: built, filter: filter, recenter: recenter, onTap: open)
                     .accessibilityLabel("Space of ideas")
                     .accessibilityHint("Drag to turn, pinch to zoom, tap a note to open it.")
                     .overlay {
@@ -120,7 +119,6 @@ struct Graph3DView: View {
             }
             .pickerStyle(.menu)
         }
-        Toggle("Folder bubbles", isOn: $showBubbles)
     }
 
     /// How many notes the current filter lets through, to say so when none do.
@@ -191,7 +189,10 @@ struct GraphScene {
 /// Turns notes and their positions into SceneKit nodes.
 ///
 /// Each note's node is named "note:<id>", which is how a tap finds out which
-/// note it landed on; a folder's bubble is named "folder:<id>".
+/// note it landed on.
+///
+/// Nothing is drawn round a note - no bubble, glow, rim or see-through
+/// shell - so each reads as one clean matte dot.
 @MainActor
 enum GraphSceneBuilder {
     static func build(store: NoteStore, positions: [UUID: SIMD3<Float>], edges: [(UUID, UUID)],
@@ -208,41 +209,6 @@ enum GraphSceneBuilder {
         let textColor: UIColor = UIColor.secondaryLabel.resolvedColor(with: traits)
         let lineAlpha: CGFloat = dark ? 0.28 : 0.22
         let lineColor: UIColor = UIColor.label.resolvedColor(with: traits).withAlphaComponent(lineAlpha)
-
-        // folders: the faintest bubble round each folder's notes, no title
-        var byFolder: [UUID: [SIMD3<Float>]] = [:]
-        for note in store.notes {
-            if let folder = note.folderId, let p = positions[note.id] {
-                byFolder[folder, default: []].append(p)
-            }
-        }
-        var bubbles: [(node: SCNNode, root: UUID?)] = []
-        for (folderId, points) in byFolder {
-            var centre = SIMD3<Float>(0, 0, 0)
-            for p in points { centre += p }
-            centre /= Float(points.count)
-            var reach: Float = 0
-            for p in points { reach = max(reach, simd_length(p - centre)) }
-            let radius: Float = max(reach + 0.7, 0.9)
-
-            let sphere = SCNSphere(radius: CGFloat(radius))
-            sphere.segmentCount = 32
-            let material = SCNMaterial()
-            let tone: UIColor = pastel(NoteTone.uiColor(for: folderId, in: store), dark: dark)
-            let fill: CGFloat = dark ? 0.05 : 0.07
-            material.diffuse.contents = tone.withAlphaComponent(fill)
-            material.lightingModel = .constant
-            material.isDoubleSided = true
-            material.writesToDepthBuffer = false
-            sphere.materials = [material]
-            let bubble = SCNNode(geometry: sphere)
-            bubble.name = "folder:\(folderId.uuidString)"
-            bubble.simdPosition = centre
-            // drawn after the notes, so they show through it
-            bubble.renderingOrder = 10
-            world.addChildNode(bubble)
-            bubbles.append((node: bubble, root: store.rootFolder(of: folderId)))
-        }
 
         // connections: hairlines, all in one geometry that GraphSim redraws
         // as the notes move
@@ -271,8 +237,11 @@ enum GraphSceneBuilder {
             material.diffuse.contents = pastel(NoteTone.uiColor(for: note.folderId, in: store), dark: dark)
             material.specular.contents = UIColor.black
             material.reflective.contents = nil
-            material.transparency = 0.88
-            material.blendMode = .alpha
+            material.emission.contents = UIColor.black
+            // fully opaque: a see-through sphere blended over the lines and
+            // the backdrop shows a pale ring at its edge
+            material.transparency = 1
+            material.blendMode = .replace
             sphere.materials = [material]
             let node = SCNNode(geometry: sphere)
             node.name = "note:\(note.id.uuidString)"
@@ -309,6 +278,10 @@ enum GraphSceneBuilder {
         camera.zNear = 0.05
         let far: Float = extent * 12 + 20
         camera.zFar = Double(far)
+        // no HDR, bloom or glare: those put a glow round every bright dot
+        camera.wantsHDR = false
+        camera.bloomIntensity = 0
+        camera.wantsExposureAdaptation = false
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         let distance: Float = extent * 2.6 + 3
@@ -331,8 +304,7 @@ enum GraphSceneBuilder {
         let scaledReach: Float = distance * 0.55
         let labelReach: Float = max(scaledReach, 5.5)
         let sim = GraphSim(world: world, infos: infos, edges: edges, lines: lines,
-                           lineMaterial: lineMaterial, bubbles: bubbles,
-                           lively: lively, labelReach: labelReach)
+                           lineMaterial: lineMaterial, lively: lively, labelReach: labelReach)
         return GraphScene(scene: scene, camera: cameraNode, cameraHome: cameraHome, sim: sim)
     }
 
@@ -392,7 +364,6 @@ enum GraphSceneBuilder {
 struct GraphSCNView: UIViewRepresentable {
     let built: GraphScene
     let filter: GraphFilter
-    let showBubbles: Bool
     let recenter: Int
     let onTap: (UUID) -> Void
 
@@ -406,6 +377,11 @@ struct GraphSCNView: UIViewRepresentable {
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
         view.antialiasingMode = .multisampling4X
+        // step and draw every frame the screen shows: 120 a second on
+        // ProMotion, 60 elsewhere (SceneKit caps it at what the screen can do)
+        view.preferredFramesPerSecond = 120
+        view.rendersContinuously = true
+        view.isJitteringEnabled = false
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.inertiaEnabled = true
 
@@ -420,8 +396,7 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.panner = pan
 
         coordinator.attach(built, to: view)
-        coordinator.apply(filter, bubbles: showBubbles)
-        coordinator.start()
+        coordinator.apply(filter)
         return view
     }
 
@@ -431,7 +406,7 @@ struct GraphSCNView: UIViewRepresentable {
         if coordinator.sim !== built.sim {
             coordinator.attach(built, to: view)
         }
-        coordinator.apply(filter, bubbles: showBubbles)
+        coordinator.apply(filter)
         if coordinator.recenterCount != recenter {
             coordinator.recenterCount = recenter
             coordinator.recentre()
@@ -451,10 +426,7 @@ struct GraphSCNView: UIViewRepresentable {
         weak var panner: UIPanGestureRecognizer?
         private var camera: SCNNode?
         private var cameraHome = SIMD3<Float>(0, 0, 10)
-        private var link: CADisplayLink?
-        private var lastTime: CFTimeInterval = 0
         private var shownFilter: GraphFilter?
-        private var shownBubbles: Bool?
         /// The note a drag is about to pick up, found when the drag begins.
         private var pending: Int?
         /// How far into the screen the dragged note sits, so it moves across
@@ -462,6 +434,8 @@ struct GraphSCNView: UIViewRepresentable {
         private var dragDepth: Float = 0
         /// From the finger to the note's centre, so it does not jump.
         private var dragOffset = SIMD3<Float>(0, 0, 0)
+        /// True between a drag picking a note up and letting it go.
+        private var dragging: Bool = false
         /// The camera's own drag gestures already told to wait for ours.
         private var wired: Set<ObjectIdentifier> = []
 
@@ -476,7 +450,8 @@ struct GraphSCNView: UIViewRepresentable {
             camera = built.camera
             cameraHome = built.cameraHome
             shownFilter = nil
-            shownBubbles = nil
+            // the simulation steps on SceneKit's render loop, once per frame
+            view.delegate = built.sim
             view.scene = built.scene
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
@@ -485,12 +460,11 @@ struct GraphSCNView: UIViewRepresentable {
             built.sim.appear()
         }
 
-        func apply(_ filter: GraphFilter, bubbles: Bool) {
+        func apply(_ filter: GraphFilter) {
             guard let sim else { return }
-            if shownFilter == filter && shownBubbles == bubbles { return }
+            if shownFilter == filter { return }
             shownFilter = filter
-            shownBubbles = bubbles
-            sim.apply(filter, bubbles: bubbles)
+            sim.apply(filter)
         }
 
         /// Glides the camera back to where it started, looking at the middle.
@@ -506,32 +480,10 @@ struct GraphSCNView: UIViewRepresentable {
             SCNTransaction.commit()
         }
 
-        // MARK: the frame clock
-
-        /// Thirty times a second is plenty for drifting and springing, and
-        /// half the work of sixty.
-        func start() {
-            guard link == nil else { return }
-            let clock = CADisplayLink(target: self, selector: #selector(tick(_:)))
-            clock.preferredFrameRateRange = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
-            clock.add(to: .main, forMode: .common)
-            link = clock
-        }
-
-        /// The clock holds on to this object, so it must be stopped when the
-        /// view goes.
+        /// The view is going: stop drawing and let go of the simulation.
         func stop() {
-            link?.invalidate()
-            link = nil
-        }
-
-        @objc func tick(_ clock: CADisplayLink) {
-            let now: CFTimeInterval = clock.timestamp
-            let elapsed: CFTimeInterval = lastTime == 0 ? 1.0 / 30.0 : now - lastTime
-            lastTime = now
-            guard let sim, let view else { return }
-            let eye: SIMD3<Float> = view.pointOfView?.simdWorldPosition ?? cameraHome
-            sim.step(Float(elapsed), camera: eye)
+            view?.isPlaying = false
+            view?.delegate = nil
         }
 
         // MARK: gestures
@@ -573,19 +525,25 @@ struct GraphSCNView: UIViewRepresentable {
             switch gesture.state {
             case .began:
                 guard let i = pending else { return }
-                let local: SIMD3<Float> = sim.position[i]
+                // the depth of the note on screen is found once, here; each
+                // move after that is one unprojection onto that depth
+                let local: SIMD3<Float> = sim.currentPosition(i)
                 let world: SIMD3<Float> = sim.world.simdConvertPosition(local, to: nil)
-                let projected: SCNVector3 = view.projectPoint(SCNVector3(x: world.x, y: world.y, z: world.z))
+                let scenePoint = SCNVector3(x: world.x, y: world.y, z: world.z)
+                let projected: SCNVector3 = view.projectPoint(scenePoint)
                 dragDepth = projected.z
                 let finger: SIMD3<Float> = fingerPoint(point, in: view, sim: sim)
                 dragOffset = local - finger
+                dragging = true
                 sim.grab(i)
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             case .changed:
-                guard sim.grabbed != nil else { return }
+                guard dragging else { return }
                 let finger: SIMD3<Float> = fingerPoint(point, in: view, sim: sim)
-                sim.grabTarget = finger + dragOffset
+                let target: SIMD3<Float> = finger + dragOffset
+                sim.drag(to: target)
             default:
+                dragging = false
                 pending = nil
                 sim.release()
             }
@@ -608,8 +566,8 @@ struct GraphSCNView: UIViewRepresentable {
             onTap(sim.ids[i])
         }
 
-        /// Looks through everything under the finger - a folder's bubble is
-        /// usually in front - for the nearest shown note, climbing from a
+        /// Looks through everything under the finger for the nearest shown
+        /// note, climbing from a
         /// label to the note it belongs to.
         private func noteIndex(at point: CGPoint, in view: SCNView) -> Int? {
             guard let sim else { return nil }
