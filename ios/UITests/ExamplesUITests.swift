@@ -24,7 +24,7 @@ final class ExamplesUITests: XCTestCase {
         let banner = app.buttons["examplesBanner"]
         XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 20), "the library didn't open")
         var scrolls = 0
-        while !(banner.exists && banner.isHittable) && scrolls < 8 { app.swipeUp(); scrolls += 1 }
+        while !(banner.exists && banner.isHittable) && scrolls < 16 { app.swipeUp(); scrolls += 1 }
         XCTAssertTrue(banner.exists, "the 'Try every feature' link isn't at the bottom of the library")
         banner.tap()
         snap(app, "hub")

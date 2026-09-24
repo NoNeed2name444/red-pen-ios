@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The app's one screen at the top: the floating dock's five categories -
 /// Questions, Cards, Cases, OSCE, Audio - and, for the one chosen, its sets
-/// (tap to open, swipe to delete or export, hold for the rest) with every way
-/// to practise them underneath as big tiles.
+/// (tap to open, swipe to delete or export, hold for the rest), a tile for
+/// each of its modes above them and every way to practise them underneath.
 ///
 /// The rows are in LibraryRows, the category's tiles in LibraryCategory and
 /// the sheets in LibrarySheets; what is left here is the shape of the screen.
@@ -17,6 +17,9 @@ struct LibraryView: View {
     /// New set, opened on this kind of set (the category's own, from its
     /// "+ New set").
     @State var newSetKind: StudySetKind?
+    /// New set on this kind, opened at "where from" - a category's "Paste
+    /// or import" tile.
+    @State var addingKind: StudySetKind?
     @State var exportURL: URL?
     @State var exportFailedSetName: String?
 
@@ -212,7 +215,7 @@ struct LibraryView: View {
                 MCQQuizView(set: quiz.set, keepsProgress: false,
                             minReadSeconds: quiz.minReadSeconds, startsTimed: quiz.timed)
             }
-            .navigationDestination(item: $featurePage) { $0.page }
+            .navigationDestination(item: $featurePage) { featurePageView($0) }
             .navigationDestination(isPresented: $showingDue) { DueTodayView() }
             .alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in
                 Button("OK", role: .cancel) {}
@@ -264,9 +267,13 @@ struct LibraryView: View {
                         .frostedListRow()
                 }
             }
+            // the modes first - one tile per kind of set here - so each
+            // mode is one tap from the dock, as when it had a tab of its own
+            if !searching { modesSection }
             setsSections
             if !searching {
                 featureSection
+                moreSection
                 examplesSection
             }
             if !selecting {

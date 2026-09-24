@@ -131,6 +131,15 @@ struct NewSetView: View {
         _path = State(initialValue: Self.paths(for: kind)[0])
     }
 
+    /// New set from a category's "Paste or import" tile: that kind chosen and
+    /// already on the step that asks where the material comes from, with
+    /// typing picked - a saved set or a lecture file is one tap away there.
+    init(kind: StudySetKind, startingAt start: NewSetStep) {
+        self.init(kind: kind)
+        _step = State(initialValue: start)
+        _path = State(initialValue: .type)
+    }
+
     var body: some View {
         NavigationStack {
             Form {

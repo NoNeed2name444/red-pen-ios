@@ -81,34 +81,93 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Everything this category can do besides opening a set.
+    /// Everything on this category's page besides its list of sets, in the
+    /// order the groups are shown.
     var features: [CategoryFeature] {
+        FeatureGroup.allCases.flatMap { features(in: $0) }
+    }
+
+    /// The tiles under one small heading.
+    func features(in group: FeatureGroup) -> [CategoryFeature] {
+        switch group {
+        case .modes: return modeTiles
+        case .practise: return practiseTiles
+        case .tools: return toolTiles
+        }
+    }
+
+    /// One tile for every kind of set that lives here - the modes the dock
+    /// used to have a tab each for, so each is still one tap away.
+    private var modeTiles: [CategoryFeature] {
+        switch self {
+        case .questions: return [.multipleChoice]
+        case .cards: return [.flashcards, .textbooks, .pictures]
+        case .cases: return [.qaCases]
+        case .osce: return [.stations]
+        case .audio: return [.lectures]
+        }
+    }
+
+    /// The ways to practise what is in the sets.
+    private var practiseTiles: [CategoryFeature] {
         switch self {
         case .questions:
-            return [.mixed, .mistakes, .flagged, .timed, .weakest, .confident, .one, .rules, .coverage]
-        case .cards: return [.due, .pictures, .draw]
-        case .cases: return [.reasoning]
+            return [.mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one]
+        case .cards: return [.due, .draw]
+        case .cases: return [.clues, .duels, .scripts]
         case .osce: return [.patient]
-        case .audio: return [.commute, .explain, .record]
+        case .audio: return [.commute, .explain]
+        }
+    }
+
+    /// Everything else: making, bringing in and changing sets, and the pages
+    /// about how the studying is going.
+    private var toolTiles: [CategoryFeature] {
+        switch self {
+        case .questions: return [.rules, .coverage, .subjects, .add, .turn]
+        case .cards: return [.add, .turn]
+        case .cases: return [.reasoning, .add, .turn]
+        case .osce: return [.add, .turn]
+        case .audio: return [.record, .add, .turn]
+        }
+    }
+}
+
+/// The three small headings a category's tiles sit under.
+enum FeatureGroup: String, CaseIterable, Identifiable {
+    case modes, practise, tools
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .modes: return "Modes"
+        case .practise: return "Practise"
+        case .tools: return "Tools"
         }
     }
 }
 
 // MARK: - What each category can do
 
-/// One thing a category can do besides opening a set: a quiz built on the
-/// spot, a page of its own, or New set with the right kind already chosen.
+/// One thing a category can do besides opening a set: one mode's sets, a quiz
+/// built on the spot, a page of its own, or New set with the right kind
+/// already chosen.
 enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
+    // The modes: one per kind of set (and the picture cards among the decks)
+    case multipleChoice, flashcards, textbooks, pictures, qaCases, stations, lectures
     // Questions
-    case mixed, mistakes, flagged, timed, weakest, confident, one, rules, coverage
+    case mixed, mistakes, flagged, timed, weakest, confident, slow, one, rules, coverage, subjects
     // Cards
-    case due, pictures, draw
+    case due, draw
     // Cases
-    case reasoning
+    case clues, duels, scripts, reasoning
     // OSCE
     case patient
     // Audio
     case commute, explain, record
+    // Every category
+    case add, turn
 
     var id: String { rawValue }
 
@@ -122,81 +181,141 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case page
         /// Opens New set on this kind.
         case newSet(StudySetKind)
+        /// Lists this kind's sets - or, with none yet, opens New set on it.
+        case shelf(StudySetKind)
+        /// Pushes one of the gear menu's pages.
+        case support(SupportPage)
+        /// New set on the category's kind, at the step that asks where the
+        /// material comes from: typing, a lecture, or a saved set.
+        case addMaterial
     }
 
     var action: Action {
         switch self {
-        case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .one: return .quiz
+        case .multipleChoice: return .shelf(.mcq)
+        case .flashcards, .pictures: return .shelf(.anki)
+        case .textbooks: return .shelf(.book)
+        case .qaCases: return .shelf(.qa)
+        case .stations: return .shelf(.osce)
+        case .lectures: return .shelf(.narrate)
+        case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one: return .quiz
         case .due: return .due
-        case .pictures: return .newSet(.anki)
         case .record: return .newSet(.narrate)
-        case .rules, .coverage, .draw, .reasoning, .patient, .commute, .explain: return .page
+        case .subjects: return .support(.progress)
+        case .add: return .addMaterial
+        case .rules, .coverage, .draw, .clues, .duels, .scripts, .reasoning,
+             .patient, .commute, .explain, .turn: return .page
         }
+    }
+
+    /// The kind of set a mode tile lists; nil for every other tile.
+    var shelfKind: StudySetKind? {
+        if case .shelf(let kind) = action { return kind }
+        return nil
     }
 
     var title: String {
         switch self {
+        case .multipleChoice: return "Multiple choice"
+        case .flashcards: return "Flashcards"
+        case .textbooks: return "Textbooks"
+        case .pictures: return "Picture cards"
+        case .qaCases: return "Q&A cases"
+        case .stations: return "OSCE stations"
+        case .lectures: return "Narrated lectures"
         case .mixed: return "Mixed quiz"
         case .mistakes: return "My mistakes"
         case .flagged: return "Flagged"
         case .timed: return "Timed exam"
         case .weakest: return "Weakest topic"
         case .confident: return "Sure but wrong"
+        case .slow: return "Slow reading"
         case .one: return "Just one"
         case .rules: return "Rule sheet"
         case .coverage: return "Syllabus check"
+        case .subjects: return "By subject"
         case .due: return "Due cards"
-        case .pictures: return "Picture cards"
         case .draw: return "Draw from memory"
-        case .reasoning: return "Clue cases & duels"
+        case .clues: return "Clue-by-clue cases"
+        case .duels: return "Lookalike duels"
+        case .scripts: return "Disease scripts"
+        case .reasoning: return "Reasoning by set"
         case .patient: return "Talking patient"
         case .commute: return "Commute mode"
         case .explain: return "Explain it back"
         case .record: return "Record a lecture"
+        case .add: return "Paste or import"
+        case .turn: return "Turn into\u{2026}"
         }
     }
 
     var detail: String {
         switch self {
+        case .multipleChoice: return "Exam-style questions"
+        case .flashcards: return "Cards that come back in time"
+        case .textbooks: return "Your lecture as pages"
+        case .pictures: return "Hide labels on a diagram"
+        case .qaCases: return "Patient cases to talk through"
+        case .stations: return "Step-by-step checklists"
+        case .lectures: return "Read along with the lecture"
         case .mixed: return "20 from every set"
         case .mistakes: return "Last got wrong"
         case .flagged: return "The ones you flagged"
         case .timed: return "10 against the clock"
         case .weakest: return "Your lowest subject"
         case .confident: return "Fix the misconceptions"
+        case .slow: return "Key words marked, 15 s each"
         case .one: return "A single question"
         case .rules: return "One rule per mistake"
         case .coverage: return "What you haven't studied"
+        case .subjects: return "Your score in each subject"
         case .due: return "Cards waiting today"
-        case .pictures: return "Hide labels on a diagram"
         case .draw: return "Sketch, then compare"
-        case .reasoning: return "One clue at a time"
+        case .clues: return "Commit as early as you dare"
+        case .duels: return "Tell two lookalikes apart"
+        case .scripts: return "A whole disease on one screen"
+        case .reasoning: return "All three tools for one set"
         case .patient: return "Talk, then get marked"
         case .commute: return "Listen and answer aloud"
         case .explain: return "Say it, get it marked"
         case .record: return "Write out what was said"
+        case .add: return "Type it in, or open a saved set"
+        case .turn: return "Make a set another mode"
         }
     }
 
     var symbol: String {
         switch self {
+        case .multipleChoice: return StudySetKind.mcq.symbol
+        case .flashcards: return StudySetKind.anki.symbol
+        case .textbooks: return StudySetKind.book.symbol
+        case .pictures: return "photo.on.rectangle.angled"
+        case .qaCases: return StudySetKind.qa.symbol
+        case .stations: return StudySetKind.osce.symbol
+        case .lectures: return StudySetKind.narrate.symbol
         case .mixed: return "shuffle"
         case .mistakes: return "xmark.circle.fill"
         case .flagged: return "flag.fill"
         case .timed: return "timer"
         case .weakest: return "target"
         case .confident: return "exclamationmark.triangle.fill"
+        case .slow: return "eye.fill"
         case .one: return "1.circle.fill"
         case .rules: return "list.bullet.rectangle.fill"
         case .coverage: return "checklist"
+        case .subjects: return "chart.bar.xaxis"
         case .due: return "tray.full.fill"
-        case .pictures: return "photo.on.rectangle.angled"
         case .draw: return "pencil.and.scribble"
+        case .clues: return "text.magnifyingglass"
+        case .duels: return "arrow.left.arrow.right"
+        case .scripts: return "rectangle.stack.fill"
         case .reasoning: return "brain.head.profile"
         case .patient: return "person.wave.2.fill"
         case .commute: return "car.fill"
         case .explain: return "text.bubble.fill"
         case .record: return "mic.fill"
+        case .add: return "square.and.arrow.down"
+        case .turn: return "arrow.triangle.2.circlepath"
         }
     }
 
@@ -206,14 +325,20 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .due: return "No cards are due right now. Come back later."
         case .flagged: return "Flag a question while you answer it and it will wait here."
         case .mistakes, .confident: return "Answer a few questions first. Anything you get wrong comes back here."
+        case .slow: return "When you get one wrong, tap \u{201C}Misread the question\u{201D} under it and it comes back here, to read slowly."
         default: return "Make a question set first."
         }
     }
 
-    /// The page this feature opens, for the `.page` ones.
+    /// The page this feature opens, for the `.page` and `.shelf` ones.
+    /// (Turn into needs the category's kinds, so the library builds it.)
     @ViewBuilder
     var page: some View {
         switch self {
+        case .multipleChoice, .flashcards, .textbooks, .pictures, .qaCases, .stations, .lectures:
+            KindShelfView(feature: self)
+        case .clues, .duels, .scripts:
+            ReasoningToolPicker(feature: self)
         case .rules: RuleSheetView()
         case .coverage: CoverageView()
         case .draw: DrawPracticeView()
@@ -223,6 +348,20 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .explain: ExplainBackView()
         default: EmptyView()
         }
+    }
+
+    /// A mode tile's sets, newest first: every set of its kind, or for the
+    /// picture cards only the decks that hold any.
+    @MainActor func shelfSets(_ store: Store) -> [StudySet] {
+        guard let kind: StudySetKind = shelfKind else { return [] }
+        let all: [StudySet] = store.library.filter { $0.kind == kind }
+        let kept: [StudySet] = self == .pictures ? all.filter(Self.hasPictureCards) : all
+        return kept.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// Whether a deck holds any image occlusion card.
+    static func hasPictureCards(_ set: StudySet) -> Bool {
+        set.cards.contains { $0.type == .occlusion }
     }
 
     /// The quiz this feature opens, built now from the library; nil for the
@@ -243,6 +382,9 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
             return Self.weakestQuiz(store)
         case .confident:
             return InsightQuiz(set: store.confidentMistakesQuiz())
+        case .slow:
+            let drill: StudySet = store.reasonQuiz(.misread, named: "Slow reading drill")
+            return InsightQuiz(set: drill, minReadSeconds: 15)
         case .one:
             let picks: [QuestionPick] = Array(store.mcqPicks { _ in true }.shuffled().prefix(1))
             return InsightQuiz(set: Store.temporaryQuiz(named: "One question", subject: "One question", from: picks))
@@ -274,6 +416,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 struct FeatureTile: View {
     let feature: CategoryFeature
     let tint: Color
+    /// Said in place of the feature's own line - a mode's count of sets.
+    var detail: String? = nil
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -289,7 +433,7 @@ struct FeatureTile: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                Text(feature.detail)
+                Text(detail ?? feature.detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

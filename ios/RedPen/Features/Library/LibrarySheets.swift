@@ -45,6 +45,7 @@ extension LibraryView {
                                   openAt: opening.page)
             }
             .sheet(item: $newSetKind) { kind in NewSetView(kind: kind) }
+            .sheet(item: $addingKind) { kind in NewSetView(kind: kind, startingAt: .material) }
             .turnIntoPicker(for: $turning)
             .sheet(item: $reasoningFor) { set in
                 NavigationStack {
