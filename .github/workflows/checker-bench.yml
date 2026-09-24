@@ -1,0 +1,59 @@
+# Which model makes the best accuracy checker? The same MedQA questions, each
+# shown correct and wrong, to every model through the deployed worker (owner
+# key, one model at a time). Results add up across runs on the checker-bench
+# branch, since some free quotas allow only a few calls a day.
+name: Checker comparison
+on:
+  workflow_dispatch:
+    inputs:
+      n:
+        description: Questions per model (3 checks each)
+        required: false
+        default: '40'
+      models:
+        description: Models, comma-separated (gemini:, workers-ai:, hf:)
+        required: false
+        default: 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b,hf:baichuan-inc/Baichuan-M2-32B,hf:google/medgemma-27b-text-it'
+      caps:
+        description: Most calls per model this run (free quotas)
+        required: false
+        default: 'gemini:gemini-3.1-pro-preview=3,gemini:gemini-3.5-flash=18,workers-ai:@cf/nvidia/nemotron-3-120b-a12b=60,workers-ai:@cf/openai/gpt-oss-120b=60,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct=60,workers-ai:@cf/qwen/qwq-32b=60,hf:baichuan-inc/Baichuan-M2-32B=30,hf:google/medgemma-27b-text-it=30'
+permissions:
+  contents: write
+concurrency:
+  group: checker-bench
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The benchmark's own tests
+        run: node server/tests/bench.test.mjs
+      - name: Earlier results
+        run: |
+          mkdir -p out
+          git fetch -q origin checker-bench && git show origin/checker-bench:checker-report.json > out/previous.json || echo '[]' > out/previous.json
+      - name: Run it
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          N: ${{ inputs.n }}
+          MODELS: ${{ inputs.models }}
+          CAPS: ${{ inputs.caps }}
+        run: |
+          KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          KEY="$KEY" PREVIOUS=out/previous.json REPORT=out/checker-report.md node server/bench/checkers.mjs 2>&1 | tee out/run.log
+          rm -f out/previous.json
+      - name: Push the report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q && git checkout -q -b checker-bench
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "checker bench $GITHUB_RUN_ID"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" checker-bench:checker-bench

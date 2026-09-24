@@ -60,6 +60,13 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // not the 3.1 Pro that writes); `avoid` names the models that wrote what
   // is being checked, and they are skipped while any other is left.
   if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
+  // The owner's benchmarks: one named model and nothing else, so models can
+  // be compared ("gemini:gemini-3.5-flash", "workers-ai:@cf/...", "hf:org/model").
+  if (owner && typeof body.use === 'string') {
+    const pinned = pinnedSource(env, body.use);
+    if (!pinned) return fail(400, 'That model is not available on this server.');
+    route.sources = [pinned];
+  }
 
   // the owner's own builds and the accuracy benchmark get a much higher
   // allowance, but still one: a leaked owner key cannot spend without end
@@ -102,6 +109,16 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     // what the checker was shown, so the app can cite it
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
+}
+
+export function pinnedSource(env, use) {
+  const at = use.indexOf(':');
+  const kind = use.slice(0, at), model = use.slice(at + 1).trim();
+  if (at < 1 || !model || model.length > 120) return null;
+  if (kind === 'gemini' && env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) return { kind: 'gemini', models: [model] };
+  if (kind === 'workers-ai' && env.AI) return { kind: 'workers-ai', model };
+  if (kind === 'hf' && env.AI_API_KEY) return { kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY, model };
+  return null;
 }
 
 export function checkerOrder(env, models, avoid) {
@@ -206,7 +223,7 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     // a paid host (Baichuan on Novita) only while Pro money covers it
     if (source.paid && !route.canPay) continue;
     if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted);
-    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
+    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature, source.model);
     else {
       result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
       if (result.usage) counted(source.model, result.usage);
@@ -555,8 +572,8 @@ export async function charge(env, accountId, model, usage) {
 }
 
 /// Cloudflare Workers AI, on the account's free daily allowance.
-async function askWorkersAI(env, messages, maxTokens, temperature) {
-  const model = env.FALLBACK_MODEL || '@cf/nvidia/nemotron-3-120b-a12b';
+async function askWorkersAI(env, messages, maxTokens, temperature, pinned) {
+  const model = pinned || env.FALLBACK_MODEL || '@cf/nvidia/nemotron-3-120b-a12b';
   try {
     const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
     const content = out?.response ?? out?.choices?.[0]?.message?.content;
