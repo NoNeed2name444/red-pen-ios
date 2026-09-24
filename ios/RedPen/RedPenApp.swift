@@ -97,7 +97,8 @@ struct RedPenApp: App {
                     // only transcribed with the speakers' permission
                     RecordingTermsView { terms.agree(signedIn.id) }
                 } else if account.isSignedIn {
-                    LibraryView()
+                    // four tabs: Library, Practice, Ideas, Progress
+                    AppTabsView()
                         // a personal build's bundled lecture becomes examples,
                         // made by the app's own pipeline - only once the library
                         // is on screen, never under the sign-in screen

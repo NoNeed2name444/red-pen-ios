@@ -4,13 +4,10 @@ import SwiftUI
 /// the few settings worth having, how the modes work, and the questions that
 /// get asked.
 ///
-/// On an iPad these are the sidebar, because a sidebar is for the places you
-/// go occasionally and come back from - not for the material you work in all
-/// day. The sets themselves belong in the main column, at full width, with the
-/// mode dock under them where a hand is.
-///
-/// On a phone there is no sidebar, so the same four live behind the toolbar
-/// menu and push onto the stack. One definition, two ways in.
+/// The studying itself lives in the four tabs (Library, Practice, Ideas,
+/// Progress - see AppTabsView), which are also the iPad sidebar. What is left
+/// here sits behind the gear on the Library and Progress bars and pushes onto
+/// that tab's stack. One definition, one way in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// How the studying is going - not strictly about the app, but like the
     /// others it is somewhere visited now and then rather than worked in.
@@ -20,8 +17,19 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
 
     /// The pages the menus show under one heading, in the order they list them.
+    ///
+    /// A page that has a home in one of the four tabs (Practice, Ideas,
+    /// Progress) is not listed again behind the gear: one way in, not two.
     static func shown(in section: SupportSection) -> [SupportPage] {
-        shown.filter { $0.section == section }
+        shown.filter { $0.section == section && !$0.hasTab }
+    }
+
+    /// Whether the page lives in a tab of its own (see AppTabsView).
+    var hasTab: Bool {
+        switch self {
+        case .analytics, .progress, .coverage, .notes, .reasoning: return true
+        case .examples, .sources, .account, .settings, .help, .faq: return false
+        }
     }
 
     var id: String { rawValue }
@@ -113,7 +121,7 @@ enum SupportSection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .study: return "Study"
+        case .study: return "Your library"
         case .progress: return "Your progress"
         case .tools: return "Tools"
         case .account: return "Account & help"
@@ -121,83 +129,27 @@ enum SupportSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// The iPad sidebar: the app's name, the way back to the sets, and the four
-/// places that are about the app rather than part of studying.
+/// The gear menu's contents, shared by the Library and Progress tabs: the
+/// pages that are about the app rather than part of studying, under their
+/// headings. The four tabs themselves are the iPad sidebar now (AppTabsView),
+/// so this is the one list of these pages on every shape of window.
 ///
-/// Plain buttons rather than navigation links: this column decides what the
-/// main column shows, and nothing is ever pushed inside the sidebar itself.
-struct SupportSidebar: View {
+/// Buttons rather than links: a NavigationLink cannot live inside a Menu, so
+/// choosing a page sets `chosen` and the screen pushes it.
+struct SupportMenuItems: View {
     @Binding var chosen: SupportPage?
 
     var body: some View {
-        List {
-            Section {
-                row(title: "Your sets", symbol: "square.stack",
-                    blurb: "Everything you are studying", page: nil)
-            } header: {
-                HStack(spacing: 8) {
-                    Brand.Mark(size: 22, tint: Brand.signal)
-                    Text(Brand.name).font(.headline).foregroundStyle(.primary)
-                }
-                .textCase(nil)
-                .padding(.bottom, 2)
-            }
-            // One section per heading, so the list reads as four short
-            // groups rather than eleven rows in a row.
-            ForEach(SupportSection.allCases) { section in
-                let pages = SupportPage.shown(in: section)
-                if !pages.isEmpty {
-                    Section {
-                        ForEach(pages) { page in
-                            row(title: page.title, symbol: page.symbol,
-                                blurb: page.blurb, page: page)
-                        }
-                    } header: {
-                        Text(section.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(nil)
+        ForEach(SupportSection.allCases) { section in
+            let pages: [SupportPage] = SupportPage.shown(in: section)
+            if !pages.isEmpty {
+                Section(section.title) {
+                    ForEach(pages) { page in
+                        Button(page.title, systemImage: page.symbol) { chosen = page }
                     }
                 }
             }
         }
-        .navigationTitle(Brand.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func row(title: String, symbol: String, blurb: String, page: SupportPage?) -> some View {
-        let here = chosen == page
-        return Button {
-            chosen = page
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.body)
-                    .frame(width: 24)
-                    .foregroundStyle(here ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.body.weight(here ? .semibold : .regular))
-                        .foregroundStyle(.primary)
-                    Text(blurb)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-            }
-            // a finger-sized row, whatever the text size
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        // listRowBackground takes a VIEW, not a style, so the two branches
-        // have to be the same kind of thing: a filled shape either way.
-        .listRowBackground(
-            Rectangle().fill(here ? AnyShapeStyle(.tint.opacity(0.12))
-                                  : AnyShapeStyle(Color.clear))
-        )
-        .accessibilityAddTraits(here ? [.isSelected] : [])
     }
 }
 

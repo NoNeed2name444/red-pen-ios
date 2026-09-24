@@ -87,11 +87,10 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
-    /// Whatever is open in the main column: a set that was tapped, and on a
-    /// wide window possibly a support page chosen in the sidebar instead.
+    /// The sets opened on this tab's stack.
     @State private var opened: [StudySet] = []
+    /// A page chosen from the gear menu (account, settings, help...), pushed.
     @State var support: SupportPage?
-    @State private var columns: NavigationSplitViewVisibility = .all
 
     /// The window, not the screen: an iPad app can be a third of one, and the
     /// rows read this to choose between selecting and pushing.
@@ -109,50 +108,23 @@ struct LibraryView: View {
                         // that jumps between one column and two mid-drag is
                         // alarming in a way a quick crossfade is not.
                         guard now != span else { return }
-                        // The open set lives on the same path in both shapes,
-                        // so widening or narrowing the window no longer loses
-                        // it; only the sidebar's own page needs putting away.
-                        withAnimation(.snappy(duration: 0.25)) {
-                            if !now.splits { support = nil }
-                            span = now
-                        }
+                        // The open set and any pushed page live on the one
+                        // stack, so widening or narrowing the window loses
+                        // neither.
+                        withAnimation(.snappy(duration: 0.25)) { span = now }
                     }
             }
     }
 
-    @ViewBuilder
+    /// One stack on every shape of window. The iPad sidebar used to live
+    /// here, listing the support pages beside the sets; the app's four tabs
+    /// (AppTabsView) are the sidebar now, and the support pages are behind
+    /// the gear, so a second sidebar inside the Library tab would only be the
+    /// same places twice.
     private var layout: some View {
-        Group {
-            if span.splits {
-                // The sets are the work, so they get the main column at full
-                // width with the dock under them. The sidebar is for the
-                // places you visit and come back from - account, settings,
-                // how it works, questions. The first version had this the
-                // wrong way round: the library squeezed into a 340-point
-                // sidebar with a seven-mode dock crushed along its foot, and
-                // a detail column that said "Choose a set" for most of the
-                // day.
-                NavigationSplitView(columnVisibility: $columns) {
-                    SupportSidebar(chosen: $support)
-                        .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 300)
-                } detail: {
-                    NavigationStack(path: $opened) {
-                        Group {
-                            if let support {
-                                support.page
-                            } else {
-                                attachingSheets(to: screen)
-                            }
-                        }
-                    }
-                }
-                .navigationSplitViewStyle(.balanced)
-            } else {
-                NavigationStack(path: $opened) {
-                    attachingSheets(to: screen)
-                        .navigationDestination(item: $support) { $0.page }
-                }
-            }
+        NavigationStack(path: $opened) {
+            attachingSheets(to: screen)
+                .navigationDestination(item: $support) { $0.page }
         }
         // one accent for the whole library rather than a colour per mode
         .tint(Color.accentColor)
@@ -351,20 +323,18 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        // The menu: every page that is about the app rather than a set, in
-        // its four groups. On a wide window the sidebar already lists them,
-        // so the button would only be the same list twice.
-        if !span.splits {
-            ToolbarItem(placement: .topBarLeading) {
-                // toolbar items already sit in the system's glass on iOS 26;
-                // an extra .glass style here squashed the label into a circle
-                Menu {
-                    supportItems
-                } label: {
-                    Label("Menu", systemImage: "line.3.horizontal")
-                }
-                .accessibilityIdentifier("libraryMenu")
+        // The gear: account, settings, help and the lectures - the pages
+        // that are about the app rather than a set. The studying itself is in
+        // the tabs along the bottom (or the iPad sidebar).
+        ToolbarItem(placement: .topBarLeading) {
+            // toolbar items already sit in the system's glass on iOS 26;
+            // an extra .glass style here squashed the label into a circle
+            Menu {
+                SupportMenuItems(chosen: $support)
+            } label: {
+                Label("Settings and help", systemImage: "gearshape")
             }
+            .accessibilityIdentifier("libraryMenu")
         }
         if !store.library.isEmpty {
             ToolbarItem(placement: .topBarTrailing) {
@@ -374,26 +344,6 @@ struct LibraryView: View {
                     Text(selecting ? "Done" : "Select").fixedSize()
                 }
                 .accessibilityHint(selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine")
-            }
-        }
-    }
-
-    /// Every support page, under the same four headings as the iPad sidebar,
-    /// for a window too narrow to have a sidebar. Same pages, pushed instead.
-    @ViewBuilder
-    private var supportItems: some View {
-        ForEach(SupportSection.allCases) { section in
-            let pages = SupportPage.shown(in: section)
-            if !pages.isEmpty {
-                Section(section.title) {
-                    ForEach(pages) { page in
-                        // One state for both shapes: in the sidebar it decides
-                        // what the main column shows, on a phone it is what
-                        // gets pushed. A NavigationLink cannot live inside a
-                        // Menu, so this is a button either way.
-                        Button(page.title, systemImage: page.symbol) { support = page }
-                    }
-                }
             }
         }
     }
@@ -422,15 +372,7 @@ struct LibraryView: View {
         else { exportFailedSetName = set.name }
     }
 
-    @ViewBuilder
     private func destination(for set: StudySet) -> some View {
-        switch set.kind {
-        case .mcq: MCQQuizView(set: set)
-        case .anki: AnkiReviewView(set: set)
-        case .book: BookReaderView(set: set)
-        case .qa: QACardsView(set: set)
-        case .osce: OsceReviewView(set: set)
-        case .narrate: NarrateReviewView(set: set)
-        }
+        StudySetScreen(set: set)
     }
 }
