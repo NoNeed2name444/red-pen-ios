@@ -123,9 +123,16 @@ final class NoteStore: ObservableObject {
     }
 
     func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data)
-        else { return }
+        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data) else {
+            // the next save would otherwise write an empty list over notes this
+            // version could not read; put the file aside first so they can be
+            // recovered
+            let aside = fileURL.deletingLastPathComponent()
+                .appendingPathComponent("notes-unreadable-\(Int(Date().timeIntervalSince1970)).json")
+            try? FileManager.default.copyItem(at: fileURL, to: aside)
+            return
+        }
         notes = snapshot.notes ?? []
         folders = snapshot.folders ?? []
     }

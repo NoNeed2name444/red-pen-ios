@@ -77,7 +77,8 @@ enum Readiness {
         let z2 = z * z
         let denominator = 1 + z2 / n
         let middle = (p + z2 / (2 * n)) / denominator
-        let half = z * ((p * (1 - p) / n + z2 / (4 * n * n)).squareRoot()) / denominator
+        let variance: Double = p * (1 - p) / n + z2 / (4 * n * n)
+        let half: Double = z * variance.squareRoot() / denominator
 
         // subjects barely practised are assumed to go ten points worse
         let totalQuestions = subjects.reduce(0) { $0 + $1.questions }

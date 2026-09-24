@@ -87,6 +87,9 @@ export async function push(env, account, body) {
     // D1 rows stop at 2 MB; an id or kind is a short name, never a document
     if (!doc || typeof doc.id !== 'string' || !doc.id || doc.id.length > 200) continue;
     if (doc.kind != null && (typeof doc.kind !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(doc.kind))) continue;
+    // a payload is base64 text or nothing: anything else cannot be bound to
+    // the statement below, and one such document would fail the whole batch
+    if (doc.payload != null && typeof doc.payload !== 'string') continue;
     if (typeof doc.payload === 'string' && doc.payload.length > MAX_PAYLOAD_CHARS) continue;
     const existing = await env.DB.prepare(
       'SELECT rev, updated_at, kind, deleted, payload FROM docs WHERE account_id = ? AND id = ?')

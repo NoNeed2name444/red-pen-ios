@@ -224,7 +224,11 @@ struct LectureWriterSection: View {
                                     kind: ext == "pdf" ? .pdf : ext == "pptx" ? .powerpoint : .word)
             if suggestedName.trimmingCharacters(in: .whitespaces).isEmpty { suggestedName = name }
             if kind == .book { count = min(30, max(1, read.document.pages.count / 3)) }
-            else { count = min(80, max(8, (read.document.pages.count / 2 + 3) / 4 * 4)) }
+            else {
+                let pages: Int = read.document.pages.count
+                let raw: Int = (pages / 2 + 3) / 4 * 4
+                count = min(80, max(8, raw))
+            }
             status = nil
             if !hasSource { trouble = "There is not much text in that file to work from." }
             // a textbook places the lecture's diagrams; Cards makes image

@@ -120,6 +120,9 @@ final class SyncEngine: ObservableObject {
             for doc in changes.docs {
                 apply(doc)
             }
+            // the library saves on a short delay; what was just merged is sent
+            // on its way to disk before the cursor says it has been seen
+            store.flush()
             bookmarks.update { $0.cursor = max($0.cursor, changes.cursor) }
             more = changes.more
         }

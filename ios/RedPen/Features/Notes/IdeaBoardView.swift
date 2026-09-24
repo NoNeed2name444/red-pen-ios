@@ -210,8 +210,9 @@ struct IdeaBoardView: View {
                 x += dragOffset.width / scale
                 y += dragOffset.height / scale
             }
-            result[note.id] = CGPoint(x: size.width / 2 + offset.width + x * scale,
-                                      y: size.height / 2 + offset.height + y * scale)
+            let screenX: CGFloat = size.width / 2 + offset.width + x * scale
+            let screenY: CGFloat = size.height / 2 + offset.height + y * scale
+            result[note.id] = CGPoint(x: screenX, y: screenY)
         }
         return result
     }
@@ -230,7 +231,9 @@ struct IdeaBoardView: View {
         path.move(to: p)
         let dx = q.x - p.x
         let dy = q.y - p.y
-        let control = CGPoint(x: (p.x + q.x) / 2 - dy * 0.18, y: (p.y + q.y) / 2 + dx * 0.18)
+        let midX: CGFloat = (p.x + q.x) / 2
+        let midY: CGFloat = (p.y + q.y) / 2
+        let control = CGPoint(x: midX - dy * 0.18, y: midY + dx * 0.18)
         path.addQuadCurve(to: q, control: control)
         return path
     }

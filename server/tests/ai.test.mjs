@@ -136,6 +136,15 @@ const a1Token = await accountToken('a1');
   ok(r.status === 403, "a subscription bought from another account cannot be linked, even first");
 }
 
+// nor can a lapsed one: its buyer must still be able to link it on renewing
+{
+  const env = freshEnv(asc);
+  const apple = { bundleId: 'com.cramdown.app', environment: 'Production', data: [{ lastTransactions: [
+    { status: 2, signedTransactionInfo: jws({ expiresDate: Date.now() - 1000, appAccountToken: await accountToken('the-real-buyer') }) }] }] };
+  const r = await linkSubscription(env, 'a1', { originalTransactionId: '2000000302' }, fakeFetch(apple));
+  ok(r.status === 403, "a lapsed subscription bought from another account cannot be squatted on");
+}
+
 // Apple unreachable (the request itself fails): the last answer stands, no 500
 {
   const env = freshEnv(asc);
@@ -419,6 +428,16 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(unsigned.status === 401, 'the route needs a signed-in session');
   const huge = await worker.fetch(new Request('https://x/transcribe/chunk', { method: 'POST', body: '{}', headers: { 'content-length': String(50 * 1024 * 1024) } }), pro);
   ok(huge.status === 413, 'a body declared too large is refused before it is read');
+}
+
+// a body with no declared size is read only up to the route's limit
+{
+  const { boundedText } = await import('../worker.js');
+  const small = await boundedText(new Request('https://x/', { method: 'POST', body: '{"a":1}' }), 100);
+  ok(small === '{"a":1}', 'a body under the limit is read whole');
+  let refused = false;
+  try { await boundedText(new Request('https://x/', { method: 'POST', body: 'x'.repeat(5000) }), 1000); } catch { refused = true; }
+  ok(refused, 'a body over the limit stops being read');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

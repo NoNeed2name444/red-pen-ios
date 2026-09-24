@@ -103,6 +103,14 @@ ok(res.cursor === 1 && res.more === false, 'with a cursor and nothing more to fe
 res = await body(await changes(env, 'acc', { since: 1 }));
 ok(res.docs.length === 0 && res.cursor === 1, 'a device already up to date is told nothing changed');
 
+// MARK: a payload that is not text is skipped, not a failed batch
+
+{
+  const e = freshEnv();
+  const r = await body(await push(e, 'acc', { docs: [doc('odd', 0, { payload: { not: 'text' } }), doc('fine', 0)] }));
+  ok(r.accepted.length === 1 && r.accepted[0].id === 'fine', 'an object payload is skipped and the rest of the batch still lands');
+}
+
 // MARK: one account cannot see another's
 
 res = await body(await changes(env, 'someone-else', { since: 0 }));

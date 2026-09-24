@@ -16,8 +16,11 @@ struct OcclusionBox: Codable, Hashable {
 
     /// Convenience for drawing: the box's rect within a given image size.
     func rect(in size: CGSize) -> CGRect {
-        CGRect(x: x * size.width, y: y * size.height,
-               width: w * size.width, height: h * size.height)
+        let left: CGFloat = CGFloat(x) * size.width
+        let top: CGFloat = CGFloat(y) * size.height
+        let width: CGFloat = CGFloat(w) * size.width
+        let height: CGFloat = CGFloat(h) * size.height
+        return CGRect(x: left, y: top, width: width, height: height)
     }
 }
 

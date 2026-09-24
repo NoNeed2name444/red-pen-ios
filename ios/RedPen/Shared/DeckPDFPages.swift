@@ -36,9 +36,11 @@ extension DeckPDF {
     /// tinted ground has no edges, so nothing on the page says where the card's
     /// own content begins and the page furniture ends.
     static func contentCard(from top: CGFloat, palette: DeckPalette) {
-        let box = CGRect(x: margin - 12, y: top - 14,
-                         width: pageSize.width - (margin - 12) * 2,
-                         height: pageSize.height - 44 - (top - 14))
+        let left: CGFloat = margin - 12
+        let upper: CGFloat = top - 14
+        let width: CGFloat = pageSize.width - left * 2
+        let height: CGFloat = pageSize.height - 44 - upper
+        let box = CGRect(x: left, y: upper, width: width, height: height)
         color(palette.tint(0.92)).setFill()
         UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
         UIColor.white.setFill()
@@ -271,7 +273,9 @@ extension DeckPDF {
 
     /// The y a card's content starts at, given the bar and its heading.
     static func contentTop(topic: String, picture: UIImage?, limit: CGFloat) -> CGFloat {
-        var y = barHeight + 3 + 22 + titleHeight(topic) + 5 + 17 + 26 + 18
+        // 3 + 22 above the title, 5 + 17 + 26 + 18 below it
+        let furniture: CGFloat = 91
+        var y: CGFloat = barHeight + titleHeight(topic) + furniture
         if let picture, picture.size.width > 0, picture.size.height > 0 {
             let scale = min((pageSize.width - margin * 2) / picture.size.width,
                             limit / picture.size.height)

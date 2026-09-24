@@ -107,6 +107,9 @@ enum CloudJobCollector {
                     // server could not check
                     let note = recipe.check == nil ? "" : await screen(&set, recipe: recipe)
                     store.addSet(set)
+                    // on disk before the server's copy is forgotten below: the
+                    // library saves on a short delay, and this is the only copy
+                    await store.flushed()
                     AppNotifications.generationFinished("\(set.name) is ready",
                                                         body: "Written in the cloud while the app was closed." + note)
                 }

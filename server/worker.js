@@ -14,6 +14,7 @@ import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate } from './ai.js';
 import { jobsRoute } from './jobs.js';
+import { speech } from './tts.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
@@ -35,6 +36,32 @@ const now = () => Math.floor(Date.now() / 1000);
 /// read back on every sign-in.
 const text = (value, max) =>
   typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
+
+/// A request's body as text, read no further than `max` bytes.
+///
+/// The declared size is checked before this, but a body sent without one
+/// (chunked) would otherwise be read into memory whole, however large. Past
+/// the limit the read stops and the body counts as unreadable.
+export async function boundedText(request, max) {
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => {});
+      throw new Error('body too large');
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
 
 /// What one account may keep in pictures.
 ///
@@ -73,7 +100,11 @@ export default {
       // Generation jobs: GET and DELETE as well as POST, and a job carries
       // its lecture, so it is sized here like a sync batch
       if (path === '/jobs' || path.startsWith('/jobs/')) {
-        if (Number(request.headers.get('content-length')) > 24 * 1024 * 1024) return fail(413, 'That request is too large.');
+        const declared = request.headers.get('content-length');
+        if (Number(declared) > 24 * 1024 * 1024) return fail(413, 'That request is too large.');
+        // a job is read whole into memory: one with no declared size is refused
+        // rather than read blind (the app always says how large it is)
+        if (request.method === 'POST' && declared === null && request.body) return fail(411, 'Say how large the job is.');
         if (isOwnerKey(request, env)) return await jobsRoute(request, env, 'owner', { owner: true });
         return await guarded(request, env, id => jobsRoute(request, env, id));
       }
@@ -90,7 +121,7 @@ export default {
       // a big body with no declared size is refused rather than read blind
       if (!size && path === '/transcribe/chunk') return fail(411, 'Say how large the audio is.');
       let body = {};
-      try { body = await request.json(); } catch { body = {}; }
+      try { body = JSON.parse(await boundedText(request, allowed)); } catch { body = {}; }
 
       switch (path) {
         case '/auth/apple': return await withApple(body, env);
@@ -122,6 +153,10 @@ export default {
         case '/costs':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
           return json(await budget(env)); // forUse is null until the price is set (capped: false)
+        // a line read aloud in a natural voice, for Pro (tts.js): MP3 back
+        case '/tts':
+          if (isOwnerKey(request, env)) return await speech(env, 'owner', body, fetch, { owner: true });
+          return await guarded(request, env, id => speech(env, id, body));
         case '/transcribe/config': return await transcribeConfig();
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });

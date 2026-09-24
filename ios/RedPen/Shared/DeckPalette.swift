@@ -44,9 +44,10 @@ struct DeckPalette: Equatable {
     /// Lightened towards white - for chips, rules and the giant watermark.
     func tint(_ amount: Double = 0.86) -> DeckPalette {
         let a = amount.clamped()
-        return DeckPalette(red: red + (1 - red) * a,
-                           green: green + (1 - green) * a,
-                           blue: blue + (1 - blue) * a)
+        let r: Double = red + (1 - red) * a
+        let g: Double = green + (1 - green) * a
+        let b: Double = blue + (1 - blue) * a
+        return DeckPalette(red: r, green: g, blue: b)
     }
 
     /// Whether white text can be read on this colour.

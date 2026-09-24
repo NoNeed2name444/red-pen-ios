@@ -22,7 +22,10 @@ extension StudySet: ReviewDeck {
 /// remembers them.
 @MainActor
 final class ReviewStore: ObservableObject {
-    @Published private(set) var records: [UUID: ReviewRecord] = [:]
+    @Published private(set) var records: [UUID: ReviewRecord] = [:] { didSet { changeCount &+= 1 } }
+    /// Moves on every change to the schedule, so a screen can tell cheaply
+    /// that figures built on it are out of date.
+    private(set) var changeCount = 0
 
     private let fileURL: URL
 
@@ -37,9 +40,14 @@ final class ReviewStore: ObservableObject {
     }
 
     func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let stored = try? JSONDecoder.redPen.decode([UUID: ReviewRecord].self, from: data)
-        else { return }
+        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let stored = try? JSONDecoder.redPen.decode([UUID: ReviewRecord].self, from: data) else {
+            // put aside before the next rating writes an empty schedule over it
+            let aside = fileURL.deletingLastPathComponent()
+                .appendingPathComponent("reviews-unreadable-\(Int(Date().timeIntervalSince1970)).json")
+            try? FileManager.default.copyItem(at: fileURL, to: aside)
+            return
+        }
         records = stored
     }
 

@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// The library, on this device.
 ///
@@ -19,12 +22,12 @@ import Combine
 /// other device cheerfully uploads again, for ever.
 @MainActor
 final class Store: ObservableObject {
-    @Published var library: [StudySet] = []
-    @Published var folders: [StudyFolder] = []
+    @Published var library: [StudySet] = [] { didSet { libraryDirty = true; changeCount &+= 1 } }
+    @Published var folders: [StudyFolder] = [] { didSet { libraryDirty = true; changeCount &+= 1 } }
     /// In-progress MCQ sessions keyed by set id — the web app's
     /// `resumeBanner` / `el.resumeBtn` state, so a quiz closed halfway can be
     /// picked up where it was left.
-    @Published var quizProgress: [UUID: QuizProgress] = [:]
+    @Published var quizProgress: [UUID: QuizProgress] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Half-worked OSCE stations, keyed by set id.
     ///
     /// Kept for the same reason a half-finished quiz is. A station is twenty
@@ -32,7 +35,7 @@ final class Store: ObservableObject {
     /// interrupted - by a phone call, by the ward, by the app being closed
     /// mid-sentence. Losing the position and starting the station again is the
     /// difference between a tool somebody revises with and one they open once.
-    @Published var osceProgress: [UUID: OsceProgress] = [:]
+    @Published var osceProgress: [UUID: OsceProgress] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Where the student had got to in a Cases deck or a textbook, keyed by
     /// set id.
     ///
@@ -40,29 +43,58 @@ final class Store: ObservableObject {
     /// in the app, read over days, and being put back on page one for having
     /// closed it is the fastest way to stop using it. One number is enough for
     /// both - which card, or which page.
-    @Published var readingProgress: [UUID: ReadingProgress] = [:]
+    @Published var readingProgress: [UUID: ReadingProgress] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Questions the student has flagged to come back to, by question id.
     ///
     /// By question rather than by set, so a question flagged in a combined
     /// set or a Mistakes set is the same flag wherever it turns up again.
-    @Published var flagged: Set<UUID> = []
+    @Published var flagged: Set<UUID> = [] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Every MCQ answer checked, right or wrong, oldest first, by question id.
     ///
     /// The quiz itself forgets a session once it is over; this is what is left
     /// behind, so the Progress screen can say which subject is weakest and
     /// the drill can go straight for the questions that were missed.
-    @Published var answerHistory: [UUID: [Bool]] = [:]
+    @Published var answerHistory: [UUID: [Bool]] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Every checked answer in the order it happened, with its date and how
     /// sure the student was - the recent-accuracy and calibration figures on
     /// the Progress screen. Capped (Store.answerLogDepth), oldest dropped.
-    @Published var answerLog: [AnswerEvent] = []
+    @Published var answerLog: [AnswerEvent] = [] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// Why each question was last got wrong, in the student's words, by
     /// question id.
-    @Published var mistakeReasons: [UUID: MistakeNote] = [:]
+    @Published var mistakeReasons: [UUID: MistakeNote] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
     /// The rule sheet: one line to remember per missed question, by question id.
-    @Published var ruleSheet: [UUID: StudyRule] = [:]
+    @Published var ruleSheet: [UUID: StudyRule] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
 
+    /// The library itself: sets, folders, tombstones. Large - it carries every
+    /// picture as base64 - so it is rewritten only when one of those changed.
     private let fileURL: URL
+    /// Everything about how the studying is going: resume positions, flags,
+    /// the answer history and log, mistake reasons, the rule sheet. Small, and
+    /// written on its own, so recording an answer never re-encodes the library.
+    private let studyURL: URL
+
+    /// What has changed since the last write. Set by the properties' own
+    /// observers, so a change made anywhere - not only through the methods
+    /// here - is written by the next save.
+    private var libraryDirty = false
+    private var studyDirty = false
+    /// Moves on every change to anything stored here. Not published (the
+    /// properties themselves are); a screen that works figures out of the
+    /// store compares it to know when they need working out again.
+    private(set) var changeCount = 0
+    /// The flagged questions as last worked out, and the changeCount they were
+    /// worked out at: the library's rows ask on every redraw.
+    var flaggedMemo: (at: Int, picks: [QuestionPick])?
+    /// The debounced write waiting to run, if any.
+    private var pendingWrite: Task<Void, Never>?
+    private var lifecycleObservers: [NSObjectProtocol] = []
+
+    /// Encoding and writing happen here, off the main thread, one at a time
+    /// and in order, so a later write can never land before an earlier one.
+    private static let writeQueue = DispatchQueue(label: "redpen.store.write", qos: .utility)
+    /// How long a save waits for more changes before writing: a quiz records
+    /// an answer and saves its position within the same tap.
+    private static let saveDelayNanoseconds: UInt64 = 400_000_000
 
     init(fileURL: URL? = nil) {
         if let fileURL {
@@ -71,7 +103,10 @@ final class Store: ObservableObject {
             let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             self.fileURL = dir.appendingPathComponent("redpen-library.json")
         }
+        self.studyURL = self.fileURL.deletingLastPathComponent()
+            .appendingPathComponent(self.fileURL.deletingPathExtension().lastPathComponent + "-progress.json")
         load()
+        observeLifecycle()
     }
 
     /// Ids of things deleted here, and when. Kept so the deletion can be told
@@ -79,57 +114,156 @@ final class Store: ObservableObject {
     /// SyncEngine decides.
     /// Written by Store and StoreSync only - `private(set)` would keep the
     /// sync half out, and it is the half that needs to clear them.
-    @Published var tombstones: [UUID: Date] = [:]
+    @Published var tombstones: [UUID: Date] = [:] { didSet { libraryDirty = true; changeCount &+= 1 } }
 
-    private struct Snapshot: Codable {
-        var library: [StudySet]
-        var folders: [StudyFolder]
-        var quizProgress: [UUID: QuizProgress]? // added later; older files simply lack it
-        var tombstones: [UUID: Date]?           // likewise
-        var osceProgress: [UUID: OsceProgress]? // likewise
-        var readingProgress: [UUID: ReadingProgress]? // likewise
-        var flagged: Set<UUID>?                 // likewise
-        var answerHistory: [UUID: [Bool]]?      // likewise
-        var answerLog: [AnswerEvent]?           // likewise
-        var mistakeReasons: [UUID: MistakeNote]? // likewise
-        var ruleSheet: [UUID: StudyRule]?       // likewise
-    }
+    // MARK: on disk
 
     func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data) else {
-            // never overwritten unread: the file is put aside first, so a
-            // library this version cannot read is still there to recover
-            let aside = fileURL.deletingLastPathComponent()
-                .appendingPathComponent("library-unreadable-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.copyItem(at: fileURL, to: aside)
-            return
+        var libraryData: Data?
+        if let data = try? Data(contentsOf: fileURL) {
+            libraryData = data
+            if let file = try? JSONDecoder.redPen.decode(LibraryFile.self, from: data) {
+                library = file.library
+                folders = file.folders
+                tombstones = file.tombstones ?? [:]
+                // a set this version cannot read is left out rather than
+                // taking the whole library with it - and the file as it was
+                // is kept, so nothing is lost for good
+                if file.skipped > 0 { setAside(fileURL, as: "library-partly-unreadable") }
+            } else {
+                // never overwritten unread: the file is put aside first, so a
+                // library this version cannot read is still there to recover
+                setAside(fileURL, as: "library-unreadable")
+            }
         }
-        library = snapshot.library
-        folders = snapshot.folders
-        quizProgress = snapshot.quizProgress ?? [:]
-        tombstones = snapshot.tombstones ?? [:]
-        osceProgress = snapshot.osceProgress ?? [:]
-        readingProgress = snapshot.readingProgress ?? [:]
-        flagged = snapshot.flagged ?? []
-        answerHistory = snapshot.answerHistory ?? [:]
-        answerLog = snapshot.answerLog ?? []
-        mistakeReasons = snapshot.mistakeReasons ?? [:]
-        ruleSheet = snapshot.ruleSheet ?? [:]
+        var migrated = false
+        if let data = try? Data(contentsOf: studyURL) {
+            if let study = try? JSONDecoder.redPen.decode(StudyFile.self, from: data) {
+                apply(study)
+            } else {
+                setAside(studyURL, as: "progress-unreadable")
+            }
+        } else if let libraryData,
+                  let legacy = try? JSONDecoder.redPen.decode(StudyFile.self, from: libraryData) {
+            // written before the two were split: the history is still inside
+            // the library file, and moves out on the next write
+            apply(legacy)
+            migrated = true
+        }
+        libraryDirty = false
+        studyDirty = migrated
+        if migrated { scheduleWrite() }
     }
 
+    private func apply(_ study: StudyFile) {
+        quizProgress = study.quizProgress
+        osceProgress = study.osceProgress
+        readingProgress = study.readingProgress
+        flagged = study.flagged
+        answerHistory = study.answerHistory
+        answerLog = study.answerLog
+        mistakeReasons = study.mistakeReasons
+        ruleSheet = study.ruleSheet
+    }
+
+    private func setAside(_ url: URL, as name: String) {
+        let aside = url.deletingLastPathComponent()
+            .appendingPathComponent("\(name)-\(Int(Date().timeIntervalSince1970)).json")
+        try? FileManager.default.copyItem(at: url, to: aside)
+    }
+
+    /// Asks for whatever changed to be written, shortly and off the main
+    /// thread. Cheap to call on every tap: changes made close together are
+    /// written once, and only the file that changed is written at all.
     func save() {
-        var snapshot = Snapshot(library: library, folders: folders,
-                                quizProgress: quizProgress, tombstones: tombstones,
-                                osceProgress: osceProgress,
-                                readingProgress: readingProgress,
-                                flagged: flagged,
-                                answerHistory: answerHistory)
-        snapshot.answerLog = answerLog
-        snapshot.mistakeReasons = mistakeReasons
-        snapshot.ruleSheet = ruleSheet
-        guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        scheduleWrite()
+    }
+
+    /// Writes anything outstanding now - for the moment before the app goes
+    /// to the background, and for sync, which must not record a document as
+    /// seen before the library holding it is on its way to disk.
+    ///
+    /// `wait` blocks until the bytes are on disk - only for the app being
+    /// ended, when nothing queued would get the chance to run.
+    func flush(wait: Bool = false) {
+        pendingWrite?.cancel()
+        pendingWrite = nil
+        write()
+        if wait { Self.writeQueue.sync {} }
+    }
+
+    /// Writes anything outstanding and returns once it is on disk, without
+    /// holding the main thread while it is written - for a caller about to
+    /// throw away the only other copy (a cloud job forgotten on the server).
+    func flushed() async {
+        flush()
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            Self.writeQueue.async { done.resume() }
+        }
+    }
+
+    private func scheduleWrite() {
+        guard pendingWrite == nil else { return }
+        pendingWrite = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Store.saveDelayNanoseconds)
+            guard !Task.isCancelled, let self else { return }
+            self.pendingWrite = nil
+            self.write()
+        }
+    }
+
+    /// Takes a copy of the changed parts here (cheap: they are values) and
+    /// encodes and writes them on the write queue.
+    private func write() {
+        guard libraryDirty || studyDirty else { return }
+        var libraryFile: LibraryFile?
+        var studyFile: StudyFile?
+        if libraryDirty {
+            libraryFile = LibraryFile(library: library, folders: folders, tombstones: tombstones)
+        }
+        if studyDirty {
+            var study = StudyFile()
+            study.quizProgress = quizProgress
+            study.osceProgress = osceProgress
+            study.readingProgress = readingProgress
+            study.flagged = flagged
+            study.answerHistory = answerHistory
+            study.answerLog = answerLog
+            study.mistakeReasons = mistakeReasons
+            study.ruleSheet = ruleSheet
+            studyFile = study
+        }
+        libraryDirty = false
+        studyDirty = false
+        let job = WriteJob(library: libraryFile, libraryURL: fileURL, study: studyFile, studyURL: studyURL)
+        #if canImport(UIKit)
+        // a write started just before the app is backgrounded still finishes
+        let taskID = UIApplication.shared.beginBackgroundTask(withName: "Saving library", expirationHandler: nil)
+        Self.writeQueue.async {
+            job.run()
+            Task { @MainActor in
+                if taskID != .invalid { UIApplication.shared.endBackgroundTask(taskID) }
+            }
+        }
+        #else
+        Self.writeQueue.async { job.run() }
+        #endif
+    }
+
+    /// Writes anything outstanding when the app leaves the foreground, where
+    /// it may be suspended or ended before a delayed write would run.
+    private func observeLifecycle() {
+        #if canImport(UIKit)
+        let names: [Notification.Name] = [UIApplication.didEnterBackgroundNotification,
+                                          UIApplication.willTerminateNotification]
+        for name in names {
+            let ending = name == UIApplication.willTerminateNotification
+            let token = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.flush(wait: ending) }
+            }
+            lifecycleObservers.append(token)
+        }
+        #endif
     }
 
     func addSet(_ set: StudySet) {
@@ -329,6 +463,109 @@ final class Store: ObservableObject {
         guard readingProgress[setId] != nil else { return }
         readingProgress[setId] = nil
         save()
+    }
+}
+
+// MARK: - the two files
+
+/// The library file. Read tolerantly: a set this version cannot decode is
+/// skipped (and counted) instead of failing the whole library.
+private struct LibraryFile: Codable {
+    var library: [StudySet]
+    var folders: [StudyFolder]
+    var tombstones: [UUID: Date]?
+    /// Sets left out on reading because they could not be decoded.
+    var skipped = 0
+
+    enum CodingKeys: String, CodingKey {
+        case library, folders, tombstones
+    }
+
+    init(library: [StudySet], folders: [StudyFolder], tombstones: [UUID: Date]?) {
+        self.library = library
+        self.folders = folders
+        self.tombstones = tombstones
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let sets = try c.decode([Lossy<StudySet>].self, forKey: .library)
+        library = sets.compactMap { $0.value }
+        skipped = sets.count - library.count
+        let kept = (try? c.decodeIfPresent([Lossy<StudyFolder>].self, forKey: .folders)) ?? nil
+        folders = (kept ?? []).compactMap { $0.value }
+        tombstones = (try? c.decodeIfPresent([UUID: Date].self, forKey: .tombstones)) ?? nil
+    }
+}
+
+/// The progress file: everything about how the studying is going. Each part
+/// is read on its own, so one that cannot be read costs only itself.
+///
+/// Also read from an old library file, which held all of these at its top
+/// level under the same names.
+private struct StudyFile: Codable {
+    var quizProgress: [UUID: QuizProgress] = [:]
+    var osceProgress: [UUID: OsceProgress] = [:]
+    var readingProgress: [UUID: ReadingProgress] = [:]
+    var flagged: Set<UUID> = []
+    var answerHistory: [UUID: [Bool]] = [:]
+    var answerLog: [AnswerEvent] = []
+    var mistakeReasons: [UUID: MistakeNote] = [:]
+    var ruleSheet: [UUID: StudyRule] = [:]
+
+    enum CodingKeys: String, CodingKey {
+        case quizProgress, osceProgress, readingProgress, flagged, answerHistory,
+             answerLog, mistakeReasons, ruleSheet
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let quiz = (try? c.decodeIfPresent([UUID: QuizProgress].self, forKey: .quizProgress)) ?? nil
+        quizProgress = quiz ?? [:]
+        let osce = (try? c.decodeIfPresent([UUID: OsceProgress].self, forKey: .osceProgress)) ?? nil
+        osceProgress = osce ?? [:]
+        let reading = (try? c.decodeIfPresent([UUID: ReadingProgress].self, forKey: .readingProgress)) ?? nil
+        readingProgress = reading ?? [:]
+        let flags = (try? c.decodeIfPresent(Set<UUID>.self, forKey: .flagged)) ?? nil
+        flagged = flags ?? []
+        let history = (try? c.decodeIfPresent([UUID: [Bool]].self, forKey: .answerHistory)) ?? nil
+        answerHistory = history ?? [:]
+        let log = (try? c.decodeIfPresent([Lossy<AnswerEvent>].self, forKey: .answerLog)) ?? nil
+        answerLog = (log ?? []).compactMap { $0.value }
+        let reasons = (try? c.decodeIfPresent([UUID: MistakeNote].self, forKey: .mistakeReasons)) ?? nil
+        mistakeReasons = reasons ?? [:]
+        let rules = (try? c.decodeIfPresent([UUID: StudyRule].self, forKey: .ruleSheet)) ?? nil
+        ruleSheet = rules ?? [:]
+    }
+}
+
+/// One element of an array that may not decode; nil when it did not.
+private struct Lossy<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) throws {
+        value = try? T(from: decoder)
+    }
+}
+
+/// One write, carried to the write queue: the parts that changed, already
+/// copied, and where they go. Only value types, so it is safe to hand over.
+private struct WriteJob: @unchecked Sendable {
+    var library: LibraryFile?
+    var libraryURL: URL
+    var study: StudyFile?
+    var studyURL: URL
+
+    func run() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let library, let data = try? encoder.encode(library) {
+            try? data.write(to: libraryURL, options: .atomic)
+        }
+        if let study, let data = try? encoder.encode(study) {
+            try? data.write(to: studyURL, options: .atomic)
+        }
     }
 }
 

@@ -27,11 +27,27 @@ struct AnalyticsView: View {
     @State private var mistakeSubject = ""
     /// What the syllabus check found missing, once it has run.
     @State private var gaps: CoverageGaps?
+    /// The numbers, worked out once and kept: redrawing for a picker or a
+    /// pushed page does not go through the whole answer log again. Refreshed
+    /// when the page appears and shortly after the data under it changes.
+    @State private var cached: AnalyticsSnapshot?
+    /// Whether the page is on screen; changes made under a quiz pushed on top
+    /// wait until it is back, rather than being worked out after every answer.
+    @State private var visible = false
+
+    /// Changes whenever anything the numbers are read from changes: the
+    /// library and answers, the review schedule, the study log. Cheap to
+    /// compare on every redraw, unlike working the numbers out.
+    private var dataKey: String {
+        var studied: Int = 0
+        for count in log.days.values { studied += count }
+        return "\(store.changeCount)-\(reviews.changeCount)-\(log.days.count)-\(studied)"
+    }
 
     var body: some View {
-        let s = snapshot()
+        let s: AnalyticsSnapshot = cached ?? snapshot()
         List {
-            if store.includesExampleData {
+            if s.includesExamples {
                 Section {
                     Label("Includes example data", systemImage: "info.circle")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -41,8 +57,8 @@ struct AnalyticsView: View {
             focusSection(s)
             Section {
                 ReadinessCard(estimate: s.readiness,
-                              answered: store.recentAnswers.count,
-                              includesExamples: store.includesExampleData) { subject in
+                              answered: s.recentCount,
+                              includesExamples: s.includesExamples) { subject in
                     startQuiz(store.drill(subject: subject))
                 }
             } header: {
@@ -56,6 +72,15 @@ struct AnalyticsView: View {
         .navigationTitle("Analytics")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: coverageKey) { await findGaps() }
+        .onAppear {
+            visible = true
+            cached = snapshot()
+        }
+        .onDisappear { visible = false }
+        .onChange(of: dataKey) { _, _ in
+            // off screen (a quiz pushed on top): worked out on coming back
+            if visible { cached = snapshot() }
+        }
         .navigationDestination(item: $quiz) { quiz in
             MCQQuizView(set: quiz.set, keepsProgress: false,
                         minReadSeconds: quiz.minReadSeconds, startsTimed: quiz.timed)
@@ -199,7 +224,8 @@ struct AnalyticsView: View {
         }
         var weeks: [WeekPoint] = []
         for week in 0..<8 where weekAnswered[week] > 0 {
-            guard let start = calendar.date(byAdding: .day, value: -((7 - week) * 7 + 6), to: today)
+            let back: Int = (7 - week) * 7 + 6
+            guard let start = calendar.date(byAdding: .day, value: -back, to: today)
             else { continue }
             weeks.append(WeekPoint(start: start, answered: weekAnswered[week],
                                    accuracy: Double(weekCorrect[week]) / Double(weekAnswered[week])))
@@ -245,7 +271,8 @@ struct AnalyticsView: View {
             guard wrong.count < 40, seen.insert(event.questionId).inserted,
                   let pick = picks[event.questionId] else { continue }
             wrong.append(WrongAnswer(pick: pick, date: event.date,
-                                     reason: store.mistakeReasons[event.questionId]?.reason))
+                                     reason: store.mistakeReasons[event.questionId]?.reason,
+                                     picked: event.picked))
         }
 
         let due = reviews.dueAcross(store.library).count
@@ -260,7 +287,9 @@ struct AnalyticsView: View {
                                  dayCounts: dayCounts,
                                  today: dayCounts[StudyLog.key(for: now)] ?? 0,
                                  sparks: sparks,
-                                 calibration: store.calibration())
+                                 calibration: store.calibration(),
+                                 recentCount: store.recentAnswers.count,
+                                 includesExamples: store.includesExampleData)
     }
 
     // MARK: - The rings at the top
@@ -306,7 +335,10 @@ struct AnalyticsView: View {
             }
             .padding(.vertical, 6)
         } footer: {
-            Text("The tick on Readiness is the typical pass mark. Syllabus shows covered, thin and missing topics. Today\u{2019}s target is " + (goal.fromExam ? "the pace that gets through your library by the exam." : "30 until you set an exam date."))
+            let pace: String = goal.fromExam ? "the pace that gets through your library by the exam."
+                                             : "30 until you set an exam date."
+            let note: String = "The tick on Readiness is the typical pass mark. Syllabus shows covered, thin and missing topics. Today\u{2019}s target is \(pace)"
+            Text(note)
         }
     }
 
@@ -364,12 +396,15 @@ struct AnalyticsView: View {
 
         for subject in s.stats.filter({ $0.answered >= 5 && $0.accuracy < 0.75 }).prefix(2) {
             let percent = Int((subject.accuracy * 100).rounded())
+            let trust: Double = min(1, Double(subject.answered) / 20)
+            let missed: Double = (1 - subject.accuracy) * 100
+            let score: Double = missed * trust
             items.append(FocusItem(
                 id: "drill-" + subject.subject,
                 title: "Drill \(subject.subject)",
                 detail: "\(percent)% right in \(subject.subject) over \(subject.answered) answers",
                 symbol: "scope",
-                score: (1 - subject.accuracy) * 100 * min(1, Double(subject.answered) / 20),
+                score: score,
                 action: .drill(subject.subject), subject: subject.subject))
         }
 
@@ -610,9 +645,16 @@ struct AnalyticsView: View {
     private func wrongRow(_ answer: WrongAnswer) -> some View {
         let q = answer.pick.question
         let right = q.options.indices.contains(q.correctIndex) ? q.options[q.correctIndex] : ""
-        var line = Store.subjectName(answer.pick.set) + " \u{00B7} "
-            + answer.date.formatted(date: .abbreviated, time: .omitted)
+        let subject: String = Store.subjectName(answer.pick.set)
+        let when: String = answer.date.formatted(date: .abbreviated, time: .omitted)
+        var line: String = "\(subject) \u{00B7} \(when)"
         if let reason = answer.reason { line += " \u{00B7} " + reason.title }
+        // what was chosen instead, when it was recorded and is still one of
+        // the question's options
+        var chosen: String = ""
+        if let picked = answer.picked, picked != q.correctIndex, q.options.indices.contains(picked) {
+            chosen = "You chose " + q.options[picked]
+        }
         return HStack(alignment: .top, spacing: 10) {
             Button {
                 startQuiz(Store.temporaryQuiz(named: "One question", subject: Store.subjectName(answer.pick.set),
@@ -620,6 +662,10 @@ struct AnalyticsView: View {
             } label: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(q.stem).font(.subheadline).lineLimit(3)
+                    if !chosen.isEmpty {
+                        Label(chosen, systemImage: "xmark.circle")
+                            .font(.caption).foregroundStyle(.red)
+                    }
                     if !right.isEmpty {
                         Label(right, systemImage: "checkmark.circle")
                             .font(.caption.weight(.semibold)).foregroundStyle(.green)
@@ -752,6 +798,10 @@ private struct AnalyticsSnapshot {
     /// Each subject's accuracy day by day over the last 14 days.
     var sparks: [String: [SparkPoint]]
     var calibration: [CalibrationRow]
+    /// Answers the readiness estimate can read.
+    var recentCount: Int
+    /// Whether any of it is the personal build's example history.
+    var includesExamples: Bool
 }
 
 /// Answers and right answers, added up.
@@ -786,6 +836,8 @@ private struct WrongAnswer: Identifiable {
     var pick: QuestionPick
     var date: Date
     var reason: MistakeReason?
+    /// The option chosen, as its index in the question's own options.
+    var picked: Int?
     var id: UUID { pick.question.id }
 }
 

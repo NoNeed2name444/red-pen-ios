@@ -700,7 +700,10 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   if (holder) return fail(409, 'This subscription is already linked to another Vignette account. Sign in with that account, or contact support to move it.');
   const apple = await askApple(env, original, fetcher);
   if (apple === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
-  if (apple.until > now() && !await ownsIt(apple, accountId)) {
+  // checked whenever Apple names an owner, live or lapsed: otherwise anyone
+  // holding a lapsed subscription's id could link it first and lock its real
+  // owner out when they renew
+  if ((apple.until > now() || apple.tokens.length) && !await ownsIt(apple, accountId)) {
     return fail(403, 'This subscription was bought while signed in to a different Vignette account. Sign in with that account to use it.');
   }
   try {
@@ -739,13 +742,15 @@ export async function askApple(env, originalTransactionId, fetcher = fetch) {
       const tokens = [];
       for (const group of answer.data || []) {
         for (const last of group.lastTransactions || []) {
+          const info = decodeClaims(last.signedTransactionInfo || '') || {};
+          // whose it is, whatever its state: a lapsed subscription still
+          // belongs to the account that bought it
+          if (info.appAccountToken) tokens.push(info.appAccountToken);
           // 1 active, 4 billing grace period - both still entitled
           if (last.status !== 1 && last.status !== 4) continue;
-          const info = decodeClaims(last.signedTransactionInfo || '') || {};
           const expires = Math.floor((info.expiresDate || 0) / 1000);
           // grace has no new expiry yet; a day at a time until Apple decides
           until = Math.max(until, last.status === 4 ? now() + 86_400 : expires);
-          if (info.appAccountToken) tokens.push(info.appAccountToken);
         }
       }
       return { until, tokens, environment: answer.environment || (host.includes('sandbox') ? 'Sandbox' : 'Production') };

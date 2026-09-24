@@ -9,6 +9,36 @@ struct BookPage: Identifiable, Hashable {
 }
 
 enum BookPages {
+    /// How many pages `split` would make, remembered: the library shows a
+    /// textbook's page count on its row, and splitting the whole book on
+    /// every redraw of the list is the slowest thing on that screen.
+    static func pageCount(_ markdown: String) -> Int {
+        pageCounts.count(for: markdown)
+    }
+
+    private static let pageCounts = PageCountCache()
+
+    /// A small, thread-safe memo of page counts by book text.
+    private final class PageCountCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var counts: [String: Int] = [:]
+
+        func count(for markdown: String) -> Int {
+            lock.lock()
+            let known = counts[markdown]
+            lock.unlock()
+            if let known { return known }
+            let fresh = BookPages.split(markdown).count
+            lock.lock()
+            // a handful of books at most; forgetting them all is simpler than
+            // keeping an order and costs one re-split each
+            if counts.count >= 64 { counts.removeAll() }
+            counts[markdown] = fresh
+            lock.unlock()
+            return fresh
+        }
+    }
+
     /// Every `#` or `##` heading starts a page; text before the first
     /// heading is a page of its own called "Introduction".
     static func split(_ markdown: String) -> [BookPage] {

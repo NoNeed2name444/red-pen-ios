@@ -69,8 +69,9 @@ struct ReadinessCard: View {
 
         RangeBar(low: e.low, center: e.center, high: e.high, mark: e.passMark)
 
-        let exam = track == .general ? "" : " for " + track.rawValue.uppercased()
-        Text("Typical pass mark" + exam + ": " + Self.percent(e.passMark) + " \u{00B7} approximate")
+        let exam: String = track == .general ? "" : " for " + track.rawValue.uppercased()
+        let passLine: String = "Typical pass mark\(exam): \(Self.percent(e.passMark)) \u{00B7} approximate"
+        Text(passLine)
             .font(.caption).foregroundStyle(.secondary)
 
         Text(basis(e))
@@ -127,6 +128,28 @@ struct ReadinessCard: View {
     }
 }
 
+/// Where RangeBar's pieces go, worked out in plain typed steps rather than
+/// inside the view builder, where mixed Double and CGFloat sums are slow for
+/// the compiler to type.
+private struct RangeBarLayout {
+    var rangeWidth: CGFloat
+    var rangeX: CGFloat
+    var centerX: CGFloat
+    var markX: CGFloat
+
+    init(width: CGFloat, low: Double, center: Double, high: Double, mark: Double) {
+        let w: Double = Double(width)
+        let span: Double = (high - low) * w
+        rangeWidth = CGFloat(max(8, span))
+        let lowX: Double = max(0, low * w)
+        rangeX = CGFloat(min(lowX, max(0, w - 8)))
+        let middle: Double = max(0, center * w - 6)
+        centerX = CGFloat(min(middle, w - 12))
+        let tick: Double = max(0, mark * w - 1)
+        markX = CGFloat(min(tick, w - 2))
+    }
+}
+
 /// 0-100% with the estimate's range shaded, its middle marked, and a tick
 /// at the pass mark.
 private struct RangeBar: View {
@@ -134,18 +157,19 @@ private struct RangeBar: View {
 
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
+            let layout = RangeBarLayout(width: geo.size.width, low: low, center: center,
+                                        high: high, mark: mark)
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.08)).frame(height: 8)
                 Capsule().fill(Color.accentColor.opacity(0.35))
-                    .frame(width: max(8, (high - low) * w), height: 8)
-                    .offset(x: min(max(0, low * w), max(0, w - 8)))
+                    .frame(width: layout.rangeWidth, height: 8)
+                    .offset(x: layout.rangeX)
                 Circle().fill(Color.accentColor)
                     .frame(width: 12, height: 12)
-                    .offset(x: min(max(0, center * w - 6), w - 12))
+                    .offset(x: layout.centerX)
                 Rectangle().fill(Color.primary.opacity(0.6))
                     .frame(width: 2, height: 18)
-                    .offset(x: min(max(0, mark * w - 1), w - 2))
+                    .offset(x: layout.markX)
             }
             .frame(height: 18)
         }

@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { checkSpec, fill, itemsIn, GenerationJobs } from '../jobs.js';
+import { checkSpec, fill, itemsIn, GenerationJobs, LIMITS } from '../jobs.js';
 import { checkerOrder } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -97,8 +97,25 @@ ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read fro
   ok(got.outputs.length === 3, 'every useful reply is kept');
   ok(prompts[0].messages[0].content.includes('LECTURE TEXT'), 'the lecture is put into the prompt');
   ok(prompts[1].messages[0].content.includes('- Q1\n- Q2'), 'the next prompt lists what is already written');
+  ok(![...store.map.keys()].some(k => k.startsWith('src:') || k.startsWith('step:')),
+     'a finished job lets go of its lecture and prompts');
   await object.fetch(new Request(`https://jobs/cancel?id=${made.job.id}`, { method: 'POST' }));
   ok(store.map.size === 0, 'a collected job leaves nothing behind');
+}
+
+// finished jobs waiting to be collected are capped; the oldest make room
+{
+  const store = storage();
+  const fake = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 });
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 1, sources: ['s'],
+    steps: [{ user: 'Write 1.', source: 0 }] }).spec;
+  for (let i = 0; i < LIMITS.kept + 3; i++) {
+    const r = await object.create({ accountId: 'owner', owner: true, spec });
+    if (r.status !== 201) ok(false, 'a new job is taken');
+    await runAll(object, store);
+  }
+  ok((await object.all()).length === LIMITS.kept, 'no more than the cap are kept');
 }
 
 // pages stay in order, and a refusal ends the job

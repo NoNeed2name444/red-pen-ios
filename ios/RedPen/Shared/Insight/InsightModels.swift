@@ -63,6 +63,30 @@ struct AnswerEvent: Codable, Hashable {
     /// Set on the ready-made history a personal build starts with, so the
     /// screens can say it is an example.
     var isExample: Bool?
+    /// The option the student chose, as its index in the question's own
+    /// option list (not the shuffled slot on screen). Nil for answers
+    /// recorded before this was kept, and when nothing was chosen.
+    var picked: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case questionId, correct, date, confidence, isExample, picked
+    }
+}
+
+/// Read tolerantly: an event from an older or newer version may lack a field
+/// or carry a confidence this one does not know; only the question and the
+/// result are needed.
+extension AnswerEvent {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        questionId = try c.decode(UUID.self, forKey: .questionId)
+        correct = try c.decode(Bool.self, forKey: .correct)
+        let when = (try? c.decodeIfPresent(Date.self, forKey: .date)) ?? nil
+        date = when ?? Date.distantPast
+        confidence = (try? c.decodeIfPresent(AnswerConfidence.self, forKey: .confidence)) ?? nil
+        isExample = (try? c.decodeIfPresent(Bool.self, forKey: .isExample)) ?? nil
+        picked = (try? c.decodeIfPresent(Int.self, forKey: .picked)) ?? nil
+    }
 }
 
 /// The latest reason given for getting one question wrong.

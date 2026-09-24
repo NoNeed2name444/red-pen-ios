@@ -78,16 +78,18 @@ struct AppBackdrop: View {
     /// A still darkening towards the edges, so the eye settles in the middle
     /// where the rows are. Drawn once; it does not move with the mesh.
     private var vignette: some View {
-        RadialGradient(colors: [.clear, .black.opacity(scheme == .dark ? 0.28 : 0.05)],
-                       center: .center, startRadius: 120, endRadius: 720)
+        let edge: Double = scheme == .dark ? 0.28 : 0.05
+        let colors: [Color] = [Color.clear, Color.black.opacity(edge)]
+        return RadialGradient(colors: colors, center: .center, startRadius: 120, endRadius: 720)
     }
 
     /// The mode colour as it stands at `date`, part way through a fade or not.
     private func tone(at date: Date, target: BackdropTone) -> BackdropTone {
         guard let from = fadeFrom, !still else { return target }
-        let t = min(1, max(0, date.timeIntervalSince(fadeStart) / AppBackdrop.fade))
+        let elapsed: Double = date.timeIntervalSince(fadeStart) / AppBackdrop.fade
+        let t: Double = min(1, max(0, elapsed))
         // ease in and out, so the change has no visible start or end
-        let eased = t * t * (3 - 2 * t)
+        let eased: Double = t * t * (3 - 2 * t)
         return from.mixed(with: target, eased)
     }
 
@@ -117,7 +119,7 @@ struct AppBackdrop: View {
 
     private func mesh(at date: Date) -> MeshGradient {
         let dark = scheme == .dark
-        let base = dark ? AppBackdrop.night : AppBackdrop.day
+        let base: [BackdropColor] = dark ? AppBackdrop.night : AppBackdrop.day
         let mode = tone(at: date, target: BackdropTone(tint))
         // low saturation: the mode's colour, pulled a third of the way to grey
         let hue = mode.color.mixed(with: BackdropColor(r: 0.5, g: 0.5, b: 0.52), 0.35)
@@ -125,22 +127,38 @@ struct AppBackdrop: View {
         // Measured from a fixed moment rather than from when this screen
         // appeared, so every screen is at the same point in the drift and a
         // push does not show the mesh jumping to a new shape.
-        let s = still ? 0 : date.timeIntervalSinceReferenceDate
+        let s: Double = still ? 0 : date.timeIntervalSinceReferenceDate
         func wave(_ period: Double, _ phase: Double) -> Double {
-            sin(2 * .pi * s / period + phase)
+            let angle: Double = 2 * Double.pi * s / period + phase
+            return sin(angle)
+        }
+        // one edge or middle coordinate: 0.5, moved by at most `a`
+        let a: Double = 0.11
+        func drift(_ period: Double, _ phase: Double) -> Float {
+            let moved: Double = 0.5 + a * wave(period, phase)
+            return Float(moved)
         }
 
         // Only the middle point moves freely; the edge points slide along
         // their edge and the corners stay put, so the mesh always covers the
-        // whole screen.
-        let a = 0.11
-        let points: [SIMD2<Float>] = [
-            [0, 0], [Float(0.5 + a * wave(29, 0.0)), 0], [1, 0],
-            [0, Float(0.5 + a * wave(37, 1.3))],
-            [Float(0.5 + a * wave(23, 2.1)), Float(0.5 + a * wave(31, 0.7))],
-            [1, Float(0.5 + a * wave(33, 2.9))],
-            [0, 1], [Float(0.5 + a * wave(27, 4.2)), 1], [1, 1],
-        ]
+        // whole screen. Spelled out point by point: one nested literal of
+        // nine converted points is slow for the compiler to type.
+        let top: Float = drift(29, 0.0)
+        let left: Float = drift(37, 1.3)
+        let midX: Float = drift(23, 2.1)
+        let midY: Float = drift(31, 0.7)
+        let right: Float = drift(33, 2.9)
+        let bottom: Float = drift(27, 4.2)
+        var points: [SIMD2<Float>] = []
+        points.append(SIMD2<Float>(0, 0))
+        points.append(SIMD2<Float>(top, 0))
+        points.append(SIMD2<Float>(1, 0))
+        points.append(SIMD2<Float>(0, left))
+        points.append(SIMD2<Float>(midX, midY))
+        points.append(SIMD2<Float>(1, right))
+        points.append(SIMD2<Float>(0, 1))
+        points.append(SIMD2<Float>(bottom, 1))
+        points.append(SIMD2<Float>(1, 1))
 
         // How much of the mode's colour each point takes: most in the corners,
         // least in the middle where the text is. Each breathes a little on its
@@ -148,10 +166,16 @@ struct AppBackdrop: View {
         let strength: [Double] = [0.30, 0.18, 0.26,
                                   0.16, 0.05, 0.18,
                                   0.24, 0.16, 0.30]
-        let scale = (dark ? 0.75 : 1.0) * mode.amount
-        let colors: [Color] = base.indices.map { i in
-            let breathe = 0.82 + 0.18 * wave(21 + Double(i) * 2.3, Double(i) * 0.9)
-            return base[i].mixed(with: hue, strength[i] * scale * breathe).color
+        let darkScale: Double = dark ? 0.75 : 1.0
+        let scale: Double = darkScale * mode.amount
+        var colors: [Color] = []
+        colors.reserveCapacity(base.count)
+        for i in base.indices {
+            let index = Double(i)
+            let period: Double = 21 + index * 2.3
+            let breathe: Double = 0.82 + 0.18 * wave(period, index * 0.9)
+            let amount: Double = strength[i] * scale * breathe
+            colors.append(base[i].mixed(with: hue, amount).color)
         }
 
         return MeshGradient(width: 3, height: 3, points: points, colors: colors, smoothsColors: true)
@@ -179,10 +203,10 @@ struct BackdropTone: Equatable {
     /// `t` of the way to `other`. Fading to or from no colour keeps the hue of
     /// the side that has one, so a red screen fades out as red, not via grey.
     func mixed(with other: BackdropTone, _ t: Double) -> BackdropTone {
-        let from = amount == 0 ? other.color : color
-        let to = other.amount == 0 ? color : other.color
-        return BackdropTone(color: from.mixed(with: to, t),
-                            amount: amount + (other.amount - amount) * t)
+        let from: BackdropColor = amount == 0 ? other.color : color
+        let to: BackdropColor = other.amount == 0 ? color : other.color
+        let mixedAmount: Double = amount + (other.amount - amount) * t
+        return BackdropTone(color: from.mixed(with: to, t), amount: mixedAmount)
     }
 }
 
@@ -200,7 +224,10 @@ struct BackdropColor: Equatable {
     init(_ color: Color) {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         if UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a) {
-            self.init(r: min(1, max(0, Double(r))), g: min(1, max(0, Double(g))), b: min(1, max(0, Double(b))))
+            let red: Double = min(1, max(0, Double(r)))
+            let green: Double = min(1, max(0, Double(g)))
+            let blue: Double = min(1, max(0, Double(b)))
+            self.init(r: red, g: green, b: blue)
         } else {
             self.init(r: 0.5, g: 0.5, b: 0.52)
         }
@@ -208,7 +235,10 @@ struct BackdropColor: Equatable {
 
     /// `t` of the way from this colour to `other`.
     func mixed(with other: BackdropColor, _ t: Double) -> BackdropColor {
-        BackdropColor(r: r + (other.r - r) * t, g: g + (other.g - g) * t, b: b + (other.b - b) * t)
+        let red: Double = r + (other.r - r) * t
+        let green: Double = g + (other.g - g) * t
+        let blue: Double = b + (other.b - b) * t
+        return BackdropColor(r: red, g: green, b: blue)
     }
 
     var color: Color { Color(red: r, green: g, blue: b) }

@@ -62,12 +62,14 @@ struct ProgressRing<Centre: View>: View {
 
     /// Each segment's start and end as fractions of the way round.
     private var arcs: [RingArc] {
-        let whole = segments.reduce(0) { $0 + max(0, $1.value) }
+        var whole: Double = 0
+        for segment in segments { whole += max(0, segment.value) }
         guard whole > 0 else { return [] }
         var start = 0.0
         var out: [RingArc] = []
         for segment in segments {
-            let end = start + max(0, segment.value) / whole
+            let share: Double = max(0, segment.value) / whole
+            let end: Double = start + share
             out.append(RingArc(segment: segment, start: start, end: end))
             start = end
         }
@@ -75,33 +77,38 @@ struct ProgressRing<Centre: View>: View {
     }
 
     var body: some View {
-        let grow = (shown || reduceMotion) ? 1.0 : 0.0
+        let grow: Double = (shown || reduceMotion) ? 1.0 : 0.0
+        let filled: Double = fraction * grow
+        let inset: CGFloat = lineWidth / 2
+        let markerAngle: Double = min(1, max(0, marker ?? 0)) * 360
+        let markerHeight: CGFloat = lineWidth + 6
+        let markerOffset: CGFloat = -(size - lineWidth) / 2
         VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
-                    .padding(lineWidth / 2)
+                    .padding(inset)
                 if segments.isEmpty {
                     Circle()
-                        .trim(from: 0, to: fraction * grow)
+                        .trim(from: 0, to: filled)
                         .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .padding(lineWidth / 2)
+                        .padding(inset)
                 } else {
                     ForEach(arcs) { arc in
                         Circle()
                             .trim(from: arc.start * grow, to: arc.end * grow)
                             .stroke(arc.segment.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
                             .rotationEffect(.degrees(-90))
-                            .padding(lineWidth / 2)
+                            .padding(inset)
                     }
                 }
                 if let marker {
                     Capsule()
                         .fill(Color.primary.opacity(0.7))
-                        .frame(width: 2, height: lineWidth + 6)
-                        .offset(y: -(size - lineWidth) / 2)
-                        .rotationEffect(.degrees(min(1, max(0, marker)) * 360))
+                        .frame(width: 2, height: markerHeight)
+                        .offset(y: markerOffset)
+                        .rotationEffect(.degrees(markerAngle))
                 }
                 centre
             }
@@ -124,7 +131,7 @@ struct ProgressRing<Centre: View>: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken.isEmpty ? label : label + ", " + spoken)
+        .accessibilityLabel(spoken.isEmpty ? label : "\(label), \(spoken)")
     }
 }
 
@@ -198,11 +205,12 @@ struct ReasonDonut: View {
     /// The accent at a strength that steps down with each reason, commonest
     /// strongest.
     private func shade(_ index: Int) -> Color {
-        Color.accentColor.opacity(max(0.25, 0.9 - Double(index) * 0.16))
+        let strength: Double = 0.9 - Double(index) * 0.16
+        return Color.accentColor.opacity(max(0.25, strength))
     }
 
     var body: some View {
-        let total = shares.reduce(0) { $0 + $1.count }
+        let total: Int = shares.reduce(0) { (sum: Int, share: ReasonShare) -> Int in sum + share.count }
         VStack(alignment: .leading, spacing: 10) {
             ZStack {
                 Chart {
@@ -334,10 +342,19 @@ struct StudyHeatmap: View {
         return out
     }
 
+    private static let legendLevels: [Double] = [0.0, 0.3, 0.6, 1.0]
+
+    private static func legendShade(_ level: Double) -> Color {
+        guard level > 0 else { return Color.primary.opacity(0.07) }
+        let strength: Double = 0.25 + 0.7 * level
+        return Color.accentColor.opacity(strength)
+    }
+
     private func shade(_ count: Int, busiest: Int) -> Color {
         guard count > 0, busiest > 0 else { return Color.primary.opacity(0.07) }
-        let level = Double(count) / Double(busiest)
-        return Color.accentColor.opacity(0.25 + 0.7 * min(1, level))
+        let level: Double = Double(count) / Double(busiest)
+        let strength: Double = 0.25 + 0.7 * min(1, level)
+        return Color.accentColor.opacity(strength)
     }
 
     var body: some View {
@@ -366,10 +383,9 @@ struct StudyHeatmap: View {
             .frame(maxWidth: 320)
             HStack(spacing: 4) {
                 Text("Less").font(.caption2).foregroundStyle(.secondary)
-                ForEach([0.0, 0.3, 0.6, 1.0], id: \.self) { level in
+                ForEach(Self.legendLevels, id: \.self) { level in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(level == 0 ? Color.primary.opacity(0.07)
-                                         : Color.accentColor.opacity(0.25 + 0.7 * level))
+                        .fill(Self.legendShade(level))
                         .frame(width: 10, height: 10)
                 }
                 Text("More").font(.caption2).foregroundStyle(.secondary)

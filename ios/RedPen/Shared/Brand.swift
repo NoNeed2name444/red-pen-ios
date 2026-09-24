@@ -51,8 +51,11 @@ enum Brand {
                 let widths: [CGFloat] = [1.0, 0.74, 0.48]
                 let tops: [CGFloat] = [0.10, 0.34, 0.54]
                 for (i, ratio) in widths.enumerated() {
-                    let bar = CGRect(x: (w - w * ratio) / 2, y: h * tops[i],
-                                     width: w * ratio, height: h * 0.11)
+                    let barWidth: CGFloat = w * ratio
+                    let barX: CGFloat = (w - barWidth) / 2
+                    let barY: CGFloat = h * tops[i]
+                    let barHeight: CGFloat = h * 0.11
+                    let bar = CGRect(x: barX, y: barY, width: barWidth, height: barHeight)
                     context.fill(Path(roundedRect: bar, cornerRadius: h * 0.055),
                                  with: .color(tint.opacity(1 - Double(i) * 0.22)))
                 }

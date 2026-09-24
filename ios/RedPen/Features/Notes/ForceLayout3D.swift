@@ -34,8 +34,13 @@ enum ForceLayout3D {
         let k: Float = 1.6
         var random = SplitMix64(seed: seed)
         let spread = k * Float(n).squareRoot()
-        var position = (0..<n).map { _ in
-            SIMD3<Float>(random.unit() * spread, random.unit() * spread, random.unit() * spread)
+        var position: [SIMD3<Float>] = []
+        position.reserveCapacity(n)
+        for _ in 0..<n {
+            let x: Float = random.unit() * spread
+            let y: Float = random.unit() * spread
+            let z: Float = random.unit() * spread
+            position.append(SIMD3<Float>(x, y, z))
         }
 
         var springs: [(Int, Int)] = []
@@ -62,9 +67,10 @@ enum ForceLayout3D {
             // every pair pushes apart, harder the closer they are
             for i in 0..<n {
                 for j in (i + 1)..<n {
-                    let delta = position[i] - position[j]
-                    let distance = max(length(delta), 0.05)
-                    let force = delta / distance * (k * k / distance)
+                    let delta: SIMD3<Float> = position[i] - position[j]
+                    let distance: Float = max(length(delta), 0.05)
+                    let strength: Float = k * k / distance
+                    let force: SIMD3<Float> = delta * (strength / distance)
                     push[i] += force
                     push[j] -= force
                 }
@@ -72,9 +78,10 @@ enum ForceLayout3D {
 
             // each connection pulls its ends together
             for (i, j) in springs {
-                let delta = position[j] - position[i]
-                let distance = max(length(delta), 0.05)
-                let force = delta / distance * (distance * distance / k)
+                let delta: SIMD3<Float> = position[j] - position[i]
+                let distance: Float = max(length(delta), 0.05)
+                let strength: Float = distance * distance / k
+                let force: SIMD3<Float> = delta * (strength / distance)
                 push[i] += force
                 push[j] -= force
             }
@@ -84,16 +91,21 @@ enum ForceLayout3D {
                 var centre = SIMD3<Float>(0, 0, 0)
                 for i in cluster { centre += position[i] }
                 centre /= Float(cluster.count)
-                for i in cluster { push[i] += (centre - position[i]) * 0.6 }
+                for i in cluster {
+                    let towards: SIMD3<Float> = centre - position[i]
+                    push[i] += towards * Float(0.6)
+                }
             }
 
             // and everything, faintly, to the centre
             for i in 0..<n {
-                push[i] -= position[i] * 0.05
+                let inward: SIMD3<Float> = position[i] * Float(0.05)
+                push[i] -= inward
                 // never further in one step than the temperature allows
-                let size = length(push[i])
+                let size: Float = length(push[i])
                 if size > 0 {
-                    position[i] += push[i] / size * min(size, temperature)
+                    let step: Float = min(size, temperature) / size
+                    position[i] += push[i] * step
                 }
             }
             temperature = max(temperature - cooling, 0.01)
@@ -130,6 +142,8 @@ struct SplitMix64: RandomNumberGenerator {
 
     /// A number between -1 and 1.
     mutating func unit() -> Float {
-        Float(Double(next() >> 11) / Double(1 << 53)) * 2 - 1
+        let top53: UInt64 = next() >> 11
+        let fraction: Double = Double(top53) / 9_007_199_254_740_992.0 // 2^53
+        return Float(fraction) * 2 - 1
     }
 }

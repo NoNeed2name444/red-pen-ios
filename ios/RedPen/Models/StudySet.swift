@@ -67,7 +67,7 @@ struct StudySet: Identifiable, Codable, Hashable {
         switch kind {
         case .mcq: return questions.count
         case .anki: return cards.count
-        case .book: return BookPages.split(bookMarkdown).count
+        case .book: return BookPages.pageCount(bookMarkdown)
         case .qa: return qaCards.count
         case .osce: return osceChecklists.reduce(0) { $0 + $1.steps.count }
         case .narrate: return narrateSegments.count

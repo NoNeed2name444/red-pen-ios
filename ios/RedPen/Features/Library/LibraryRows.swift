@@ -62,7 +62,7 @@ extension LibraryView {
         // quieter than the main button.
         if due > 0 && flagged > 0 {
             Button { startFlaggedQuiz() } label: {
-                Text("Or " + flaggedTitle(flagged).lowercased())
+                Text(verbatim: "Or \(flaggedTitle(flagged).lowercased())")
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }

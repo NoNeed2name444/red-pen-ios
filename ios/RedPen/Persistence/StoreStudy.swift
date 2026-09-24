@@ -49,7 +49,10 @@ extension Store {
     /// copied into a Mistakes set keeps its id, and should not come up twice.
     var flaggedQuestions: [QuestionPick] {
         guard !flagged.isEmpty else { return [] }
-        return mcqPicks { flagged.contains($0.question.id) }
+        if let memo = flaggedMemo, memo.at == changeCount { return memo.picks }
+        let picks: [QuestionPick] = mcqPicks { self.flagged.contains($0.question.id) }
+        flaggedMemo = (at: changeCount, picks: picks)
+        return picks
     }
 
     // MARK: answer history
@@ -66,15 +69,20 @@ extension Store {
     ///
     /// `confidence` is how sure the student said they were before checking,
     /// when they said; it goes into the dated log with the answer.
+    ///
+    /// `picked` is the option chosen, as its index in the question's own
+    /// option list (not the shuffled slot), so a wrong answer can later show
+    /// what was chosen.
     func recordAnswer(_ questionId: UUID, correct: Bool, confidence: AnswerConfidence? = nil,
-                      saving: Bool = true) {
+                      picked: Int? = nil, saving: Bool = true) {
         guard library.contains(where: { set in
             set.kind == .mcq && set.questions.contains { $0.id == questionId }
         }) else { return }
         var past = answerHistory[questionId] ?? []
         past.append(correct)
         answerHistory[questionId] = Array(past.suffix(Self.historyDepth))
-        answerLog.append(AnswerEvent(questionId: questionId, correct: correct, confidence: confidence))
+        answerLog.append(AnswerEvent(questionId: questionId, correct: correct, confidence: confidence,
+                                     picked: picked))
         if answerLog.count > Self.answerLogDepth {
             answerLog.removeFirst(answerLog.count - Self.answerLogDepth)
         }

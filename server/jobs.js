@@ -38,6 +38,7 @@ export const LIMITS = {
   count: 1_000,           // items asked for
   alreadyItems: 60,
   keepDays: 7,            // a finished job nobody collected
+  kept: 20,               // jobs held at once, finished or not, per account
 };
 const RETRY_SECONDS = 20;
 const MAX_FAILURES = 4;
@@ -241,9 +242,18 @@ export class GenerationJobs {
   }
 
   async create({ accountId, owner, spec }) {
-    const jobs = await this.all();
+    let jobs = await this.all();
     if (jobs.filter(j => j.status === 'running').length >= LIMITS.active) {
       return fail(429, `${LIMITS.active} jobs are already being written - wait for one to finish.`);
+    }
+    // Finished jobs wait a week to be collected; without a ceiling, jobs that
+    // fail at once could park lecture after lecture here. The oldest finished
+    // ones make room first.
+    if (jobs.length >= LIMITS.kept) {
+      const finished = jobs.filter(j => j.status !== 'running').sort((a, b) => a.updated - b.updated);
+      for (const old of finished.slice(0, jobs.length - LIMITS.kept + 1)) await this.forget(old);
+      jobs = await this.all();
+      if (jobs.length >= LIMITS.kept) return fail(429, 'Too many jobs are waiting to be collected.');
     }
     const id = crypto.randomUUID();
     const now = Date.now();
@@ -299,7 +309,12 @@ export class GenerationJobs {
     }
     job.updated = Date.now();
     // the job may have been cancelled while its call was out
-    if (await this.storage.get(`job:${job.id}`)) await this.storage.put(`job:${job.id}`, job);
+    if (await this.storage.get(`job:${job.id}`)) {
+      await this.storage.put(`job:${job.id}`, job);
+      // finished: the lecture and prompts are no longer needed, only the
+      // replies and verdicts the app comes back for
+      if (job.status !== 'running') await this.release(job);
+    }
     const more = (await this.all()).some(j => j.status === 'running');
     if (more) await this.storage.setAlarm(Date.now() + wait * 1000 + 50);
   }
@@ -436,6 +451,14 @@ export class GenerationJobs {
 
   async summaries() {
     return (await this.all()).sort((a, b) => b.created - a.created).map(summary);
+  }
+
+  /// Drops what only a running job needs - its sources, prompts and queue.
+  async release(job) {
+    const keys = [`pend:${job.id}`, `check:${job.id}`];
+    for (let i = 0; i < job.stepCount; i++) keys.push(`step:${job.id}:${i}`);
+    for (let i = 0; i < job.sourceCount; i++) keys.push(`src:${job.id}:${i}`);
+    for (let i = 0; i < keys.length; i += 100) await this.storage.delete(keys.slice(i, i + 100));
   }
 
   async forget(job) {
