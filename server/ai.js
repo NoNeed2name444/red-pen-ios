@@ -60,6 +60,11 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // not the 3.1 Pro that writes); `avoid` names the models that wrote what
   // is being checked, and they are skipped while any other is left.
   if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
+  // A request can ask for one model first (the syllabus check asks for 3.1
+  // Pro); only among the models this account may use, so it grants nothing.
+  if (gemini && typeof body.prefer === 'string' && gemini.models.includes(body.prefer)) {
+    gemini.models = [body.prefer, ...gemini.models.filter(m => m !== body.prefer)];
+  }
   // The owner's benchmarks: one named model and nothing else, so models can
   // be compared ("gemini:gemini-3.5-flash", "workers-ai:@cf/...", "hf:org/model").
   if (owner && typeof body.use === 'string') {
