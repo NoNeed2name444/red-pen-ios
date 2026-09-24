@@ -1,0 +1,71 @@
+build/live/main.swift:199:15: warning: no 'async' operations occur within 'await' expression
+197 | if wanted("patient"), let card = caseCards.first(where: { $0.type == .case }) ?? caseCards.first {
+198 |     let start = Date()
+199 |     let sim = await CaseSimulator(card: card, subject: "Rheumatology", writer: writer, checker: checker)
+    |               `- warning: no 'async' operations occur within 'await' expression
+200 |     await sim.prepare()
+201 |     var transcript = ""
+
+build/live/main.swift:202:32: warning: no 'async' operations occur within 'await' expression
+200 |     await sim.prepare()
+201 |     var transcript = ""
+202 |     if case .failed(let why) = await sim.phase {
+    |                                `- warning: no 'async' operations occur within 'await' expression
+203 |         record("Simulated patient", false, "Case file failed: \(why)", seconds: Date().timeIntervalSince(start))
+204 |     } else {
+
+build/live/main.swift:205:20: warning: no 'async' operations occur within 'await' expression
+203 |         record("Simulated patient", false, "Case file failed: \(why)", seconds: Date().timeIntervalSince(start))
+204 |     } else {
+205 |         let file = await sim.caseFile
+    |                    `- warning: no 'async' operations occur within 'await' expression
+206 |         transcript += "Case written from: *\(card.stem)*\n\nHidden diagnosis: **\(file.diagnosis)** · checklist items: \(file.checklist.count)\n\n"
+207 |         for question in ["Hello, I'm a medical student. What brings you in today?",
+
+build/live/main.swift:211:28: warning: no 'async' operations occur within 'await' expression
+209 |                          "I'd like to examine your skin and joints."] {
+210 |             await sim.send(question)
+211 |             let messages = await sim.messages
+    |                            `- warning: no 'async' operations occur within 'await' expression
+212 |             if let reply = messages.last {
+213 |                 let v = reply.verdict.map { " _(\($0.riskTitle)\(reply.regenerations > 0 ? ", rewritten \(reply.regenerations)×" : ""))_" } ?? ""
+
+build/live/main.swift:217:9: warning: no 'async' operations occur within 'await' expression
+215 |             }
+216 |         }
+217 |         await sim.endInterview()
+    |         `- warning: no 'async' operations occur within 'await' expression
+218 |         await sim.finish(assessment: "Most likely SLE. Differentials: dermatomyositis, rosacea. Check ANA, anti-dsDNA, C3/C4, FBC, urinalysis. Start hydroxychloroquine and sun protection.")
+219 |         let covered = await sim.coveredCount
+
+build/live/main.swift:219:23: warning: no 'async' operations occur within 'await' expression
+217 |         await sim.endInterview()
+218 |         await sim.finish(assessment: "Most likely SLE. Differentials: dermatomyositis, rosacea. Check ANA, anti-dsDNA, C3/C4, FBC, urinalysis. Start hydroxychloroquine and sun protection.")
+219 |         let covered = await sim.coveredCount
+    |                       `- warning: no 'async' operations occur within 'await' expression
+220 |         let total = await sim.caseFile.checklist.count
+221 |         let missed = await sim.missed.prefix(6).map { "- [\($0.section.title)] \($0.text)" }.joined(separator: "\n")
+
+build/live/main.swift:220:21: warning: no 'async' operations occur within 'await' expression
+218 |         await sim.finish(assessment: "Most likely SLE. Differentials: dermatomyositis, rosacea. Check ANA, anti-dsDNA, C3/C4, FBC, urinalysis. Start hydroxychloroquine and sun protection.")
+219 |         let covered = await sim.coveredCount
+220 |         let total = await sim.caseFile.checklist.count
+    |                     `- warning: no 'async' operations occur within 'await' expression
+221 |         let missed = await sim.missed.prefix(6).map { "- [\($0.section.title)] \($0.text)" }.joined(separator: "\n")
+222 |         transcript += "Marking: **\(covered) of \(total)** checklist items covered. Missed (first 6):\n\(missed)"
+
+build/live/main.swift:221:22: warning: no 'async' operations occur within 'await' expression
+219 |         let covered = await sim.coveredCount
+220 |         let total = await sim.caseFile.checklist.count
+221 |         let missed = await sim.missed.prefix(6).map { "- [\($0.section.title)] \($0.text)" }.joined(separator: "\n")
+    |                      `- warning: no 'async' operations occur within 'await' expression
+222 |         transcript += "Marking: **\(covered) of \(total)** checklist items covered. Missed (first 6):\n\(missed)"
+223 |         let replies = await sim.messages.filter { $0.speaker != .doctor }.count
+
+build/live/main.swift:223:23: warning: no 'async' operations occur within 'await' expression
+221 |         let missed = await sim.missed.prefix(6).map { "- [\($0.section.title)] \($0.text)" }.joined(separator: "\n")
+222 |         transcript += "Marking: **\(covered) of \(total)** checklist items covered. Missed (first 6):\n\(missed)"
+223 |         let replies = await sim.messages.filter { $0.speaker != .doctor }.count
+    |                       `- warning: no 'async' operations occur within 'await' expression
+224 |         record("Simulated patient", replies >= 3 && total > 0, transcript, seconds: Date().timeIntervalSince(start))
+225 |     }
