@@ -22,11 +22,11 @@ on:
       models:
         description: Models, comma-separated (gemini:, workers-ai:, hf:)
         required: false
-        default: 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b,hf:baichuan-inc/Baichuan-M2-32B,hf:google/medgemma-27b-text-it'
+        default: 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b'
       caps:
         description: Most calls per model this run (free quotas)
         required: false
-        default: 'gemini:gemini-3.1-pro-preview=3,gemini:gemini-3.5-flash=18,workers-ai:@cf/nvidia/nemotron-3-120b-a12b=60,workers-ai:@cf/openai/gpt-oss-120b=60,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct=60,workers-ai:@cf/qwen/qwq-32b=60,hf:baichuan-inc/Baichuan-M2-32B=30,hf:google/medgemma-27b-text-it=30'
+        default: 'gemini:gemini-3.1-pro-preview=3,gemini:gemini-3.5-flash=18,workers-ai:@cf/nvidia/nemotron-3-120b-a12b=60,workers-ai:@cf/openai/gpt-oss-120b=60,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct=60,workers-ai:@cf/qwen/qwq-32b=60'
 permissions:
   contents: write
 concurrency:
@@ -56,7 +56,7 @@ jobs:
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           N: ${{ inputs.n || '40' }}
-          MODELS: ${{ inputs.models || 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b,hf:baichuan-inc/Baichuan-M2-32B,hf:google/medgemma-27b-text-it' }}
+          MODELS: ${{ inputs.models || 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b' }}
           CAPS: ${{ inputs.caps }}
           DATASET: ${{ inputs.dataset || (github.ref_name == 'bench/medxpertqa' && 'medxpertqa') || 'medqa' }}
         run: |
