@@ -24,6 +24,7 @@
 //      SEED, CONCURRENCY, REPORT (markdown path), TARGET (default 0.98)
 
 import { writeFileSync } from 'node:fs';
+import { limitKind, waitFor } from './checkers.mjs';
 
 const WORKER = (process.env.WORKER || 'https://redpen-auth.vv7sh4rnnw.workers.dev').replace(/\/+$/, '');
 const KEY = process.env.KEY || '';
@@ -117,16 +118,36 @@ async function rows(indices) {
   return out;
 }
 
+// The free limits: a per-minute limit is waited out (as long as the server
+// asks), a per-day one ends the run with what it has, reported as such.
+let dayLimit = null;
+
 async function ask(model, content, { ground = true, maxTokens = 700 } = {}) {
+  if (dayLimit) return { error: `skipped: ${dayLimit}` };
+  let waits = 0;
   for (let attempt = 0; attempt < 4; attempt++) {
-    const r = await fetch(`${WORKER}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
-      body: JSON.stringify({ model, ground, max_tokens: maxTokens, temperature: 0, messages: [{ role: 'user', content }] }),
-    });
-    const j = await r.json().catch(() => ({}));
+    let r, j;
+    try {
+      r = await fetch(`${WORKER}/v1/chat/completions`, {
+        method: 'POST', signal: AbortSignal.timeout(150_000),
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
+        body: JSON.stringify({ model, ground, max_tokens: maxTokens, temperature: 0, messages: [{ role: 'user', content }] }),
+      });
+      j = await r.json().catch(() => ({}));
+    } catch (e) {
+      if (attempt === 3) return { error: `timeout: ${e.message}`.slice(0, 200) };
+      continue;
+    }
     if (r.ok) return { text: j.choices?.[0]?.message?.content || '', source: j.source || '?', evidence: j.evidence || [] };
-    if (![429, 500, 502, 503, 504].includes(r.status) || attempt === 3) return { error: `${r.status}: ${j.message || ''}`.slice(0, 200) };
+    const message = `${r.status}: ${j.message || ''}`;
+    const kind = r.status === 429 ? (limitKind(message) || 'minute') : limitKind(message);
+    if (kind === 'day') { dayLimit ||= message.slice(0, 200); return { error: message.slice(0, 200) }; }
+    if (kind === 'minute' && waits < 8) {
+      waits++; attempt--;
+      await new Promise(res => setTimeout(res, waitFor(message) * 1000));
+      continue;
+    }
+    if (![429, 500, 502, 503, 504].includes(r.status) || attempt === 3) return { error: message.slice(0, 200) };
     await new Promise(res => setTimeout(res, 4000 * (attempt + 1)));
   }
 }
@@ -162,7 +183,8 @@ async function one(q) {
 async function pool(items, worker, width) {
   const out = []; let next = 0;
   await Promise.all(Array.from({ length: width }, async () => {
-    while (next < items.length) { const i = next++; out[i] = await worker(items[i]); process.stdout.write('.'); }
+    while (next < items.length && !dayLimit) { const i = next++; out[i] = await worker(items[i]); process.stdout.write('.');
+      writeFileSync(REPORT.replace(/\.md$/, '.json'), JSON.stringify(out.filter(Boolean), null, 1)); }
   }));
   return out;
 }
@@ -175,7 +197,7 @@ async function main() {
   const indices = sample(1273, N, SEED);
   const qs = await rows(indices);
   console.log(`${qs.length} questions loaded`);
-  const results = await pool(qs, one, CONCURRENCY);
+  const results = (await pool(qs, one, CONCURRENCY)).filter(Boolean);
 
   const answered = results.filter(r => r.pick);
   const correct = answered.filter(r => r.pick === r.key);
@@ -215,6 +237,7 @@ async function main() {
     ...shown.filter(r => r.pick !== r.key).slice(0, 15).map(r =>
       `- Q${r.index}: picked **${r.pick}**, key **${r.key}** (checker risk ${r.risk.own}). _${r.stem}…_ — model said: ${r.reason.replace(/\n/g, ' ')}`),
     shown.every(r => r.pick === r.key) ? '_None._' : '', ``,
+    ...(dayLimit ? [`## Free limit met`, ``, `The run stopped early at a daily free limit, so fewer questions were scored: ${dayLimit}`, ``] : []),
     `## Errors`, ``,
     ...[...new Set(results.flatMap(r => [...r.checkErrors, ...(r.error ? [r.error] : [])]))].slice(0, 10).map(e => `- ${e}`),
   ];
