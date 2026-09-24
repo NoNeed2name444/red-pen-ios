@@ -246,6 +246,6 @@ struct SourceResultsList: View {
         let before = String(characters[..<hit.range.lowerBound])
         let match = String(characters[hit.range])
         let after = String(characters[hit.range.upperBound...])
-        return Text(before) + Text(match).bold().foregroundColor(modeTint) + Text(after)
+        return Text("\(before)\(Text(match).bold().foregroundColor(modeTint))\(after)")
     }
 }

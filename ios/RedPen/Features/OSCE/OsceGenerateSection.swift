@@ -143,7 +143,7 @@ struct OsceGenerateSection: View {
                                              check: checker == nil ? nil : onServer ? "server" : "device").encoded
                     stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
-                        GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud")
+                        Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
                     })) {
                         try await MedicalGenerate.osce(
                             sourceText: text, count: wanted, subject: subj,

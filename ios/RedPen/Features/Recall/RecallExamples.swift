@@ -123,10 +123,13 @@ enum RecallExamples {
 
     private static func stroke(_ points: [CGPoint]) -> PKStroke {
         let ink = PKInk(.pen, color: .black)
-        let controls: [PKStrokePoint] = points.indices.map { i in
-            PKStrokePoint(location: points[i], timeOffset: TimeInterval(i) * 0.01,
-                          size: CGSize(width: 4, height: 4), opacity: 1, force: 1,
-                          azimuth: 0, altitude: .pi / 2)
+        var controls: [PKStrokePoint] = []
+        for i in points.indices {
+            let offset: TimeInterval = TimeInterval(i) * 0.01
+            let upright: CGFloat = CGFloat.pi / 2
+            controls.append(PKStrokePoint(location: points[i], timeOffset: offset,
+                                          size: CGSize(width: 4, height: 4), opacity: 1, force: 1,
+                                          azimuth: 0, altitude: upright))
         }
         let path = PKStrokePath(controlPoints: controls, creationDate: Date())
         return PKStroke(ink: ink, path: path, transform: .identity, mask: nil)
@@ -134,20 +137,33 @@ enum RecallExamples {
 
     /// Points along a quadratic curve, with a small hand-drawn wobble.
     private static func curve(from a: CGPoint, to b: CGPoint, control c: CGPoint, steps: Int = 40) -> [CGPoint] {
-        (0...steps).map { i in
-            let t = CGFloat(i) / CGFloat(steps)
-            let u = 1 - t
-            let wobble = sin(t * 17) * 2
-            return CGPoint(x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
-                           y: u * u * a.y + 2 * u * t * c.y + t * t * b.y + wobble)
+        // written out step by step: as one long expression it takes the
+        // Swift Playgrounds compiler too long to work out the types
+        var points: [CGPoint] = []
+        for i in 0...steps {
+            let t: CGFloat = CGFloat(i) / CGFloat(steps)
+            let u: CGFloat = 1 - t
+            let wA: CGFloat = u * u
+            let wC: CGFloat = 2 * u * t
+            let wB: CGFloat = t * t
+            let wobble: CGFloat = sin(t * 17) * 2
+            let x: CGFloat = wA * a.x + wC * c.x + wB * b.x
+            let y: CGFloat = wA * a.y + wC * c.y + wB * b.y + wobble
+            points.append(CGPoint(x: x, y: y))
         }
+        return points
     }
 
     private static func circle(_ centre: CGPoint, radius: CGFloat, steps: Int = 30) -> [CGPoint] {
-        (0...steps).map { i in
-            let angle = CGFloat(i) / CGFloat(steps) * 2 * .pi
-            let r = radius + sin(angle * 3)
-            return CGPoint(x: centre.x + cos(angle) * r, y: centre.y + sin(angle) * r)
+        var points: [CGPoint] = []
+        for i in 0...steps {
+            let fraction: CGFloat = CGFloat(i) / CGFloat(steps)
+            let angle: CGFloat = fraction * 2 * CGFloat.pi
+            let r: CGFloat = radius + sin(angle * 3)
+            let x: CGFloat = centre.x + cos(angle) * r
+            let y: CGFloat = centre.y + sin(angle) * r
+            points.append(CGPoint(x: x, y: y))
         }
+        return points
     }
 }

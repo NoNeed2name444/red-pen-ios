@@ -106,7 +106,7 @@ final class RecordingTermsStore: ObservableObject {
 
     func agree(_ accountId: String) {
         RecordingTerms.accept(for: accountId)
-        withAnimation { agreed.insert(accountId) }
+        withAnimation { _ = agreed.insert(accountId) }
     }
 }
 
