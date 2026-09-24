@@ -13,6 +13,8 @@ struct LectureWriterSection: View {
     @Binding var bodyText: String
     @Binding var readSource: ReadSource?
     @Binding var suggestedName: String
+    /// The lecture's diagrams, for a textbook to place on its pages.
+    @Binding var bookFigures: [BookFigure]
     let subject: String
 
     @EnvironmentObject private var llm: LocalLLMService
@@ -116,8 +118,11 @@ struct LectureWriterSection: View {
         defer { working = false }
         do {
             let ext = url.pathExtension.lowercased()
-            let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: false)
-                                    : try await OfficeIngest.read(url)
+            // a textbook wants the lecture's diagrams; cards do not
+            let figures = kind == .book
+            let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: figures)
+                                    : try await OfficeIngest.read(url, findingFigures: figures)
+            bookFigures = figures ? Self.figures(from: read) : []
             let name = url.deletingPathExtension().lastPathComponent
             readSource = ReadSource(name: name, document: read.document,
                                     kind: ext == "pdf" ? .pdf : ext == "pptx" ? .powerpoint : .word)
@@ -132,6 +137,21 @@ struct LectureWriterSection: View {
         }
     }
 
+    /// Each diagram as a JPEG small enough to keep in a set, with its page,
+    /// labels and page text so it can find the page about its topic.
+    static func figures(from read: SourceIngest.Result) -> [BookFigure] {
+        read.figures.enumerated().compactMap { i, image in
+            let scale = min(1, 1400 / max(image.size.width, image.size.height, 1))
+            let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            let small = UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+            guard let jpeg = small.jpegData(compressionQuality: 0.7) else { return nil }
+            let note = read.figureNotes.indices.contains(i) ? read.figureNotes[i] : (page: nil, labels: [])
+            let pageText = note.page.flatMap { number in read.document.pages.first { $0.number == number }?.text } ?? ""
+            return BookFigure(imageBase64: jpeg.base64EncodedString(), page: note.page,
+                              labels: note.labels, pageText: String(pageText.prefix(600)))
+        }
+    }
+
     // MARK: writing
 
     private func start() {
@@ -141,7 +161,7 @@ struct LectureWriterSection: View {
             return
         }
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let text = sourceText, wanted = count, subj = subject, mode = kind
+        let text = sourceText, wanted = count, subj = subject, mode = kind, figures = bookFigures
         working = true
         status = "Writing\u{2026}"
         let job = GenerationCenter.shared.begin("Writing \(wanted) \(noun)\(wanted == 1 ? "" : "s")", total: wanted) {
@@ -153,7 +173,7 @@ struct LectureWriterSection: View {
         task = Task {
             do {
                 let written = try await LectureWriter.write(
-                    kind: mode, source: text, count: wanted, subject: subj, using: backend,
+                    kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures,
                     onProgress: { done, total in
                         GenerationCenter.shared.update(job, done: done, total: total)
                         Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }

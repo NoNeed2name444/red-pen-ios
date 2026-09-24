@@ -95,18 +95,75 @@ struct BookReaderView: View {
                     .foregroundStyle(.secondary)
                 Text(md(text))
             }
-        case .row(let cells):
+        case .row(let cells, let header):
             HStack(alignment: .top, spacing: 12) {
                 ForEach(Array(cells.enumerated()), id: \.offset) { i, cell in
                     Text(md(cell))
-                        .font(i == 0 ? .subheadline.weight(.semibold) : .subheadline)
+                        .font(header ? .subheadline.weight(.bold) : i == 0 ? .subheadline.weight(.semibold) : .subheadline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(8)
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(Color.primary.opacity(header ? 0.10 : 0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         case .paragraph(let text):
             Text(md(text)).font(.body).lineSpacing(3)
+        case .callout(let kind, let text):
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: Self.calloutSymbol(kind))
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Self.calloutColor(kind))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(kind).font(.caption.weight(.bold)).textCase(.uppercase)
+                        .foregroundStyle(Self.calloutColor(kind))
+                    Text(md(text)).font(.subheadline)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .background(Self.calloutColor(kind).opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(alignment: .leading) {
+                Rectangle().fill(Self.calloutColor(kind)).frame(width: 3).padding(.vertical, 6)
+            }
+        case .flow(let steps):
+            FlowchartView(steps: steps)
+        case .image(let index, let caption):
+            if let picture = picture(index) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Image(uiImage: picture)
+                        .resizable().scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.quaternary))
+                        .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
+                    if !caption.isEmpty {
+                        Text(md(caption)).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private func picture(_ index: Int) -> UIImage? {
+        guard studySet.images.indices.contains(index),
+              let data = Data(base64Encoded: studySet.images[index]) else { return nil }
+        return UIImage(data: data)
+    }
+
+    static func calloutSymbol(_ kind: String) -> String {
+        switch kind.lowercased() {
+        case let k where k.contains("red flag") || k.contains("warning"): return "exclamationmark.triangle.fill"
+        case let k where k.contains("exam"): return "graduationcap.fill"
+        case let k where k.contains("mnemonic"): return "brain.head.profile"
+        default: return "lightbulb.fill"
+        }
+    }
+
+    static func calloutColor(_ kind: String) -> Color {
+        switch kind.lowercased() {
+        case let k where k.contains("red flag") || k.contains("warning"): return .red
+        case let k where k.contains("exam"): return .indigo
+        case let k where k.contains("mnemonic"): return .purple
+        default: return .orange
         }
     }
 
@@ -127,5 +184,47 @@ struct BookReaderView: View {
         }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
+    }
+}
+
+/// A pathway as boxes joined by arrows: one box per step, a branch ("If X →
+/// do Y") drawn with its condition above its action, so a work-up or a
+/// management algorithm reads the way it is taught.
+struct FlowchartView: View {
+    let steps: [String]
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                if i > 0 {
+                    Image(systemName: "arrow.down").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                box(step)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func box(_ step: String) -> some View {
+        let parts = step.components(separatedBy: CharacterSet(charactersIn: "\u{2192}")).map { $0.trimmingCharacters(in: .whitespaces) }
+        let branch = parts.count > 1 || step.contains("->")
+        let pieces = parts.count > 1 ? parts : step.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
+        VStack(spacing: 2) {
+            if branch, pieces.count > 1 {
+                Text(pieces[0]).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text(pieces.dropFirst().joined(separator: " \u{2192} ")).font(.subheadline.weight(.semibold))
+            } else {
+                Text(step).font(.subheadline.weight(.semibold))
+            }
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .frame(maxWidth: 420)
+        .background(Color.accentColor.opacity(branch ? 0.06 : 0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1))
     }
 }

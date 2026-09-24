@@ -43,6 +43,7 @@ enum OfficeIngest {
 
         let document = SourceText.document(from: raw)
         var figures: [UIImage] = []
+        var notes: [(page: Int?, labels: [String])] = []
         var cards: [AnkiCard] = []
         if findingFigures {
             for picture in pictures {
@@ -62,13 +63,14 @@ enum OfficeIngest {
                         return card
                     })
                     figures.append(image)
+                    notes.append((nil, found.cards.flatMap(\.bullets)))
                 }
             }
         }
 
         guard !document.isEmpty || !cards.isEmpty else { throw Trouble.noText }
         return SourceIngest.Result(document: document, figures: figures,
-                                   occlusionCards: cards)
+                                   occlusionCards: cards, figureNotes: notes)
     }
 
     enum Trouble: LocalizedError {

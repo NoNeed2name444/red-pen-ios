@@ -227,10 +227,16 @@ enum DeckBuilder {
             case .heading(_, let text): return .bullet(lead: text, text: "")
             case .bullet(let text, let marker): return .bullet(lead: marker, text: text)
             case .paragraph(let text): return .text(text)
-            case .row(let cells):
+            case .row(let cells, _):
                 guard !cells.isEmpty else { return nil }
                 return .bullet(lead: cells.first,
                                text: cells.dropFirst().joined(separator: " \u{2014} "))
+            case .callout(let kind, let text): return .bullet(lead: kind, text: text)
+            // a pathway prints as its steps joined by arrows
+            case .flow(let steps): return .text(steps.joined(separator: " \u{2192} "))
+            // pictures are on screen and in the exported deck, not in the
+            // printed text
+            case .image: return nil
             }
         }
     }

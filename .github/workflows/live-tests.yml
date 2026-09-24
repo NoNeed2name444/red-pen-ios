@@ -38,7 +38,7 @@ jobs:
             $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
             $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
             $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
-            $S/PlainTextImport.swift $S/BookPages.swift $S/Highlight.swift \
+            $S/PlainTextImport.swift $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
             $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift $S/Explanation.swift \
             $S/MCQGenerator.swift $S/MCQPrompt.swift $S/ExamTrack.swift $S/MCQCoverage.swift \
             $S/OsceGenerator.swift $S/OsceStations.swift $S/CaseSimulator.swift \

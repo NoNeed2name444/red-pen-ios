@@ -33,27 +33,65 @@ enum BookPages {
     }
 
     /// A tiny block-level Markdown reader: headings, bullets, tables (as
-    /// rows), everything else a paragraph. Inline `**bold**` / `_italic_`
+    /// rows), callouts, flowcharts and pictures; everything else a paragraph. Inline `**bold**` / `_italic_`
     /// / `` `code` `` come from SwiftUI's own Markdown support.
     enum Block: Hashable {
-        /// A bullet carries its marker when the source numbered it. A
-        /// numbered list in a textbook is usually a sequence - the steps of a
-        /// protocol, the stages of a disease - and redrawing it as anonymous
-        /// bullets throws that away.
-        case heading(Int, String), bullet(String, marker: String?), row([String]), paragraph(String)
+        case heading(Int, String), bullet(String, marker: String?), paragraph(String)
+        /// A table row; `header` for the row above the |---| line.
+        case row([String], header: Bool = false)
+        /// A boxed aside: "Key point", "Exam tip", "Red flag", "Mnemonic"...
+        case callout(kind: String, text: String)
+        /// A pathway drawn as boxes and arrows, one step per line.
+        case flow([String])
+        /// A picture of the set (an index into StudySet.images) and its caption.
+        case image(Int, caption: String)
     }
+
     static func blocks(_ markdown: String) -> [Block] {
         var out: [Block] = []
         var para: [String] = []
+        var flow: [String]? = nil
         func flushPara() {
             let t = para.joined(separator: " ").trimmingCharacters(in: .whitespaces)
             if !t.isEmpty { out.append(.paragraph(t)) }
             para = []
         }
-        for raw in markdown.components(separatedBy: "\n") {
-            let line = raw.trimmingCharacters(in: .whitespaces)
+        let lines = markdown.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+        func isSeparator(_ line: String) -> Bool {
+            line.hasPrefix("|") && line.replacingOccurrences(of: " ", with: "")
+                .split(separator: "|").allSatisfy { !$0.isEmpty && $0.allSatisfy { $0 == "-" || $0 == ":" } }
+        }
+        for (i, line) in lines.enumerated() {
+            // a flowchart: ```flow ... ```
+            if flow != nil {
+                if line.hasPrefix("```") {
+                    out.append(.flow(flow!.filter { !$0.isEmpty }))
+                    flow = nil
+                } else {
+                    flow!.append(line.replacingOccurrences(of: #"^([-*•]|\d+[.)])\s+"#, with: "", options: .regularExpression))
+                }
+                continue
+            }
+            if line.hasPrefix("```") {
+                flushPara()
+                if line.lowercased().contains("flow") || line.lowercased().contains("mermaid") { flow = [] }
+                continue
+            }
             if line.isEmpty { flushPara(); continue }
-            if let m = line.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
+            if let picture = BookFigures.parse(line) {
+                flushPara()
+                out.append(.image(picture.index, caption: picture.caption))
+            } else if line.hasPrefix(">") {
+                flushPara()
+                var text = line.drop(while: { $0 == ">" || $0 == " " }).description
+                var kind = "Note"
+                if let m = text.range(of: #"^\*\*([^*]{2,24}?):?\*\*:?\s*"#, options: .regularExpression) {
+                    kind = text[m].replacingOccurrences(of: "*", with: "")
+                        .trimmingCharacters(in: CharacterSet(charactersIn: ": "))
+                    text = String(text[m.upperBound...])
+                }
+                out.append(.callout(kind: kind, text: text))
+            } else if let m = line.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
                 flushPara()
                 let level = line.distance(from: line.startIndex, to: m.upperBound) - 1
                 out.append(.heading(min(level, 3), String(line[m.upperBound...])))
@@ -65,13 +103,48 @@ enum BookPages {
                                    marker: numbered ? marker : nil))
             } else if line.hasPrefix("|") {
                 flushPara()
+                if isSeparator(line) { continue }
                 let cells = line.split(separator: "|", omittingEmptySubsequences: false).dropFirst().dropLast().map { $0.trimmingCharacters(in: .whitespaces) }
-                if !cells.allSatisfy({ $0.allSatisfy { $0 == "-" || $0 == ":" } }) { out.append(.row(Array(cells))) }
+                let header = i + 1 < lines.count && isSeparator(lines[i + 1])
+                out.append(.row(Array(cells), header: header))
             } else {
                 para.append(line)
             }
         }
+        if let flow { out.append(.flow(flow.filter { !$0.isEmpty })) }
         flushPara()
         return out
+    }
+
+    /// One written page made fit for the reader: exactly one page heading
+    /// ("## "), every other heading a section inside it ("### ") - a second
+    /// "##" would split one topic across two pages - and only the pictures
+    /// this page was given, with any it did not place added at the end.
+    static func tidyPage(_ written: String, fallbackTitle: String, figures: [Int]) -> String {
+        var lines = written.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\n")
+        var titled = false
+        var placed: Set<Int> = []
+        lines = lines.compactMap { raw in
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if let m = line.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
+                let text = String(line[m.upperBound...])
+                let level = line.distance(from: line.startIndex, to: m.upperBound) - 1
+                if !titled && level <= 2 { titled = true; return "## " + text }
+                return (level <= 3 ? "### " : "#### ") + text
+            }
+            if let picture = BookFigures.parse(line) {
+                // a picture the page was not given is a number the model made up
+                guard figures.contains(picture.index), !placed.contains(picture.index) else { return nil }
+                placed.insert(picture.index)
+            }
+            return raw
+        }
+        if !titled { lines.insert("## " + fallbackTitle, at: 0); lines.insert("", at: 1) }
+        let unplaced = figures.filter { !placed.contains($0) }
+        if !unplaced.isEmpty {
+            lines += ["", "### Figures from the lecture"]
+            lines += unplaced.map { "![Figure from the lecture](\(BookFigures.reference($0)))" }
+        }
+        return lines.joined(separator: "\n")
     }
 }

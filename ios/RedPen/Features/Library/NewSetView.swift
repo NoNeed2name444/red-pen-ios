@@ -51,6 +51,7 @@ struct NewSetView: View {
     /// cited back to the page they came from, and so the accuracy check has
     /// the lecture to check against.
     @State private var readSource: ReadSource?
+    @State private var bookFigures: [BookFigure] = []
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
 
@@ -230,7 +231,7 @@ struct NewSetView: View {
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .anki, .qa, .book:
                 LectureWriterSection(kind: kind, bodyText: $bodyText, readSource: $readSource,
-                                     suggestedName: $name, subject: subject)
+                                     suggestedName: $name, bookFigures: $bookFigures, subject: subject)
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .narrate:
                 draftSection(title: "Type or paste")
@@ -318,7 +319,11 @@ struct NewSetView: View {
         switch kind {
         case .mcq: set.questions = PlainTextImport.parseMCQ(bodyText)
         case .anki: set.cards = PlainTextImport.parseAnkiQA(bodyText)
-        case .book: set.bookMarkdown = bodyText
+        case .book:
+            // only the diagrams the pages actually show go into the set
+            let kept = BookFigures.compact(bodyText, images: bookFigures.map(\.imageBase64))
+            set.bookMarkdown = kept.markdown
+            set.images = kept.images
         case .qa: set.qaCards = PlainTextImport.parseQA(bodyText)
         case .osce: set.osceChecklists = PlainTextImport.parseOsce(bodyText)
         case .narrate: set.narrateSegments = PlainTextImport.parseNarrate(bodyText)

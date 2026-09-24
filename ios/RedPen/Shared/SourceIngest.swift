@@ -23,6 +23,9 @@ enum SourceIngest {
         /// Occlusion cards made from those diagrams' own labels. `imageIndex`
         /// is a position in `figures`.
         var occlusionCards: [AnkiCard]
+        /// For each of `figures`: its page (when known) and the words labelled
+        /// on it, so a textbook page can carry the diagrams about its topic.
+        var figureNotes: [(page: Int?, labels: [String])] = []
     }
 
     /// Read a PDF: its own text where it has any, OCR where it does not, and a
@@ -43,6 +46,7 @@ enum SourceIngest {
 
         var raw: [(number: Int, text: String, recognised: Bool)] = []
         var figures: [UIImage] = []
+        var notes: [(page: Int?, labels: [String])] = []
         var cards: [AnkiCard] = []
 
         for index in 0..<pdf.pageCount {
@@ -78,12 +82,13 @@ enum SourceIngest {
                     return card
                 })
                 figures.append(rendered!)
+                notes.append((index + 1, found.cards.flatMap(\.bullets)))
             }
         }
 
         let document = SourceText.document(from: raw)
         guard !document.isEmpty || !cards.isEmpty else { throw Trouble.noText }
-        return Result(document: document, figures: figures, occlusionCards: cards)
+        return Result(document: document, figures: figures, occlusionCards: cards, figureNotes: notes)
     }
 
     /// A page as an image, at a size Vision can read without the memory cost of

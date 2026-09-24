@@ -5,10 +5,10 @@ import Foundation
 enum LectureWriter {
 
     static func write(kind: StudySetKind, source: String, count: Int, subject: String,
-                      using backend: LLMBackend,
+                      using backend: LLMBackend, figures: [BookFigure] = [],
                       onProgress: @escaping (Int, Int) -> Void) async throws -> String {
         if kind == .book { return try await book(source: source, pages: count, subject: subject,
-                                                 using: backend, onProgress: onProgress) }
+                                                 using: backend, figures: figures, onProgress: onProgress) }
         let perCall = backend.isOnDevice ? 6 : 12
         // A long lecture is taken a window at a time, round and round, so a
         // big set covers all of it instead of the first chapter again and again.
@@ -89,32 +89,64 @@ enum LectureWriter {
 
     /// A textbook is written a page at a time from its own slice of the
     /// source, so a long lecture is covered end to end rather than its first
-    /// chapter summarised N times.
+    /// chapter summarised N times. Each page is laid out like a clinical
+    /// textbook chapter, with tables, flowcharts and callouts where they
+    /// help, and carries the lecture's own diagrams about its topic.
     static func book(source: String, pages: Int, subject: String, using backend: LLMBackend,
+                     figures: [BookFigure] = [], exam: ExamTrack = .current,
                      onProgress: @escaping (Int, Int) -> Void) async throws -> String {
         let slices = slice(source, into: pages, maxChars: backend.promptBudgetChars)
+        let placement = BookFigures.assign(figures, to: slices)
         var written: [String] = []
         for (i, part) in slices.enumerated() {
             try Task.checkCancellation()
             onProgress(i, slices.count)
-            let prompt = """
-            You are writing one page of a concise revision textbook for medical students\(subject.isEmpty ? "" : " in \(subject)").
-            Rewrite the source below as that page, in Markdown:
-            - Start with a single "## " heading naming the topic.
-            - Short paragraphs and bullet lists; bold the terms a student must remember.
-            - Keep every clinically important fact, number and threshold; add nothing the source doesn't say.
-            - No introduction or closing remarks - just the page.
-
-            SOURCE:
-            \(part)
-            """
-            let reply = try await backend.complete([.user(prompt)], maxTokens: 1_200, temperature: 0.4)
-            var page = reply.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !page.hasPrefix("#") { page = "## Part \(i + 1)\n\n" + page }
-            written.append(page)
+            let mine = placement.indices.contains(i) ? placement[i] : []
+            let prompt = bookPrompt(source: part, subject: subject, exam: exam,
+                                    figures: mine.map { (index: $0, figure: figures[$0]) })
+            let reply = try await backend.complete([.user(prompt)],
+                                                   maxTokens: backend.isOnDevice ? 1_600 : 3_000,
+                                                   temperature: 0.3)
+            written.append(BookPages.tidyPage(reply, fallbackTitle: "Part \(i + 1)", figures: mine))
         }
         guard !written.isEmpty else { throw LLMError.emptyReply }
         return written.joined(separator: "\n\n")
+    }
+
+    static func bookPrompt(source: String, subject: String, exam: ExamTrack,
+                           figures: [(index: Int, figure: BookFigure)]) -> String {
+        var lines = [
+            "You are writing one page of a medical revision textbook for medical students\(subject.isEmpty ? "" : " studying \(subject)")\(exam == .general ? "" : ", preparing for \(exam.title)").",
+            "Turn the source below into that page, in Markdown, laid out like a good clinical textbook chapter.",
+            "",
+            "LAYOUT",
+            "- The first line is the page title: exactly one \"## \" heading naming the topic. Every other heading uses \"### \".",
+            "- Then these sections, in this order, but ONLY the ones the source actually covers: ### Definition, ### Epidemiology, ### Causes and risk factors, ### Pathophysiology, ### Clinical features, ### Investigations, ### Diagnosis, ### Differential diagnosis, ### Management, ### Complications, ### Prognosis. A topic that is not a disease (anatomy, a drug, a procedure) uses the headings that fit it instead.",
+            "- Short paragraphs and bullet lists. Bold the terms a student must remember. Clinical features as bullets, the classic ones in bold. Investigations: first-line first, and name the gold standard. Management stepwise: first-line, then second-line, then when to escalate or refer.",
+            "",
+            "VISUAL AIDS - use them wherever they make the topic clearer:",
+            "- A table (header row, then a |---| line, then the rows) for any comparison: types or classifications, differentials (| Condition | Key distinguishing feature |), drug classes, staging.",
+            "- A flowchart for any pathway: a diagnostic work-up, a management algorithm, or a cause-to-effect cascade. Write it as a fenced block that starts with ```flow, one step per line, a branch as \"If ... → ...\", and ends with ```.",
+            "- Callout lines where they earn their place: \"> **Key point:** ...\", \"> **Exam tip:** ...\", \"> **Red flag:** ...\", \"> **Mnemonic:** ...\".",
+        ]
+        if !figures.isEmpty {
+            lines.append("- These diagrams from the lecture belong on this page. Put each one on its own line where it fits the text, exactly as ![a one-line caption saying what it shows](image:N):")
+            lines += figures.map { f in
+                "  - image:\(f.index)\(f.figure.page.map { " (page \($0))" } ?? "") labelled: \(f.figure.labels.prefix(12).joined(separator: ", "))"
+            }
+        }
+        lines += [
+            "",
+            "ACCURACY",
+            "- Every fact, number, dose and threshold must come from the source. Do not add drugs, doses, criteria or statistics it does not give.",
+            "- You may explain in plain words how the source's facts connect (why a mechanism causes a finding), but add no new facts.",
+            "- Where the source is unclear, keep its meaning rather than guessing.",
+            "- No introduction, no closing remarks, no notes to the reader - just the page.",
+            "",
+            "SOURCE:",
+            source,
+        ]
+        return lines.joined(separator: "\n")
     }
 
     static func slice(_ text: String, into count: Int, maxChars: Int) -> [String] {
