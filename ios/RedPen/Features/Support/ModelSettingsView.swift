@@ -57,8 +57,8 @@ struct ModelSettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Writer", value: "Gemini 3.5 Flash")
-                    LabeledContent("Checker", value: "Gemini with MedVAL's rubric")
+                    LabeledContent("Writer", value: "Gemini 3.1 Pro")
+                    LabeledContent("Checker", value: "Gemini 3.1 Pro with MedVAL's rubric")
                     LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
                     if !llm.isPro {
                         Button("See Pro") { showPaywall = true }

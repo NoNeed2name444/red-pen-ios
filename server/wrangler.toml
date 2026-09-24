@@ -38,7 +38,12 @@ AI_BASE_URL = "https://router.huggingface.co/v1"
 AI_DAILY_LIMIT = "400"
 # Google's free daily allowances, tried in turn (3.5 Flash 20 a day,
 # Flash-Lite 500, Gemma 4 the most)
-CLOUD_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+# Gemini 3.1 Pro first: the best-scoring medical model reachable (MedQA 96.4%
+# independently, MedXpertQA 80.7% self-reported). It has no free allowance, so
+# it answers only once the Firebase project is on the Blaze plan; until
+# PRO_PAYS is on, only the owner key uses it (PAID_ONLY_MODELS).
+CLOUD_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+PAID_ONLY_MODELS = "gemini-3.1-pro-preview"
 TRANSCRIBE_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite"
 # Pro pays for everything that costs money (see budget() in ai.js). Until
 # launch PRO_PAYS stays "off" and only free services are used. At launch:

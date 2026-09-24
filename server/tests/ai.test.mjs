@@ -367,6 +367,15 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   forgetAppCheck();
 }
 
+// Gemini 3.1 Pro heads the chain, but costs from the first request: before Pro
+// pays, only the owner's key reaches it
+{
+  const { geminiModels } = await import('../ai.js');
+  const env = freshEnv({});
+  ok((await geminiModels(env, 'a1', true))[0] === 'gemini-3.1-pro-preview', 'the owner key tries Gemini 3.1 Pro first');
+  ok(!(await geminiModels(env, 'a1')).includes('gemini-3.1-pro-preview'), 'a student does not reach a paid-only model before Pro pays');
+}
+
 // Narrate's cloud transcription: Pro only, through the server
 {
   const { transcribeConfig, default: worker } = await import('../worker.js');

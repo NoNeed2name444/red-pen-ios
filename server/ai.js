@@ -343,7 +343,11 @@ export function retryDelay(raw) {
 
 // MARK: who pays for Gemini
 
-const FREE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+/// Models that cost money from the first request (no free allowance): before
+/// Pro pays (PRO_PAYS off) only the owner's own key may use them, so turning
+/// billing on for a test cannot bill every student's request with no cap.
+const PAID_ONLY = 'gemini-3.1-pro-preview';
 const PAID_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
 const TRANSCRIBE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
@@ -468,7 +472,12 @@ export async function settle(env, payer, reserved, actual) {
 
 export async function geminiModels(env, accountId, owner = false, purpose = 'modes', paying) {
   const audio = purpose === 'transcribe';
-  if (!proPays(env)) return list(audio ? env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS : env.CLOUD_MODELS || FREE_MODELS);
+  if (!proPays(env)) {
+    const chain = list(audio ? env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS : env.CLOUD_MODELS || FREE_MODELS);
+    if (owner) return chain;
+    const paidOnly = new Set(list(env.PAID_ONLY_MODELS || PAID_ONLY));
+    return chain.filter(m => !paidOnly.has(m));
+  }
   const ok = paying ?? await canPay(env, accountId, owner);
   // over budget: the free Gemma for the modes; Gemma cannot hear, so
   // transcription goes back to the phone
