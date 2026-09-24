@@ -371,3 +371,293 @@ extension View {
     /// Put this once, at the root of a screen that cares how big its window is.
     func measuringWindow() -> some View { modifier(MeasuringWindow()) }
 }
+
+
+// MARK: - One layout for every study screen
+//
+// Quiz, cards, cases, OSCE, textbook and narrate all used to arrange
+// themselves a little differently: the main button was on the right in one,
+// in the middle in another, and small everywhere; each screen had two or three
+// icons of its own in the top corner. Somebody who had learned one screen had
+// not learned the next.
+//
+// Now every one of them is built from the same four pieces:
+//
+//   - `StudyProgressHeader` at the top: where you are ("3 of 20") and a bar
+//   - the content card in the middle, which scrolls
+//   - `StudyActionBar` at the bottom, under the thumb, holding ONE big button
+//     that does the next thing (Check, Reveal, Next, Rate)
+//   - `studyMoreMenu` in the top corner: everything used less often, in one
+//     menu with words on every item
+//
+// and a finished session ends on a `FinishHero`: the result, large, with one
+// big button under it.
+
+/// The big button at the bottom of a study screen.
+///
+/// At least 56 points tall and the full width of the bar, so it can be hit
+/// without looking. The text is the headline style, which is 17 points and
+/// grows with the reader's own text size setting. The quiet version is for a
+/// second choice sitting beside the main one - "Missed it" next to "Knew it",
+/// "Back" next to "Next" - so there is never any doubt which is the main one.
+struct BigButtonStyle: ButtonStyle {
+    enum Weight { case primary, secondary }
+    var weight: Weight = .primary
+    /// False for a small companion button ("Back") that should take only the
+    /// room its words need, leaving the rest of the bar to the main button.
+    var fills = true
+
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.modeTint) private var tint
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let primary = weight == .primary
+        // a button that can't be pressed yet goes grey, rather than staying
+        // the screen's colour a little fainter, so "not yet" is unmistakable
+        let fill: Color = !isEnabled ? Color.primary.opacity(0.08)
+            : (primary ? tint : tint.opacity(0.14))
+        let ink: Color = !isEnabled ? Color.secondary : (primary ? Color.white : tint)
+        let edge: Color = primary || !isEnabled ? Color.clear : tint.opacity(0.35)
+        return configuration.label
+            .font(.headline)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(ink)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(minWidth: 56, maxWidth: fills ? CGFloat.infinity : nil, minHeight: 56)
+            .background(fill, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: 1))
+            .contentShape(shape)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == BigButtonStyle {
+    /// The one main button: filled with the screen's colour.
+    static var bigPrimary: BigButtonStyle { BigButtonStyle() }
+    /// A second choice beside the main one: the screen's colour, lightly.
+    static var bigSecondary: BigButtonStyle { BigButtonStyle(weight: .secondary) }
+    /// A small companion - "Back" - taking only the room its words need.
+    static var bigCompanion: BigButtonStyle { BigButtonStyle(weight: .secondary, fills: false) }
+}
+
+/// The bar across the bottom of a study screen, where the thumb rests.
+///
+/// It holds the screen's main button and, now and then, a small companion
+/// beside it. Always at the bottom and always the same height, so the next
+/// step is in the same place on every screen.
+struct StudyActionBar<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: 12) { content }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
+            .background(.bar)
+            .overlay(alignment: .top) { Divider() }
+    }
+}
+
+/// The top of a study screen: where you are, and how far there is to go.
+///
+/// `status` is the one thing to read ("3 of 20"); `detail` is a quieter second
+/// fact ("2 right"); the bar underneath shows the same thing as a length.
+/// `accessory` is for the one small control that belongs up here - the
+/// station clock, the contents button - and nothing else.
+struct StudyProgressHeader<Accessory: View>: View {
+    let status: String
+    var detail: String?
+    var fraction: Double?
+    private let accessory: Accessory
+
+    init(_ status: String, detail: String? = nil, fraction: Double? = nil,
+         @ViewBuilder accessory: () -> Accessory) {
+        self.status = status
+        self.detail = detail
+        self.fraction = fraction
+        self.accessory = accessory()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(status)
+                        .font(.headline)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    if let detail {
+                        Text(detail)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                Spacer(minLength: 8)
+                accessory
+            }
+            if let fraction {
+                ThinProgress(fraction: fraction)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .frame(maxWidth: 700)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+extension StudyProgressHeader where Accessory == EmptyView {
+    init(_ status: String, detail: String? = nil, fraction: Double? = nil) {
+        self.init(status, detail: detail, fraction: fraction) { EmptyView() }
+    }
+}
+
+/// A small grey "optional" tag, for a question the student can happily skip -
+/// how sure they were, why an answer was wrong - so nobody thinks they are
+/// stuck until they answer it.
+struct OptionalTag: View {
+    var body: some View {
+        Text("optional")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color.primary.opacity(0.06), in: Capsule())
+    }
+}
+
+/// The end of a session: the result, large, and a line saying what it means.
+///
+/// The screen puts its one main button under this in a `StudyActionBar`, and
+/// anything else it offers as smaller buttons below the result.
+struct FinishHero<Graphic: View>: View {
+    let title: String
+    let message: String
+    private let graphic: Graphic
+
+    init(title: String, message: String, @ViewBuilder graphic: () -> Graphic) {
+        self.title = title
+        self.message = message
+        self.graphic = graphic()
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            graphic
+            Text(title)
+                .font(.title.weight(.bold))
+                .multilineTextAlignment(.center)
+            if !message.isEmpty {
+                Text(message)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+    }
+}
+
+extension FinishHero where Graphic == FinishSymbol {
+    /// A finish with a big symbol rather than a score ring.
+    init(symbol: String, title: String, message: String) {
+        self.init(title: title, message: message) { FinishSymbol(name: symbol) }
+    }
+}
+
+/// The large symbol at the top of a finish screen.
+struct FinishSymbol: View {
+    let name: String
+    var body: some View {
+        Image(systemName: name)
+            .font(.system(size: 64, weight: .semibold))
+            .foregroundStyle(.tint)
+            .accessibilityHidden(true)
+    }
+}
+
+/// What "Check accuracy" should look at on a study screen: the instruction
+/// the item was written to, and the item on screen at the moment of the tap.
+struct AccuracyAsk {
+    let instruction: String
+    let text: () -> String?
+}
+
+/// The one "More" menu in a study screen's top corner.
+///
+/// Before this, each screen put its extras straight into the toolbar as bare
+/// icons - Turn into, Check accuracy, Quiz me, a spoken patient - so the top
+/// corner of some screens was a row of four symbols with no words. They are
+/// all here now, each with its name written out. `extra` is for the screen's
+/// own items and comes first; Check accuracy and Turn into follow.
+private struct StudyMoreMenu<Extra: View>: ViewModifier {
+    let set: StudySet
+    let turnInto: Bool
+    let check: AccuracyAsk?
+    let extra: Extra
+    @State private var turning: StudySet?
+    @State private var request: AccuracyRequest?
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        extra
+                        if let check {
+                            Button {
+                                if let now = check.text(), !now.isEmpty {
+                                    request = AccuracyRequest(set: set, instruction: check.instruction, text: now)
+                                }
+                            } label: {
+                                Label("Check accuracy", systemImage: "checkmark.shield")
+                            }
+                        }
+                        if turnInto {
+                            Button { turning = set } label: {
+                                Label("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            .accessibilityIdentifier("turnInto")
+                        }
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .accessibilityIdentifier("studyMore")
+                    .accessibilityHint("Other things you can do on this screen")
+                }
+            }
+            .turnIntoPicker(for: $turning)
+            .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
+    }
+}
+
+extension View {
+    /// The study screen's "More" menu: the screen's own `extra` items, then
+    /// Check accuracy (when `check` is given) and Turn into (when `turnInto`).
+    func studyMoreMenu<Extra: View>(for set: StudySet, turnInto: Bool = true, check: AccuracyAsk? = nil,
+                                    @ViewBuilder extra: () -> Extra) -> some View {
+        modifier(StudyMoreMenu(set: set, turnInto: turnInto, check: check, extra: extra()))
+    }
+
+    /// The "More" menu with only the standard items.
+    func studyMoreMenu(for set: StudySet, turnInto: Bool = true, check: AccuracyAsk? = nil) -> some View {
+        studyMoreMenu(for: set, turnInto: turnInto, check: check) { EmptyView() }
+    }
+}

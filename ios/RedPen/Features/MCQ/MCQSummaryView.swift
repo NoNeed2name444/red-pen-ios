@@ -27,6 +27,8 @@ struct MCQSummaryView: View {
     /// The percentage as shown: it counts up from nothing as the ring fills,
     /// rather than sitting there finished before the ring has started.
     @State private var shownPercent = 0
+    /// The Mistakes set, once "Practise mistakes" has made it and opened it.
+    @State private var practising: StudySet?
 
     /// The questions answered wrongly, for a set of their own.
     private var mistakes: [MCQQuestion] {
@@ -54,9 +56,8 @@ struct MCQSummaryView: View {
                 Label(added == 0 ? "Open your rule sheet"
                                  : "\(added) rule\(added == 1 ? "" : "s") added \u{00B7} open rule sheet",
                       systemImage: "list.bullet.rectangle")
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bigSecondary)
         } else {
             let fresh = store.questionsWithoutRules(checkedMistakes).count
             if fresh > 0 {
@@ -67,17 +68,20 @@ struct MCQSummaryView: View {
                 } label: {
                     Label("Add \(fresh) rule\(fresh == 1 ? "" : "s") to your rule sheet",
                           systemImage: "text.badge.plus")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bigSecondary)
             }
         }
     }
 
     /// "Mistakes - Cardiology": one per set, topped up each time, so the
     /// questions still getting wrong collect in one place to practise.
+    private static func mistakesName(for set: StudySet) -> String {
+        "Mistakes \u{2013} " + set.name.replacingOccurrences(of: "Mistakes \u{2013} ", with: "")
+    }
+
     private func saveMistakes() {
-        let name = "Mistakes \u{2013} \(studySet.name.replacingOccurrences(of: "Mistakes \u{2013} ", with: ""))"
+        let name = Self.mistakesName(for: studySet)
         if var existing = store.library.first(where: { $0.kind == .mcq && $0.name == name }) {
             let known = Set(existing.questions.map(\.stem))
             existing.questions += mistakes.filter { !known.contains($0.stem) }
@@ -109,104 +113,151 @@ struct MCQSummaryView: View {
         }
     }
 
+    /// The one big thing to do next. Saving comes first for a quiz that is
+    /// not in the library yet, then practising what went wrong, then Done.
+    private enum Next { case save, practise, done }
+    private var next: Next {
+        if isUnsaved && !saved.wrappedValue { return .save }
+        if !mistakes.isEmpty && !isUnsaved && !mistakesSaved { return .practise }
+        return .done
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(spacing: 14) {
-                    ScoreRing(fraction: fraction,
-                              label: "\(shownPercent)%",
-                              sublabel: "\(correctCount) of \(total) correct")
-                        .onAppear {
-                            withAnimation(.smooth(duration: 0.9)) {
-                                shownPercent = Int((fraction * 100).rounded())
-                            }
-                        }
-                    Text(verdict)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .contentCard()
-
-                // matches the web app's save-form on the summary screen — only
-                // shown for a just-generated set that hasn't been saved yet
-                if isUnsaved {
-                    Button {
-                        onSave?(); withAnimation(.snappy) { saved.wrappedValue = true }
-                    } label: {
-                        Label(saved.wrappedValue ? "Saved to library" : "Save to library",
-                              systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .disabled(saved.wrappedValue)
-                }
-
-                if !mistakes.isEmpty && !isUnsaved {
-                    Button(action: saveMistakes) {
-                        Label(mistakesSaved ? "In your library as \u{201C}Mistakes\u{201D}"
-                                            : "Practise the \(mistakes.count) I got wrong",
-                              systemImage: mistakesSaved ? "checkmark" : "arrow.uturn.backward.circle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glass)
-                    .disabled(mistakesSaved)
-                }
-
-                ruleSheetButton
-
-                if let onRetake {
-                    // matches the web app's "Retake this set" button
-                    Button {
-                        onRetake(); dismiss()
-                    } label: {
-                        Label("Retake this set", systemImage: "arrow.counterclockwise")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glass)
-                }
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Review")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 10)
-                    ForEach(studySet.questions.indices, id: \.self) { i in
-                        let q = studySet.questions[i]
-                        let correct = answers[i].selected == q.correctIndex
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundStyle(correct ? .green : .red)
-                                .font(.title3)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(q.stem).font(.subheadline).lineSpacing(2)
-                                if !correct, q.options.indices.contains(q.correctIndex) {
-                                    Text("Answer: \(q.options[q.correctIndex])")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(.green)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    FinishHero(title: "\(correctCount) of \(total) right", message: verdict) {
+                        ScoreRing(fraction: fraction,
+                                  label: "\(shownPercent)%",
+                                  sublabel: "correct")
+                            .onAppear {
+                                withAnimation(.smooth(duration: 0.9)) {
+                                    shownPercent = Int((fraction * 100).rounded())
                                 }
                             }
-                        }
-                        .padding(.vertical, 10)
-                        if i < studySet.questions.count - 1 { Divider() }
                     }
+                    .contentCard()
+
+                    otherActions
+                    reviewList
                 }
-                .contentCard()
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .readableColumn()
             }
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 30)
-            .readableColumn()
+            StudyActionBar { primaryButton }
         }
         .modeScreen(.mcq)
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Done") { dismiss() }.buttonStyle(.glassProminent)
+        .navigationDestination(item: $practising) { set in
+            MCQQuizView(set: set)
+        }
+    }
+
+    // MARK: the one main button, and the smaller ones
+
+    @ViewBuilder
+    private var primaryButton: some View {
+        switch next {
+        case .save:
+            Button {
+                onSave?(); withAnimation(.snappy) { saved.wrappedValue = true }
+            } label: {
+                Label("Save to library", systemImage: "square.and.arrow.down")
             }
+            .buttonStyle(.bigPrimary)
+        case .practise:
+            Button(action: practiseMistakes) {
+                Label("Practise mistakes (\(mistakes.count))", systemImage: "arrow.uturn.backward.circle")
+            }
+            .buttonStyle(.bigPrimary)
+            .accessibilityHint("Saves the questions you got wrong as a set called Mistakes, and opens it")
+        case .done:
+            Button("Done") { dismiss() }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
+        }
+    }
+
+    /// Everything else the results offer, smaller, under the score.
+    @ViewBuilder
+    private var otherActions: some View {
+        VStack(spacing: 12) {
+            if isUnsaved && saved.wrappedValue {
+                Label("Saved to library", systemImage: "checkmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            if mistakesSaved {
+                Label("In your library as \u{201C}Mistakes\u{201D}", systemImage: "checkmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            ruleSheetButton
+
+            if let onRetake {
+                // matches the web app's "Retake this set" button
+                Button {
+                    onRetake(); dismiss()
+                } label: {
+                    Label("Try this set again", systemImage: "arrow.counterclockwise")
+                }
+                .buttonStyle(.bigSecondary)
+            }
+
+            if next != .done {
+                Button("Done") { dismiss() }
+                    .buttonStyle(.bigSecondary)
+            }
+        }
+    }
+
+    /// Every question with a tick or a cross, and the right answer under the
+    /// ones that were missed.
+    private var reviewList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Your answers")
+                .font(.headline)
+                .padding(.bottom, 8)
+            ForEach(studySet.questions.indices, id: \.self) { i in
+                reviewRow(i)
+                if i < studySet.questions.count - 1 { Divider() }
+            }
+        }
+        .contentCard()
+    }
+
+    private func reviewRow(_ i: Int) -> some View {
+        let q = studySet.questions[i]
+        let correct = answers.indices.contains(i) && answers[i].selected == q.correctIndex
+        return HStack(alignment: .top, spacing: 12) {
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(correct ? Color.green : Color.red)
+                .font(.title3)
+                .accessibilityLabel(correct ? "Right" : "Wrong")
+            VStack(alignment: .leading, spacing: 4) {
+                Text(q.stem).font(.body).lineSpacing(2)
+                if !correct, q.options.indices.contains(q.correctIndex) {
+                    Text("Answer: \(q.options[q.correctIndex])")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Saves the mistakes as their own set, then opens it straight away - the
+    /// button says "Practise", so it should start the practice.
+    private func practiseMistakes() {
+        saveMistakes()
+        let name = Self.mistakesName(for: studySet)
+        if let set = store.library.first(where: { $0.kind == .mcq && $0.name == name }) {
+            practising = set
         }
     }
 }

@@ -109,13 +109,12 @@ struct NarrateReviewView: View {
         stage
             .onAppear(perform: seed)
             .onDisappear { timer?.invalidate(); player.stop() }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { choosingEngine = true } label: {
-                        Label(player.hasAudio ? "Replace recording" : "Add recording",
-                              systemImage: "waveform")
-                    }
-                    .buttonStyle(.glass)
+            // adding a recording is in the same More menu as every other
+            // study screen's extras; this screen has no Turn into
+            .studyMoreMenu(for: studySet, turnInto: false) {
+                Button { choosingEngine = true } label: {
+                    Label(player.hasAudio ? "Replace recording" : "Add recording",
+                          systemImage: "waveform")
                 }
             }
             // the multiple-selection form on purpose: it hands back [URL],
@@ -223,27 +222,24 @@ struct NarrateReviewView: View {
 
     private var header: some View {
         let total = segments.count
-        let fraction = player.hasAudio
+        let fraction: Double = player.hasAudio
             ? (player.duration > 0 ? player.time / player.duration : 0)
             : (total > 0 ? Double(index + (finished ? 1 : 0)) / Double(total) : 0)
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Line \(min(index + 1, max(total, 1))) of \(total)")
-                    .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
-                Spacer()
-                Text(player.hasAudio ? "Following the recording" : "Hold a word to fix it")
-                    .font(.caption).foregroundStyle(.tertiary)
-            }
-            ThinProgress(fraction: min(1, max(0, fraction)))
-        }
-        .padding()
+        let line: Int = min(index + 1, max(total, 1))
+        let detail: String = player.hasAudio
+            ? "Following the recording \u{00B7} hold a word to fix it"
+            : "Tap a line to jump to it \u{00B7} hold a word to fix it"
+        return StudyProgressHeader("Line \(line) of \(total)", detail: detail,
+                                   fraction: min(1, max(0, fraction)))
     }
 
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 if texts.isEmpty {
-                    Text("This transcript is empty.").foregroundStyle(.secondary).padding()
+                    FinishHero(symbol: "waveform", title: "Nothing to read yet",
+                               message: "This transcript is empty. Add a recording from More.")
+                        .padding(.top, 32)
                 } else {
                     NarrateWordFlow(texts: texts, langs: segments.map(\.lang),
                                     currentIndex: index,
@@ -251,8 +247,8 @@ struct NarrateReviewView: View {
                                     onJump: { jump(to: $0) },
                                     onFix: { fixing = $0 })
                         .contentCard()
-                        .padding(.horizontal)
-                        .padding(.top, 4)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
                         .padding(.bottom, 24)
                         .readableColumn()
                 }

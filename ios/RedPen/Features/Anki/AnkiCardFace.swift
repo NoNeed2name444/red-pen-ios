@@ -23,9 +23,8 @@ struct AnkiCardFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(badge)
-                .font(.caption.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tint)
-                .textCase(.uppercase)
 
             picture
 
@@ -58,15 +57,16 @@ struct AnkiCardFace: View {
                     openSource(found.source, found.page)
                 } label: {
                     Label(label, systemImage: "doc.text.magnifyingglass")
-                        .font(.caption2)
+                        .font(.footnote)
+                        .frame(minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.tint)
                 .accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")
             } else {
                 Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -158,8 +158,8 @@ struct AnkiCardFace: View {
 
     private var why: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Why / how").font(.caption.weight(.bold)).foregroundStyle(.secondary)
-            Text(card.why).font(.subheadline).lineSpacing(2)
+            Text("Why / how").font(.subheadline.weight(.bold)).foregroundStyle(.secondary)
+            Text(card.why).font(.body).lineSpacing(2)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,9 +177,9 @@ struct AnkiCardFace: View {
 
     private var badge: String {
         switch card.type {
-        case .qa: return "Question & answer"
-        case .cloze: return "Cloze deletion"
-        case .occlusion: return "Image occlusion"
+        case .qa: return "Question"
+        case .cloze: return "Fill in the gap"
+        case .occlusion: return "What is hidden?"
         }
     }
 
@@ -235,5 +235,97 @@ struct CardFlip: ViewModifier {
 extension View {
     func cardFlip(revealed: Bool, enabled: Bool = true) -> some View {
         modifier(CardFlip(revealed: revealed, enabled: enabled))
+    }
+}
+
+/// The four ratings after a card is turned over, as big buttons with plain
+/// words: Again, Hard, Good, Easy.
+///
+/// Shared by the one-deck screen and Due today, so the two cannot drift
+/// apart. Good is the filled one, because it is the answer most cards get
+/// and the one a thumb should find without looking; the other three are the
+/// quiet version of the same button.
+///
+/// For the first few cards anybody rates, each button also says what it
+/// means in a few words ("I forgot it"), and a line above asks the question
+/// the buttons answer. After that the hints step aside - they are for
+/// learning the buttons, not for reading every time - though VoiceOver keeps
+/// saying them always.
+struct AnkiRatingBar: View {
+    /// When each rating would bring the card back ("1m", "4d").
+    let labels: [AnkiRating: String]
+    let onRate: (AnkiRating) -> Void
+
+    /// How many cards have been rated while the hints were showing.
+    @AppStorage("anki.ratingHintsShown") private var hintsShown = 0
+    private static let hintCards = 5
+
+    var body: some View {
+        let hints = hintsShown < Self.hintCards
+        VStack(spacing: 12) {
+            if hints {
+                Text("How well did you remember it?")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 12) {
+                button(.again, hints: hints)
+                button(.hard, hints: hints)
+            }
+            HStack(spacing: 12) {
+                button(.good, hints: hints)
+                button(.easy, hints: hints)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func button(_ rating: AnkiRating, hints: Bool) -> some View {
+        let when: String = labels[rating] ?? ""
+        let key: Int = (AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1
+        let action: () -> Void = {
+            if hintsShown < Self.hintCards { hintsShown += 1 }
+            onRate(rating)
+        }
+        let label = VStack(spacing: 2) {
+            Text(Self.title(rating))
+            if hints {
+                Text(Self.meaning(rating)).font(.footnote)
+            }
+            if !when.isEmpty {
+                Text("back in " + when).font(.caption).opacity(0.85)
+            }
+        }
+        if rating == .good {
+            Button(action: action) { label }
+                .buttonStyle(.bigPrimary)
+                // 1 to 4, Again to Easy - Anki's own keys
+                .numberKey(key)
+                .accessibilityHint(Self.meaning(rating))
+        } else {
+            Button(action: action) { label }
+                .buttonStyle(.bigSecondary)
+                .numberKey(key)
+                .accessibilityHint(Self.meaning(rating))
+        }
+    }
+
+    static func title(_ rating: AnkiRating) -> String {
+        switch rating {
+        case .again: return "Again"
+        case .hard: return "Hard"
+        case .good: return "Good"
+        case .easy: return "Easy"
+        }
+    }
+
+    /// What each button means, in the student's words rather than Anki's.
+    static func meaning(_ rating: AnkiRating) -> String {
+        switch rating {
+        case .again: return "I forgot it"
+        case .hard: return "I just about got it"
+        case .good: return "I got it"
+        case .easy: return "Too easy"
+        }
     }
 }

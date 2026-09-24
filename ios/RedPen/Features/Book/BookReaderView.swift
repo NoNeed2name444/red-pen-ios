@@ -8,6 +8,7 @@ struct BookReaderView: View {
     @State private var index = 0
     @State private var showToc = false
     @EnvironmentObject private var store: Store
+    @Environment(\.dismiss) private var dismiss
 
     init(set studySet: StudySet, page: Int = 0) {
         self.studySet = studySet
@@ -20,16 +21,7 @@ struct BookReaderView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("\(wordCount.formatted()) words · \(pages.count) page\(pages.count == 1 ? "" : "s")")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Spacer()
-                if pages.count > 1 {
-                    Button { showToc = true } label: { Label("Contents", systemImage: "list.bullet").font(.footnote.weight(.semibold)) }
-                        .buttonStyle(.glass)
-                }
-            }
-            .padding(.horizontal).padding(.vertical, 8)
+            header
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if let page {
@@ -41,8 +33,8 @@ struct BookReaderView: View {
                     }
                 }
                 .contentCard()
-                .padding(.horizontal)
-                .padding(.top, 4)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
                 .padding(.bottom, 24)
                 .readableColumn()
             }
@@ -54,11 +46,10 @@ struct BookReaderView: View {
         }
         .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.book)
-        .turnIntoButton(studySet)
-        .accuracyCheck(set: studySet,
-                       instruction: "Write a textbook page for medical students from the source.") {
-            page.map { $0.title + "\n" + $0.markdown }
-        }
+        // Check accuracy and Turn into, in the one More menu
+        .studyMoreMenu(for: studySet, check: AccuracyAsk(
+            instruction: "Write a textbook page for medical students from the source.",
+            text: { page.map { $0.title + "\n" + $0.markdown } }))
         .navigationTitle(studySet.subject.isEmpty ? "Textbook" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showToc) {
@@ -68,15 +59,24 @@ struct BookReaderView: View {
                         index = p.id; showToc = false
                     } label: {
                         HStack {
-                            Text("\(p.id + 1).").font(.subheadline.monospaced()).foregroundStyle(.secondary)
+                            Text("\(p.id + 1).").font(.body.monospacedDigit()).foregroundStyle(.secondary)
                             Text(p.title).foregroundStyle(.primary)
                             Spacer()
-                            if p.id == index { Image(systemName: "checkmark").foregroundStyle(.tint) }
+                            if p.id == index {
+                                Image(systemName: "checkmark").foregroundStyle(.tint)
+                                    .accessibilityLabel("You are here")
+                            }
                         }
+                        .frame(minHeight: 44)
                     }
                 }
                 .navigationTitle("Contents")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Close") { showToc = false }
+                    }
+                }
             }
             .presentationDetents([.medium, .large])
         }
@@ -114,9 +114,9 @@ struct BookReaderView: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Self.calloutColor(kind))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(kind).font(.caption.weight(.bold)).textCase(.uppercase)
+                    Text(kind).font(.subheadline.weight(.bold))
                         .foregroundStyle(Self.calloutColor(kind))
-                    Text(md(text)).font(.subheadline)
+                    Text(md(text)).font(.body)
                 }
                 Spacer(minLength: 0)
             }
@@ -136,7 +136,7 @@ struct BookReaderView: View {
                         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.quaternary))
                         .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
                     if !caption.isEmpty {
-                        Text(md(caption)).font(.caption).foregroundStyle(.secondary)
+                        Text(md(caption)).font(.subheadline).foregroundStyle(.secondary)
                     }
                     DrawFromMemoryButton(set: studySet, imageIndex: index, caption: caption)
                 }
@@ -173,19 +173,53 @@ struct BookReaderView: View {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
     }
 
-    private var footer: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack {
-                Button("Previous") { index = max(0, index - 1) }.buttonStyle(.glass).disabled(index == 0)
-                Spacer()
-                Text("Page \(index + 1) of \(pages.count)").font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-                Spacer()
-                Button("Next") { index = min(pages.count - 1, index + 1) }.buttonStyle(.glassProminent).disabled(index >= pages.count - 1)
+    /// "Page 3 of 10", and the way to the contents - the one control that
+    /// belongs at the top, because it is how you jump around the book.
+    private var header: some View {
+        let status: String = pages.count > 1 ? "Page \(index + 1) of \(pages.count)" : "One page"
+        let detail: String = page?.title ?? "\(wordCount.formatted()) words"
+        let fraction: Double? = pages.count > 1 ? Double(index + 1) / Double(pages.count) : nil
+        return StudyProgressHeader(status, detail: detail, fraction: fraction) {
+            if pages.count > 1 {
+                Button { showToc = true } label: {
+                    Label("Contents", systemImage: "list.bullet")
+                        .labelStyle(.titleAndIcon)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 36)
+                }
+                .buttonStyle(.glass)
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
+    }
+
+    /// Back on the left, small; Next page filling the rest - and on the last
+    /// page, Done.
+    private var footer: some View {
+        let last = index >= pages.count - 1
+        return StudyActionBar {
+            HStack(spacing: 12) {
+                Button { index = max(0, index - 1) } label: {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .buttonStyle(.bigCompanion)
+                .disabled(index == 0)
+                .accessibilityLabel("Previous page")
+                .keyboardShortcut(.leftArrow, modifiers: [])
+
+                if last {
+                    Button { dismiss() } label: {
+                        Label("Done", systemImage: "checkmark")
+                    }
+                    .buttonStyle(.bigPrimary)
+                } else {
+                    Button { index = min(pages.count - 1, index + 1) } label: {
+                        Label("Next page", systemImage: "arrow.right")
+                    }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                }
+            }
+        }
     }
 }
 

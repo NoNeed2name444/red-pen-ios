@@ -135,33 +135,46 @@ struct NarrateReadingControls: View {
     let onRestart: () -> Void
 
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    speedButton(0.75, "Slow")
-                    speedButton(1, "Normal")
-                    speedButton(1.5, "Fast")
-                }
-                if finished {
-                    Button("Restart", action: onRestart)
-                        .buttonStyle(.glassProminent)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Button(playing ? "Pause" : "Play", action: onPlayPause)
-                        .buttonStyle(.glassProminent)
-                        .frame(maxWidth: .infinity)
-                        .disabled(!canPlay)
-                }
+        StudyActionBar {
+            HStack(spacing: 8) {
+                Text("Speed")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                speedButton(0.75, "Slow")
+                speedButton(1, "Normal")
+                speedButton(1.5, "Fast")
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+            if finished {
+                Button(action: onRestart) {
+                    Label("Start again", systemImage: "arrow.counterclockwise")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.space, modifiers: [])
+            } else {
+                Button(action: onPlayPause) {
+                    Label(playing ? "Pause" : "Play", systemImage: playing ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.space, modifiers: [])
+                .disabled(!canPlay)
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 
+    /// Slow, Normal, Fast: small choices, with the chosen one filled.
     private func speedButton(_ value: Double, _ label: String) -> some View {
-        Button(label) { speed = value }
-            .buttonStyle(.glass)
-            .tint(speed == value ? StudySetKind.narrate.tint : Color.secondary)
+        let on = speed == value
+        let tint = StudySetKind.narrate.tint
+        let fill: Color = on ? tint : Color.primary.opacity(0.07)
+        let ink: Color = on ? Color.white : Color.primary
+        return Button { speed = value } label: {
+            Text(label)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(ink)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(fill, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }

@@ -22,52 +22,18 @@ struct QACardsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("\(cards.count) card\(cards.count == 1 ? "" : "s")").font(.footnote).foregroundStyle(.secondary)
-                Spacer()
-                Text("\(index + 1) / \(cards.count)")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tint)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .liquidGlassChip()
-            }
-            .padding(.horizontal).padding(.top, 8)
-            ThinProgress(fraction: Double(index + 1) / Double(max(1, cards.count)))
-                .padding(.horizontal).padding(.vertical, 8)
+            StudyProgressHeader(headerStatus, detail: headerDetail,
+                                fraction: Double(index + 1) / Double(max(1, cards.count)))
             ScrollView {
                 if let card {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 8) {
-                            Text(card.badge)
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .foregroundStyle(card.type == .case ? StudySetKind.qa.shifted(brightness: -0.18, saturation: 0.05) : StudySetKind.qa.tint)
-                                .background((card.type == .case ? StudySetKind.qa.shifted(brightness: -0.18, saturation: 0.05) : StudySetKind.qa.tint).opacity(0.14), in: Capsule())
-                            if !card.topic.isEmpty { Text(card.topic).font(.caption).foregroundStyle(.secondary) }
-                        }
-                        Text(hl(card.stem)).font(.title3.weight(.semibold)).lineSpacing(2)
-                        if revealed {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ForEach(Array(card.answer.enumerated()), id: \.offset) { _, a in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Text("•").foregroundStyle(.secondary)
-                                        Text(hl(a))
-                                    }
-                                }
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                    .contentCard()
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-                    .padding(.bottom, 24)
-                    .readableColumn()
+                    cardView(card)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
+                        .readableColumn()
                 } else {
-                    Text("No cards in this set.").foregroundStyle(.secondary).padding()
+                    FinishHero(symbol: "tray", title: "No cards yet", message: "This set has no cards.")
+                        .padding(.top, 32)
                 }
             }
             footer
@@ -79,49 +45,102 @@ struct QACardsView: View {
         }
         .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.qa)
-        .turnIntoButton(studySet)
+        // Practise with a pretend patient, Check accuracy and Turn into, all
+        // in the one More menu
+        .studyMoreMenu(for: studySet, check: accuracyAsk) {
+            Button { simulating = card } label: {
+                Label("Practise with a pretend patient", systemImage: "stethoscope")
+            }
+            .disabled(card == nil)
+        }
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { simulating = card } label: {
-                    Label("Simulate patient", systemImage: "stethoscope")
-                }
-                .disabled(card == nil)
-            }
-        }
-        .accuracyCheck(set: studySet,
-                       instruction: "Write a clinical case or recall question with its answer points, from the source.") {
-            card.map { ([$0.stem] + $0.answer).joined(separator: "\n") }
-        }
         .sheet(item: $simulating) { CaseChatView(card: $0, subject: studySet.subject) }
     }
 
-    private var footer: some View {
-        GlassEffectContainer(spacing: 12) {
-        HStack {
-            Button("Previous") { index = max(0, index - 1); revealed = false }
-                .buttonStyle(.glass)
-                .disabled(index == 0)
-            Spacer()
-            if revealed {
-                Button(index >= cards.count - 1 ? "Done" : "Next") {
-                    if index >= cards.count - 1 {
-                        store.clearReading(for: studySet.id)
-                        dismiss()
-                    } else { index += 1; revealed = false }
+    private var headerStatus: String {
+        cards.isEmpty ? "No cards" : "Card \(index + 1) of \(cards.count)"
+    }
+
+    private var headerDetail: String {
+        revealed ? "Did you get it right?" : "Answer it in your head, then tap Reveal"
+    }
+
+    /// What Check accuracy looks at: the card on screen.
+    private var accuracyAsk: AccuracyAsk {
+        AccuracyAsk(instruction: "Write a clinical case or recall question with its answer points, from the source.") {
+            card.map { ([$0.stem] + $0.answer).joined(separator: "\n") }
+        }
+    }
+
+    private func cardView(_ card: QACard) -> some View {
+        let badgeColor: Color = card.type == .case
+            ? StudySetKind.qa.shifted(brightness: -0.18, saturation: 0.05)
+            : StudySetKind.qa.tint
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Text(card.badge)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .foregroundStyle(badgeColor)
+                    .background(badgeColor.opacity(0.14), in: Capsule())
+                if !card.topic.isEmpty {
+                    Text(card.topic).font(.subheadline).foregroundStyle(.secondary)
                 }
-                .buttonStyle(.glassProminent)
-            } else {
-                Button("Reveal answer") { withAnimation(.snappy) { revealed = true } }
-                    .buttonStyle(.glassProminent)
-                    .disabled(card == nil)
+            }
+            Text(hl(card.stem)).font(.title3.weight(.semibold)).lineSpacing(2)
+            if revealed {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Answer").font(.subheadline.weight(.bold)).foregroundStyle(.secondary)
+                    ForEach(Array(card.answer.enumerated()), id: \.offset) { _, a in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("\u{2022}").foregroundStyle(.secondary)
+                            Text(hl(a)).font(.body)
+                        }
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
+        .contentCard()
+    }
+
+    /// Back on the left, small; Reveal, then Next, filling the rest.
+    private var footer: some View {
+        let last = index >= cards.count - 1
+        return StudyActionBar {
+            HStack(spacing: 12) {
+                Button { index = max(0, index - 1); revealed = false } label: {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .buttonStyle(.bigCompanion)
+                .disabled(index == 0)
+                .accessibilityLabel("Previous card")
+
+                if revealed {
+                    Button {
+                        if last {
+                            store.clearReading(for: studySet.id)
+                            dismiss()
+                        } else { index += 1; revealed = false }
+                    } label: {
+                        Label(last ? "Done" : "Next", systemImage: last ? "checkmark" : "arrow.right")
+                    }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.return, modifiers: [])
+                } else {
+                    Button { withAnimation(.snappy) { revealed = true } } label: {
+                        Label("Reveal answer", systemImage: "eye")
+                    }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.return, modifiers: [])
+                    .disabled(card == nil)
+                }
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 
     /// `**term**` highlights, via SwiftUI's Markdown support.

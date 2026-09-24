@@ -12,6 +12,7 @@ import SwiftUI
 struct DueTodayView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
+    @Environment(\.dismiss) private var dismiss
 
     private static let sittingMinutes: Double = 20
 
@@ -24,34 +25,37 @@ struct DueTodayView: View {
             header
             if let due = queue.first {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(due.setName)
-                            .font(.caption.weight(.semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                         AnkiCardFace(card: due.card, images: images(for: due),
                                      revealed: revealed, deck: deck(for: due))
                     }
                     .contentCard()
                     .cardFlip(revealed: revealed)
-                    .padding(.horizontal)
-                    .padding(.top, 4)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                     .padding(.bottom, 24)
+                    .readableColumn()
                 }
                 Spacer(minLength: 0)
                 footer(due)
             } else {
-                Spacer()
-                VStack(spacing: 8) {
-                    Text(reviewedCount > 0 ? "That's everything." : "Nothing due today.")
-                        .font(.headline)
-                    Text(reviewedCount > 0
-                         ? "\(reviewedCount) card\(reviewedCount == 1 ? "" : "s") reviewed across your decks."
-                         : "Come back when a card is ready, or open a deck and study ahead.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                ScrollView {
+                    FinishHero(symbol: reviewedCount > 0 ? "checkmark.seal.fill" : "clock",
+                               title: reviewedCount > 0 ? "That's everything" : "Nothing due today",
+                               message: emptyLine)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 32)
+                        .readableColumn()
                 }
-                .padding()
-                Spacer()
+                Spacer(minLength: 0)
+                StudyActionBar {
+                    Button("Done") { dismiss() }
+                        .buttonStyle(.bigPrimary)
+                        .keyboardShortcut(.return, modifiers: [])
+                }
             }
         }
         .modeScreen(.anki)
@@ -61,60 +65,39 @@ struct DueTodayView: View {
         .onAppear(perform: load)
     }
 
-    private var header: some View {
-        HStack {
-            Text("\(queue.count) due")
-                .font(.footnote).foregroundStyle(.secondary)
-            Spacer()
-            Text("\(reviewedCount) reviewed")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tint)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .liquidGlassChip()
+    private var emptyLine: String {
+        if reviewedCount == 0 {
+            return "Come back when a card is ready, or open a deck and study ahead."
         }
-        .padding(.horizontal).padding(.vertical, 8)
+        let plural: String = reviewedCount == 1 ? "" : "s"
+        return "\(reviewedCount) card\(plural) reviewed across your decks."
     }
 
-    @ViewBuilder
+    private var header: some View {
+        let left = queue.count
+        let done = reviewedCount
+        let status: String = left == 0 ? "All done" : "\(left) card\(left == 1 ? "" : "s") due"
+        let fraction: Double = Double(done) / Double(max(1, done + left))
+        return StudyProgressHeader(status, detail: "\(done) done", fraction: fraction)
+    }
+
+    /// Reveal, then the four ratings, always in the same place.
     private func footer(_ due: ReviewPlan.Due) -> some View {
         let interval = reviews.records[due.card.id]?.intervalMin ?? 0
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 10) {
-                if !revealed {
-                    Button { revealed = true } label: {
-                        Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
-                    }
-                    .buttonStyle(.glassProminent)
-                    // Space turns the card over, as it does in Anki
-                    .keyboardShortcut(.space, modifiers: [])
-                } else {
-                    let labels = AnkiScheduler.previewLabels(currentIntervalMin: interval)
-                    HStack(spacing: 8) {
-                        rateButton(.again, labels[.again] ?? "", due: due, color: StudySetKind.anki.step(0))
-                        rateButton(.hard, labels[.hard] ?? "", due: due, color: StudySetKind.anki.step(1))
-                        rateButton(.good, labels[.good] ?? "", due: due, color: StudySetKind.anki.step(2))
-                        rateButton(.easy, labels[.easy] ?? "", due: due, color: StudySetKind.anki.step(3))
-                    }
+        return StudyActionBar {
+            if !revealed {
+                Button { revealed = true } label: {
+                    Text("Reveal")
                 }
+                .buttonStyle(.bigPrimary)
+                // Space turns the card over, as it does in Anki
+                .keyboardShortcut(.space, modifiers: [])
+                .accessibilityHint("Shows the answer. Say it to yourself first.")
+            } else {
+                AnkiRatingBar(labels: AnkiScheduler.previewLabels(currentIntervalMin: interval),
+                              onRate: { rate($0, due) })
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
-    }
-
-    private func rateButton(_ rating: AnkiRating, _ subtitle: String,
-                            due: ReviewPlan.Due, color: Color) -> some View {
-        Button { rate(rating, due) } label: {
-            VStack(spacing: 2) {
-                Text(rating.rawValue.capitalized).font(.subheadline.weight(.semibold))
-                Text(subtitle).font(.caption2).opacity(0.8)
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 4)
-        }
-        .buttonStyle(.glass).tint(color)
-        // 1 to 4, Again to Easy - Anki's own keys
-        .numberKey((AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1)
     }
 
     private func images(for due: ReviewPlan.Due) -> [String] {

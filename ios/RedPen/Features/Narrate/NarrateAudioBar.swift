@@ -17,8 +17,8 @@ struct NarrateAudioBar: View {
     private var position: Double { scrubbing ? held : player.time }
 
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 8) {
+        StudyActionBar {
+            VStack(spacing: 4) {
                 Slider(value: Binding(get: { position },
                                       set: { held = $0 }),
                        in: 0...max(player.duration, 0.1),
@@ -32,53 +32,55 @@ struct NarrateAudioBar: View {
                            }
                        })
                     .tint(StudySetKind.narrate.tint)
+                    .accessibilityLabel("Position in the recording")
 
                 HStack {
                     Text(LectureAudio.clock(position))
                     Spacer()
                     Text(LectureAudio.clock(player.duration))
                 }
-                .font(.caption.monospacedDigit())
+                .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.secondary)
-
-                HStack(spacing: 10) {
-                    Button {
-                        player.seek(to: player.time - 10)
-                    } label: { Image(systemName: "gobackward.10") }
-                        .buttonStyle(.glass)
-
-                    Button {
-                        player.toggle(rate: speed)
-                    } label: {
-                        Image(systemName: player.playing ? "pause.fill" : "play.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 2)
-                    }
-                    .buttonStyle(.glassProminent)
-
-                    Button {
-                        player.seek(to: player.time + 10)
-                    } label: { Image(systemName: "goforward.10") }
-                        .buttonStyle(.glass)
-
-                    Menu {
-                        ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
-                            Button(rate == 1 ? "Normal" : "\(rate, specifier: "%g")\u{00d7}") {
-                                speed = rate
-                                player.setRate(rate)
-                            }
-                        }
-                    } label: {
-                        Text(speed == 1 ? "1\u{00d7}" : "\(speed, specifier: "%g")\u{00d7}")
-                            .font(.subheadline.weight(.semibold).monospacedDigit())
-                    }
-                    .buttonStyle(.glass)
-                }
+                .accessibilityHidden(true)
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+
+            HStack(spacing: 12) {
+                Button {
+                    player.seek(to: player.time - 10)
+                } label: { Image(systemName: "gobackward.10") }
+                    .buttonStyle(.bigCompanion)
+                    .accessibilityLabel("Back 10 seconds")
+
+                Button {
+                    player.toggle(rate: speed)
+                } label: {
+                    Label(player.playing ? "Pause" : "Play",
+                          systemImage: player.playing ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.space, modifiers: [])
+
+                Button {
+                    player.seek(to: player.time + 10)
+                } label: { Image(systemName: "goforward.10") }
+                    .buttonStyle(.bigCompanion)
+                    .accessibilityLabel("Forward 10 seconds")
+
+                Menu {
+                    ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
+                        Button(rate == 1 ? "Normal" : "\(rate, specifier: "%g")\u{00d7}") {
+                            speed = rate
+                            player.setRate(rate)
+                        }
+                    }
+                } label: {
+                    Text(speed == 1 ? "1\u{00d7}" : "\(speed, specifier: "%g")\u{00d7}")
+                        .monospacedDigit()
+                }
+                .buttonStyle(.bigCompanion)
+                .accessibilityLabel("Playback speed")
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 }
 
@@ -94,13 +96,13 @@ struct TranscribingBanner: View {
         HStack(spacing: 12) {
             ProgressView()
             VStack(alignment: .leading, spacing: 2) {
-                Text(message).font(.subheadline.weight(.medium))
+                Text(message).font(.headline)
                 Text("On this phone. The recording is not uploaded anywhere.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
         .contentCard()
-        .padding(.horizontal)
+        .padding(.horizontal, 16)
     }
 }

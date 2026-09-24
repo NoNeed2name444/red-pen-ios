@@ -32,6 +32,10 @@ struct CaseChatView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
             }
         }
+        // a sheet of its own, so it says which screen's colour it is in
+        // rather than trusting it to be passed down
+        .tint(StudySetKind.qa.tint)
+        .environment(\.modeTint, StudySetKind.qa.tint)
         .sheet(isPresented: $showModels) { ModelSettingsView() }
         .task(id: llm.writerChoice) { await start() }
     }
@@ -88,20 +92,24 @@ private struct CaseSession: View {
         }
     }
 
+    /// How much of the checklist is covered so far, and the way out of the
+    /// interview - the same header every study screen has.
     private var coverageBar: some View {
-        HStack {
-            Text("Checklist \(simulator.coveredCount) of \(simulator.caseFile.checklist.count)")
-                .font(.footnote).foregroundStyle(.secondary)
-            Spacer()
-            if let checker = simulator.checkerLabel {
-                Label("Checked by \(checker)", systemImage: "checkmark.shield")
-                    .font(.caption).foregroundStyle(.secondary)
+        let total = simulator.caseFile.checklist.count
+        let covered = simulator.coveredCount
+        let fraction: Double = Double(covered) / Double(max(1, total))
+        let detail: String? = simulator.checkerLabel.map { "Answers checked by \($0)" }
+        return StudyProgressHeader("\(covered) of \(total) checklist points", detail: detail, fraction: fraction) {
+            Button { simulator.endInterview() } label: {
+                Label("Finish", systemImage: "flag.checkered")
+                    .labelStyle(.titleAndIcon)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 36)
             }
-            Button("End & present") { simulator.endInterview() }
-                .buttonStyle(.glass)
-                .disabled(simulator.busy)
+            .buttonStyle(.glass)
+            .disabled(simulator.busy)
+            .accessibilityHint("Ends the interview so you can present your diagnosis and plan")
         }
-        .padding(.horizontal).padding(.vertical, 8)
     }
 
     private var transcript: some View {
@@ -135,23 +143,23 @@ private struct CaseSession: View {
         switch message.speaker {
         case .examiner:
             Text(message.text)
-                .font(.callout.italic())
+                .font(.body.italic())
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
+                .padding(12)
                 .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .doctor:
             HStack {
                 Spacer(minLength: 40)
                 Text(message.text)
-                    .padding(10)
+                    .padding(12)
                     .foregroundStyle(.white)
                     .background(StudySetKind.qa.tint, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         case .patient:
             VStack(alignment: .leading, spacing: 4) {
                 Text(message.text)
-                    .padding(10)
+                    .padding(12)
                     .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 if let verdict = message.verdict { verdictLine(verdict, regenerations: message.regenerations) }
             }
@@ -164,28 +172,34 @@ private struct CaseSession: View {
         let note = regenerations > 0 ? " \u{00B7} rewritten \(regenerations)\u{00D7}" : ""
         return Label(verdict.riskTitle + note,
                      systemImage: verdict.passed ? "checkmark.shield" : "exclamationmark.shield")
-            .font(.caption2)
+            .font(.footnote)
             .foregroundStyle(verdict.passed ? Color.secondary : Color.orange)
     }
 
     private var composer: some View {
         HStack(spacing: 8) {
             TextField("Ask the patient, or say what you examine", text: $draft, axis: .vertical)
+                .font(.body)
                 .lineLimit(1...4)
                 .focused($typing)
-                .padding(10)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(12)
+                .frame(minHeight: 48)
+                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             Button {
                 let text = draft
                 draft = ""
                 Task { await simulator.send(text) }
             } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.title2)
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.largeTitle)
+                    .frame(minWidth: 48, minHeight: 48)
             }
+            .keyboardShortcut(.return, modifiers: [.command])
             .disabled(simulator.busy || draft.trimmingCharacters(in: .whitespaces).isEmpty)
             .accessibilityLabel("Send")
         }
-        .padding(.horizontal).padding(.vertical, 8)
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(.bar)
     }
 
     private var presentForm: some View {
@@ -205,10 +219,11 @@ private struct CaseSession: View {
                         if simulator.phase == .grading { ProgressView().controlSize(.small) }
                         Text(simulator.phase == .grading ? (simulator.status ?? "Marking\u{2026}") : "Finish and mark")
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.bigPrimary)
                 .disabled(simulator.phase == .grading)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
         }
     }

@@ -10,6 +10,9 @@ struct OsceReviewView: View {
     let studySet: StudySet
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: Store
+    @EnvironmentObject private var llm: LocalLLMService
+    /// The station being practised aloud with a spoken patient, while open.
+    @State private var spoken: OsceChecklist?
 
     @State private var checklistIndex: Int
     @State private var stepIndex = 0
@@ -57,11 +60,26 @@ struct OsceReviewView: View {
             }
         }
         .modeScreen(.osce)
-        .turnIntoButton(studySet)
-        .spokenPatientButton(for: checklist)
-        .accuracyCheck(set: studySet,
-                       instruction: "Write an OSCE station checklist, in the order the steps are performed, from the source.") {
-            checklist.map { $0.title + "\n" + $0.steps.map { "- " + $0 }.joined(separator: "\n") }
+        // The spoken patient, Check accuracy and Turn into, all in the one
+        // More menu
+        .studyMoreMenu(for: studySet, check: accuracyAsk) {
+            if let checklist {
+                Button { spoken = checklist } label: {
+                    Label("Practise with a spoken patient", systemImage: "person.wave.2")
+                }
+            }
+        }
+        .sheet(item: $spoken) { station in
+            NavigationStack {
+                SpokenStationView(station: station)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { spoken = nil }
+                        }
+                    }
+            }
+            .environmentObject(store)
+            .environmentObject(llm)
         }
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
@@ -95,6 +113,15 @@ struct OsceReviewView: View {
         }
     }
 
+    /// What Check accuracy looks at: the station on screen.
+    private var accuracyAsk: AccuracyAsk {
+        AccuracyAsk(instruction: "Write an OSCE station checklist, in the order the steps are performed, from the source.") {
+            guard let checklist else { return nil }
+            let steps: String = checklist.steps.map { "- " + $0 }.joined(separator: "\n")
+            return checklist.title + "\n" + steps
+        }
+    }
+
     // MARK: station clock
 
     /// One station's time in the exam the student is sitting.
@@ -108,15 +135,18 @@ struct OsceReviewView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let left = secondsLeft(at: context.date)
                 let running = clockEndsAt != nil
-                HStack(spacing: 5) {
-                    Image(systemName: running ? "pause.fill" : (left == 0 ? "arrow.counterclockwise" : "play.fill"))
-                        .font(.caption2)
+                let symbol: String = running ? "pause.fill" : (left == 0 ? "arrow.counterclockwise" : "play.fill")
+                let ink: Color = running && left <= 60 ? Color.red : Color.primary
+                HStack(spacing: 6) {
+                    Image(systemName: symbol)
+                        .font(.footnote)
                     Text(String(format: "%d:%02d", left / 60, left % 60))
                         .monospacedDigit()
                 }
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(running && left <= 60 ? Color.red : Color.primary)
-                .padding(.horizontal, 10).padding(.vertical, 5)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(ink)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
                 .liquidGlassChip()
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Station clock, \(left / 60) minutes \(left % 60) seconds")
@@ -151,34 +181,24 @@ struct OsceReviewView: View {
 
     // MARK: header
 
-    @ViewBuilder
+    /// "Step 3 of 12", the station's name, and the clock - the one control
+    /// that belongs up here, because it is glanced at rather than pressed.
     private func progressHeader(_ checklist: OsceChecklist) -> some View {
         let totalSteps = checklists.reduce(0) { $0 + $1.steps.count }
-        let stepsBeforeThis = checklists.prefix(checklistIndex).reduce(0) { $0 + $1.steps.count }
-            + (complete ? checklist.steps.count : (inRepeat ? checklist.steps.count : stepIndex))
-        let fraction = totalSteps > 0 ? min(1.0, Double(stepsBeforeThis) / Double(totalSteps)) : 0
-
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                if !complete {
-                    Text(inRepeat ? "Missed step \(repeatPos + 1) of \(repeatQueue.count)" : "Step \(stepIndex + 1) of \(checklist.steps.count)")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(inRepeat ? AnyShapeStyle(StudySetKind.osce.shifted(brightness: -0.12, saturation: 0.1)) : AnyShapeStyle(.secondary))
-                    if inRepeat {
-                        Text("again")
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .foregroundStyle(StudySetKind.osce.shifted(brightness: -0.14))
-                            .liquidGlassChip(tint: StudySetKind.osce.tint)
-                    }
-                }
-                Spacer()
-                if !complete { stationClock }
-            }
-            Text(checklist.title).font(.title3.weight(.semibold))
-            ThinProgress(fraction: fraction)
+        let earlier: Int = checklists.prefix(checklistIndex).reduce(0) { $0 + $1.steps.count }
+        let here: Int = complete || inRepeat ? checklist.steps.count : stepIndex
+        let fraction: Double = totalSteps > 0 ? min(1.0, Double(earlier + here) / Double(totalSteps)) : 0
+        let status: String
+        if complete {
+            status = "Station done"
+        } else if inRepeat {
+            status = "Once more: \(repeatPos + 1) of \(repeatQueue.count)"
+        } else {
+            status = "Step \(stepIndex + 1) of \(checklist.steps.count)"
         }
-        .padding()
+        return StudyProgressHeader(status, detail: checklist.title, fraction: fraction) {
+            if !complete { stationClock }
+        }
     }
 
     // MARK: step
@@ -195,18 +215,19 @@ struct OsceReviewView: View {
                         .contentCard()
                         .transition(.scale(scale: 0.96).combined(with: .opacity))
                 } else {
-                    Text(inRepeat ? "Once more — what was step \(currentStepIdx + 1)? Say it, then reveal." : "What comes next? Say it out loud, then reveal.")
+                    Text(inRepeat ? "You missed this one. What was step \(currentStepIdx + 1)? Say it out loud, then tap Reveal." : "What comes next? Say it out loud, then tap Reveal.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .padding(16)
+                        .frame(maxWidth: .infinity)
                 }
                 if !revealed && !inRepeat && stepIndex == 0 {
                     Text("Work through the station out loud, revealing each step to check yourself.")
-                        .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
             }
-            .padding()
+            .padding(16)
             .frame(minHeight: 220)
             .padding(.bottom, 12)
             .readableColumn()
@@ -214,56 +235,71 @@ struct OsceReviewView: View {
         footer
     }
 
+    /// Reveal; then "Missed it" beside the big "Knew it", in the same place.
     private var footer: some View {
-        GlassEffectContainer(spacing: 12) {
+        StudyActionBar {
             if revealed {
                 HStack(spacing: 12) {
-                    Button("Missed it") { grade(knewIt: false) }
-                        .buttonStyle(.glass).tint(StudySetKind.osce.step(0))
-                    Button("Knew it") { grade(knewIt: true) }
-                        .buttonStyle(.glassProminent)
+                    Button { grade(knewIt: false) } label: {
+                        Label("Missed it", systemImage: "xmark")
+                    }
+                    .buttonStyle(.bigSecondary)
+                    .accessibilityHint("It comes round again at the end")
+
+                    Button { grade(knewIt: true) } label: {
+                        Label("Knew it", systemImage: "checkmark")
+                    }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.return, modifiers: [])
                 }
             } else {
-                Button("Reveal") { withAnimation(.snappy) { revealed = true } }
-                    .buttonStyle(.glassProminent)
-                    .frame(maxWidth: .infinity)
+                Button { withAnimation(.snappy) { revealed = true } } label: {
+                    Label("Reveal", systemImage: "eye")
+                }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.space, modifiers: [])
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 
     // MARK: complete
 
-    @ViewBuilder
+    /// The finish: how many steps came back first time, large, and one big
+    /// button - on to the next station, or Done.
     private func completeBody(_ checklist: OsceChecklist) -> some View {
         let hasNext = checklistIndex < checklists.count - 1
         let total = checklist.steps.count
         let missedCount = missed.count
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(StudySetKind.osce.gradient)
-                .shadow(color: StudySetKind.osce.tint.opacity(0.35), radius: 14, y: 6)
-            Text(hasNext ? "Checklist complete — \(checklist.title)" : "All checklists complete!")
-                .font(.title3.weight(.semibold)).multilineTextAlignment(.center)
-            Text(missedCount == 0
-                 ? "Recalled all \(total) steps first time."
-                 : "Recalled \(total - missedCount) of \(total) steps first time — the \(missedCount) you missed came round again.")
-                .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Spacer()
-            if hasNext {
-                Button("Next checklist: \(checklists[checklistIndex + 1].title) ›") { nextChecklist() }
-                    .buttonStyle(.glassProminent)
-            } else {
-                Button("Done") { dismiss() }
-                    .buttonStyle(.glassProminent)
+        let title: String = "\(total - missedCount) of \(total) first time"
+        let message: String
+        if missedCount == 0 {
+            message = hasNext ? "You recalled every step of \(checklist.title)." : "You recalled every step. All stations done!"
+        } else {
+            message = "The \(missedCount) you missed came round again."
+                + (hasNext ? "" : " All stations done!")
+        }
+        return VStack(spacing: 0) {
+            ScrollView {
+                FinishHero(symbol: "checkmark.seal.fill", title: title, message: message)
+                    .padding(.top, 16)
+                    .readableColumn()
+            }
+            StudyActionBar {
+                if hasNext {
+                    Button { nextChecklist() } label: {
+                        Label("Next station: \(checklists[checklistIndex + 1].title)", systemImage: "arrow.right")
+                    }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.return, modifiers: [])
+                    Button("Done for now") { dismiss() }
+                        .buttonStyle(.bigSecondary)
+                } else {
+                    Button("Done") { dismiss() }
+                        .buttonStyle(.bigPrimary)
+                        .keyboardShortcut(.return, modifiers: [])
+                }
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: logic — mirrors osceGrade()
