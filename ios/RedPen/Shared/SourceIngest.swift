@@ -35,66 +35,107 @@ enum SourceIngest {
     /// their own. The anatomy slide that matters most - a title, two bullets and
     /// a labelled diagram - carries plenty of text, and an earlier version of
     /// this skipped exactly those pages.
-    static func read(pdf url: URL, findingFigures: Bool = true,
-                     figureLimit: Int = 60) async throws -> Result {
+    static func read(pdf url: URL, findingFigures: Bool = true, readingText: Bool = true,
+                     figureLimit: Int = 60,
+                     onPage: (@Sendable (Int, Int) -> Void)? = nil) async throws -> Result {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
 
         guard let pdf = PDFDocument(url: url) else { throw Trouble.unreadable }
-        guard pdf.pageCount > 0 else { throw Trouble.empty }
+        let count = pdf.pageCount
+        guard count > 0 else { throw Trouble.empty }
         let name = url.deletingPathExtension().lastPathComponent
 
-        var raw: [(number: Int, text: String, recognised: Bool)] = []
+        // Several pages at once, one PDF document per worker (PDFKit is not
+        // safe to share across threads): each page is rendered, scanned and
+        // read on its own, so a 45-slide deck takes the time of a dozen.
+        let workers = max(1, min(4, ProcessInfo.processInfo.activeProcessorCount - 1))
+        let done = PageCounter()
+        let pages: [PageRead] = await withTaskGroup(of: [PageRead].self) { group in
+            for worker in 0..<workers {
+                group.addTask {
+                    guard let document = PDFDocument(url: url) else { return [] }
+                    var out: [PageRead] = []
+                    for index in stride(from: worker, to: count, by: workers) {
+                        if Task.isCancelled { break }
+                        autoreleasepool {
+                            if let page = document.page(at: index) {
+                                out.append(readPage(page, number: index + 1, name: name,
+                                                    findingFigures: findingFigures, readingText: readingText))
+                            }
+                        }
+                        onPage?(done.next(), count)
+                    }
+                    return out
+                }
+            }
+            var all: [PageRead] = []
+            for await part in group { all += part }
+            return all.sorted { $0.number < $1.number }
+        }
+        try Task.checkCancellation()
+
+        // figures numbered in page order, and their cards with them
         var figures: [UIImage] = []
         var notes: [(page: Int?, labels: [String])] = []
         var cards: [AnkiCard] = []
-
-        for index in 0..<pdf.pageCount {
-            // each page's render is several megabytes; without this a forty
-            // page deck holds all forty at once and the app is killed
-            autoreleasepool {
-                guard let page = pdf.page(at: index) else { return }
-                let embedded = page.string ?? ""
-                let thin = embedded.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .count < SourceText.textFloor
-                let rendered = (thin || findingFigures) ? image(of: page) : nil
-
-                if thin {
-                    var recognised = ""
-                    if let cg = rendered?.cgImage {
-                        recognised = (try? RedPenOCR.readText(cg)) ?? ""
-                    }
-                    raw.append((index + 1, recognised, true))
-                } else {
-                    raw.append((index + 1, embedded, false))
-                }
-
-                guard findingFigures, figures.count < figureLimit,
-                      let cg = rendered?.cgImage,
-                      let found = FigureFinder.read(cg, imageIndex: figures.count),
-                      // kept as a small JPEG, not the full page render: sixty
-                      // full-size renders held at once are several hundred
-                      // megabytes, and iOS ends the app before generation
-                      // finishes. Checked before any card is kept, so a card
-                      // never points at a figure that was not stored.
-                      let small = rendered.flatMap({ downsized($0) }).flatMap(UIImage.init(data:))
-                else { return }
-                // the page number is the whole value of provenance: a card that
-                // looks wrong can be checked against the slide it came off
-                // instead of merely distrusted
-                cards.append(contentsOf: found.cards.map {
-                    var card = $0
-                    card.source = "\(name), p. \(index + 1)"
-                    return card
-                })
-                figures.append(small)
-                notes.append((index + 1, found.cards.flatMap(\.bullets)))
-            }
+        for page in pages {
+            guard let figure = page.figure, figures.count < figureLimit else { continue }
+            cards += page.cards.map { var card = $0; card.imageIndex = figures.count; return card }
+            notes.append((page.number, page.labels))
+            figures.append(figure)
         }
-
-        let document = SourceText.document(from: raw)
-        guard !document.isEmpty || !cards.isEmpty else { throw Trouble.noText }
+        let document = SourceText.document(from: pages.map { ($0.number, $0.text, $0.recognised) })
+        guard !document.isEmpty || !cards.isEmpty || !readingText else { throw Trouble.noText }
         return Result(document: document, figures: figures, occlusionCards: cards, figureNotes: notes)
+    }
+
+    /// One page: its own text, OCR when it has none, and a look for a labelled
+    /// diagram.
+    private static func readPage(_ page: PDFPage, number: Int, name: String,
+                                 findingFigures: Bool, readingText: Bool) -> PageRead {
+        let embedded = page.string ?? ""
+        let thin = embedded.trimmingCharacters(in: .whitespacesAndNewlines).count < SourceText.textFloor
+        var read = PageRead(number: number, text: embedded, recognised: false)
+        var rendered: UIImage?
+        if thin && readingText {
+            rendered = image(of: page)
+            read.text = rendered?.cgImage.flatMap { try? RedPenOCR.readText($0) } ?? ""
+            read.recognised = true
+        }
+        // A labelled diagram sits on a slide of few words; a page that is a
+        // wall of text has none worth the scan, which is most of the cost.
+        guard findingFigures, embedded.count < 900 else { return read }
+        // 1,600 pixels is plenty for labels and a good deal cheaper to scan
+        let picture = rendered ?? image(of: page, maxDimension: 1600)
+        guard let cg = picture?.cgImage,
+              let found = FigureFinder.read(cg, imageIndex: 0),
+              // kept as a small JPEG, not the full render: dozens of full
+              // renders held at once are hundreds of megabytes
+              let small = picture.flatMap({ downsized($0) }).flatMap(UIImage.init(data:))
+        else { return read }
+        read.figure = small
+        read.labels = found.cards.flatMap(\.bullets)
+        // the page number is the whole value of provenance: a card that looks
+        // wrong can be checked against the slide it came off
+        read.cards = found.cards.map { var card = $0; card.source = "\(name), p. \(number)"; return card }
+        return read
+    }
+
+    private struct PageRead {
+        var number: Int
+        var text: String
+        var recognised: Bool
+        var figure: UIImage?
+        var labels: [String] = []
+        var cards: [AnkiCard] = []
+    }
+
+    /// Pages finished so far, across the workers.
+    private final class PageCounter: @unchecked Sendable {
+        private var value = 0
+        private let lock = NSLock()
+        func next() -> Int { lock.lock(); defer { lock.unlock() }; value += 1; return value }
     }
 
     /// A page as an image, at a size Vision can read without the memory cost of

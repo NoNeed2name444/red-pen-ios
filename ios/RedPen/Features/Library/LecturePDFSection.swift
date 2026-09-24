@@ -51,6 +51,8 @@ struct LecturePDFSection: View {
     @State private var status: String?
     @State private var cards: [AnkiCard] = []
     @State private var images: [String] = []
+    @State private var diagramTask: Task<Void, Never>?
+    @State private var diagramProgress: String?
 
     /// Office files are zips, and a zip is not a type the picker offers by
     /// name, so Word's and PowerPoint's own identifiers are asked for directly.
@@ -90,6 +92,10 @@ struct LecturePDFSection: View {
                 Text(status).font(.caption).foregroundStyle(.secondary)
             }
 
+            if let diagramProgress {
+                Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             if !cards.isEmpty {
                 Button { makeOcclusionSet() } label: {
                     Label("Make an image-occlusion deck (\(cards.count) card\(cards.count == 1 ? "" : "s"))",
@@ -120,8 +126,10 @@ struct LecturePDFSection: View {
             images = []
             do {
                 let isPDF = url.pathExtension.lowercased() == "pdf"
-                let read = isPDF ? try await SourceIngest.read(pdf: url)
-                                 : try await OfficeIngest.read(url)
+                // the text first, which is almost instant; the diagrams are
+                // looked for afterwards in the background (findDiagrams)
+                let read = isPDF ? try await SourceIngest.read(pdf: url, findingFigures: false)
+                                 : try await OfficeIngest.read(url, findingFigures: false)
                 let document = read.document
                 let fileName = url.deletingPathExtension().lastPathComponent
                 // appended rather than replacing: a student who pasted notes and
@@ -136,7 +144,7 @@ struct LecturePDFSection: View {
                 let kind = Self.kind(of: url)
                 readSource = ReadSource(name: fileName, document: document, kind: kind,
                                         fileBlob: SourceFiles.keep(url, kind: kind))
-                keepFigures(read)
+                findDiagrams(in: url, pdf: isPDF)
 
                 // proposed, not imposed: the stepper still moves, and a student
                 // who wants a quick ten-question run can say so
@@ -150,6 +158,27 @@ struct LecturePDFSection: View {
                     ?? error.localizedDescription
             }
             reading = false
+        }
+    }
+
+    /// Labelled diagrams, looked for while the student carries on: several
+    /// slides at a time, off the main thread, with the count shown.
+    private func findDiagrams(in url: URL, pdf: Bool) {
+        diagramTask?.cancel()
+        diagramProgress = "Finding diagrams\u{2026}"
+        diagramTask = Task {
+            let read = await Task.detached(priority: .userInitiated) { () -> SourceIngest.Result? in
+                if pdf {
+                    return try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
+                                                        onPage: { done, total in
+                        Task { @MainActor in diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}" }
+                    })
+                }
+                return try? await OfficeIngest.read(url, findingFigures: true)
+            }.value
+            guard !Task.isCancelled else { return }
+            if let read { keepFigures(read) }
+            diagramProgress = nil
         }
     }
 

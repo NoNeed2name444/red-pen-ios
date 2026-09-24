@@ -27,6 +27,9 @@ struct LectureWriterSection: View {
     @State private var count = 12
     @State private var working = false
     @State private var reading = false
+    /// The background look for diagrams, and how far it has got.
+    @State private var figureTask: Task<Void, Never>?
+    @State private var diagramProgress: String?
     @State private var status: String?
     @State private var trouble: String?
     @State private var task: Task<Void, Never>?
@@ -56,6 +59,10 @@ struct LectureWriterSection: View {
                     .frame(minHeight: 120)
                     .font(.footnote)
                     .disabled(working)
+            }
+            if let diagramProgress {
+                Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if kind == .anki {
                 Picker("Card type", selection: $style) {
@@ -104,6 +111,9 @@ struct LectureWriterSection: View {
                         enabled: canWrite && !working && !reading,
                         inputs: [kind.rawValue, subject, style.rawValue, String(sourceText.count),
                                  String(bookFigures.count), String(diagrams.cards.count)], run: start)
+        .onChange(of: style) { _, now in
+            if kind == .anki { diagrams.included = now.usesDiagrams && !diagrams.cards.isEmpty && (now == .image || !bodyText.isEmpty) }
+        }
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
@@ -137,13 +147,14 @@ struct LectureWriterSection: View {
         defer { reading = false }
         do {
             let ext = url.pathExtension.lowercased()
-            // a textbook places the lecture's diagrams; Cards makes image
-            // occlusion cards from them
-            let figures = kind == .book || kind == .anki
-            let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: figures)
-                                    : try await OfficeIngest.read(url, findingFigures: figures)
-            bookFigures = kind == .book ? Self.figures(from: read) : []
-            diagrams = kind == .anki ? Self.diagramCards(from: read, name: url.deletingPathExtension().lastPathComponent) : DiagramCards()
+            // The text first - it is almost instant - so writing can start
+            // straight away; the diagrams are looked for afterwards, in the
+            // background (findDiagrams).
+            figureTask?.cancel()
+            bookFigures = []
+            diagrams = DiagramCards()
+            let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: false)
+                                    : try await OfficeIngest.read(url, findingFigures: false)
             // pictures numbered for the previous file would now point at the
             // wrong diagrams: they go, and the new pages will place their own
             bodyText = bodyText.components(separatedBy: "\n")
@@ -157,6 +168,9 @@ struct LectureWriterSection: View {
             else { count = min(80, max(8, (read.document.pages.count / 2 + 3) / 4 * 4)) }
             status = nil
             if !hasSource { trouble = "There is not much text in that file to work from." }
+            // a textbook places the lecture's diagrams; Cards makes image
+            // occlusion cards from them
+            if kind == .book || kind == .anki { findDiagrams(in: url, pdf: ext == "pdf") }
         } catch {
             status = nil
             trouble = error.localizedDescription
@@ -209,6 +223,31 @@ struct LectureWriterSection: View {
         return hasSource
     }
 
+    /// Looks for labelled diagrams while the student carries on: several
+    /// slides at a time, off the main thread, the count shown as it goes.
+    private func findDiagrams(in url: URL, pdf: Bool) {
+        let mode = kind
+        let name = url.deletingPathExtension().lastPathComponent
+        diagramProgress = "Finding diagrams\u{2026}"
+        figureTask = Task {
+            let read = await Task.detached(priority: .userInitiated) { () -> SourceIngest.Result? in
+                if pdf {
+                    return try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
+                                                        onPage: { done, total in
+                        Task { @MainActor in diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}" }
+                    })
+                }
+                return try? await OfficeIngest.read(url, findingFigures: true)
+            }.value
+            guard !Task.isCancelled else { return }
+            bookFigures = read.map { mode == .book ? Self.figures(from: $0) : [] } ?? []
+            diagrams = read.map { mode == .anki ? Self.diagramCards(from: $0, name: name) : DiagramCards() } ?? DiagramCards()
+            // found after the text cards were written: still in the set
+            diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty && (style == .image || !bodyText.isEmpty)
+            diagramProgress = nil
+        }
+    }
+
     // MARK: writing
 
     private func start() {
@@ -228,7 +267,7 @@ struct LectureWriterSection: View {
             return
         }
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let text = sourceText, wanted = count, subj = subject, mode = kind, figures = bookFigures, cardStyle = style
+        let text = sourceText, wanted = count, subj = subject, mode = kind, cardStyle = style, pending = figureTask
         working = true
         status = "Writing\u{2026}"
         let job = GenerationCenter.shared.begin("Writing \(wanted) \(noun)\(wanted == 1 ? "" : "s")", total: wanted) {
@@ -239,6 +278,13 @@ struct LectureWriterSection: View {
         }
         task = Task {
             do {
+                // a textbook places the lecture's diagrams, so it waits for the
+                // look for them to finish; cards never wait
+                if mode == .book, let pending {
+                    await MainActor.run { status = "Finishing the diagrams\u{2026}" }
+                    await pending.value
+                }
+                let figures = await MainActor.run { bookFigures }
                 let written = try await LectureWriter.write(
                     kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
                     onProgress: { done, total in
