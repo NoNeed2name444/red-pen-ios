@@ -431,6 +431,8 @@ enum GraphSceneBuilder {
         material.lightingModel = .constant
         material.isDoubleSided = true
         material.writesToDepthBuffer = false
+        // always in front: a note between the camera and a name never hides it
+        material.readsFromDepthBuffer = false
         geometry.materials = [material]
 
         let textNode = SCNNode(geometry: geometry)
@@ -453,10 +455,11 @@ enum GraphSceneBuilder {
         let pill = SCNPlane(width: CGFloat(pillWidth), height: CGFloat(pillHeight))
         pill.cornerRadius = CGFloat(pillHeight / 2)
         let pillLook = SCNMaterial()
-        pillLook.diffuse.contents = UIColor(red: 0.03, green: 0.04, blue: 0.09, alpha: 0.82)
+        pillLook.diffuse.contents = UIColor(red: 0.02, green: 0.03, blue: 0.07, alpha: 0.9)
         pillLook.lightingModel = .constant
         pillLook.isDoubleSided = true
         pillLook.writesToDepthBuffer = false
+        pillLook.readsFromDepthBuffer = false
         pill.materials = [pillLook]
         let pillNode = SCNNode(geometry: pill)
         pillNode.simdPosition = SIMD3<Float>(0, textHeight / 2, -0.002)
