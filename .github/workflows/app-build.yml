@@ -34,5 +34,5 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
           # the errors, where they can be read without downloading anything
-          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log

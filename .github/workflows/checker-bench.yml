@@ -4,6 +4,11 @@
 # branch, since some free quotas allow only a few calls a day.
 name: Checker comparison
 on:
+  # a push to bench/medqa or bench/medxpertqa runs it for that dataset, with
+  # the per-model caps in server/bench/caps-<dataset>.txt (a hand-started run
+  # needs the workflow on the default branch)
+  push:
+    branches: ['bench/**']
   workflow_dispatch:
     inputs:
       dataset:
@@ -39,7 +44,7 @@ jobs:
         run: node server/tests/bench.test.mjs
       - name: Earlier results
         env:
-          DATASET: ${{ inputs.dataset }}
+          DATASET: ${{ inputs.dataset || (github.ref_name == 'bench/medxpertqa' && 'medxpertqa') || 'medqa' }}
         run: |
           mkdir -p out
           # every dataset's reports are kept; this run replaces only its own
@@ -50,12 +55,14 @@ jobs:
       - name: Run it
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          N: ${{ inputs.n }}
-          MODELS: ${{ inputs.models }}
+          N: ${{ inputs.n || '40' }}
+          MODELS: ${{ inputs.models || 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b,hf:baichuan-inc/Baichuan-M2-32B,hf:google/medgemma-27b-text-it' }}
           CAPS: ${{ inputs.caps }}
-          DATASET: ${{ inputs.dataset }}
+          DATASET: ${{ inputs.dataset || (github.ref_name == 'bench/medxpertqa' && 'medxpertqa') || 'medqa' }}
         run: |
           KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          [ -z "$CAPS" ] && [ -f "server/bench/caps-$DATASET.txt" ] && CAPS=$(tr -d '\n ' < "server/bench/caps-$DATASET.txt")
+          export CAPS
           KEY="$KEY" PREVIOUS=out/previous.json REPORT="out/checker-$DATASET.md" node server/bench/checkers.mjs 2>&1 | tee "out/run-$DATASET.log"
           rm -f out/previous.json
       - name: Push the report
