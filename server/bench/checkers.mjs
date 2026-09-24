@@ -147,6 +147,8 @@ async function main() {
       }
       results.push({ model, index: q.index, case: kase, risk: riskFrom(reply.text), ms: reply.ms });
       process.stdout.write('.');
+      // kept as it goes: a run that is stopped still leaves what it measured
+      if (results.length % 10 === 0) writeFileSync(REPORT.replace(/\.md$/, '.json'), JSON.stringify(results, null, 1));
     }
   }));
 
