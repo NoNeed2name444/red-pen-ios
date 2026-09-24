@@ -144,6 +144,8 @@ final class CommuteSession: ObservableObject {
     }
 
     private func play(_ item: Item, _ current: Int) async -> Outcome {
+        // the next item's first line is fetched while this one is played
+        prefetchNext()
         switch item {
         case .card(let due): return await playCard(due, current)
         case .question(let question, let setName): return await playQuestion(question, setName: setName, current)
@@ -231,6 +233,7 @@ final class CommuteSession: ObservableObject {
         let options = Array(question.options.prefix(letters.count))
         let listed = options.enumerated().map { "\(letters[$0.offset]). \($0.element)" }
         add(.app, ([question.stem] + listed).joined(separator: "\n"))
+        speaker.prefetch(listed.joined(separator: ". \n"))
         await say("\(Self.deckName(setName)). \(question.stem)", current)
         guard alive(current) else { return .same }
         await say(listed.joined(separator: ". \n"), current)
@@ -304,6 +307,25 @@ final class CommuteSession: ObservableObject {
         }
         if !heard.isEmpty { add(.you, heard) }
         return heard
+    }
+
+    /// Starts fetching the natural voice for the next item's first line, so
+    /// there is no pause before it.
+    private func prefetchNext() {
+        let next = position + 1
+        guard items.indices.contains(next) else { return }
+        speaker.prefetch(Self.opening(of: items[next]))
+    }
+
+    /// The first thing said for an item - the same words `playCard` and
+    /// `playQuestion` say, so the fetched audio is the audio used.
+    private static func opening(of item: Item) -> String {
+        switch item {
+        case .card(let due):
+            return "\(deckName(due.setName)). \(QuizFromCards.stem(of: due.card))"
+        case .question(let question, let setName):
+            return "\(deckName(setName)). \(question.stem)"
+        }
     }
 
     /// Time to think of the answer when it can't be said aloud.

@@ -367,8 +367,24 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 function errorMessage(raw) {
   try {
     const parsed = JSON.parse(raw);
-    return parsed?.error?.message || raw.slice(0, 400);
+    const message = parsed?.error?.message || raw.slice(0, 400);
+    const quota = quotaNote(parsed);
+    return quota ? `${String(message).slice(0, 160)} ${quota}` : message;
   } catch { return raw.slice(0, 400); }
+}
+
+/// Which limit Google says was hit, from the error's details: the quota's
+/// name (it says per minute or per day), its value, and how long to wait -
+/// "[quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=20; retry 41s]".
+/// Google does not publish the free limits; this is where the real numbers are.
+export function quotaNote(parsed) {
+  const details = Array.isArray(parsed?.error?.details) ? parsed.error.details : [];
+  const failure = details.find(d => Array.isArray(d?.violations));
+  const retry = details.find(d => typeof d?.retryDelay === 'string')?.retryDelay;
+  const parts = (failure?.violations || []).slice(0, 2)
+    .map(v => `${v.quotaId || v.quotaMetric || 'quota'}=${v.quotaValue ?? '?'}`);
+  if (!parts.length && !retry) return '';
+  return `[quota ${parts.join(', ') || '?'}${retry ? `; retry ${retry}` : ''}]`;
 }
 
 /// Seconds Google asks to wait before the next request ("retryDelay": "17s").

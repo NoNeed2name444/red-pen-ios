@@ -21,6 +21,9 @@ struct ExplainBackView: View {
     @State private var failure: String?
     @State private var shown: ExplainAttempt?
     @State private var showModels = false
+    /// Whether the page is showing: a permission answered after leaving must
+    /// not switch the microphone on behind the next screen.
+    @State private var onScreen = false
 
     private var chosenSet: StudySet? { store.library.first { $0.id == setID } }
 
@@ -50,7 +53,9 @@ struct ExplainBackView: View {
         .onChange(of: listener.listening) { was, now in
             if was && !now { commitHeard() }
         }
+        .onAppear { onScreen = true }
         .onDisappear {
+            onScreen = false
             if listener.listening { listener.stop() }
             VoiceAccess.deactivate()
         }
@@ -139,7 +144,7 @@ struct ExplainBackView: View {
         Task {
             let allowed = await VoiceAccess.request()
             hearing = allowed
-            guard allowed.canHear else { return }
+            guard allowed.canHear, onScreen else { return }
             listener.start(hints: Array(CardQuality.terms(topic)))
         }
     }

@@ -42,3 +42,16 @@ console.log('all passed');
   if (x.question !== 'Stem here' || Object.keys(x.options).join() !== 'A,B,C' || x.answer_idx !== 'B') { console.log('FAIL MedXpertQA shape', x); process.exit(1); }
   console.log('ok   checker comparison scoring, MedXpertQA shape and model pinning');
 }
+
+// Google's quota details, passed through so the benchmark can pace itself
+{
+  const { quotaNote } = await import('../ai.js');
+  const note = quotaNote({ error: { details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', quotaValue: '20' }] },
+    { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '41s' },
+  ] } });
+  if (note !== '[quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=20; retry 41s]' || quotaNote({ error: {} }) !== '') {
+    console.log('FAIL quota note', note); process.exit(1);
+  }
+  console.log('ok   Google quota details are read');
+}

@@ -29,7 +29,7 @@ extension ExplainResult {
         } else if let real = try? c.decodeIfPresent(Double.self, forKey: .score) {
             score = Int(real.rounded())
         } else if let text = try? c.decodeIfPresent(String.self, forKey: .score) {
-            score = Int(text.filter(\.isNumber)) ?? 0
+            score = MarkNumber.percent(from: text) ?? 0
         }
         score = min(100, max(0, score))
     }

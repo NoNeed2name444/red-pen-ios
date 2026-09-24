@@ -79,6 +79,16 @@ GEMINI_PRICES = "gemini-3.1-pro-preview:2.00/12.00,gemini-3.5-flash:0.30/2.50,ge
 FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
 # Accounts that are always Pro for the cloud models (comma-separated ids).
 OWNER_ACCOUNT_IDS = ""
+# The natural voice (POST /tts, see tts.js): Deepgram Aura-2 on Workers AI.
+# It costs $0.03 per 1,000 characters out of the same free 10,000 neurons a
+# day as the text fallback (1,000 characters is about 2,700 neurons), so
+# everyone together gets TTS_FREE_DAILY_CHARS of it a day for free; every line
+# is cached in R2, so a repeated line costs nothing. Past that, MeloTTS (about
+# 19 neurons a minute of speech, one voice only) - or, once PRO_PAYS is on,
+# Aura-2 out of Pro's budget. TTS_DAILY_LIMIT is lines per account per day.
+TTS_FREE_DAILY_CHARS = "2500"
+TTS_DAILY_LIMIT = "300"
+TTS_VOICES = "narrator:pandora,patient:draco"
 
 # Secrets are NOT in this file, and must never be added to it - it is in the
 # repository. Set each one with `wrangler secret put NAME`:

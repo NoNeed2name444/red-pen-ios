@@ -14,6 +14,8 @@ struct CommuteModeView: View {
     @State private var includeDue = true
     @State private var chosenSets: Set<UUID> = []
     @State private var perSet = 10
+    /// Read by VoiceSpeaker everywhere the app speaks, not only here.
+    @AppStorage(CloudVoiceSetting.key) private var naturalVoice = true
 
     var body: some View {
         Group {
@@ -95,6 +97,20 @@ struct CommuteModeView: View {
             }
 
             Section {
+                Toggle(isOn: $naturalVoice) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Natural cloud voice")
+                        Text("A human-sounding voice, made online")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Voice")
+            } footer: {
+                Text(voiceFooter)
+            }
+
+            Section {
                 Button {
                     start(due: due.isEmpty ? stand : due)
                 } label: {
@@ -123,13 +139,28 @@ struct CommuteModeView: View {
         .scrollContentBackground(.hidden)
     }
 
+    private var voiceFooter: String {
+        let phone = "For the most natural voice on this iPhone alone, download a Premium or Enhanced English voice in Settings \u{203A} Accessibility \u{203A} Spoken Content \u{203A} Voices."
+        if naturalVoice {
+            return "Part of Pro. Used for commute mode and spoken OSCE stations; with no connection, this iPhone's own voice reads instead. " + phone
+        }
+        return "This iPhone's own voice reads everything. " + phone
+    }
+
     private func chosen(_ id: UUID) -> Binding<Bool> {
         Binding(get: { chosenSets.contains(id) },
                 set: { on in if on { chosenSets.insert(id) } else { chosenSets.remove(id) } })
     }
 
+    /// Questions that can be asked aloud and answered by letter: no
+    /// picture, and a key among the options read out (A to E) - a key past
+    /// E, or missing, would make every spoken answer wrong.
     private func readableQuestions(in set: StudySet) -> [MCQQuestion] {
-        set.questions.filter { $0.imageIndex == nil && $0.options.count >= 2 }
+        let spoken: Int = SpokenAnswer.letters.count
+        return set.questions.filter { q in
+            q.imageIndex == nil && q.options.count >= 2
+                && q.options.indices.contains(q.correctIndex) && q.correctIndex < spoken
+        }
     }
 
     private func playlist(due: [ReviewPlan.Due]) -> [CommuteSession.Item] {

@@ -170,7 +170,14 @@ enum VoiceMarking {
               let raw = try? JSONDecoder().decode(RawStationMark.self, from: data) else {
             throw Failure.unreadable
         }
-        let done = Set(raw.done.map { $0 - 1 }.filter { steps.indices.contains($0) }).sorted()
+        // a marker that listed only what was missed has marked the rest done;
+        // reading its silence as "nothing done" would fail every step
+        var numbersDone: [Int] = raw.done
+        if !raw.listedDone && !raw.missedNumbers.isEmpty {
+            let missed = Set(raw.missedNumbers)
+            numbersDone = steps.indices.map { $0 + 1 }.filter { !missed.contains($0) }
+        }
+        let done = Set(numbersDone.map { $0 - 1 }.filter { steps.indices.contains($0) }).sorted()
         return StationMark(done: done,
                            missedNotes: raw.missedNotes,
                            communication: min(5, max(1, raw.communication)),
@@ -182,6 +189,10 @@ enum VoiceMarking {
     /// anything in any shape.
     private struct RawStationMark: Decodable {
         var done: [Int] = []
+        /// Whether the reply had a "done" list at all.
+        var listedDone = false
+        /// Step numbers given as missed, when the reply gave numbers.
+        var missedNumbers: [Int] = []
         var missedNotes: [String] = []
         var communication = 3
         var feedback = ""
@@ -192,6 +203,13 @@ enum VoiceMarking {
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             done = Self.numbers(c, .done)
+            listedDone = c.contains(.done)
+            // numbers only, not a number inside a note ("asked 2 of 5 risk factors")
+            if let ints = try? c.decodeIfPresent([Int].self, forKey: .missed) {
+                missedNumbers = ints
+            } else if let texts = try? c.decodeIfPresent([String].self, forKey: .missed) {
+                missedNumbers = texts.compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            }
             // "missed" may be numbers (already implied by done) or notes
             missedNotes = (try? c.decodeIfPresent([String].self, forKey: .missed))?
                 .filter { Int($0) == nil } ?? []
@@ -200,7 +218,8 @@ enum VoiceMarking {
             } else if let real = try? c.decodeIfPresent(Double.self, forKey: .communication) {
                 communication = Int(real.rounded())
             } else if let text = try? c.decodeIfPresent(String.self, forKey: .communication) {
-                communication = Int(text.filter(\.isNumber)) ?? 3
+                // "3/5" is 3, not 35
+                communication = MarkNumber.first(in: text) ?? 3
             }
             feedback = (try? c.decodeIfPresent(String.self, forKey: .feedback)) ?? ""
             if let flags = try? c.decodeIfPresent([String: Bool].self, forKey: .spikes) {
@@ -213,7 +232,8 @@ enum VoiceMarking {
         private static func numbers(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> [Int] {
             if let ints = try? c.decodeIfPresent([Int].self, forKey: key) { return ints }
             if let texts = try? c.decodeIfPresent([String].self, forKey: key) {
-                return texts.compactMap { Int($0.filter(\.isNumber)) }
+                // "Step 3" is 3; "1-3" is not 13
+                return texts.compactMap { MarkNumber.first(in: $0) }
             }
             return []
         }
