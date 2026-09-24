@@ -45,7 +45,6 @@ jobs:
         run: |
           mkdir -p out
           S=ios/RedPen/Shared; M=ios/RedPen/Models; F=ios/RedPen/Features
-          suite narrate NarrateTests.swift $S/NarratePlan.swift
           suite () {
             name=$1; test=$2; shift 2
             mkdir -p build/$name
@@ -70,6 +69,7 @@ jobs:
                 $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
                 $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
+          suite narrate NarrateTests.swift $S/NarratePlan.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           suite coverage CoverageTests.swift $S/MCQCoverage.swift
