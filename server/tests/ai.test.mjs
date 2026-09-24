@@ -197,7 +197,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const r = await chat(freshEnv(firebase), 'a1', request, gemini(200));
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
-  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.5-flash:generateContent'), 'through the Firebase project, Flash first');
+  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.6-flash:generateContent'), 'through the Firebase project, the newest Flash first');
 
   let workersAsked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async (model, input) => { workersAsked++; return { response: `from ${model}` }; } } });
@@ -212,13 +212,13 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
   ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
 
-  // Flash overloaded: Flash-Lite answers instead of giving up on Gemini
+  // the Flashes overloaded: Flash-Lite answers instead of giving up on Gemini
   const tried = [];
   const busyFlash = async url => { tried.push(url);
     return url.includes('flash-lite') ? new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'lite' }] } }] }), { status: 200 })
       : new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 503 }); };
   const bl = await chat(freshEnv(firebase), 'a1', request, busyFlash);
-  ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 2, 'Flash overloaded (503): Flash-Lite answers');
+  ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 3, 'Flashes overloaded (503): Flash-Lite answers');
 
   // per-minute limit on both: wait as asked, then go round again
   let calls = 0;
@@ -289,8 +289,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(none.status === 503, 'transcription config says so when Firebase is not set up');
   const set = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' })).json();
   ok(set.apiKey === 'fk' && set.projectId === 'cramdown-x', 'and hands back the project once it is');
-  ok(set.models[0] === 'gemini-3.5-flash' && set.models.includes('gemini-3.5-flash-lite'),
-     'with Gemini 3.5 Flash first and Flash-Lite as the fallback');
+  ok(set.models[0] === 'gemini-3.6-flash' && set.models.includes('gemini-3.5-flash-lite'),
+     'with the newest Flash first and Flash-Lite as the last fallback');
   const swapped = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' })).json();
   ok(swapped.models.join('|') === 'gemini-3.8-flash|gemini-3.5-flash', 'a model swap is a server setting, not an app update');
   const routed = await worker.fetch(new Request('https://x/transcribe/config', { method: 'POST' }),

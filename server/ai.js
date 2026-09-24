@@ -185,7 +185,7 @@ export async function appCheckToken(env, fetcher = fetch, clock = Date.now) {
 export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 
 async function askGemini(env, messages, maxTokens, temperature, fetcher) {
-  const models = (env.CLOUD_MODELS || env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
+  const models = (env.CLOUD_MODELS || env.TRANSCRIBE_MODELS || 'gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it')
     .split(',').map(m => m.trim()).filter(Boolean);
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);

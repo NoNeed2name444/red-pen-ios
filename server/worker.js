@@ -46,7 +46,7 @@ export async function transcribeConfig(env, request, fetcher = fetch) {
   if (!env.FIREBASE_API_KEY || !env.FIREBASE_PROJECT_ID) {
     return fail(503, "Cloud transcription isn't set up on this server.");
   }
-  const models = (env.TRANSCRIBE_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
+  const models = (env.TRANSCRIBE_MODELS || 'gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite')
     .split(',').map(m => m.trim()).filter(Boolean);
   // an App Check token for the phone's Gemini calls (see appCheckToken);
   // handed out a limited number of times a day per address
