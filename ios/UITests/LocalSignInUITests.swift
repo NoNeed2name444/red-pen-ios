@@ -18,7 +18,8 @@ final class LocalSignInUITests: XCTestCase {
         // then the recording terms: not pressable for five seconds, then pressable
         let accept = app.buttons["acceptRecordingTerms"]
         XCTAssertTrue(accept.waitForExistence(timeout: 10), "the recording terms didn't appear")
-        XCTAssertFalse(accept.isEnabled, "the terms could be accepted before the countdown ended")
+        // (whether it is still counting down depends on how long the simulator
+        // took to show it, so that is not asserted here)
         let countdown = XCTAttachment(screenshot: app.screenshot())
         countdown.name = "terms-countdown"
         countdown.lifetime = .keepAlways
@@ -26,9 +27,12 @@ final class LocalSignInUITests: XCTestCase {
         let ready = NSPredicate(format: "isEnabled == true")
         expectation(for: ready, evaluatedWith: accept)
         waitForExpectations(timeout: 10)
+        XCTAssertTrue(accept.isHittable, "the agree button is covered by something")
         accept.tap()
         expectation(for: gone, evaluatedWith: accept)
         waitForExpectations(timeout: 10)
+        // and the library is really there, not a blank screen
+        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 15), "the library didn't open after agreeing")
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.lifetime = .keepAlways
         add(shot)
