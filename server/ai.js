@@ -39,7 +39,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export async function chat(env, accountId, body, fetcher = fetch, { owner = false } = {}) {
   // The owner key (the app owner's own builds) skips the account and the
-  // subscription check, but not the daily allowance.
+  // subscription check, but not a daily allowance of its own.
   if (!owner) {
     const refused = await proGate(env, accountId, fetcher, 'CramDown Cloud is part of Pro.');
     if (refused) return refused;
@@ -56,9 +56,10 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
 
-  const limit = Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
-  // the owner's own builds and the accuracy benchmark are not rationed
-  if (!owner && !await spend(env, accountId, limit)) {
+  // the owner's own builds and the accuracy benchmark get a much higher
+  // allowance, but still one: a leaked owner key cannot spend without end
+  const limit = owner ? Number(env.OWNER_DAILY_LIMIT) || 3000 : Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
+  if (!await spend(env, owner ? 'owner' : accountId, limit)) {
     return fail(429, `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`);
   }
 
@@ -133,8 +134,8 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
   if (!audio || audio.length > MAX_AUDIO_CHARS || !/^[A-Za-z0-9+/=]+$/.test(audio.slice(0, 200)) || !prompt) {
     return fail(400, 'That audio could not be sent.');
   }
-  const limit = Number(env.TRANSCRIBE_DAILY) || 36; // ten-minute chunks: six hours a day
-  if (!owner && !await spend(env, `transcribe:${accountId}`, limit)) {
+  const limit = owner ? 200 : Number(env.TRANSCRIBE_DAILY) || 36; // ten-minute chunks: six hours a day
+  if (!await spend(env, `transcribe:${owner ? 'owner' : accountId}`, limit)) {
     return fail(429, "That's today's cloud transcription used. It resets at midnight UTC; this phone can still transcribe.");
   }
   const models = await geminiModels(env, accountId, owner, 'transcribe');
@@ -486,6 +487,7 @@ export async function isPro(env, account, fetcher = fetch) {
   if ((account.verified_until || 0) > now() && now() - (account.checked_at || 0) < RECHECK_SECONDS) return true;
   if (!account.original_transaction_id) return false;
   const until = await askApple(env, account.original_transaction_id, fetcher);
+  if (until === null) return (account.verified_until || 0) > now();
   await env.DB.prepare('UPDATE accounts SET verified_until = ?, checked_at = ? WHERE id = ?')
     .bind(until, now(), account.id).run();
   return until > now();
@@ -497,7 +499,13 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   const original = typeof body.originalTransactionId === 'string'
     && /^\d{1,30}$/.test(body.originalTransactionId) ? body.originalTransactionId : null;
   if (!original) return json({ ok: true, pro: false });
+  // one subscription unlocks one account: a transaction id is not a secret
+  // (it is in every receipt), so without this anyone given one gets Pro
+  const holder = await env.DB.prepare('SELECT id FROM accounts WHERE original_transaction_id = ? AND id != ?')
+    .bind(original, accountId).first();
+  if (holder) return fail(409, 'This subscription is already linked to another CramDown account. Sign in with that account, or contact support to move it.');
   const until = await askApple(env, original, fetcher);
+  if (until === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
   await env.DB.prepare(
     'UPDATE accounts SET original_transaction_id = ?, verified_until = ?, checked_at = ? WHERE id = ?')
     .bind(original, until, now(), accountId).run();
@@ -516,7 +524,9 @@ export async function askApple(env, originalTransactionId, fetcher = fetch) {
       headers: { authorization: `Bearer ${token}` },
     });
     if (response.status === 404) continue;
-    if (!response.ok) return 0;
+    // Apple busy or down says nothing about the subscription: null, so the
+    // last answer we had stands rather than a subscriber losing Pro
+    if (!response.ok) return null;
     const answer = await response.json();
     if (answer.bundleId && answer.bundleId !== env.APPLE_BUNDLE_ID) return 0;
     let until = 0;
@@ -567,37 +577,4 @@ export function isOwnerKey(request, env) {
   let diff = 0;
   for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ given.charCodeAt(i);
   return diff === 0;
-}
-
-/// Narrate's second transcriber: Whisper large-v3 turbo on Cloudflare Workers
-/// AI, for when Gemini refuses (out of quota, or locked by App Check). One
-/// ten-minute piece per call, as base64 audio, answered as timed phrases in
-/// the shape the app already reads from Gemini. No sign-in, so it is rationed
-/// by address: 60 pieces (ten hours) a day.
-export async function whisper(request, body, env) {
-  if (!env.AI) return fail(503, "Cloud transcription isn't set up on this server.");
-  if (typeof body.audio !== 'string' || body.audio.length < 100 || body.audio.length > 12_000_000) {
-    return fail(400, 'Send one piece of audio, base64, under 9 MB.');
-  }
-  const address = request.headers.get('cf-connecting-ip') || 'unknown';
-  if (!await spend(env, `whisper:${address}`, Number(env.WHISPER_DAILY_PIECES) || 60)) {
-    return fail(429, "That's today's cloud transcription used on this network. On this phone still works.");
-  }
-  try {
-    const out = await env.AI.run('@cf/openai/whisper-large-v3-turbo', {
-      audio: body.audio,
-      language: typeof body.language === 'string' ? body.language.slice(0, 5) : undefined,
-      // the lecture's own terms, so English words inside Arabic come out spelled
-      initial_prompt: typeof body.prompt === 'string' ? body.prompt.slice(0, 800) : undefined,
-      vad_filter: true,
-      condition_on_previous_text: false,
-    });
-    const phrases = (out?.segments || [])
-      .map(s => ({ start: Number(s.start) || 0, end: Number(s.end) || 0, text: String(s.text || '').trim() }))
-      .filter(p => p.text);
-    return json({ phrases, text: out?.transcription_info?.text || out?.text || '' });
-  } catch (error) {
-    console.error('whisper', error);
-    return fail(502, 'The cloud transcriber could not read that piece.');
-  }
 }

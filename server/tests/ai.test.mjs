@@ -109,6 +109,30 @@ const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64u
   ok(linked.pro === false, "a subscription for a different bundle id doesn't count");
 }
 
+// one subscription, one account; and Apple being down doesn't cancel Pro
+{
+  const env = freshEnv(asc);
+  env.DB.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('b2', 'google', 's2', 0)`).run();
+  const future = Date.now() + 30 * 86_400_000;
+  const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
+    { status: 1, signedTransactionInfo: jws({ expiresDate: future }) }] }] };
+  await linkSubscription(env, 'a1', { originalTransactionId: '2000000200' }, fakeFetch(apple));
+  const shared = await linkSubscription(env, 'b2', { originalTransactionId: '2000000200' }, fakeFetch(apple));
+  ok(shared.status === 409, "someone else's transaction id does not make a second account Pro");
+
+  // a1 is Pro; time passes past the recheck and Apple answers 503
+  env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
+  const down = async (url, init) => url.includes('storekit') ? new Response('busy', { status: 503 }) : fakeFetch(apple)(url, init);
+  ok((await chat(env, 'a1', request, down)).status === 200, 'Apple being down does not take Pro away from a subscriber');
+}
+
+// the owner key has a daily allowance too
+{
+  const env = freshEnv({ OWNER_DAILY_LIMIT: '1' });
+  await chat(env, 'owner', request, fakeFetch({}), { owner: true });
+  ok((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status === 429, 'a leaked owner key cannot spend without end');
+}
+
 // the daily allowance
 {
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_DAILY_LIMIT: '3' });
@@ -278,23 +302,6 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(r.status === 200 && novita === 0 && (await r.json()).choices[0].message.content === 'free', 'PRO_PAYS off: Novita is never called, the free model answers');
 }
 
-// Narrate's second transcriber: Whisper on Workers AI
-{
-  const { whisper } = await import('../ai.js');
-  const req = { headers: new Map([['cf-connecting-ip', '1.2.3.4']]) };
-  req.headers.get = req.headers.get.bind(req.headers);
-  let asked;
-  const env = freshEnv({ AI: { run: async (model, input) => { asked = { model, input };
-    return { segments: [{ start: 0.5, end: 3, text: ' الـ malar rash ' }, { start: 3, end: 4, text: '' }], transcription_info: { text: 'x' } }; } } });
-  const r = await whisper(req, { audio: 'A'.repeat(200), language: 'ar', prompt: 'lupus, malar' }, env);
-  const j = await r.json();
-  ok(r.status === 200 && j.phrases.length === 1 && j.phrases[0].text === 'الـ malar rash', 'Whisper answers as timed phrases, empty ones dropped');
-  ok(asked.model.includes('whisper-large-v3') && asked.input.initial_prompt === 'lupus, malar' && asked.input.language === 'ar', 'with the lecture terms and the language');
-  ok((await whisper(req, { audio: 'x' }, env)).status === 400, 'no audio, no call');
-  const tight = freshEnv({ AI: env.AI, WHISPER_DAILY_PIECES: '1' });
-  await whisper(req, { audio: 'A'.repeat(200) }, tight);
-  ok((await whisper(req, { audio: 'A'.repeat(200) }, tight)).status === 429, 'and it is rationed per address');
-}
 
 // App Check: the registered debug token is exchanged once, reused, and sent
 {

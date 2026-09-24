@@ -94,7 +94,7 @@ enum OsceStations {
     /// "already written" list makes every call return the same station - and
     /// checking it needs no model, only the text.
     static func prompt(sourceText: String, count: Int, subject: String,
-                       alreadyWritten: [String]) -> String {
+                       alreadyWritten: [String], exam: ExamTrack = .current) -> String {
         var lines = [
             "You write OSCE station checklists for a medical student revising \(subject.isEmpty ? "clinically" : subject).",
             "",
@@ -107,6 +107,7 @@ enum OsceStations {
             "Use only what the source supports. Do not invent a procedure the source never mentions.",
             "Do not number the steps; the order is the number.",
         ]
+        if let style = exam.osceStyle { lines.append(style) }
         if !alreadyWritten.isEmpty {
             lines.append("")
             lines.append("You have already written these stations - write different ones:")

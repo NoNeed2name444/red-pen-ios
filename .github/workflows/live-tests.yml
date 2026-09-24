@@ -40,7 +40,7 @@ jobs:
             $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
             $S/PlainTextImport.swift $S/BookPages.swift $S/Highlight.swift \
             $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift $S/Explanation.swift \
-            $S/MCQGenerator.swift $S/MCQPrompt.swift $S/MCQCoverage.swift \
+            $S/MCQGenerator.swift $S/MCQPrompt.swift $S/ExamTrack.swift $S/MCQCoverage.swift \
             $S/OsceGenerator.swift $S/OsceStations.swift $S/CaseSimulator.swift \
             $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/LLM/AccuracyChecker.swift \
             $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift 2>&1 | tee out/compile.log | grep -E "error" | head -40 || true

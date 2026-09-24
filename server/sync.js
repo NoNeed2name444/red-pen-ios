@@ -69,7 +69,13 @@ export async function changes(env, account, body) {
 
 // MARK: pushing
 
+const MAX_PAYLOAD_CHARS = 1_900_000;
+const MAX_DOCS_PER_ACCOUNT = 50_000;
+
 export async function push(env, account, body) {
+  // one account cannot fill the database everyone shares
+  const count = (await env.DB.prepare('SELECT COUNT(*) AS n FROM docs WHERE account_id = ?').bind(account).first())?.n || 0;
+  if (count >= MAX_DOCS_PER_ACCOUNT) return json({ error: 'This library is too large to sync.' }, 507);
   // Capped because each document here is several database round trips, and a
   // batch is whatever the sender says it is. A real device sends tens; a
   // request claiming fifty thousand is not a sync.
@@ -78,7 +84,10 @@ export async function push(env, account, body) {
   const conflicts = [];
 
   for (const doc of docs) {
-    if (!doc || typeof doc.id !== 'string') continue;
+    // D1 rows stop at 2 MB; an id or kind is a short name, never a document
+    if (!doc || typeof doc.id !== 'string' || !doc.id || doc.id.length > 200) continue;
+    if (doc.kind != null && (typeof doc.kind !== 'string' || !/^[A-Za-z0-9_.-]{1,40}$/.test(doc.kind))) continue;
+    if (typeof doc.payload === 'string' && doc.payload.length > MAX_PAYLOAD_CHARS) continue;
     const existing = await env.DB.prepare(
       'SELECT rev, updated_at, kind, deleted, payload FROM docs WHERE account_id = ? AND id = ?')
       .bind(account, doc.id).first();
@@ -170,14 +179,21 @@ export async function missingBlobs(env, account, body) {
   // round trips before the first byte of the first picture moves, which on a
   // reinstall is the whole delay the student sees.
   const wanted = names.filter(isHash);
-  const found = await Promise.all(
-    wanted.map(name => env.BLOBS.head(key(account, name))));
+  // in groups of 40: a Worker may only make so many calls at once, and a
+  // name dropped here would be reported as present
+  const found = [];
+  for (let i = 0; i < wanted.length; i += 40) {
+    found.push(...await Promise.all(wanted.slice(i, i + 40).map(name => env.BLOBS.head(key(account, name)))));
+  }
   const missing = wanted.filter((_, i) => !found[i]);
   return json({ missing });
 }
 
 export async function putBlob(env, account, name, request, budget = Infinity) {
   if (!isHash(name)) return json({ error: 'bad name' }, 400);
+  // refused on its declared size before it is read into memory
+  const declared = Number(request.headers?.get?.('content-length')) || 0;
+  if (declared > 12 * 1024 * 1024) return json({ error: 'too big' }, 413);
   const data = await request.arrayBuffer();
   if (data.byteLength > 12 * 1024 * 1024) return json({ error: 'too big' }, 413);
 

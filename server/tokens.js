@@ -125,6 +125,9 @@ async function keysFromApple(force = false) {
   // cached for an hour: Apple rotates these, and fetching them on every sign-in
   // makes Apple's availability our availability
   if (!force && appleKeys && Date.now() - appleKeysAt < 3600_000) return appleKeys;
+  // a forced refetch (an unknown key id) at most once a minute: made-up key
+  // ids are free to send, and each one would otherwise be a call to Apple
+  if (force && appleKeys && Date.now() - appleKeysAt < 60_000) return appleKeys;
   const response = await fetch('https://appleid.apple.com/auth/keys');
   if (!response.ok) throw new Error('could not fetch Apple keys');
   appleKeys = (await response.json()).keys;

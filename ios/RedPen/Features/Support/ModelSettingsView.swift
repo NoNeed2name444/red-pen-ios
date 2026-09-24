@@ -12,10 +12,21 @@ struct ModelSettingsView: View {
     @State private var editingIsNew = false
     @State private var showPaywall = false
     @State private var cloudNote: String?
+    @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker("Exam", selection: $exam) {
+                        ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                } header: {
+                    Text("Your exam")
+                } footer: {
+                    Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
+                }
+
                 Section {
                     ForEach(LLMRole.allCases) { role in
                         Picker(role.title, selection: binding(for: role)) {
@@ -55,7 +66,7 @@ struct ModelSettingsView: View {
                 } header: {
                     Text("CramDown Cloud \u{00B7} Pro")
                 } footer: {
-                    Text("Google's Gemini, with Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; CramDown does not keep it.")
+                    Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; CramDown does not keep it.")
                 }
 
                 Section {

@@ -91,5 +91,10 @@ ok(asked.contains("Respiratory examination"),
 ok(asked.contains("Do not number the steps"),
    "and asks for unnumbered steps, since the order is the number")
 
+let plab = OsceStations.prompt(sourceText: "Chest pain.", count: 1, subject: "", alreadyWritten: [], exam: .plab)
+ok(plab.contains("PLAB 2") && plab.contains("8 minutes"), "a PLAB student gets PLAB 2 stations")
+ok(!OsceStations.prompt(sourceText: "x", count: 1, subject: "", alreadyWritten: [], exam: .general).contains("PACES"),
+   "and general revision gets no exam format")
+
 print(failures == 0 ? "\nALL OSCE TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

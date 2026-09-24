@@ -18,9 +18,10 @@ extension MCQGenerator {
 
     static func buildPrompt(sourceText: String, count: Int, subject: String, highYield: Bool,
                             requestJSONShape: Bool = false,
-                            alreadyAsked: [MCQCoverage.Asked] = []) -> String {
+                            alreadyAsked: [MCQCoverage.Asked] = [],
+                            exam: ExamTrack = .current) -> String {
         var lines: [String] = [
-            "You are writing single-best-answer multiple-choice questions for a medical student's internal medicine exam revision, in the NBME/USMLE \"one-best-answer\" style.",
+            exam.mcqStyle,
             "",
         ]
         if !sourceText.isEmpty {

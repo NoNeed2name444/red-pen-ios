@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, whisper, transcribeChunk, budget } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -97,7 +97,6 @@ export default {
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
           return await guarded(request, env, id => transcribeChunk(env, id, body));
-        case '/transcribe/whisper': return await whisper(request, body, env);
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {
@@ -263,6 +262,10 @@ async function deleteAccount(request, env) {
   // requires the account to be removable from inside the app, and an account
   // whose data outlives it has not been deleted.
   await wipe(env, id);
+  // the AI allowance and spend rows are about the account too
+  for (const table of ['ai_usage', 'ai_cost']) {
+    await env.DB.prepare(`DELETE FROM ${table} WHERE account_id = ? OR account_id = ?`).bind(id, `transcribe:${id}`).run().catch(() => {});
+  }
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
