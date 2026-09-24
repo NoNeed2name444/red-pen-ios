@@ -101,7 +101,7 @@ nonisolated enum GraphShaders {
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 
-    /// A link: a hot white-gold core wire that jitters a little, an orange
+    /// A link: a steady hot white-gold core wire, an orange
     /// inner glow, a breathing aura fading to violet at its edge, current
     /// pulses running from one end to the other and lighting the aura as
     /// they pass, and thin branching sparks crackling in and out along it.
@@ -129,10 +129,8 @@ nonisolated enum GraphShaders {
     float rp_m = rpMotion;
     float rp_t = rpClock * rp_m;
 
-    float rp_w = sin(rp_x * 13.0 + rp_t * 31.0 + rp_seed * 1.7);
-    rp_w = rp_w + 0.6 * sin(rp_x * 29.0 - rp_t * 47.0 + rp_seed * 4.3);
-    rp_w = rp_w * 0.035 * rp_m;
-    float rp_d = rp_s - rp_w;
+    // a straight, steady core: nothing in the middle of the line jumps
+    float rp_d = rp_s;
     float rp_d2 = rp_d * rp_d;
     float rp_core = exp(-rp_d2 * 420.0);
     float rp_solid = exp(-rp_d2 * 60.0) * rpSolid;
@@ -150,29 +148,50 @@ nonisolated enum GraphShaders {
     rp_head = rp_head * rp_head * (3.0 - 2.0 * rp_head);
     float rp_pulse = rp_p4 * rp_p4 * rp_head * rp_m;
 
-    float rp_tick = floor(rp_t * 14.0);
+    // the crackle changes shape 6 times a second, each shape fading into the
+    // next (no hard steps), and drifts slowly along the line in between
+    float rp_rate = rp_t * 6.0;
+    float rp_blend = fract(rp_rate);
+    rp_blend = rp_blend * rp_blend * (3.0 - 2.0 * rp_blend);
+    float rp_drift = rp_t * 0.9;
     float rp_cell = rp_x * 2.2 + rp_seed * 5.0;
     float rp_seg = floor(rp_cell);
     float rp_within = fract(rp_cell);
-    float rp_h1 = fract(sin(rp_seg * 91.7 + rp_tick * 37.3 + rp_seed * 11.0) * 43758.547);
-    float rp_h2 = fract(sin(rp_seg * 47.3 + rp_tick * 19.1 + rp_seed * 3.0) * 24634.633);
-    float rp_h3 = fract(sin(rp_seg * 13.9 + rp_tick * 71.7 + rp_seed * 7.0) * 17431.231);
     float rp_gate = 0.64 - 0.2 * rp_lit;
-    float rp_on = step(rp_gate, rp_h1) * rp_m;
     float rp_bow = sin(rp_within * 3.14159);
-    float rp_zig = sin(rp_x * 41.0 + rp_tick * 2.7) * 0.10;
-    rp_zig = rp_zig + sin(rp_x * 97.0 - rp_tick * 1.3) * 0.05;
-    float rp_arcAt = ((rp_h2 - 0.5) * 1.3 + rp_zig) * rp_bow;
-    float rp_e1 = rp_s - rp_arcAt;
-    float rp_arc = exp(-rp_e1 * rp_e1 * 380.0) * rp_bow;
     float rp_fork = max(rp_within * 2.0 - 1.0, 0.0);
-    float rp_branchAt = rp_arcAt + (rp_h3 - 0.5) * 0.9 * rp_fork;
-    float rp_e2 = rp_s - rp_branchAt;
-    float rp_branch = exp(-rp_e2 * rp_e2 * 500.0) * rp_fork * step(0.5, rp_h3);
-    float rp_spark = (rp_arc + 0.7 * rp_branch) * rp_on;
+    float rp_tickA = floor(rp_rate);
+    float rp_h1A = fract(sin(rp_seg * 91.7 + rp_tickA * 37.3 + rp_seed * 11.0) * 43758.547);
+    float rp_h2A = fract(sin(rp_seg * 47.3 + rp_tickA * 19.1 + rp_seed * 3.0) * 24634.633);
+    float rp_h3A = fract(sin(rp_seg * 13.9 + rp_tickA * 71.7 + rp_seed * 7.0) * 17431.231);
+    float rp_onA = step(rp_gate, rp_h1A) * rp_m;
+    float rp_zigA = sin(rp_x * 23.0 + rp_tickA * 2.7 + rp_drift) * 0.08;
+    rp_zigA = rp_zigA + sin(rp_x * 47.0 - rp_tickA * 1.3 - rp_drift) * 0.04;
+    float rp_arcAtA = ((rp_h2A - 0.5) * 1.3 + rp_zigA) * rp_bow;
+    float rp_e1A = rp_s - rp_arcAtA;
+    float rp_arcA = exp(-rp_e1A * rp_e1A * 380.0) * rp_bow;
+    float rp_branchAtA = rp_arcAtA + (rp_h3A - 0.5) * 0.9 * rp_fork;
+    float rp_e2A = rp_s - rp_branchAtA;
+    float rp_branchA = exp(-rp_e2A * rp_e2A * 500.0) * rp_fork * step(0.5, rp_h3A);
+    float rp_sparkA = (rp_arcA + 0.7 * rp_branchA) * rp_onA;
+    float rp_tickB = floor(rp_rate) + 1.0;
+    float rp_h1B = fract(sin(rp_seg * 91.7 + rp_tickB * 37.3 + rp_seed * 11.0) * 43758.547);
+    float rp_h2B = fract(sin(rp_seg * 47.3 + rp_tickB * 19.1 + rp_seed * 3.0) * 24634.633);
+    float rp_h3B = fract(sin(rp_seg * 13.9 + rp_tickB * 71.7 + rp_seed * 7.0) * 17431.231);
+    float rp_onB = step(rp_gate, rp_h1B) * rp_m;
+    float rp_zigB = sin(rp_x * 23.0 + rp_tickB * 2.7 + rp_drift) * 0.08;
+    rp_zigB = rp_zigB + sin(rp_x * 47.0 - rp_tickB * 1.3 - rp_drift) * 0.04;
+    float rp_arcAtB = ((rp_h2B - 0.5) * 1.3 + rp_zigB) * rp_bow;
+    float rp_e1B = rp_s - rp_arcAtB;
+    float rp_arcB = exp(-rp_e1B * rp_e1B * 380.0) * rp_bow;
+    float rp_branchAtB = rp_arcAtB + (rp_h3B - 0.5) * 0.9 * rp_fork;
+    float rp_e2B = rp_s - rp_branchAtB;
+    float rp_branchB = exp(-rp_e2B * rp_e2B * 500.0) * rp_fork * step(0.5, rp_h3B);
+    float rp_sparkB = (rp_arcB + 0.7 * rp_branchB) * rp_onB;
+    float rp_spark = mix(rp_sparkA, rp_sparkB, rp_blend);
 
-    float rp_f = sin(rp_t * 53.0 + rp_seed * 3.1) * sin(rp_t * 19.0 + rp_seed * 7.7);
-    float rp_flicker = 1.0 - 0.18 * rp_m * (0.5 + 0.5 * rp_f);
+    float rp_f = sin(rp_t * 4.1 + rp_seed * 3.1) * sin(rp_t * 2.3 + rp_seed * 7.7);
+    float rp_flicker = 1.0 - 0.08 * rp_m * (0.5 + 0.5 * rp_f);
     float rp_boost = 1.0 + 0.8 * rp_lit;
     float rp_lift = 1.0 + 2.2 * rp_pulse;
     float rp_edge = clamp(abs(rp_s) * 1.4 - 0.2, 0.0, 1.0);
