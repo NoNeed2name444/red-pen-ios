@@ -227,7 +227,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 
     /// The quiz this feature opens, built now from the library; nil for the
     /// ones that are not quizzes, or when there is nothing to build one from.
-    func quiz(from store: Store) -> InsightQuiz? {
+    @MainActor func quiz(from store: Store) -> InsightQuiz? {
         switch self {
         case .mixed:
             let picks: [QuestionPick] = Array(store.mcqPicks { _ in true }.shuffled().prefix(20))
