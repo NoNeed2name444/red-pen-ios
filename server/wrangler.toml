@@ -57,8 +57,10 @@ COST_SHARE = "0.6"
 # (Apple's $99 a year is $8.25 a month; GitHub Actions minutes for a private
 # repo, Cloudflare Workers Paid $5, a rented GPU server, ...)
 MONTHLY_BILLS = "apple-developer:8.25,github-actions:0,cloudflare-workers:0"
-PAID_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
-GEMINI_PRICES = "gemini-3.5-flash:0.30/2.50,gemini-3.5-flash-lite:0.10/0.40,baichuan/baichuan-m2-32b:0.07/0.07"
+# Gemini 3.1 Pro first once Pro pays: Google's frontier model, paid only (its
+# free allowance is 0), reachable through the same Firebase project
+PAID_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+GEMINI_PRICES = "gemini-3.1-pro-preview:2.00/12.00,gemini-3.5-flash:0.30/2.50,gemini-3.5-flash-lite:0.10/0.40,baichuan/baichuan-m2-32b:0.07/0.07"
 FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
 # Accounts that are always Pro for the cloud models (comma-separated ids).
 OWNER_ACCOUNT_IDS = ""

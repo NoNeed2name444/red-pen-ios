@@ -37,6 +37,9 @@ struct SourcePreviewView: View {
     @State private var term = ""
     @State private var showingPages = false
     @State private var file: URL?
+    /// The whole document, or one page with the cards made from it.
+    @State private var whole = true
+    @AppStorage(SourceScroll.storageKey) private var scrollRaw = SourceScroll.vertical.rawValue
 
     init(source: SourceDoc, set: StudySet? = nil, openAt: Int = 1) {
         self.source = source
@@ -71,6 +74,8 @@ struct SourcePreviewView: View {
                 page = found
                 term = ""
             }
+        } else if whole {
+            SourceDocumentView(source: source, file: file, page: $page)
         } else if wide {
             HStack(spacing: 0) {
                 SourcePageList(source: source, selected: $page)
@@ -92,7 +97,28 @@ struct SourcePreviewView: View {
         ToolbarItem(placement: .cancellationAction) {
             Button("Done") { dismiss() }
         }
-        if !wide {
+        ToolbarItem(placement: .principal) {
+            Picker("View", selection: $whole) {
+                Text("Document").tag(true)
+                Text("Page").tag(false)
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 220)
+        }
+        if whole {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    scrollRaw = scrollRaw == SourceScroll.vertical.rawValue
+                        ? SourceScroll.horizontal.rawValue : SourceScroll.vertical.rawValue
+                } label: {
+                    Label(scrollRaw == SourceScroll.vertical.rawValue ? "Scroll down" : "Page across",
+                          systemImage: scrollRaw == SourceScroll.vertical.rawValue
+                            ? "arrow.up.and.down.text.horizontal" : "arrow.left.and.right.text.vertical")
+                }
+                .accessibilityHint("Switches between scrolling down and paging across")
+            }
+        }
+        if !wide && !whole {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showingPages = true
