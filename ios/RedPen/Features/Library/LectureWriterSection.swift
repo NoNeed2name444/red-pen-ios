@@ -65,6 +65,7 @@ struct LectureWriterSection: View {
             }
             .buttonStyle(.glassProminent)
             .disabled(!hasSource && !working)
+            .floatingActionAnchor("writer")
             if working {
                 Button("Stop", role: .cancel) { stop() }
             }
@@ -80,6 +81,8 @@ struct LectureWriterSection: View {
         } footer: {
             Text(modelLine)
         }
+        .floatingAction(id: "writer", title: "Write \(count) \(noun)\(count == 1 ? "" : "s")",
+                        enabled: hasSource && !working, run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }

@@ -36,6 +36,12 @@ struct MCQGenerateForm: View {
         return nil
     }
 
+    private var canStart: Bool {
+        !isGenerating
+            && !(activeBackend == nil && !llm.needsPro(.writer))
+            && !sourceText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     var body: some View {
         Group {
             LecturePDFSection(sourceText: $sourceText, questionCount: $questionCount,
@@ -83,9 +89,8 @@ struct MCQGenerateForm: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(isGenerating
-                          || (activeBackend == nil && !llm.needsPro(.writer))
-                          || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(!canStart)
+                .floatingActionAnchor("mcq")
                 if isGenerating {
                     Button("Cancel", role: .cancel) { GenerationCenter.shared.cancel() }
                 }
@@ -102,6 +107,8 @@ struct MCQGenerateForm: View {
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .onAppear { gemma.refreshStatus() }
+        .floatingAction(id: "mcq", title: "Write \(questionCount) questions", enabled: canStart,
+                        run: startGenerating)
         .onDisappear { generationTask?.cancel() }
     }
 

@@ -54,6 +54,7 @@ struct OsceGenerateSection: View {
                           systemImage: working ? "stop.circle" : "sparkles")
                 }
                 .disabled(!canGenerate && !working)
+                .floatingActionAnchor("osce")
             }
 
             if let status {
@@ -67,6 +68,9 @@ struct OsceGenerateSection: View {
         } footer: {
             Text("Stations land in the box below to check and edit before you create the set. A skills lecture or a mark sheet works best.")
         }
+        // only once a file is read is there a button to float
+        .floatingAction(id: sourceName.isEmpty ? "osce-unread" : "osce", title: "Write \(stationCount) station\(stationCount == 1 ? "" : "s")",
+                        enabled: canGenerate, run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }

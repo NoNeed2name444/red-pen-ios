@@ -85,12 +85,17 @@ struct NewSetView: View {
                         }
                         .buttonStyle(.glassProminent)
                         .disabled(!canCreate)
+                        .floatingActionAnchor("create")
                     } footer: {
                         Text(readiness)
                     }
                 }
             }
             .scrollContentBackground(.hidden)
+            .floatingAction(id: "create", title: "Create \(kind.label) set", symbol: "checkmark",
+                            enabled: canCreate, run: create)
+            .floatingActionBar(expecting: floatingID)
+            .onDisappear { FloatingAction.shared.clear() }
             .background(ModeBackdrop(kind: kind).animation(.easeInOut(duration: 0.5), value: kind))
             .navigationTitle("New set")
             .navigationBarTitleDisplayMode(.inline)
@@ -188,6 +193,20 @@ struct NewSetView: View {
         case .osce: return "Station checklists, step by step"
         case .narrate: return "A transcript read along with audio"
         }
+    }
+
+    /// Which button floats: the generator while there is nothing to create
+    /// yet, then Create once there is.
+    private var floatingID: String? {
+        let generator: String?
+        switch (path, kind) {
+        case (.lecture, .mcq): generator = "mcq"
+        case (.lecture, .osce): generator = "osce"
+        case (.lecture, .anki), (.lecture, .qa), (.lecture, .book): generator = "writer"
+        default: generator = nil
+        }
+        if showsCreate && (generator == nil || !bodyText.isEmpty) { return "create" }
+        return generator
     }
 
     // MARK: the material, for the chosen path only
