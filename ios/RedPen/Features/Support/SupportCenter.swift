@@ -14,7 +14,7 @@ import SwiftUI
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// How the studying is going - not strictly about the app, but like the
     /// others it is somewhere visited now and then rather than worked in.
-    case sources, progress, account, settings, help, faq
+    case sources, progress, notes, account, settings, help, faq
 
     var id: String { rawValue }
 
@@ -22,6 +22,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .sources: return "Sources"
         case .progress: return "Progress"
+        case .notes: return "Ideas"
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
@@ -33,6 +34,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .sources: return "doc.richtext"
         case .progress: return "chart.bar.xaxis"
+        case .notes: return "point.3.connected.trianglepath.dotted"
         case .account: return "person.crop.circle"
         case .settings: return "gearshape"
         case .help: return "lightbulb"
@@ -44,6 +46,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .sources: return "Your lectures, to read again"
         case .progress: return "Accuracy by subject, and your streak"
+        case .notes: return "Your idea dump, folders and maps"
         case .account: return "Signing in, syncing, subscription"
         case .settings: return "What the app does on its own"
         case .help: return "What each mode is for"
@@ -56,6 +59,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .sources: SourcesLibraryView()
         case .progress: StatsView()
+        case .notes: IdeasView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()
         case .help: HelpPage()

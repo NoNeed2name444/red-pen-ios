@@ -13,6 +13,8 @@ struct RedPenApp: App {
     @StateObject private var reviews: ReviewStore
     @StateObject private var account: AccountStore
     @StateObject private var subscriptions: SubscriptionStore
+    /// The idea dump (IdeasView): notes, folders and the links between them.
+    @StateObject private var noteStore: NoteStore
     /// Built after the stores it reconciles, and given them directly rather
     /// than through the environment: it is not a view and has no business
     /// waiting for one.
@@ -54,6 +56,12 @@ struct RedPenApp: App {
                 .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
             : SubscriptionStore()
         _subscriptions = StateObject(wrappedValue: subscriptions)
+        let noteStore = seeded ? NoteStore(fileURL: scratch
+            .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
+            : NoteStore()
+        // the personal build opens with a connected example in the idea dump
+        if !seeded && PersonalBuild.isOn { NoteExamples.seedIfNeeded(into: noteStore) }
+        _noteStore = StateObject(wrappedValue: noteStore)
         // A screenshot run is signed in to nobody's account in particular: the
         // alternative is every preview screen being a picture of a sign-in
         // page.
@@ -153,6 +161,7 @@ struct RedPenApp: App {
             .environmentObject(reviews)
             .environmentObject(account)
             .environmentObject(subscriptions)
+            .environmentObject(noteStore)
             .environmentObject(sync)
             .environmentObject(gemma)
             .environmentObject(llm)
