@@ -27,7 +27,7 @@ nonisolated enum GraphShape {
     /// so it is always in front of its own sphere.
     static let ringLift: Float = 1.08
     /// The accretion disk's outer radius.
-    static let diskRadius: Float = 2.9
+    static let diskRadius: Float = 2.5
     /// Where the disk's inner edge sits, as a fraction of its outer radius.
     static let diskInner: Float = 0.43
     /// Half the width of a link's ribbon, in the space's units.
@@ -596,145 +596,281 @@ nonisolated enum GraphArt {
 
 // MARK: - the space behind
 
-/// Deep space: a blue-black gradient, a faint band of Milky Way with blue and
-/// violet nebula in it, a dense field of stars of every size and brightness
-/// and a few bright blue-white ones with a soft glow.
+/// Deep space, drawn as geometry rather than a picture, so it is sharp at
+/// any screen size and never stretched:
 ///
-/// It is a latitude-longitude map (twice as wide as tall) set as the scene's
-/// background, so it sits at infinity and turns as the camera turns - the
-/// space shifts behind the notes as you orbit, and stands still when the
-/// camera does (it never moves by itself, so Reduce Motion needs nothing).
-nonisolated enum GraphSpace {
-    static let starfield: UIImage = draw()
+/// - a sky sphere whose vertex colours carry a blue-black gradient and a
+///   faint Milky Way band with blue, violet and teal nebula in it (smooth,
+///   low-frequency colour, interpolated across the triangles - nothing to
+///   magnify into blocks);
+/// - about 6,000 stars as points of a fixed size on screen (1 to 3 pixels),
+///   crowded along the same band;
+/// - ten brighter blue-white stars with a small, dim glow.
+///
+/// Everything is made once, on a sphere of radius 1, and shared by every
+/// scene; the builder scales the node, and GraphSim keeps it centred on the
+/// camera each frame, so the sky is at infinity: it turns as the camera
+/// turns and never moves by itself (so Reduce Motion needs nothing).
+@MainActor
+enum GraphSpace {
+    /// The Milky Way's plane, tilted across the sky.
+    nonisolated static let bandNormal: SIMD3<Float> = simd_normalize(SIMD3<Float>(0.35, 0.9, 0.25))
 
-    private static func draw() -> UIImage {
-        let width: CGFloat = 2048
-        let height: CGFloat = 1024
-        let size = CGSize(width: width, height: height)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { context in
-            let cg: CGContext = context.cgContext
-            var random = SplitMix64(seed: 0x57A2)
-            backdrop(cg, size: size)
-            nebula(cg, size: size, random: &random)
-            stars(cg, size: size, random: &random)
-            brightStars(cg, size: size, random: &random)
+    /// A new node holding the three layers (the geometry is shared).
+    static func makeSky() -> SCNNode {
+        let sky = SCNNode()
+        sky.name = "sky"
+        sky.categoryBitMask = 2
+        let domeNode = SCNNode(geometry: Self.dome)
+        domeNode.renderingOrder = -30
+        let starNode = SCNNode(geometry: Self.stars)
+        starNode.renderingOrder = -29
+        let glowNode = SCNNode(geometry: Self.glowStars)
+        glowNode.renderingOrder = -28
+        for layer in [domeNode, starNode, glowNode] {
+            layer.categoryBitMask = 2
+            sky.addChildNode(layer)
         }
+        return sky
     }
 
-    /// Near black at the poles, deep navy round the middle.
-    private static func backdrop(_ cg: CGContext, size: CGSize) {
-        let pole = UIColor(red: 0.004, green: 0.006, blue: 0.022, alpha: 1)
-        let middle = UIColor(red: 0.018, green: 0.032, blue: 0.095, alpha: 1)
-        let colours: [CGColor] = [pole.cgColor, middle.cgColor, pole.cgColor]
-        let stops: [CGFloat] = [0, 0.5, 1]
-        let space = CGColorSpaceCreateDeviceRGB()
-        guard let gradient = CGGradient(colorsSpace: space, colors: colours as CFArray,
-                                        locations: stops) else { return }
-        let top = CGPoint(x: 0, y: 0)
-        let bottom = CGPoint(x: 0, y: size.height)
-        cg.drawLinearGradient(gradient, start: top, end: bottom, options: [])
-    }
+    // MARK: the dome
 
-    /// Where the Milky Way's band crosses each column of the map.
-    private static func bandY(_ x: CGFloat, size: CGSize) -> CGFloat {
-        let turn: CGFloat = x / size.width * 2 * .pi
-        let swing: CGFloat = sin(turn + 0.6) * size.height * 0.2
-        return size.height * 0.5 + swing
-    }
+    private static let dome: SCNGeometry = makeDome()
 
-    private static func nebula(_ cg: CGContext, size: CGSize, random: inout SplitMix64) {
-        let hues: [UIColor] = [
-            UIColor(red: 0.20, green: 0.30, blue: 0.78, alpha: 1),
-            UIColor(red: 0.36, green: 0.22, blue: 0.66, alpha: 1),
-            UIColor(red: 0.12, green: 0.36, blue: 0.58, alpha: 1)
-        ]
-        let space = CGColorSpaceCreateDeviceRGB()
-        for k in 0..<110 {
-            let x: CGFloat = CGFloat(random.unit() * 0.5 + 0.5) * size.width
-            let spread: CGFloat = CGFloat(random.unit()) * size.height * 0.07
-            let y: CGFloat = bandY(x, size: size) + spread
-            let radius: CGFloat = 40 + CGFloat(random.unit() * 0.5 + 0.5) * 120
-            let strength: CGFloat = 0.035 + CGFloat(random.unit() * 0.5 + 0.5) * 0.05
-            let hue: UIColor = hues[k % hues.count]
-            let inner: CGColor = hue.withAlphaComponent(strength).cgColor
-            let outer: CGColor = hue.withAlphaComponent(0).cgColor
-            let colours: [CGColor] = [inner, outer]
-            guard let gradient = CGGradient(colorsSpace: space, colors: colours as CFArray,
-                                            locations: [0, 1]) else { continue }
-            // drawn again one map-width over at the seam, so it wraps
-            for shift in [-size.width, 0, size.width] {
-                let centre = CGPoint(x: x + shift, y: y)
-                cg.drawRadialGradient(gradient, startCenter: centre, startRadius: 0,
-                                      endCenter: centre, endRadius: radius, options: [])
+    private static func makeDome() -> SCNGeometry {
+        let columns: Int = 96
+        let rows: Int = 48
+        var positions: [SCNVector3] = []
+        var colours: [Float] = []
+        let blobs: [(SIMD3<Float>, Float, SIMD3<Float>)] = nebulaBlobs()
+        for row in 0...rows {
+            let lat: Float = Float.pi * (Float(row) / Float(rows) - 0.5)
+            for column in 0...columns {
+                let lon: Float = 2 * Float.pi * Float(column) / Float(columns)
+                let flat: Float = cos(lat)
+                let dir = SIMD3<Float>(flat * cos(lon), sin(lat), flat * sin(lon))
+                positions.append(SCNVector3(x: dir.x, y: dir.y, z: dir.z))
+                let c: SIMD3<Float> = linear(skyColour(dir, blobs: blobs))
+                colours.append(c.x)
+                colours.append(c.y)
+                colours.append(c.z)
             }
         }
+        var indices: [Int32] = []
+        let stride: Int = columns + 1
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let a = Int32(row * stride + column)
+                let b = Int32(row * stride + column + 1)
+                let c = Int32((row + 1) * stride + column)
+                let d = Int32((row + 1) * stride + column + 1)
+                indices.append(contentsOf: [a, c, b, b, c, d])
+            }
+        }
+        let source = SCNGeometrySource(vertices: positions)
+        let tint = colourSource(colours, count: positions.count)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        let geometry = SCNGeometry(sources: [source, tint], elements: [element])
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = UIColor.white
+        material.isDoubleSided = true
+        material.writesToDepthBuffer = false
+        material.readsFromDepthBuffer = false
+        geometry.materials = [material]
+        return geometry
     }
 
-    private static func stars(_ cg: CGContext, size: CGSize, random: inout SplitMix64) {
-        let tints: [UIColor] = [
-            UIColor(red: 1, green: 1, blue: 1, alpha: 1),
-            UIColor(red: 0.76, green: 0.85, blue: 1, alpha: 1),
-            UIColor(red: 1, green: 0.9, blue: 0.76, alpha: 1)
+    /// The sky's colour looking along `dir` (sRGB).
+    private static func skyColour(_ dir: SIMD3<Float>,
+                                  blobs: [(SIMD3<Float>, Float, SIMD3<Float>)]) -> SIMD3<Float> {
+        let pole = SIMD3<Float>(0.004, 0.006, 0.022)
+        let middle = SIMD3<Float>(0.018, 0.032, 0.095)
+        let height: Float = abs(dir.y)
+        let towardsPole: Float = pow(height, 0.8)
+        let base: SIMD3<Float> = middle + (pole - middle) * towardsPole
+        let across: Float = simd_dot(dir, bandNormal) / 0.22
+        let band: Float = exp(-across * across)
+        let glow: SIMD3<Float> = SIMD3<Float>(0.02, 0.03, 0.07) * band
+        var cloud = SIMD3<Float>(0, 0, 0)
+        for (centre, reach, hue) in blobs {
+            let gap: Float = simd_distance(dir, centre) / reach
+            cloud += hue * exp(-gap * gap)
+        }
+        let soft: Float = band.squareRoot()
+        let sum: SIMD3<Float> = base + glow
+        return sum + cloud * soft
+    }
+
+    /// Nebula clouds along the band: direction, reach and colour (with
+    /// strength).
+    private static func nebulaBlobs() -> [(SIMD3<Float>, Float, SIMD3<Float>)] {
+        let hues: [SIMD3<Float>] = [
+            SIMD3<Float>(0.20, 0.30, 0.78),
+            SIMD3<Float>(0.36, 0.22, 0.66),
+            SIMD3<Float>(0.12, 0.36, 0.58)
         ]
-        let total: Int = 5600
-        for k in 0..<total {
-            let inBand: Bool = k % 5 < 2
-            let x: CGFloat = CGFloat(random.unit() * 0.5 + 0.5) * size.width
-            var y: CGFloat
-            if inBand {
-                let spread: CGFloat = CGFloat(random.unit() * random.unit()) * size.height * 0.12
-                y = bandY(x, size: size) + spread
-            } else {
-                // even over the sphere, not crowded at the poles
-                let tilt: CGFloat = asin(CGFloat(random.unit()))
-                y = (0.5 - tilt / .pi) * size.height
-            }
-            y = min(max(y, 0), size.height)
-            let latitude: CGFloat = (0.5 - y / size.height) * .pi
-            let squeeze: CGFloat = max(cos(latitude), 0.25)
+        var random = SplitMix64(seed: 0x0B1A)
+        var blobs: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
+        for k in 0..<18 {
+            let near: SIMD3<Float> = onBand(&random, spread: 0.12)
+            let reach: Float = 0.18 + (random.unit() * 0.5 + 0.5) * 0.3
+            let strength: Float = 0.04 + (random.unit() * 0.5 + 0.5) * 0.05
+            blobs.append((near, reach, hues[k % hues.count] * strength))
+        }
+        return blobs
+    }
+
+    // MARK: the stars
+
+    private static let stars: SCNGeometry = makeStars()
+
+    private static func makeStars() -> SCNGeometry {
+        var random = SplitMix64(seed: 0x57A3)
+        let tints: [SIMD3<Float>] = [
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0.76, 0.85, 1),
+            SIMD3<Float>(1, 0.9, 0.76)
+        ]
+        var positions: [SCNVector3] = []
+        var colours: [Float] = []
+        // three sizes, one element each
+        var small: [Int32] = []
+        var medium: [Int32] = []
+        var large: [Int32] = []
+        for k in 0..<6000 {
+            let dir: SIMD3<Float> = k % 5 < 2 ? onBand(&random, spread: 0.18) : anywhere(&random)
             let roll: Float = random.unit() * 0.5 + 0.5
-            let glow: CGFloat = CGFloat(roll * roll * roll * roll)
-            let brightness: CGFloat = 0.12 + glow * 0.88
-            let radius: CGFloat = 0.35 + glow * 1.2
-            let tint: UIColor = tints[k % tints.count]
-            cg.setFillColor(tint.withAlphaComponent(brightness).cgColor)
-            let w: CGFloat = radius * 2 / squeeze
-            let h: CGFloat = radius * 2
-            cg.fillEllipse(in: CGRect(x: x - w / 2, y: y - h / 2, width: w, height: h))
+            let shine: Float = roll * roll * roll * roll
+            let brightness: Float = 0.22 + shine * 0.7
+            let c: SIMD3<Float> = linear(tints[k % tints.count] * brightness)
+            let index = Int32(positions.count)
+            positions.append(SCNVector3(x: dir.x, y: dir.y, z: dir.z))
+            colours.append(c.x)
+            colours.append(c.y)
+            colours.append(c.z)
+            if shine < 0.12 {
+                small.append(index)
+            } else if shine < 0.5 {
+                medium.append(index)
+            } else {
+                large.append(index)
+            }
         }
+        let source = SCNGeometrySource(vertices: positions)
+        let tint = colourSource(colours, count: positions.count)
+        let elements: [SCNGeometryElement] = [
+            points(small, radius: 0.8),
+            points(medium, radius: 1.2),
+            points(large, radius: 1.7)
+        ]
+        let geometry = SCNGeometry(sources: [source, tint], elements: elements)
+        let material = additive(UIColor.white)
+        geometry.materials = [material]
+        return geometry
     }
 
-    private static func brightStars(_ cg: CGContext, size: CGSize, random: inout SplitMix64) {
-        let space = CGColorSpaceCreateDeviceRGB()
-        let blue = UIColor(red: 0.62, green: 0.76, blue: 1, alpha: 1)
-        let colours: [CGColor] = [blue.withAlphaComponent(0.55).cgColor,
-                                  blue.withAlphaComponent(0).cgColor]
-        guard let gradient = CGGradient(colorsSpace: space, colors: colours as CFArray,
-                                        locations: [0, 1]) else { return }
-        for _ in 0..<30 {
-            let x: CGFloat = CGFloat(random.unit() * 0.5 + 0.5) * size.width
-            let latitude: CGFloat = asin(CGFloat(random.unit()) * 0.85)
-            let y: CGFloat = (0.5 - latitude / .pi) * size.height
-            let reach: CGFloat = 7 + CGFloat(random.unit() * 0.5 + 0.5) * 12
-            let centre = CGPoint(x: x, y: y)
-            cg.drawRadialGradient(gradient, startCenter: centre, startRadius: 0,
-                                  endCenter: centre, endRadius: reach, options: [])
-            // faint spikes
-            cg.setStrokeColor(blue.withAlphaComponent(0.35).cgColor)
-            cg.setLineWidth(0.8)
-            let spike: CGFloat = reach * 0.9
-            cg.move(to: CGPoint(x: x - spike, y: y))
-            cg.addLine(to: CGPoint(x: x + spike, y: y))
-            cg.move(to: CGPoint(x: x, y: y - spike))
-            cg.addLine(to: CGPoint(x: x, y: y + spike))
-            cg.strokePath()
-            cg.setFillColor(UIColor.white.cgColor)
-            cg.fillEllipse(in: CGRect(x: x - 1.6, y: y - 1.6, width: 3.2, height: 3.2))
+    /// Points a fixed number of pixels across, whatever the distance.
+    private static func points(_ indices: [Int32], radius: CGFloat) -> SCNGeometryElement {
+        let element = SCNGeometryElement(indices: indices, primitiveType: .point)
+        element.pointSize = 0.001
+        element.minimumPointScreenSpaceRadius = radius
+        element.maximumPointScreenSpaceRadius = radius
+        return element
+    }
+
+    // MARK: the few bright stars
+
+    private static let glowStars: SCNGeometry = makeGlowStars()
+
+    /// Small square cards facing the sphere's centre - where the camera
+    /// always is - each with a soft glow; dim, and none large.
+    private static func makeGlowStars() -> SCNGeometry {
+        var random = SplitMix64(seed: 0x6105)
+        var positions: [SCNVector3] = []
+        var uvs: [Float] = []
+        var colours: [Float] = []
+        var indices: [Int32] = []
+        let tint: SIMD3<Float> = linear(SIMD3<Float>(0.55, 0.64, 0.82))
+        for _ in 0..<10 {
+            let dir: SIMD3<Float> = anywhere(&random)
+            let helper: SIMD3<Float> = abs(dir.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
+            let side: SIMD3<Float> = simd_normalize(simd_cross(dir, helper))
+            let up: SIMD3<Float> = simd_cross(side, dir)
+            // about 7 pixels from the middle to the card's edge on a phone
+            let size: Float = 0.0026 + (random.unit() * 0.5 + 0.5) * 0.0012
+            let across: SIMD3<Float> = side * size
+            let along: SIMD3<Float> = up * size
+            let base = Int32(positions.count)
+            let corners: [SIMD3<Float>] = [dir - across - along, dir + across - along,
+                                           dir - across + along, dir + across + along]
+            for corner in corners {
+                positions.append(SCNVector3(x: corner.x, y: corner.y, z: corner.z))
+                colours.append(tint.x)
+                colours.append(tint.y)
+                colours.append(tint.z)
+            }
+            uvs.append(contentsOf: [0, 1, 1, 1, 0, 0, 1, 0])
+            indices.append(contentsOf: [base, base + 1, base + 2, base + 2, base + 1, base + 3])
         }
+        let source = SCNGeometrySource(vertices: positions)
+        let tintSource = colourSource(colours, count: positions.count)
+        let uvData: Data = uvs.withUnsafeBufferPointer { Data(buffer: $0) }
+        let uvSource = SCNGeometrySource(data: uvData, semantic: .texcoord,
+                                         vectorCount: positions.count, usesFloatComponents: true,
+                                         componentsPerVector: 2, bytesPerComponent: 4,
+                                         dataOffset: 0, dataStride: 8)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        let geometry = SCNGeometry(sources: [source, tintSource, uvSource], elements: [element])
+        let material = additive(GraphArt.spark)
+        material.isDoubleSided = true
+        geometry.materials = [material]
+        return geometry
+    }
+
+    // MARK: helpers
+
+    private static func additive(_ contents: Any) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = contents
+        material.blendMode = .add
+        material.writesToDepthBuffer = false
+        material.readsFromDepthBuffer = false
+        return material
+    }
+
+    /// Per-vertex colour, three floats each (linear).
+    private static func colourSource(_ colours: [Float], count: Int) -> SCNGeometrySource {
+        let data: Data = colours.withUnsafeBufferPointer { Data(buffer: $0) }
+        return SCNGeometrySource(data: data, semantic: .color, vectorCount: count,
+                                 usesFloatComponents: true, componentsPerVector: 3,
+                                 bytesPerComponent: 4, dataOffset: 0, dataStride: 12)
+    }
+
+    /// sRGB to linear: SceneKit shades in linear space, and vertex colours
+    /// are taken as linear.
+    private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
+        SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
+    }
+
+    /// A random direction, even over the sphere.
+    private static func anywhere(_ random: inout SplitMix64) -> SIMD3<Float> {
+        let y: Float = random.unit()
+        let turn: Float = random.unit() * Float.pi
+        let flat: Float = max(1 - y * y, 0).squareRoot()
+        return SIMD3<Float>(flat * cos(turn), y, flat * sin(turn))
+    }
+
+    /// A random direction near the band's plane.
+    private static func onBand(_ random: inout SplitMix64, spread: Float) -> SIMD3<Float> {
+        let dir: SIMD3<Float> = anywhere(&random)
+        let off: Float = simd_dot(dir, bandNormal)
+        let scatter: Float = random.unit() * random.unit() * spread
+        let flat: SIMD3<Float> = dir - bandNormal * off
+        let lifted: SIMD3<Float> = flat + bandNormal * scatter
+        return simd_normalize(lifted)
     }
 }
 
@@ -820,17 +956,18 @@ enum GraphLook {
 
     /// A short-lived comet trail of orange sparks. It emits nothing until
     /// GraphSim raises its birth rate for a moving note.
-    static func trail() -> SCNParticleSystem {
+    /// `scale` is the notes' size over the original 0.2 radius.
+    static func trail(scale: Float) -> SCNParticleSystem {
         let system = SCNParticleSystem()
         system.birthRate = 0
         system.loops = true
         system.emissionDuration = 1
         system.particleLifeSpan = 0.5
         system.particleLifeSpanVariation = 0.2
-        system.particleSize = 0.035
-        system.particleSizeVariation = 0.02
-        system.particleVelocity = 0.12
-        system.particleVelocityVariation = 0.1
+        system.particleSize = CGFloat(0.035 * scale)
+        system.particleSizeVariation = CGFloat(0.02 * scale)
+        system.particleVelocity = CGFloat(0.12 * scale)
+        system.particleVelocityVariation = CGFloat(0.1 * scale)
         system.spreadingAngle = 180
         system.dampingFactor = 1.5
         system.particleImage = GraphArt.spark

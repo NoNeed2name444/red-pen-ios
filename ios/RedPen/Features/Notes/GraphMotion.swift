@@ -65,6 +65,8 @@ struct GraphSimLooks {
     /// Comet-trail emitters (empty with Reduce Motion), each with its system.
     let emitters: [SCNNode]
     let trails: [SCNParticleSystem]
+    /// The sky (GraphSpace), kept centred on the camera.
+    let sky: SCNNode
 }
 
 /// Keeps the space gently alive, and drives the black holes' motion.
@@ -140,6 +142,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let clocked: [SCNMaterial]
     private let emitters: [SCNNode]
     private let trails: [SCNParticleSystem]
+    private let sky: SCNNode
     /// The note whose ring and disk are the bright ones. Main thread only.
     private var highlighted: Int?
     /// Past this distance from the camera a note's label is not shown.
@@ -223,6 +226,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.clocked = looks.clocked
         self.emitters = looks.emitters
         self.trails = looks.trails
+        self.sky = looks.sky
         self.labelReach = labelReach
         // critical damping is 2 * sqrt(stiffness), about 4.9
         let critical: Float = 2 * stiffness.squareRoot()
@@ -497,6 +501,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
         if lively { tickShaders(time) }
+        // the sky stays centred on the camera, so it is at infinity
+        sky.simdWorldPosition = eye
         lock.lock()
         step(Float(raw), eye: eye, right: right, up: up)
         lock.unlock()

@@ -181,14 +181,20 @@ struct Graph3DView: View {
         // a constant copy: a var cannot be handed to another thread
         let groups = folders
         // the layout, and (once per launch) a check that the shaders work
+        // then packed into one constellation and turned to show its broadest
+        // face (GraphFraming)
         let worked = await Task.detached(priority: .userInitiated) {
-            let positions = ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
+            let laid = ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
+            let radius: Float = GraphFraming.pageRadius(laid, edges: edges)
+            let reach: Float = radius * GraphShape.diskRadius
+            let positions = GraphFraming.arrange(laid, edges: edges, pad: reach)
             let support: GraphShaderSupport = GraphShaderProbe.support
-            return (positions, support)
+            return (positions, support, radius)
         }.value
         guard !Task.isCancelled else { return }
         built = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
-                                        lively: !reduceMotion, bold: bold, shaders: worked.1)
+                                        lively: !reduceMotion, bold: bold, shaders: worked.1,
+                                        pageRadius: worked.2)
     }
 }
 
@@ -197,8 +203,11 @@ struct Graph3DView: View {
 struct GraphScene {
     let scene: SCNScene
     let camera: SCNNode
-    let cameraHome: SIMD3<Float>
     let sim: GraphSim
+    /// Every note's home, for framing (GraphFraming.distance).
+    let homes: [SIMD3<Float>]
+    /// How far a note's look reaches past its centre.
+    let pad: Float
 }
 
 /// Turns notes and their positions into SceneKit nodes.
@@ -225,12 +234,16 @@ struct GraphScene {
 @MainActor
 enum GraphSceneBuilder {
     static func build(store: NoteStore, positions: [UUID: SIMD3<Float>], edges: [(UUID, UUID)],
-                      lively: Bool, bold: Bool, shaders: GraphShaderSupport) -> GraphScene {
+                      lively: Bool, bold: Bool, shaders: GraphShaderSupport,
+                      pageRadius: Float) -> GraphScene {
         let scene = SCNScene()
-        // deep space, turning with the camera
-        scene.background.contents = GraphSpace.starfield
+        // deep space: a sky of geometry kept round the camera (GraphSpace)
+        scene.background.contents = UIColor.black
+        let sky: SCNNode = GraphSpace.makeSky()
+        scene.rootNode.addChildNode(sky)
         let world = SCNNode()
         scene.rootNode.addChildNode(world)
+        let ideaRadius: Float = pageRadius * 0.62
 
         let textColor = UIColor(red: 1, green: 0.93, blue: 0.84, alpha: 0.9)
 
@@ -247,8 +260,8 @@ enum GraphSceneBuilder {
         // material; a ring and a disk per folder; a bright pair for the
         // selected note
         let hole: SCNMaterial = GraphLook.hole()
-        let pageSphere = SCNSphere(radius: 0.2)
-        let ideaSphere = SCNSphere(radius: 0.12)
+        let pageSphere = SCNSphere(radius: CGFloat(pageRadius))
+        let ideaSphere = SCNSphere(radius: CGFloat(ideaRadius))
         for sphere in [pageSphere, ideaSphere] {
             sphere.segmentCount = 28
             sphere.materials = [hole]
@@ -274,11 +287,13 @@ enum GraphSceneBuilder {
         var random = SplitMix64(seed: 0x6A26)
         var infos: [GraphNodeInfo] = []
         var extent: Float = 1
+        var homes: [SIMD3<Float>] = []
         for note in store.notes {
             guard let p = positions[note.id] else { continue }
             extent = max(extent, simd_length(p))
+            homes.append(p)
             let isPage: Bool = note.kind == .page
-            let radius: Float = isPage ? 0.2 : 0.12
+            let radius: Float = isPage ? pageRadius : ideaRadius
             let node = SCNNode(geometry: isPage ? pageSphere : ideaSphere)
             node.name = "note:\(note.id.uuidString)"
             node.simdPosition = p
@@ -326,7 +341,7 @@ enum GraphSceneBuilder {
             node.addChildNode(holder)
 
             let title: String = note.title.isEmpty ? "Untitled" : note.title
-            let labelHeight: Float = isPage ? 0.13 : 0.11
+            let labelHeight: Float = max(radius * 0.7, 0.11)
             let label = Self.label(title, color: textColor, height: labelHeight)
             let labelLift: Float = radius * 2.3 + 0.04
             label.simdPosition = SIMD3<Float>(0, labelLift, 0)
@@ -350,7 +365,7 @@ enum GraphSceneBuilder {
         var trails: [SCNParticleSystem] = []
         if lively {
             for _ in 0..<4 {
-                let system: SCNParticleSystem = GraphLook.trail()
+                let system: SCNParticleSystem = GraphLook.trail(scale: pageRadius / 0.2)
                 let emitter = SCNNode()
                 emitter.categoryBitMask = 2
                 emitter.renderingOrder = 7
@@ -361,13 +376,20 @@ enum GraphSceneBuilder {
             }
         }
 
-        // the camera stands well back, leaving plenty of empty space round
-        // the notes. Everything is unlit, so there are no lights.
+        // the camera: placed by the view to fit the graph to the screen
+        // (GraphFraming); here, a first guess for a phone held upright.
+        // Everything is unlit, so there are no lights.
+        // framed to the rings; the thin, tilted disks may reach a little past
+        let pad: Float = pageRadius * 1.4
+        let distance: Float = GraphFraming.distance(points: homes, pad: pad, aspect: 0.46)
         let camera = SCNCamera()
-        camera.fieldOfView = 55
+        camera.fieldOfView = Double(GraphFraming.fieldOfView)
         camera.zNear = 0.05
-        let far: Float = extent * 12 + 20
+        let far: Float = distance * 4 + extent * 4 + 20
         camera.zFar = Double(far)
+        // the sky sits just inside the far plane, kept round the camera
+        let skyRadius: Float = far * 0.5
+        sky.simdScale = SIMD3<Float>(skyRadius, skyRadius, skyRadius)
         // no HDR, bloom or glare: the glows are baked into the textures and
         // shaders, and camera bloom would put a halo round everything bright
         camera.wantsHDR = false
@@ -375,7 +397,6 @@ enum GraphSceneBuilder {
         camera.wantsExposureAdaptation = false
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        let distance: Float = extent * 2.6 + 3
         let cameraHome = SIMD3<Float>(0, 0, distance)
         cameraNode.simdPosition = cameraHome
         scene.rootNode.addChildNode(cameraNode)
@@ -385,10 +406,10 @@ enum GraphSceneBuilder {
         let scaledReach: Float = distance * 0.55
         let labelReach: Float = max(scaledReach, 5.5)
         let simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
-                                     clocked: clocked, emitters: emitters, trails: trails)
+                                     clocked: clocked, emitters: emitters, trails: trails, sky: sky)
         let sim = GraphSim(world: world, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
-        return GraphScene(scene: scene, camera: cameraNode, cameraHome: cameraHome, sim: sim)
+        return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
     }
 
     /// A one-by-one square plane; each note scales it to size.
@@ -446,9 +467,9 @@ struct GraphSCNView: UIViewRepresentable {
         Coordinator(onTap: onTap, recenter: recenter)
     }
 
-    func makeUIView(context: Context) -> SCNView {
-        let view = SCNView(frame: .zero)
-        // the starfield covers it; black until the first frame
+    func makeUIView(context: Context) -> FramingSCNView {
+        let view = FramingSCNView(frame: .zero)
+        // the sky covers it; black until the first frame
         view.backgroundColor = .black
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
@@ -463,6 +484,7 @@ struct GraphSCNView: UIViewRepresentable {
 
         let coordinator = context.coordinator
         coordinator.view = view
+        view.onResize = { [weak coordinator] size in coordinator?.resized(to: size) }
         let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
         view.addGestureRecognizer(tap)
         let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.panned(_:)))
@@ -476,7 +498,7 @@ struct GraphSCNView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: SCNView, context: Context) {
+    func updateUIView(_ view: FramingSCNView, context: Context) {
         let coordinator = context.coordinator
         coordinator.onTap = onTap
         if coordinator.sim !== built.sim {
@@ -489,7 +511,7 @@ struct GraphSCNView: UIViewRepresentable {
         }
     }
 
-    static func dismantleUIView(_ view: SCNView, coordinator: Coordinator) {
+    static func dismantleUIView(_ view: FramingSCNView, coordinator: Coordinator) {
         coordinator.stop()
     }
 
@@ -501,7 +523,12 @@ struct GraphSCNView: UIViewRepresentable {
         weak var view: SCNView?
         weak var panner: UIPanGestureRecognizer?
         private var camera: SCNNode?
-        private var cameraHome = SIMD3<Float>(0, 0, 10)
+        /// The notes' homes and how far each reaches, for framing.
+        private var homes: [SIMD3<Float>] = []
+        private var pad: Float = 0
+        /// Whether the graph was last framed for a wide (landscape) view;
+        /// nil before the first framing.
+        private var framedWide: Bool?
         private var shownFilter: GraphFilter?
         /// The note a drag is about to pick up, found when the drag begins.
         private var pending: Int?
@@ -526,7 +553,9 @@ struct GraphSCNView: UIViewRepresentable {
         func attach(_ built: GraphScene, to view: SCNView) {
             sim = built.sim
             camera = built.camera
-            cameraHome = built.cameraHome
+            homes = built.homes
+            pad = built.pad
+            framedWide = nil
             shownFilter = nil
             // the simulation steps on SceneKit's render loop, once per frame
             view.delegate = built.sim
@@ -535,6 +564,7 @@ struct GraphSCNView: UIViewRepresentable {
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
             view.isPlaying = true
             wireCameraGestures(in: view)
+            frame(animated: false)
             built.sim.appear()
             if GraphPreview.drags && !previewDragged {
                 previewDragged = true
@@ -579,15 +609,43 @@ struct GraphSCNView: UIViewRepresentable {
             sim.apply(filter)
         }
 
-        /// Glides the camera back to where it started, looking at the middle.
+        /// Glides the camera back to the fitted view of the whole graph.
         func recentre() {
-            guard let view, let camera else { return }
+            frame(animated: true)
+        }
+
+        /// The view changed size. The first time it has a size, and whenever
+        /// it turns between upright and wide, the graph is framed again.
+        func resized(to size: CGSize) {
+            guard size.width > 1, size.height > 1 else { return }
+            let wide: Bool = size.width > size.height
+            guard framedWide != wide else { return }
+            frame(animated: framedWide != nil)
+        }
+
+        /// Fits the whole graph to the screen (GraphFraming): its longest
+        /// spread along the screen's long side, filling 80% of the shorter
+        /// one, centred, seen from the front.
+        private func frame(animated: Bool) {
+            guard let view, let camera, let sim else { return }
+            let size: CGSize = view.bounds.size
+            guard size.width > 1, size.height > 1 else { return }
+            let wide: Bool = size.width > size.height
+            framedWide = wide
+            // upright: the graph's long axis (y) runs up the screen; wide:
+            // turned a quarter so it runs across
+            let angle: Float = wide ? -Float.pi / 2 : 0
+            let turn = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 0, 1))
+            let turned: [SIMD3<Float>] = homes.map { turn.act($0) }
+            let aspect = Float(size.width / size.height)
+            let distance: Float = GraphFraming.distance(points: turned, pad: pad, aspect: aspect)
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.6
+            SCNTransaction.animationDuration = animated ? 0.6 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            camera.simdPosition = cameraHome
+            sim.world.simdOrientation = turn
+            camera.simdPosition = SIMD3<Float>(0, 0, distance)
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
         }
@@ -704,5 +762,20 @@ struct GraphSCNView: UIViewRepresentable {
             }
             return nil
         }
+    }
+}
+
+/// An SCNView that says when its size changes, so the graph can be framed
+/// once it has a size and again when the phone turns.
+final class FramingSCNView: SCNView {
+    var onResize: ((CGSize) -> Void)?
+    private var lastSize: CGSize = .zero
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let size: CGSize = bounds.size
+        guard size != lastSize else { return }
+        lastSize = size
+        onResize?(size)
     }
 }
