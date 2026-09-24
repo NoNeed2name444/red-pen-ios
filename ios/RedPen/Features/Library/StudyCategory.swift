@@ -252,7 +252,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// The questions whose most recent answer was wrong, up to twenty.
-    private static func mistakesQuiz(_ store: Store) -> StudySet {
+    @MainActor private static func mistakesQuiz(_ store: Store) -> StudySet {
         let history: [UUID: [Bool]] = store.answerHistory
         let wrong: [QuestionPick] = store.mcqPicks { pick in history[pick.question.id]?.last == false }
         let picks: [QuestionPick] = Array(wrong.shuffled().prefix(20))
@@ -260,7 +260,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// A drill in the weakest subject that has been answered at all.
-    private static func weakestQuiz(_ store: Store) -> InsightQuiz? {
+    @MainActor private static func weakestQuiz(_ store: Store) -> InsightQuiz? {
         let stats: [SubjectStats] = store.subjectStats()
         let answered: SubjectStats? = stats.first { $0.answered > 0 }
         guard let weakest = answered ?? stats.first else { return nil }
