@@ -37,5 +37,8 @@ console.log('all passed');
       || pinnedSource(env, 'nope') !== null || pinnedSource({}, 'gemini:x') !== null) {
     console.log('FAIL model pinning'); process.exit(1);
   }
-  console.log('ok   checker comparison scoring and model pinning');
+  const { normalise } = await import('../bench/checkers.mjs');
+  const x = normalise('medxpertqa', 5, { question: 'Stem here\nAnswer Choices: (A) a (B) b', options: { A: 'a', B: 'b', C: 'c', D: null }, label: 'B' });
+  if (x.question !== 'Stem here' || Object.keys(x.options).join() !== 'A,B,C' || x.answer_idx !== 'B') { console.log('FAIL MedXpertQA shape', x); process.exit(1); }
+  console.log('ok   checker comparison scoring, MedXpertQA shape and model pinning');
 }

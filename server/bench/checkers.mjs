@@ -1,6 +1,7 @@
 // Which model makes the best accuracy checker? Measured, not assumed.
 //
-// Every model gets the same MedQA (USMLE) test questions, each with one
+// Every model gets the same test questions - MedQA (USMLE, 4 options) or
+// MedXpertQA (expert level, 10 options; DATASET=medxpertqa) - each with one
 // examiner-set correct answer, shown three ways with MedVAL's rubric - the
 // same prompt the app's checker uses:
 //
@@ -25,6 +26,11 @@ const WORKER = (process.env.WORKER || 'https://redpen-auth.vv7sh4rnnw.workers.de
 const KEY = process.env.KEY || '';
 const N = Number(process.env.N || 40);
 const SEED = Number(process.env.SEED || 20260924);
+const DATASET = process.env.DATASET === 'medxpertqa' ? 'medxpertqa' : 'medqa';
+const SETS = {
+  medqa: { name: 'MedQA (USMLE)', path: 'GBaker%2FMedQA-USMLE-4-options', config: 'default', rows: 1273 },
+  medxpertqa: { name: 'MedXpertQA (Text)', path: 'TsinghuaC3I%2FMedXpertQA', config: 'Text', rows: 2450 },
+};
 const REPORT = process.env.REPORT || 'checker-report.md';
 const PREVIOUS = process.env.PREVIOUS || '';
 const MODELS = (process.env.MODELS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -52,13 +58,26 @@ export function score(results) {
   };
 }
 
+/// One question in the shape both datasets are used in: stem, options by
+/// letter, the right letter.
+export function normalise(dataset, index, row) {
+  if (dataset === 'medxpertqa') {
+    const options = Object.fromEntries(Object.entries(row.options || {}).filter(([, v]) => typeof v === 'string' && v.trim()));
+    // the options are also written into the question; they are shown once
+    const stem = String(row.question).split(/\nAnswer Choices:/)[0].trim();
+    return { index, question: stem, options, answer_idx: String(row.label).trim() };
+  }
+  return { index, question: row.question, options: row.options, answer_idx: row.answer_idx };
+}
+
 async function rows(indices) {
   const out = [];
+  const set = SETS[DATASET];
   for (const i of indices) {
-    const url = `https://datasets-server.huggingface.co/rows?dataset=GBaker%2FMedQA-USMLE-4-options&config=default&split=test&offset=${i}&length=1`;
+    const url = `https://datasets-server.huggingface.co/rows?dataset=${set.path}&config=${set.config}&split=test&offset=${i}&length=1`;
     for (let attempt = 0; attempt < 4; attempt++) {
       const r = await fetch(url);
-      if (r.ok) { const j = await r.json(); out.push({ index: i, ...j.rows[0].row }); break; }
+      if (r.ok) { const j = await r.json(); out.push(normalise(DATASET, i, j.rows[0].row)); break; }
       await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
     }
   }
@@ -82,12 +101,13 @@ async function check(use, content) {
   }
 }
 
-const question = q => `${q.question}\n\nA. ${q.options.A}\nB. ${q.options.B}\nC. ${q.options.C}\nD. ${q.options.D}`;
+const question = q => `${q.question}\n\n${Object.entries(q.options).map(([l, t]) => `${l}. ${t}`).join('\n')}`;
 const stated = (q, l) => `${question(q)}\n\nCorrect answer: ${l}. ${q.options[l]}`;
 const INSTRUCTION = 'Write a single-best-answer exam question with its correct answer, from the source.';
 
 function prompt(q, kase) {
-  const wrong = ['A', 'B', 'C', 'D'].filter(l => l !== q.answer_idx)[q.index % 3];
+  const others = Object.keys(q.options).filter(l => l !== q.answer_idx);
+  const wrong = others[q.index % others.length];
   if (kase === 'correct') return medvalPrompt(INSTRUCTION, stated(q, q.answer_idx), stated(q, q.answer_idx));
   if (kase === 'wrongVsCorrect') return medvalPrompt(INSTRUCTION, stated(q, q.answer_idx), stated(q, wrong));
   return medvalPrompt(INSTRUCTION, stated(q, wrong), stated(q, wrong));
@@ -101,7 +121,7 @@ async function main() {
   const previous = PREVIOUS && existsSync(PREVIOUS) ? JSON.parse(readFileSync(PREVIOUS, 'utf8')) : [];
   const done = new Set(previous.filter(r => !r.error).map(r => `${r.model}|${r.index}|${r.case}`));
   const results = previous.filter(r => !r.error);
-  const qs = await rows(sample(1273, N, SEED));
+  const qs = await rows(sample(SETS[DATASET].rows, N, SEED));
   console.log(`${qs.length} questions, ${MODELS.length} models, ${results.length} results carried over`);
   const notes = {};
 
@@ -133,8 +153,8 @@ async function main() {
   }).sort((a, b) => b.s.balanced - a.s.balanced);
 
   const lines = [
-    `# Accuracy checker comparison`, ``,
-    `${new Date().toISOString().slice(0, 16)} UTC · MedQA (USMLE) test questions, seed ${SEED}, up to ${N} per model · MedVAL's rubric, the app's own checker prompt · evidence lookup off (each model's own judgement).`, ``,
+    `# Accuracy checker comparison: ${SETS[DATASET].name}`, ``,
+    `${new Date().toISOString().slice(0, 16)} UTC · ${SETS[DATASET].name} test questions, seed ${SEED}, up to ${N} per model · MedVAL's rubric, the app's own checker prompt · evidence lookup off (each model's own judgement).`, ``,
     `A good checker **passes** correct answers and **flags** wrong ones (risk 3–4). Percentages with 95% intervals; a wide interval means too few questions yet to be sure - results add up over runs.`, ``,
     `| Model | Questions | Passes correct | Catches wrong (lecture right) | Catches wrong (lecture also wrong) | Balanced | Median time | Unreadable / failed |`,
     `|---|---|---|---|---|---|---|---|`,

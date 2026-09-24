@@ -6,6 +6,10 @@ name: Checker comparison
 on:
   workflow_dispatch:
     inputs:
+      dataset:
+        description: medqa (USMLE, 4 options) or medxpertqa (expert, 10 options)
+        required: false
+        default: 'medqa'
       n:
         description: Questions per model (3 checks each)
         required: false
@@ -34,18 +38,25 @@ jobs:
       - name: The benchmark's own tests
         run: node server/tests/bench.test.mjs
       - name: Earlier results
+        env:
+          DATASET: ${{ inputs.dataset }}
         run: |
           mkdir -p out
-          git fetch -q origin checker-bench && git show origin/checker-bench:checker-report.json > out/previous.json || echo '[]' > out/previous.json
+          # every dataset's reports are kept; this run replaces only its own
+          if git fetch -q origin checker-bench; then
+            git archive origin/checker-bench | tar -x -C out
+          fi
+          [ -f "out/checker-$DATASET.json" ] && cp "out/checker-$DATASET.json" out/previous.json || echo '[]' > out/previous.json
       - name: Run it
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           N: ${{ inputs.n }}
           MODELS: ${{ inputs.models }}
           CAPS: ${{ inputs.caps }}
+          DATASET: ${{ inputs.dataset }}
         run: |
           KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
-          KEY="$KEY" PREVIOUS=out/previous.json REPORT=out/checker-report.md node server/bench/checkers.mjs 2>&1 | tee out/run.log
+          KEY="$KEY" PREVIOUS=out/previous.json REPORT="out/checker-$DATASET.md" node server/bench/checkers.mjs 2>&1 | tee "out/run-$DATASET.log"
           rm -f out/previous.json
       - name: Push the report
         if: always()
