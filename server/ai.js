@@ -51,8 +51,10 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 
   const messages = clean(body.messages);
   if (!messages) return fail(400, 'Nothing to send.');
+  route.canPay = await canPay(env, accountId, owner);
+  route.account = owner ? '' : accountId;
   const gemini = route.sources?.find(s => s.kind === 'gemini');
-  if (gemini) Object.assign(gemini, { models: await geminiModels(env, accountId, owner), account: owner ? '' : accountId });
+  if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
 
   const limit = Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   // the owner's own builds and the accuracy benchmark are not rationed
@@ -158,13 +160,13 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
   const failures = [];
   for (const source of route.sources) {
-    if (source.kind === 'gemini') {
-      result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models);
-      // a bookkeeping failure never costs the student their answer
-      if (result.ok && source.account) await charge(env, source.account, result.source, result.usage).catch(e => console.error('charge', e));
-    }
+    // a paid host (Baichuan on Novita) only while Pro money covers it
+    if (source.paid && !route.canPay) continue;
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
     else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
+    // a bookkeeping failure never costs the student their answer
+    if (result.ok && route.account) await charge(env, route.account, result.source, result.usage).catch(e => console.error('charge', e));
     if (result.ok) { result.source = result.source || source.kind; break; }
     failures.push(`${source.kind} ${result.status}: ${result.detail}`);
     // busy, out of quota, down - or, for Gemini, locked by the Firebase
@@ -194,8 +196,9 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
     body: JSON.stringify({ model: route.model, messages, max_tokens: maxTokens, temperature, stream: false }),
   });
   if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
-  const content = (await upstream.json())?.choices?.[0]?.message?.content;
-  return typeof content === 'string' ? { ok: true, content, source: route.model }
+  const answer = await upstream.json();
+  const content = answer?.choices?.[0]?.message?.content;
+  return typeof content === 'string' ? { ok: true, content, source: route.model, usage: answer.usage }
     : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.' };
 }
 
@@ -312,31 +315,64 @@ const TRANSCRIBE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
 const month = () => new Date().toISOString().slice(0, 7);
 
-/// Which Gemini models this request may use.
+/// Pro pays for everything that costs money.
 ///
-/// Until the Firebase project is on a paid plan (GEMINI_BILLING = "on",
-/// switched on at launch), everything runs on Google's free daily allowances
-/// (CLOUD_MODELS). Once it is, Pro subscriptions pay for Gemini: each Pro
-/// account gets the paid models (PAID_MODELS) until its estimated spend this
-/// month reaches PRO_MONTHLY_BUDGET_USD - a share of what its subscription
-/// brings in - and after that the free Gemma model, so no account can cost
-/// more than it pays.
-export async function geminiModels(env, accountId, owner = false, purpose = 'modes') {
-  const audio = purpose === 'transcribe';
-  if (env.GEMINI_BILLING !== 'on') return list(audio ? env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS : env.CLOUD_MODELS || FREE_MODELS);
-  const paid = list(audio ? env.PAID_TRANSCRIBE_MODELS || env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS
-                          : env.PAID_MODELS || PAID_MODELS);
-  if (owner) return paid;
-  const budget = Number(env.PRO_MONTHLY_BUDGET_USD) || 2;
-  let row = null;
+/// Until launch (PRO_PAYS = "off") nothing paid is used at all: Google's free
+/// allowances, Gemma and Cloudflare's free models. Once the paid accounts
+/// exist and PRO_PAYS is "on", what Pro brings in sets what may be spent:
+///
+///   revenue  = active Pro subscriptions x PRO_NET_MONTHLY_USD (after Apple's cut)
+///   fixed    = FIXED_MONTHLY_USD (GitHub, Cloudflare Workers Paid, Apple's
+///              developer fee, any server that costs by the month)
+///   for use  = revenue x COST_SHARE - fixed
+///
+/// Every paid call (Gemini on the Blaze plan, Baichuan on Novita, ...) is
+/// estimated from its token counts and GEMINI_PRICES and added up per
+/// account and per month. A request may use a paid service while both its
+/// account (an equal share of "for use", or PRO_MONTHLY_BUDGET_USD) and
+/// everyone together are under budget; otherwise it gets the free models.
+export function proPays(env) {
+  return env.PRO_PAYS === 'on' || env.GEMINI_BILLING === 'on';
+}
+
+export async function budget(env) {
+  const net = Number(env.PRO_NET_MONTHLY_USD) || 0;
+  const share = Number(env.COST_SHARE) || 0.6;
+  const fixed = Number(env.FIXED_MONTHLY_USD) || 0;
+  let subscribers = 0, spent = 0;
   try {
-    row = await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
-      .bind(accountId, month()).first();
-  } catch { /* no table yet: nothing spent */ }
+    subscribers = (await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE verified_until > ?').bind(now()).first())?.n || 0;
+    spent = ((await env.DB.prepare('SELECT SUM(micro_usd) AS s FROM ai_cost WHERE month = ?').bind(month()).first())?.s || 0) / 1e6;
+  } catch { /* tables not there yet */ }
+  const revenue = subscribers * net;
+  const forUse = Math.max(0, revenue * share - fixed);
+  // until the price is set, a flat allowance per account and no overall cap
+  const perAccount = Number(env.PRO_MONTHLY_BUDGET_USD) || (net ? forUse / Math.max(subscribers, 1) : 2);
+  return { subscribers, revenue, fixed, forUse: net ? forUse : Infinity, perAccount, spent };
+}
+
+export async function canPay(env, accountId, owner = false) {
+  if (!proPays(env)) return false;
+  if (owner) return true;
+  const money = await budget(env);
+  if (money.spent >= money.forUse) return false;
+  let mine = 0;
+  try {
+    mine = ((await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
+      .bind(accountId, month()).first())?.micro_usd || 0) / 1e6;
+  } catch { /* nothing spent */ }
+  return mine < money.perAccount;
+}
+
+export async function geminiModels(env, accountId, owner = false, purpose = 'modes', paying) {
+  const audio = purpose === 'transcribe';
+  if (!proPays(env)) return list(audio ? env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS : env.CLOUD_MODELS || FREE_MODELS);
+  const ok = paying ?? await canPay(env, accountId, owner);
   // over budget: the free Gemma for the modes; Gemma cannot hear, so
   // transcription goes back to the phone
-  if ((row?.micro_usd || 0) >= budget * 1e6) return audio ? [] : list(env.BUDGET_MODELS || 'gemma-4-31b-it');
-  return paid;
+  if (!ok) return audio ? [] : list(env.BUDGET_MODELS || 'gemma-4-31b-it');
+  return list(audio ? env.PAID_TRANSCRIBE_MODELS || env.TRANSCRIBE_MODELS || TRANSCRIBE_MODELS
+                    : env.PAID_MODELS || PAID_MODELS);
 }
 
 /// Dollars per million tokens, input/output, from GEMINI_PRICES
@@ -355,10 +391,11 @@ export function priceOf(env, model) {
 /// Adds one answer's estimated cost to the account's month. Thinking is
 /// billed as output, so it counts too.
 export async function charge(env, accountId, model, usage) {
-  if (env.GEMINI_BILLING !== 'on' || !usage) return;
+  if (!proPays(env) || !usage || !accountId) return;
   const price = priceOf(env, model);
-  const out = (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0);
-  const micro = Math.ceil((usage.promptTokenCount || 0) * price.input + out * price.output);
+  const input = usage.promptTokenCount ?? usage.prompt_tokens ?? 0;
+  const out = (usage.candidatesTokenCount ?? usage.completion_tokens ?? 0) + (usage.thoughtsTokenCount || 0);
+  const micro = Math.ceil(input * price.input + out * price.output);
   if (!micro) return;
   await env.DB.prepare(
     `INSERT INTO ai_cost (account_id, month, micro_usd) VALUES (?, ?, ?)
@@ -385,7 +422,7 @@ export function routeFor(env, name) {
   const sources = [];
   // Baichuan-M2-32B on Novita, or any OpenAI-compatible server, when set
   if (env.AI_WRITER_URL && env.AI_WRITER_KEY) {
-    sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY,
+    sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY, paid: true,
                    model: env.AI_WRITER_MODEL || 'baichuan/baichuan-m2-32b' });
   }
   if (env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) sources.push({ kind: 'gemini' });

@@ -169,7 +169,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     if (url.includes('baichuan')) return new Response(JSON.stringify({ error: { message: 'rate limit' } }), { status: 429 });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from gemini' }] } }] }), { status: 200 });
   };
-  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
+  const env = freshEnv({ PRO_PAYS: 'on', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
                          FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
   const r = await chat(env, 'a1', request, fetcher);
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
@@ -253,6 +253,29 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.5-flash', 'the owner is not budgeted');
   await charge(off, 'p3', 'gemini-3.5-flash', { candidatesTokenCount: 1e6 });
   ok(!(await off.DB.prepare('SELECT * FROM ai_cost WHERE account_id = ?').bind('p3').first()), 'nothing is charged while billing is off');
+}
+
+// Pro pays for everything: one budget from Pro revenue across every paid service
+{
+  const { budget, canPay } = await import('../ai.js');
+  const env = freshEnv({ PRO_PAYS: 'on', PRO_NET_MONTHLY_USD: '5', COST_SHARE: '0.6', FIXED_MONTHLY_USD: '1',
+                         GEMINI_PRICES: 'gemini-3.5-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
+  const later = Math.floor(Date.now() / 1000) + 86400;
+  env.DB.prepare('UPDATE accounts SET verified_until = ? WHERE id = ?').bind(later, 'a1').run();
+  const money = await budget(env);
+  ok(money.subscribers === 1 && money.revenue === 5 && Math.abs(money.forUse - 2) < 1e-9, 'for use = Pro revenue x share - fixed bills ($5 x 0.6 - $1 = $2)');
+  ok(await canPay(env, 'a1'), 'under budget: paid services allowed');
+  const { charge } = await import('../ai.js');
+  await charge(env, 'a1', 'baichuan/baichuan-m2-32b', { prompt_tokens: 1e6, completion_tokens: 1e6 });
+  ok(!await canPay(env, 'a1'), 'Novita usage counts too: $2 spent, nothing more is paid for');
+  ok(!await canPay(freshEnv({}), 'a1'), 'before launch (PRO_PAYS off) nothing paid is ever used');
+
+  // a paid host is skipped when the money isn't there
+  let novita = 0;
+  const writer = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://novita', AI_WRITER_KEY: 'k',
+                            AI: { run: async () => ({ response: 'free' }) } });
+  const r = await chat(writer, 'a1', request, async () => { novita++; return new Response('{}', { status: 500 }); });
+  ok(r.status === 200 && novita === 0 && (await r.json()).choices[0].message.content === 'free', 'PRO_PAYS off: Novita is never called, the free model answers');
 }
 
 // Narrate's second transcriber: Whisper on Workers AI

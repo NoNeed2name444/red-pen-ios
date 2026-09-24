@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, whisper, transcribeChunk } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, whisper, transcribeChunk, budget } from './ai.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -88,6 +88,11 @@ export default {
         // Narrate's cloud transcription, for Pro: the audio comes here in
         // ten-minute chunks and the server asks Gemini, so the Google key
         // never reaches a phone
+        // for the owner: what Pro brings in and what the paid services cost
+        // this month
+        case '/costs':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return json(await budget(env));
         case '/transcribe/config': return await transcribeConfig();
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
