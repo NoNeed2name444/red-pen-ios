@@ -283,46 +283,7 @@ nonisolated enum GraphShaders {
     float rp_helix = (rp_s1 + rp_s2) * rp_w * 0.5 * rp_m;
     rp_col = rp_col + mix(rp_gold, rp_white, 0.5) * rp_helix;
 
-    float rp_rate = rp_t * 6.0;
-    float rp_blend = fract(rp_rate);
-    rp_blend = rp_blend * rp_blend * (3.0 - 2.0 * rp_blend);
-    float rp_drift = rp_t * 0.9;
-    float rp_cell = rp_x * 2.2 + rp_seed * 5.0;
-    float rp_seg = floor(rp_cell);
-    float rp_within = fract(rp_cell);
-    float rp_gate = 0.66 - 0.2 * rp_lit - 0.3 * (rp_nD - 0.5);
-    float rp_bow = sin(rp_within * 3.14159);
-    float rp_fork = max(rp_within * 2.0 - 1.0, 0.0);
-    float rp_tickA = floor(rp_rate);
-    float rp_h1A = fract(sin(rp_seg * 91.7 + rp_tickA * 37.3 + rp_seed * 11.0) * 43758.5453);
-    float rp_h2A = fract(sin(rp_seg * 47.3 + rp_tickA * 19.1 + rp_seed * 3.0) * 43758.5453);
-    float rp_h3A = fract(sin(rp_seg * 13.9 + rp_tickA * 71.7 + rp_seed * 7.0) * 43758.5453);
-    float rp_onA = smoothstep(rp_gate, rp_gate + 0.06, rp_h1A) * rp_m;
-    float rp_zigA = sin(rp_x * 23.0 + rp_tickA * 2.7 + rp_drift) * 0.08;
-    rp_zigA = rp_zigA + sin(rp_x * 47.0 - rp_tickA * 1.3 - rp_drift) * 0.04;
-    float rp_atA = ((rp_h2A - 0.5) * 1.1 + rp_zigA) * rp_bow;
-    float rp_eaA = rp_s - rp_atA;
-    float rp_arcA = exp(-rp_eaA * rp_eaA * 380.0) * rp_bow;
-    float rp_batA = rp_atA + (rp_h3A - 0.5) * 0.8 * rp_fork;
-    float rp_ebA = rp_s - rp_batA;
-    float rp_brA = exp(-rp_ebA * rp_ebA * 500.0) * rp_fork * step(0.5, rp_h3A);
-    float rp_sparkA = (rp_arcA + 0.7 * rp_brA) * rp_onA;
-    float rp_tickB = floor(rp_rate) + 1.0;
-    float rp_h1B = fract(sin(rp_seg * 91.7 + rp_tickB * 37.3 + rp_seed * 11.0) * 43758.5453);
-    float rp_h2B = fract(sin(rp_seg * 47.3 + rp_tickB * 19.1 + rp_seed * 3.0) * 43758.5453);
-    float rp_h3B = fract(sin(rp_seg * 13.9 + rp_tickB * 71.7 + rp_seed * 7.0) * 43758.5453);
-    float rp_onB = smoothstep(rp_gate, rp_gate + 0.06, rp_h1B) * rp_m;
-    float rp_zigB = sin(rp_x * 23.0 + rp_tickB * 2.7 + rp_drift) * 0.08;
-    rp_zigB = rp_zigB + sin(rp_x * 47.0 - rp_tickB * 1.3 - rp_drift) * 0.04;
-    float rp_atB = ((rp_h2B - 0.5) * 1.1 + rp_zigB) * rp_bow;
-    float rp_eaB = rp_s - rp_atB;
-    float rp_arcB = exp(-rp_eaB * rp_eaB * 380.0) * rp_bow;
-    float rp_batB = rp_atB + (rp_h3B - 0.5) * 0.8 * rp_fork;
-    float rp_ebB = rp_s - rp_batB;
-    float rp_brB = exp(-rp_ebB * rp_ebB * 500.0) * rp_fork * step(0.5, rp_h3B);
-    float rp_sparkB = (rp_arcB + 0.7 * rp_brB) * rp_onB;
-    float rp_spark = mix(rp_sparkA, rp_sparkB, rp_blend) * rp_w;
-    rp_col = rp_col + float3(1.05, 1.0, 1.25) * rp_spark;
+    // (no crackle: the owner chose the calm beam without the blue-white sparks)
 
     float rp_f = sin(rp_t * 4.1 + rp_seed * 3.1) * sin(rp_t * 2.3 + rp_seed * 7.7);
     float rp_flicker = 1.0 - 0.08 * rp_m * (0.5 + 0.5 * rp_f);
