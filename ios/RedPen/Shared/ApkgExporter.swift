@@ -237,8 +237,10 @@ enum ApkgExporter {
         let payload = base64.hasPrefix("data:") ? String(base64[(base64.firstIndex(of: ",").map { base64.index(after: $0) } ?? base64.startIndex)...]) : base64
         guard let data = Data(base64Encoded: payload), let image = UIImage(data: data) else { return nil }
         let frame = CGRect(origin: .zero, size: image.size)
-        // about 3 points on a card Anki shows at half the picture's width
-        let padding = max(3, max(image.size.width, image.size.height) * 0.004)
+        // the stored covers are already padded, and only as far as they can
+        // go without meeting another; growing them here would make them overlap
+        let padding: CGFloat = OcclusionCovers.drawPadding
+        let minimum: CGFloat = OcclusionCovers.drawMinimum
         let format = UIGraphicsImageRendererFormat.default()
         format.opaque = true
         let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
@@ -248,7 +250,7 @@ enum ApkgExporter {
                 ctx.fill(frame)
                 image.draw(in: frame)
                 PDFOcclusion.drawCovers(target: occ, others: others, revealed: revealed,
-                                        in: frame, padding: padding, minimum: padding * 4,
+                                        in: frame, padding: padding, minimum: minimum,
                                         context: ctx.cgContext)
             }
         }

@@ -13,8 +13,10 @@ import CoreGraphics
 /// them can be tested:
 ///   - OCR that was unsure (confidence under 0.5), a box that is a speck or
 ///     half the page, and text that is mostly not letters are never covered
-///   - words OCR read separately but that sit side by side on one line are
-///     joined first, so a label like "deep inguinal ring" is one card
+///   - words OCR read separately but that belong to one label - side by side
+///     on a line, or a label wrapped onto two lines - are joined first
+///     (OcclusionPhrases), so a label like "deep inguinal ring" is judged, and
+///     covered, as one
 ///   - the header and footer bands of a page are the slide template, not the
 ///     diagram; a word there survives only if it sits on the figure AND reads
 ///     as an anatomical or clinical term
@@ -37,6 +39,11 @@ enum OcclusionFilter {
         var text: String
         var box: OcclusionBox
         var confidence: Double = 1
+        /// The height of one line of text in it, when a label wraps onto more
+        /// than one; nil means the box is one line.
+        var lineHeight: Double? = nil
+
+        var textHeight: Double { lineHeight ?? box.h }
     }
 
     /// The top of a page where the template puts its title bar and logos.
@@ -60,11 +67,6 @@ enum OcclusionFilter {
     /// The least share of a label's box that must be ink, when the picture is
     /// at hand to look: below this there is nothing under the cover.
     static let minimumInkShare = 0.02
-    /// Words side by side on one line are one label when the space between
-    /// them is at most this many letter-heights.
-    static let joinGapInHeights = 1.0
-    /// The most words a joined label may have; FigureGrid keeps four at most.
-    static let maximumJoinedWords = 4
 
     /// The lines worth masking, in their original order.
     ///
@@ -73,14 +75,29 @@ enum OcclusionFilter {
     /// deck), where the top of the picture is not a page header. `aspect` is
     /// the picture's width over its height, so a gap across the page can be
     /// measured in letter-heights.
+    ///
+    /// Pieces are first grouped into whole label phrases (OcclusionPhrases),
+    /// so a label is judged - and kept or dropped - as one.
     static func testable(_ lines: [Line], figure: OcclusionBox?,
                          pageBands: Bool = true, aspect: Double = 1) -> [Line] {
         let readable = lines.filter { isReadable($0) }
         let joined = joinedOnLines(readable, aspect: aspect)
-        let title = titleIndex(joined)
-        var kept: [Line] = []
-        for (index, line) in joined.enumerated() {
+        return keptIndices(joined, figure: figure, pageBands: pageBands).map { index in
+            var cleaned = joined[index]
+            cleaned.text = tidy(cleaned.text)
+            return cleaned
+        }
+    }
+
+    /// Which of some already-grouped label phrases are worth masking, by
+    /// their positions in `lines`.
+    static func keptIndices(_ lines: [Line], figure: OcclusionBox?,
+                            pageBands: Bool = true) -> [Int] {
+        let title = titleIndex(lines)
+        var kept: [Int] = []
+        for (index, line) in lines.enumerated() {
             if index == title { continue }
+            guard isReadable(line) else { continue }
             let text = tidy(line.text)
             guard looksLikeALabel(text) else { continue }
             guard !isBoilerplate(text) else { continue }
@@ -106,9 +123,7 @@ enum OcclusionFilter {
             } else if !(medical || onFigure) {
                 continue
             }
-            var cleaned = line
-            cleaned.text = text
-            kept.append(cleaned)
+            kept.append(index)
         }
         return kept
     }
@@ -133,65 +148,19 @@ enum OcclusionFilter {
         share >= minimumInkShare
     }
 
-    /// Pieces OCR read separately but that sit side by side on one line, close
-    /// together and the same size, joined into one label - so "deep",
-    /// "inguinal" and "ring" become "deep inguinal ring" rather than three
-    /// cards about nothing. Order is kept by where each label starts.
+    /// Pieces OCR read separately but that belong to one label, joined: words
+    /// side by side on one line ("deep", "inguinal", "ring" become "deep
+    /// inguinal ring"), the lines of a label that wraps, and boxes that
+    /// overlap. The grouping itself is OcclusionPhrases'; a joined label has a
+    /// box round all its pieces and the lowest of their confidences.
     static func joinedOnLines(_ lines: [Line], aspect: Double = 1) -> [Line] {
-        var out = lines
-        var changed = true
-        while changed {
-            changed = false
-            search: for i in out.indices {
-                for j in out.indices where j != i {
-                    if belongTogether(left: out[i], right: out[j], aspect: aspect) {
-                        out[i] = joined(out[i], out[j])
-                        out.remove(at: j)
-                        changed = true
-                        break search
-                    }
-                }
-            }
+        let words: [OcclusionPhrases.Word] = lines.map {
+            OcclusionPhrases.Word(text: $0.text, box: $0.box, confidence: $0.confidence)
         }
-        return out
-    }
-
-    /// Whether `right` carries on the label `left` starts, on the same line.
-    static func belongTogether(left: Line, right: Line, aspect: Double = 1) -> Bool {
-        let a = left.box, b = right.box
-        guard a.h > 0, b.h > 0 else { return false }
-        let tall: Double = max(a.h, b.h)
-        let short: Double = min(a.h, b.h)
-        // a heading beside a label is not part of it
-        guard tall <= short * 1.5 else { return false }
-        let aMid: Double = a.y + a.h / 2
-        let bMid: Double = b.y + b.h / 2
-        guard abs(aMid - bMid) <= short * 0.5 else { return false }
-        // measured in letter-heights, whatever shape the picture is
-        let aRight: Double = a.x + a.w
-        let gap: Double = b.x - aRight
-        let across: Double = gap * max(aspect, 0.01)
-        let gapInHeights: Double = across / tall
-        guard gapInHeights >= -0.5, gapInHeights <= joinGapInHeights else { return false }
-        // a number or a figure reference beside a label is not part of it
-        guard left.text.contains(where: { $0.isLetter }),
-              right.text.contains(where: { $0.isLetter }) else { return false }
-        guard !isBoilerplate(left.text), !isBoilerplate(right.text) else { return false }
-        let words: Int = wordCount(left.text) + wordCount(right.text)
-        return words <= maximumJoinedWords
-    }
-
-    /// Two pieces of one label as one: the words in reading order, a box round
-    /// both, and the lower of the two confidences.
-    static func joined(_ left: Line, _ right: Line) -> Line {
-        let a = left.box, b = right.box
-        let minX: Double = min(a.x, b.x)
-        let minY: Double = min(a.y, b.y)
-        let maxX: Double = max(a.x + a.w, b.x + b.w)
-        let maxY: Double = max(a.y + a.h, b.y + b.h)
-        let box = OcclusionBox(x: minX, y: minY, w: maxX - minX, h: maxY - minY)
-        let text = tidy(left.text) + " " + tidy(right.text)
-        return Line(text: text, box: box, confidence: min(left.confidence, right.confidence))
+        let phrases: [OcclusionPhrases.Phrase] = OcclusionPhrases.group(words, aspect: aspect)
+        return phrases.map {
+            Line(text: $0.text, box: $0.box, confidence: $0.confidence, lineHeight: $0.lineHeight)
+        }
     }
 
     /// The words of a label that carry meaning: everything left once the
@@ -221,14 +190,15 @@ enum OcclusionFilter {
     /// it is clearly taller than the text around it.
     static func titleIndex(_ lines: [Line]) -> Int? {
         guard lines.count >= 2 else { return nil }
-        let heights = lines.map(\.box.h).sorted()
+        // measured a line at a time, so a label that wraps is not a heading
+        let heights = lines.map(\.textHeight).sorted()
         let median = heights[heights.count / 2]
         var best: Int?
-        for (index, line) in lines.enumerated() where line.box.y + line.box.h / 2 < 0.3 {
-            if let current = best, lines[current].box.h >= line.box.h { continue }
+        for (index, line) in lines.enumerated() where line.box.y + line.textHeight / 2 < 0.3 {
+            if let current = best, lines[current].textHeight >= line.textHeight { continue }
             best = index
         }
-        guard let found = best, lines[found].box.h >= median * 1.25 else { return nil }
+        guard let found = best, lines[found].textHeight >= median * 1.25 else { return nil }
         return found
     }
 
@@ -403,6 +373,14 @@ enum OcclusionCovers {
     static let targetRGB: (red: Double, green: Double, blue: Double) = (0.93, 0.45, 0.09)
     /// Every other label on the picture: a flat, neutral grey.
     static let otherRGB: (red: Double, green: Double, blue: Double) = (0.56, 0.58, 0.62)
+
+    /// How far a cover is grown when drawn. None: a stored cover is already
+    /// padded past its glyphs (OcclusionPhrases), and only as far as it can
+    /// go without reaching another cover or another word, so growing it again
+    /// on screen is what used to make neighbouring covers overlap.
+    static let drawPadding: CGFloat = 0
+    /// The least a cover is drawn across, for a box OCR made too small.
+    static let drawMinimum: CGFloat = 6
 
     /// The other labels on this card's picture.
     ///

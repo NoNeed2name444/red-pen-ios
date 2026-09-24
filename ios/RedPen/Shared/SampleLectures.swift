@@ -2,9 +2,9 @@ import Foundation
 
 /// Examples made from a real lecture, for a personal build that carries one
 /// in its Samples folder: the app's own pipeline runs on it at first launch -
-/// its diagrams become image occlusion cards, a textbook written from it has
-/// the lecture's figures placed on the matching pages, and the lecture itself
-/// is kept so the document viewer can be tried.
+/// a textbook written from it has the lecture's figures placed on the matching
+/// pages, and the lecture itself is kept so the document viewer can be tried.
+/// (The image occlusion example is OcclusionExample's heart diagram.)
 ///
 /// The lecture file is never in the repository (it is someone's teaching
 /// material); only a build made for its owner carries it.
@@ -15,6 +15,9 @@ enum SampleLectures {
 
     @MainActor
     static func seed(into store: Store) async {
+        // the image occlusion example is a diagram drawn in the app, not one
+        // of the lecture's: it needs no bundled file
+        await OcclusionExample.seed(into: store)
         let flag = "sampleLectures.v2"
         guard PersonalBuild.isOn,
               !UserDefaults.standard.bool(forKey: flag), !bundled.isEmpty else { return }
@@ -40,22 +43,13 @@ enum SampleLectures {
                 // running Swift Playgrounds has little memory to spare
                 guard let read = try? await SourceIngest.read(pdf: url, figureLimit: 24, workers: 1) else { return nil }
                 return Made(document: read.document,
-                            diagrams: LectureWriterSection.diagramCards(from: read, name: name),
                             figures: LectureWriterSection.figures(from: read),
                             blob: SourceFiles.keep(url, kind: .pdf))
             }).value else { continue }
             let source = ReadSource(name: name, document: made.document, kind: .pdf, fileBlob: made.blob).doc()
 
-            // image occlusion: the lecture's labelled diagrams, as they are found
-            let diagrams = made.diagrams
-            if !diagrams.cards.isEmpty {
-                var cards = StudySet(name: "Example: \(name) - image occlusion", subject: "Surgery", kind: .anki)
-                cards.cards = diagrams.cards
-                cards.images = diagrams.images
-                cards.sources = [source]
-                cards.folderId = folder.id
-                store.addSet(cards)
-            }
+            // No image occlusion set from the lecture: its diagrams are not
+            // labelled in English. OcclusionExample's heart is the example.
 
             // a textbook with the lecture's own figures placed by topic
             if let pages = textbook[key(for: name)] {
@@ -80,7 +74,6 @@ enum SampleLectures {
     /// What the background read hands back to the main thread.
     private struct Made {
         var document: SourceText.Document
-        var diagrams: DiagramCards
         var figures: [BookFigure]
         var blob: String?
     }

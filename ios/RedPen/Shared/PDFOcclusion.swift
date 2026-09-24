@@ -63,7 +63,7 @@ enum PDFOcclusion {
         // other label grey, this card's orange with a "?"
         if let context = UIGraphicsGetCurrentContext() {
             drawCovers(target: box, others: others, revealed: false, in: drawn,
-                       padding: 3, minimum: 10, context: context)
+                       padding: OcclusionCovers.drawPadding, minimum: OcclusionCovers.drawMinimum, context: context)
         }
 
         var footer = drawn.maxY + 18

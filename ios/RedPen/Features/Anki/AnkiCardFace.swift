@@ -108,12 +108,14 @@ struct AnkiCardFace: View {
                            blue: OcclusionCovers.targetRGB.blue)
         return Canvas { context, _ in
             for box in others {
-                let rect = OcclusionCovers.rect(for: box, in: frame, padding: 3, minimum: 12)
+                let rect = OcclusionCovers.rect(for: box, in: frame, padding: OcclusionCovers.drawPadding,
+                                                   minimum: OcclusionCovers.drawMinimum)
                 guard rect.width > 0, rect.height > 0 else { continue }
                 context.fill(Path(rect), with: .color(grey))
             }
             guard let target else { return }
-            let rect = OcclusionCovers.rect(for: target, in: frame, padding: 3, minimum: 12)
+            let rect = OcclusionCovers.rect(for: target, in: frame, padding: OcclusionCovers.drawPadding,
+                                                   minimum: OcclusionCovers.drawMinimum)
             guard rect.width > 0, rect.height > 0 else { return }
             if isRevealed {
                 context.stroke(Path(rect), with: .color(orange), lineWidth: 2)

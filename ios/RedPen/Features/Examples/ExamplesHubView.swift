@@ -49,6 +49,10 @@ struct ExamplesHubView: View {
             Section {
                 // presented full screen, not pushed: see DrawRecallExampleRow
                 DrawRecallExampleRow()
+                row("Image occlusion \u{2014} the heart", "rectangle.dashed",
+                    "One cover per label, read off the diagram by the app", id: "occlusion") {
+                    OcclusionExampleView()
+                }
             } header: { Text("Drawing") }
 
             Section {

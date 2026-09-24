@@ -25,6 +25,15 @@ public struct OCRLine {
     public let text: String
     public let box: CGRect          // normalised, origin bottom-left
     public let confidence: Float
+    /// Each word of the line with its own box, when Vision can say where each
+    /// one is. Empty for a line that mixes scripts (its words are reordered)
+    /// or when Vision gave no word boxes; the line is then one piece.
+    public var words: [OCRWord] = []
+}
+
+public struct OCRWord {
+    public let text: String
+    public let box: CGRect          // normalised, origin bottom-left
 }
 
 public enum RedPenOCR {
@@ -44,15 +53,46 @@ public enum RedPenOCR {
 
         return (request.results ?? []).compactMap { observation -> OCRLine? in
             guard let best = observation.topCandidates(1).first else { return nil }
-            return OCRLine(text: logicalOrder(best.string),
-                           box: observation.boundingBox,
-                           confidence: best.confidence)
+            var line = OCRLine(text: logicalOrder(best.string),
+                               box: observation.boundingBox,
+                               confidence: best.confidence)
+            line.words = words(of: best)
+            return line
         }
         // Top-to-bottom, then left-to-right for anything sharing a baseline.
         .sorted { a, b in
             if abs(a.box.midY - b.box.midY) > 0.01 { return a.box.midY > b.box.midY }
             return a.box.minX < b.box.minX
         }
+    }
+
+    /// Every word of a recognised line with its own box. One line from Vision
+    /// can hold two labels that happen to share a baseline, and only the word
+    /// boxes show the gap between them. All or nothing: if any word has no
+    /// box, the caller falls back to the whole line.
+    static func words(of text: VNRecognizedText) -> [OCRWord] {
+        let string: String = text.string
+        // a line with Arabic in it has its words reordered; keep it whole
+        guard !hasArabic(string) else { return [] }
+        var out: [OCRWord] = []
+        var index: String.Index = string.startIndex
+        while index < string.endIndex {
+            while index < string.endIndex && string[index].isWhitespace {
+                index = string.index(after: index)
+            }
+            guard index < string.endIndex else { break }
+            var end: String.Index = index
+            while end < string.endIndex && !string[end].isWhitespace {
+                end = string.index(after: end)
+            }
+            let range: Range<String.Index> = index..<end
+            guard let observed = try? text.boundingBox(for: range) else { return [] }
+            let box: CGRect = observed.boundingBox
+            guard box.width > 0, box.height > 0 else { return [] }
+            out.append(OCRWord(text: String(string[range]), box: box))
+            index = end
+        }
+        return out
     }
 
     /// Undo the visual ordering of a mixed-script line. A line in one script is
