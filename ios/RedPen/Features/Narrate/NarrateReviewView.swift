@@ -6,8 +6,15 @@ import UniformTypeIdentifiers
 /// With a recording attached it follows the audio: the recogniser's own word
 /// timestamps decide which word is lit, and the clock is the audio's position,
 /// so scrubbing and speed changes cannot put the highlight out of step. With no
-/// recording it falls back to a reading pace, holding each line for
-/// `NarrateScheduler.segmentMs()` - that half is in NarrateReading.
+/// recording the lecture is read aloud (NarrateVoice: the natural cloud voice,
+/// or the phone's own) and the word being said is lit - that half is in
+/// NarrateReading.
+///
+/// Keeping it smooth: the word timeline is laid out once per transcript, not
+/// per frame; the audio's 15-a-second clock is watched only by the scrub bar;
+/// the players publish the spoken word only when it changes; each line is an
+/// Equatable view, so a moving word rebuilds one line; and the transcript
+/// scrolls only when the current line leaves a comfortable band.
 ///
 /// The transcript is editable either way: long-press a word, say what it should
 /// have been, and the fix spreads to everything that sounds the same and is
@@ -39,14 +46,13 @@ struct NarrateReviewView: View {
     @EnvironmentObject var learned: PronunciationLibrary
     @StateObject var player = LecturePlayer()
     @StateObject var importer = LectureImporter()
+    @StateObject var voice = NarrateVoice()
 
     @State var index = 0
     @State var playing = false
     @State var finished = false
     @State var speed: Double = 1
-    @State var timer: Timer?
-    @State var remainingMs: Double = 0
-    @State var segStartedAt = Date()
+    @State private var band = NarrateScrollBand()
 
     @State var segments: [NarrateSegment] = []
     @State var texts: [String] = []
@@ -58,16 +64,12 @@ struct NarrateReviewView: View {
     @State private var choosingEngine = false
     @State private var engine: LectureImporter.Engine = .cloud
 
-    /// Word timings exist only when a recording was transcribed.
-    var words: [TranscriptWord] {
-        guard let measured = NarrateScheduler.measured(segments) else { return [] }
-        return WordTiming.layout(texts: texts,
-                                 ends: segments.map { $0.end ?? 0 },
-                                 measured: measured)
-    }
-
-    var spokenNow: TranscriptWord? {
-        player.hasAudio ? WordTiming.word(at: player.time, in: words) : nil
+    /// The word being said in the current line, from whichever is playing:
+    /// the recording, or the voice reading the lecture.
+    private var spokenWord: Int? {
+        let spot: NarrateSpot? = player.hasAudio ? player.spot : voice.spot
+        guard let spot, spot.line == index else { return nil }
+        return spot.word
     }
 
     private var title: String {
@@ -84,7 +86,7 @@ struct NarrateReviewView: View {
     @ViewBuilder
     private var controls: some View {
         if player.hasAudio {
-            NarrateAudioBar(player: player, speed: $speed)
+            NarrateAudioBar(player: player, clock: player.clock, speed: $speed)
         } else {
             NarrateReadingControls(speed: $speed, playing: playing, finished: finished,
                                    canPlay: !segments.isEmpty,
@@ -108,7 +110,7 @@ struct NarrateReviewView: View {
     private var screen: some View {
         stage
             .onAppear(perform: seed)
-            .onDisappear { timer?.invalidate(); player.stop() }
+            .onDisappear { voice.stop(); player.stop() }
             // adding a recording is in the same More menu as every other
             // study screen's extras; this screen has no Turn into
             .studyMoreMenu(for: studySet, turnInto: false) {
@@ -137,11 +139,17 @@ struct NarrateReviewView: View {
             .onChange(of: importer.produced) { _, made in
                 if let made { adopt(made) }
             }
-            .onChange(of: spokenNow?.segment) { _, line in
+            .onChange(of: player.spot) { _, spot in
                 // the audio is the clock, so the current line follows it rather
                 // than being advanced by a timer of our own
-                if let line, line != index { index = line }
+                if let line = spot?.line, line != index { index = line }
             }
+            .onChange(of: voice.spot) { _, spot in
+                if !player.hasAudio, spot.line != index { index = spot.line }
+            }
+            .onChange(of: voice.playing) { _, now in playing = now }
+            .onChange(of: voice.finished) { _, now in finished = now }
+            .onChange(of: speed) { _, now in voice.setSpeed(now) }
             .sheet(item: $fixing) { target in
                 FixWordSheet(target: target) { fix(target, to: $0) }
             }
@@ -168,7 +176,21 @@ struct NarrateReviewView: View {
         segments = studySet.narrateSegments
         texts = segments.map(\.text)
         _ = learned.applyLearned(to: &texts)
-        if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording) }
+        relayout()
+        if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording, title: title) }
+    }
+
+    /// The word timeline and the text to read, worked out once whenever the
+    /// transcript changes. (It used to be a computed property, so the whole
+    /// lecture was laid out again on every tick of the audio clock.)
+    private func relayout() {
+        voice.load(texts, langs: segments.map(\.lang), title: title)
+        guard let measured = NarrateScheduler.measured(segments) else {
+            player.setTimeline([])
+            return
+        }
+        let ends: [Double] = segments.map { $0.end ?? 0 }
+        player.setTimeline(WordTiming.layout(texts: texts, ends: ends, measured: measured))
     }
 
     /// A freshly transcribed lecture replaces the typed transcript, and is
@@ -183,7 +205,9 @@ struct NarrateReviewView: View {
         var updated = store.library.first { $0.id == studySet.id } ?? studySet
         updated.narrateSegments = made
         store.update(updated)
-        if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording) }
+        voice.stop()
+        if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording, title: title) }
+        relayout()
         importer.produced = nil
     }
 
@@ -196,6 +220,7 @@ struct NarrateReviewView: View {
         guard outcome.here != nil else { return }
         lastOutcome = outcome
         persistText()
+        relayout()
         withAnimation(.snappy) { report = outcome.summary() }
     }
 
@@ -204,6 +229,7 @@ struct NarrateReviewView: View {
         learned.undo(snapshot, into: &texts, touching: outcome)
         lastOutcome = nil
         persistText()
+        relayout()
         withAnimation(.snappy) { report = nil }
     }
 
@@ -222,13 +248,19 @@ struct NarrateReviewView: View {
 
     private var header: some View {
         let total = segments.count
-        let fraction: Double = player.hasAudio
-            ? (player.duration > 0 ? player.time / player.duration : 0)
-            : (total > 0 ? Double(index + (finished ? 1 : 0)) / Double(total) : 0)
+        // by line, not by the audio clock, so the header is not redrawn
+        // fifteen times a second
+        let done: Int = index + (finished ? 1 : 0)
+        let fraction: Double = total > 0 ? Double(done) / Double(total) : 0
         let line: Int = min(index + 1, max(total, 1))
-        let detail: String = player.hasAudio
-            ? "Following the recording \u{00B7} hold a word to fix it"
-            : "Tap a line to jump to it \u{00B7} hold a word to fix it"
+        let detail: String
+        if player.hasAudio {
+            detail = "Following the recording \u{00B7} hold a word to fix it"
+        } else if voice.waiting {
+            detail = "Getting the voice ready\u{2026}"
+        } else {
+            detail = "Tap a line to read from it \u{00B7} hold a word to fix it"
+        }
         return StudyProgressHeader("Line \(line) of \(total)", detail: detail,
                                    fraction: min(1, max(0, fraction)))
     }
@@ -243,7 +275,8 @@ struct NarrateReviewView: View {
                 } else {
                     NarrateWordFlow(texts: texts, langs: segments.map(\.lang),
                                     currentIndex: index,
-                                    spokenWord: spokenNow?.index,
+                                    spokenWord: spokenWord,
+                                    band: band,
                                     onJump: { jump(to: $0) },
                                     onFix: { fixing = $0 })
                         .contentCard()
@@ -253,8 +286,24 @@ struct NarrateReviewView: View {
                         .readableColumn()
                 }
             }
+            .coordinateSpace(.named(NarrateScrollBand.space))
+            .onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.size.height
+            } action: { height in
+                band.viewport = height
+            }
+            .onScrollPhaseChange { _, phase in
+                // the student's own scrolling wins for a few seconds
+                if phase == .interacting || phase == .decelerating {
+                    band.handsOffUntil = Date().addingTimeInterval(3)
+                }
+            }
             .onChange(of: index) { _, line in
-                withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(line, anchor: .center) }
+                // follow the voice only when the line drifts out of the band,
+                // and then gently, to a spot a third of the way down
+                guard band.needsScroll(to: line) else { return }
+                let anchor = UnitPoint(x: 0.5, y: 0.3)
+                withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(line, anchor: anchor) }
             }
         }
     }

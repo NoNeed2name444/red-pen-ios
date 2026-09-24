@@ -8,13 +8,16 @@ import SwiftUI
 /// pretending one is the other produces a bar where half the controls lie.
 struct NarrateAudioBar: View {
     @ObservedObject var player: LecturePlayer
+    /// The position, fifteen times a second. Watched here and only here, so
+    /// the moving slider does not rebuild the transcript above it.
+    @ObservedObject var clock: LectureClock
     @Binding var speed: Double
     /// Scrubbing must not fight the player: while the thumb is held, the slider
     /// shows the held value and the clock is only moved on release.
     @State private var scrubbing = false
     @State private var held: Double = 0
 
-    private var position: Double { scrubbing ? held : player.time }
+    private var position: Double { scrubbing ? held : clock.time }
 
     var body: some View {
         StudyActionBar {
@@ -24,7 +27,7 @@ struct NarrateAudioBar: View {
                        in: 0...max(player.duration, 0.1),
                        onEditingChanged: { editing in
                            if editing {
-                               held = player.time
+                               held = clock.time
                                scrubbing = true
                            } else {
                                scrubbing = false
@@ -46,7 +49,7 @@ struct NarrateAudioBar: View {
 
             HStack(spacing: 12) {
                 Button {
-                    player.seek(to: player.time - 10)
+                    player.seek(to: clock.time - 10)
                 } label: { Image(systemName: "gobackward.10") }
                     .buttonStyle(.bigCompanion)
                     .accessibilityLabel("Back 10 seconds")
@@ -61,7 +64,7 @@ struct NarrateAudioBar: View {
                 .keyboardShortcut(.space, modifiers: [])
 
                 Button {
-                    player.seek(to: player.time + 10)
+                    player.seek(to: clock.time + 10)
                 } label: { Image(systemName: "goforward.10") }
                     .buttonStyle(.bigCompanion)
                     .accessibilityLabel("Forward 10 seconds")

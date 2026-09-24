@@ -131,8 +131,10 @@ public enum WordTiming {
             if t < words[mid].start { hi = mid - 1 } else { lo = mid + 1 }
         }
         // between two words - the player should stay on the one just spoken
-        // rather than blink off, so the last word that started is returned
-        let before = words.prefix { $0.start <= t }
-        return before.last
+        // rather than blink off, so the last word that started is returned.
+        // The search has already found it: every word at or below `hi` began
+        // at or before `t`. (A linear scan here cost a pass over the whole
+        // lecture on every tick that fell in a pause, which is most of them.)
+        return hi >= 0 ? words[hi] : nil
     }
 }

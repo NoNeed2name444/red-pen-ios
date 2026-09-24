@@ -156,7 +156,8 @@ final class VoiceSpeaker: NSObject, ObservableObject {
     /// basic ones, in the phone's own English first, then British, then
     /// American. Novelty, Personal Voice and the old Eloquence voices (Eddy,
     /// Flo, Grandma...) are left out - they are the robotic-sounding ones.
-    private static let voices: (narrator: AVSpeechSynthesisVoice?, patient: AVSpeechSynthesisVoice?) = {
+    /// Narrate's read-aloud uses the same narrator.
+    static let voices: (narrator: AVSpeechSynthesisVoice?, patient: AVSpeechSynthesisVoice?) = {
         let phone = AVSpeechSynthesisVoice.currentLanguageCode()
         var languages: [String] = phone.hasPrefix("en") ? [phone] : []
         for extra in ["en-GB", "en-US"] where !languages.contains(extra) { languages.append(extra) }
