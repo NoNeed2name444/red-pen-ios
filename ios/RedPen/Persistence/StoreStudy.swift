@@ -34,6 +34,10 @@ extension Store {
     /// question is still being missed; old enough history says nothing.
     static let historyDepth = 10
 
+    /// How many dated answers are kept across every question - comfortably
+    /// more than the 200 the readiness estimate reads, and small on disk.
+    static let answerLogDepth = 2_000
+
     // MARK: flags
 
     func toggleFlag(_ id: UUID) {
@@ -59,14 +63,31 @@ extension Store {
     /// `saving: false` is for a caller about to save the library anyway -
     /// the quiz saves its position after every answer, and the library file
     /// is the whole of everything, so writing it twice per tap is waste.
-    func recordAnswer(_ questionId: UUID, correct: Bool, saving: Bool = true) {
+    ///
+    /// `confidence` is how sure the student said they were before checking,
+    /// when they said; it goes into the dated log with the answer.
+    func recordAnswer(_ questionId: UUID, correct: Bool, confidence: AnswerConfidence? = nil,
+                      saving: Bool = true) {
         guard library.contains(where: { set in
             set.kind == .mcq && set.questions.contains { $0.id == questionId }
         }) else { return }
         var past = answerHistory[questionId] ?? []
         past.append(correct)
         answerHistory[questionId] = Array(past.suffix(Self.historyDepth))
+        answerLog.append(AnswerEvent(questionId: questionId, correct: correct, confidence: confidence))
+        if answerLog.count > Self.answerLogDepth {
+            answerLog.removeFirst(answerLog.count - Self.answerLogDepth)
+        }
         if saving { save() }
+    }
+
+    /// Questions whose most recent answer was wrong although the student had
+    /// said they were sure - the misconceptions, which are worth more
+    /// attention than the honest guesses.
+    var confidentMistakeIds: Set<UUID> {
+        var latest: [UUID: AnswerEvent] = [:]
+        for event in answerLog { latest[event.questionId] = event }
+        return Set(latest.values.filter { !$0.correct && $0.confidence == .sure }.map(\.questionId))
     }
 
     /// Accuracy per subject, weakest first; subjects never answered go last.
@@ -89,20 +110,24 @@ extension Store {
     }
 
     /// Up to `limit` questions from one subject, the ones being missed first:
-    /// those whose last answer was wrong, then those ever got wrong, then
-    /// those never tried, and only then the ones always got right.
+    /// those got wrong while sure, then those whose last answer was wrong,
+    /// then those ever got wrong, then those never tried, and only then the
+    /// ones always got right.
     func drill(subject: String, limit: Int = 20) -> StudySet {
         let picks = mcqPicks { Self.subjectName($0.set) == subject }
+        let confident = confidentMistakeIds
+        var confidentWrong: [QuestionPick] = []
         var lastWrong: [QuestionPick] = [], everWrong: [QuestionPick] = []
         var untried: [QuestionPick] = [], rest: [QuestionPick] = []
         for pick in picks {
             let past = answerHistory[pick.question.id] ?? []
-            if past.last == false { lastWrong.append(pick) }
+            if confident.contains(pick.question.id) { confidentWrong.append(pick) }
+            else if past.last == false { lastWrong.append(pick) }
             else if past.contains(false) { everWrong.append(pick) }
             else if past.isEmpty { untried.append(pick) }
             else { rest.append(pick) }
         }
-        let chosen = Array((lastWrong.shuffled() + everWrong.shuffled()
+        let chosen = Array((confidentWrong.shuffled() + lastWrong.shuffled() + everWrong.shuffled()
                             + untried.shuffled() + rest.shuffled()).prefix(limit))
         return Self.temporaryQuiz(named: "Drill \u{2013} \(subject)", subject: subject,
                                   from: chosen.shuffled())

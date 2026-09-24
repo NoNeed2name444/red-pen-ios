@@ -39,6 +39,8 @@ struct RedPenApp: App {
         // a personal build opens with a finished example in every mode, so
         // each one can be tried straight away
         if !seeded { SampleData.seedPersonalBuild(into: store) }
+        // example answers, mistakes and rules, so Progress has something to show
+        if !seeded { InsightExamples.seed(into: store) }
         _store = StateObject(wrappedValue: store)
         // and on throwaway files, so a screenshot run never writes into the
         // student's own pronunciations, schedule or subscription record

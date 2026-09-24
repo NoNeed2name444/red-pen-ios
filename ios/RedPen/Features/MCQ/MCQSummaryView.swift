@@ -22,6 +22,8 @@ struct MCQSummaryView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: Store
     @State private var mistakesSaved = false
+    /// How many rules the button below just added, once it has been pressed.
+    @State private var rulesAdded: Int?
     /// The percentage as shown: it counts up from nothing as the ring fills,
     /// rather than sitting there finished before the ring has started.
     @State private var shownPercent = 0
@@ -31,6 +33,45 @@ struct MCQSummaryView: View {
         studySet.questions.indices.filter {
             answers.indices.contains($0) && answers[$0].selected != studySet.questions[$0].correctIndex
         }.map { studySet.questions[$0] }
+    }
+
+    /// The questions answered and checked wrongly - not the ones skipped,
+    /// which there is nothing to learn a rule from.
+    private var checkedMistakes: [MCQQuestion] {
+        studySet.questions.indices.filter {
+            answers.indices.contains($0) && answers[$0].checked
+                && answers[$0].selected != studySet.questions[$0].correctIndex
+        }.map { studySet.questions[$0] }
+    }
+
+    /// "Add 3 rules to your rule sheet", then a way to the sheet.
+    @ViewBuilder
+    private var ruleSheetButton: some View {
+        if let added = rulesAdded {
+            NavigationLink {
+                RuleSheetView()
+            } label: {
+                Label(added == 0 ? "Open your rule sheet"
+                                 : "\(added) rule\(added == 1 ? "" : "s") added \u{00B7} open rule sheet",
+                      systemImage: "list.bullet.rectangle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+        } else {
+            let fresh = store.questionsWithoutRules(checkedMistakes).count
+            if fresh > 0 {
+                Button {
+                    let added = store.addRules(for: checkedMistakes, subject: Store.subjectName(studySet))
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    withAnimation(.snappy) { rulesAdded = added }
+                } label: {
+                    Label("Add \(fresh) rule\(fresh == 1 ? "" : "s") to your rule sheet",
+                          systemImage: "text.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+            }
+        }
     }
 
     /// "Mistakes - Cardiology": one per set, topped up each time, so the
@@ -113,6 +154,8 @@ struct MCQSummaryView: View {
                     .buttonStyle(.glass)
                     .disabled(mistakesSaved)
                 }
+
+                ruleSheetButton
 
                 if let onRetake {
                     // matches the web app's "Retake this set" button

@@ -52,6 +52,15 @@ final class Store: ObservableObject {
     /// behind, so the Progress screen can say which subject is weakest and
     /// the drill can go straight for the questions that were missed.
     @Published var answerHistory: [UUID: [Bool]] = [:]
+    /// Every checked answer in the order it happened, with its date and how
+    /// sure the student was - the recent-accuracy and calibration figures on
+    /// the Progress screen. Capped (Store.answerLogDepth), oldest dropped.
+    @Published var answerLog: [AnswerEvent] = []
+    /// Why each question was last got wrong, in the student's words, by
+    /// question id.
+    @Published var mistakeReasons: [UUID: MistakeNote] = [:]
+    /// The rule sheet: one line to remember per missed question, by question id.
+    @Published var ruleSheet: [UUID: StudyRule] = [:]
 
     private let fileURL: URL
 
@@ -81,6 +90,9 @@ final class Store: ObservableObject {
         var readingProgress: [UUID: ReadingProgress]? // likewise
         var flagged: Set<UUID>?                 // likewise
         var answerHistory: [UUID: [Bool]]?      // likewise
+        var answerLog: [AnswerEvent]?           // likewise
+        var mistakeReasons: [UUID: MistakeNote]? // likewise
+        var ruleSheet: [UUID: StudyRule]?       // likewise
     }
 
     func load() {
@@ -101,15 +113,21 @@ final class Store: ObservableObject {
         readingProgress = snapshot.readingProgress ?? [:]
         flagged = snapshot.flagged ?? []
         answerHistory = snapshot.answerHistory ?? [:]
+        answerLog = snapshot.answerLog ?? []
+        mistakeReasons = snapshot.mistakeReasons ?? [:]
+        ruleSheet = snapshot.ruleSheet ?? [:]
     }
 
     func save() {
-        let snapshot = Snapshot(library: library, folders: folders,
+        var snapshot = Snapshot(library: library, folders: folders,
                                 quizProgress: quizProgress, tombstones: tombstones,
                                 osceProgress: osceProgress,
                                 readingProgress: readingProgress,
                                 flagged: flagged,
                                 answerHistory: answerHistory)
+        snapshot.answerLog = answerLog
+        snapshot.mistakeReasons = mistakeReasons
+        snapshot.ruleSheet = ruleSheet
         guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }

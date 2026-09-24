@@ -46,6 +46,14 @@ extension LibraryView {
             }
             .sheet(isPresented: $showNewSet) { NewSetView() }
             .turnIntoPicker(for: $turning)
+            .sheet(item: $reasoningFor) { set in
+                NavigationStack {
+                    ReasoningSetView(set: set)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { reasoningFor = nil } }
+                        }
+                }
+            }
             .sheet(isPresented: Binding(get: { exportURL != nil },
                                         set: { if !$0 { exportURL = nil } })) {
                 if let exportURL { ShareSheet(items: [exportURL]) }

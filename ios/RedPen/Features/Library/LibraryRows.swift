@@ -230,6 +230,7 @@ extension LibraryView {
             Button("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath") { turning = set }
                 .accessibilityIdentifier("turnInto")
         }
+        Button("Reasoning practice\u{2026}", systemImage: "brain.head.profile") { reasoningFor = set }
         // The lecture this set came from, readable on its own - not only by
         // way of a card that happens to cite it.
         if set.sources.count == 1, let only = set.sources.first {

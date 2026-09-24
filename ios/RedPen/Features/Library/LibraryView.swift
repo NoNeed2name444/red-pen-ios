@@ -40,6 +40,8 @@ struct LibraryView: View {
     @State private var tabForward = true
     /// The set whose "Turn into…" picker is up.
     @State var turning: StudySet?
+    /// The set whose reasoning practice (cases, duels, scripts) is open.
+    @State var reasoningFor: StudySet?
     /// A set just turned into another mode, to open; or New set, filled in.
     @ObservedObject var modeSwitch = ModeSwitch.shared
 

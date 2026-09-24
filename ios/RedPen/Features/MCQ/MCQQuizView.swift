@@ -22,6 +22,19 @@ struct MCQQuizView: View {
     @State private var examMode = false
     /// When the paper's time runs out; nil once it is over.
     @State private var examEndsAt: Date?
+    /// How sure the student said they were before checking, by question id.
+    /// Optional for every question: an answer can be checked without it.
+    @State private var confidences: [UUID: AnswerConfidence] = [:]
+    /// Why a wrong answer was wrong, as picked this sitting, by question id -
+    /// kept here only to show which chip is on; the store has the record.
+    @State private var reasons: [UUID: MistakeReason] = [:]
+    /// True while the slow reading drill is still holding the answer back.
+    @State private var holding = false
+    /// Seconds each question must be on screen before it can be answered -
+    /// the slow reading drill. 0 for every other quiz.
+    private let minReadSeconds: Int
+    /// Opens straight into timed exam mode - the timed drill.
+    private let startsTimed: Bool
     private let shuffle: Bool
     /// False for a quiz put together on the spot - flagged questions, a
     /// drill, a mix of sets - which is not in the library and so has no
@@ -44,8 +57,10 @@ struct MCQQuizView: View {
     /// also switches shuffling off so the screenshots are stable.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil, isUnsaved: Bool = false,
          saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil,
-         keepsProgress: Bool = true) {
+         keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false) {
         self.studySet = studySet
+        self.minReadSeconds = max(0, minReadSeconds)
+        self.startsTimed = startsTimed
         self.shuffle = initialAnswers == nil
         self.keepsProgress = keepsProgress
         self.isUnsaved = isUnsaved
@@ -122,9 +137,15 @@ struct MCQQuizView: View {
                             Spacer(minLength: 8)
                             if inLibrary(q.id) { flagButton }
                         }
-                        Text(q.stem)
+                        Text(minReadSeconds > 0 ? Self.highlighted(q.stem) : AttributedString(q.stem))
                             .font(.title3.weight(.semibold))
                             .lineSpacing(3)
+                        if minReadSeconds > 0 && !a.checked {
+                            Label("Slow reading: the key words are marked, and you can answer after \(minReadSeconds) seconds.",
+                                  systemImage: "eye")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         if let idx = q.imageIndex, idx >= 0, idx < studySet.images.count,
                            let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
                            let uiImage = UIImage(data: data) {
@@ -142,6 +163,13 @@ struct MCQQuizView: View {
                                 .riseIn(index: idx + 1)
                                 .id("\(current)-\(idx)")
                         }
+                    }
+
+                    if !a.checked && shuffle { confidencePicker }
+
+                    if a.checked && !examMode && a.selected != correctSlot(current)
+                        && shuffle && inLibrary(q.id) {
+                        whyChooser
                     }
 
                     // in exam mode the explanation waits for the results,
@@ -207,7 +235,23 @@ struct MCQQuizView: View {
             MCQSummaryView(set: studySet, answers: originalAnswers, onRetake: { retake() },
                            isUnsaved: isUnsaved, saved: saved, onSave: onSave)
         }
-        .onAppear(perform: checkForResume)
+        // the slow reading drill: the answer waits until the question has
+        // been on screen long enough to be read properly
+        .task(id: current) {
+            guard minReadSeconds > 0, answers.indices.contains(current), !answers[current].checked else {
+                holding = false
+                return
+            }
+            holding = true
+            try? await Task.sleep(for: .seconds(minReadSeconds))
+            if !Task.isCancelled { holding = false }
+        }
+        .onAppear {
+            checkForResume()
+            // the timed drill starts its clock at once; coming back from the
+            // results finds answers checked, so it does not start again
+            if startsTimed && canStartExam { startExam() }
+        }
     }
 
     // MARK: resume / retake — the web app's resumeBanner and retakeBtn
@@ -271,6 +315,8 @@ struct MCQQuizView: View {
         current = 0
         examMode = false
         examEndsAt = nil
+        confidences = [:]
+        reasons = [:]
         store.clearProgress(for: studySet.id)
     }
 
@@ -456,6 +502,86 @@ struct MCQQuizView: View {
         .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
     }
 
+    // MARK: confidence and why a mark was lost
+
+    /// Sure / Maybe / Guess, before checking. None is chosen to begin with,
+    /// and tapping the chosen one again clears it.
+    private var confidencePicker: some View {
+        let chosen = confidences[q.id]
+        let tint = StudySetKind.mcq.tint
+        return HStack(spacing: 8) {
+            Text("How sure?")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+            ForEach(AnswerConfidence.allCases) { level in
+                let on = chosen == level
+                Button {
+                    UISelectionFeedbackGenerator().selectionChanged()
+                    withAnimation(.snappy(duration: 0.2)) { confidences[q.id] = on ? nil : level }
+                } label: {
+                    Text(level.title)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(on ? Color.white : Color.primary)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(on ? tint : Color.primary.opacity(0.07), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+
+    /// "Why?" under a wrong answer: one tap files the mistake under a reason
+    /// for the Progress screen. Skippable - Next simply moves on.
+    private var whyChooser: some View {
+        let chosen = reasons[q.id]
+        let tint = StudySetKind.mcq.tint
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Why?").font(.subheadline.weight(.semibold))
+                Text("Optional \u{00B7} helps target your practice")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(MistakeReason.allCases) { reason in
+                        let on = chosen == reason
+                        Button {
+                            UISelectionFeedbackGenerator().selectionChanged()
+                            let id = q.id
+                            withAnimation(.snappy(duration: 0.2)) { reasons[id] = on ? nil : reason }
+                            store.noteMistake(on ? nil : reason, for: id)
+                        } label: {
+                            Label(reason.title, systemImage: reason.symbol)
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(on ? Color.white : Color.primary)
+                                .padding(.horizontal, 12).padding(.vertical, 7)
+                                .background(on ? tint : Color.primary.opacity(0.07), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(on ? .isSelected : [])
+                    }
+                }
+            }
+        }
+        .contentCard()
+        .transition(.opacity)
+    }
+
+    /// The stem with the words that change the answer drawn in the tint and
+    /// in bold, for the slow reading drill.
+    private static func highlighted(_ stem: String) -> AttributedString {
+        var out = AttributedString(stem)
+        for range in StemKeyWords.ranges(in: stem) {
+            guard let marked = Range<AttributedString.Index>(range, in: out) else { continue }
+            out[marked].foregroundColor = StudySetKind.mcq.tint
+            out[marked].inlinePresentationIntent = .stronglyEmphasized
+        }
+        return out
+    }
+
     private var footer: some View {
         GlassEffectContainer(spacing: 12) {
             HStack {
@@ -471,7 +597,7 @@ struct MCQQuizView: View {
                 }
                 .buttonStyle(.glassProminent)
                 .keyboardShortcut(.return, modifiers: [])
-                .disabled(!a.checked && a.selected == nil)
+                .disabled(!a.checked && (a.selected == nil || holding))
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
         }
@@ -481,6 +607,7 @@ struct MCQQuizView: View {
 
     private var checkButtonTitle: String {
         let last = current == studySet.questions.count - 1
+        if holding && !a.checked { return "Keep reading" }
         if examMode && !a.checked { return last ? "Finish paper" : "Next" }
         if !a.checked { return "Check answer" }
         return last ? "See results" : "Next"
@@ -494,7 +621,9 @@ struct MCQQuizView: View {
             let right = answers[current].selected == correctSlot(current)
             StudyLog.shared.record()
             // the save that follows writes the history too, when there is one
-            if shuffle { store.recordAnswer(q.id, correct: right, saving: !keepsPosition) }
+            if shuffle {
+                store.recordAnswer(q.id, correct: right, confidence: confidences[q.id], saving: !keepsPosition)
+            }
             if examMode {
                 // nothing to read after answering in a paper, so one tap
                 // answers and moves on - and the buzz gives nothing away
