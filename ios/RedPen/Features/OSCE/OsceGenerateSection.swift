@@ -13,6 +13,10 @@ import UniformTypeIdentifiers
 struct OsceGenerateSection: View {
     @Binding var bodyText: String
     let subject: String
+    /// Material to start from, when a set is being turned into stations: read
+    /// already, as if its file had just been opened.
+    var presetText: String = ""
+    var presetName: String = ""
     @EnvironmentObject private var llm: LocalLLMService
 
     @State private var picking = false
@@ -74,6 +78,14 @@ struct OsceGenerateSection: View {
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
+        }
+        .onAppear {
+            guard sourceName.isEmpty, !presetText.isEmpty else { return }
+            sourceText = presetText
+            sourceName = presetName.isEmpty ? "This set" : presetName
+            if !canGenerate {
+                trouble = "There is not much in this set to write stations from."
+            }
         }
     }
 

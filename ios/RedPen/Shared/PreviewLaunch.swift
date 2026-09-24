@@ -286,8 +286,8 @@ enum SampleData {
     /// never to the App Store app, whose students start with their own.
     @MainActor
     static func seedPersonalBuild(into store: Store) {
-        let key = "sampleLibrary.v2"
-        guard Bundle.main.bundleIdentifier?.hasSuffix(".personal") == true,
+        let key = "sampleLibrary.v3"
+        guard PersonalBuild.isOn,
               !UserDefaults.standard.bool(forKey: key) else { return }
         UserDefaults.standard.set(true, forKey: key)
         let folder = StudyFolder(name: "Examples - try every mode")

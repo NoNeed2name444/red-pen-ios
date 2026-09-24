@@ -156,6 +156,8 @@ struct MCQQuizView: View {
             footer
         }
         .modeScreen(.mcq)
+        // not for a quiz that is not saved yet, nor in the middle of a timed paper
+        .turnIntoButton(studySet, shown: !isUnsaved && examEndsAt == nil)
         .accuracyCheck(set: studySet,
                        instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.") {
             // only once answered: the check shows the answer

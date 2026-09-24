@@ -100,6 +100,12 @@ jobs:
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
                 $S/Explanation.swift
+          suite modeconversion ModeConversionTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift
 
       - name: Fail the job if anything failed
         run: |

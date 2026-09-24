@@ -56,6 +56,21 @@ struct NewSetView: View {
     @ObservedObject private var generation = GenerationCenter.shared
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
+    /// Set when a set is being turned into another mode by the writer: the
+    /// mode is chosen and the material is in, so Generate is the next tap.
+    private let preset: NewSetPreset?
+
+    init(preset: NewSetPreset? = nil) {
+        self.preset = preset
+        if let preset {
+            _kind = State(initialValue: preset.kind)
+            _name = State(initialValue: preset.name)
+            _subject = State(initialValue: preset.subject)
+            _path = State(initialValue: .lecture)
+            _readSource = State(initialValue: preset.lecture)
+            _sourceText = State(initialValue: preset.text)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -105,7 +120,7 @@ struct NewSetView: View {
                 GenerationCenter.shared.cancel()
             }
             .interactiveDismissDisabled(generation.job != nil)
-            .background(ModeBackdrop(kind: kind).animation(.easeInOut(duration: 0.5), value: kind))
+            .background(ModeBackdrop(kind: kind))
             .navigationTitle("New set")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -146,7 +161,7 @@ struct NewSetView: View {
             ForEach(StudySetKind.allCases) { option in
                 Button { withAnimation(.snappy) { kind = option } } label: {
                     HStack(spacing: 10) {
-                        ModeTile(kind: option, size: 34)
+                        ModeTile(kind: option, size: 34, selected: kind == option)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(option.label).font(.subheadline.weight(.semibold))
                             Text(Self.blurb(option))
@@ -157,7 +172,7 @@ struct NewSetView: View {
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-                    .background(kind == option ? option.tint.opacity(0.16) : Color.primary.opacity(0.04),
+                    .background(kind == option ? AnyShapeStyle(option.tint.opacity(0.12)) : AnyShapeStyle(.thinMaterial),
                                 in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .strokeBorder(kind == option ? option.tint : .clear, lineWidth: 1.5))
@@ -251,11 +266,13 @@ struct NewSetView: View {
                     generatedSet = set
                 }
             case .osce:
-                OsceGenerateSection(bodyText: $bodyText, subject: subject)
+                OsceGenerateSection(bodyText: $bodyText, subject: subject,
+                                    presetText: preset?.text ?? "", presetName: preset?.name ?? "")
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .anki, .qa, .book:
                 LectureWriterSection(kind: kind, bodyText: $bodyText, readSource: $readSource,
-                                     suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams, subject: subject)
+                                     suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams, subject: subject,
+                                     presetNotes: preset?.notes ?? "")
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .narrate:
                 draftSection(title: "Type or paste")
@@ -340,6 +357,7 @@ struct NewSetView: View {
     private func create() {
         guard canCreate else { return }
         var set = StudySet(name: name, subject: subject.isEmpty ? "General" : subject, kind: kind)
+        set.folderId = preset?.folderId
         switch kind {
         case .mcq: set.questions = PlainTextImport.parseMCQ(bodyText)
         case .anki:

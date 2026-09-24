@@ -5,8 +5,8 @@ import SwiftUI
 // Every mode has its own colour (the same tints the web app uses for its
 // mode chips), an SF Symbol, and a soft gradient. Screens set `.tint(kind.tint)`
 // so the glass buttons, progress bars and chips all pick it up, and sit on a
-// `ModeBackdrop` — a faint wash of that colour — so Liquid Glass has
-// something to refract instead of a flat white sheet.
+// `ModeBackdrop` - the one shared AppBackdrop, faintly in that colour - so
+// Liquid Glass has something to refract instead of a flat white sheet.
 
 extension StudySetKind {
     var tint: Color {
@@ -76,63 +76,42 @@ extension StudySetKind {
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
+    /// The chosen one: filled with the mode's colour, symbol in white.
+    var selected = false
 
-    // A quiet tile: the mode's symbol in grey on a soft fill. The glossy
+    // A quiet tile: the mode's symbol in grey on a solid surface. The glossy
     // gradient tiles with coloured shadows put six loud colours on the first
-    // screen; the symbol alone tells the modes apart.
+    // screen; the symbol alone tells the modes apart. Solid, not see-through:
+    // a translucent fill over the moving backdrop and a tinted row read as
+    // two shapes smudged on top of each other.
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
         Image(systemName: kind.symbol)
             .font(.system(size: size * 0.42, weight: .medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(selected ? Color.white : Color.secondary)
             .frame(width: size, height: size)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+            .background(selected ? AnyShapeStyle(kind.tint) : AnyShapeStyle(Color(.secondarySystemBackground)), in: shape)
+            .overlay(shape.strokeBorder(Color.primary.opacity(selected ? 0 : 0.08), lineWidth: 0.5))
+            .animation(.snappy(duration: 0.25), value: selected)
     }
 }
 
-/// The colour a screen lives in: a slow mesh of three hues over paper (or ink
-/// in the dark), drifting so the glass above it always has something to
-/// refract. It replaced two faint blobs on flat grey, which read as washed out.
+/// The colour a screen lives in. Once its own three-hue mesh; now a name for
+/// the one shared backdrop, led by the first hue, so every screen that still
+/// asks for it looks like every other.
 struct LivingBackdrop: View {
-    /// The three hues, strongest first.
+    /// The hues, strongest first. Only the first is used.
     let hues: [Color]
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drift = false
-
     var body: some View {
-        let dark = scheme == .dark
-        // strong enough to be colour, not a tint someone has to squint for;
-        // the middle stays calm so text on cards reads first
-        // half the strength it once had: a backdrop, not the subject
-        let o: [Double] = (dark ? [0.55, 0.30, 0.45, 0.28, 0.06, 0.22, 0.42, 0.24, 0.50]
-                                : [0.50, 0.28, 0.42, 0.24, 0.04, 0.20, 0.38, 0.22, 0.46]).map { $0 * 0.5 }
-        let h = hues + Array(repeating: hues.last ?? .accentColor, count: max(0, 3 - hues.count))
-        let colors: [Color] = [
-            h[0].opacity(o[0]), h[1].opacity(o[1]), h[2].opacity(o[2]),
-            h[1].opacity(o[3]), h[0].opacity(o[4]), h[0].opacity(o[5]),
-            h[2].opacity(o[6]), h[0].opacity(o[7]), h[1].opacity(o[8]),
-        ]
-        let m: Float = drift ? 0.08 : -0.06
-        ZStack {
-            (dark ? Color(red: 0.06, green: 0.06, blue: 0.08) : Color(red: 0.98, green: 0.97, blue: 0.95))
-            MeshGradient(width: 3, height: 3, points: [
-                [0, 0], [0.5 + m, 0], [1, 0],
-                [0, 0.5 - m], [0.5 + m, 0.45 - m], [1, 0.5 + m],
-                [0, 1], [0.5 - m, 1], [1, 1],
-            ], colors: colors, smoothsColors: true)
-        }
-        .ignoresSafeArea()
-        // Still. The slow drift was a repeat-forever animation started on
-        // appear, and a transaction like that catches whatever else changes
-        // at the same moment - lists and text visibly wobbled with it.
+        AppBackdrop(tint: hues.first)
     }
 }
 
-/// Each mode's screen: its own hue, a neighbour of it, and a lighter partner.
+/// Each mode's screen: the shared backdrop, faintly in the mode's colour.
 struct ModeBackdrop: View {
     let kind: StudySetKind
     var body: some View {
-        LivingBackdrop(hues: [kind.tint, kind.hueShifted(0.07), kind.hueShifted(-0.10, brightness: 0.12)])
+        AppBackdrop(tint: kind.tint)
     }
 }
 

@@ -18,6 +18,9 @@ struct LectureWriterSection: View {
     /// Cards made from the lecture's labelled diagrams (Cards mode).
     @Binding var diagrams: DiagramCards
     let subject: String
+    /// Notes to start from, when a set is being turned into this mode and
+    /// kept no lecture: its own content, in the paste box, ready to write from.
+    var presetNotes: String = ""
     @State private var style: CardStyle = .mixed
 
     @EnvironmentObject private var llm: LocalLLMService
@@ -117,6 +120,11 @@ struct LectureWriterSection: View {
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
+        }
+        .onAppear {
+            guard pastedNotes.isEmpty, !presetNotes.isEmpty else { return }
+            pastedNotes = presetNotes
+            showPaste = true
         }
         .sheet(isPresented: $showModels) { ModelSettingsView() }
     }

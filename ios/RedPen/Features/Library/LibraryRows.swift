@@ -207,10 +207,13 @@ extension LibraryView {
                 .buttonStyle(.pressableRow)
             } else {
                 NavigationLink(value: set) { setRow(set) }
+                    .accessibilityIdentifier("setRow-\(set.kind.rawValue)")
             }
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
-        .listRowBackground(Color(.secondarySystemGroupedBackground))
+        // frosted, so the backdrop shows through while the row stays easy
+        // to read
+        .listRowBackground(Rectangle().fill(.regularMaterial))
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
@@ -221,6 +224,12 @@ extension LibraryView {
     @ViewBuilder
     func rowMenu(_ set: StudySet) -> some View {
         Button("Rename", systemImage: "pencil") { renaming = set }
+        // any mode into any other: rearranged on the spot where it can be,
+        // written from the lecture where it cannot
+        if ModeConversion.targets.contains(where: { ModeConversion.canTurn(set, into: $0) }) {
+            Button("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath") { turning = set }
+                .accessibilityIdentifier("turnInto")
+        }
         // The lecture this set came from, readable on its own - not only by
         // way of a card that happens to cite it.
         if set.sources.count == 1, let only = set.sources.first {
@@ -349,6 +358,18 @@ extension LibraryView {
                 Label("New set", systemImage: "plus").padding(.horizontal, 6)
             }
             .buttonStyle(.glassProminent)
+            // the rest of the app is there from the start, not only once
+            // something has been made
+            HStack(spacing: 10) {
+                Button { support = .sources } label: {
+                    Label("Sources", systemImage: "doc.richtext")
+                }
+                Button { support = .help } label: {
+                    Label("How it works", systemImage: "lightbulb")
+                }
+            }
+            .buttonStyle(.glass)
+            .accessibilityIdentifier("emptyLibraryLinks")
             Spacer()
             Spacer()
         }

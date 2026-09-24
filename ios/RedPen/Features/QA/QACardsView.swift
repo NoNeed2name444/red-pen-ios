@@ -79,6 +79,7 @@ struct QACardsView: View {
         }
         .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.qa)
+        .turnIntoButton(studySet)
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

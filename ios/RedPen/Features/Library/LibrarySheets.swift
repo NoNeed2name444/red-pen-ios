@@ -45,6 +45,7 @@ extension LibraryView {
                                   openAt: opening.page)
             }
             .sheet(isPresented: $showNewSet) { NewSetView() }
+            .turnIntoPicker(for: $turning)
             .sheet(isPresented: Binding(get: { exportURL != nil },
                                         set: { if !$0 { exportURL = nil } })) {
                 if let exportURL { ShareSheet(items: [exportURL]) }

@@ -1,15 +1,16 @@
 import SwiftUI
 
-/// The library's own backdrop: the brand's pen red with indigo and teal, or
-/// the colours of the mode whose tab is open, so switching tabs changes the
-/// room you are in.
+/// The library's backdrop: the same slow mesh as every mode's screen, as it is
+/// on the "All" shelf and faintly in a mode's colour on that mode's shelf,
+/// easing from one to the other as the dock moves.
+///
+/// It was made still and grey once, because the old one was a loud three-colour
+/// gradient that flickered when it was redrawn on every tab switch. The shared
+/// backdrop is quiet enough to move, and fades rather than redraws.
 struct LibraryBackdrop: View {
     var kind: StudySetKind? = nil
-    // One quiet, still background for the library whatever tab is open: the
-    // moving three-colour gradient and a new colour per tab made the first
-    // screen busy, and redrawing it on every tab switch flickered.
     var body: some View {
-        Color(.systemGroupedBackground).ignoresSafeArea()
+        AppBackdrop(tint: kind?.tint)
     }
 }
 

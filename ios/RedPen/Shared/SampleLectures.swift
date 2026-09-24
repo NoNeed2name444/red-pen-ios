@@ -11,18 +11,12 @@ import Foundation
 enum SampleLectures {
 
     /// Lectures bundled with this build, if any.
-    static var bundled: [URL] {
-        var bundles = [Bundle.main]
-        #if SWIFT_PACKAGE
-        bundles.append(Bundle.module)
-        #endif
-        return bundles.flatMap { $0.urls(forResourcesWithExtension: "pdf", subdirectory: "Samples") ?? [] }
-    }
+    static var bundled: [URL] { AppResources.samples(withExtension: "pdf") }
 
     @MainActor
     static func seed(into store: Store) async {
-        let flag = "sampleLectures.v1"
-        guard Bundle.main.bundleIdentifier?.hasSuffix(".personal") == true,
+        let flag = "sampleLectures.v2"
+        guard PersonalBuild.isOn,
               !UserDefaults.standard.bool(forKey: flag), !bundled.isEmpty else { return }
         // marked done first, and on disk: if reading it ever stops the app,
         // the next launch does not try again

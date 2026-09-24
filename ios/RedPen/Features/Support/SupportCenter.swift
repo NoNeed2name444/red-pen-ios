@@ -14,12 +14,13 @@ import SwiftUI
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// How the studying is going - not strictly about the app, but like the
     /// others it is somewhere visited now and then rather than worked in.
-    case progress, account, settings, help, faq
+    case sources, progress, account, settings, help, faq
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .sources: return "Sources"
         case .progress: return "Progress"
         case .account: return "Account"
         case .settings: return "Settings"
@@ -30,6 +31,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
+        case .sources: return "doc.richtext"
         case .progress: return "chart.bar.xaxis"
         case .account: return "person.crop.circle"
         case .settings: return "gearshape"
@@ -40,6 +42,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var blurb: String {
         switch self {
+        case .sources: return "Your lectures, to read again"
         case .progress: return "Accuracy by subject, and your streak"
         case .account: return "Signing in, syncing, subscription"
         case .settings: return "What the app does on its own"
@@ -51,6 +54,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     @ViewBuilder
     var page: some View {
         switch self {
+        case .sources: SourcesLibraryView()
         case .progress: StatsView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()

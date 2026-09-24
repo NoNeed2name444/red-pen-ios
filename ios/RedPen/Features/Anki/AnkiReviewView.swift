@@ -65,6 +65,7 @@ struct AnkiReviewView: View {
             }
         }
         .modeScreen(.anki)
+        .turnIntoButton(studySet)
         .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSitting)

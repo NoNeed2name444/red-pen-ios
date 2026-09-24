@@ -35,6 +35,13 @@ struct LibraryView: View {
     /// this, so a swipe to Anki turns the navigation bar indigo instead of
     /// leaving MCQ's red over an indigo screen.
     @State var tab: LibraryTab = .all
+    /// Which way the last move along the dock went, so the new shelf slides
+    /// in from the side the dock moved towards.
+    @State private var tabForward = true
+    /// The set whose "Turn into…" picker is up.
+    @State var turning: StudySet?
+    /// A set just turned into another mode, to open; or New set, filled in.
+    @ObservedObject var modeSwitch = ModeSwitch.shared
 
     var pen: Color { tab.tint }
 
@@ -79,7 +86,7 @@ struct LibraryView: View {
     /// Whatever is open in the main column: a set that was tapped, and on a
     /// wide window possibly a support page chosen in the sidebar instead.
     @State private var opened: [StudySet] = []
-    @State private var support: SupportPage?
+    @State var support: SupportPage?
     @State private var columns: NavigationSplitViewVisibility = .all
 
     /// The window, not the screen: an iPad app can be a third of one, and the
@@ -145,11 +152,53 @@ struct LibraryView: View {
         }
         // one accent for the whole library rather than a colour per mode
         .tint(Color.accentColor)
+        // "Turn into…": an instant set opens straight away, in place of
+        // whatever was open; a written one goes to New set, filled in
+        .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
+        .sheet(item: $modeSwitch.writing) { preset in NewSetView(preset: preset) }
+    }
+
+    /// Opens a set that has just been made by turning another into it.
+    ///
+    /// It replaces what was open rather than going on top of it: turning the
+    /// quiz you are in into cards means you are now in the cards, and Back
+    /// goes to the library, not to the quiz you left.
+    private func openTurned(_ set: StudySet?) {
+        guard let set else { return }
+        modeSwitch.opening = nil
+        let shelf = LibraryTab(kind: set.kind)
+        withAnimation(.snappy) {
+            if tabs.contains(shelf) {
+                tabForward = (tabs.firstIndex(of: shelf) ?? 0) >= (tabs.firstIndex(of: tab) ?? 0)
+                tab = shelf
+            }
+            quickQuiz = nil
+            support = nil
+            opened = [set]
+        }
+    }
+
+    /// The dock's choice, noting which way it moved on the way through.
+    private var dockSelection: Binding<LibraryTab> {
+        Binding(get: { tab }, set: { new in
+            tabForward = (tabs.firstIndex(of: new) ?? 0) >= (tabs.firstIndex(of: tab) ?? 0)
+            tab = new
+        })
     }
 
     private var screen: some View {
-        content
-            .background(LibraryBackdrop())
+        ZStack {
+            // One shelf at a time, keyed by the tab, so a move along the dock
+            // slides the new shelf in and fades the old one out rather than
+            // swapping rows in place.
+            content
+                .id(tab)
+                .transition(AnyTransition.asymmetric(
+                    insertion: AnyTransition.opacity.combined(with: AnyTransition.offset(x: tabForward ? 36 : -36)),
+                    removal: AnyTransition.opacity))
+        }
+            // the shared backdrop, easing into the colour of the shelf
+            .background(LibraryBackdrop(kind: tab.kind))
             .navigationTitle(Brand.name)
             .searchable(text: $query, prompt: "Sets, subjects, questions")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
@@ -165,7 +214,7 @@ struct LibraryView: View {
                 if selecting {
                     selectionBar
                 } else if tabs.count > 1 {
-                    ModeDock(tabs: tabs, selection: $tab) { sets(in: $0).count }
+                    ModeDock(tabs: tabs, selection: dockSelection) { sets(in: $0).count }
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                             dockHeight = $0
                         }
@@ -185,10 +234,15 @@ struct LibraryView: View {
         } else {
             List {
                 Section {
-                    examCountdown
-                    streakRow
-                    dueBanner
-                    flaggedRow
+                    Group {
+                        examCountdown
+                        streakRow
+                        dueBanner
+                        flaggedRow
+                    }
+                    // frosted, so the backdrop shows through while the
+                    // text on it stays easy to read
+                    .listRowBackground(Rectangle().fill(.regularMaterial))
                 }
                 if !loose.isEmpty {
                     Section {

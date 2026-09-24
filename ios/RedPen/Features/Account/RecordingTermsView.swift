@@ -66,7 +66,7 @@ struct RecordingTermsView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
         }
-        .background(ModeBackdrop(kind: .narrate).ignoresSafeArea())
+        .background(LibraryBackdrop())
         .interactiveDismissDisabled()
         .task {
             while remaining > 0 {

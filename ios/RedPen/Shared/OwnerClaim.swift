@@ -6,17 +6,9 @@ import Foundation
 /// subscription, for the person the app belongs to. Nil in every other build.
 enum OwnerClaim {
     static var bundled: String? {
-        var bundles = [Bundle.main]
-        #if SWIFT_PACKAGE
-        bundles.append(Bundle.module)
-        #endif
-        for bundle in bundles {
-            if let url = bundle.url(forResource: "owner-claim", withExtension: "txt", subdirectory: "Samples"),
-               let text = try? String(contentsOf: url, encoding: .utf8) {
-                let claim = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if claim.count >= 32 { return claim }
-            }
-        }
-        return nil
+        guard let url = AppResources.sample("owner-claim", "txt"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let claim = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return claim.count >= 32 ? claim : nil
     }
 }
