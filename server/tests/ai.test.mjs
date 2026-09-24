@@ -199,7 +199,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const r = await chat(freshEnv(firebase), 'a1', request, gemini(200));
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
-  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.6-flash:generateContent'), 'through the Firebase project, the newest Flash first');
+  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.5-flash:generateContent'), 'through the Firebase project, Flash first');
 
   let workersAsked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async (model, input) => { workersAsked++; return { response: `from ${model}` }; } } });
@@ -214,13 +214,13 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
   ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
 
-  // the Flashes overloaded: Flash-Lite answers instead of giving up on Gemini
+  // Flash overloaded: Flash-Lite answers instead of giving up on Gemini
   const tried = [];
   const busyFlash = async url => { tried.push(url);
     return url.includes('flash-lite') ? new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'lite' }] } }] }), { status: 200 })
       : new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 503 }); };
   const bl = await chat(freshEnv(firebase), 'a1', request, busyFlash);
-  ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 3, 'Flashes overloaded (503): Flash-Lite answers');
+  ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 2, 'Flash overloaded (503): Flash-Lite answers');
 
   // per-minute limit on both: wait as asked, then go round again
   let calls = 0;
@@ -234,6 +234,25 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const both = freshEnv({ ...firebase, AI: { run: async () => { throw new Error('4006: daily free allocation'); } } });
   const bm = await (await chat(both, 'a1', request, gemini(429), { owner: true })).json();
   ok(bm.message.includes('gemini 429') && bm.message.includes('workers-ai 503'), 'a fallback failure no longer hides why Gemini failed');
+}
+
+// Pro pays for Gemini once billing is on, up to a monthly budget per account
+{
+  const { geminiModels, charge, priceOf } = await import('../ai.js');
+  const off = freshEnv({});
+  ok((await geminiModels(off, 'p1')).join() === 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it',
+     'billing off: the free allowances, 3.5 Flash first, no 3.6 Flash');
+  const on = freshEnv({ GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '1',
+                        GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' });
+  ok(priceOf(on, 'gemini-3.5-flash').output === 2.5 && priceOf(on, 'gemma-4-31b-it').output === 0, 'prices read from GEMINI_PRICES; Gemma is free');
+  ok((await geminiModels(on, 'p1'))[0] === 'gemini-3.5-flash', 'billing on: a Pro account starts on paid Flash');
+  // 400k output tokens at $2.50/M = $1.00: the whole budget
+  await charge(on, 'p1', 'gemini-3.5-flash', { promptTokenCount: 0, candidatesTokenCount: 300000, thoughtsTokenCount: 100000 });
+  ok((await geminiModels(on, 'p1')).join() === 'gemma-4-31b-it', 'over its monthly budget: free Gemma only, so it never costs more than it pays');
+  ok((await geminiModels(on, 'p2'))[0] === 'gemini-3.5-flash', 'another account still has its own budget');
+  ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.5-flash', 'the owner is not budgeted');
+  await charge(off, 'p3', 'gemini-3.5-flash', { candidatesTokenCount: 1e6 });
+  ok(!(await off.DB.prepare('SELECT * FROM ai_cost WHERE account_id = ?').bind('p3').first()), 'nothing is charged while billing is off');
 }
 
 // Narrate's second transcriber: Whisper on Workers AI
@@ -291,8 +310,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(none.status === 503, 'transcription config says so when Firebase is not set up');
   const set = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-x' })).json();
   ok(set.apiKey === 'fk' && set.projectId === 'cramdown-x', 'and hands back the project once it is');
-  ok(set.models[0] === 'gemini-3.6-flash' && set.models.includes('gemini-3.5-flash-lite'),
-     'with the newest Flash first and Flash-Lite as the last fallback');
+  ok(set.models[0] === 'gemini-3.5-flash' && set.models.includes('gemini-3.5-flash-lite') && !set.models.some(m => m.includes('3.6')),
+     'with Gemini 3.5 Flash first and Flash-Lite as the fallback, no 3.6');
   const swapped = await (await transcribeConfig({ FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', TRANSCRIBE_MODELS: 'gemini-3.8-flash, gemini-3.5-flash' })).json();
   ok(swapped.models.join('|') === 'gemini-3.8-flash|gemini-3.5-flash', 'a model swap is a server setting, not an app update');
   const routed = await worker.fetch(new Request('https://x/transcribe/config', { method: 'POST' }),

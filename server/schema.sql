@@ -84,3 +84,12 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   requests   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (account_id, day)
 );
+
+-- CramDown Cloud's estimated Gemini spend per Pro account per month, in
+-- millionths of a dollar, once the project pays for Gemini (GEMINI_BILLING)
+CREATE TABLE IF NOT EXISTS ai_cost (
+  account_id TEXT NOT NULL,
+  month      TEXT NOT NULL,
+  micro_usd  INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (account_id, month)
+);

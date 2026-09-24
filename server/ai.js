@@ -55,6 +55,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 
   const messages = clean(body.messages);
   if (!messages) return fail(400, 'Nothing to send.');
+  const gemini = route.sources?.find(s => s.kind === 'gemini');
+  if (gemini) Object.assign(gemini, { models: await geminiModels(env, accountId, owner), account: owner ? '' : accountId });
 
   const limit = Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   // the owner's own builds and the accuracy benchmark are not rationed
@@ -105,7 +107,11 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
   const failures = [];
   for (const source of route.sources) {
-    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
+    if (source.kind === 'gemini') {
+      result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models);
+      // a bookkeeping failure never costs the student their answer
+      if (result.ok && source.account) await charge(env, source.account, result.source, result.usage).catch(e => console.error('charge', e));
+    }
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
     else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
     if (result.ok) { result.source = result.source || source.kind; break; }
@@ -187,9 +193,8 @@ export async function appCheckToken(env, fetcher = fetch, clock = Date.now) {
 }
 export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 
-async function askGemini(env, messages, maxTokens, temperature, fetcher) {
-  const models = (env.CLOUD_MODELS || env.TRANSCRIBE_MODELS || 'gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it')
-    .split(',').map(m => m.trim()).filter(Boolean);
+async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen) {
+  const models = chosen?.length ? chosen : list(env.CLOUD_MODELS || FREE_MODELS);
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
   // the free tier counts requests per minute: when every model says "too
@@ -215,9 +220,10 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher) {
         if ([404, 429, 500, 502, 503, 504].includes(response.status)) continue;
         return last;
       }
-      const parts = (await response.json())?.candidates?.[0]?.content?.parts || [];
+      const answer = await response.json();
+      const parts = answer?.candidates?.[0]?.content?.parts || [];
       const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
-      if (content) return { ok: true, content, source: model };
+      if (content) return { ok: true, content, source: model, usage: answer.usageMetadata };
       last = { ok: false, status: 502, detail: `${model}: sent back nothing usable.` };
     }
     if (last.status !== 429 || !wait || wait > 30) break;
@@ -239,6 +245,63 @@ function errorMessage(raw) {
 export function retryDelay(raw) {
   const m = String(raw).match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
   return m ? Math.ceil(parseFloat(m[1])) : 0;
+}
+
+// MARK: who pays for Gemini
+
+const FREE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const PAID_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
+const month = () => new Date().toISOString().slice(0, 7);
+
+/// Which Gemini models this request may use.
+///
+/// Until the Firebase project is on a paid plan (GEMINI_BILLING = "on",
+/// switched on at launch), everything runs on Google's free daily allowances
+/// (CLOUD_MODELS). Once it is, Pro subscriptions pay for Gemini: each Pro
+/// account gets the paid models (PAID_MODELS) until its estimated spend this
+/// month reaches PRO_MONTHLY_BUDGET_USD - a share of what its subscription
+/// brings in - and after that the free Gemma model, so no account can cost
+/// more than it pays.
+export async function geminiModels(env, accountId, owner = false) {
+  if (env.GEMINI_BILLING !== 'on') return list(env.CLOUD_MODELS || FREE_MODELS);
+  const paid = list(env.PAID_MODELS || PAID_MODELS);
+  if (owner) return paid;
+  const budget = Number(env.PRO_MONTHLY_BUDGET_USD) || 2;
+  let row = null;
+  try {
+    row = await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
+      .bind(accountId, month()).first();
+  } catch { /* no table yet: nothing spent */ }
+  if ((row?.micro_usd || 0) >= budget * 1e6) return list(env.BUDGET_MODELS || 'gemma-4-31b-it');
+  return paid;
+}
+
+/// Dollars per million tokens, input/output, from GEMINI_PRICES
+/// ("model:in/out,..."). A model with no price (Gemma) costs nothing.
+export function priceOf(env, model) {
+  for (const entry of list(env.GEMINI_PRICES || '')) {
+    const [name, rates] = entry.split(':');
+    if (name === model) {
+      const [input, output] = rates.split('/').map(Number);
+      return { input: input || 0, output: output || 0 };
+    }
+  }
+  return { input: 0, output: 0 };
+}
+
+/// Adds one answer's estimated cost to the account's month. Thinking is
+/// billed as output, so it counts too.
+export async function charge(env, accountId, model, usage) {
+  if (env.GEMINI_BILLING !== 'on' || !usage) return;
+  const price = priceOf(env, model);
+  const out = (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0);
+  const micro = Math.ceil((usage.promptTokenCount || 0) * price.input + out * price.output);
+  if (!micro) return;
+  await env.DB.prepare(
+    `INSERT INTO ai_cost (account_id, month, micro_usd) VALUES (?, ?, ?)
+     ON CONFLICT (account_id, month) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd`)
+    .bind(accountId, month(), micro).run();
 }
 
 /// Cloudflare Workers AI, on the account's free daily allowance.

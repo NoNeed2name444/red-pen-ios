@@ -36,10 +36,20 @@ AI_WRITER_URL = "https://api.novita.ai/v3/openai"
 AI_WRITER_MODEL = "baichuan/baichuan-m2-32b"
 AI_BASE_URL = "https://router.huggingface.co/v1"
 AI_DAILY_LIMIT = "400"
-# each model has its own free daily allowance (3.5 Flash is only 20 a day),
-# so they are tried in turn; Gemma 4 has the largest
-CLOUD_MODELS = "gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
-TRANSCRIBE_MODELS = "gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite"
+# Google's free daily allowances, tried in turn (3.5 Flash 20 a day,
+# Flash-Lite 500, Gemma 4 the most)
+CLOUD_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+TRANSCRIBE_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite"
+# At launch, once the Firebase project is on the Blaze (pay-as-you-go) plan,
+# set GEMINI_BILLING = "on": Pro subscriptions then pay for Gemini. Each Pro
+# account uses PAID_MODELS until its estimated spend this month reaches
+# PRO_MONTHLY_BUDGET_USD (a share of what the subscription brings in), then
+# the free Gemma model. GEMINI_PRICES is dollars per million tokens,
+# input/output - check them against Google's price page at launch.
+GEMINI_BILLING = "off"
+PAID_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+PRO_MONTHLY_BUDGET_USD = "2"
+GEMINI_PRICES = "gemini-3.5-flash:0.30/2.50,gemini-3.5-flash-lite:0.10/0.40"
 FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
 # Accounts that are always Pro for the cloud models (comma-separated ids).
 OWNER_ACCOUNT_IDS = ""
