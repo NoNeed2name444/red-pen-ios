@@ -113,6 +113,9 @@ struct RedPenApp: App {
                 }
             }
             .environmentObject(store)
+            // a personal build's bundled lecture becomes examples, made by the
+            // app's own pipeline (diagram cards, a textbook with its figures)
+            .task { await SampleLectures.seed(into: store) }
             .environmentObject(learned)
             .environmentObject(reviews)
             .environmentObject(account)
