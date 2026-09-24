@@ -55,8 +55,8 @@ struct MCQGenerateForm: View {
             }
 
             Section {
-                Stepper("Questions: \(questionCount)", value: $questionCount,
-                        in: 3...MCQGenerator.maxQuestionsTotal)
+                CountField(title: "Questions", value: $questionCount,
+                           range: 3...MCQGenerator.maxQuestionsTotal)
                     .disabled(isGenerating)
                 Toggle("High-yield focus", isOn: $highYield)
                     .disabled(isGenerating)

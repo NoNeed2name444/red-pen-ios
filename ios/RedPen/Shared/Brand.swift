@@ -15,10 +15,10 @@ import SwiftUI
 /// screen belongs to the mode you are in. The one exception is `signal`, used
 /// for the count-down to exam day - the only thing that should ever shout.
 enum Brand {
-    static let name = "CramDown"
+    static let name = "Vignette"
 
     /// The tagline, where there is room for one.
-    static let line = "Everything, pressed down to what fits."
+    static let line = "Your lectures, as exam questions."
 
     /// Near-black with a trace of blue: ink on paper, not a pure grey.
     static let ink = Color(red: 0.08, green: 0.09, blue: 0.11)

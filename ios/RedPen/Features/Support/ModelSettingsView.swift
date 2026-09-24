@@ -40,7 +40,7 @@ struct ModelSettingsView: View {
                             if LocalLLMService.cloudMedicalHosted {
                                 Text("\(role.onDeviceModel.displayName), cloud \u{00B7} Pro").tag(LLMChoice.cloudMedical)
                             }
-                            Text("CramDown Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
+                            Text("\(Brand.name) Cloud \u{00B7} Pro").tag(LLMChoice.cloud)
                             ForEach(llm.providers) { provider in
                                 Text(provider.name).tag(LLMChoice.hosted(provider.id))
                             }
@@ -64,9 +64,9 @@ struct ModelSettingsView: View {
                         Button("See Pro") { showPaywall = true }
                     }
                 } header: {
-                    Text("CramDown Cloud \u{00B7} Pro")
+                    Text("\(Brand.name) Cloud \u{00B7} Pro")
                 } footer: {
-                    Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; CramDown does not keep it.")
+                    Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; \(Brand.name) does not keep it.")
                 }
 
                 Section {

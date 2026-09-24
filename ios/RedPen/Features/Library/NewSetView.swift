@@ -222,7 +222,7 @@ struct NewSetView: View {
                     Label("Choose a .json set", systemImage: "square.and.arrow.down")
                 }
             } footer: {
-                Text(importError ?? "A set exported from CramDown or the Red Pen web app. It's added as it is, so there's nothing to create.")
+                Text(importError ?? "A set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. It's added as it is, so there's nothing to create.")
                     .foregroundStyle(importError == nil ? Color.secondary : Color.red)
             }
         }

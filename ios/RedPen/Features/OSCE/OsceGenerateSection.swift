@@ -44,8 +44,8 @@ struct OsceGenerateSection: View {
             .disabled(working)
 
             if !sourceName.isEmpty {
-                Stepper("Stations: \(stationCount)", value: $stationCount,
-                        in: 1...OsceGenerator.maxStationsTotal)
+                CountField(title: "Stations", value: $stationCount,
+                           range: 1...OsceGenerator.maxStationsTotal)
                     .disabled(working)
                 Button {
                     working ? stop() : start()

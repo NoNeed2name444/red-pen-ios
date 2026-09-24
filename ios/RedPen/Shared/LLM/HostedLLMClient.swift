@@ -62,7 +62,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
     /// (Gemini through CramDown's Firebase project). Pro only - the worker checks with Apple.
     static func cloud(for role: LLMRole) -> HostedProvider {
         HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10D")!,
-                       name: "CramDown Cloud", kind: .openAICompatible,
+                       name: "\(Brand.name) Cloud", kind: .openAICompatible,
                        baseURL: AuthAPI.baseURL.absoluteString + "/v1",
                        model: role == .writer ? "cramdown-writer" : "cramdown-checker",
                        needsKey: false)

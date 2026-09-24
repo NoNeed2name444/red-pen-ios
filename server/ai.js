@@ -41,7 +41,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // The owner key (the app owner's own builds) skips the account and the
   // subscription check, but not a daily allowance of its own.
   if (!owner) {
-    const refused = await proGate(env, accountId, fetcher, 'CramDown Cloud is part of Pro.');
+    const refused = await proGate(env, accountId, fetcher, 'Vignette Cloud is part of Pro.');
     if (refused) return refused;
   }
 
@@ -158,7 +158,7 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
 /// (once its key exists), then Gemini, then Cloudflare's free models. Only
 /// "busy / out of quota / down" moves on; a real refusal stops.
 async function complete(env, route, messages, maxTokens, temperature, fetcher) {
-  let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
+  let result = { ok: false, status: 503, detail: 'Vignette Cloud is not set up yet.' };
   const failures = [];
   for (const source of route.sources) {
     // a paid host (Baichuan on Novita) only while Pro money covers it
@@ -438,7 +438,7 @@ export function routeFor(env, name) {
   switch (name) {
     case 'cramdown-writer':
     case 'cramdown-checker':
-      return { name: 'CramDown Cloud', base: sources.length ? 'set' : '', sources };
+      return { name: 'Vignette Cloud', base: sources.length ? 'set' : '', sources };
     case 'cramdown-doctor':
       return { name: 'Doctor-R1', base: env.AI_DOCTOR_URL,
                sources: [{ kind: 'openai', base: env.AI_DOCTOR_URL, key: env.AI_DOCTOR_KEY, model: 'doctor-r1' }] };
@@ -503,7 +503,7 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   // (it is in every receipt), so without this anyone given one gets Pro
   const holder = await env.DB.prepare('SELECT id FROM accounts WHERE original_transaction_id = ? AND id != ?')
     .bind(original, accountId).first();
-  if (holder) return fail(409, 'This subscription is already linked to another CramDown account. Sign in with that account, or contact support to move it.');
+  if (holder) return fail(409, 'This subscription is already linked to another Vignette account. Sign in with that account, or contact support to move it.');
   const until = await askApple(env, original, fetcher);
   if (until === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
   await env.DB.prepare(

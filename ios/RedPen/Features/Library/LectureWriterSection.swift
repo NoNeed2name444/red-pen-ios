@@ -51,8 +51,8 @@ struct LectureWriterSection: View {
                     .font(.footnote)
                     .disabled(working)
             }
-            Stepper("\(noun.capitalized)s: \(count)", value: $count,
-                    in: kind == .book ? 1...30 : 4...80, step: kind == .book ? 1 : 4)
+            CountField(title: "\(noun.capitalized)s", value: $count,
+                       range: kind == .book ? 1...30 : 4...80)
                 .disabled(working)
             Button {
                 working ? stop() : start()
@@ -91,7 +91,7 @@ struct LectureWriterSection: View {
         if let backend = llm.writerOrApple() {
             return "Written by \(backend.label)\(backend.isOnDevice ? " on this device" : ""). The \(noun)s land below to check and edit before you create the set."
         }
-        return "No model is ready: turn on Apple Intelligence, or use Doctor-R1 or CramDown Cloud with Pro."
+        return "No model is ready: turn on Apple Intelligence, or use Doctor-R1 or \(Brand.name) Cloud with Pro."
     }
 
     static var readableTypes: [UTType] {

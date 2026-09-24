@@ -129,7 +129,7 @@ struct NarrateReviewView: View {
                 Button("Gemini (Pro) \u{2014} best for Arabic + English") { engine = .cloud; importing = true }
                 Button("This phone only \u{2014} offline") { engine = .device; importing = true }
             } message: {
-                Text("Gemini is part of Pro and runs on Google's servers: the audio goes through CramDown to Google to transcribe, and while CramDown uses Google's free service Google may use it to improve its models. Only send lectures you're allowed to record. On this phone, nothing leaves the device, but mixed Arabic and English comes out far less accurate.")
+                Text("Gemini is part of Pro and runs on Google's servers: the audio goes through \(Brand.name) to Google to transcribe, and while \(Brand.name) uses Google's free service Google may use it to improve its models. Only send lectures you're allowed to record. On this phone, nothing leaves the device, but mixed Arabic and English comes out far less accurate.")
             }
     }
 

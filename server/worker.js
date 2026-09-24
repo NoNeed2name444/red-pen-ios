@@ -42,7 +42,7 @@ const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
 /// themselves. The key now stays on the server (see transcribeChunk), so this
 /// only says so: an old build falls back to transcribing on the phone.
 export async function transcribeConfig() {
-  return fail(410, 'Cloud transcription now goes through CramDown; update the app.');
+  return fail(410, 'Cloud transcription now goes through Vignette; update the app.');
 }
 
 export default {
