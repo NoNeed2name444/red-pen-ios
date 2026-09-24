@@ -26,6 +26,9 @@ struct RedPenApp: App {
     @ObservedObject private var llm = LocalLLMService.shared
 
     init() {
+        // the background check for cloud jobs has to be registered before
+        // launch finishes
+        CloudJobCollector.registerRefresh()
         // A CI screenshot launch (see PreviewLaunch) runs on a throwaway,
         // pre-seeded store; a normal launch opens the user's own library.
         let seeded = PreviewLaunch.screen != nil
@@ -88,6 +91,8 @@ struct RedPenApp: App {
                         // made by the app's own pipeline - only once the library
                         // is on screen, never under the sign-in screen
                         .task { await SampleLectures.seed(into: store) }
+                        // sets the cloud finished while the app was closed
+                        .task { await CloudJobCollector.collect(into: store) }
                         .task {
                             // All three are cheap and all three are wrong to
                             // leave stale: a session that expires mid-sentence,
@@ -115,6 +120,11 @@ struct RedPenApp: App {
                             // schedule each time the student leaves
                             if new == .background {
                                 AppNotifications.scheduleReviews(sets: store.library, reviews: reviews)
+                                CloudJobCollector.appLeft()
+                            }
+                            if new == .active {
+                                CloudJobCollector.appReturned()
+                                Task { await CloudJobCollector.collect(into: store) }
                             }
                         }
                 } else {

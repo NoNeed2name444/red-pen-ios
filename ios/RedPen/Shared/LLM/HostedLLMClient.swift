@@ -226,3 +226,12 @@ struct HostedLLMClient: LLMBackend {
         }
     }
 }
+
+/// Vignette Cloud's writer can take a whole job and finish it on the server
+/// (CloudJobs); any other provider is called from the phone as before.
+extension HostedLLMClient: CloudJobBackend {
+    var jobs: (base: URL, bearer: String)? {
+        guard provider.model == "cramdown-writer", let bearer, !bearer.isEmpty else { return nil }
+        return (AuthAPI.baseURL, bearer)
+    }
+}

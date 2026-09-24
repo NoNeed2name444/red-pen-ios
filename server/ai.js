@@ -100,7 +100,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 }
 
 /// Null for a signed-in Pro account, otherwise the refusal to send back.
-async function proGate(env, accountId, fetcher, why) {
+export async function proGate(env, accountId, fetcher, why) {
   const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(accountId).first();
   if (!account) return fail(401, 'Please sign in again.');
   if (!await isPro(env, account, fetcher)) return fail(402, why);

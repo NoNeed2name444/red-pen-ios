@@ -285,12 +285,23 @@ struct LectureWriterSection: View {
                     await pending.value
                 }
                 let figures = await MainActor.run { bookFigures }
-                let written = try await LectureWriter.write(
-                    kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
-                    onProgress: { done, total in
-                        GenerationCenter.shared.update(job, done: done, total: total)
-                        Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
-                    })
+                // kept with a cloud job, so the set is still made if the app
+                // is closed before the server finishes
+                let recipe = await MainActor.run {
+                    CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: wanted,
+                                source: readSource?.doc(),
+                                figures: mode == .book ? figures.map(\.imageBase64) : nil,
+                                diagramCards: mode == .anki && diagrams.included ? diagrams.cards : nil,
+                                diagramImages: mode == .anki && diagrams.included ? diagrams.images : nil).encoded
+                }
+                let written = try await CloudJobs.$recipe.withValue(recipe) {
+                    try await LectureWriter.write(
+                        kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
+                        onProgress: { done, total in
+                            GenerationCenter.shared.update(job, done: done, total: total)
+                            Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
+                        })
+                }
                 try Task.checkCancellation()
                 var note = ""
                 if let checker {

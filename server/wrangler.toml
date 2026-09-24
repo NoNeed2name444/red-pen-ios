@@ -19,6 +19,16 @@ bucket_name = "redpen-blobs"
 [ai]
 binding = "AI"
 
+# Generation that carries on after the app is closed: one object per account
+# runs its jobs on an alarm (jobs.js). SQLite-backed, which the free plan has.
+[[durable_objects.bindings]]
+name = "JOBS"
+class_name = "GenerationJobs"
+
+[[migrations]]
+tag = "v1-jobs"
+new_sqlite_classes = ["GenerationJobs"]
+
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.

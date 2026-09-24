@@ -187,9 +187,15 @@ struct MCQGenerateForm: View {
                 switch backend {
                 case .medical:
                     guard let writer else { throw LLMError.notReady("Choose a writer in AI models.") }
-                    questions = try await MedicalGenerate.mcq(
-                        sourceText: text, count: count, subject: subj,
-                        highYield: hy, using: writer, onProgress: progress)
+                    // kept with a cloud job, so the set is still made if the
+                    // app is closed before the server finishes
+                    let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
+                                             source: cite?.doc()).encoded
+                    questions = try await CloudJobs.$recipe.withValue(recipe) {
+                        try await MedicalGenerate.mcq(
+                            sourceText: text, count: count, subject: subj,
+                            highYield: hy, using: writer, onProgress: progress)
+                    }
                 case .apple:
                     questions = try await MCQGenerator.generate(
                         sourceText: text, count: count, subject: subj,

@@ -16,6 +16,19 @@ enum MedicalGenerate {
         onProgress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [MCQQuestion] {
         let promptSource = String(sourceText.prefix(backend.promptBudgetChars))
+        // Vignette Cloud: the server writes the whole set, even with the app closed
+        if let cloud = CloudJobs.endpoint(for: backend) {
+            let perCall = MCQGenerator.maxQuestionsPerCall
+            let instructions = MCQGenerator.buildPrompt(
+                sourceText: "{{SOURCE}}", count: perCall, subject: subject, highYield: highYield,
+                requestJSONShape: true, alreadyAsked: [MCQCoverage.Asked(stem: "{{ALREADY}}", key: "")])
+            let spec = CloudJobs.Spec(
+                title: "Writing \(count) questions", mode: "loop", extract: "questions", count: count,
+                sources: [promptSource],
+                steps: [.init(system: instructions, user: "Write the \(perCall) questions now, as JSON only.",
+                              maxTokens: 700 * perCall, temperature: 0.7)])
+            return try collectQuestions(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: count)
+        }
         // a phone model loses the thread on long batches; a hosted one doesn't
         let perCall = backend.isOnDevice ? 3 : MCQGenerator.maxQuestionsPerCall
         var collected: [MCQQuestion] = []
@@ -63,6 +76,19 @@ enum MedicalGenerate {
     ) async throws -> [OsceChecklist] {
         let wanted = min(count, OsceGenerator.maxStationsTotal)
         let promptSource = String(sourceText.prefix(min(backend.promptBudgetChars, OsceGenerator.maxPromptChars)))
+        if let cloud = CloudJobs.endpoint(for: backend) {
+            let perCall = OsceGenerator.maxStationsPerCall
+            let instructions = OsceGenerator.prompt(sourceText: "{{SOURCE}}", count: perCall,
+                                                    subject: subject, alreadyWritten: ["{{ALREADY}}"])
+                + "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
+            let spec = CloudJobs.Spec(
+                title: "Writing \(wanted) stations", mode: "loop", extract: "stations", count: wanted,
+                sources: [promptSource],
+                steps: [.init(system: instructions,
+                              user: "Write the \(perCall) station\(perCall == 1 ? "" : "s") now, as JSON only.",
+                              maxTokens: 900 * perCall, temperature: 0.6)])
+            return try collectStations(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: wanted)
+        }
         var collected: [OsceChecklist] = []
         var titles: [String] = []
         var consecutiveFailures = 0
@@ -101,6 +127,34 @@ enum MedicalGenerate {
         }
         guard !collected.isEmpty else { throw OsceGenerator.Trouble.nothingUsable }
         return Array(collected.prefix(wanted))
+    }
+
+    // MARK: replies from a cloud job
+
+    /// The questions in a job's replies, repeats dropped as the loop above does.
+    static func collectQuestions(_ replies: [String], count: Int) throws -> [MCQQuestion] {
+        var collected: [MCQQuestion] = []
+        var asked: [MCQCoverage.Asked] = []
+        for question in replies.flatMap(parseQuestions) where collected.count < count {
+            let key = question.options[question.correctIndex]
+            guard !MCQCoverage.isRepeat(stem: question.stem, key: key, of: asked) else { continue }
+            collected.append(question)
+            asked.append(MCQCoverage.Asked(stem: question.stem, key: key))
+        }
+        guard !collected.isEmpty else { throw LLMError.emptyReply }
+        return collected
+    }
+
+    static func collectStations(_ replies: [String], count: Int) throws -> [OsceChecklist] {
+        var collected: [OsceChecklist] = []
+        for station in OsceStations.tidy(replies.flatMap(parseStations)) where collected.count < count {
+            guard !collected.contains(where: {
+                $0.title.compare(station.title, options: .caseInsensitive) == .orderedSame
+            }) else { continue }
+            collected.append(station)
+        }
+        guard !collected.isEmpty else { throw OsceGenerator.Trouble.nothingUsable }
+        return collected
     }
 
     // MARK: parsing

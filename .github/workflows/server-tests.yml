@@ -25,3 +25,5 @@ jobs:
         run: node server/tests/sync.test.mjs
       - name: CramDown Cloud
         run: node server/tests/ai.test.mjs
+      - name: Background generation jobs
+        run: node server/tests/jobs.test.mjs

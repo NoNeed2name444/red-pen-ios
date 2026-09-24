@@ -126,9 +126,12 @@ struct OsceGenerateSection: View {
                 }
                 var stations: [OsceChecklist]
                 if let writer {
-                    stations = try await MedicalGenerate.osce(
-                        sourceText: text, count: wanted, subject: subj,
-                        using: writer, onProgress: progress)
+                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted).encoded
+                    stations = try await CloudJobs.$recipe.withValue(recipe) {
+                        try await MedicalGenerate.osce(
+                            sourceText: text, count: wanted, subject: subj,
+                            using: writer, onProgress: progress)
+                    }
                 } else {
                     stations = try await OsceGenerator.generate(
                         sourceText: text, count: wanted, subject: subj, onProgress: progress)

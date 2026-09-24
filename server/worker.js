@@ -13,6 +13,10 @@
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget } from './ai.js';
+import { jobsRoute } from './jobs.js';
+
+// the Durable Object that runs generation jobs (see jobs.js)
+export { GenerationJobs } from './jobs.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -61,6 +65,14 @@ export default {
         if (request.method === 'PUT') return await putBlob(env, id, name, request, BLOB_BUDGET);
         if (request.method === 'GET') return await getBlob(env, id, name);
         return fail(405, 'PUT or GET.');
+      }
+
+      // Generation jobs: GET and DELETE as well as POST, and a job carries
+      // its lecture, so it is sized here like a sync batch
+      if (path === '/jobs' || path.startsWith('/jobs/')) {
+        if (Number(request.headers.get('content-length')) > 24 * 1024 * 1024) return fail(413, 'That request is too large.');
+        if (isOwnerKey(request, env)) return await jobsRoute(request, env, 'owner', { owner: true });
+        return await guarded(request, env, id => jobsRoute(request, env, id));
       }
 
       if (request.method !== 'POST') return fail(405, 'POST only.');

@@ -43,7 +43,7 @@ jobs:
             $S/MCQGenerator.swift $S/MCQPrompt.swift $S/ExamTrack.swift $S/MCQCoverage.swift \
             $S/OsceGenerator.swift $S/OsceStations.swift $S/CaseSimulator.swift \
             $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/LLM/AccuracyChecker.swift \
-            $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift $S/LLM/CaseVariety.swift $S/CardStyle.swift 2>&1 | tee out/compile.log | grep -E "error" | head -40 || true
+            $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift $S/LLM/CaseVariety.swift $S/LLM/CloudJobs.swift $S/CardStyle.swift 2>&1 | tee out/compile.log | grep -E "error" | head -40 || true
           test -x build/live/run
           printf '# Live model test\n\nRun %s on %s (UTC).\n' "$GITHUB_RUN_ID" "$(date -u '+%Y-%m-%d %H:%M')" > out/live-report.md
 

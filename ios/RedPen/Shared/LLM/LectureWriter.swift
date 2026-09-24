@@ -15,6 +15,28 @@ enum LectureWriter {
         let budget = max(2_000, backend.promptBudgetChars)
         let windows = source.count <= budget ? [source]
             : TextSlicing.slice(source, into: (source.count + budget - 1) / budget, maxChars: budget)
+        // Vignette Cloud: every window's prompt goes to the server at once, and
+        // the server takes them in turn until the count is reached
+        if let cloud = CloudJobs.endpoint(for: backend) {
+            let cloudPerCall = 12
+            let rounds = min(60, max(windows.count, 1) * (kind == .qa ? 4 : 1))
+            let steps = (0..<rounds).map { r -> CloudJobs.Step in
+                let prompt = cardPrompt(kind: kind, count: cloudPerCall, subject: subject,
+                                        already: ["{{ALREADY}}"], source: "{{SOURCE}}", style: style,
+                                        presentations: kind == .qa ? CaseVariety.plan(cloudPerCall, round: r + 1) : [])
+                return .init(system: prompt, user: "Write the \(cloudPerCall) lines now.",
+                             source: r % windows.count, maxTokens: 160 * cloudPerCall, temperature: 0.6)
+            }
+            let spec = CloudJobs.Spec(
+                title: "Writing \(count) \(kind == .qa ? "cases" : "cards")", mode: "loop", extract: "lines",
+                count: count, sources: windows, steps: steps,
+                minFields: kind == .qa ? 4 : 2, keyFields: kind == .qa ? 3 : 1, cloze: kind == .anki,
+                patience: min(12, max(3, windows.count + 2)))
+            let replies = try await CloudJobs.run(spec, at: cloud, onProgress: onProgress)
+            let collected = collectLines(replies, kind: kind, count: count)
+            guard !collected.isEmpty else { throw LLMError.emptyReply }
+            return collected.joined(separator: "\n")
+        }
         var lines: [String] = []
         var seen: Set<String> = []
         var failures = 0
@@ -38,15 +60,7 @@ enum LectureWriter {
                                     presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
             let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
                                                    maxTokens: 160 * batch, temperature: 0.6)
-            let fresh = reply.components(separatedBy: .newlines)
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .map { $0.replacingOccurrences(of: #"^(\d+[.)]|[-*•])\s*"#, with: "", options: .regularExpression) }
-                .filter { line in
-                    // new against earlier batches AND within this reply; a
-                    // cloze line needs no second field
-                    (line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2) || (kind == .anki && line.contains("{{c")))
-                        && seen.insert(line.lowercased()).inserted
-                }
+            let fresh = freshLines(in: reply, kind: kind, seen: &seen)
             failures = fresh.isEmpty ? failures + 1 : 0
             lines.append(contentsOf: fresh.prefix(count - lines.count))
         }
@@ -97,11 +111,51 @@ enum LectureWriter {
     /// chapter summarised N times. Each page is laid out like a clinical
     /// textbook chapter, with tables, flowcharts and callouts where they
     /// help, and carries the lecture's own diagrams about its topic.
+    /// A reply's usable lines that are new against earlier batches and
+    /// within this reply; a cloze line needs no second field.
+    static func freshLines(in reply: String, kind: StudySetKind, seen: inout Set<String>) -> [String] {
+        reply.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .map { $0.replacingOccurrences(of: #"^(\d+[.)]|[-*•])\s*"#, with: "", options: .regularExpression) }
+            .filter { line in
+                (line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2) || (kind == .anki && line.contains("{{c")))
+                    && seen.insert(line.lowercased()).inserted
+            }
+    }
+
+    /// The lines of a cloud job's replies, as the loop above would have kept them.
+    static func collectLines(_ replies: [String], kind: StudySetKind, count: Int) -> [String] {
+        var seen: Set<String> = []
+        return Array(replies.flatMap { freshLines(in: $0, kind: kind, seen: &seen) }.prefix(count))
+    }
+
+    /// A cloud job's pages, tidied, with each page's figures placed.
+    static func assembleBook(_ replies: [String], placement: [[Int]]) -> String {
+        replies.enumerated().map { i, reply in
+            BookPages.tidyPage(reply, fallbackTitle: "Part \(i + 1)",
+                               figures: placement.indices.contains(i) ? placement[i] : [])
+        }.joined(separator: "\n\n")
+    }
+
     static func book(source: String, pages: Int, subject: String, using backend: LLMBackend,
                      figures: [BookFigure] = [], exam: ExamTrack = .current,
                      onProgress: @escaping (Int, Int) -> Void) async throws -> String {
         let slices = slice(source, into: pages, maxChars: backend.promptBudgetChars)
         let placement = BookFigures.assign(figures, to: slices)
+        if let cloud = CloudJobs.endpoint(for: backend) {
+            let steps = slices.indices.map { i -> CloudJobs.Step in
+                let mine = placement.indices.contains(i) ? placement[i] : []
+                return .init(system: "", user: bookPrompt(source: "{{SOURCE}}", subject: subject, exam: exam,
+                                                          figures: mine.map { (index: $0, figure: figures[$0]) }),
+                             source: i, maxTokens: 3_000, temperature: 0.3)
+            }
+            let spec = CloudJobs.Spec(title: "Writing \(slices.count) textbook pages", mode: "each", extract: "pages",
+                                      count: slices.count, sources: slices, steps: steps)
+            let replies = try await CloudJobs.run(spec, at: cloud, extra: try? JSONEncoder().encode(placement),
+                                                  onProgress: onProgress)
+            guard !replies.isEmpty else { throw LLMError.emptyReply }
+            return assembleBook(replies, placement: placement)
+        }
         var written: [String] = []
         for (i, part) in slices.enumerated() {
             try Task.checkCancellation()
