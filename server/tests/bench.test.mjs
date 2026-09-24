@@ -55,3 +55,15 @@ console.log('all passed');
   }
   console.log('ok   Google quota details are read');
 }
+
+// the benchmark tells a per-day limit from a per-minute one
+{
+  const { limitKind, waitFor, neuronsFor } = await import('../bench/checkers.mjs');
+  const ok2 = limitKind('[quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=20; retry 41s]') === 'day'
+    && limitKind('[quota GenerateRequestsPerMinutePerProjectPerModel-FreeTier=15; retry 20s]') === 'minute'
+    && limitKind('4006: you have used up your daily free allocation of 10,000 neurons') === 'day'
+    && waitFor('retry 41s') === 41 && waitFor('') === 20
+    && Math.round(neuronsFor('workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct', 4000, 1200)) === 48;
+  if (!ok2) { console.log('FAIL limit handling'); process.exit(1); }
+  console.log('ok   limits: per-day stops, per-minute waits, neurons estimated');
+}

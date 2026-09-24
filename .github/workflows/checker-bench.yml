@@ -56,8 +56,10 @@ jobs:
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           N: ${{ inputs.n || '40' }}
-          MODELS: ${{ inputs.models || 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b' }}
+          MODELS: ${{ inputs.models || 'gemini:gemini-3.1-pro-preview,gemini:gemini-3.5-flash,gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct,workers-ai:@cf/qwen/qwq-32b,workers-ai:@cf/google/gemma-4-26b-a4b-it' }}
           CAPS: ${{ inputs.caps }}
+          # this run's share of Workers AI's 10,000 daily neurons (two datasets a day)
+          NEURONS: '4500'
           DATASET: ${{ inputs.dataset || (github.ref_name == 'bench/medxpertqa' && 'medxpertqa') || 'medqa' }}
         run: |
           KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)

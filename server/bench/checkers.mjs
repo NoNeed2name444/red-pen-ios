@@ -39,6 +39,50 @@ const CAPS = Object.fromEntries((process.env.CAPS || '').split(',').map(s => s.t
 
 export const CASES = ['correct', 'wrongVsCorrect', 'wrongEverywhere'];
 
+// ---------- living within the free limits ----------
+//
+// Google: the limits are not published; each 429 names the one that was hit
+// ("[quota ...PerMinute...=15; retry 20s]" or "...PerDay...=20"). A per-minute
+// limit is waited out; a per-day one stops that model until tomorrow.
+// Cloudflare Workers AI: 10,000 neurons a day for the whole account, reset at
+// 00:00 UTC, priced per model per million tokens (developers.cloudflare.com/
+// workers-ai/platform/pricing). Each run gets a share (NEURONS) and spends it
+// across the Workers AI models by their published rates.
+const NEURONS = Number(process.env.NEURONS || 4500);
+export const NEURON_RATES = {   // neurons per million tokens: [input, output]
+  '@cf/meta/llama-4-scout-17b-16e-instruct': [24545, 77273],
+  '@cf/openai/gpt-oss-120b': [31818, 68182],
+  '@cf/nvidia/nemotron-3-120b-a12b': [45455, 136364],
+  '@cf/qwen/qwq-32b': [60000, 90909],
+  '@cf/google/gemma-4-26b-a4b-it': [9091, 27273],
+};
+
+/// 'day' (stop until tomorrow), 'minute' (wait and go on), or null.
+export function limitKind(message) {
+  const m = String(message || '');
+  if (/PerDay|4006|daily free allocation|per day/i.test(m)) return 'day';
+  if (/PerMinute|per minute|RESOURCE_EXHAUSTED|exceeded your current quota|overloaded|rate limit/i.test(m)) return 'minute';
+  return null;
+}
+
+/// How long Google asked to wait, in seconds (20 when it didn't say).
+export function waitFor(message) {
+  const m = String(message || '').match(/retry (\d+(?:\.\d+)?)s/);
+  return m ? Math.min(90, Math.ceil(Number(m[1]))) : 20;
+}
+
+/// Roughly what one check costs in neurons: a characters-to-tokens estimate
+/// of the prompt, and the answer's length (reasoning models write more).
+export function neuronsFor(model, promptChars, answerChars) {
+  const rate = NEURON_RATES[model.replace(/^workers-ai:/, '')];
+  if (!rate) return 0;
+  const tokensIn = promptChars / 4;
+  const tokensOut = Math.max(answerChars / 4, 300);
+  return (tokensIn * rate[0] + tokensOut * rate[1]) / 1_000_000;
+}
+
+const limitsSeen = {};
+
 /// Pass/flag rates for one model's results, each with its interval.
 export function score(results) {
   const of = kase => results.filter(r => r.case === kase && r.risk !== null);
@@ -86,6 +130,7 @@ async function rows(indices) {
 
 async function check(use, content) {
   const started = Date.now();
+  let waits = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     let r;
     try { r = await fetch(`${WORKER}/v1/chat/completions`, {
@@ -100,8 +145,20 @@ async function check(use, content) {
     }
     const j = await r.json().catch(() => ({}));
     if (r.ok) return { text: j.choices?.[0]?.message?.content || '', ms: Date.now() - started };
-    // out of today's quota: stop this model for today rather than burn retries
-    if (r.status === 429 || /quota|RESOURCE_EXHAUSTED|daily/i.test(j.message || '')) return { error: `quota: ${(j.message || '').slice(0, 160)}`, quota: true };
+    const message = String(j.message || '');
+    const kind = r.status === 429 || /quota|4006|RESOURCE_EXHAUSTED/i.test(message) ? (limitKind(message) || 'minute') : null;
+    if (kind) {
+      const named = message.match(/\[quota [^\]]+\]/);
+      if (named) limitsSeen[use] = named[0];
+      else if (/4006|daily free allocation/i.test(message)) limitsSeen['workers-ai'] = 'Workers AI: 10,000 neurons a day (account-wide)';
+      // today's allowance is gone: stop; a per-minute limit: wait it out
+      if (kind === 'day') return { error: `quota: ${message.slice(0, 200)}`, quota: 'day' };
+      if (waits >= 8) return { error: `quota: still limited after 8 waits: ${message.slice(0, 160)}`, quota: 'day' };
+      waits++;
+      await new Promise(res => setTimeout(res, waitFor(message) * 1000));
+      attempt--;
+      continue;
+    }
     if (![500, 502, 503, 504].includes(r.status) || attempt === 2) return { error: `${r.status}: ${(j.message || '').slice(0, 200)}` };
     await new Promise(res => setTimeout(res, 5000 * (attempt + 1)));
   }
@@ -132,19 +189,32 @@ async function main() {
   const notes = {};
 
   // models side by side, each at its own pace; within a model one call at a time
+  const workersModels = MODELS.filter(m => m.startsWith('workers-ai:'));
+  const neuronShare = workersModels.length ? NEURONS / workersModels.length : 0;
+  let workersDone = false;
   await Promise.all(MODELS.map(async model => {
     let calls = 0;
+    let spent = 0;
     const cap = CAPS[model] ?? Infinity;
     for (const q of qs) for (const kase of CASES) {
       if (done.has(`${model}|${q.index}|${kase}`)) continue;
       if (calls >= cap) { notes[model] = `stopped at today's cap of ${cap} calls`; return; }
+      const isWorkers = model.startsWith('workers-ai:');
+      if (isWorkers && workersDone) { notes[model] = 'stopped: Workers AI daily neurons used up'; return; }
+      if (isWorkers && spent >= neuronShare) { notes[model] = `stopped at its share of today's neurons (~${Math.round(spent)} of ${Math.round(neuronShare)})`; return; }
       calls++;
-      const reply = await check(model, prompt(q, kase));
+      const text = prompt(q, kase);
+      const reply = await check(model, text);
       if (reply.error) {
         results.push({ model, index: q.index, case: kase, risk: null, error: reply.error });
-        if (reply.quota) { notes[model] = 'stopped: free quota used up for today'; return; }
+        if (reply.quota) {
+          if (isWorkers) workersDone = true;
+          notes[model] = `stopped: today's free limit reached ${limitsSeen[model] || limitsSeen['workers-ai'] || ''}`.trim();
+          return;
+        }
         continue;
       }
+      if (isWorkers) spent += neuronsFor(model, text.length, reply.text.length);
       results.push({ model, index: q.index, case: kase, risk: riskFrom(reply.text), ms: reply.ms });
       process.stdout.write('.');
       // kept as it goes: a run that is stopped still leaves what it measured
@@ -168,6 +238,8 @@ async function main() {
     `|---|---|---|---|---|---|---|---|`,
     ...table.map(({ model, s, median, questions }) =>
       `| ${model} | ${questions} | ${rate(s.specificity)} | ${rate(s.catchWithLecture)} | ${rate(s.catchByKnowledge)} | ${pct(s.balanced)} | ${median} | ${s.unreadable} / ${s.failed} |`),
+    ``, `## Free limits met`, ``,
+    ...(Object.keys(limitsSeen).length ? Object.entries(limitsSeen).map(([m, l]) => `- ${m}: ${l}`) : ['- none hit']),
     ``, `## Notes`, ``,
     ...Object.entries(notes).map(([m, n]) => `- ${m}: ${n}`),
     ...[...new Set(results.filter(r => r.error && !/quota/.test(r.error)).map(r => `${r.model}: ${r.error}`))].slice(0, 12).map(e => `- ${e}`),
