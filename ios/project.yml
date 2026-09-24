@@ -65,8 +65,8 @@ targets:
         # They also say the honest thing: the recognition happens here, because
         # LectureTranscriber forces requiresOnDeviceRecognition and refuses
         # rather than falling back to a server.
-        NSSpeechRecognitionUsageDescription: Vignette turns your lecture recording into a transcript on this device. The recording is never uploaded.
-        NSMicrophoneUsageDescription: Vignette uses the microphone to record a lecture for transcription on this iPhone.
+        NSSpeechRecognitionUsageDescription: Vignette turns lecture recordings and your spoken answers into text, on this device where it can.
+        NSMicrophoneUsageDescription: Vignette uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice.
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:
           - audio

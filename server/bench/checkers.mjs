@@ -87,11 +87,17 @@ async function rows(indices) {
 async function check(use, content) {
   const started = Date.now();
   for (let attempt = 0; attempt < 3; attempt++) {
-    const r = await fetch(`${WORKER}/v1/chat/completions`, {
+    let r;
+    try { r = await fetch(`${WORKER}/v1/chat/completions`, {
       method: 'POST',
+      // one stuck provider must not hold the whole comparison
+      signal: AbortSignal.timeout(150_000),
       headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
       body: JSON.stringify({ model: 'cramdown-checker', use, max_tokens: 900, temperature: 0, messages: [{ role: 'user', content }] }),
-    });
+    }); } catch (error) {
+      if (attempt === 2) return { error: `no answer: ${String(error?.name || error).slice(0, 80)}` };
+      continue;
+    }
     const j = await r.json().catch(() => ({}));
     if (r.ok) return { text: j.choices?.[0]?.message?.content || '', ms: Date.now() - started };
     // out of today's quota: stop this model for today rather than burn retries

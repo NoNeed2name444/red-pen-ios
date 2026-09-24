@@ -57,6 +57,7 @@ struct DueTodayView: View {
         .modeScreen(.anki)
         .navigationTitle("Due today")
         .navigationBarTitleDisplayMode(.inline)
+        .commuteModeButton()
         .onAppear(perform: load)
     }
 

@@ -138,6 +138,7 @@ struct BookReaderView: View {
                     if !caption.isEmpty {
                         Text(md(caption)).font(.caption).foregroundStyle(.secondary)
                     }
+                    DrawFromMemoryButton(set: studySet, imageIndex: index, caption: caption)
                 }
                 .padding(.vertical, 4)
             }

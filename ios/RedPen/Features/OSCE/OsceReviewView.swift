@@ -58,6 +58,7 @@ struct OsceReviewView: View {
         }
         .modeScreen(.osce)
         .turnIntoButton(studySet)
+        .spokenPatientButton(for: checklist)
         .accuracyCheck(set: studySet,
                        instruction: "Write an OSCE station checklist, in the order the steps are performed, from the source.") {
             checklist.map { $0.title + "\n" + $0.steps.map { "- " + $0 }.joined(separator: "\n") }

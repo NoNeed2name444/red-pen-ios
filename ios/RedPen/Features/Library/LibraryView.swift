@@ -236,6 +236,14 @@ struct LibraryView: View {
         } else {
             List {
                 Section {
+                    // the personal build's tour of every feature
+                    if PersonalBuild.isOn {
+                        Button { support = .examples } label: {
+                            Label("Try every feature \u{2014} worked examples", systemImage: "sparkles.rectangle.stack")
+                                .font(.body.weight(.semibold))
+                        }
+                        .accessibilityIdentifier("examplesBanner")
+                    }
                     Group {
                         examCountdown
                         streakRow
@@ -345,7 +353,7 @@ struct LibraryView: View {
     /// window too narrow to have a sidebar. Same pages, pushed instead.
     @ViewBuilder
     private var supportItems: some View {
-        ForEach(SupportPage.allCases) { page in
+        ForEach(SupportPage.shown) { page in
             // One state for both shapes: in the sidebar it decides what the
             // main column shows, on a phone it is what gets pushed. A
             // NavigationLink cannot live inside a Menu, so this is a button

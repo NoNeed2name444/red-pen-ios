@@ -77,6 +77,7 @@ private struct CaseSession: View {
         case .interviewing:
             VStack(spacing: 0) {
                 coverageBar
+                CaseVoiceBar(simulator: simulator)
                 transcript
                 composer
             }

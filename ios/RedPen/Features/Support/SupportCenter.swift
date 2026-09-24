@@ -14,14 +14,19 @@ import SwiftUI
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// How the studying is going - not strictly about the app, but like the
     /// others it is somewhere visited now and then rather than worked in.
-    case sources, progress, notes, reasoning, account, settings, help, faq
+    case examples, sources, progress, coverage, notes, reasoning, account, settings, help, faq
+
+    /// What the menus list: the tour of examples only in the personal build.
+    static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .examples: return "Try every feature"
         case .sources: return "Sources"
         case .progress: return "Progress"
+        case .coverage: return "Syllabus"
         case .notes: return "Ideas"
         case .reasoning: return "Reasoning"
         case .account: return "Account"
@@ -33,8 +38,10 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
+        case .examples: return "sparkles.rectangle.stack"
         case .sources: return "doc.richtext"
         case .progress: return "chart.bar.xaxis"
+        case .coverage: return "checklist"
         case .notes: return "point.3.connected.trianglepath.dotted"
         case .reasoning: return "brain.head.profile"
         case .account: return "person.crop.circle"
@@ -46,8 +53,10 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var blurb: String {
         switch self {
+        case .examples: return "Every feature, with a worked example"
         case .sources: return "Your lectures, to read again"
         case .progress: return "Accuracy by subject, and your streak"
+        case .coverage: return "What your exam covers that you haven't studied"
         case .notes: return "Your idea dump, folders and maps"
         case .reasoning: return "Clue-by-clue cases, lookalikes, disease scripts"
         case .account: return "Signing in, syncing, subscription"
@@ -60,8 +69,10 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     @ViewBuilder
     var page: some View {
         switch self {
+        case .examples: ExamplesHubView()
         case .sources: SourcesLibraryView()
         case .progress: StatsView()
+        case .coverage: CoverageView()
         case .notes: IdeasView()
         case .reasoning: ReasoningView()
         case .account: AccountView(embedded: true)
@@ -94,7 +105,7 @@ struct SupportSidebar: View {
                 .padding(.bottom, 2)
             }
             Section {
-                ForEach(SupportPage.allCases) { page in
+                ForEach(SupportPage.shown) { page in
                     row(title: page.title, symbol: page.symbol,
                         blurb: page.blurb, page: page)
                 }
