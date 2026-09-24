@@ -52,6 +52,7 @@ struct NewSetView: View {
     /// the lecture to check against.
     @State private var readSource: ReadSource?
     @State private var bookFigures: [BookFigure] = []
+    @ObservedObject private var generation = GenerationCenter.shared
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
 
@@ -96,7 +97,13 @@ struct NewSetView: View {
             .floatingAction(id: "create", title: "Create \(kind.label) set", symbol: "checkmark",
                             enabled: canCreate, run: create)
             .floatingActionBar(expecting: floatingID)
-            .onDisappear { FloatingAction.shared.clear() }
+            .onDisappear {
+                FloatingAction.shared.clear()
+                // closing New set stops what it started, so nothing keeps
+                // running unseen or turns up as a stray card next time
+                GenerationCenter.shared.cancel()
+            }
+            .interactiveDismissDisabled(generation.job != nil)
             .background(ModeBackdrop(kind: kind).animation(.easeInOut(duration: 0.5), value: kind))
             .navigationTitle("New set")
             .navigationBarTitleDisplayMode(.inline)
@@ -110,6 +117,11 @@ struct NewSetView: View {
             }
             .onChange(of: kind) { _, now in
                 if !Self.paths(for: now).contains(path) { path = Self.paths(for: now)[0] }
+                // each mode's draft is in its own format: Anki lines are not
+                // textbook pages, so a draft never carries over to another mode
+                GenerationCenter.shared.cancel()
+                bodyText = ""
+                bookFigures = []
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
                 handleImport(result)

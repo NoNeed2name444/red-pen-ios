@@ -28,7 +28,9 @@ struct CountField: View {
         .onChange(of: text) { _, typed in
             let digits = typed.filter(\.isNumber)
             if digits != typed { text = digits }
-            if let number = Int(digits), range.contains(number) { value = number }
+            // what the field shows is what is used, even before it is left:
+            // out of range is held at the nearest end rather than ignored
+            if let number = Int(digits.prefix(9)) { value = min(max(number, range.lowerBound), range.upperBound) }
         }
         .onChange(of: value) { _, new in if !focused { text = String(new) } }
         .toolbar {

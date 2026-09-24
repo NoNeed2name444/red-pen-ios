@@ -23,6 +23,7 @@ struct LectureWriterSection: View {
     @State private var showPaste = false
     @State private var count = 12
     @State private var working = false
+    @State private var reading = false
     @State private var status: String?
     @State private var trouble: String?
     @State private var task: Task<Void, Never>?
@@ -60,13 +61,13 @@ struct LectureWriterSection: View {
                 working ? stop() : start()
             } label: {
                 HStack {
-                    if working { ProgressView().controlSize(.small) }
-                    Text(working ? (status ?? "Writing\u{2026}") : "Write the \(noun)s")
+                    if working || reading { ProgressView().controlSize(.small) }
+                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : "Write the \(noun)s")
                 }
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
-            .disabled(!hasSource && !working)
+            .disabled((!hasSource && !working) || reading)
             .floatingActionAnchor("writer")
             if working {
                 Button("Stop", role: .cancel) { stop() }
@@ -84,7 +85,8 @@ struct LectureWriterSection: View {
             Text(modelLine)
         }
         .floatingAction(id: "writer", title: "Write \(count) \(noun)\(count == 1 ? "" : "s")",
-                        enabled: hasSource && !working, run: start)
+                        enabled: hasSource && !working && !reading,
+                        inputs: [kind.rawValue, subject, String(sourceText.count), String(bookFigures.count)], run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
@@ -113,9 +115,9 @@ struct LectureWriterSection: View {
             if case .failure(let error) = result { trouble = error.localizedDescription }
             return
         }
-        working = true
+        reading = true
         status = "Reading\u{2026}"
-        defer { working = false }
+        defer { reading = false }
         do {
             let ext = url.pathExtension.lowercased()
             // a textbook wants the lecture's diagrams; cards do not
@@ -123,6 +125,11 @@ struct LectureWriterSection: View {
             let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: figures)
                                     : try await OfficeIngest.read(url, findingFigures: figures)
             bookFigures = figures ? Self.figures(from: read) : []
+            // pictures numbered for the previous file would now point at the
+            // wrong diagrams: they go, and the new pages will place their own
+            bodyText = bodyText.components(separatedBy: "\n")
+                .filter { BookFigures.parse($0.trimmingCharacters(in: .whitespaces)) == nil }
+                .joined(separator: "\n")
             let name = url.deletingPathExtension().lastPathComponent
             readSource = ReadSource(name: name, document: read.document,
                                     kind: ext == "pdf" ? .pdf : ext == "pptx" ? .powerpoint : .word)
@@ -201,9 +208,12 @@ struct LectureWriterSection: View {
                     status = "Written \u{2014} check them below." + finalNote
                 }
             } catch is CancellationError {
-                await MainActor.run { GenerationCenter.shared.end(job) }
+                await MainActor.run { GenerationCenter.shared.end(job); working = false }
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else {
+                    await MainActor.run { GenerationCenter.shared.end(job); working = false }
+                    return
+                }
                 await MainActor.run {
                     GenerationCenter.shared.end(job)
                     working = false

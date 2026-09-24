@@ -64,6 +64,16 @@ export default {
       }
 
       if (request.method !== 'POST') return fail(405, 'POST only.');
+      // Sized before it is read, since a body is read into memory whole:
+      // a transcription chunk is about 3 MB (never over 9), a sync batch can
+      // be larger, everything else is small.
+      const size = Number(request.headers.get('content-length')) || 0;
+      const allowed = path === '/transcribe/chunk' ? 10 * 1024 * 1024
+        : path === '/sync/push' ? 24 * 1024 * 1024   // a batch of documents
+        : 2 * 1024 * 1024;
+      if (size > allowed) return fail(413, 'That request is too large.');
+      // a big body with no declared size is refused rather than read blind
+      if (!size && path === '/transcribe/chunk') return fail(411, 'Say how large the audio is.');
       let body = {};
       try { body = await request.json(); } catch { body = {}; }
 
@@ -92,7 +102,7 @@ export default {
         // this month
         case '/costs':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
-          return json(await budget(env));
+          return json(await budget(env)); // forUse is null until the price is set (capped: false)
         case '/transcribe/config': return await transcribeConfig();
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
@@ -262,10 +272,9 @@ async function deleteAccount(request, env) {
   // requires the account to be removable from inside the app, and an account
   // whose data outlives it has not been deleted.
   await wipe(env, id);
-  // the AI allowance and spend rows are about the account too
-  for (const table of ['ai_usage', 'ai_cost']) {
-    await env.DB.prepare(`DELETE FROM ${table} WHERE account_id = ? OR account_id = ?`).bind(id, `transcribe:${id}`).run().catch(() => {});
-  }
+  // The month's AI spend and today's allowance stay: they hold no personal
+  // data, and deleting them would let a new account on the same subscription
+  // start the month over.
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }

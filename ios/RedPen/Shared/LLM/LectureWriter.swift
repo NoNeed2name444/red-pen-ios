@@ -16,6 +16,7 @@ enum LectureWriter {
         let windows = source.count <= budget ? [source]
             : TextSlicing.slice(source, into: (source.count + budget - 1) / budget, maxChars: budget)
         var lines: [String] = []
+        var seen: Set<String> = []
         var failures = 0
         var round = 0
         // no fixed ceiling: it keeps going until the count is reached, and
@@ -41,8 +42,9 @@ enum LectureWriter {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .map { $0.replacingOccurrences(of: #"^(\d+[.)]|[-*•])\s*"#, with: "", options: .regularExpression) }
                 .filter { line in
+                    // new against earlier batches AND within this reply
                     line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2)
-                        && !lines.contains { $0.lowercased() == line.lowercased() }
+                        && seen.insert(line.lowercased()).inserted
                 }
             failures = fresh.isEmpty ? failures + 1 : 0
             lines.append(contentsOf: fresh.prefix(count - lines.count))

@@ -203,9 +203,25 @@ private struct ProviderEditor: View {
     @State private var testing = false
     @State private var testResult: String?
 
+    /// Where the saved key was meant to go: the stored key is only ever sent
+    /// there, never to an address typed since.
+    private let savedBaseURL: String
+
     init(provider: HostedProvider, isNew: Bool) {
         _provider = State(initialValue: provider)
         self.isNew = isNew
+        self.savedBaseURL = isNew ? "" : provider.baseURL
+    }
+
+    /// https, or plain http only to this device or the local network (a
+    /// llama.cpp server on a Mac): a key never crosses the internet unencrypted.
+    static func safeAddress(_ address: String) -> Bool {
+        guard let url = URL(string: address.trimmingCharacters(in: .whitespaces)),
+              let scheme = url.scheme?.lowercased(), let host = url.host?.lowercased() else { return false }
+        if scheme == "https" { return true }
+        guard scheme == "http" else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host.hasSuffix(".local")
+            || host.hasPrefix("192.168.") || host.hasPrefix("10.")
     }
 
     var body: some View {
@@ -253,19 +269,30 @@ private struct ProviderEditor: View {
                         llm.upsert(provider, key: key.isEmpty ? nil : key)
                         dismiss()
                     }
-                    .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.model.isEmpty)
+                    .disabled(provider.name.isEmpty || provider.baseURL.isEmpty || provider.model.isEmpty
+                              || !Self.safeAddress(provider.baseURL)
+                              // a new address needs its key typed again
+                              || (provider.needsKey && key.isEmpty && provider.baseURL != savedBaseURL))
                 }
             }
         }
     }
 
     private func test() async {
+        guard Self.safeAddress(provider.baseURL) else {
+            testResult = "Use an https:// address (plain http only for this device or your local network)."
+            return
+        }
+        // the stored key goes only to the address it was saved for
+        if key.isEmpty && provider.baseURL != savedBaseURL && provider.needsKey {
+            testResult = "The address changed - enter the API key again to test it."
+            return
+        }
         testing = true
         defer { testing = false }
-        // saved first so the key is in the keychain where the client reads it
-        llm.upsert(provider, key: key.isEmpty ? nil : key)
+        // tested as typed, without saving: Cancel still means nothing changed
         do {
-            let reply = try await HostedLLMClient(provider: provider)
+            let reply = try await HostedLLMClient(provider: provider, bearer: key.isEmpty ? nil : key)
                 .complete([.user("Reply with the single word: ready")], maxTokens: 20, temperature: 0)
             testResult = "Answered: \(reply.prefix(60))"
         } catch {

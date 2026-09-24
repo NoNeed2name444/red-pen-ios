@@ -70,7 +70,7 @@ struct OsceGenerateSection: View {
         }
         // only once a file is read is there a button to float
         .floatingAction(id: sourceName.isEmpty ? "osce-unread" : "osce", title: "Write \(stationCount) station\(stationCount == 1 ? "" : "s")",
-                        enabled: canGenerate, run: start)
+                        enabled: canGenerate, inputs: [subject, String(sourceText.count)], run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
@@ -161,9 +161,12 @@ struct OsceGenerateSection: View {
                     status = "\(finalStations.count) station\(finalStations.count == 1 ? "" : "s") written \u{2014} check them below." + note
                 }
             } catch is CancellationError {
-                await MainActor.run { GenerationCenter.shared.end(job) }
+                await MainActor.run { GenerationCenter.shared.end(job); working = false }
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else {
+                    await MainActor.run { GenerationCenter.shared.end(job); working = false }
+                    return
+                }
                 await MainActor.run {
                     GenerationCenter.shared.end(job)
                     working = false

@@ -34,8 +34,15 @@ CREATE TABLE IF NOT EXISTS accounts (
   --   ALTER TABLE accounts ADD COLUMN checked_at INTEGER NOT NULL DEFAULT 0;
   original_transaction_id TEXT,
   verified_until INTEGER NOT NULL DEFAULT 0,
-  checked_at INTEGER NOT NULL DEFAULT 0
+  checked_at INTEGER NOT NULL DEFAULT 0,
+  -- "Production" or "Sandbox", as Apple reports it: test purchases unlock Pro
+  -- for testing but are not revenue. Existing deployments:
+  --   ALTER TABLE accounts ADD COLUMN apple_env TEXT;
+  apple_env TEXT
 );
+-- One subscription, one account (see linkSubscription): the unique index on
+-- original_transaction_id is created by the deploy workflow, where an old
+-- duplicate cannot stop the deploy.
 
 -- One person, one account per provider. Signing in with Apple and then with
 -- Google using the same address makes two accounts on purpose: we cannot prove

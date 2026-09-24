@@ -27,6 +27,9 @@ final class GenerationCenter: ObservableObject {
     /// the screen that started it back to idle; it runs on the main actor.
     @discardableResult
     func begin(_ title: String, total: Int, onCancel: @escaping () -> Void) -> UUID {
+        // one job at a time: whatever was running is stopped, not orphaned
+        // to finish later into a draft that has moved on
+        if job != nil { cancel() }
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
         stop = onCancel
@@ -115,8 +118,9 @@ struct GenerationHUD: View {
 }
 
 extension View {
-    /// Floats the generation card over this screen.
+    /// The generation card at the bottom of this screen. An inset rather than
+    /// an overlay, so the rows under it can still be scrolled into view.
     func generationHUD() -> some View {
-        overlay(alignment: .bottom) { GenerationHUD() }
+        safeAreaInset(edge: .bottom, spacing: 0) { GenerationHUD() }
     }
 }

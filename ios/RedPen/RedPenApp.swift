@@ -93,6 +93,7 @@ struct RedPenApp: App {
                             await subscriptions.refreshIfNeeded()
                             // CramDown Cloud checks with Apple, server side;
                             // this tells it which subscription to ask about
+                            subscriptions.accountId = account.account?.id
                             await subscriptions.report(token: account.token)
                             await sync.syncNow()
                         }

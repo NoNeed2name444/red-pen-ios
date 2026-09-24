@@ -108,8 +108,9 @@ struct MCQGenerateForm: View {
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .onAppear { gemma.refreshStatus() }
         .floatingAction(id: "mcq", title: "Write \(questionCount) questions", enabled: canStart,
+                        inputs: [name, subject, String(highYield), String(sourceText.count)],
                         run: startGenerating)
-        .onDisappear { generationTask?.cancel() }
+
     }
 
     private var generateLabel: String {
@@ -242,9 +243,14 @@ struct MCQGenerateForm: View {
                     onGenerated(set)
                 }
             } catch is CancellationError {
-                await MainActor.run { GenerationCenter.shared.end(job) }
+                await MainActor.run { GenerationCenter.shared.end(job); isGenerating = false }
             } catch {
-                guard !Task.isCancelled else { return }
+                // a model that reports being stopped as its own error (Gemma)
+                // is still just stopped
+                guard !Task.isCancelled else {
+                    await MainActor.run { GenerationCenter.shared.end(job); isGenerating = false }
+                    return
+                }
                 await MainActor.run {
                     GenerationCenter.shared.end(job)
                     isGenerating = false

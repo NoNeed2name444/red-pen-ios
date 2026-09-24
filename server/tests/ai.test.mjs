@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { chat, clean, linkSubscription, isOwnerKey } from '../ai.js';
+import { chat, clean, linkSubscription, isOwnerKey, accountToken } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -57,6 +57,7 @@ const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256
 const pkcs8 = Buffer.from(await crypto.subtle.exportKey('pkcs8', pair.privateKey)).toString('base64');
 const asc = { ASC_KEY_ID: 'KEY', ASC_ISSUER_ID: 'ISS', ASC_PRIVATE_KEY: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----` };
 const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.y`;
+const a1Token = await accountToken('a1');
 
 // not Pro: refused, and nothing reaches the provider
 {
@@ -83,7 +84,7 @@ const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64u
   const env = freshEnv(asc);
   const future = Date.now() + 30 * 86_400_000;
   const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
-    { status: 1, signedTransactionInfo: jws({ expiresDate: future }) }] }] };
+    { status: 1, signedTransactionInfo: jws({ expiresDate: future, appAccountToken: a1Token }) }] }] };
   const linked = await (await linkSubscription(env, 'a1', { originalTransactionId: '2000000123' }, fakeFetch(apple))).json();
   ok(linked.pro === true, 'a live subscription confirmed by Apple links as Pro');
   const r = await chat(env, 'a1', request, fakeFetch(apple));
@@ -104,7 +105,7 @@ const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64u
 {
   const env = freshEnv(asc);
   const apple = { bundleId: 'com.someone.else', data: [{ lastTransactions: [
-    { status: 1, signedTransactionInfo: jws({ expiresDate: Date.now() + 1e9 }) }] }] };
+    { status: 1, signedTransactionInfo: jws({ expiresDate: Date.now() + 1e9, appAccountToken: a1Token }) }] }] };
   const linked = await (await linkSubscription(env, 'a1', { originalTransactionId: '2000000125' }, fakeFetch(apple))).json();
   ok(linked.pro === false, "a subscription for a different bundle id doesn't count");
 }
@@ -115,7 +116,7 @@ const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64u
   env.DB.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('b2', 'google', 's2', 0)`).run();
   const future = Date.now() + 30 * 86_400_000;
   const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
-    { status: 1, signedTransactionInfo: jws({ expiresDate: future }) }] }] };
+    { status: 1, signedTransactionInfo: jws({ expiresDate: future, appAccountToken: a1Token }) }] }] };
   await linkSubscription(env, 'a1', { originalTransactionId: '2000000200' }, fakeFetch(apple));
   const shared = await linkSubscription(env, 'b2', { originalTransactionId: '2000000200' }, fakeFetch(apple));
   ok(shared.status === 409, "someone else's transaction id does not make a second account Pro");
@@ -124,6 +125,39 @@ const jws = claims => `x.${Buffer.from(JSON.stringify(claims)).toString('base64u
   env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
   const down = async (url, init) => url.includes('storekit') ? new Response('busy', { status: 503 }) : fakeFetch(apple)(url, init);
   ok((await chat(env, 'a1', request, down)).status === 200, 'Apple being down does not take Pro away from a subscriber');
+}
+
+// a transaction id someone else bought cannot be claimed first
+{
+  const env = freshEnv(asc);
+  const apple = { bundleId: 'com.cramdown.app', environment: 'Production', data: [{ lastTransactions: [
+    { status: 1, signedTransactionInfo: jws({ expiresDate: Date.now() + 1e9, appAccountToken: await accountToken('the-real-buyer') }) }] }] };
+  const r = await linkSubscription(env, 'a1', { originalTransactionId: '2000000300' }, fakeFetch(apple));
+  ok(r.status === 403, "a subscription bought from another account cannot be linked, even first");
+}
+
+// Apple unreachable (the request itself fails): the last answer stands, no 500
+{
+  const env = freshEnv(asc);
+  const thrown = await linkSubscription(env, 'a1', { originalTransactionId: '2000000301' }, async () => { throw new Error('offline'); });
+  ok(thrown.status === 503, 'a network failure asking Apple is "try again", not a crash');
+}
+
+// Pro pays: reserved before, settled after; the owner is counted and capped
+{
+  const { reserve, settle, wallet, canPay, costOf, budget } = await import('../ai.js');
+  const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '1', OWNER_MONTHLY_USD: '1',
+                         GEMINI_PRICES: 'gemini-3.5-flash:1/1', GEMINI_AUDIO_PRICES: 'gemini-3.5-flash:3' });
+  const w = await wallet(env, 'a1');
+  ok(await reserve(env, w, 600_000) && !(await reserve(env, w, 600_000)), 'two calls at once cannot both take the last of the budget');
+  await settle(env, w, 600_000, 100_000);
+  ok(await reserve(env, w, 600_000), 'settling returns what was held back but not used');
+  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, candidatesTokenCount: 0,
+      promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 3e6, 'audio is priced as audio');
+  const owner = await wallet(env, 'owner', true);
+  await reserve(env, owner, 1_000_000);
+  ok(!(await canPay(env, 'owner', true)), "the owner key's spending is counted and capped too");
+  ok((await budget(env)).forUse === null, 'no overall cap is reported as null, not Infinity');
 }
 
 // the owner key has a daily allowance too
@@ -193,7 +227,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     if (url.includes('baichuan')) return new Response(JSON.stringify({ error: { message: 'rate limit' } }), { status: 429 });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from gemini' }] } }] }), { status: 200 });
   };
-  const env = freshEnv({ PRO_PAYS: 'on', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
+  const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
                          FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
   const r = await chat(env, 'a1', request, fetcher);
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
@@ -363,7 +397,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   await transcribeChunk(capped, 'a1', chunk, google);
   ok((await transcribeChunk(capped, 'a1', chunk, google)).status === 429, 'a daily number of chunks per account');
 
-  const billed = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '0.001',
+  const billed = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '0.017',
                             GEMINI_PRICES: 'gemini-3.5-flash:1/1' });
   ok((await transcribeChunk(billed, 'a1', chunk, google)).status === 200, 'with billing on, a Pro account transcribes within its budget');
   const over = await transcribeChunk(billed, 'a1', chunk, google);
@@ -372,8 +406,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const busy = await transcribeChunk(pro, 'a1', chunk, async () => new Response('{"error":{"message":"quota"}}', { status: 429 }));
   ok(busy.status === 429, 'Gemini out of quota comes back as busy, so the app falls back to the phone');
 
-  const unsigned = await worker.fetch(new Request('https://x/transcribe/chunk', { method: 'POST', body: JSON.stringify(chunk) }), pro);
+  const unsigned = await worker.fetch(new Request('https://x/transcribe/chunk', { method: 'POST', body: JSON.stringify(chunk), headers: { 'content-length': String(JSON.stringify(chunk).length) } }), pro);
   ok(unsigned.status === 401, 'the route needs a signed-in session');
+  const huge = await worker.fetch(new Request('https://x/transcribe/chunk', { method: 'POST', body: '{}', headers: { 'content-length': String(50 * 1024 * 1024) } }), pro);
+  ok(huge.status === 413, 'a body declared too large is refused before it is read');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

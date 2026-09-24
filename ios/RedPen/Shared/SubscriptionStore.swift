@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import StoreKit
 import Combine
@@ -83,6 +84,17 @@ final class SubscriptionStore: ObservableObject {
 
     // MARK: buying
 
+    /// The signed-in account, set by the app; nil for "this device only".
+    var accountId: String?
+
+    /// The same UUID the server works out for the account: the first 16 bytes
+    /// of SHA-256("vignette-account:" + id).
+    static func accountToken(for accountId: String) -> UUID {
+        let digest = Array(SHA256.hash(data: Data("vignette-account:\(accountId)".utf8)))
+        return UUID(uuid: (digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
+                           digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]))
+    }
+
     func buy(_ plan: SubscriptionPlan) async {
         guard let product = product(for: plan) else {
             trouble = "That plan isn't available right now."
@@ -92,7 +104,13 @@ final class SubscriptionStore: ObservableObject {
         trouble = nil
         defer { busy = false }
         do {
-            switch try await product.purchase() {
+            // Tagged with the buyer's account: the server only lets the account
+            // that bought a subscription use it, whoever else learns its id.
+            var options: Set<Product.PurchaseOption> = []
+            if let accountId, !accountId.isEmpty {
+                options.insert(.appAccountToken(Self.accountToken(for: accountId)))
+            }
+            switch try await product.purchase(options: options) {
             case .success(let verification):
                 if case .verified(let transaction) = verification {
                     await transaction.finish()

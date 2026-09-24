@@ -51,8 +51,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 
   const messages = clean(body.messages);
   if (!messages) return fail(400, 'Nothing to send.');
-  route.canPay = await canPay(env, accountId, owner);
-  route.account = owner ? '' : accountId;
+  route.wallet = await wallet(env, accountId, owner);
+  route.canPay = await canPay(env, accountId, owner, route.wallet);
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
 
@@ -134,23 +134,35 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
   if (!audio || audio.length > MAX_AUDIO_CHARS || !/^[A-Za-z0-9+/=]+$/.test(audio.slice(0, 200)) || !prompt) {
     return fail(400, 'That audio could not be sent.');
   }
+  // the month's budget first: a refusal there should not use up a chunk of
+  // today's allowance
+  const payer = await wallet(env, accountId, owner);
+  const paying = await canPay(env, accountId, owner, payer);
+  const models = await geminiModels(env, accountId, owner, 'transcribe', paying);
+  if (!models.length) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
   const limit = owner ? 200 : Number(env.TRANSCRIBE_DAILY) || 36; // ten-minute chunks: six hours a day
   if (!await spend(env, `transcribe:${owner ? 'owner' : accountId}`, limit)) {
     return fail(429, "That's today's cloud transcription used. It resets at midnight UTC; this phone can still transcribe.");
   }
-  const models = await geminiModels(env, accountId, owner, 'transcribe');
-  if (!models.length) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
+  // 32 kbps audio is 4,000 bytes a second, and Gemini counts 32 tokens a second
+  const audioTokens = Math.ceil(audio.length * 0.75 / 4000 * 32);
+  let reserved = 0, actual = 0;
+  if (paying && payer) {
+    reserved = worstCase(env, models, Math.ceil(prompt.length / 3), audioTokens, 16384);
+    if (!await reserve(env, payer, reserved)) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
+  }
+  // one round only: a nine-megabyte upload is not something to repeat on a timer
   const result = await generate(env, models, () => ({
     contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'audio/mp4', data: audio } }, { text: prompt }] }],
     generationConfig: { temperature: 0, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: PHRASES },
-  }), fetcher);
+  }), fetcher, { rounds: 1, onUsage: (model, usage) => { actual += costOf(env, model, usage); } });
+  if (reserved) await settle(env, payer, reserved, actual).catch(e => console.error('settle', e));
   if (!result.ok) {
     console.error('transcribe', result.status, result.detail);
     const busy = [429, 500, 502, 503, 504].includes(result.status);
     return fail(busy ? 429 : 502, busy ? 'Gemini is busy or out of quota right now. Try again later, or transcribe on this phone.'
                                       : `Gemini couldn't transcribe that (${result.status}).`);
   }
-  if (!owner) await charge(env, accountId, result.source, result.usage).catch(e => console.error('charge', e));
   return json({ text: result.content, model: result.source });
 }
 
@@ -160,14 +172,31 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
 async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   let result = { ok: false, status: 503, detail: 'Vignette Cloud is not set up yet.' };
   const failures = [];
+  // Paid calls hold back their worst case before they go, so requests arriving
+  // together cannot all spend the same last dollar; the difference is settled
+  // after, from what Google or Novita actually counted.
+  let reserved = 0, actual = 0;
+  const gemini = route.sources.find(s => s.kind === 'gemini');
+  if (route.canPay && route.wallet) {
+    const models = [...(gemini?.models || []), ...route.sources.filter(s => s.paid).map(s => s.model)];
+    const inputTokens = Math.ceil(messages.reduce((n, m) => n + m.content.length, 0) / 3);
+    reserved = worstCase(env, models, inputTokens, 0, maxTokens * 2);
+    if (!await reserve(env, route.wallet, reserved)) {
+      reserved = 0;
+      route.canPay = false;
+      if (gemini) gemini.models = list(env.BUDGET_MODELS || 'gemma-4-31b-it');
+    }
+  }
+  const counted = (model, usage) => { actual += costOf(env, model, usage); };
   for (const source of route.sources) {
     // a paid host (Baichuan on Novita) only while Pro money covers it
     if (source.paid && !route.canPay) continue;
-    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models);
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
-    else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
-    // a bookkeeping failure never costs the student their answer
-    if (result.ok && route.account) await charge(env, route.account, result.source, result.usage).catch(e => console.error('charge', e));
+    else {
+      result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
+      if (result.usage) counted(source.model, result.usage);
+    }
     if (result.ok) { result.source = result.source || source.kind; break; }
     failures.push(`${source.kind} ${result.status}: ${result.detail}`);
     // busy, out of quota, down - or, for Gemini, locked by the Firebase
@@ -178,6 +207,8 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   }
   // every source's reason, not just the last one's
   if (!result.ok && failures.length > 1) result.detail = failures.join(' | ');
+  // a bookkeeping failure never costs the student their answer
+  if (reserved) await settle(env, route.wallet, reserved, actual).catch(e => console.error('settle', e));
   return result;
 }
 
@@ -248,19 +279,19 @@ export async function appCheckToken(env, fetcher = fetch, clock = Date.now) {
 }
 export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 
-async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen) {
+async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen, onUsage) {
   const models = chosen?.length ? chosen : list(env.CLOUD_MODELS || FREE_MODELS);
-  return generate(env, models, model => geminiBody(messages, maxTokens, temperature, model), fetcher);
+  return generate(env, models, model => geminiBody(messages, maxTokens, temperature, model), fetcher, { onUsage });
 }
 
 /// One Gemini request, trying each model in turn while the answer is "busy",
 /// "out of quota" or "not offered".
-async function generate(env, models, bodyFor, fetcher) {
+async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rounds = 2 } = {}) {
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
   // the free tier counts requests per minute: when every model says "too
   // many", wait as long as Google asks (up to 30 s) and go round once more
-  for (let round = 0; round < 2; round++) {
+  for (let round = 0; round < rounds; round++) {
     let wait = 0;
     for (const model of models) {
       const response = await fetcher(
@@ -282,6 +313,8 @@ async function generate(env, models, bodyFor, fetcher) {
         return last;
       }
       const answer = await response.json();
+      // billed whether or not the answer is usable (cut off, blocked, all thought)
+      if (answer?.usageMetadata) onUsage(model, answer.usageMetadata);
       const parts = answer?.candidates?.[0]?.content?.parts || [];
       const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
       if (content) return { ok: true, content, source: model, usage: answer.usageMetadata };
@@ -336,36 +369,101 @@ export function proPays(env) {
   return env.PRO_PAYS === 'on' || env.GEMINI_BILLING === 'on';
 }
 
+const finite = (value, fallback) => {
+  const n = Number(value);
+  return value !== undefined && value !== '' && Number.isFinite(n) ? n : fallback;
+};
+
 export async function budget(env) {
-  const net = Number(env.PRO_NET_MONTHLY_USD) || 0;
-  const share = Number(env.COST_SHARE) || 0.6;
+  const net = finite(env.PRO_NET_MONTHLY_USD, 0);
+  const share = finite(env.COST_SHARE, 0.6);
   // every monthly bill by name ("github-actions:4,apple-developer:8.25"), so a
   // new cost is one more entry rather than a code change
-  const bills = Object.fromEntries(list(env.MONTHLY_BILLS || '').map(b => b.split(':')).map(([k, v]) => [k, Number(v) || 0]));
-  const fixed = Object.values(bills).reduce((a, b) => a + b, 0) + (Number(env.FIXED_MONTHLY_USD) || 0);
+  const bills = Object.fromEntries(list(env.MONTHLY_BILLS || '').map(b => b.split(':')).map(([k, v]) => [k, finite(v, 0)]));
+  const fixed = Object.values(bills).reduce((a, b) => a + b, 0) + finite(env.FIXED_MONTHLY_USD, 0);
   let subscribers = 0, spent = 0;
   try {
-    subscribers = (await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE verified_until > ?').bind(now()).first())?.n || 0;
-    spent = ((await env.DB.prepare('SELECT SUM(micro_usd) AS s FROM ai_cost WHERE month = ?').bind(month()).first())?.s || 0) / 1e6;
-  } catch { /* tables not there yet */ }
+    // test (sandbox) purchases unlock Pro for testing but bring in no money
+    subscribers = (await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM accounts WHERE verified_until > ? AND COALESCE(apple_env, 'Production') = 'Production'")
+      .bind(now()).first())?.n || 0;
+  } catch {
+    try { subscribers = (await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE verified_until > ?').bind(now()).first())?.n || 0; } catch { /* no table */ }
+  }
+  try {
+    // the "tx:" rows repeat the account rows under the subscription, for the
+    // per-account limit; counting both would double the month's spend
+    spent = ((await env.DB.prepare("SELECT SUM(micro_usd) AS s FROM ai_cost WHERE month = ? AND account_id NOT LIKE 'tx:%'")
+      .bind(month()).first())?.s || 0) / 1e6;
+  } catch { /* no table yet */ }
   const revenue = subscribers * net;
-  const forUse = Math.max(0, revenue * share - fixed);
-  // until the price is set, a flat allowance per account and no overall cap
-  const perAccount = Number(env.PRO_MONTHLY_BUDGET_USD) || (net ? forUse / Math.max(subscribers, 1) : 2);
-  return { subscribers, revenue, bills, fixed, forUse: net ? forUse : Infinity, perAccount, spent };
+  const capped = net > 0;
+  const forUse = capped ? Math.max(0, revenue * share - fixed) : null;
+  const perAccount = finite(env.PRO_MONTHLY_BUDGET_USD, capped ? forUse / Math.max(subscribers, 1) : 0);
+  return { subscribers, revenue, bills, fixed, capped, forUse, perAccount, spent };
 }
 
-export async function canPay(env, accountId, owner = false) {
-  if (!proPays(env)) return false;
-  if (owner) return true;
+/// Whose money a paid call is: the account, and its App Store subscription
+/// too, so deleting the account and signing in again does not start the
+/// month's allowance over. The owner's own key is counted and capped as well.
+export async function wallet(env, accountId, owner = false) {
+  if (!proPays(env)) return null;
   const money = await budget(env);
-  if (money.spent >= money.forUse) return false;
-  let mine = 0;
+  if (owner) return { keys: ['owner'], cap: finite(env.OWNER_MONTHLY_USD, 20), money };
+  let tx = null;
   try {
-    mine = ((await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
-      .bind(accountId, month()).first())?.micro_usd || 0) / 1e6;
-  } catch { /* nothing spent */ }
-  return mine < money.perAccount;
+    tx = (await env.DB.prepare('SELECT original_transaction_id AS t FROM accounts WHERE id = ?').bind(accountId).first())?.t || null;
+  } catch { /* no column yet */ }
+  return { keys: [accountId, ...(tx ? [`tx:${tx}`] : [])], cap: money.perAccount, money };
+}
+
+async function spentBy(env, key) {
+  try {
+    return ((await env.DB.prepare('SELECT micro_usd FROM ai_cost WHERE account_id = ? AND month = ?')
+      .bind(key, month()).first())?.micro_usd || 0) / 1e6;
+  } catch { return 0; }
+}
+
+export async function canPay(env, accountId, owner = false, known) {
+  const payer = known === undefined ? await wallet(env, accountId, owner) : known;
+  if (!payer || payer.cap <= 0) return false;
+  // everyone together within what Pro brings in (once the price is set)
+  if (!owner && payer.money.capped && payer.money.spent >= payer.money.forUse) return false;
+  for (const key of payer.keys) if (await spentBy(env, key) >= payer.cap) return false;
+  return true;
+}
+
+/// Holds `micro` back from every key of the wallet, all or none, and only
+/// while each stays within its cap - one statement per key, so two requests
+/// at once cannot both take the last of it.
+export async function reserve(env, payer, micro) {
+  if (!payer || micro <= 0) return true;
+  const cap = Math.floor(payer.cap * 1e6);
+  const taken = [];
+  for (const key of payer.keys) {
+    await env.DB.prepare('INSERT OR IGNORE INTO ai_cost (account_id, month, micro_usd) VALUES (?, ?, 0)').bind(key, month()).run();
+    const done = await env.DB.prepare(
+      'UPDATE ai_cost SET micro_usd = micro_usd + ? WHERE account_id = ? AND month = ? AND micro_usd + ? <= ?')
+      .bind(micro, key, month(), micro, cap).run();
+    if ((done.meta?.changes ?? 0) === 0) {
+      for (const k of taken) await adjust(env, k, -micro);
+      return false;
+    }
+    taken.push(key);
+  }
+  return true;
+}
+
+async function adjust(env, key, micro) {
+  if (!micro) return;
+  await env.DB.prepare('UPDATE ai_cost SET micro_usd = MAX(0, micro_usd + ?) WHERE account_id = ? AND month = ?')
+    .bind(micro, key, month()).run();
+}
+
+/// Replaces what was held back with what was actually counted.
+export async function settle(env, payer, reserved, actual) {
+  if (!payer) return;
+  for (const key of payer.keys) await adjust(env, key, Math.ceil(actual) - reserved);
 }
 
 export async function geminiModels(env, accountId, owner = false, purpose = 'modes', paying) {
@@ -392,14 +490,37 @@ export function priceOf(env, model) {
   return { input: 0, output: 0 };
 }
 
-/// Adds one answer's estimated cost to the account's month. Thinking is
-/// billed as output, so it counts too.
-export async function charge(env, accountId, model, usage) {
-  if (!proPays(env) || !usage || !accountId) return;
+/// One response's cost in millionths of a dollar, from its token counts.
+/// Thinking is billed as output; audio input has its own, higher price
+/// (GEMINI_AUDIO_PRICES, "model:dollars per million").
+export function costOf(env, model, usage) {
+  if (!usage) return 0;
   const price = priceOf(env, model);
   const input = usage.promptTokenCount ?? usage.prompt_tokens ?? 0;
+  const audio = (usage.promptTokensDetails || []).filter(d => d.modality === 'AUDIO').reduce((n, d) => n + (d.tokenCount || 0), 0);
   const out = (usage.candidatesTokenCount ?? usage.completion_tokens ?? 0) + (usage.thoughtsTokenCount || 0);
-  const micro = Math.ceil(input * price.input + out * price.output);
+  return Math.ceil((input - audio) * price.input + audio * audioPriceOf(env, model, price.input) + out * price.output);
+}
+
+function audioPriceOf(env, model, fallback) {
+  for (const entry of list(env.GEMINI_AUDIO_PRICES || '')) {
+    const [name, rate] = entry.split(':');
+    if (name === model) return finite(rate, fallback);
+  }
+  return fallback;
+}
+
+/// The most a call could cost on any of these models.
+export function worstCase(env, models, inputTokens, audioTokens, outputTokens) {
+  const usage = { promptTokenCount: inputTokens + audioTokens, candidatesTokenCount: outputTokens,
+                  promptTokensDetails: [{ modality: 'AUDIO', tokenCount: audioTokens }] };
+  return Math.max(0, ...models.map(m => costOf(env, m, usage)));
+}
+
+/// Adds a cost to a wallet's month outright (no reservation).
+export async function charge(env, accountId, model, usage) {
+  if (!proPays(env) || !usage || !accountId) return;
+  const micro = costOf(env, model, usage);
   if (!micro) return;
   await env.DB.prepare(
     `INSERT INTO ai_cost (account_id, month, micro_usd) VALUES (?, ?, ?)
@@ -486,11 +607,36 @@ export async function isPro(env, account, fetcher = fetch) {
   if (owners.includes(account.id)) return true;
   if ((account.verified_until || 0) > now() && now() - (account.checked_at || 0) < RECHECK_SECONDS) return true;
   if (!account.original_transaction_id) return false;
-  const until = await askApple(env, account.original_transaction_id, fetcher);
-  if (until === null) return (account.verified_until || 0) > now();
+  const apple = await askApple(env, account.original_transaction_id, fetcher);
+  if (apple === null) return (account.verified_until || 0) > now();
+  const until = await ownsIt(apple, account.id) ? apple.until : 0;
   await env.DB.prepare('UPDATE accounts SET verified_until = ?, checked_at = ? WHERE id = ?')
     .bind(until, now(), account.id).run();
+  await recordEnvironment(env, account.id, apple.environment);
   return until > now();
+}
+
+/// The appAccountToken the app puts on every purchase for this account: the
+/// first 16 bytes of SHA-256("vignette-account:" + id), as a UUID. Apple keeps
+/// it inside the signed transaction, so a subscription can only be linked by
+/// the account that bought it - a transaction id alone, which anyone with a
+/// receipt can read, is not enough.
+export async function accountToken(accountId) {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`vignette-account:${accountId}`)));
+  const hex = [...digest.slice(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+async function ownsIt(apple, accountId) {
+  const mine = await accountToken(accountId);
+  return apple.tokens.some(t => String(t).toLowerCase() === mine);
+}
+
+async function recordEnvironment(env, accountId, environment) {
+  if (!environment) return;
+  try {
+    await env.DB.prepare('UPDATE accounts SET apple_env = ? WHERE id = ?').bind(environment, accountId).run();
+  } catch { /* column added by the next deploy */ }
 }
 
 /// Records which subscription belongs to this account, confirmed with Apple
@@ -504,12 +650,21 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   const holder = await env.DB.prepare('SELECT id FROM accounts WHERE original_transaction_id = ? AND id != ?')
     .bind(original, accountId).first();
   if (holder) return fail(409, 'This subscription is already linked to another Vignette account. Sign in with that account, or contact support to move it.');
-  const until = await askApple(env, original, fetcher);
-  if (until === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
-  await env.DB.prepare(
-    'UPDATE accounts SET original_transaction_id = ?, verified_until = ?, checked_at = ? WHERE id = ?')
-    .bind(original, until, now(), accountId).run();
-  return json({ ok: true, pro: until > now() });
+  const apple = await askApple(env, original, fetcher);
+  if (apple === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
+  if (apple.until > now() && !await ownsIt(apple, accountId)) {
+    return fail(403, 'This subscription was bought while signed in to a different Vignette account. Sign in with that account to use it.');
+  }
+  try {
+    await env.DB.prepare(
+      'UPDATE accounts SET original_transaction_id = ?, verified_until = ?, checked_at = ? WHERE id = ?')
+      .bind(original, apple.until, now(), accountId).run();
+  } catch {
+    // the unique index: another account linked it a moment ago
+    return fail(409, 'This subscription is already linked to another Vignette account.');
+  }
+  await recordEnvironment(env, accountId, apple.environment);
+  return json({ ok: true, pro: apple.until > now() });
 }
 
 /// Until when Apple says this subscription is live: its expiry while active
@@ -517,32 +672,41 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
 /// TLS, so the answer is Apple's own; production first, then the sandbox that
 /// TestFlight purchases live in.
 export async function askApple(env, originalTransactionId, fetcher = fetch) {
-  if (!env.ASC_KEY_ID || !env.ASC_ISSUER_ID || !env.ASC_PRIVATE_KEY) return 0;
-  const token = await appStoreToken(env);
-  for (const host of ['https://api.storekit.itunes.apple.com', 'https://api.storekit-sandbox.itunes.apple.com']) {
-    const response = await fetcher(`${host}/inApps/v1/subscriptions/${originalTransactionId}`, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    if (response.status === 404) continue;
-    // Apple busy or down says nothing about the subscription: null, so the
-    // last answer we had stands rather than a subscriber losing Pro
-    if (!response.ok) return null;
-    const answer = await response.json();
-    if (answer.bundleId && answer.bundleId !== env.APPLE_BUNDLE_ID) return 0;
-    let until = 0;
-    for (const group of answer.data || []) {
-      for (const last of group.lastTransactions || []) {
-        // 1 active, 4 billing grace period - both still entitled
-        if (last.status !== 1 && last.status !== 4) continue;
-        const info = decodeClaims(last.signedTransactionInfo || '') || {};
-        const expires = Math.floor((info.expiresDate || 0) / 1000);
-        // grace has no new expiry yet; a day at a time until Apple decides
-        until = Math.max(until, last.status === 4 ? now() + 86_400 : expires);
+  const none = { until: 0, tokens: [], environment: null };
+  if (!env.ASC_KEY_ID || !env.ASC_ISSUER_ID || !env.ASC_PRIVATE_KEY) return none;
+  // a network failure, a key that will not import or a garbled answer says
+  // nothing about the subscription either: null, like Apple being down
+  try {
+    const token = await appStoreToken(env);
+    for (const host of ['https://api.storekit.itunes.apple.com', 'https://api.storekit-sandbox.itunes.apple.com']) {
+      const response = await fetcher(`${host}/inApps/v1/subscriptions/${originalTransactionId}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (response.status === 404) continue;
+      // Apple busy or down: the last answer we had stands
+      if (!response.ok) return null;
+      const answer = await response.json();
+      if (answer.bundleId && answer.bundleId !== env.APPLE_BUNDLE_ID) return none;
+      let until = 0;
+      const tokens = [];
+      for (const group of answer.data || []) {
+        for (const last of group.lastTransactions || []) {
+          // 1 active, 4 billing grace period - both still entitled
+          if (last.status !== 1 && last.status !== 4) continue;
+          const info = decodeClaims(last.signedTransactionInfo || '') || {};
+          const expires = Math.floor((info.expiresDate || 0) / 1000);
+          // grace has no new expiry yet; a day at a time until Apple decides
+          until = Math.max(until, last.status === 4 ? now() + 86_400 : expires);
+          if (info.appAccountToken) tokens.push(info.appAccountToken);
+        }
       }
+      return { until, tokens, environment: answer.environment || (host.includes('sandbox') ? 'Sandbox' : 'Production') };
     }
-    return until;
+    return none;
+  } catch (error) {
+    console.error('apple', error);
+    return null;
   }
-  return 0;
 }
 
 /// The short-lived ES256 token the App Store Server API wants, signed with the

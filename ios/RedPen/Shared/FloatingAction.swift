@@ -41,9 +41,11 @@ final class FloatingAction: ObservableObject {
 extension View {
     /// Registers the section's main action, kept current as its title and
     /// whether it can run change.
+    /// `inputs` names everything `run` reads (kind, subject, name...), so the
+    /// floating copy never runs with settings the real button has moved past.
     func floatingAction(id: String, title: String, symbol: String = "sparkles",
-                        enabled: Bool, run: @escaping () -> Void) -> some View {
-        task(id: "\(id)|\(title)|\(enabled)") {
+                        enabled: Bool, inputs: [String] = [], run: @escaping () -> Void) -> some View {
+        task(id: ([id, title, String(enabled)] + inputs).joined(separator: "|")) {
             FloatingAction.shared.register(.init(id: id, title: title, symbol: symbol, enabled: enabled, run: run))
         }
     }
