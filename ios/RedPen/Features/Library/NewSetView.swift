@@ -123,6 +123,14 @@ struct NewSetView: View {
         }
     }
 
+    /// New set from a category's "+ New set": that category's kind already
+    /// chosen, still on the first step, so a different one is one tap away.
+    init(kind: StudySetKind) {
+        self.preset = nil
+        _kind = State(initialValue: kind)
+        _path = State(initialValue: Self.paths(for: kind)[0])
+    }
+
     var body: some View {
         NavigationStack {
             Form {

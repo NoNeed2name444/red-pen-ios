@@ -1,16 +1,10 @@
 import SwiftUI
 
-/// The library's backdrop: the same slow mesh as every mode's screen, as it is
-/// on the "All" shelf and faintly in a mode's colour on that mode's shelf,
-/// easing from one to the other as the dock moves.
-///
-/// It was made still and grey once, because the old one was a loud three-colour
-/// gradient that flickered when it was redrawn on every tab switch. The shared
-/// backdrop is quiet enough to move, and fades rather than redraws.
+/// The backdrop of the pages that belong to no one mode: the same slow mesh
+/// as every mode's screen, as it is.
 struct LibraryBackdrop: View {
-    var kind: StudySetKind? = nil
     var body: some View {
-        AppBackdrop(tint: kind?.tint)
+        AppBackdrop(tint: nil)
     }
 }
 

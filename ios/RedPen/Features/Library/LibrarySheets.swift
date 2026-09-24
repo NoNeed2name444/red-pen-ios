@@ -44,7 +44,7 @@ extension LibraryView {
                                   set: store.library.first { $0.sources.contains(opening.source) },
                                   openAt: opening.page)
             }
-            .sheet(isPresented: $showNewSet) { NewSetView() }
+            .sheet(item: $newSetKind) { kind in NewSetView(kind: kind) }
             .turnIntoPicker(for: $turning)
             .sheet(item: $reasoningFor) { set in
                 NavigationStack {

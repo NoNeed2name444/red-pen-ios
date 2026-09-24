@@ -194,32 +194,8 @@ extension LibraryView {
         quickQuiz = quiz
     }
 
-    /// A row of small mode counters - how many of each kind of set the library
-    /// holds.
-    var summaryStrip: some View {
-        let counts = Dictionary(grouping: store.library, by: \.kind).mapValues(\.count)
-        let kinds = StudySetKind.allCases.filter { counts[$0] != nil }
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(kinds) { kind in
-                    HStack(spacing: 6) {
-                        Image(systemName: kind.symbol).font(.caption.weight(.semibold))
-                        Text("\(counts[kind] ?? 0) \(kind.label)").font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(kind.tint)
-                    .padding(.horizontal, 11).padding(.vertical, 7)
-                    .glassEffect(.regular.tint(kind.tint.opacity(0.22)), in: .capsule)
-                }
-            }
-            .padding(.vertical, 2)
-        }
-    }
-
     func sectionHeader(_ text: String) -> some View {
-        Text(text)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(nil)
+        CategoryHeading(title: text)
     }
 
     /// One library row - a navigation link normally, a tickable row in
@@ -253,7 +229,7 @@ extension LibraryView {
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         // frosted, so the backdrop shows through while the row stays easy
         // to read
-        .listRowBackground(Rectangle().fill(.regularMaterial))
+        .frostedListRow()
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
@@ -384,13 +360,14 @@ extension LibraryView {
     }
 
     /// An empty library: what the app does in one sentence, one big button
-    /// to start, and two quiet links for anyone who wants to look around first.
+    /// to start, and two quiet links for anyone who wants to look around
+    /// first. A card at the top of the page rather than the whole page, so
+    /// the category's ways to practise are still there under it.
     var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer()
+        VStack(spacing: 14) {
             HStack(spacing: -10) {
                 ForEach([StudySetKind.mcq, .anki, .qa], id: \.self) { kind in
-                    ModeTile(kind: kind, size: 56)
+                    ModeTile(kind: kind, size: 52)
                         .rotationEffect(.degrees(kind == .anki ? 0 : (kind == .mcq ? -10 : 10)))
                 }
             }
@@ -400,8 +377,7 @@ extension LibraryView {
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-            Button { showNewSet = true } label: {
+            Button { newSetKind = category.mainKind } label: {
                 Label("New set", systemImage: "plus")
                     .font(.headline)
                     .frame(maxWidth: 280, minHeight: 44)
@@ -421,12 +397,9 @@ extension LibraryView {
             }
             .font(.subheadline)
             .buttonStyle(.borderless)
-            .padding(.top, 8)
             .accessibilityIdentifier("emptyLibraryLinks")
-            Spacer()
-            Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
     }
 }

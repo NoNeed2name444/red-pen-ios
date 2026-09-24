@@ -1,15 +1,22 @@
 import SwiftUI
 
-/// The set list: every saved set, tap to open into its mode's session, swipe to
-/// delete, swipe the other way to export a PDF.
+/// The app's one screen at the top: the floating dock's five categories -
+/// Questions, Cards, Cases, OSCE, Audio - and, for the one chosen, its sets
+/// (tap to open, swipe to delete or export, hold for the rest) with every way
+/// to practise them underneath as big tiles.
 ///
-/// The rows are in LibraryRows and the sheets in LibrarySheets; what is left
-/// here is the shape of the screen.
+/// The rows are in LibraryRows, the category's tiles in LibraryCategory and
+/// the sheets in LibrarySheets; what is left here is the shape of the screen.
+/// Everything that is about the app rather than a category - Ideas, Progress,
+/// lectures, the tour of examples, account, settings, help - is behind the
+/// gear.
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
 
-    @State var showNewSet = false
+    /// New set, opened on this kind of set (the category's own, from its
+    /// "+ New set").
+    @State var newSetKind: StudySetKind?
     @State var exportURL: URL?
     @State var exportFailedSetName: String?
 
@@ -28,18 +35,23 @@ struct LibraryView: View {
     /// A quiz put together on the spot - the flagged questions, or a mix of
     /// the selected sets - opened without being saved to the library.
     @State var quickQuiz: StudySet?
-    /// Whether the cards due across every deck are open, from the Today card.
+    /// A quiz started from one of the category's tiles.
+    @State var featureQuiz: InsightQuiz?
+    /// A page opened from one of the category's tiles.
+    @State var featurePage: CategoryFeature?
+    /// A tile that had nothing to practise yet, for the alert that says so.
+    @State var nothingYet: CategoryFeature?
+    /// Whether the cards due across every deck are open.
     @State var showingDue = false
     /// Today's count and the streak, for the strip at the top.
     @ObservedObject var studyLog = StudyLog.shared
 
-    /// Which mode's shelf is showing. The whole screen takes its colour from
-    /// this, so a swipe to Anki turns the navigation bar indigo instead of
-    /// leaving MCQ's red over an indigo screen.
-    @State var tab: LibraryTab = .all
-    /// Which way the last move along the dock went, so the new shelf slides
+    /// Which category the dock has chosen. Questions first: it is where most
+    /// of the studying is, and what the app opens on.
+    @State var category: StudyCategory = .questions
+    /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
-    @State private var tabForward = true
+    @State private var forward = true
     /// The set whose "Turn into…" picker is up.
     @State var turning: StudySet?
     /// The set whose reasoning practice (cases, duels, scripts) is open.
@@ -47,19 +59,28 @@ struct LibraryView: View {
     /// A set just turned into another mode, to open; or New set, filled in.
     @ObservedObject var modeSwitch = ModeSwitch.shared
 
-    var pen: Color { tab.tint }
+    /// Whether the search field holds anything.
+    var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
-    var tabs: [LibraryTab] { LibraryTab.present(in: store.library) }
-    func sets(in tab: LibraryTab) -> [StudySet] {
-        let inTab = tab.kind.map { kind in store.library.filter { $0.kind == kind } } ?? store.library
+    /// The sets in a category - or, while searching, every set that matches,
+    /// whatever its category: a search should not miss a set because the
+    /// dock happened to be on another one.
+    func sets(in category: StudyCategory) -> [StudySet] {
         let words = query.trimmingCharacters(in: .whitespaces)
-        guard !words.isEmpty else { return inTab }
-        return inTab.filter { set in
+        guard !words.isEmpty else {
+            return store.library.filter { category.kinds.contains($0.kind) }
+        }
+        return store.library.filter { set in
             set.name.localizedCaseInsensitiveContains(words)
                 || set.subject.localizedCaseInsensitiveContains(words)
                 || set.questions.contains { $0.stem.localizedCaseInsensitiveContains(words) }
                 || set.cards.contains { $0.front.localizedCaseInsensitiveContains(words) }
         }
+    }
+
+    /// How many sets each category holds, for the dock's spoken labels.
+    func count(in category: StudyCategory) -> Int {
+        store.library.filter { category.kinds.contains($0.kind) }.count
     }
 
     enum NamingSheet: Identifiable {
@@ -76,8 +97,8 @@ struct LibraryView: View {
         shown.filter { $0.folderId == folder.id }
     }
 
-    /// The sets the chosen tab is about.
-    var shown: [StudySet] { sets(in: tab) }
+    /// The sets the chosen category is about.
+    var shown: [StudySet] { sets(in: category) }
 
     /// How tall the dock actually is, measured rather than guessed.
     ///
@@ -87,7 +108,7 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
-    /// The sets opened on this tab's stack.
+    /// The sets opened on the stack.
     @State private var opened: [StudySet] = []
     /// A page chosen from the gear menu (account, settings, help...), pushed.
     @State var support: SupportPage?
@@ -116,11 +137,9 @@ struct LibraryView: View {
             }
     }
 
-    /// One stack on every shape of window. The iPad sidebar used to live
-    /// here, listing the support pages beside the sets; the app's four tabs
-    /// (AppTabsView) are the sidebar now, and the support pages are behind
-    /// the gear, so a second sidebar inside the Library tab would only be the
-    /// same places twice.
+    /// One stack on every shape of window: the dock chooses what the page
+    /// shows, and the gear holds the pages about the app, so a sidebar would
+    /// only be the same places twice.
     private var layout: some View {
         NavigationStack(path: $opened) {
             attachingSheets(to: screen)
@@ -138,43 +157,50 @@ struct LibraryView: View {
     ///
     /// It replaces what was open rather than going on top of it: turning the
     /// quiz you are in into cards means you are now in the cards, and Back
-    /// goes to the library, not to the quiz you left.
+    /// goes to the library - on the new set's category - not to the quiz you
+    /// left.
     private func openTurned(_ set: StudySet?) {
         guard let set else { return }
         modeSwitch.opening = nil
-        let shelf = LibraryTab(kind: set.kind)
         withAnimation(.snappy) {
-            if tabs.contains(shelf) {
-                tabForward = (tabs.firstIndex(of: shelf) ?? 0) >= (tabs.firstIndex(of: tab) ?? 0)
-                tab = shelf
-            }
+            dockSelection.wrappedValue = StudyCategory(kind: set.kind)
             quickQuiz = nil
+            featureQuiz = nil
+            featurePage = nil
             support = nil
             opened = [set]
         }
     }
 
     /// The dock's choice, noting which way it moved on the way through.
-    private var dockSelection: Binding<LibraryTab> {
-        Binding(get: { tab }, set: { new in
-            tabForward = (tabs.firstIndex(of: new) ?? 0) >= (tabs.firstIndex(of: tab) ?? 0)
-            tab = new
+    private var dockSelection: Binding<StudyCategory> {
+        Binding(get: { category }, set: { new in
+            let all: [StudyCategory] = StudyCategory.allCases
+            let to: Int = all.firstIndex(of: new) ?? 0
+            let from: Int = all.firstIndex(of: category) ?? 0
+            forward = to >= from
+            category = new
         })
+    }
+
+    /// The new page comes in from the side the dock moved towards.
+    private var pageTransition: AnyTransition {
+        let shift: CGFloat = forward ? 36 : -36
+        let arrive: AnyTransition = AnyTransition.opacity.combined(with: AnyTransition.offset(x: shift))
+        return AnyTransition.asymmetric(insertion: arrive, removal: AnyTransition.opacity)
     }
 
     private var screen: some View {
         ZStack {
-            // One shelf at a time, keyed by the tab, so a move along the dock
-            // slides the new shelf in and fades the old one out rather than
+            // One category at a time, keyed by it, so a move along the dock
+            // slides the new page in and fades the old one out rather than
             // swapping rows in place.
             content
-                .id(tab)
-                .transition(AnyTransition.asymmetric(
-                    insertion: AnyTransition.opacity.combined(with: AnyTransition.offset(x: tabForward ? 36 : -36)),
-                    removal: AnyTransition.opacity))
+                .id(category)
+                .transition(pageTransition)
         }
-            // the shared backdrop, easing into the colour of the shelf
-            .background(LibraryBackdrop(kind: tab.kind))
+            // the shared backdrop, easing into the category's colour
+            .background(AppBackdrop(tint: category.tint))
             .navigationTitle(Brand.name)
             .searchable(text: $query, prompt: "Search your sets")
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
@@ -182,99 +208,115 @@ struct LibraryView: View {
             // off half way through the flagged quiz must not pull the
             // question out from under it.
             .navigationDestination(item: $quickQuiz) { MCQQuizView(set: $0, keepsProgress: false) }
+            .navigationDestination(item: $featureQuiz) { quiz in
+                MCQQuizView(set: quiz.set, keepsProgress: false,
+                            minReadSeconds: quiz.minReadSeconds, startsTimed: quiz.timed)
+            }
+            .navigationDestination(item: $featurePage) { $0.page }
             .navigationDestination(isPresented: $showingDue) { DueTodayView() }
+            .alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { feature in
+                Text(feature.emptyText)
+            }
             .toolbar { toolbarItems }
-            .safeAreaInset(edge: .bottom) {
-                // The selection bar takes the dock's place while it is up:
-                // two floating bars stacked on one another is a pile, and
-                // picking sets is a different job from choosing a mode.
-                if selecting {
-                    selectionBar
-                } else if !store.library.isEmpty {
-                    // The one thing to do on this screen, always in the same
-                    // place under the thumb, with the mode dock beneath it.
-                    // An empty library has its own big button in the middle,
-                    // so this stays away until there is something to list.
-                    VStack(spacing: 8) {
-                        newSetButton
-                        if tabs.count > 1 {
-                            ModeDock(tabs: tabs, selection: dockSelection) { sets(in: $0).count }
-                        }
-                    }
-                    // the dock carries its own space underneath; the button
-                    // alone needs some to clear the home indicator
-                    .padding(.bottom, tabs.count > 1 ? 0 : 12)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                        dockHeight = $0
-                    }
-                }
-            }
-            // A tab whose last set has just been deleted would otherwise leave
-            // the library showing an empty shelf with no way back.
-            .onChange(of: store.library) { _, sets in
-                if let kind = tab.kind, !sets.contains(where: { $0.kind == kind }) { tab = .all }
-            }
+            .safeAreaInset(edge: .bottom) { bottomBar }
     }
 
+    /// The selection bar while picking sets; otherwise New set over the dock.
     @ViewBuilder
-    private var content: some View {
-        if store.library.isEmpty {
-            emptyState
+    private var bottomBar: some View {
+        // The selection bar takes the dock's place while it is up: two
+        // floating bars stacked on one another is a pile, and picking sets
+        // is a different job from choosing a category.
+        if selecting {
+            selectionBar
         } else {
-            List {
-                // Everything about today - the exam, the streak, what is due,
-                // the flags - in one small card with one button, instead of
-                // four separate strips stacked above the sets.
-                if hasTodayCard {
-                    Section {
-                        todayCard
-                            .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
-                            // frosted, so the backdrop shows through while
-                            // the text on it stays easy to read
-                            .listRowBackground(Rectangle().fill(.regularMaterial))
-                    }
-                }
-                if shown.isEmpty && !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                    // a search that found nothing says so, rather than
-                    // leaving a blank page
-                    Section {
-                        ContentUnavailableView.search(text: query)
-                            .listRowBackground(Color.clear)
-                    }
-                }
-                if !loose.isEmpty {
-                    Section {
-                        ForEach(Array(loose.enumerated()), id: \.element.id) { i, set in
-                            row(set)
-                        }
-                        .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
-                    } header: { sectionHeader("Your sets") }
-                }
-                ForEach(store.folders) { folder in
-                    folderSection(folder)
-                }
-                if !selecting {
-                    // A row of empty space as tall as the bottom bar. Both
-                    // safeAreaInset and contentMargins were supposed to keep
-                    // the last card clear of the floating bar and neither did;
-                    // a row cannot be ignored, because the list has to make
-                    // room for it like any other.
-                    Color.clear
-                        .frame(height: dockHeight + 8)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .accessibilityHidden(true)
-                }
+            VStack(spacing: 10) {
+                // An empty library has its own big button in the middle of
+                // the page, so this one stays away until there is something
+                // to list.
+                if !store.library.isEmpty { newSetButton }
+                CategoryDock(selection: dockSelection) { count(in: $0) }
             }
-            .listSectionSpacing(16)
-            .scrollContentBackground(.hidden)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                dockHeight = $0
+            }
         }
     }
 
-    /// The big "New set" button that sits at the bottom of the library.
+    private var content: some View {
+        List {
+            if store.library.isEmpty {
+                Section {
+                    emptyState
+                        .frostedListRow()
+                }
+            }
+            // Everything about today - the exam, the streak, what is due,
+            // the flags - in one small card on the first page.
+            if category == .questions && hasTodayCard && !searching {
+                Section {
+                    todayCard
+                        .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+                        // frosted, so the backdrop shows through while
+                        // the text on it stays easy to read
+                        .frostedListRow()
+                }
+            }
+            setsSections
+            if !searching {
+                featureSection
+            }
+            if !selecting {
+                // A row of empty space as tall as the bottom bar. Both
+                // safeAreaInset and contentMargins were supposed to keep
+                // the last card clear of the floating bar and neither did;
+                // a row cannot be ignored, because the list has to make
+                // room for it like any other.
+                Color.clear
+                    .frame(height: dockHeight + 8)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .accessibilityHidden(true)
+            }
+        }
+        .listSectionSpacing(16)
+        .scrollContentBackground(.hidden)
+    }
+
+    /// The category's sets: the loose ones, then each folder that holds any.
+    @ViewBuilder
+    private var setsSections: some View {
+        if shown.isEmpty && searching {
+            // a search that found nothing says so, rather than leaving a
+            // blank page
+            Section {
+                ContentUnavailableView.search(text: query)
+                    .listRowBackground(Color.clear)
+            }
+        } else if shown.isEmpty && !store.library.isEmpty {
+            Section {
+                emptyCategoryRow
+            } header: { sectionHeader(category.setsHeading) }
+        }
+        if !loose.isEmpty {
+            Section {
+                ForEach(loose) { set in
+                    row(set)
+                }
+                .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
+            } header: { sectionHeader(searching ? "Found" : category.setsHeading) }
+        }
+        ForEach(store.folders) { folder in
+            folderSection(folder)
+        }
+    }
+
+    /// The big "New set" button that sits over the dock.
     private var newSetButton: some View {
-        Button { showNewSet = true } label: {
+        Button { newSetKind = category.mainKind } label: {
             Label("New set", systemImage: "plus")
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -289,11 +331,11 @@ struct LibraryView: View {
     @ViewBuilder
     private func folderSection(_ folder: StudyFolder) -> some View {
         let inside = members(of: folder)
-        // a folder with nothing of this mode (or nothing matching the
+        // a folder with nothing in this category (or nothing matching the
         // search) is not shown as an empty header
-        if !inside.isEmpty || (tab.kind == nil && query.isEmpty) {
+        if !inside.isEmpty {
         Section {
-            ForEach(Array(inside.enumerated()), id: \.element.id) { i, set in
+            ForEach(inside) { set in
                 row(set)
             }
             .onDelete { offsets in delete(offsets.map { inside[$0].id }) }
@@ -323,9 +365,9 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        // The gear: account, settings, help and the lectures - the pages
-        // that are about the app rather than a set. The studying itself is in
-        // the tabs along the bottom (or the iPad sidebar).
+        // The gear: Ideas, Progress, the lectures, the tour of examples,
+        // account, settings and help - the pages that are about the app
+        // rather than one category. The studying itself is in the dock.
         ToolbarItem(placement: .topBarLeading) {
             // toolbar items already sit in the system's glass on iOS 26;
             // an extra .glass style here squashed the label into a circle

@@ -1,61 +1,44 @@
 import SwiftUI
 
-/// Everything that is ABOUT the app rather than part of studying: the account,
-/// the few settings worth having, how the modes work, and the questions that
-/// get asked.
+/// Everything behind the gear: the pages that belong to no one category.
 ///
-/// The studying itself lives in the four tabs (Library, Practice, Ideas,
-/// Progress - see AppTabsView), which are also the iPad sidebar. What is left
-/// here sits behind the gear on the Library and Progress bars and pushes onto
-/// that tab's stack. One definition, one way in.
+/// The studying itself is in the library's dock - Questions, Cards, Cases,
+/// OSCE, Audio - each with its sets and its ways to practise. What is left is
+/// visited now and then rather than worked in: the idea dump, how it is going,
+/// the lectures, the tour of examples, and the account, settings and help.
+/// They push onto the library's stack. One definition, one way in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
-    /// How the studying is going - not strictly about the app, but like the
-    /// others it is somewhere visited now and then rather than worked in.
-    case examples, analytics, sources, progress, coverage, notes, reasoning, account, settings, help, faq
+    case notes, analytics, progress, sources, examples, account, settings, help, faq
 
-    /// What the menus list: the tour of examples only in the personal build.
+    /// What the menu lists: the tour of examples only in the personal build.
     static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
 
-    /// The pages the menus show under one heading, in the order they list them.
-    ///
-    /// A page that has a home in one of the four tabs (Practice, Ideas,
-    /// Progress) is not listed again behind the gear: one way in, not two.
+    /// The pages the menu shows under one heading, in the order it lists them.
     static func shown(in section: SupportSection) -> [SupportPage] {
-        shown.filter { $0.section == section && !$0.hasTab }
-    }
-
-    /// Whether the page lives in a tab of its own (see AppTabsView).
-    var hasTab: Bool {
-        switch self {
-        case .analytics, .progress, .coverage, .notes, .reasoning: return true
-        case .examples, .sources, .account, .settings, .help, .faq: return false
-        }
+        shown.filter { $0.section == section }
     }
 
     var id: String { rawValue }
 
-    /// Which heading the page sits under in the phone menu and the iPad sidebar.
+    /// Which heading the page sits under in the menu.
     ///
-    /// Eleven pages in one flat list was a wall to read through every time;
-    /// four short groups, each named for what you came to do, can be skimmed.
+    /// Nine pages in one flat list is a wall to read through every time;
+    /// three short groups, each named for what you came to do, can be skimmed.
     var section: SupportSection {
         switch self {
-        case .examples, .sources: return .study
-        case .analytics, .progress, .coverage: return .progress
-        case .notes, .reasoning: return .tools
+        case .notes, .sources, .examples: return .study
+        case .analytics, .progress: return .progress
         case .account, .settings, .help, .faq: return .account
         }
     }
 
     var title: String {
         switch self {
-        case .examples: return "Try every feature"
-        case .analytics: return "Your mistakes"
-        case .sources: return "Your lectures"
-        case .progress: return "Progress"
-        case .coverage: return "Syllabus check"
         case .notes: return "Ideas"
-        case .reasoning: return "Reasoning practice"
+        case .analytics: return "Progress"
+        case .progress: return "By subject"
+        case .sources: return "Your lectures"
+        case .examples: return "Try every feature"
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
@@ -65,46 +48,26 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
-        case .examples: return "sparkles.rectangle.stack"
+        case .notes: return "lightbulb"
         case .analytics: return "chart.xyaxis.line"
-        case .sources: return "doc.richtext"
         case .progress: return "chart.bar.xaxis"
-        case .coverage: return "checklist"
-        case .notes: return "point.3.connected.trianglepath.dotted"
-        case .reasoning: return "brain.head.profile"
+        case .sources: return "doc.richtext"
+        case .examples: return "sparkles.rectangle.stack"
         case .account: return "person.crop.circle"
         case .settings: return "gearshape"
-        case .help: return "lightbulb"
+        case .help: return "questionmark.app"
         case .faq: return "questionmark.circle"
-        }
-    }
-
-    var blurb: String {
-        switch self {
-        case .examples: return "See every feature with an example"
-        case .analytics: return "What you got wrong, and what to study next"
-        case .sources: return "Read your lecture files again"
-        case .progress: return "How well you are doing, by subject"
-        case .coverage: return "What your exam covers that you haven't studied"
-        case .notes: return "Jot down ideas and link them up"
-        case .reasoning: return "Work through cases one clue at a time"
-        case .account: return "Sign in, sync and subscription"
-        case .settings: return "Change how the app behaves"
-        case .help: return "What each kind of set is for"
-        case .faq: return "Short answers to common questions"
         }
     }
 
     @ViewBuilder
     var page: some View {
         switch self {
-        case .examples: ExamplesHubView()
-        case .analytics: AnalyticsView()
-        case .sources: SourcesLibraryView()
-        case .progress: StatsView()
-        case .coverage: CoverageView()
         case .notes: IdeasView()
-        case .reasoning: ReasoningView()
+        case .analytics: AnalyticsView().scrollContentBackground(.hidden).background(LibraryBackdrop())
+        case .progress: StatsView()
+        case .sources: SourcesLibraryView()
+        case .examples: ExamplesHubView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()
         case .help: HelpPage()
@@ -113,26 +76,23 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-/// The four headings the support pages are grouped under.
+/// The three headings the gear's pages are grouped under.
 enum SupportSection: String, CaseIterable, Identifiable {
-    case study, progress, tools, account
+    case study, progress, account
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .study: return "Your library"
+        case .study: return "Your work"
         case .progress: return "Your progress"
-        case .tools: return "Tools"
         case .account: return "Account & help"
         }
     }
 }
 
-/// The gear menu's contents, shared by the Library and Progress tabs: the
-/// pages that are about the app rather than part of studying, under their
-/// headings. The four tabs themselves are the iPad sidebar now (AppTabsView),
-/// so this is the one list of these pages on every shape of window.
+/// The gear menu's contents: the pages that belong to no one category, under
+/// their headings.
 ///
 /// Buttons rather than links: a NavigationLink cannot live inside a Menu, so
 /// choosing a page sets `chosen` and the screen pushes it.
