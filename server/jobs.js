@@ -333,6 +333,10 @@ export class GenerationJobs {
       return RETRY_SECONDS;
     }
     const reply = String(body?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    // which models wrote it, so the check is made by another
+    if (typeof body?.source === 'string' && !(job.writers || []).includes(body.source)) {
+      job.writers = [...(job.writers || []), body.source].slice(-6);
+    }
     job.round += 1;
     job.failures = 0;
     job.error = null;
@@ -392,7 +396,8 @@ export class GenerationJobs {
     const prompt = check.template.split('{{OUTPUT}}').join(item.text.slice(0, check.limit / 2))
       .split('{{INPUT}}').join(input);
     const response = await chat(this.env, job.accountId,
-      { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 700, temperature: 0.1 },
+      { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 700, temperature: 0.1,
+        avoid: job.writers || [] },
       this.fetcher, { owner: job.owner });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {

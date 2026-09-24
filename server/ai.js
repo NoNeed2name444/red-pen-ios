@@ -55,6 +55,11 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   route.canPay = await canPay(env, accountId, owner, route.wallet);
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
+  // The checker is a different model from the writer: a model grading its
+  // own work tends to agree with itself. 3.5 Flash checks first (fast, and
+  // not the 3.1 Pro that writes); `avoid` names the models that wrote what
+  // is being checked, and they are skipped while any other is left.
+  if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
 
   // the owner's own builds and the accuracy benchmark get a much higher
   // allowance, but still one: a leaked owner key cannot spend without end
@@ -98,6 +103,15 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
 }
+
+export function checkerOrder(env, models, avoid) {
+  const order = list(env.CHECKER_MODELS || CHECKER_MODELS);
+  const ranked = [...models].sort((a, b) => rank(order, a) - rank(order, b));
+  const skip = new Set(Array.isArray(avoid) ? avoid.filter(m => typeof m === 'string') : []);
+  const others = ranked.filter(m => !skip.has(m));
+  return others.length ? others : ranked;
+}
+const rank = (order, model) => (order.indexOf(model) + 1) || order.length + 1;
 
 /// Null for a signed-in Pro account, otherwise the refusal to send back.
 export async function proGate(env, accountId, fetcher, why) {
@@ -348,6 +362,9 @@ const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-li
 /// Pro pays (PRO_PAYS off) only the owner's own key may use them, so turning
 /// billing on for a test cannot bill every student's request with no cap.
 const PAID_ONLY = 'gemini-3.1-pro-preview';
+/// The accuracy checker's preference: 3.5 Flash, then 3.1 Pro (when the
+/// writer was Flash), then the smaller ones.
+const CHECKER_MODELS = 'gemini-3.5-flash,gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
 const PAID_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
 const TRANSCRIBE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);

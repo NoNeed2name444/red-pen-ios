@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { checkSpec, fill, itemsIn, GenerationJobs } from '../jobs.js';
+import { checkerOrder } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -144,6 +145,15 @@ ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read fro
   ok(calls.filter(c => JSON.stringify(c).includes('CHECK')).length === 2, 'one check per question');
   ok(got.checks.length === 2 && got.checks.find(c => c.key === 'q2 stem').reply === 'risk 5', 'each verdict comes back under its question');
   ok(calls[1].messages[0].content.includes('Answer: A') && calls[1].messages[0].content.includes('Para about Q1'), 'the checker sees the question as the app writes it, and the lecture');
+}
+
+// the checker is never the model that wrote the work, while another is left
+{
+  const all = ['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it'];
+  ok(checkerOrder({}, all, ['gemini-3.1-pro-preview'])[0] === 'gemini-3.5-flash', 'Pro wrote it: 3.5 Flash checks');
+  ok(checkerOrder({}, all, ['gemini-3.5-flash'])[0] === 'gemini-3.1-pro-preview', 'Flash wrote it: 3.1 Pro checks');
+  ok(!checkerOrder({}, all.slice(1), ['gemini-3.5-flash']).includes('gemini-3.5-flash'), 'the writer is left out of the checker chain');
+  ok(checkerOrder({}, ['gemma-4-31b-it'], ['gemma-4-31b-it']).length === 1, 'with nothing else left, the one model still checks');
 }
 
 console.log(failures ? `\n${failures} failed` : '\nall passed');
