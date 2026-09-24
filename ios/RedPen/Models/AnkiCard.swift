@@ -47,6 +47,12 @@ struct AnkiCard: Identifiable, Codable, Hashable {
     /// checked. Optional because a hand-typed card has no source, and because
     /// libraries saved before this existed decode without it.
     var source: String?
+    /// "occlusion" only: the masks over every OTHER tested label on the same
+    /// picture. They stay covered after the card is revealed, so a neighbouring
+    /// label can never give this card's answer away. Empty on cards saved
+    /// before this existed; those take the masks from the set's other cards on
+    /// the same picture (OcclusionCovers.others).
+    var siblings: [OcclusionBox] = []
 
     var displayFront: String {
         if type == .occlusion, front.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -77,7 +83,7 @@ struct AnkiQueueItem: Identifiable {
 /// may lack a field this one has.
 extension AnkiCard {
     private enum Keys: String, CodingKey {
-        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source
+        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source, siblings
     }
 
     init(from decoder: Decoder) throws {
@@ -91,5 +97,6 @@ extension AnkiCard {
         imageIndex = try c.decodeIfPresent(Int.self, forKey: .imageIndex)
         occlusion = try c.decodeIfPresent(OcclusionBox.self, forKey: .occlusion)
         source = try c.decodeIfPresent(String.self, forKey: .source)
+        siblings = (try? c.decodeIfPresent([OcclusionBox].self, forKey: .siblings)) ?? []
     }
 }

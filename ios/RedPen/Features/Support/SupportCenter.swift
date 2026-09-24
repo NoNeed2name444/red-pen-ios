@@ -14,7 +14,7 @@ import SwiftUI
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// How the studying is going - not strictly about the app, but like the
     /// others it is somewhere visited now and then rather than worked in.
-    case examples, sources, progress, coverage, notes, reasoning, account, settings, help, faq
+    case examples, analytics, sources, progress, coverage, notes, reasoning, account, settings, help, faq
 
     /// What the menus list: the tour of examples only in the personal build.
     static var shown: [SupportPage] { allCases.filter { $0 != .examples || PersonalBuild.isOn } }
@@ -24,6 +24,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .examples: return "Try every feature"
+        case .analytics: return "Analytics"
         case .sources: return "Sources"
         case .progress: return "Progress"
         case .coverage: return "Syllabus"
@@ -39,6 +40,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .examples: return "sparkles.rectangle.stack"
+        case .analytics: return "chart.xyaxis.line"
         case .sources: return "doc.richtext"
         case .progress: return "chart.bar.xaxis"
         case .coverage: return "checklist"
@@ -54,6 +56,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var blurb: String {
         switch self {
         case .examples: return "Every feature, with a worked example"
+        case .analytics: return "Your mistakes, and what to study next"
         case .sources: return "Your lectures, to read again"
         case .progress: return "Accuracy by subject, and your streak"
         case .coverage: return "What your exam covers that you haven't studied"
@@ -70,6 +73,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var page: some View {
         switch self {
         case .examples: ExamplesHubView()
+        case .analytics: AnalyticsView()
         case .sources: SourcesLibraryView()
         case .progress: StatsView()
         case .coverage: CoverageView()

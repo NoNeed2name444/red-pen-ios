@@ -100,6 +100,7 @@ jobs:
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
                 $S/Explanation.swift
+          suite occlusion OcclusionFilterTests.swift $M/AnkiCard.swift $S/FigureGrid.swift $S/OcclusionFilter.swift
           suite modeconversion ModeConversionTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
                 $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
                 $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \

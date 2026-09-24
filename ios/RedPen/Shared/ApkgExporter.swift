@@ -135,7 +135,9 @@ enum ApkgExporter {
                 sort = plain(card.front)
             case .occlusion:
                 guard let idx = card.imageIndex, set.images.indices.contains(idx), let occ = card.occlusion,
-                      let pair = renderOcclusion(set.images[idx], occ) else { continue }
+                      let pair = renderOcclusion(set.images[idx], occ,
+                                                 others: OcclusionCovers.others(for: card, in: set.cards))
+                else { continue }
                 let (frontJPEG, backJPEG) = pair
                 // named from the card's id so re-exporting overwrites the same
                 // media rather than piling up a copy per export
@@ -225,18 +227,33 @@ enum ApkgExporter {
         return ords.isEmpty ? [0] : ords
     }
 
-    /// Draws the occlusion box over the image for the front, leaves the
-    /// back clean — the web app's `renderOcclusionImages()`.
-    private static func renderOcclusion(_ base64: String, _ occ: OcclusionBox) -> (Data, Data)? {
+    /// The front and back pictures of an image occlusion note, drawn the way
+    /// the app draws them: every other tested label covered in solid grey on
+    /// both sides, this card's label orange with a "?" on the front and
+    /// uncovered but outlined on the back. Nothing is translucent, so no text
+    /// shows through a cover in either picture.
+    private static func renderOcclusion(_ base64: String, _ occ: OcclusionBox,
+                                        others: [OcclusionBox]) -> (Data, Data)? {
         let payload = base64.hasPrefix("data:") ? String(base64[(base64.firstIndex(of: ",").map { base64.index(after: $0) } ?? base64.startIndex)...]) : base64
         guard let data = Data(base64Encoded: payload), let image = UIImage(data: data) else { return nil }
-        let renderer = UIGraphicsImageRenderer(size: image.size)
-        let front = renderer.image { ctx in
-            image.draw(at: .zero)
-            UIColor.black.withAlphaComponent(0.92).setFill()
-            ctx.fill(CGRect(x: occ.x * image.size.width, y: occ.y * image.size.height, width: occ.w * image.size.width, height: occ.h * image.size.height))
+        let frame = CGRect(origin: .zero, size: image.size)
+        // about 3 points on a card Anki shows at half the picture's width
+        let padding = max(3, max(image.size.width, image.size.height) * 0.004)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        func picture(revealed: Bool) -> UIImage {
+            renderer.image { ctx in
+                UIColor.white.setFill()
+                ctx.fill(frame)
+                image.draw(in: frame)
+                PDFOcclusion.drawCovers(target: occ, others: others, revealed: revealed,
+                                        in: frame, padding: padding, minimum: padding * 4,
+                                        context: ctx.cgContext)
+            }
         }
-        guard let f = front.jpegData(compressionQuality: 0.85), let b = image.jpegData(compressionQuality: 0.85) else { return nil }
+        guard let f = picture(revealed: false).jpegData(compressionQuality: 0.85),
+              let b = picture(revealed: true).jpegData(compressionQuality: 0.85) else { return nil }
         return (f, b)
     }
 

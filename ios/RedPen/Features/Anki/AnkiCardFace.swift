@@ -15,6 +15,10 @@ struct AnkiCardFace: View {
     /// to offer and should not have to say so.
     var sources: [SourceDoc] = []
     var openSource: ((SourceDoc, Int) -> Void)? = nil
+    /// The rest of the card's set, so an older image occlusion card - saved
+    /// before cards carried their neighbours' masks - can still cover every
+    /// other label on its picture.
+    var deck: [AnkiCard] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -76,18 +80,54 @@ struct AnkiCardFace: View {
             GeometryReader { geo in
                 ZStack(alignment: .topLeading) {
                     Image(uiImage: uiImage).resizable().scaledToFit()
-                    if !revealed, let occ = card.occlusion {
-                        Rectangle()
-                            .fill(Color.black.opacity(0.85))
-                            .frame(width: occ.w * geo.size.width,
-                                   height: occ.h * geo.size.height)
-                            .offset(x: occ.x * geo.size.width, y: occ.y * geo.size.height)
-                    }
+                    covers(size: geo.size)
                 }
             }
             .aspectRatio(uiImage.size, contentMode: .fit)
             .frame(maxHeight: 280)
         }
+    }
+
+    /// Every tested label on the picture, covered.
+    ///
+    /// The one this card asks about is orange with a "?"; the rest are a flat
+    /// grey and stay put when the card is revealed, so only the answer comes
+    /// off. Covers are fully opaque, grown past the glyphs and snapped outward
+    /// to whole points, so no letter shows through or round an edge. Once
+    /// revealed, the answer's place is outlined in the same orange.
+    private func covers(size: CGSize) -> some View {
+        let frame = CGRect(origin: .zero, size: size)
+        let others = OcclusionCovers.others(for: card, in: deck)
+        let target = card.occlusion
+        let isRevealed = revealed
+        let grey = Color(red: OcclusionCovers.otherRGB.red,
+                         green: OcclusionCovers.otherRGB.green,
+                         blue: OcclusionCovers.otherRGB.blue)
+        let orange = Color(red: OcclusionCovers.targetRGB.red,
+                           green: OcclusionCovers.targetRGB.green,
+                           blue: OcclusionCovers.targetRGB.blue)
+        return Canvas { context, _ in
+            for box in others {
+                let rect = OcclusionCovers.rect(for: box, in: frame, padding: 3, minimum: 12)
+                guard rect.width > 0, rect.height > 0 else { continue }
+                context.fill(Path(rect), with: .color(grey))
+            }
+            guard let target else { return }
+            let rect = OcclusionCovers.rect(for: target, in: frame, padding: 3, minimum: 12)
+            guard rect.width > 0, rect.height > 0 else { return }
+            if isRevealed {
+                context.stroke(Path(rect), with: .color(orange), lineWidth: 2)
+            } else {
+                context.fill(Path(rect), with: .color(orange))
+                let mark = Text("?")
+                    .font(.system(size: max(9, min(rect.height * 0.7, 22)), weight: .bold))
+                    .foregroundColor(.white)
+                context.draw(mark, at: CGPoint(x: rect.midX, y: rect.midY))
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder

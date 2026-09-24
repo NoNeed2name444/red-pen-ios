@@ -48,7 +48,8 @@ struct AnkiReviewView: View {
                                  sources: studySet.sources,
                                  openSource: { source, page in
                                      reading = SourceOpening(source: source, page: page)
-                                 })
+                                 },
+                                 deck: studySet.cards)
                         .contentCard()
                         .cardFlip(revealed: revealed, enabled: !startRevealed)
                         .padding(.horizontal)

@@ -49,7 +49,10 @@ enum OfficeIngest {
             for picture in pictures {
                 autoreleasepool {
                     guard let image = UIImage(data: picture), let cg = image.cgImage,
-                          let found = FigureFinder.read(cg, imageIndex: figures.count)
+                          // a picture out of the file is the diagram itself,
+                          // not a slide with a header and footer round it
+                          let found = FigureFinder.read(cg, imageIndex: figures.count,
+                                                        pageBands: false)
                     else { return }
                     // The file names the deck and nothing finer. A picture in
                     // the media folder is not tied to the slide it appears on

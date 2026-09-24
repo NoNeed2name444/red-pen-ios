@@ -19,6 +19,8 @@ struct ExamplesHubView: View {
             Section {
                 row("Progress: readiness, confidence, why you lose marks", "chart.bar.xaxis",
                     "Ten days of example answers", id: "progress") { StatsView() }
+                row("Analytics: what to focus on next, trends, mistakes", "chart.xyaxis.line",
+                    "Ranked next steps, weekly accuracy, recent wrong answers", id: "analytics") { AnalyticsView() }
                 row("Rule sheet", "list.bullet.rectangle",
                     "One line per mistake, by subject", id: "rules") { RuleSheetView() }
                 row("Syllabus coverage with the AI check", "checklist",

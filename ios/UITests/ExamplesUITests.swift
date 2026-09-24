@@ -3,7 +3,7 @@ import XCTest
 /// The personal build's "Try every feature" page: every row opens its worked
 /// example without crashing, with a screenshot of each for a person to look at.
 final class ExamplesUITests: XCTestCase {
-    private let rows = ["ideas", "reasoning", "progress", "rules", "coverage",
+    private let rows = ["ideas", "reasoning", "progress", "analytics", "rules", "coverage",
                         "commute", "explain", "explain-live", "osce-bbn", "osce-history", "draw"]
 
     func testEveryExampleOpens() {

@@ -8,7 +8,7 @@ struct InsightQuiz: Identifiable, Hashable {
     var minReadSeconds = 0
     /// Starts in timed exam mode.
     var timed = false
-    var id: UUID { set.id }
+    var id: UUID { self.set.id }
 }
 
 /// The top card of the Progress screen: the estimated score as a range,

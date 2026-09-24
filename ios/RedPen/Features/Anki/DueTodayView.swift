@@ -29,7 +29,7 @@ struct DueTodayView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         AnkiCardFace(card: due.card, images: images(for: due),
-                                     revealed: revealed)
+                                     revealed: revealed, deck: deck(for: due))
                     }
                     .contentCard()
                     .cardFlip(revealed: revealed)
@@ -119,6 +119,12 @@ struct DueTodayView: View {
 
     private func images(for due: ReviewPlan.Due) -> [String] {
         store.library.first { $0.id == due.setID }?.images ?? []
+    }
+
+    /// The card's own set, so an image occlusion card can cover the other
+    /// labels on its picture.
+    private func deck(for due: ReviewPlan.Due) -> [AnkiCard] {
+        store.library.first { $0.id == due.setID }?.cards ?? []
     }
 
     private func load() {

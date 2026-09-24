@@ -97,6 +97,23 @@ enum FigureFinder {
         }
     }
 
+    /// The labels on a figure worth hiding: every line OCR read on the page,
+    /// put through OcclusionFilter so the slide's title, its header and footer,
+    /// the college crest and the lecturer's name never become masks.
+    static func testableLabels(_ lines: [OCRLine], on figure: OcclusionBox,
+                               pageBands: Bool = true) -> [FigureGrid.Label] {
+        let all = lines.map { line in
+            // Vision's origin is the bottom left; a stored box's is the top left
+            OcclusionFilter.Line(text: line.text,
+                                 box: OcclusionBox(x: Double(line.box.minX),
+                                                   y: Double(1 - line.box.maxY),
+                                                   w: Double(line.box.width),
+                                                   h: Double(line.box.height)))
+        }
+        return OcclusionFilter.testable(all, figure: figure, pageBands: pageBands)
+            .map { FigureGrid.Label(text: $0.text, box: $0.box) }
+    }
+
     /// What a page offers: the figure on it, and the cards its labels make.
     struct Found {
         var figure: OcclusionBox
@@ -108,15 +125,18 @@ enum FigureFinder {
     /// The OCR pass happens first because its boxes are what keep the page's
     /// text out of the ink grid. A page with no figure - a wall of bullet
     /// points - returns nil rather than a card about its own heading.
+    /// `pageBands` is off for a picture that is itself the diagram rather than
+    /// a whole slide, where the top of the picture is not a page header.
     static func read(_ image: CGImage, imageIndex: Int,
-                     question: String = "What is labelled here?") -> Found? {
+                     question: String = "What is labelled here?",
+                     pageBands: Bool = true) -> Found? {
         let lines = (try? RedPenOCR.read(image)) ?? []
         let grid = inkGrid(image, ignoring: lines.map(\.box))
         guard let width = grid.first?.count,
               let box = FigureGrid.figures(in: grid).first else { return nil }
 
         let figure = FigureGrid.normalised(box, gridWidth: width, gridHeight: grid.count)
-        let cards = FigureGrid.cards(from: labels(lines, on: figure),
+        let cards = FigureGrid.cards(from: testableLabels(lines, on: figure, pageBands: pageBands),
                                      imageIndex: imageIndex, question: question)
         return cards.isEmpty ? nil : Found(figure: figure, cards: cards)
     }
