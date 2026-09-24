@@ -17,7 +17,7 @@ import FoundationModels
 enum OsceGenerator {
 
     static let maxStationsPerCall = 2
-    static let maxStationsTotal = 20
+    static let maxStationsTotal = 1_000
     static let maxPromptChars = 12_000
 
     /// Whether generating is possible at all, in the words the student needs.

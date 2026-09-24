@@ -87,7 +87,7 @@ struct MCQGenerateForm: View {
                           || (activeBackend == nil && !llm.needsPro(.writer))
                           || sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
                 if isGenerating {
-                    Button("Cancel", role: .cancel) { generationTask?.cancel() }
+                    Button("Cancel", role: .cancel) { GenerationCenter.shared.cancel() }
                 }
                 if let generationStatus, !isGenerating {
                     Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
@@ -161,9 +161,16 @@ struct MCQGenerateForm: View {
         let cite = readSource
         let writer = llm.backend(for: .writer)
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
+        let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count) {
+            generationTask?.cancel()
+            generationTask = nil
+            isGenerating = false
+            generationStatus = "Cancelled."
+        }
         generationTask = Task {
             do {
                 let progress: (Int, Int) -> Void = { done, total in
+                    GenerationCenter.shared.update(job, done: done, total: total)
                     Task { @MainActor in
                         generationStatus = "Writing \(done) of \(total) questions\u{2026}"
                     }
@@ -186,11 +193,13 @@ struct MCQGenerateForm: View {
                 }
                 // every generated question checked against the lecture before it
                 // reaches the set; high-risk ones are dropped
+                try Task.checkCancellation()
                 var checkNote = ""
                 if let checker {
                     let screened = await AccuracyChecker.screen(
                         questions, source: text, using: checker,
                         onProgress: { done, total in
+                            GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking with \(checker.label)")
                             Task { @MainActor in
                                 generationStatus = "Checking \(done) of \(total) with \(checker.label)\u{2026}"
                             }
@@ -204,7 +213,9 @@ struct MCQGenerateForm: View {
                 }
                 let finalQuestions = questions
                 let note = checkNote
+                try Task.checkCancellation()
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     isGenerating = false
                     generationStatus = "Done \u{2014} \(finalQuestions.count) question(s) written." + note
                     var set = StudySet(
@@ -224,9 +235,11 @@ struct MCQGenerateForm: View {
                     onGenerated(set)
                 }
             } catch is CancellationError {
-                await MainActor.run { isGenerating = false; generationStatus = nil }
+                await MainActor.run { GenerationCenter.shared.end(job) }
             } catch {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     isGenerating = false
                     generationStatus = (error as? MCQGenerator.GenerationError)?.errorDescription
                         ?? (error as? GemmaModel.GenerationError)?.errorDescription

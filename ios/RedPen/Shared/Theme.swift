@@ -77,21 +77,15 @@ struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
 
+    // A quiet tile: the mode's symbol in grey on a soft fill. The glossy
+    // gradient tiles with coloured shadows put six loud colours on the first
+    // screen; the symbol alone tells the modes apart.
     var body: some View {
         Image(systemName: kind.symbol)
-            .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(.white)
+            .font(.system(size: size * 0.42, weight: .medium))
+            .foregroundStyle(.secondary)
             .frame(width: size, height: size)
-            .background(kind.gradient, in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
-            .overlay(
-                // a glossy top-edge highlight so the tile reads as a lit object
-                RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                    .fill(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0)], startPoint: .top, endPoint: .center))
-                    .padding(1)
-            )
-            .overlay(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 0.8))
-            .shadow(color: kind.tint.opacity(0.42), radius: 9, y: 5)
-            .shadow(color: .black.opacity(0.10), radius: 1.5, y: 1)
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
     }
 }
 
@@ -109,8 +103,9 @@ struct LivingBackdrop: View {
         let dark = scheme == .dark
         // strong enough to be colour, not a tint someone has to squint for;
         // the middle stays calm so text on cards reads first
-        let o: [Double] = dark ? [0.55, 0.30, 0.45, 0.28, 0.06, 0.22, 0.42, 0.24, 0.50]
-                               : [0.50, 0.28, 0.42, 0.24, 0.04, 0.20, 0.38, 0.22, 0.46]
+        // half the strength it once had: a backdrop, not the subject
+        let o: [Double] = (dark ? [0.55, 0.30, 0.45, 0.28, 0.06, 0.22, 0.42, 0.24, 0.50]
+                                : [0.50, 0.28, 0.42, 0.24, 0.04, 0.20, 0.38, 0.22, 0.46]).map { $0 * 0.5 }
         let h = hues + Array(repeating: hues.last ?? .accentColor, count: max(0, 3 - hues.count))
         let colors: [Color] = [
             h[0].opacity(o[0]), h[1].opacity(o[1]), h[2].opacity(o[2]),
@@ -127,10 +122,9 @@ struct LivingBackdrop: View {
             ], colors: colors, smoothsColors: true)
         }
         .ignoresSafeArea()
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 11).repeatForever(autoreverses: true)) { drift = true }
-        }
+        // Still. The slow drift was a repeat-forever animation started on
+        // appear, and a transaction like that catches whatever else changes
+        // at the same moment - lists and text visibly wobbled with it.
     }
 }
 

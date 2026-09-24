@@ -10,16 +10,31 @@ enum LectureWriter {
         if kind == .book { return try await book(source: source, pages: count, subject: subject,
                                                  using: backend, onProgress: onProgress) }
         let perCall = backend.isOnDevice ? 6 : 12
-        let promptSource = String(source.prefix(backend.promptBudgetChars))
+        // A long lecture is taken a window at a time, round and round, so a
+        // big set covers all of it instead of the first chapter again and again.
+        let budget = max(2_000, backend.promptBudgetChars)
+        let windows = source.count <= budget ? [source]
+            : TextSlicing.slice(source, into: (source.count + budget - 1) / budget, maxChars: budget)
         var lines: [String] = []
         var failures = 0
-        while lines.count < count && failures < 3 {
+        var round = 0
+        // no fixed ceiling: it keeps going until the count is reached, and
+        // only stops when several batches in a row bring nothing new
+        while lines.count < count && failures < max(3, windows.count + 2) {
             try Task.checkCancellation()
             onProgress(lines.count, count)
             let batch = min(perCall, count - lines.count)
-            let already = lines.map { $0.components(separatedBy: "|").first ?? $0 }
+            let promptSource = windows[round % windows.count]
+            round += 1
+            // what has been written, in enough words to tell two cases of the
+            // same disease apart
+            let already = lines.map { line -> String in
+                let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+                return String((kind == .qa ? parts.prefix(3) : parts.prefix(1)).joined(separator: " | ").prefix(140))
+            }
             let prompt = cardPrompt(kind: kind, count: batch, subject: subject,
-                                    already: already, source: promptSource)
+                                    already: already, source: promptSource,
+                                    presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
             let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
                                                    maxTokens: 160 * batch, temperature: 0.6)
             let fresh = reply.components(separatedBy: .newlines)
@@ -37,7 +52,8 @@ enum LectureWriter {
     }
 
     static func cardPrompt(kind: StudySetKind, count: Int, subject: String,
-                           already: [String], source: String) -> String {
+                           already: [String], source: String,
+                           presentations: [String] = []) -> String {
         var rules: [String]
         if kind == .qa {
             rules = [
@@ -45,7 +61,13 @@ enum LectureWriter {
                 "One card per line, exactly: Topic | case or recall | Question | answer point 1; answer point 2; answer point 3",
                 "About half should be clinical cases: a two-sentence vignette ending in a question (\"What is the most likely diagnosis?\", \"What is the next step?\"). The rest are direct recall questions.",
                 "Wrap the key term in each answer point in **double asterisks**.",
+                "Every clinical case must present differently, even when two cases share a disease: vary the patient (age, sex, pregnancy, comorbidities, medications), the setting (GP, emergency department, ward, clinic), the stage (early, classic, late or complicated), typical versus atypical features, the trigger, and what is asked (diagnosis, next investigation, first-line treatment, complication, contraindication, monitoring). Never reuse a vignette already written, reworded.",
             ]
+            if !presentations.isEmpty {
+                rules.append("Write the clinical cases in this batch as:")
+                rules += presentations.enumerated().map { "- case \($0.offset + 1): \($0.element)" }
+                rules.append("(skip any of these the disease in the source cannot fit, and pick another variation instead)")
+            }
         } else {
             rules = [
                 "Write \(count) Anki flashcards for a medical student revising \(subject.isEmpty ? "medicine" : subject).",
@@ -60,7 +82,7 @@ enum LectureWriter {
         ]
         if !already.isEmpty {
             rules.append("Already written - do not repeat these:")
-            rules += already.suffix(40).map { "- " + $0 }
+            rules += already.suffix(60).map { "- " + $0 }
         }
         return (rules + ["", "SOURCE:", source]).joined(separator: "\n")
     }

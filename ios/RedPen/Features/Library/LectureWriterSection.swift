@@ -52,7 +52,7 @@ struct LectureWriterSection: View {
                     .disabled(working)
             }
             CountField(title: "\(noun.capitalized)s", value: $count,
-                       range: kind == .book ? 1...30 : 4...80)
+                       range: kind == .book ? 1...1_000 : 1...10_000)
                 .disabled(working)
             Button {
                 working ? stop() : start()
@@ -141,15 +141,24 @@ struct LectureWriterSection: View {
         let text = sourceText, wanted = count, subj = subject, mode = kind
         working = true
         status = "Writing\u{2026}"
+        let job = GenerationCenter.shared.begin("Writing \(wanted) \(noun)\(wanted == 1 ? "" : "s")", total: wanted) {
+            task?.cancel()
+            task = nil
+            working = false
+            status = "Cancelled."
+        }
         task = Task {
             do {
                 let written = try await LectureWriter.write(
                     kind: mode, source: text, count: wanted, subject: subj, using: backend,
                     onProgress: { done, total in
+                        GenerationCenter.shared.update(job, done: done, total: total)
                         Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
                     })
+                try Task.checkCancellation()
                 var note = ""
                 if let checker {
+                    GenerationCenter.shared.update(job, done: wanted, total: wanted, phase: "Checking with \(checker.label)")
                     await MainActor.run { status = "Checking with \(checker.label)\u{2026}" }
                     if let verdict = try? await AccuracyChecker.check(
                         instruction: "Write study material for medical students from the source.",
@@ -160,16 +169,20 @@ struct LectureWriterSection: View {
                     }
                 }
                 let finalNote = note
+                try Task.checkCancellation()
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
                     bodyText = existing.isEmpty ? written : existing + "\n" + written
                     working = false
                     status = "Written \u{2014} check them below." + finalNote
                 }
             } catch is CancellationError {
-                await MainActor.run { working = false; status = nil }
+                await MainActor.run { GenerationCenter.shared.end(job) }
             } catch {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     working = false
                     status = nil
                     trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -178,10 +191,5 @@ struct LectureWriterSection: View {
         }
     }
 
-    private func stop() {
-        task?.cancel()
-        task = nil
-        working = false
-        status = nil
-    }
+    private func stop() { GenerationCenter.shared.cancel() }
 }

@@ -142,9 +142,12 @@ final class CaseSimulator: ObservableObject {
     }
 
     private func writeCaseFile(correction: String?) async throws -> CaseFile {
+        // a different patient each time the same card is practised
+        let variation = CaseVariety.plan(1, round: Int.random(in: 0..<10_000))[0]
         var prompt = """
         You are building a simulated patient for a medical student's OSCE practice\(subject.isEmpty ? "" : " in \(subject)").
-        Base everything on this clinical case card. Do not change the diagnosis or any fact on the card; fill gaps with details typical for that diagnosis.
+        Base everything on this clinical case card. Do not change the diagnosis or any fact on the card.
+        Fill the gaps so this patient is not the textbook one: make them \(variation). Keep it medically plausible for the diagnosis, and never contradict the card.
 
         CASE CARD:
         \(cardText)

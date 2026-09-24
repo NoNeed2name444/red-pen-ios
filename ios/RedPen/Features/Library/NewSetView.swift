@@ -115,6 +115,8 @@ struct NewSetView: View {
                 }
             }
         }
+        // the floating progress card, over the whole sheet
+        .generationHUD()
     }
 
     // MARK: the three choices

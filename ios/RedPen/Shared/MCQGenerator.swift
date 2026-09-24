@@ -18,11 +18,10 @@ enum MCQGenerator {
     /// through and returns half a question.
     static let maxQuestionsPerCall = 6
 
-    /// The most a single set may hold. Generation is local but not instant, so
-    /// this is a ceiling on how long one tap can run rather than a statement
-    /// about how much a lecture is worth - MCQCoverage.suggestedCount works out
-    /// what a particular source can actually support.
-    static let maxQuestionsTotal = 200
+    /// No real ceiling: a student may ask for as many as they like from one
+    /// source, and generation runs in batches that each avoid what came before.
+    /// The number only stops a typo of extra zeros from running for a week.
+    static let maxQuestionsTotal = 10_000
 
     // MARK: availability
 

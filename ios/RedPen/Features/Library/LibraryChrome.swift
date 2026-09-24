@@ -5,12 +5,11 @@ import SwiftUI
 /// room you are in.
 struct LibraryBackdrop: View {
     var kind: StudySetKind? = nil
+    // One quiet, still background for the library whatever tab is open: the
+    // moving three-colour gradient and a new colour per tab made the first
+    // screen busy, and redrawing it on every tab switch flickered.
     var body: some View {
-        if let kind {
-            ModeBackdrop(kind: kind)
-        } else {
-            LivingBackdrop(hues: [StudySetKind.mcq.tint, StudySetKind.anki.tint, StudySetKind.book.tint])
-        }
+        Color(.systemGroupedBackground).ignoresSafeArea()
     }
 }
 

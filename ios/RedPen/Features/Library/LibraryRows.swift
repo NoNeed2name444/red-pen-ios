@@ -83,7 +83,7 @@ extension LibraryView {
                     HStack(spacing: 12) {
                         Image(systemName: selected.contains(set.id) ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
-                            .foregroundStyle(selected.contains(set.id) ? set.kind.tint : Color.secondary)
+                            .foregroundStyle(selected.contains(set.id) ? Color.accentColor : Color.secondary)
                         setRow(set)
                     }
                 }
@@ -93,7 +93,7 @@ extension LibraryView {
             }
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
-        .listRowBackground(TintedRowBackground(tint: set.kind.tint))
+        .listRowBackground(Color(.secondarySystemGroupedBackground))
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
@@ -186,7 +186,7 @@ extension LibraryView {
                 HStack(spacing: 6) {
                     Text(set.kind.label)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(set.kind.tint)
+                        .foregroundStyle(.secondary)
                     Text("\u{00b7}").foregroundStyle(.tertiary)
                     Text("\(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")")
                         .font(.caption).foregroundStyle(.secondary)

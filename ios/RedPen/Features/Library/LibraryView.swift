@@ -129,13 +129,13 @@ struct LibraryView: View {
                 }
             }
         }
-        .tint(pen)
-        .animation(.snappy(duration: 0.28), value: tab)
+        // one accent for the whole library rather than a colour per mode
+        .tint(Color.accentColor)
     }
 
     private var screen: some View {
         content
-            .background(LibraryBackdrop(kind: tab.kind).animation(.easeInOut(duration: 0.5), value: tab))
+            .background(LibraryBackdrop())
             .navigationTitle(Brand.name)
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             .toolbar { toolbarItems }
@@ -167,14 +167,11 @@ struct LibraryView: View {
             List {
                 Section {
                     dueBanner
-                    summaryStrip
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Color.clear)
                 }
                 if !loose.isEmpty {
                     Section {
                         ForEach(Array(loose.enumerated()), id: \.element.id) { i, set in
-                            row(set).riseIn(index: i)
+                            row(set)
                         }
                         .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
                     } header: { sectionHeader("Your sets") }
@@ -197,25 +194,6 @@ struct LibraryView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            // The dock floats over the list, so the last row needs somewhere
-            // to end that is not behind glass.
-            .id(tab)
-            .transition(.opacity)
-            .gesture(
-                // A horizontal drag moves one tab along. The list keeps its own
-                // vertical scrolling because the gesture only claims a drag
-                // that is clearly sideways.
-                DragGesture(minimumDistance: 24)
-                    .onEnded { value in
-                        guard abs(value.translation.width) > abs(value.translation.height) * 1.6,
-                              abs(value.translation.width) > 60,
-                              tabs.count > 1,
-                              let here = tabs.firstIndex(of: tab) else { return }
-                        let next = value.translation.width < 0 ? here + 1 : here - 1
-                        guard tabs.indices.contains(next) else { return }
-                        withAnimation(.snappy(duration: 0.28)) { tab = tabs[next] }
-                    }
-            )
         }
     }
 
@@ -224,7 +202,7 @@ struct LibraryView: View {
         let inside = members(of: folder)
         Section {
             ForEach(Array(inside.enumerated()), id: \.element.id) { i, set in
-                row(set).riseIn(index: loose.count + i)
+                row(set)
             }
             .onDelete { offsets in delete(offsets.map { inside[$0].id }) }
         } header: {

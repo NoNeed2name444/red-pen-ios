@@ -91,7 +91,7 @@ struct ModeDock: View {
                             // Grey unless this is the mode you are in: a
                             // coloured pip on every icon reads as six unread
                             // notifications rather than as six counts.
-                            .background(chosen ? AnyShapeStyle(tab.tint)
+                            .background(chosen ? AnyShapeStyle(Color.accentColor)
                                                : AnyShapeStyle(.quaternary), in: Capsule())
                             .offset(x: 11 * scale, y: -6)
                     }
@@ -108,8 +108,11 @@ struct ModeDock: View {
             // at 19 points. Each mode keeps its own hue when it is not chosen,
             // just quietly: identifiable without competing with the one you are
             // actually in.
-            .foregroundStyle(chosen ? AnyShapeStyle(tab.tint)
-                                    : AnyShapeStyle(tab.tint.opacity(0.55)))
+            // one accent for the chosen mode, plain grey for the rest: a
+            // different colour on every icon made the dock the loudest thing
+            // on the screen
+            .foregroundStyle(chosen ? AnyShapeStyle(Color.accentColor)
+                                    : AnyShapeStyle(.secondary))
             .padding(.horizontal, (chosen ? 13 : 9) * scale)
             .padding(.vertical, 9)
             .background {
@@ -118,7 +121,7 @@ struct ModeDock: View {
                 // blinking out here and in again there.
                 if chosen {
                     Capsule()
-                        .fill(tab.tint.opacity(0.14))
+                        .fill(Color.accentColor.opacity(0.12))
                         .matchedGeometryEffect(id: "chosen", in: lift)
                 }
             }

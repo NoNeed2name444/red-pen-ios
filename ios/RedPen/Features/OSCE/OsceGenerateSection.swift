@@ -108,9 +108,16 @@ struct OsceGenerateSection: View {
         // a writer chosen in AI models goes first; otherwise Apple's model
         let writer = llm.backend(for: .writer)
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
+        let job = GenerationCenter.shared.begin("Writing \(wanted) station\(wanted == 1 ? "" : "s")", total: wanted) {
+            task?.cancel()
+            task = nil
+            working = false
+            status = "Cancelled."
+        }
         task = Task {
             do {
                 let progress: (Int, Int) -> Void = { done, total in
+                    GenerationCenter.shared.update(job, done: done, total: total)
                     Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
                 }
                 var stations: [OsceChecklist]
@@ -122,11 +129,13 @@ struct OsceGenerateSection: View {
                     stations = try await OsceGenerator.generate(
                         sourceText: text, count: wanted, subject: subj, onProgress: progress)
                 }
+                try Task.checkCancellation()
                 var checkNote = ""
                 if let checker {
                     let screened = await AccuracyChecker.screen(
                         stations, source: text, using: checker,
                         onProgress: { done, total in
+                            GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking with \(checker.label)")
                             Task { @MainActor in status = "Checking \(done) of \(total) with \(checker.label)\u{2026}" }
                         })
                     stations = screened.kept
@@ -136,7 +145,9 @@ struct OsceGenerateSection: View {
                 guard !stations.isEmpty else { throw OsceGenerator.Trouble.nothingUsable }
                 let finalStations = stations
                 let note = checkNote
+                try Task.checkCancellation()
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     working = false
                     let written = OsceStations.format(finalStations)
                     // Appended, never replacing: a student who typed a station
@@ -146,9 +157,11 @@ struct OsceGenerateSection: View {
                     status = "\(finalStations.count) station\(finalStations.count == 1 ? "" : "s") written \u{2014} check them below." + note
                 }
             } catch is CancellationError {
-                await MainActor.run { working = false; status = nil }
+                await MainActor.run { GenerationCenter.shared.end(job) }
             } catch {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
+                    GenerationCenter.shared.end(job)
                     working = false
                     status = nil
                     trouble = (error as? LocalizedError)?.errorDescription
@@ -158,10 +171,5 @@ struct OsceGenerateSection: View {
         }
     }
 
-    private func stop() {
-        task?.cancel()
-        task = nil
-        working = false
-        status = nil
-    }
+    private func stop() { GenerationCenter.shared.cancel() }
 }
