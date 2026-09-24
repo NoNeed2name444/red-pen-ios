@@ -223,7 +223,7 @@ struct MCQGenerateForm: View {
                 let note = checkNote
                 try Task.checkCancellation()
                 await MainActor.run {
-                    GenerationCenter.shared.end(job)
+                    GenerationCenter.shared.end(job, finished: "Your \(finalQuestions.count) questions are ready")
                     isGenerating = false
                     generationStatus = "Done \u{2014} \(finalQuestions.count) question(s) written." + note
                     var set = StudySet(

@@ -151,7 +151,7 @@ struct OsceGenerateSection: View {
                 let note = checkNote
                 try Task.checkCancellation()
                 await MainActor.run {
-                    GenerationCenter.shared.end(job)
+                    GenerationCenter.shared.end(job, finished: "Your \(finalStations.count) OSCE station\(finalStations.count == 1 ? " is" : "s are") ready")
                     working = false
                     let written = OsceStations.format(finalStations)
                     // Appended, never replacing: a student who typed a station

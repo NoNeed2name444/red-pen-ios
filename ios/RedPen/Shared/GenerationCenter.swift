@@ -33,6 +33,9 @@ final class GenerationCenter: ObservableObject {
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
         stop = onCancel
+        // carries on if the student leaves the app, and says when it is done
+        BackgroundWork.begin(id, title: title)
+        Task { await AppNotifications.requestIfNeeded() }
         return id
     }
 
@@ -46,17 +49,24 @@ final class GenerationCenter: ObservableObject {
             current.total = total
             current.phase = phase
             self.job = current
+            BackgroundWork.progress(id, done: done, total: total, phase: phase)
         }
     }
 
-    func end(_ id: UUID) {
+    /// The job is over. `finished` says what was made, for the notification
+    /// sent when the student is not in the app; nil for a job that failed.
+    func end(_ id: UUID, finished: String? = nil) {
         guard job?.id == id else { return }
+        let title = job?.title
         job = nil
         stop = nil
+        BackgroundWork.end(id, success: finished != nil)
+        if let finished { AppNotifications.generationFinished(finished, body: title.map { "Done: \($0.lowercased())." } ?? "Done.") }
     }
 
     func cancel() {
         let stopping = stop
+        if let id = job?.id { BackgroundWork.end(id, success: false) }
         job = nil
         stop = nil
         stopping?()

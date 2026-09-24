@@ -307,7 +307,7 @@ struct LectureWriterSection: View {
                 let finalNote = note
                 try Task.checkCancellation()
                 await MainActor.run {
-                    GenerationCenter.shared.end(job)
+                    GenerationCenter.shared.end(job, finished: mode == .book ? "Your textbook is ready" : "Your \(mode == .qa ? "cases" : "cards") are ready")
                     let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
                     bodyText = existing.isEmpty ? written : existing + "\n" + written
                     working = false

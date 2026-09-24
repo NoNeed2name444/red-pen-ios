@@ -70,6 +70,10 @@ targets:
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:
           - audio
+        # Generation carries on when the student leaves the app (iOS 26
+        # continued processing): each job is <bundle id>.generate.<uuid>.
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).generate.*
         # Google's sign-in comes back to redpen://auth. The scheme has to be
         # declared or the system browser has nowhere to return to.
         CFBundleURLTypes:

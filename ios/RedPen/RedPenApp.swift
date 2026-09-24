@@ -111,6 +111,11 @@ struct RedPenApp: App {
                             if new == .active || new == .background {
                                 Task { await sync.syncNow() }
                             }
+                            // the review reminder, rescheduled from the latest
+                            // schedule each time the student leaves
+                            if new == .background {
+                                AppNotifications.scheduleReviews(sets: store.library, reviews: reviews)
+                            }
                         }
                 } else {
                     SignInView()
