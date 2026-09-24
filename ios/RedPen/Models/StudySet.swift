@@ -8,7 +8,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .mcq: return "MCQ"
-        case .anki: return "Anki"
+        case .anki: return "Cards"
         case .book: return "Textbook"
         case .qa: return "Cases"
         case .osce: return "OSCE"

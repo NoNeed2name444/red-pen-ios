@@ -52,6 +52,7 @@ struct NewSetView: View {
     /// the lecture to check against.
     @State private var readSource: ReadSource?
     @State private var bookFigures: [BookFigure] = []
+    @State private var diagrams = DiagramCards()
     @ObservedObject private var generation = GenerationCenter.shared
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
@@ -122,6 +123,7 @@ struct NewSetView: View {
                 GenerationCenter.shared.cancel()
                 bodyText = ""
                 bookFigures = []
+                diagrams = DiagramCards()
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
                 handleImport(result)
@@ -218,7 +220,7 @@ struct NewSetView: View {
         case (.lecture, .anki), (.lecture, .qa), (.lecture, .book): generator = "writer"
         default: generator = nil
         }
-        if showsCreate && (generator == nil || !bodyText.isEmpty) { return "create" }
+        if showsCreate && (generator == nil || !bodyText.isEmpty || diagrams.included) { return "create" }
         return generator
     }
 
@@ -253,7 +255,7 @@ struct NewSetView: View {
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .anki, .qa, .book:
                 LectureWriterSection(kind: kind, bodyText: $bodyText, readSource: $readSource,
-                                     suggestedName: $name, bookFigures: $bookFigures, subject: subject)
+                                     suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams, subject: subject)
                 if !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .narrate:
                 draftSection(title: "Type or paste")
@@ -308,7 +310,7 @@ struct NewSetView: View {
     private var itemCount: Int {
         switch kind {
         case .mcq: return PlainTextImport.parseMCQ(bodyText).count
-        case .anki: return PlainTextImport.parseAnkiQA(bodyText).count
+        case .anki: return PlainTextImport.parseAnkiQA(bodyText).count + (diagrams.included ? diagrams.cards.count : 0)
         case .book: return bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : BookPages.split(bodyText).count
         case .qa: return PlainTextImport.parseQA(bodyText).count
         case .osce: return PlainTextImport.parseOsce(bodyText).count
@@ -340,7 +342,13 @@ struct NewSetView: View {
         var set = StudySet(name: name, subject: subject.isEmpty ? "General" : subject, kind: kind)
         switch kind {
         case .mcq: set.questions = PlainTextImport.parseMCQ(bodyText)
-        case .anki: set.cards = PlainTextImport.parseAnkiQA(bodyText)
+        case .anki:
+            set.cards = PlainTextImport.parseAnkiQA(bodyText)
+            // image occlusion cards from the lecture's diagrams, with their pictures
+            if diagrams.included {
+                set.cards += diagrams.cards
+                set.images = diagrams.images
+            }
         case .book:
             // only the diagrams the pages actually show go into the set
             let kept = BookFigures.compact(bodyText, images: bookFigures.map(\.imageBase64))

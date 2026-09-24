@@ -64,7 +64,7 @@ struct AnkiReviewView: View {
             }
         }
         .modeScreen(.anki)
-        .navigationTitle(studySet.subject.isEmpty ? "Anki" : studySet.subject)
+        .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSitting)
         .toolbar {

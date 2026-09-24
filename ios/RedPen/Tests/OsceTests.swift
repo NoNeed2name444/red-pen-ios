@@ -96,5 +96,15 @@ ok(plab.contains("PLAB 2") && plab.contains("8 minutes"), "a PLAB student gets P
 ok(!OsceStations.prompt(sourceText: "x", count: 1, subject: "", alreadyWritten: [], exam: .general).contains("PACES"),
    "and general revision gets no exam format")
 
+// Cards: question lines and cloze lines both import
+let mixedCards = PlainTextImport.parseAnkiQA("""
+First-line drug for all SLE patients? | **hydroxychloroquine** | protects against flares
+Anti-{{c1::dsDNA}} antibodies rise with lupus nephritis activity. | used to monitor
+The malar rash spares the {{c1::nasolabial folds}}.
+""")
+ok(mixedCards.count == 3, "question and cloze lines both become cards")
+ok(mixedCards.filter { $0.type == .cloze }.count == 2 && mixedCards[1].why == "used to monitor",
+   "a cloze line keeps its hidden part, and its reason when it has one")
+
 print(failures == 0 ? "\nALL OSCE TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

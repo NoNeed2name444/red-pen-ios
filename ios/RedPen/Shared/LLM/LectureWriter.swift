@@ -5,7 +5,7 @@ import Foundation
 enum LectureWriter {
 
     static func write(kind: StudySetKind, source: String, count: Int, subject: String,
-                      using backend: LLMBackend, figures: [BookFigure] = [],
+                      using backend: LLMBackend, figures: [BookFigure] = [], style: CardStyle = .mixed,
                       onProgress: @escaping (Int, Int) -> Void) async throws -> String {
         if kind == .book { return try await book(source: source, pages: count, subject: subject,
                                                  using: backend, figures: figures, onProgress: onProgress) }
@@ -34,7 +34,7 @@ enum LectureWriter {
                 return String((kind == .qa ? parts.prefix(3) : parts.prefix(1)).joined(separator: " | ").prefix(140))
             }
             let prompt = cardPrompt(kind: kind, count: batch, subject: subject,
-                                    already: already, source: promptSource,
+                                    already: already, source: promptSource, style: style,
                                     presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
             let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
                                                    maxTokens: 160 * batch, temperature: 0.6)
@@ -42,8 +42,9 @@ enum LectureWriter {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .map { $0.replacingOccurrences(of: #"^(\d+[.)]|[-*•])\s*"#, with: "", options: .regularExpression) }
                 .filter { line in
-                    // new against earlier batches AND within this reply
-                    line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2)
+                    // new against earlier batches AND within this reply; a
+                    // cloze line needs no second field
+                    (line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2) || (kind == .anki && line.contains("{{c")))
                         && seen.insert(line.lowercased()).inserted
                 }
             failures = fresh.isEmpty ? failures + 1 : 0
@@ -54,7 +55,7 @@ enum LectureWriter {
     }
 
     static func cardPrompt(kind: StudySetKind, count: Int, subject: String,
-                           already: [String], source: String,
+                           already: [String], source: String, style: CardStyle = .mixed,
                            presentations: [String] = []) -> String {
         var rules: [String]
         if kind == .qa {
@@ -71,12 +72,14 @@ enum LectureWriter {
                 rules.append("(skip any of these the disease in the source cannot fit, and pick another variation instead)")
             }
         } else {
-            rules = [
-                "Write \(count) Anki flashcards for a medical student revising \(subject.isEmpty ? "medicine" : subject).",
-                "One card per line, exactly: Front | answer point 1; answer point 2 | why it matters (optional)",
-                "One fact per card. The front is a question. Answers are short: one to three points, a few words each.",
-                "Wrap the single tested word or number in each answer in **double asterisks**.",
-            ]
+            let qa = "Question cards, one per line, exactly: Front | answer point 1; answer point 2 | why it matters (optional). The front is a question; answers are one to three short points; wrap the single tested word or number in **double asterisks**."
+            let cloze = "Cloze cards, one per line, exactly: one sentence stating the fact with the tested word or number hidden as {{c1::that word}} | why it matters (optional). Hide the one thing worth remembering, never a filler word; one hidden part per card."
+            rules = ["Write \(count) flashcards for a medical student revising \(subject.isEmpty ? "medicine" : subject). One fact per card."]
+            switch style {
+            case .qa: rules.append(qa)
+            case .cloze: rules.append(cloze)
+            case .mixed, .image: rules += ["Mix the two kinds, about half each:", "- " + qa, "- " + cloze]
+            }
         }
         rules += [
             "Use only what the source supports.",

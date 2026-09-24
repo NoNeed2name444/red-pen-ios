@@ -15,7 +15,10 @@ struct LectureWriterSection: View {
     @Binding var suggestedName: String
     /// The lecture's diagrams, for a textbook to place on its pages.
     @Binding var bookFigures: [BookFigure]
+    /// Cards made from the lecture's labelled diagrams (Cards mode).
+    @Binding var diagrams: DiagramCards
     let subject: String
+    @State private var style: CardStyle = .mixed
 
     @EnvironmentObject private var llm: LocalLLMService
     @State private var picking = false
@@ -54,20 +57,33 @@ struct LectureWriterSection: View {
                     .font(.footnote)
                     .disabled(working)
             }
+            if kind == .anki {
+                Picker("Card type", selection: $style) {
+                    ForEach(CardStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .disabled(working)
+                if style.usesDiagrams, readSource != nil {
+                    Text(diagrams.cards.isEmpty ? "No labelled diagrams were found in this file."
+                                                : "\(diagrams.cards.count) image occlusion card\(diagrams.cards.count == 1 ? "" : "s") from the file's diagrams.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            if style.writesText || kind != .anki {
             CountField(title: "\(noun.capitalized)s", value: $count,
                        range: kind == .book ? 1...1_000 : 1...10_000)
                 .disabled(working)
+            }
             Button {
                 working ? stop() : start()
             } label: {
                 HStack {
                     if working || reading { ProgressView().controlSize(.small) }
-                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : "Write the \(noun)s")
+                    Text(reading ? "Reading\u{2026}" : working ? (status ?? "Writing\u{2026}") : actionTitle)
                 }
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
-            .disabled((!hasSource && !working) || reading)
+            .disabled((!canWrite && !working) || reading)
             .floatingActionAnchor("writer")
             if working {
                 Button("Stop", role: .cancel) { stop() }
@@ -84,9 +100,10 @@ struct LectureWriterSection: View {
         } footer: {
             Text(modelLine)
         }
-        .floatingAction(id: "writer", title: "Write \(count) \(noun)\(count == 1 ? "" : "s")",
-                        enabled: hasSource && !working && !reading,
-                        inputs: [kind.rawValue, subject, String(sourceText.count), String(bookFigures.count)], run: start)
+        .floatingAction(id: "writer", title: actionTitle,
+                        enabled: canWrite && !working && !reading,
+                        inputs: [kind.rawValue, subject, style.rawValue, String(sourceText.count),
+                                 String(bookFigures.count), String(diagrams.cards.count)], run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
             Task { await read(result) }
@@ -120,11 +137,13 @@ struct LectureWriterSection: View {
         defer { reading = false }
         do {
             let ext = url.pathExtension.lowercased()
-            // a textbook wants the lecture's diagrams; cards do not
-            let figures = kind == .book
+            // a textbook places the lecture's diagrams; Cards makes image
+            // occlusion cards from them
+            let figures = kind == .book || kind == .anki
             let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: figures)
                                     : try await OfficeIngest.read(url, findingFigures: figures)
-            bookFigures = figures ? Self.figures(from: read) : []
+            bookFigures = kind == .book ? Self.figures(from: read) : []
+            diagrams = kind == .anki ? Self.diagramCards(from: read, name: url.deletingPathExtension().lastPathComponent) : DiagramCards()
             // pictures numbered for the previous file would now point at the
             // wrong diagrams: they go, and the new pages will place their own
             bodyText = bodyText.components(separatedBy: "\n")
@@ -159,16 +178,57 @@ struct LectureWriterSection: View {
         }
     }
 
+    /// The file's image occlusion cards, their pictures kept small and
+    /// renumbered to the pictures actually kept.
+    static func diagramCards(from read: SourceIngest.Result, name: String) -> DiagramCards {
+        var images: [String] = []
+        var moved: [Int: Int] = [:]
+        for (old, figure) in read.figures.enumerated() {
+            guard let data = SourceIngest.downsized(figure) else { continue }
+            moved[old] = images.count
+            images.append(data.base64EncodedString())
+        }
+        let cards = read.occlusionCards.compactMap { card -> AnkiCard? in
+            guard let old = card.imageIndex, let new = moved[old] else { return nil }
+            var renumbered = card
+            renumbered.imageIndex = new
+            return renumbered
+        }
+        return DiagramCards(cards: cards, images: images, included: false)
+    }
+
+    private var actionTitle: String {
+        if kind == .anki && style == .image {
+            return "Add \(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s")"
+        }
+        return "Write \(count) \(noun)\(count == 1 ? "" : "s")"
+    }
+
+    private var canWrite: Bool {
+        if kind == .anki && style == .image { return !diagrams.cards.isEmpty }
+        return hasSource
+    }
+
     // MARK: writing
 
     private func start() {
         trouble = nil
+        // image occlusion alone needs no model: the diagrams are the cards
+        if kind == .anki {
+            diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty
+            if style == .image {
+                status = diagrams.cards.isEmpty ? nil
+                    : "\(diagrams.cards.count) image card\(diagrams.cards.count == 1 ? "" : "s") ready \u{2014} create the set below."
+                if diagrams.cards.isEmpty { trouble = "No labelled diagrams were found in this file." }
+                return
+            }
+        }
         guard let backend = llm.writerOrApple() else {
             trouble = "No model is ready to write with."
             return
         }
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let text = sourceText, wanted = count, subj = subject, mode = kind, figures = bookFigures
+        let text = sourceText, wanted = count, subj = subject, mode = kind, figures = bookFigures, cardStyle = style
         working = true
         status = "Writing\u{2026}"
         let job = GenerationCenter.shared.begin("Writing \(wanted) \(noun)\(wanted == 1 ? "" : "s")", total: wanted) {
@@ -180,7 +240,7 @@ struct LectureWriterSection: View {
         task = Task {
             do {
                 let written = try await LectureWriter.write(
-                    kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures,
+                    kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
                     onProgress: { done, total in
                         GenerationCenter.shared.update(job, done: done, total: total)
                         Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }

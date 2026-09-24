@@ -192,7 +192,7 @@ struct HelpPage: View {
             }
             Section("Getting it out") {
                 bullet("Swipe a set to export it: every mode prints as a flashcard deck.")
-                bullet("An Anki deck exports as .apkg instead, because paper keeps neither its schedule nor its masks.")
+                bullet("A Cards set exports as an .apkg deck instead, because paper keeps neither its schedule nor its masks.")
             }
         }
         .navigationTitle("How it works")
@@ -224,8 +224,8 @@ struct FAQPage: View {
          "On this device. If you sign in, your sets, folders and review schedule sync between your devices; recordings and learned pronunciations stay on the device that made them."),
         ("Does studying need a connection?",
          "No. Reviewing, reading and answering all work offline. Generating new questions and syncing need one."),
-        ("Can I use my own Anki decks?",
-         "You can export to .apkg and open it in Anki. Its schedule and any image masks come with it."),
+        ("Can I take my cards to another flashcard app?",
+         "Yes: export the set as an .apkg deck, the format common flashcard apps open. Its schedule and any image masks come with it."),
         ("Why did a deck appear twice?",
          "It was edited on two devices before they could sync. Both versions are kept rather than one quietly overwriting the other \u{2014} check them and delete the one you don't want."),
         ("What happens if I cancel?",

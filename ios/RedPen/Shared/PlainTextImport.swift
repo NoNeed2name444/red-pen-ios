@@ -81,6 +81,11 @@ enum PlainTextImport {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { return nil }
             let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+            // a cloze line: the sentence with its hidden part as {{c1::...}},
+            // then optionally why it matters
+            if parts[0].contains("{{c") && parts[0].contains("::") && parts[0].contains("}}") {
+                return AnkiCard(type: .cloze, clozeText: parts[0], why: parts.count >= 2 ? parts[1] : "")
+            }
             guard parts.count >= 2 else { return nil }
             let bullets = parts[1].components(separatedBy: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             let why = parts.count >= 3 ? parts[2] : ""

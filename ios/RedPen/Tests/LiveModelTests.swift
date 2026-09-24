@@ -130,9 +130,9 @@ if wanted("anki") {
     case .success(let text):
         let cards = PlainTextImport.parseAnkiQA(text)
         let shown = cards.map { "- **\($0.front)** → \($0.bullets.joined(separator: "; "))" }.joined(separator: "\n")
-        record("Anki", !cards.isEmpty, "\(cards.count) card(s) parsed by the app's own importer.\n\n" + shown, seconds: seconds)
+        record("Cards", !cards.isEmpty, "\(cards.count) card(s) parsed by the app's own importer.\n\n" + shown, seconds: seconds)
     case .failure(let error):
-        record("Anki", false, "Error: \(error.localizedDescription)", seconds: seconds)
+        record("Cards", false, "Error: \(error.localizedDescription)", seconds: seconds)
     }
 }
 

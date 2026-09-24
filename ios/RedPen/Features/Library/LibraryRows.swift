@@ -140,7 +140,7 @@ extension LibraryView {
             Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }
         }
         if set.kind == .anki {
-            Button("Export Anki deck (.apkg)", systemImage: "square.and.arrow.up") {
+            Button("Export deck (.apkg)", systemImage: "square.and.arrow.up") {
                 if let url = try? ApkgExporter.export(set) { exportURL = url }
                 else { exportFailedSetName = set.name }
             }
@@ -218,7 +218,7 @@ extension LibraryView {
                 }
             }
             Text("Nothing here yet").font(.title2.weight(.bold))
-            Text("Make an MCQ quiz, an Anki deck, a textbook, a case set, an OSCE checklist, or a narrated transcript \u{2014} all of it stays on this phone.")
+            Text("Make an MCQ quiz, a set of flashcards, a textbook, a case set, an OSCE checklist, or a narrated transcript \u{2014} all of it stays on this phone.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

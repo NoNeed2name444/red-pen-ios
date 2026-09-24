@@ -64,7 +64,7 @@ struct StudySetQuery: EntityQuery {
 struct ExportDeckIntent: AppIntent {
     static var title: LocalizedStringResource = "Export deck"
     static var description = IntentDescription(
-        "Builds a set as a printable flashcard deck - one question to a page, its answer overleaf - and hands back the file. Anki sets come back as .apkg instead, which keeps their schedule and their occlusion masks.")
+        "Builds a set as a printable flashcard deck - one question to a page, its answer overleaf - and hands back the file. Cards sets come back as .apkg instead, which keeps their schedule and their occlusion masks.")
     static var openAppWhenRun = false
 
     @Parameter(title: "Set")
