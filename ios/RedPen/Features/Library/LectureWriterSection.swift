@@ -165,7 +165,7 @@ struct LectureWriterSection: View {
 
     /// Each diagram as a JPEG small enough to keep in a set, with its page,
     /// labels and page text so it can find the page about its topic.
-    static func figures(from read: SourceIngest.Result) -> [BookFigure] {
+    nonisolated static func figures(from read: SourceIngest.Result) -> [BookFigure] {
         read.figures.enumerated().compactMap { i, image in
             let scale = min(1, 1400 / max(image.size.width, image.size.height, 1))
             let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
@@ -180,7 +180,7 @@ struct LectureWriterSection: View {
 
     /// The file's image occlusion cards, their pictures kept small and
     /// renumbered to the pictures actually kept.
-    static func diagramCards(from read: SourceIngest.Result, name: String) -> DiagramCards {
+    nonisolated static func diagramCards(from read: SourceIngest.Result, name: String) -> DiagramCards {
         var images: [String] = []
         var moved: [Int: Int] = [:]
         for (old, figure) in read.figures.enumerated() {

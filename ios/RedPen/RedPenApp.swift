@@ -84,6 +84,10 @@ struct RedPenApp: App {
                     RecordingTermsView { terms.agree(signedIn.id) }
                 } else if account.isSignedIn {
                     LibraryView()
+                        // a personal build's bundled lecture becomes examples,
+                        // made by the app's own pipeline - only once the library
+                        // is on screen, never under the sign-in screen
+                        .task { await SampleLectures.seed(into: store) }
                         .task {
                             // All three are cheap and all three are wrong to
                             // leave stale: a session that expires mid-sentence,
@@ -113,9 +117,6 @@ struct RedPenApp: App {
                 }
             }
             .environmentObject(store)
-            // a personal build's bundled lecture becomes examples, made by the
-            // app's own pipeline (diagram cards, a textbook with its figures)
-            .task { await SampleLectures.seed(into: store) }
             .environmentObject(learned)
             .environmentObject(reviews)
             .environmentObject(account)

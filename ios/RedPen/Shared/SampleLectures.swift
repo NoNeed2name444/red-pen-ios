@@ -29,14 +29,23 @@ enum SampleLectures {
             ?? { let made = StudyFolder(name: "Examples - try every mode"); store.folders.append(made); return made }()
 
         for url in bundled {
-            guard let read = try? await SourceIngest.read(pdf: url) else { continue }
+            // Reading 45 slides - rendering each, finding its diagrams,
+            // reading their labels - is seconds of work per page. All of it
+            // happens off the main thread, so the app never stops answering
+            // taps while it runs.
             let name = url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "_", with: " ")
                 .replacingOccurrences(of: #"^[0-9a-f-]+-"#, with: "", options: .regularExpression)
-            let source = ReadSource(name: name, document: read.document, kind: .pdf,
-                                    fileBlob: SourceFiles.keep(url, kind: .pdf)).doc()
+            guard let made = await Task.detached(priority: .utility, operation: { () -> Made? in
+                guard let read = try? await SourceIngest.read(pdf: url) else { return nil }
+                return Made(document: read.document,
+                            diagrams: LectureWriterSection.diagramCards(from: read, name: name),
+                            figures: LectureWriterSection.figures(from: read),
+                            blob: SourceFiles.keep(url, kind: .pdf))
+            }).value else { continue }
+            let source = ReadSource(name: name, document: made.document, kind: .pdf, fileBlob: made.blob).doc()
 
             // image occlusion: the lecture's labelled diagrams, as they are found
-            let diagrams = LectureWriterSection.diagramCards(from: read, name: name)
+            let diagrams = made.diagrams
             if !diagrams.cards.isEmpty {
                 var cards = StudySet(name: "Example: \(name) - image occlusion", subject: "Surgery", kind: .anki)
                 cards.cards = diagrams.cards
@@ -48,7 +57,7 @@ enum SampleLectures {
 
             // a textbook with the lecture's own figures placed by topic
             if let pages = textbook[key(for: name)] {
-                let figures = LectureWriterSection.figures(from: read)
+                let figures = made.figures
                 let split = BookPages.split(pages).map(\.markdown)
                 let placement = BookFigures.assign(figures, to: split)
                 let placed = split.enumerated().map { i, page in
@@ -64,6 +73,14 @@ enum SampleLectures {
                 store.addSet(book)
             }
         }
+    }
+
+    /// What the background read hands back to the main thread.
+    private struct Made {
+        var document: SourceText.Document
+        var diagrams: DiagramCards
+        var figures: [BookFigure]
+        var blob: String?
     }
 
     private static func key(for name: String) -> String {
