@@ -258,12 +258,12 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 // Pro pays for everything: one budget from Pro revenue across every paid service
 {
   const { budget, canPay } = await import('../ai.js');
-  const env = freshEnv({ PRO_PAYS: 'on', PRO_NET_MONTHLY_USD: '5', COST_SHARE: '0.6', FIXED_MONTHLY_USD: '1',
+  const env = freshEnv({ PRO_PAYS: 'on', PRO_NET_MONTHLY_USD: '5', COST_SHARE: '0.6', MONTHLY_BILLS: 'github-actions:0.4,apple-developer:0.6',
                          GEMINI_PRICES: 'gemini-3.5-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
   const later = Math.floor(Date.now() / 1000) + 86400;
   env.DB.prepare('UPDATE accounts SET verified_until = ? WHERE id = ?').bind(later, 'a1').run();
   const money = await budget(env);
-  ok(money.subscribers === 1 && money.revenue === 5 && Math.abs(money.forUse - 2) < 1e-9, 'for use = Pro revenue x share - fixed bills ($5 x 0.6 - $1 = $2)');
+  ok(money.subscribers === 1 && money.revenue === 5 && Math.abs(money.forUse - 2) < 1e-9, 'for use = Pro revenue x share - the named monthly bills ($5 x 0.6 - $0.40 - $0.60 = $2)');
   ok(await canPay(env, 'a1'), 'under budget: paid services allowed');
   const { charge } = await import('../ai.js');
   await charge(env, 'a1', 'baichuan/baichuan-m2-32b', { prompt_tokens: 1e6, completion_tokens: 1e6 });

@@ -322,8 +322,8 @@ const month = () => new Date().toISOString().slice(0, 7);
 /// exist and PRO_PAYS is "on", what Pro brings in sets what may be spent:
 ///
 ///   revenue  = active Pro subscriptions x PRO_NET_MONTHLY_USD (after Apple's cut)
-///   fixed    = FIXED_MONTHLY_USD (GitHub, Cloudflare Workers Paid, Apple's
-///              developer fee, any server that costs by the month)
+///   fixed    = MONTHLY_BILLS, by name (GitHub Actions minutes, Cloudflare
+///              Workers Paid, Apple's developer fee, a rented GPU server, ...)
 ///   for use  = revenue x COST_SHARE - fixed
 ///
 /// Every paid call (Gemini on the Blaze plan, Baichuan on Novita, ...) is
@@ -338,7 +338,10 @@ export function proPays(env) {
 export async function budget(env) {
   const net = Number(env.PRO_NET_MONTHLY_USD) || 0;
   const share = Number(env.COST_SHARE) || 0.6;
-  const fixed = Number(env.FIXED_MONTHLY_USD) || 0;
+  // every monthly bill by name ("github-actions:4,apple-developer:8.25"), so a
+  // new cost is one more entry rather than a code change
+  const bills = Object.fromEntries(list(env.MONTHLY_BILLS || '').map(b => b.split(':')).map(([k, v]) => [k, Number(v) || 0]));
+  const fixed = Object.values(bills).reduce((a, b) => a + b, 0) + (Number(env.FIXED_MONTHLY_USD) || 0);
   let subscribers = 0, spent = 0;
   try {
     subscribers = (await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE verified_until > ?').bind(now()).first())?.n || 0;
@@ -348,7 +351,7 @@ export async function budget(env) {
   const forUse = Math.max(0, revenue * share - fixed);
   // until the price is set, a flat allowance per account and no overall cap
   const perAccount = Number(env.PRO_MONTHLY_BUDGET_USD) || (net ? forUse / Math.max(subscribers, 1) : 2);
-  return { subscribers, revenue, fixed, forUse: net ? forUse : Infinity, perAccount, spent };
+  return { subscribers, revenue, bills, fixed, forUse: net ? forUse : Infinity, perAccount, spent };
 }
 
 export async function canPay(env, accountId, owner = false) {
