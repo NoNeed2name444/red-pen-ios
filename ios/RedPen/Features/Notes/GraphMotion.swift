@@ -34,9 +34,40 @@ struct GraphNodeInfo {
     let kind: NoteKind
     let root: UUID?
     let home: SIMD3<Float>
+    /// The black sphere's radius.
+    let radius: Float
+    /// The photon ring: `ringStretch` (inside a billboarded holder, lifted
+    /// towards the camera) squashes and stretches it along the note's motion;
+    /// `ringLeaf` carries the plane, turned back so its bright side stays on
+    /// the right.
+    let ringStretch: SCNNode
+    let ringLeaf: SCNNode
+    let ringGeometry: SCNGeometry
+    /// The accretion disk's plane, spun about its own axis inside a tilted
+    /// holder.
+    let diskLeaf: SCNNode
+    let diskGeometry: SCNGeometry
+    /// Where the disk starts in its turn, and how fast it turns at rest
+    /// (radians a second).
+    let spin: Float
+    let spinRate: Float
 }
 
-/// Keeps the space gently alive.
+/// The pieces of the look GraphSim drives that are shared by every note.
+struct GraphSimLooks {
+    /// Every link, in one geometry.
+    let linkMaterial: SCNMaterial
+    /// The selected note's ring and disk, brighter.
+    let hotRing: SCNGeometry
+    let hotDisk: SCNGeometry
+    /// Materials whose shader reads the `rpClock` argument.
+    let clocked: [SCNMaterial]
+    /// Comet-trail emitters (empty with Reduce Motion), each with its system.
+    let emitters: [SCNNode]
+    let trails: [SCNParticleSystem]
+}
+
+/// Keeps the space gently alive, and drives the black holes' motion.
 ///
 /// The force layout (ForceLayout3D) decides where every note belongs - its
 /// home. Every frame this nudges each note towards its home on a soft spring,
@@ -56,11 +87,23 @@ struct GraphNodeInfo {
 /// two meet under a lock that is never held while calling into SceneKit from
 /// the main thread.
 ///
+/// Each note is a small black hole (see GraphLook). At rest its disk turns
+/// slowly, each at its own speed, and its ring shimmers (in the shader).
+/// Moving - dragged, flung, or springing home - its disk spins faster with
+/// its speed, its ring brightens and stretches a little along the way it is
+/// going, and the few fastest notes trail orange sparks; let go, all of it
+/// eases back.
+///
+/// Links are one geometry of camera-facing ribbons, rebuilt from the notes'
+/// positions each frame they move; their electric look is entirely in the
+/// link shader.
+///
 /// The work each frame is one pass over the notes and one over the links -
 /// there is no every-note-against-every-note step here - so a few hundred
 /// notes stay cheap. Labels are sorted only every few frames. With Reduce
-/// Motion on there is no drifting, no popping and no overshoot, and nothing
-/// is worked out at all while the space is still.
+/// Motion on there is no drifting, no popping, no overshoot, no spin, no
+/// shimmer and no sparks, and nothing is worked out at all while the space
+/// and the camera are still.
 nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked Sendable {
     /// The node every note and link hangs from.
     let world: SCNNode
@@ -83,6 +126,22 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let lines: SCNNode
     private let lineMaterial: SCNMaterial
     private let lively: Bool
+
+    // the black holes
+    private let radius: [Float]
+    private let ringStretch: [SCNNode]
+    private let ringLeaf: [SCNNode]
+    private let ringGeometry: [SCNGeometry]
+    private let diskLeaf: [SCNNode]
+    private let diskGeometry: [SCNGeometry]
+    private let spinRate: [Float]
+    private let hotRing: SCNGeometry
+    private let hotDisk: SCNGeometry
+    private let clocked: [SCNMaterial]
+    private let emitters: [SCNNode]
+    private let trails: [SCNParticleSystem]
+    /// The note whose ring and disk are the bright ones. Main thread only.
+    private var highlighted: Int?
     /// Past this distance from the camera a note's label is not shown.
     private let labelReach: Float
 
@@ -101,6 +160,21 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// Set when the shown links change; the render loop rebuilds them.
     private var linesDirty: Bool = true
     private var vertexBuffer: [SCNVector3] = []
+    private var uvBuffer: [Float] = []
+    /// The camera, in the space's own coordinates, when last seen.
+    private var lastEye = SIMD3<Float>(0, 0, 0)
+    /// How far through its turn each disk is.
+    private var spin: [Float]
+    /// How much each note is moving, 0 to 1, eased.
+    private var level: [Float]
+    /// What each ring was last shaped with, so an unchanged ring is left alone.
+    private var shownFit: [Float]
+    private var shownLevel: [Float]
+    /// The fastest few moving notes this frame, and which note each trail
+    /// emitter is following.
+    private var picks: [(Int, Float)] = []
+    private var wanted: [Int] = []
+    private var owner: [Int?]
     private var clock: Float = 0
     private var frame: Int = 0
     private var lastTime: TimeInterval = 0
@@ -133,13 +207,22 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let maxSubstep: Float = 1.0 / 120.0
     /// The fastest a let-go note may fly off.
     private let flingLimit: Float = 8
+    /// The speed (units a second) at which a note counts as fully moving.
+    private let fullSpeed: Float = 2.5
+    /// Below this speed a note leaves no trail.
+    private let trailSpeed: Float = 0.9
 
     init(world: SCNNode, infos: [GraphNodeInfo], edges pairs: [(UUID, UUID)], lines: SCNNode,
-         lineMaterial: SCNMaterial, lively: Bool, labelReach: Float) {
+         looks: GraphSimLooks, lively: Bool, labelReach: Float) {
         self.world = world
         self.lines = lines
-        self.lineMaterial = lineMaterial
+        self.lineMaterial = looks.linkMaterial
         self.lively = lively
+        self.hotRing = looks.hotRing
+        self.hotDisk = looks.hotDisk
+        self.clocked = looks.clocked
+        self.emitters = looks.emitters
+        self.trails = looks.trails
         self.labelReach = labelReach
         // critical damping is 2 * sqrt(stiffness), about 4.9
         let critical: Float = 2 * stiffness.squareRoot()
@@ -173,6 +256,19 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         roots = rootList
         home = homeList
         phase = phaseList
+        radius = infos.map(\.radius)
+        ringStretch = infos.map(\.ringStretch)
+        ringLeaf = infos.map(\.ringLeaf)
+        ringGeometry = infos.map(\.ringGeometry)
+        diskLeaf = infos.map(\.diskLeaf)
+        diskGeometry = infos.map(\.diskGeometry)
+        spinRate = infos.map(\.spinRate)
+        spin = infos.map(\.spin)
+        level = [Float](repeating: 0, count: infos.count)
+        // impossible values, so every ring is shaped on the first frame
+        shownFit = [Float](repeating: -1, count: infos.count)
+        shownLevel = [Float](repeating: 1, count: infos.count)
+        owner = [Int?](repeating: nil, count: looks.emitters.count)
 
         var edgeList: [(Int, Int)] = []
         var restList: [Float] = []
@@ -218,8 +314,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             labels[i].isHidden = true
         }
         shownEdges = Array(edges.indices)
-        rebuildLineElement()
-        updateLines()
+        // the first frame builds the links, once it knows where the camera is
+        linesDirty = true
     }
 
     // MARK: appearing and popping
@@ -265,7 +361,36 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         selected = i
         resting = false
         lock.unlock()
+        highlight(i)
         pop(i)
+    }
+
+    /// Gives note `i` the bright ring and disk, and the one that had them
+    /// back its own. Main thread, without the lock.
+    private func highlight(_ i: Int?) {
+        if let old = highlighted, old != i {
+            ringLeaf[old].geometry = ringGeometry[old]
+            diskLeaf[old].geometry = diskGeometry[old]
+        }
+        if let i {
+            ringLeaf[i].geometry = hotRing
+            diskLeaf[i].geometry = hotDisk
+        }
+        highlighted = i
+    }
+
+    /// The note with the most links among those shown, for the design
+    /// preview's drag.
+    func busiestNote() -> Int? {
+        lock.lock()
+        defer { lock.unlock() }
+        var best: Int?
+        var most: Int = -1
+        for i in nodes.indices where visible[i] && degree[i] > most {
+            best = i
+            most = degree[i]
+        }
+        return best
     }
 
     // MARK: dragging
@@ -294,6 +419,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         selected = i
         resting = false
         lock.unlock()
+        highlight(i)
         pop(i)
     }
 
@@ -344,8 +470,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         shownEdges = kept
         linesDirty = true
         if let chosen = selected, !visible[chosen] { selected = nil }
+        let stillSelected: Int? = selected
         resting = false
         lock.unlock()
+        if stillSelected == nil { highlight(nil) }
 
         // SceneKit is touched only once the lock is let go
         for (i, shown) in changed {
@@ -361,28 +489,56 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
         let raw: TimeInterval = lastTime == 0 ? 1.0 / 60.0 : time - lastTime
         lastTime = time
-        let eye: SIMD3<Float> = renderer.pointOfView?.simdWorldPosition ?? SIMD3<Float>(0, 0, 10)
+        let pov: SCNNode? = renderer.pointOfView
+        let eye: SIMD3<Float> = pov?.simdWorldPosition ?? SIMD3<Float>(0, 0, 10)
+        let pose: simd_float4x4 = pov?.simdWorldTransform ?? matrix_identity_float4x4
+        let right = SIMD3<Float>(pose.columns.0.x, pose.columns.0.y, pose.columns.0.z)
+        let up = SIMD3<Float>(pose.columns.1.x, pose.columns.1.y, pose.columns.1.z)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
+        if lively { tickShaders(time) }
         lock.lock()
-        step(Float(raw), camera: eye)
+        step(Float(raw), eye: eye, right: right, up: up)
         lock.unlock()
         SCNTransaction.commit()
     }
 
-    /// Moves everything on by `rawStep` seconds. `camera` is the camera's
-    /// position in the scene, for deciding which labels to show. Called with
-    /// the lock held.
-    private func step(_ rawStep: Float, camera: SIMD3<Float>) {
+    /// Hands the shaders the time, wrapped so a 32-bit float keeps it fine
+    /// (see GraphShaders).
+    private func tickShaders(_ time: TimeInterval) {
+        let wrapped: Double = time.truncatingRemainder(dividingBy: GraphShape.clockPeriod)
+        let clock = NSNumber(value: Float(wrapped))
+        for material in clocked {
+            material.setValue(clock, forKey: "rpClock")
+        }
+    }
+
+    /// Moves everything on by `rawStep` seconds. `worldEye`, `worldRight`
+    /// and `worldUp` are the camera's position and its screen's right and up
+    /// in the scene. Called with the lock held.
+    private func step(_ rawStep: Float, eye worldEye: SIMD3<Float>,
+                      right worldRight: SIMD3<Float>, up worldUp: SIMD3<Float>) {
         frame += 1
+        let eye: SIMD3<Float> = world.simdConvertPosition(worldEye, from: nil)
+        let right: SIMD3<Float> = world.simdConvertVector(worldRight, from: nil)
+        let up: SIMD3<Float> = world.simdConvertVector(worldUp, from: nil)
+        let turned: Bool = simd_distance_squared(eye, lastEye) > 1e-8
+        lastEye = eye
+        var linksStale: Bool = turned
         if linesDirty {
             linesDirty = false
             rebuildLineElement()
-            updateLines()
+            linksStale = true
         }
         // the labels follow the camera even when the notes are still
-        if frame % 3 == 0 { updateLabels(camera: camera) }
-        if resting && grabbed == nil { return }
+        if frame % 3 == 0 { updateLabels(eye: eye) }
+        if resting && grabbed == nil {
+            // the ribbons face the camera and the rings are sized for it, so
+            // both follow it even when nothing else moves
+            if linksStale { updateLines(eye: eye) }
+            if turned { fitRings(eye: eye) }
+            return
+        }
 
         let dt: Float = min(max(rawStep, 0.001), 0.05)
 
@@ -409,7 +565,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         for i in nodes.indices {
             nodes[i].simdPosition = position[i]
         }
-        updateLines()
+        updateLines(eye: eye)
+        if lively {
+            animateLooks(dt, eye: eye, right: right, up: up)
+        } else {
+            fitRings(eye: eye)
+        }
 
         // still, and nothing will set it moving by itself: stop working
         if !lively && grabbed == nil && fastest < 0.000_01 { resting = true }
@@ -471,36 +632,229 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     // MARK: links
 
+    /// Two triangles per shown link, all in one element.
     private func rebuildLineElement() {
         var indices: [Int32] = []
-        indices.reserveCapacity(shownEdges.count * 2)
-        var next: Int32 = 0
+        indices.reserveCapacity(shownEdges.count * 6)
+        var base: Int32 = 0
         for _ in shownEdges {
-            indices.append(next)
-            indices.append(next + 1)
-            next += 2
+            indices.append(base)
+            indices.append(base + 1)
+            indices.append(base + 2)
+            indices.append(base + 2)
+            indices.append(base + 1)
+            indices.append(base + 3)
+            base += 4
         }
-        lineElement = indices.isEmpty ? nil : SCNGeometryElement(indices: indices, primitiveType: .line)
+        lineElement = indices.isEmpty ? nil : SCNGeometryElement(indices: indices, primitiveType: .triangles)
     }
 
-    /// Redraws every shown link between where its two notes are now. All the
-    /// links are one geometry, so this is one draw however many there are.
-    private func updateLines() {
+    /// Redraws every shown link as a flat ribbon between the rings of its two
+    /// notes, turned to face the camera. All the links are one geometry, so
+    /// this is one draw however many there are.
+    ///
+    /// The texture coordinates carry what the link shader needs (see
+    /// GraphShaders.link): u runs along the link in the space's units, from a
+    /// per-link offset; v is a whole number - the link's seed, doubled, plus
+    /// one if it touches the selected or dragged note - plus the position
+    /// across the ribbon.
+    private func updateLines(eye: SIMD3<Float>) {
         guard let element = lineElement, !shownEdges.isEmpty else {
             lines.geometry = nil
             return
         }
         vertexBuffer.removeAll(keepingCapacity: true)
+        uvBuffer.removeAll(keepingCapacity: true)
+        let focus: Int = grabbed ?? selected ?? -1
+        let halfWidth: Float = GraphShape.linkHalfWidth
         for e in shownEdges {
-            let a: SIMD3<Float> = position[edges[e].0]
-            let b: SIMD3<Float> = position[edges[e].1]
-            vertexBuffer.append(SCNVector3(x: a.x, y: a.y, z: a.z))
-            vertexBuffer.append(SCNVector3(x: b.x, y: b.y, z: b.z))
+            let i: Int = edges[e].0
+            let j: Int = edges[e].1
+            let pa: SIMD3<Float> = position[i]
+            let pb: SIMD3<Float> = position[j]
+            let delta: SIMD3<Float> = pb - pa
+            let length: Float = simd_length(delta)
+            let dir: SIMD3<Float> = length > 0.0001 ? delta / length : SIMD3<Float>(1, 0, 0)
+            let trimA: Float = min(radius[i] * GraphShape.linkTrim, length * 0.45)
+            let trimB: Float = min(radius[j] * GraphShape.linkTrim, length * 0.45)
+            let a: SIMD3<Float> = pa + dir * trimA
+            let b: SIMD3<Float> = pb - dir * trimB
+            let span: Float = max(length - trimA - trimB, 0)
+
+            // across the ribbon: square to both the link and the line of sight
+            let middle: SIMD3<Float> = (a + b) * 0.5
+            let toEye: SIMD3<Float> = eye - middle
+            var side: SIMD3<Float> = simd_cross(dir, toEye)
+            let sideLength: Float = simd_length(side)
+            if sideLength > 0.0001 {
+                side /= sideLength
+            } else {
+                side = Self.perpendicular(to: dir)
+            }
+            let offset: SIMD3<Float> = side * halfWidth
+            let a0: SIMD3<Float> = a - offset
+            let a1: SIMD3<Float> = a + offset
+            let b0: SIMD3<Float> = b - offset
+            let b1: SIMD3<Float> = b + offset
+            vertexBuffer.append(SCNVector3(x: a0.x, y: a0.y, z: a0.z))
+            vertexBuffer.append(SCNVector3(x: a1.x, y: a1.y, z: a1.z))
+            vertexBuffer.append(SCNVector3(x: b0.x, y: b0.y, z: b0.z))
+            vertexBuffer.append(SCNVector3(x: b1.x, y: b1.y, z: b1.z))
+
+            let seed: Int = e % 61
+            let lit: Int = (i == focus || j == focus) ? 1 : 0
+            let band: Float = Float(seed * 2 + lit)
+            let low: Float = band + 0.002
+            let high: Float = band + 0.998
+            let u0: Float = Float(seed) * 1.37
+            let u1: Float = u0 + span
+            uvBuffer.append(u0)
+            uvBuffer.append(low)
+            uvBuffer.append(u0)
+            uvBuffer.append(high)
+            uvBuffer.append(u1)
+            uvBuffer.append(low)
+            uvBuffer.append(u1)
+            uvBuffer.append(high)
         }
         let source = SCNGeometrySource(vertices: vertexBuffer)
-        let geometry = SCNGeometry(sources: [source], elements: [element])
+        let uvData: Data = uvBuffer.withUnsafeBufferPointer { Data(buffer: $0) }
+        let uvs = SCNGeometrySource(data: uvData, semantic: .texcoord,
+                                    vectorCount: vertexBuffer.count, usesFloatComponents: true,
+                                    componentsPerVector: 2, bytesPerComponent: 4,
+                                    dataOffset: 0, dataStride: 8)
+        let geometry = SCNGeometry(sources: [source, uvs], elements: [element])
         geometry.materials = [lineMaterial]
         lines.geometry = geometry
+    }
+
+    /// Any direction square to `dir`, for a link seen exactly end on.
+    private static func perpendicular(to dir: SIMD3<Float>) -> SIMD3<Float> {
+        let helper: SIMD3<Float> = abs(dir.x) < 0.9 ? SIMD3<Float>(1, 0, 0) : SIMD3<Float>(0, 1, 0)
+        let cross: SIMD3<Float> = simd_cross(dir, helper)
+        return simd_normalize(cross)
+    }
+
+    // MARK: the black holes
+
+    /// Once a frame while lively: spins each disk (faster the faster its note
+    /// moves), shapes each ring, and sends the trail emitters after the
+    /// fastest notes.
+    private func animateLooks(_ dt: Float, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
+        let ease: Float = 1 - exp(-dt / 0.15)
+        let fullTurn: Float = 2 * Float.pi
+        picks.removeAll(keepingCapacity: true)
+        let trailSlots: Int = grabbed == nil ? emitters.count : emitters.count - 1
+        for i in nodes.indices where visible[i] {
+            let speed: Float = simd_length(velocity[i])
+            let goal: Float = min(speed / fullSpeed, 1)
+            let change: Float = (goal - level[i]) * ease
+            level[i] += change
+            let m: Float = level[i]
+            let boost: Float = 1 + 5 * m
+            let rate: Float = spinRate[i] * boost
+            var angle: Float = spin[i] + rate * dt
+            if angle > fullTurn { angle -= fullTurn }
+            spin[i] = angle
+            diskLeaf[i].simdEulerAngles = SIMD3<Float>(0, 0, angle)
+            shapeRing(i, eye: eye, right: right, up: up)
+            if i != grabbed && speed > trailSpeed && trailSlots > 0 {
+                consider(i, speed: speed, limit: trailSlots)
+            }
+        }
+        updateTrails()
+    }
+
+    /// Keeps `picks` as the fastest `limit` notes seen so far, fastest first.
+    private func consider(_ i: Int, speed: Float, limit: Int) {
+        if picks.count == limit {
+            guard let slowest = picks.last, speed > slowest.1 else { return }
+            picks.removeLast()
+        }
+        var at: Int = picks.count
+        while at > 0 && picks[at - 1].1 < speed { at -= 1 }
+        picks.insert((i, speed), at: at)
+    }
+
+    /// Points each emitter at a moving note - the dragged one first, then the
+    /// fastest - keeping a note on the emitter it already has, and sets how
+    /// many sparks it throws by how fast that note is going.
+    private func updateTrails() {
+        guard !emitters.isEmpty else { return }
+        wanted.removeAll(keepingCapacity: true)
+        if let g = grabbed, visible[g] { wanted.append(g) }
+        for pick in picks where wanted.count < emitters.count { wanted.append(pick.0) }
+        for slot in owner.indices {
+            if let note = owner[slot], !wanted.contains(note) { owner[slot] = nil }
+        }
+        for note in wanted where !owner.contains(where: { $0 == note }) {
+            if let free = owner.firstIndex(where: { $0 == nil }) { owner[free] = note }
+        }
+        for slot in emitters.indices {
+            let system: SCNParticleSystem = trails[slot]
+            guard let note = owner[slot] else {
+                if system.birthRate != 0 { system.birthRate = 0 }
+                continue
+            }
+            emitters[slot].simdPosition = position[note]
+            let rate: Float = 160 * level[note]
+            system.birthRate = CGFloat(rate)
+        }
+    }
+
+    /// Sizes every shown ring for the camera, with no motion.
+    private func fitRings(eye: SIMD3<Float>) {
+        let none = SIMD3<Float>(0, 0, 0)
+        for i in nodes.indices where visible[i] {
+            shapeRing(i, eye: eye, right: none, up: none)
+        }
+    }
+
+    /// Sizes note `i`'s ring so that, lifted towards the camera, it still
+    /// hugs the sphere's silhouette; and squashes and stretches it along the
+    /// way the note is moving on screen, a little brighter the faster it
+    /// goes. Left alone when nothing about it has changed.
+    private func shapeRing(_ i: Int, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
+        let distance: Float = simd_distance(eye, position[i])
+        let fit: Float = ringFit(distance: distance, radius: radius[i])
+        let m: Float = level[i]
+        let still: Bool = m < 0.002 && shownLevel[i] < 0.002
+        if still && abs(fit - shownFit[i]) < 0.002 { return }
+        shownFit[i] = fit
+        shownLevel[i] = m
+
+        var angle: Float = 0
+        if !still {
+            let v: SIMD3<Float> = velocity[i]
+            let vx: Float = simd_dot(v, right)
+            let vy: Float = simd_dot(v, up)
+            if vx * vx + vy * vy > 0.000_001 { angle = atan2(vy, vx) }
+        }
+        let stretch: Float = 1 + 0.22 * m
+        let along: Float = fit * stretch
+        let across: Float = fit / stretch.squareRoot()
+        let axis = SIMD3<Float>(0, 0, 1)
+        ringStretch[i].simdOrientation = simd_quatf(angle: angle, axis: axis)
+        ringStretch[i].simdScale = SIMD3<Float>(along, across, 1)
+        ringLeaf[i].simdOrientation = simd_quatf(angle: -angle, axis: axis)
+        let glow: Float = 0.85 + 0.15 * m
+        ringStretch[i].opacity = CGFloat(glow)
+    }
+
+    /// How much to shrink a ring lifted towards the camera so it looks the
+    /// size of the sphere's silhouette.
+    ///
+    /// Seen from `distance` away, a sphere of radius r fills an angle whose
+    /// tangent is r / sqrt(d^2 - r^2). The ring's plane is lifted
+    /// ringLift * r towards the camera, so at (d - lift) away the same angle
+    /// is (d - lift) * r / sqrt(d^2 - r^2) across: its scale is that over r.
+    /// A little under 1 from afar, less up close.
+    private func ringFit(distance d: Float, radius r: Float) -> Float {
+        let lift: Float = r * GraphShape.ringLift
+        guard d > lift + r * 0.5 else { return 1 }
+        let squared: Float = max(d * d - r * r, 0.000_1)
+        let fit: Float = (d - lift) / squared.squareRoot()
+        return min(max(fit, 0.5), 1.05)
     }
 
     // MARK: labels
@@ -508,8 +862,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// Shows the titles of the few notes nearest the camera, fading out with
     /// distance, plus the selected note's. Coming closer brings more into
     /// reach; far away, none show and the space is just points and threads.
-    private func updateLabels(camera: SIMD3<Float>) {
-        let eye: SIMD3<Float> = world.simdConvertPosition(camera, from: nil)
+    private func updateLabels(eye: SIMD3<Float>) {
         var near: [(Int, Float)] = []
         for i in nodes.indices where visible[i] {
             let d: Float = simd_distance(position[i], eye)

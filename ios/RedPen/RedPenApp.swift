@@ -83,7 +83,10 @@ struct RedPenApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if let screen = PreviewLaunch.screen {
+                if GraphPreview.isOn {
+                    // the 3D map's design preview, before anything else
+                    GraphPreviewRoot()
+                } else if let screen = PreviewLaunch.screen {
                     // Screens added after the original harness live in
                     // PreviewExtras, so the ones already being compared week to
                     // week are never disturbed by adding one.

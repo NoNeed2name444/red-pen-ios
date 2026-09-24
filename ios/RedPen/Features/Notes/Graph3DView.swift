@@ -7,10 +7,12 @@ import simd
 /// thread between two, the way Obsidian's graph shows a vault - but something
 /// to turn round in the hand rather than a flat picture.
 ///
-/// It is kept quiet on purpose. Pages are a little larger than ideas; notes
-/// are matte pastel dots coloured by folder, with nothing drawn round them;
-/// titles appear only for the few notes nearest you, fading in as you come
-/// closer. The only controls
+/// It is a piece of deep space. Every note is a small black hole - a black
+/// sphere, a thin photon ring hugging its rim and a tilted, streaky
+/// accretion disk, tinted a little by its folder - and every link a stream of
+/// plasma with an electric aura (see GraphLook). Pages are a little larger
+/// than ideas. Titles appear only for the few notes nearest you, fading in
+/// as you come closer. The only controls
 /// are two small buttons in the corner: one to filter, one to bring the view
 /// back to the middle.
 ///
@@ -26,7 +28,8 @@ struct Graph3DView: View {
     @EnvironmentObject private var notes: NoteStore
     let open: (UUID) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     @State private var built: GraphScene?
     @State private var filter: GraphFilter = .all
     /// Bumped by the recentre button; the view notices the change.
@@ -42,8 +45,10 @@ struct Graph3DView: View {
                 }
             } else if let built {
                 GraphSCNView(built: built, filter: filter, recenter: recenter, onTap: open)
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Space of ideas")
                     .accessibilityHint("Drag to turn, pinch to zoom, tap a note to open it.")
+                    .accessibilityIdentifier("graph3D")
                     .overlay {
                         if filter != .all && shownCount == 0 {
                             Text("Nothing here for this filter.")
@@ -53,6 +58,8 @@ struct Graph3DView: View {
                         }
                     }
                     .overlay(alignment: .bottomTrailing) { controls }
+                    // the space is always night, whatever the phone's setting
+                    .environment(\.colorScheme, .dark)
             } else {
                 ProgressView()
             }
@@ -155,8 +162,13 @@ struct Graph3DView: View {
             parts.append("\(folder.id.uuidString)|\(folder.name)|\(parent)")
         }
         parts.append("\(reduceMotion)")
-        parts.append("\(scheme == .dark)")
+        parts.append("\(bold)")
         return parts.joined(separator: "\n")
+    }
+
+    /// Reduce Transparency or Increase Contrast: brighter, solid links.
+    private var bold: Bool {
+        reduceTransparency || contrast == .increased
     }
 
     private func rebuild() async {
@@ -168,12 +180,15 @@ struct Graph3DView: View {
         }
         // a constant copy: a var cannot be handed to another thread
         let groups = folders
-        let positions = await Task.detached(priority: .userInitiated) {
-            ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
+        // the layout, and (once per launch) a check that the shaders work
+        let worked = await Task.detached(priority: .userInitiated) {
+            let positions = ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
+            let support: GraphShaderSupport = GraphShaderProbe.support
+            return (positions, support)
         }.value
         guard !Task.isCancelled else { return }
-        built = GraphSceneBuilder.build(store: notes, positions: positions, edges: edges,
-                                        dark: scheme == .dark, lively: !reduceMotion)
+        built = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
+                                        lively: !reduceMotion, bold: bold, shaders: worked.1)
     }
 }
 
@@ -189,96 +204,170 @@ struct GraphScene {
 /// Turns notes and their positions into SceneKit nodes.
 ///
 /// Each note's node is named "note:<id>", which is how a tap finds out which
-/// note it landed on.
+/// note it landed on. Only the black spheres and the titles can be hit
+/// (category 1); rings, disks, links and sparks are category 2.
 ///
-/// Nothing is drawn round a note - no bubble, glow, rim or see-through
-/// shell - so each reads as one clean matte dot.
+/// Each note is built as:
+///
+///     note (black sphere)
+///       disk tilt (fixed, a little different for every note)
+///         disk (a flat plane, spun about its own axis by GraphSim)
+///       ring holder (billboarded: always faces the camera)
+///         ring stretch (lifted towards the camera; squash and stretch)
+///           ring (the plane, turned back so its bright side stays right)
+///       label
+///
+/// The ring is lifted more than a radius towards the camera, so no part of
+/// its own sphere is ever in front of it and the rim shows all the way
+/// round from every angle; it is still tested against depth, so another
+/// note in front hides it. The disk stays a flat, tilted plane through the
+/// centre, so its far half passes behind the sphere as it should.
 @MainActor
 enum GraphSceneBuilder {
     static func build(store: NoteStore, positions: [UUID: SIMD3<Float>], edges: [(UUID, UUID)],
-                      dark: Bool, lively: Bool) -> GraphScene {
+                      lively: Bool, bold: Bool, shaders: GraphShaderSupport) -> GraphScene {
         let scene = SCNScene()
-        // clear, so the app's own backdrop shows through behind the space
-        scene.background.contents = UIColor.clear
+        // deep space, turning with the camera
+        scene.background.contents = GraphSpace.starfield
         let world = SCNNode()
         scene.rootNode.addChildNode(world)
 
-        // SceneKit does not follow light and dark by itself, so the colours
-        // are settled for the one in use
-        let traits = UITraitCollection(userInterfaceStyle: dark ? .dark : .light)
-        let textColor: UIColor = UIColor.secondaryLabel.resolvedColor(with: traits)
-        let lineAlpha: CGFloat = dark ? 0.28 : 0.22
-        let lineColor: UIColor = UIColor.label.resolvedColor(with: traits).withAlphaComponent(lineAlpha)
+        let textColor = UIColor(red: 1, green: 0.93, blue: 0.84, alpha: 0.9)
 
-        // connections: hairlines, all in one geometry that GraphSim redraws
-        // as the notes move
-        let lineMaterial = SCNMaterial()
-        lineMaterial.diffuse.contents = lineColor
-        lineMaterial.lightingModel = .constant
-        lineMaterial.blendMode = .alpha
-        lineMaterial.writesToDepthBuffer = false
+        // connections: camera-facing ribbons, all in one geometry that
+        // GraphSim rebuilds as the notes move; the look is in the shader
+        let linkMaterial = GraphLook.link(bold: bold, shader: shaders.link, lively: lively)
         let lines = SCNNode()
         lines.name = "links"
         lines.renderingOrder = 5
+        lines.categoryBitMask = 2
         world.addChildNode(lines)
 
-        // notes: soft matte pastel spheres, pages larger than ideas, coloured
-        // by folder. Lambert shading has no shine or highlight at all.
+        // shared by every note: two spheres (page, idea) and one black
+        // material; a ring and a disk per folder; a bright pair for the
+        // selected note
+        let hole: SCNMaterial = GraphLook.hole()
+        let pageSphere = SCNSphere(radius: 0.2)
+        let ideaSphere = SCNSphere(radius: 0.12)
+        for sphere in [pageSphere, ideaSphere] {
+            sphere.segmentCount = 28
+            sphere.materials = [hole]
+        }
+        var clocked: [SCNMaterial] = []
+        if shaders.link { clocked.append(linkMaterial) }
+        var looks: [UUID?: (ring: SCNGeometry, disk: SCNGeometry)] = [:]
+        func look(for folder: UUID?) -> (ring: SCNGeometry, disk: SCNGeometry) {
+            if let made = looks[folder] { return made }
+            let tint: UIColor = GraphLook.tint(NoteTone.uiColor(for: folder, in: store))
+            let ringMaterial = GraphLook.ring(tint: tint, hot: false, shader: shaders.ring, lively: lively)
+            let diskMaterial = GraphLook.disk(tint: tint, hot: false, shader: shaders.disk)
+            if shaders.ring { clocked.append(ringMaterial) }
+            let made = (ring: plane(ringMaterial), disk: plane(diskMaterial))
+            looks[folder] = made
+            return made
+        }
+        let hotRingMaterial = GraphLook.ring(tint: .white, hot: true, shader: shaders.ring, lively: lively)
+        if shaders.ring { clocked.append(hotRingMaterial) }
+        let hotRing: SCNGeometry = plane(hotRingMaterial)
+        let hotDisk: SCNGeometry = plane(GraphLook.disk(tint: .white, hot: true, shader: shaders.disk))
+
+        var random = SplitMix64(seed: 0x6A26)
         var infos: [GraphNodeInfo] = []
         var extent: Float = 1
         for note in store.notes {
             guard let p = positions[note.id] else { continue }
             extent = max(extent, simd_length(p))
-            let radius: Float = note.kind == .page ? 0.2 : 0.12
-            let sphere = SCNSphere(radius: CGFloat(radius))
-            sphere.segmentCount = 20
-            let material = SCNMaterial()
-            material.lightingModel = .lambert
-            material.diffuse.contents = pastel(NoteTone.uiColor(for: note.folderId, in: store), dark: dark)
-            material.specular.contents = UIColor.black
-            material.reflective.contents = nil
-            material.emission.contents = UIColor.black
-            // fully opaque: a see-through sphere blended over the lines and
-            // the backdrop shows a pale ring at its edge
-            material.transparency = 1
-            material.blendMode = .replace
-            sphere.materials = [material]
-            let node = SCNNode(geometry: sphere)
+            let isPage: Bool = note.kind == .page
+            let radius: Float = isPage ? 0.2 : 0.12
+            let node = SCNNode(geometry: isPage ? pageSphere : ideaSphere)
             node.name = "note:\(note.id.uuidString)"
             node.simdPosition = p
+            let pair = look(for: note.folderId)
+
+            // the disk: flat, tilted so it is seen a little from above, each
+            // note a little differently
+            let tilt = SCNNode()
+            let lean: Float = 0.26 + random.unit() * 0.14
+            let roll: Float = random.unit() * 0.3
+            let yaw: Float = random.unit() * Float.pi
+            let flat = simd_quatf(angle: lean - Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+            let rolled = simd_quatf(angle: roll, axis: SIMD3<Float>(0, 0, 1))
+            let turned = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+            tilt.simdOrientation = turned * rolled * flat
+            let disk = SCNNode(geometry: pair.disk)
+            let diskSide: Float = radius * GraphShape.diskRadius * 2
+            disk.simdScale = SIMD3<Float>(diskSide, diskSide, 1)
+            let startSpin: Float = random.unit() * Float.pi
+            disk.simdEulerAngles = SIMD3<Float>(0, 0, startSpin)
+            disk.renderingOrder = 4
+            disk.categoryBitMask = 2
+            tilt.addChildNode(disk)
+            node.addChildNode(tilt)
+
+            // the photon ring: always facing the camera, in front of its
+            // own sphere
+            let holder = SCNNode()
+            let billboard = SCNBillboardConstraint()
+            billboard.freeAxes = .all
+            holder.constraints = [billboard]
+            let stretch = SCNNode()
+            let lift: Float = radius * GraphShape.ringLift
+            stretch.simdPosition = SIMD3<Float>(0, 0, lift)
+            stretch.opacity = 0.85
+            let ring = SCNNode(geometry: pair.ring)
+            let ringSide: Float = radius * GraphShape.ringPlane
+            ring.simdScale = SIMD3<Float>(ringSide, ringSide, 1)
+            ring.renderingOrder = 6
+            ring.categoryBitMask = 2
+            stretch.addChildNode(ring)
+            holder.addChildNode(stretch)
+            node.addChildNode(holder)
 
             let title: String = note.title.isEmpty ? "Untitled" : note.title
-            let labelHeight: Float = note.kind == .page ? 0.13 : 0.11
+            let labelHeight: Float = isPage ? 0.13 : 0.11
             let label = Self.label(title, color: textColor, height: labelHeight)
-            let lift: Float = radius + 0.08
-            label.simdPosition = SIMD3<Float>(0, lift, 0)
+            let labelLift: Float = radius * 2.3 + 0.04
+            label.simdPosition = SIMD3<Float>(0, labelLift, 0)
             node.addChildNode(label)
             world.addChildNode(node)
 
+            // each disk turns once every 10 to 20 seconds at rest
+            let pace: Float = 0.5 + random.unit() * 0.5
+            let spinRate: Float = 0.31 + pace * 0.31
             let info = GraphNodeInfo(id: note.id, node: node, label: label, kind: note.kind,
-                                     root: store.rootFolder(of: note.folderId), home: p)
+                                     root: store.rootFolder(of: note.folderId), home: p,
+                                     radius: radius, ringStretch: stretch, ringLeaf: ring,
+                                     ringGeometry: pair.ring, diskLeaf: disk,
+                                     diskGeometry: pair.disk, spin: startSpin, spinRate: spinRate)
             infos.append(info)
         }
 
-        // soft light: an even ambient wash and one gentle light from over the
-        // viewer's shoulder, carried with the camera so the shading stays
-        // the same however the space is turned
-        let ambient = SCNLight()
-        ambient.type = .ambient
-        ambient.intensity = dark ? 520 : 700
-        ambient.color = UIColor.white
-        let ambientNode = SCNNode()
-        ambientNode.light = ambient
-        scene.rootNode.addChildNode(ambientNode)
+        // comet trails: a few emitters shared by whichever notes are moving
+        // fastest; none at all with Reduce Motion
+        var emitters: [SCNNode] = []
+        var trails: [SCNParticleSystem] = []
+        if lively {
+            for _ in 0..<4 {
+                let system: SCNParticleSystem = GraphLook.trail()
+                let emitter = SCNNode()
+                emitter.categoryBitMask = 2
+                emitter.renderingOrder = 7
+                emitter.addParticleSystem(system)
+                world.addChildNode(emitter)
+                emitters.append(emitter)
+                trails.append(system)
+            }
+        }
 
         // the camera stands well back, leaving plenty of empty space round
-        // the notes
+        // the notes. Everything is unlit, so there are no lights.
         let camera = SCNCamera()
         camera.fieldOfView = 55
         camera.zNear = 0.05
         let far: Float = extent * 12 + 20
         camera.zFar = Double(far)
-        // no HDR, bloom or glare: those put a glow round every bright dot
+        // no HDR, bloom or glare: the glows are baked into the textures and
+        // shaders, and camera bloom would put a halo round everything bright
         camera.wantsHDR = false
         camera.bloomIntensity = 0
         camera.wantsExposureAdaptation = false
@@ -289,38 +378,22 @@ enum GraphSceneBuilder {
         cameraNode.simdPosition = cameraHome
         scene.rootNode.addChildNode(cameraNode)
 
-        let sun = SCNLight()
-        sun.type = .directional
-        sun.intensity = dark ? 380 : 450
-        sun.color = UIColor.white
-        sun.castsShadow = false
-        let sunNode = SCNNode()
-        sunNode.light = sun
-        sunNode.simdEulerAngles = SIMD3<Float>(-0.6, 0.45, 0)
-        cameraNode.addChildNode(sunNode)
-
         // titles come within reach as the camera comes closer; from where it
         // starts only a small space shows any
         let scaledReach: Float = distance * 0.55
         let labelReach: Float = max(scaledReach, 5.5)
+        let simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
+                                     clocked: clocked, emitters: emitters, trails: trails)
         let sim = GraphSim(world: world, infos: infos, edges: edges, lines: lines,
-                           lineMaterial: lineMaterial, lively: lively, labelReach: labelReach)
+                           looks: simLooks, lively: lively, labelReach: labelReach)
         return GraphScene(scene: scene, camera: cameraNode, cameraHome: cameraHome, sim: sim)
     }
 
-    /// The palette colour lifted towards white, for soft pastel fills. Less
-    /// so at night, where pale colours would glare.
-    static func pastel(_ color: UIColor, dark: Bool) -> UIColor {
-        var r: CGFloat = 0
-        var g: CGFloat = 0
-        var b: CGFloat = 0
-        var a: CGFloat = 0
-        guard color.getRed(&r, green: &g, blue: &b, alpha: &a) else { return color }
-        let lift: CGFloat = dark ? 0.2 : 0.4
-        let red: CGFloat = r + (1 - r) * lift
-        let green: CGFloat = g + (1 - g) * lift
-        let blue: CGFloat = b + (1 - b) * lift
-        return UIColor(red: red, green: green, blue: blue, alpha: 1)
+    /// A one-by-one square plane; each note scales it to size.
+    private static func plane(_ material: SCNMaterial) -> SCNGeometry {
+        let plane = SCNPlane(width: 1, height: 1)
+        plane.materials = [material]
+        return plane
     }
 
     /// A small flat title that always faces the camera. It starts hidden;
@@ -373,7 +446,8 @@ struct GraphSCNView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView(frame: .zero)
-        view.backgroundColor = .clear
+        // the starfield covers it; black until the first frame
+        view.backgroundColor = .black
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
         view.antialiasingMode = .multisampling4X
@@ -438,6 +512,8 @@ struct GraphSCNView: UIViewRepresentable {
         private var dragging: Bool = false
         /// The camera's own drag gestures already told to wait for ours.
         private var wired: Set<ObjectIdentifier> = []
+        /// The design preview's drag has been started (see GraphPreview).
+        private var previewDragged: Bool = false
 
         init(onTap: @escaping (UUID) -> Void, recenter: Int) {
             self.onTap = onTap
@@ -458,6 +534,40 @@ struct GraphSCNView: UIViewRepresentable {
             view.isPlaying = true
             wireCameraGestures(in: view)
             built.sim.appear()
+            if GraphPreview.drags && !previewDragged {
+                previewDragged = true
+                runPreviewDrag()
+            }
+        }
+
+        /// For the design preview (`-graphPreviewDrag`): a second after the
+        /// space appears, picks up the most-linked note, carries it along an
+        /// arc across the screen for two seconds, and lets go - so a
+        /// screenshot can catch the moving look.
+        private func runPreviewDrag() {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, let sim = self.sim, let view = self.view,
+                      let i = sim.busiestNote() else { return }
+                let pov: simd_float4x4 = view.pointOfView?.simdWorldTransform ?? matrix_identity_float4x4
+                let screenRight = SIMD3<Float>(pov.columns.0.x, pov.columns.0.y, pov.columns.0.z)
+                let screenUp = SIMD3<Float>(pov.columns.1.x, pov.columns.1.y, pov.columns.1.z)
+                let right: SIMD3<Float> = sim.world.simdConvertVector(screenRight, from: nil)
+                let up: SIMD3<Float> = sim.world.simdConvertVector(screenUp, from: nil)
+                let start: SIMD3<Float> = sim.currentPosition(i)
+                sim.grab(i)
+                let steps: Int = 120
+                for k in 1...steps {
+                    try? await Task.sleep(nanoseconds: 16_666_667)
+                    let s: Float = Float(k) / Float(steps)
+                    let angle: Float = s * Float.pi
+                    let across: Float = (1 - cos(angle)) * 1.6
+                    let lift: Float = sin(angle) * 1.2
+                    let moved: SIMD3<Float> = right * across + up * lift
+                    sim.drag(to: start + moved)
+                }
+                sim.release()
+            }
         }
 
         func apply(_ filter: GraphFilter) {
@@ -571,9 +681,12 @@ struct GraphSCNView: UIViewRepresentable {
         /// label to the note it belongs to.
         private func noteIndex(at point: CGPoint, in view: SCNView) -> Int? {
             guard let sim else { return nil }
+            // only the spheres and titles (category 1): not the rings,
+            // disks, links or sparks round them
             let options: [SCNHitTestOption: Any] = [
                 SCNHitTestOption.searchMode: SCNHitTestSearchMode.all.rawValue,
-                SCNHitTestOption.ignoreHiddenNodes: true
+                SCNHitTestOption.ignoreHiddenNodes: true,
+                SCNHitTestOption.categoryBitMask: 1
             ]
             let hits = view.hitTest(point, options: options)
             for hit in hits {
