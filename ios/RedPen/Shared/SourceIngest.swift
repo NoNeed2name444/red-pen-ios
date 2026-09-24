@@ -71,7 +71,13 @@ enum SourceIngest {
 
                 guard findingFigures, figures.count < figureLimit,
                       let cg = rendered?.cgImage,
-                      let found = FigureFinder.read(cg, imageIndex: figures.count)
+                      let found = FigureFinder.read(cg, imageIndex: figures.count),
+                      // kept as a small JPEG, not the full page render: sixty
+                      // full-size renders held at once are several hundred
+                      // megabytes, and iOS ends the app before generation
+                      // finishes. Checked before any card is kept, so a card
+                      // never points at a figure that was not stored.
+                      let small = rendered.flatMap({ downsized($0) }).flatMap(UIImage.init(data:))
                 else { return }
                 // the page number is the whole value of provenance: a card that
                 // looks wrong can be checked against the slide it came off
@@ -81,7 +87,7 @@ enum SourceIngest {
                     card.source = "\(name), p. \(index + 1)"
                     return card
                 })
-                figures.append(rendered!)
+                figures.append(small)
                 notes.append((index + 1, found.cards.flatMap(\.bullets)))
             }
         }

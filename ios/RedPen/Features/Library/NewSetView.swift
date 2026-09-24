@@ -235,6 +235,16 @@ struct NewSetView: View {
                                 highYield: $highYield,
                                 readSource: $readSource,
                                 name: name, subject: subject) { set in
+                    // Diagram (occlusion) cards come back as an Anki set, which
+                    // the quiz screen cannot show - opening it there crashed.
+                    // Anything that is not a question set goes straight into
+                    // the library instead.
+                    guard set.kind == .mcq else {
+                        store.addSet(set)
+                        dismiss()
+                        return
+                    }
+                    guard !set.questions.isEmpty else { return }
                     generatedSetSaved = false
                     generatedSet = set
                 }

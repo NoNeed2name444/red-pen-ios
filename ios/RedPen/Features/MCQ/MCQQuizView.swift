@@ -85,6 +85,17 @@ struct MCQQuizView: View {
     }
 
     var body: some View {
+        // a set with no questions has nothing to index into: say so rather
+        // than crash on questions[0]
+        if studySet.questions.isEmpty {
+            ContentUnavailableView("No questions", systemImage: "questionmark.square.dashed",
+                                   description: Text("This set has no questions yet."))
+        } else {
+            quiz
+        }
+    }
+
+    private var quiz: some View {
         VStack(spacing: 0) {
             header
             ScrollView {
