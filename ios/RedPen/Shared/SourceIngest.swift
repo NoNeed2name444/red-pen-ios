@@ -36,7 +36,7 @@ enum SourceIngest {
     /// a labelled diagram - carries plenty of text, and an earlier version of
     /// this skipped exactly those pages.
     static func read(pdf url: URL, findingFigures: Bool = true, readingText: Bool = true,
-                     figureLimit: Int = 60,
+                     figureLimit: Int = 60, workers requested: Int? = nil,
                      onPage: (@Sendable (Int, Int) -> Void)? = nil) async throws -> Result {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -49,7 +49,7 @@ enum SourceIngest {
         // Several pages at once, one PDF document per worker (PDFKit is not
         // safe to share across threads): each page is rendered, scanned and
         // read on its own, so a 45-slide deck takes the time of a dozen.
-        let workers = max(1, min(4, ProcessInfo.processInfo.activeProcessorCount - 1))
+        let workers = requested.map { max(1, $0) } ?? max(1, min(4, ProcessInfo.processInfo.activeProcessorCount - 1))
         let done = PageCounter()
         let pages: [PageRead] = await withTaskGroup(of: [PageRead].self) { group in
             for worker in 0..<workers {

@@ -128,5 +128,8 @@ enum RecordingTerms {
 
     static func accept(for accountId: String, in defaults: UserDefaults = .standard) {
         defaults.set(true, forKey: key(for: accountId))
+        // on disk now, not whenever the system gets round to it: if the app
+        // is stopped a moment later, the terms must not come back
+        defaults.synchronize()
     }
 }

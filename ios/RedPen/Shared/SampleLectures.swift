@@ -24,7 +24,13 @@ enum SampleLectures {
         let flag = "sampleLectures.v1"
         guard Bundle.main.bundleIdentifier?.hasSuffix(".personal") == true,
               !UserDefaults.standard.bool(forKey: flag), !bundled.isEmpty else { return }
+        // marked done first, and on disk: if reading it ever stops the app,
+        // the next launch does not try again
         UserDefaults.standard.set(true, forKey: flag)
+        UserDefaults.standard.synchronize()
+        // the library first: nothing starts until it has been on screen a moment
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        guard !Task.isCancelled else { return }
         let folder = store.folders.first { $0.name.hasPrefix("Examples") }
             ?? { let made = StudyFolder(name: "Examples - try every mode"); store.folders.append(made); return made }()
 
@@ -35,8 +41,10 @@ enum SampleLectures {
             // taps while it runs.
             let name = url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "_", with: " ")
                 .replacingOccurrences(of: #"^[0-9a-f-]+-"#, with: "", options: .regularExpression)
-            guard let made = await Task.detached(priority: .utility, operation: { () -> Made? in
-                guard let read = try? await SourceIngest.read(pdf: url) else { return nil }
+            guard let made = await Task.detached(priority: .background, operation: { () -> Made? in
+                // one page at a time and fewer diagrams: slower, but a phone
+                // running Swift Playgrounds has little memory to spare
+                guard let read = try? await SourceIngest.read(pdf: url, figureLimit: 24, workers: 1) else { return nil }
                 return Made(document: read.document,
                             diagrams: LectureWriterSection.diagramCards(from: read, name: name),
                             figures: LectureWriterSection.figures(from: read),

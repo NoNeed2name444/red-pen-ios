@@ -36,3 +36,24 @@ jobs:
           # the errors, where they can be read without downloading anything
           { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Tap through sign-in and the terms on a simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
+          echo "Simulator: $DEVICE"
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
+            -resultBundlePath ../ui.xcresult \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee ../uitest.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          { echo '### Sign-in and terms tap test'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../uitest.log | tail -20 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TEST SUCCEEDED" ../uitest.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-test
+          path: ui.xcresult
+          if-no-files-found: ignore
