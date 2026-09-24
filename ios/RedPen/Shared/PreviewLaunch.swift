@@ -161,11 +161,13 @@ enum SampleData {
         subject: "Endocrinology",
         kind: .book,
         bookMarkdown: """
-        # Hyperthyroidism
+        ## Hyperthyroidism
+
+        ### Definition
 
         **Thyrotoxicosis** is the clinical state of excess thyroid hormone; **hyperthyroidism** is the subset caused by overproduction by the gland itself.
 
-        ## Causes
+        ### Causes and risk factors
 
         | Cause | Clue |
         |---|---|
@@ -174,18 +176,50 @@ enum SampleData {
         | Toxic adenoma | Single hot nodule on uptake scan |
         | Thyroiditis | Tender gland, *low* uptake, transient |
 
-        ## Investigations
+        > **Exam tip:** Eye signs and pretibial myxoedema point to **Graves** - no other cause gives them.
+
+        ### Investigations
 
         - **TSH** suppressed, free T4 (± T3) raised
         - TSH-receptor antibodies confirm Graves
         - Radioiodine uptake: high and diffuse in Graves, patchy in MNG, low in thyroiditis
 
-        ## Management
+        ```flow
+        Suspected hyperthyroidism
+        TSH and free T4
+        If TSH low and FT4 high → primary hyperthyroidism
+        TSH-receptor antibodies
+        If positive → Graves disease
+        If negative → uptake scan to find the cause
+        ```
+
+        ### Management
 
         - Symptom control: **propranolol**
         - Antithyroid drugs: **carbimazole** first line (propylthiouracil in the first trimester)
         - Definitive: radioiodine or thyroidectomy
-        - Warn every patient on antithyroid drugs to report a sore throat or fever — **agranulocytosis**
+
+        > **Red flag:** Warn every patient on antithyroid drugs to report a sore throat or fever at once - **agranulocytosis**.
+
+        > **Mnemonic:** Graves' eye signs - **NO SPECS** (No signs, Only signs, Soft tissue, Proptosis, Extraocular muscles, Corneal, Sight loss).
+
+        ## Hypothyroidism
+
+        ### Definition
+
+        Too little thyroid hormone; in iodine-sufficient countries most often from **Hashimoto's thyroiditis**.
+
+        ### Clinical features
+
+        - Tiredness, weight gain, cold intolerance, constipation
+        - **Slow-relaxing reflexes**, dry skin, bradycardia
+
+        ### Management
+
+        - **Levothyroxine**, adjusted to keep TSH in range
+        - Start low in the elderly and in ischaemic heart disease
+
+        > **Key point:** Recheck TSH 6-8 weeks after any dose change - that is how long it takes to settle.
         """
     )
 
@@ -247,6 +281,25 @@ enum SampleData {
     )
 
     static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce, narrate]
+
+    /// Adds a copy of every example set, once, to a personal build's library -
+    /// never to the App Store app, whose students start with their own.
+    @MainActor
+    static func seedPersonalBuild(into store: Store) {
+        let key = "sampleLibrary.v2"
+        guard Bundle.main.bundleIdentifier?.hasSuffix(".personal") == true,
+              !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let folder = StudyFolder(name: "Examples - try every mode")
+        store.folders.append(folder)
+        for sample in sets {
+            var copy = sample
+            copy.id = UUID()
+            copy.name = "Example: " + sample.name
+            copy.folderId = folder.id
+            store.addSet(copy)
+        }
+    }
 }
 
 /// Opens the requested screen directly, with the sample data in place.

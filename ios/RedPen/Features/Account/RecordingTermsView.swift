@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// What every account agrees to before it can use the app: recordings are only
-/// transcribed with the permission of the people in them, and CramDown has no
-/// part in anyone's misuse of it.
+/// transcribed with the permission of the people in them, sources are only
+/// added by someone entitled to use them, and the app has no part in anyone's
+/// misuse of it.
 ///
 /// Shown once per account, straight after signing in, and it cannot be skipped:
 /// no close button, no swipe-down, and the accept button counts down for five
@@ -31,6 +32,9 @@ struct RecordingTermsView: View {
                 point("person.2.wave.2",
                       "Only record and transcribe with permission",
                       "A recording holds other people's voices. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and anyone else who can be heard have agreed, and when the rules of your university or country allow it.")
+                point("doc.badge.ellipsis",
+                      "Only add sources you own",
+                      "Only add lectures, slides, notes, books and recordings that you own or have the right to use - your own notes, material your university gave you to study from, or content whose licence allows it. Do not upload other people's paid courses, question banks or copyrighted books you have no right to copy.")
                 point("hand.raised",
                       "You are responsible for what you record",
                       "You are responsible for the recordings you add and what you do with their transcripts, including sharing them.")
@@ -112,7 +116,7 @@ final class RecordingTermsStore: ObservableObject {
 /// it too. The version is in the key: changing the terms means bumping it,
 /// and everybody is asked again.
 enum RecordingTerms {
-    static let version = 1
+    static let version = 2
 
     static func key(for accountId: String) -> String {
         "recordingTerms.v\(version).\(accountId)"

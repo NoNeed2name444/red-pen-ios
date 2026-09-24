@@ -30,6 +30,9 @@ struct RedPenApp: App {
         // pre-seeded store; a normal launch opens the user's own library.
         let seeded = PreviewLaunch.screen != nil
         let store = seeded ? PreviewLaunch.seededStore() : Store()
+        // a personal build opens with a finished example in every mode, so
+        // each one can be tried straight away
+        if !seeded { SampleData.seedPersonalBuild(into: store) }
         _store = StateObject(wrappedValue: store)
         // and on throwaway files, so a screenshot run never writes into the
         // student's own pronunciations, schedule or subscription record
