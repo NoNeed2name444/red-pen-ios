@@ -120,5 +120,31 @@ ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read fro
   ok(failed.job.status === 'failed' && failed.job.error, "an account the model refuses gets a failed job with the reason");
 }
 
+// the accuracy check runs on the server once the writing is done
+{
+  const store = storage();
+  const calls = [];
+  const fake = async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push(body);
+    const prompt = body.messages.at(-1).content;
+    const content = prompt.startsWith('CHECK')
+      ? `risk ${prompt.includes('Q2') ? 5 : 1}`
+      : '{"questions":[{"stem":"Q1 stem","options":["a","b"],"correctIndex":0,"explanation":"e"},{"stem":"Q2 stem","options":["a","b"],"correctIndex":1,"explanation":"e"}]}';
+    return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+  };
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'MCQ', mode: 'loop', extract: 'questions', count: 2, sources: ['Para about Q1\n\nPara about Q2'],
+    steps: [{ system: 'Write\n- {{ALREADY}}\n{{SOURCE}}', user: 'Now.', source: 0 }],
+    check: { template: 'CHECK\nSOURCE: {{INPUT}}\nOUTPUT: {{OUTPUT}}' } }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  await runAll(object, store);
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}&outputs=1`))).json();
+  ok(got.job.status === 'done' && got.job.checked === 2 && got.job.phase === 'checking', 'every question is checked before the job is done');
+  ok(calls.filter(c => JSON.stringify(c).includes('CHECK')).length === 2, 'one check per question');
+  ok(got.checks.length === 2 && got.checks.find(c => c.key === 'q2 stem').reply === 'risk 5', 'each verdict comes back under its question');
+  ok(calls[1].messages[0].content.includes('Answer: A') && calls[1].messages[0].content.includes('Para about Q1'), 'the checker sees the question as the app writes it, and the lecture');
+}
+
 console.log(failures ? `\n${failures} failed` : '\nall passed');
 process.exit(failures ? 1 : 0);

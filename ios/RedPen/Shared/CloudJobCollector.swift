@@ -16,6 +16,9 @@ struct CloudRecipe: Codable {
     /// Image occlusion cards that go with the written ones.
     var diagramCards: [AnkiCard]?
     var diagramImages: [String]?
+    /// The accuracy check it was asked for: "server" (checked in the cloud
+    /// job), "device" (a checker on this device), or nil for none.
+    var check: String?
 
     var encoded: Data? { try? JSONEncoder().encode(self) }
 
@@ -95,11 +98,17 @@ enum CloudJobCollector {
             }
             switch status.status {
             case "done":
-                guard let replies = try? await CloudJobs.outputs(pending.id, at: endpoint) else { continue }
+                guard let fetched = try? await CloudJobs.result(pending.id, at: endpoint) else { continue }
+                CloudChecks.server(fetched.checks)
                 if let recipe = pending.recipe.flatMap({ try? JSONDecoder().decode(CloudRecipe.self, from: $0) }),
-                   let set = recipe.set(from: replies, extra: pending.extra) {
+                   var set = recipe.set(from: fetched.outputs, extra: pending.extra) {
+                    // the accuracy check is never skipped: the server's
+                    // verdicts, and this device's checker for anything the
+                    // server could not check
+                    let note = recipe.check == nil ? "" : await screen(&set, recipe: recipe)
                     store.addSet(set)
-                    AppNotifications.generationFinished("\(set.name) is ready", body: "Written in the cloud while the app was closed.")
+                    AppNotifications.generationFinished("\(set.name) is ready",
+                                                        body: "Written in the cloud while the app was closed." + note)
                 }
                 CloudJobs.remove(pending.id)
                 UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["job-" + pending.id])
@@ -112,6 +121,56 @@ enum CloudJobCollector {
                 continue
             }
         }
+    }
+
+    /// Drops what the checker grades high risk (questions, stations), as the
+    /// screens do; returns a note of what it did.
+    private static func screen(_ set: inout StudySet, recipe: CloudRecipe) async -> String {
+        let source = recipe.source?.pages.map(\.text).joined(separator: "\n\n") ?? ""
+        let checker = LocalLLMService.shared.backend(for: .checker)
+        let risk: (String) -> Int = { AccuracyChecker.parse($0, checkedBy: "").riskLevel }
+        var removed = 0, flagged = 0
+        switch set.kind {
+        case .mcq:
+            for q in set.questions {
+                if let reply = CloudChecks.reply(forKey: CloudChecks.same(q.stem)) {
+                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(q))
+                }
+            }
+            if let checker {
+                let screened = await AccuracyChecker.screen(set.questions, source: source, using: checker, onProgress: { _, _ in })
+                (set.questions, removed, flagged) = (screened.kept, screened.removed, screened.flagged)
+            } else {
+                let before = set.questions.count
+                set.questions.removeAll { q in CloudChecks.reply(forKey: CloudChecks.same(q.stem)).map { risk($0) >= 4 } ?? false }
+                removed = before - set.questions.count
+            }
+        case .osce:
+            for station in set.osceChecklists {
+                if let reply = CloudChecks.reply(forKey: CloudChecks.same(station.title)) {
+                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(station))
+                }
+            }
+            if let checker {
+                let screened = await AccuracyChecker.screen(set.osceChecklists, source: source, using: checker, onProgress: { _, _ in })
+                (set.osceChecklists, removed, flagged) = (screened.kept, screened.removed, screened.flagged)
+            } else {
+                let before = set.osceChecklists.count
+                set.osceChecklists.removeAll { s in CloudChecks.reply(forKey: CloudChecks.same(s.title)).map { risk($0) >= 4 } ?? false }
+                removed = before - set.osceChecklists.count
+            }
+        default:
+            // cards, cases and pages: the riskiest part is reported, as on the screens
+            if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
+                let verdict = AccuracyChecker.parse(worst, checkedBy: "")
+                return verdict.passed ? " Checked: \(verdict.riskTitle.lowercased())." : " Checker: \(verdict.riskTitle.lowercased()) \u{2014} read it carefully."
+            }
+            return ""
+        }
+        var note = " Accuracy checked."
+        if removed > 0 { note += " \(removed) removed as high risk." }
+        if flagged > 0 { note += " \(flagged) flagged moderate risk." }
+        return note
     }
 
     // MARK: while the app is away

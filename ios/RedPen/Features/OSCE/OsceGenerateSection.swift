@@ -126,8 +126,13 @@ struct OsceGenerateSection: View {
                 }
                 var stations: [OsceChecklist]
                 if let writer {
-                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted).encoded
-                    stations = try await CloudJobs.$recipe.withValue(recipe) {
+                    let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
+                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil,
+                                             check: checker == nil ? nil : onServer ? "server" : "device").encoded
+                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
+                                                               checking: { done, total in
+                        GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud")
+                    })) {
                         try await MedicalGenerate.osce(
                             sourceText: text, count: wanted, subject: subj,
                             using: writer, onProgress: progress)

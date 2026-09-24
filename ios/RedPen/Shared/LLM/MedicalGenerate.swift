@@ -22,12 +22,23 @@ enum MedicalGenerate {
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: "{{SOURCE}}", count: perCall, subject: subject, highYield: highYield,
                 requestJSONShape: true, alreadyAsked: [MCQCoverage.Asked(stem: "{{ALREADY}}", key: "")])
-            let spec = CloudJobs.Spec(
+            var spec = CloudJobs.Spec(
                 title: "Writing \(count) questions", mode: "loop", extract: "questions", count: count,
                 sources: [promptSource],
                 steps: [.init(system: instructions, user: "Write the \(perCall) questions now, as JSON only.",
                               maxTokens: 700 * perCall, temperature: 0.7)])
-            return try collectQuestions(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: count)
+            if CloudJobs.context?.serverCheck == true {
+                spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.mcqInstruction,
+                                                         limit: backend.promptBudgetChars)
+            }
+            let questions = try collectQuestions(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: count)
+            // the server's verdicts, where the screen's accuracy check finds them
+            for q in questions {
+                if let reply = CloudChecks.reply(forKey: CloudChecks.same(q.stem)) {
+                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(q))
+                }
+            }
+            return questions
         }
         // a phone model loses the thread on long batches; a hosted one doesn't
         let perCall = backend.isOnDevice ? 3 : MCQGenerator.maxQuestionsPerCall
@@ -81,13 +92,23 @@ enum MedicalGenerate {
             let instructions = OsceGenerator.prompt(sourceText: "{{SOURCE}}", count: perCall,
                                                     subject: subject, alreadyWritten: ["{{ALREADY}}"])
                 + "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
-            let spec = CloudJobs.Spec(
+            var spec = CloudJobs.Spec(
                 title: "Writing \(wanted) stations", mode: "loop", extract: "stations", count: wanted,
                 sources: [promptSource],
                 steps: [.init(system: instructions,
                               user: "Write the \(perCall) station\(perCall == 1 ? "" : "s") now, as JSON only.",
                               maxTokens: 900 * perCall, temperature: 0.6)])
-            return try collectStations(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: wanted)
+            if CloudJobs.context?.serverCheck == true {
+                spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.osceInstruction,
+                                                         limit: backend.promptBudgetChars)
+            }
+            let stations = try collectStations(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: wanted)
+            for station in stations {
+                if let reply = CloudChecks.reply(forKey: CloudChecks.same(station.title)) {
+                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(station))
+                }
+            }
+            return stations
         }
         var collected: [OsceChecklist] = []
         var titles: [String] = []

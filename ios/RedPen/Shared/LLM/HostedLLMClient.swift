@@ -234,4 +234,6 @@ extension HostedLLMClient: CloudJobBackend {
         guard provider.model == "cramdown-writer", let bearer, !bearer.isEmpty else { return nil }
         return (AuthAPI.baseURL, bearer)
     }
+
+    var checksOnServer: Bool { provider.model == "cramdown-checker" && bearer?.isEmpty == false }
 }

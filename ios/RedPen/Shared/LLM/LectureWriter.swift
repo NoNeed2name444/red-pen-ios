@@ -27,15 +27,25 @@ enum LectureWriter {
                 return .init(system: prompt, user: "Write the \(cloudPerCall) lines now.",
                              source: r % windows.count, maxTokens: 160 * cloudPerCall, temperature: 0.6)
             }
-            let spec = CloudJobs.Spec(
+            var spec = CloudJobs.Spec(
                 title: "Writing \(count) \(kind == .qa ? "cases" : "cards")", mode: "loop", extract: "lines",
                 count: count, sources: windows, steps: steps,
                 minFields: kind == .qa ? 4 : 2, keyFields: kind == .qa ? 3 : 1, cloze: kind == .anki,
                 patience: min(12, max(3, windows.count + 2)))
+            if CloudJobs.context?.serverCheck == true {
+                spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.materialInstruction,
+                                                         limit: backend.promptBudgetChars)
+            }
             let replies = try await CloudJobs.run(spec, at: cloud, onProgress: onProgress)
             let collected = collectLines(replies, kind: kind, count: count)
             guard !collected.isEmpty else { throw LLMError.emptyReply }
-            return collected.joined(separator: "\n")
+            let written = collected.joined(separator: "\n")
+            // checked batch by batch on the server: the screen's check of the
+            // whole reports the riskiest batch
+            if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
+                CloudChecks.remember(worst, forOutput: written)
+            }
+            return written
         }
         var lines: [String] = []
         var seen: Set<String> = []
@@ -149,12 +159,21 @@ enum LectureWriter {
                                                           figures: mine.map { (index: $0, figure: figures[$0]) }),
                              source: i, maxTokens: 3_000, temperature: 0.3)
             }
-            let spec = CloudJobs.Spec(title: "Writing \(slices.count) textbook pages", mode: "each", extract: "pages",
+            var spec = CloudJobs.Spec(title: "Writing \(slices.count) textbook pages", mode: "each", extract: "pages",
                                       count: slices.count, sources: slices, steps: steps)
+            if CloudJobs.context?.serverCheck == true {
+                spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.materialInstruction,
+                                                         limit: backend.promptBudgetChars)
+            }
             let replies = try await CloudJobs.run(spec, at: cloud, extra: try? JSONEncoder().encode(placement),
                                                   onProgress: onProgress)
             guard !replies.isEmpty else { throw LLMError.emptyReply }
-            return assembleBook(replies, placement: placement)
+            let written = assembleBook(replies, placement: placement)
+            // checked page by page on the server: the riskiest page speaks for the book
+            if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
+                CloudChecks.remember(worst, forOutput: written)
+            }
+            return written
         }
         var written: [String] = []
         for (i, part) in slices.enumerated() {

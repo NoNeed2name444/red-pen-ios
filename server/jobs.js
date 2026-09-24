@@ -16,6 +16,12 @@
 //   {{ALREADY}} - on a line of its own (after any prefix, such as "- "), the
 //                 items written so far, one per line, so a long set does not
 //                 repeat itself
+//
+// A job can also carry the accuracy check (`check`: MedVAL's prompt with
+// {{INPUT}} and {{OUTPUT}} left open). Once the writing is done the server
+// checks every item against the nearest part of the lecture with the cloud
+// checker, as the app would - so a set finished while the phone was away is
+// checked too.
 import { chat, proGate } from './ai.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -92,10 +98,16 @@ export function checkSpec(raw) {
       temperature: Math.min(Math.max(Number(step.temperature ?? 0.7), 0), 1.5),
     });
   }
+  let check = null;
+  if (raw.check != null) {
+    const template = typeof raw.check?.template === 'string' ? raw.check.template : '';
+    if (!template.includes('{{OUTPUT}}') || template.length > 20_000) return { error: 'The accuracy check in that job could not be used.' };
+    check = { template, limit: Math.min(Math.max(Number(raw.check.limit) || 40_000, 2_000), 60_000) };
+  }
   const count = mode === 'each' ? cleanSteps.length : Math.min(Math.max(Number(raw.count) || 0, 1), LIMITS.count);
   return {
     spec: {
-      title, mode, extract, count, sources, steps: cleanSteps,
+      title, mode, extract, count, sources, steps: cleanSteps, check,
       minFields: Math.min(Math.max(Number(raw.minFields) || 2, 1), 8),
       keyFields: Math.min(Math.max(Number(raw.keyFields) || 1, 1), 8),
       cloze: raw.cloze === true,
@@ -126,15 +138,48 @@ export function itemsIn(reply, spec) {
       .filter(q => typeof q?.stem === 'string' && Array.isArray(q.options) && q.options[q.correctIndex] != null)
       .map(q => {
         const stem = q.stem.trim();
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        const options = q.options.map((o, i) => `${letters[Math.min(i, 4)]}. ${o}`);
         return {
           key: (stem.length > 90 ? stem.slice(0, 90) + '…' : stem) + `  [answer: ${String(q.options[q.correctIndex]).trim()}]`,
-          same: stem.toLowerCase().replace(/\s+/g, ' '),
+          same: sameText(stem),
+          // what the checker is shown, as the app's own screen writes it
+          check: `${stem}\n${options.join('\n')}\nAnswer: ${letters[Math.min(q.correctIndex, 4)]}\nExplanation: ${q.explanation || ''}`,
         };
       });
   }
   return (Array.isArray(object?.stations) ? object.stations : [])
     .filter(s => typeof s?.title === 'string' && s.title.trim())
-    .map(s => ({ key: s.title.trim(), same: s.title.trim().toLowerCase() }));
+    .map(s => ({
+      key: s.title.trim(), same: sameText(s.title),
+      check: s.title.trim() + '\n' + (Array.isArray(s.steps) ? s.steps : []).map(x => '- ' + x).join('\n'),
+    }));
+}
+
+/// How an item is matched between the server and the app: case and spacing aside.
+export function sameText(text) {
+  return String(text).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/// The paragraphs of the lecture sharing the most words with `text`, in
+/// reading order - the app's TextSlicing.nearest.
+export function nearest(source, text, limit) {
+  if (source.length <= limit) return source;
+  const words = t => new Set(t.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 3));
+  const wanted = words(text);
+  const paragraphs = source.split('\n\n');
+  const ranked = paragraphs.map((p, i) => [i, [...words(p)].filter(w => wanted.has(w)).length])
+    .sort((a, b) => b[1] - a[1]);
+  const chosen = [];
+  let size = 0;
+  for (const [i, score] of ranked) {
+    if (score <= 0) break;
+    if (size + paragraphs[i].length > limit) continue;
+    chosen.push(i);
+    size += paragraphs[i].length;
+  }
+  if (!chosen.length) return source.slice(0, limit);
+  return chosen.sort((a, b) => a - b).map(i => paragraphs[i]).join('\n\n');
 }
 
 function parseObject(text) {
@@ -179,7 +224,10 @@ export class GenerationJobs {
         const job = await this.storage.get(`job:${id}`);
         if (!job) return fail(404, 'No such job.');
         const body = { job: summary(job) };
-        if (url.searchParams.get('outputs') === '1') body.outputs = await this.outputs(job);
+        if (url.searchParams.get('outputs') === '1') {
+          body.outputs = await this.outputs(job);
+          body.checks = (await this.storage.get(`ver:${job.id}`)) || [];
+        }
         return json(body);
       }
       case '/cancel': {
@@ -204,9 +252,11 @@ export class GenerationJobs {
       count: spec.count, minFields: spec.minFields, keyFields: spec.keyFields, cloze: spec.cloze,
       patience: spec.patience, stepCount: spec.steps.length, sourceCount: spec.sources.length,
       status: 'running', done: 0, round: 0, failures: 0, empty: 0, replies: 0,
+      phase: 'writing', hasCheck: !!spec.check, checked: 0, checkTotal: 0, checkError: null,
       created: now, updated: now, error: null,
     };
-    const writes = { [`job:${id}`]: job, [`keys:${id}`]: [] };
+    const writes = { [`job:${id}`]: job, [`keys:${id}`]: [], [`pend:${id}`]: [], [`ver:${id}`]: [] };
+    if (spec.check) writes[`check:${id}`] = spec.check;
     spec.steps.forEach((step, i) => { writes[`step:${id}:${i}`] = step; });
     spec.sources.forEach((source, i) => { writes[`src:${id}:${i}`] = source; });
     // put() takes at most 128 keys at a time
@@ -233,7 +283,19 @@ export class GenerationJobs {
     }
     if (job.status === 'running' && job.failures >= MAX_FAILURES) {
       job.status = job.done > 0 ? 'done' : 'failed';
-      job.error = job.error || 'The cloud model kept failing. Try again later.';
+      if (job.phase === 'checking') job.checkError = job.error || 'The checker kept failing.';
+      else job.error = job.error || 'The cloud model kept failing. Try again later.';
+    }
+    // written: now the accuracy check, before anyone is told it is done
+    if (job.status === 'done' && job.phase === 'writing' && job.hasCheck) {
+      const pend = (await this.storage.get(`pend:${job.id}`)) || [];
+      if (pend.length && !job.error) {
+        job.phase = 'checking';
+        job.status = 'running';
+        job.checkTotal = pend.length;
+        job.failures = 0;
+        wait = 0;
+      }
     }
     job.updated = Date.now();
     // the job may have been cancelled while its call was out
@@ -244,6 +306,7 @@ export class GenerationJobs {
 
   /// Returns how long to wait before the next call, in seconds.
   async step(job) {
+    if (job.phase === 'checking') return this.checkStep(job);
     const index = job.mode === 'each' ? job.done : job.round % job.stepCount;
     const step = await this.storage.get(`step:${job.id}:${index}`);
     const source = step.source >= 0 ? (await this.storage.get(`src:${job.id}:${step.source}`)) || '' : '';
@@ -282,6 +345,17 @@ export class GenerationJobs {
       fresh.push(item);
       if (job.done + fresh.length >= job.count) break;
     }
+    if (job.hasCheck) {
+      // what the check will look at: each question or station; a textbook
+      // page; a batch of card lines as one (they are short)
+      const toCheck = job.extract === 'pages' ? (reply ? [{ key: String(job.replies), text: reply }] : [])
+        : job.extract === 'lines' ? (fresh.length ? [{ key: 'batch:' + job.replies, text: fresh.map(f => f.text).join('\n') }] : [])
+        : fresh.map(f => ({ key: f.same, text: f.check }));
+      if (toCheck.length) {
+        const pend = (await this.storage.get(`pend:${job.id}`)) || [];
+        await this.storage.put(`pend:${job.id}`, pend.concat(toCheck));
+      }
+    }
     if (job.mode === 'each') {
       // a page is kept even when it came back empty, so page i stays page i
       await this.storage.put(`out:${job.id}:${job.replies}`, reply);
@@ -306,6 +380,44 @@ export class GenerationJobs {
     return 0;
   }
 
+  /// One item through the checker (MedVAL's prompt, the cloud checker).
+  async checkStep(job) {
+    const pend = (await this.storage.get(`pend:${job.id}`)) || [];
+    const item = pend[job.checked];
+    if (!item) { job.status = 'done'; return 0; }
+    const check = await this.storage.get(`check:${job.id}`);
+    const sources = [];
+    for (let i = 0; i < job.sourceCount; i++) sources.push((await this.storage.get(`src:${job.id}:${i}`)) || '');
+    const input = nearest(sources.join('\n\n'), item.text, check.limit);
+    const prompt = check.template.split('{{OUTPUT}}').join(item.text.slice(0, check.limit / 2))
+      .split('{{INPUT}}').join(input);
+    const response = await chat(this.env, job.accountId,
+      { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 700, temperature: 0.1 },
+      this.fetcher, { owner: job.owner });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = body?.message || `The checker refused (HTTP ${response.status}).`;
+      if ([400, 401, 402, 403, 429].includes(response.status)) {
+        // the writing stands; the app checks what is left itself
+        job.status = 'done';
+        job.checkError = message;
+        return 0;
+      }
+      job.failures += 1;
+      job.error = message;
+      return RETRY_SECONDS;
+    }
+    const reply = String(body?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    const verdicts = (await this.storage.get(`ver:${job.id}`)) || [];
+    verdicts.push({ key: item.key, reply });
+    await this.storage.put(`ver:${job.id}`, verdicts);
+    job.checked += 1;
+    job.failures = 0;
+    job.error = null;
+    if (job.checked >= job.checkTotal) job.status = 'done';
+    return 0;
+  }
+
   async outputs(job) {
     const out = [];
     for (let i = 0; i < job.replies; i++) out.push((await this.storage.get(`out:${job.id}:${i}`)) || '');
@@ -322,7 +434,7 @@ export class GenerationJobs {
   }
 
   async forget(job) {
-    const keys = [`job:${job.id}`, `keys:${job.id}`];
+    const keys = [`job:${job.id}`, `keys:${job.id}`, `pend:${job.id}`, `ver:${job.id}`, `check:${job.id}`];
     for (let i = 0; i < job.stepCount; i++) keys.push(`step:${job.id}:${i}`);
     for (let i = 0; i < job.sourceCount; i++) keys.push(`src:${job.id}:${i}`);
     for (let i = 0; i < job.replies; i++) keys.push(`out:${job.id}:${i}`);
@@ -331,6 +443,9 @@ export class GenerationJobs {
 }
 
 function summary(job) {
-  const { id, title, status, done, count, error, created, updated } = job;
-  return { id, title, status, done, total: count, error, created, updated };
+  const { id, title, status, done, count, error, created, updated, phase, checked, checkTotal, checkError } = job;
+  return {
+    id, title, status, done, total: count, error, created, updated,
+    phase: phase || 'writing', checked: checked || 0, checkTotal: checkTotal || 0, checkError: checkError || null,
+  };
 }

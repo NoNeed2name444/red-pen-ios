@@ -285,6 +285,7 @@ struct LectureWriterSection: View {
                     await pending.value
                 }
                 let figures = await MainActor.run { bookFigures }
+                let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
                 // kept with a cloud job, so the set is still made if the app
                 // is closed before the server finishes
                 let recipe = await MainActor.run {
@@ -292,9 +293,13 @@ struct LectureWriterSection: View {
                                 source: readSource?.doc(),
                                 figures: mode == .book ? figures.map(\.imageBase64) : nil,
                                 diagramCards: mode == .anki && diagrams.included ? diagrams.cards : nil,
-                                diagramImages: mode == .anki && diagrams.included ? diagrams.images : nil).encoded
+                                diagramImages: mode == .anki && diagrams.included ? diagrams.images : nil,
+                                check: checker == nil ? nil : onServer ? "server" : "device").encoded
                 }
-                let written = try await CloudJobs.$recipe.withValue(recipe) {
+                let written = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
+                                                               checking: { done, total in
+                        GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud")
+                    })) {
                     try await LectureWriter.write(
                         kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
                         onProgress: { done, total in

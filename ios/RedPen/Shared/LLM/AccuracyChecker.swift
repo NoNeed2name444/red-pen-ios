@@ -16,6 +16,8 @@ enum AccuracyChecker {
     /// Grades `output` against `input`.
     static func check(instruction: String, input: String, output: String,
                       using backend: LLMBackend) async throws -> AccuracyVerdict {
+        // already checked on the server as part of a cloud job
+        if let reply = CloudChecks.take(forOutput: output) { return parse(reply, checkedBy: backend.label) }
         let budget = backend.promptBudgetChars
         let prompt = medvalPrompt(instruction: instruction,
                                   input: String(input.prefix(budget)),
@@ -28,6 +30,36 @@ enum AccuracyChecker {
         return parse(reply, checkedBy: backend.label)
     }
 
+
+    // MARK: the same check, on the server
+
+    static let mcqInstruction = "Write a single-best-answer medical exam question, with its answer and explanation, from the source."
+    static let osceInstruction = "Write an OSCE station checklist, in the order the steps are performed, from the source."
+    static let materialInstruction = "Write study material for medical students from the source."
+
+    /// MedVAL's prompt with the source and the output left for the server to
+    /// fill in, item by item.
+    static func serverCheck(instruction: String, limit: Int) -> CloudJobs.Check {
+        CloudJobs.Check(template: medvalPrompt(instruction: instruction, input: "{{INPUT}}", output: "{{OUTPUT}}") + "\n/no_think",
+                        limit: limit)
+    }
+
+    /// What the checker is shown for a question - here and on the server alike.
+    static func checkText(_ q: MCQQuestion) -> String {
+        let letters = ["A", "B", "C", "D", "E"]
+        let options = q.options.enumerated().map { "\(letters[min($0.offset, 4)]). \($0.element)" }
+        return "\(q.stem)\n\(options.joined(separator: "\n"))\nAnswer: \(letters[min(q.correctIndex, 4)])\nExplanation: \(q.explanation)"
+    }
+
+    static func checkText(_ station: OsceChecklist) -> String {
+        station.title + "\n" + station.steps.map { "- " + $0 }.joined(separator: "\n")
+    }
+
+    /// The riskiest of several verdicts' replies, for a check made in parts
+    /// (a textbook's pages, a deck's batches).
+    static func riskiest(_ replies: [String]) -> String? {
+        replies.max { parse($0, checkedBy: "").riskLevel < parse($1, checkedBy: "").riskLevel }
+    }
 
     // MARK: MedVAL's prompt and answer (in LLMParsing, where they are tested)
 
@@ -75,11 +107,9 @@ enum AccuracyChecker {
         var removed = 0, flagged = 0
         for (i, q) in questions.enumerated() {
             onProgress(i, questions.count)
-            let letters = ["A", "B", "C", "D", "E"]
-            let options = q.options.enumerated().map { "\(letters[min($0.offset, 4)]). \($0.element)" }
-            let output = "\(q.stem)\n\(options.joined(separator: "\n"))\nAnswer: \(letters[min(q.correctIndex, 4)])\nExplanation: \(q.explanation)"
+            let output = checkText(q)
             guard let verdict = try? await check(
-                instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.",
+                instruction: mcqInstruction,
                 input: nearest(source, to: output, limit: backend.promptBudgetChars),
                 output: output, using: backend) else { kept.append(q); continue }
             if verdict.riskLevel >= 4 { removed += 1; continue }
@@ -95,9 +125,9 @@ enum AccuracyChecker {
         var removed = 0, flagged = 0
         for (i, station) in stations.enumerated() {
             onProgress(i, stations.count)
-            let output = station.title + "\n" + station.steps.map { "- " + $0 }.joined(separator: "\n")
+            let output = checkText(station)
             guard let verdict = try? await check(
-                instruction: "Write an OSCE station checklist, in the order the steps are performed, from the source.",
+                instruction: osceInstruction,
                 input: nearest(source, to: output, limit: backend.promptBudgetChars),
                 output: output, using: backend) else { kept.append(station); continue }
             if verdict.riskLevel >= 4 { removed += 1; continue }

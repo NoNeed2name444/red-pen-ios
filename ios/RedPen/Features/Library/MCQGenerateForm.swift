@@ -189,9 +189,14 @@ struct MCQGenerateForm: View {
                     guard let writer else { throw LLMError.notReady("Choose a writer in AI models.") }
                     // kept with a cloud job, so the set is still made if the
                     // app is closed before the server finishes
+                    let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
                     let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
-                                             source: cite?.doc()).encoded
-                    questions = try await CloudJobs.$recipe.withValue(recipe) {
+                                             source: cite?.doc(),
+                                             check: checker == nil ? nil : onServer ? "server" : "device").encoded
+                    questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
+                                                               checking: { done, total in
+                        GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud")
+                    })) {
                         try await MedicalGenerate.mcq(
                             sourceText: text, count: count, subject: subj,
                             highYield: hy, using: writer, onProgress: progress)

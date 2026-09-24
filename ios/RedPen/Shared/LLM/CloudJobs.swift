@@ -4,6 +4,8 @@ import Foundation
 /// Vignette Cloud's writer. `jobs` is where, and the session to ask with.
 protocol CloudJobBackend {
     var jobs: (base: URL, bearer: String)? { get }
+    /// Vignette Cloud's checker: a cloud job can be checked on the server.
+    var checksOnServer: Bool { get }
 }
 
 /// Generation that carries on when the app is closed.
@@ -18,7 +20,22 @@ protocol CloudJobBackend {
 enum CloudJobs {
     /// What the screen that started the generation needs to turn the replies
     /// into a set on its own, if the app is closed before they are ready.
-    @TaskLocal static var recipe: Data?
+    @TaskLocal static var context: Context?
+    static var recipe: Data? { context?.recipe }
+
+    /// Set by the screen that starts a generation, for the jobs under it.
+    struct Context: Sendable {
+        var recipe: Data?
+        /// Check every item on the server (the chosen checker is Vignette Cloud's).
+        var serverCheck = false
+        /// Progress through the check: checked, of how many.
+        var checking: (@Sendable (Int, Int) -> Void)?
+    }
+
+    struct Check: Encodable {
+        var template: String
+        var limit: Int
+    }
 
     struct Step: Encodable {
         var system: String
@@ -42,6 +59,7 @@ enum CloudJobs {
         var keyFields = 1
         var cloze = false
         var patience = 3
+        var check: Check?
     }
 
     struct Status: Codable, Equatable {
@@ -51,6 +69,17 @@ enum CloudJobs {
         var done: Int
         var total: Int
         var error: String?
+        var phase: String?
+        var checked: Int?
+        var checkTotal: Int?
+        var checkError: String?
+    }
+
+    /// The checker's answer for one item, under the item's key (its stem or
+    /// title, `CloudChecks.same`; "batch:3" or a page number otherwise).
+    struct Verdict: Codable, Sendable {
+        var key: String
+        var reply: String
     }
 
     /// A job this device started and has not collected yet, kept on disk so a
@@ -114,7 +143,11 @@ enum CloudJobs {
                     }
                     continue
                 }
-                onProgress(status.done, status.total)
+                if status.phase == "checking" {
+                    context?.checking?(status.checked ?? 0, status.checkTotal ?? 0)
+                } else {
+                    onProgress(status.done, status.total)
+                }
                 if status.done != pending.done {
                     pending.done = status.done
                     pending.total = status.total
@@ -122,10 +155,11 @@ enum CloudJobs {
                 }
                 switch status.status {
                 case "done":
-                    let outputs = try await self.outputs(id, at: endpoint)
+                    let fetched = try await self.result(id, at: endpoint)
+                    CloudChecks.server(fetched.checks)
                     remove(id)
                     await forget(id, at: endpoint)
-                    return outputs
+                    return fetched.outputs
                 case "failed":
                     remove(id)
                     await forget(id, at: endpoint)
@@ -145,16 +179,17 @@ enum CloudJobs {
     // MARK: the server
 
     private struct Created: Decodable { var job: Status }
-    private struct Fetched: Decodable { var job: Status; var outputs: [String]? }
+    private struct Fetched: Decodable { var job: Status; var outputs: [String]?; var checks: [Verdict]? }
 
     static func status(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> Status {
         let fetched: Fetched = try await call("GET", "jobs/\(id)", at: endpoint)
         return fetched.job
     }
 
-    static func outputs(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> [String] {
+    /// A finished job's replies, and the checker's verdicts if it was checked.
+    static func result(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> (outputs: [String], checks: [Verdict]) {
         let fetched: Fetched = try await call("GET", "jobs/\(id)?outputs=1", at: endpoint)
-        return fetched.outputs ?? []
+        return (fetched.outputs ?? [], fetched.checks ?? [])
     }
 
     /// Stops a job, or clears a collected one off the server.
@@ -207,5 +242,49 @@ enum CloudJobs {
         return files.filter { $0.pathExtension == "json" }
             .compactMap { try? JSONDecoder().decode(Pending.self, from: Data(contentsOf: $0)) }
             .sorted { $0.started < $1.started }
+    }
+}
+
+/// Verdicts the server's checker already gave, so the accuracy check does not
+/// ask again for an item the cloud job checked (AccuracyChecker.check looks
+/// here first).
+enum CloudChecks {
+    private static let lock = NSLock()
+    private static var byKey: [String: String] = [:]
+    private static var byOutput: [String: String] = [:]
+
+    /// The key the server files a question or station under.
+    static func same(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+    }
+
+    /// A finished job's verdicts, replacing the last job's.
+    static func server(_ verdicts: [CloudJobs.Verdict]) {
+        lock.lock(); defer { lock.unlock() }
+        byKey = Dictionary(verdicts.map { ($0.key, $0.reply) }, uniquingKeysWith: { _, last in last })
+    }
+
+    static func reply(forKey key: String) -> String? {
+        lock.lock(); defer { lock.unlock() }
+        return byKey[key]
+    }
+
+    /// Every verdict of the last job (a textbook's pages, a deck's batches).
+    static var allReplies: [String] {
+        lock.lock(); defer { lock.unlock() }
+        return Array(byKey.values)
+    }
+
+    /// The verdict for exactly this checked text.
+    static func remember(_ reply: String, forOutput output: String) {
+        lock.lock(); defer { lock.unlock() }
+        byOutput[output] = reply
+    }
+
+    /// Used once: the next check of the same text asks the checker again.
+    static func take(forOutput output: String) -> String? {
+        lock.lock(); defer { lock.unlock() }
+        return byOutput.removeValue(forKey: output)
     }
 }
