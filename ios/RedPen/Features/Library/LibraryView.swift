@@ -267,6 +267,7 @@ struct LibraryView: View {
             setsSections
             if !searching {
                 featureSection
+                examplesSection
             }
             if !selecting {
                 // A row of empty space as tall as the bottom bar. Both

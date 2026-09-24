@@ -20,7 +20,7 @@ extension LibraryView {
     /// Whether there is anything for the Today card to say. A first launch
     /// with nothing scheduled is not greeted by a card full of zeros.
     var hasTodayCard: Bool {
-        PersonalBuild.isOn || examDays != nil || studyLog.streak > 0
+        examDays != nil || studyLog.streak > 0
             || store.library.contains { $0.kind == .anki } || !store.flaggedQuestions.isEmpty
     }
 
@@ -68,15 +68,23 @@ extension LibraryView {
             }
             .buttonStyle(.borderless)
         }
-        // the personal build's tour of every feature
+    }
+
+    /// The personal build's tour of every feature, at the bottom of every
+    /// category's page.
+    @ViewBuilder
+    var examplesSection: some View {
         if PersonalBuild.isOn {
-            Button { support = .examples } label: {
-                Label("Try every feature", systemImage: "sparkles.rectangle.stack")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 44)
+            Section {
+                Button { support = .examples } label: {
+                    Label("Try every feature", systemImage: "sparkles.rectangle.stack")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("examplesBanner")
+                .frostedListRow()
             }
-            .buttonStyle(.borderless)
-            .accessibilityIdentifier("examplesBanner")
         }
     }
 
