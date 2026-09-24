@@ -67,3 +67,13 @@ console.log('all passed');
   if (!ok2) { console.log('FAIL limit handling'); process.exit(1); }
   console.log('ok   limits: per-day stops, per-minute waits, neurons estimated');
 }
+
+{
+  const { progress } = await import('../bench/checkers.mjs');
+  const r = [...Array(6)].map((_, i) => ({ model: 'a', index: i, case: 'x' }));
+  const out = progress(['a', 'b'], r, 4, { a: 3 });
+  if (!out[0].includes('2/4 questions') || !out[0].includes('~2 more day')) throw new Error('progress a: ' + out[0]);
+  if (!out[1].includes('0/4') || !out.at(-1).includes('Not finished')) throw new Error('progress b');
+  if (!progress(['a'], r, 2, {}).at(-1).includes('All done')) throw new Error('progress done');
+  console.log('ok   progress across daily parts');
+}

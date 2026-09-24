@@ -179,6 +179,20 @@ function prompt(q, kase) {
 const pct = x => `${(100 * x).toFixed(0)}%`;
 const rate = ([k, n]) => { if (!n) return '—'; const [lo, hi] = wilson(k, n); return `${pct(k / n)} (${k}/${n}; ${pct(lo)}–${pct(hi)})`; };
 
+/// How far each model is, and roughly how many more daily parts it needs at
+/// today's pace. "All done" once every model has every check.
+export function progress(models, results, n, today) {
+  const lines = models.map(model => {
+    const doneChecks = results.filter(r => r.model === model && !r.error).length;
+    const left = Math.max(0, n * CASES.length - doneChecks);
+    const pace = today[model] || 0;
+    const when = left === 0 ? 'done' : pace ? `~${Math.ceil(left / pace)} more day(s)` : 'no progress today (limit reached or failing)';
+    return `- ${model}: ${Math.floor(doneChecks / CASES.length)}/${n} questions, ${when}`;
+  });
+  const complete = models.every(m => results.filter(r => r.model === m && !r.error).length >= n * CASES.length);
+  return [...lines, '', complete ? '**All done.**' : '**Not finished: the next part runs tomorrow.**'];
+}
+
 async function main() {
   if (!KEY) { console.error('KEY (owner key) is required'); process.exit(2); }
   const previous = PREVIOUS && existsSync(PREVIOUS) ? JSON.parse(readFileSync(PREVIOUS, 'utf8')) : [];
@@ -192,6 +206,7 @@ async function main() {
   const workersModels = MODELS.filter(m => m.startsWith('workers-ai:'));
   const neuronShare = workersModels.length ? NEURONS / workersModels.length : 0;
   let workersDone = false;
+  const today = {};
   await Promise.all(MODELS.map(async model => {
     let calls = 0;
     let spent = 0;
@@ -216,6 +231,7 @@ async function main() {
       }
       if (isWorkers) spent += neuronsFor(model, text.length, reply.text.length);
       results.push({ model, index: q.index, case: kase, risk: riskFrom(reply.text), ms: reply.ms });
+      today[model] = (today[model] || 0) + 1;
       process.stdout.write('.');
       // kept as it goes: a run that is stopped still leaves what it measured
       if (results.length % 10 === 0) writeFileSync(REPORT.replace(/\.md$/, '.json'), JSON.stringify(results, null, 1));
@@ -238,6 +254,8 @@ async function main() {
     `|---|---|---|---|---|---|---|---|`,
     ...table.map(({ model, s, median, questions }) =>
       `| ${model} | ${questions} | ${rate(s.specificity)} | ${rate(s.catchWithLecture)} | ${rate(s.catchByKnowledge)} | ${pct(s.balanced)} | ${median} | ${s.unreadable} / ${s.failed} |`),
+    ``, `## Progress (the benchmark runs a part a day until every model has ${N} questions)`, ``,
+    ...progress(MODELS, results, N, today),
     ``, `## Free limits met`, ``,
     ...(Object.keys(limitsSeen).length ? Object.entries(limitsSeen).map(([m, l]) => `- ${m}: ${l}`) : ['- none hit']),
     ``, `## Notes`, ``,

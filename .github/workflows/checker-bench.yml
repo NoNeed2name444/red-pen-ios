@@ -1,7 +1,8 @@
 # Which model makes the best accuracy checker? The same MedQA questions, each
 # shown correct and wrong, to every model through the deployed worker (owner
 # key, one model at a time). Results add up across runs on the checker-bench
-# branch, since some free quotas allow only a few calls a day.
+# branch, since some free quotas allow only a few calls a day: it runs as a
+# part a day (pushed daily after the free limits reset) until every model is done.
 name: Checker comparison
 on:
   # a push to bench/medqa or bench/medxpertqa runs it for that dataset, with
