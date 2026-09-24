@@ -317,6 +317,8 @@ enum GraphSceneBuilder {
             let ring = SCNNode(geometry: pair.ring)
             let ringSide: Float = radius * GraphShape.ringPlane
             ring.simdScale = SIMD3<Float>(ringSide, ringSide, 1)
+            // after the links (5), so the ring's glow reads on top of the
+            // line where they meet
             ring.renderingOrder = 6
             ring.categoryBitMask = 2
             stretch.addChildNode(ring)

@@ -32,12 +32,17 @@ nonisolated enum GraphShape {
     static let diskInner: Float = 0.43
     /// Half the width of a link's ribbon, in the space's units.
     static let linkHalfWidth: Float = 0.18
-    /// Links start this many radii out from a note's centre, on its ring.
-    static let linkTrim: Float = 1.05
-    /// The shader clock wraps round at this many seconds. Every steady motion
-    /// in the shaders turns a whole number of times in it, so the wrap never
-    /// shows.
-    static let clockPeriod: Double = 300
+    /// Links start this many radii out from a note's centre: under its
+    /// ring's lensed arc, so the ring reads in front of the line, which
+    /// fades in from there (see GraphShaders.link).
+    static let linkTrim: Float = 1.35
+    /// The shader clock wraps round at this many seconds (50 minutes). The
+    /// ring's motions, the links' pulses and surges and the crackle's
+    /// rhythm turn a whole number of times in it, so their wrap never shows;
+    /// the rest (noise drift, filaments, helix, flicker) shift once, a small
+    /// jump in already-irregular motion, every 50 minutes. At this size a 32-bit float still holds it to well under
+    /// a millisecond.
+    static let clockPeriod: Double = 3000
 }
 
 // MARK: - shader modifiers
@@ -101,17 +106,25 @@ nonisolated enum GraphShaders {
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 
-    /// A link: a beam of streaming orange-gold filaments round a steady hot
-    /// white-gold core wire, an orange
-    /// inner glow, a breathing aura fading to violet at its edge, current
-    /// pulses running from one end to the other and lighting the aura as
-    /// they pass, and thin branching sparks crackling in and out along it.
+    /// A link: one beam. A steady white-gold core, an orange inner glow
+    /// and a haze, all under one cross-section envelope that reaches exactly
+    /// zero at the ribbon's edges, with one hue running from white-gold in
+    /// the middle through orange to a faint violet at the very edge. Round
+    /// the core: three layers of streaming filaments, two thin helix strands
+    /// and crackling branched sparks. Along it: long soft pulses and rarer,
+    /// faster surges, which lift only the centre.
     ///
-    /// Each link's ribbon carries its own numbers in its texture
-    /// coordinates: u runs along the link in the space's units (from a
-    /// per-link offset), and v is a whole number k plus the position across
-    /// the ribbon. k / 2 (rounded down) is the link's seed; k's last bit says
-    /// whether it touches the selected or dragged note.
+    /// Nothing repeats section by section: three slow value noises along
+    /// the link (per-link seed, drifting in time) vary the filaments'
+    /// density, brightness and speed, the haze's thickness, the helix, and
+    /// how often it crackles. Nothing steps in time, and nothing has an edge
+    /// across the beam. Its ends fade in from under each note's ring.
+    ///
+    /// The ribbon's texture coordinates carry its numbers (GraphSim builds
+    /// them): u = seed * 64 + 1 + distance along the ribbon, in the space's
+    /// units; v = k + position across it, where k = 2 * (length * 16) plus 1
+    /// if the link touches the selected or dragged note. Mirrored line for
+    /// line by the design mock (scratchpad mock/beam4.py).
     static let link: String = """
     #pragma arguments
     float rpClock;
@@ -122,35 +135,154 @@ nonisolated enum GraphShaders {
 
     #pragma body
     float2 rp_uv = _surface.diffuseTexcoord;
+    float rp_seed = floor(rp_uv.x / 64.0);
+    float rp_along = rp_uv.x - rp_seed * 64.0 - 1.0;
     float rp_k = floor(rp_uv.y);
-    float rp_seed = floor(rp_k * 0.5);
-    float rp_lit = rp_k - 2.0 * rp_seed;
+    float rp_spanQ = floor(rp_k * 0.5);
+    float rp_lit = rp_k - 2.0 * rp_spanQ;
+    float rp_toEnd = rp_spanQ * 0.0625 - rp_along;
     float rp_s = fract(rp_uv.y) * 2.0 - 1.0;
-    float rp_x = rp_uv.x;
+    float rp_x = rp_along + rp_seed * 1.37;
     float rp_m = rpMotion;
     float rp_t = rpClock * rp_m;
+    float rp_a = abs(rp_s);
+    float rp_a2 = rp_a * rp_a;
+    float rp_w = clamp(1.0 - rp_a2, 0.0, 1.0);
+    float rp_w2 = rp_w * rp_w;
+    float rp_w3 = rp_w2 * rp_w;
 
-    // a straight, steady core: nothing in the middle of the line jumps
-    float rp_d = rp_s;
-    float rp_d2 = rp_d * rp_d;
-    float rp_core = exp(-rp_d2 * 420.0);
-    float rp_solid = exp(-rp_d2 * 60.0) * rpSolid;
-    rp_core = max(rp_core, rp_solid);
-    float rp_inner = exp(-rp_d2 * 20.0) * 0.6;
+    float rp_qD = rp_x * 0.35 - rp_t * 0.12 + rp_seed * 7.1;
+    float rp_iD = floor(rp_qD);
+    float rp_fD = fract(rp_qD);
+    rp_fD = rp_fD * rp_fD * (3.0 - 2.0 * rp_fD);
+    float rp_aD = fract(sin(rp_iD * 12.9898 + rp_seed * 3.7) * 43758.5453);
+    float rp_bD = fract(sin((rp_iD + 1.0) * 12.9898 + rp_seed * 3.7) * 43758.5453);
+    float rp_nD = mix(rp_aD, rp_bD, rp_fD);
+    float rp_qV = rp_x * 0.5 + rp_t * 0.05 + rp_seed * 3.3;
+    float rp_iV = floor(rp_qV);
+    float rp_fV = fract(rp_qV);
+    rp_fV = rp_fV * rp_fV * (3.0 - 2.0 * rp_fV);
+    float rp_aV = fract(sin(rp_iV * 12.9898 + rp_seed * 5.1 + 17.0) * 43758.5453);
+    float rp_bV = fract(sin((rp_iV + 1.0) * 12.9898 + rp_seed * 5.1 + 17.0) * 43758.5453);
+    float rp_nV = mix(rp_aV, rp_bV, rp_fV);
+    float rp_qH = rp_x * 0.45 - rp_t * 0.15 + rp_seed * 5.7;
+    float rp_iH = floor(rp_qH);
+    float rp_fH = fract(rp_qH);
+    rp_fH = rp_fH * rp_fH * (3.0 - 2.0 * rp_fH);
+    float rp_aH = fract(sin(rp_iH * 12.9898 + rp_seed * 1.9 + 31.0) * 43758.5453);
+    float rp_bH = fract(sin((rp_iH + 1.0) * 12.9898 + rp_seed * 1.9 + 31.0) * 43758.5453);
+    float rp_nH = mix(rp_aH, rp_bH, rp_fH);
 
-    float rp_breath = 1.0 + 0.18 * rp_m * sin(rp_t * 1.0471976 + rp_seed * 2.3);
-    float rp_ad = abs(rp_s) / rp_breath;
-    float rp_aura = exp(-rp_ad * 3.0) * 0.6;
+    float rp_core = exp(-rp_a2 * 300.0) * rp_w;
+    rp_core = max(rp_core, exp(-rp_a2 * 40.0) * rp_w * rpSolid);
+    float rp_inner = exp(-rp_a2 * 14.0) * rp_w2;
+    float rp_breath = 1.0 + 0.1 * rp_m * sin(rp_t * 1.0471976 + rp_seed * 2.3);
+    float rp_thick = (0.7 + 0.5 * rp_nH) * rp_breath;
+    float rp_haze = exp(-rp_a2 * 3.0 / (rp_thick * rp_thick)) * rp_w3;
+    rp_haze = rp_haze * (0.16 + 0.22 * rp_nD);
 
-    float rp_p = fract(rp_x * 0.55 - rp_t * 0.75 + rp_seed * 0.618);
-    float rp_p2 = rp_p * rp_p;
-    float rp_p4 = rp_p2 * rp_p2;
-    float rp_head = clamp((1.0 - rp_p) / 0.06, 0.0, 1.0);
-    rp_head = rp_head * rp_head * (3.0 - 2.0 * rp_head);
-    float rp_pulse = rp_p4 * rp_p4 * rp_head * rp_m;
+    float rp_pp = rp_x * 0.3 - rp_t * 0.42 + rp_seed * 0.618;
+    float rp_pi = floor(rp_pp);
+    float rp_dw = (fract(rp_pp) - 0.5) / 0.3;
+    float rp_sig = mix(0.7, 0.4, smoothstep(-0.2, 0.2, rp_dw));
+    float rp_pz = rp_dw / rp_sig;
+    float rp_ph = fract(sin(rp_pi * 7.13 + rp_seed) * 43758.5453);
+    float rp_pulse = exp(-rp_pz * rp_pz) * (0.45 + 0.55 * rp_ph) * rp_m;
+    float rp_sp = rp_x * 0.13 - rp_t * 0.31 + rp_seed * 0.37;
+    float rp_si = floor(rp_sp);
+    float rp_sw = (fract(rp_sp) - 0.5) / 0.13;
+    float rp_ssig = mix(1.0, 0.5, smoothstep(-0.3, 0.3, rp_sw));
+    float rp_sz = rp_sw / rp_ssig;
+    float rp_sh = fract(sin(rp_si * 3.31 + rp_seed * 1.7) * 43758.5453);
+    float rp_surge = exp(-rp_sz * rp_sz) * smoothstep(0.55, 0.9, rp_sh) * rp_m;
+    float rp_mid = exp(-rp_a2 * 20.0);
+    float rp_kick = (rp_pulse * 1.2 + rp_surge * 2.2) * rp_mid;
 
-    // the crackle changes shape 6 times a second, each shape fading into the
-    // next (no hard steps), and drifts slowly along the line in between
+    float3 rp_gold = float3(1.0, 0.753, 0.302);
+    float3 rp_white = float3(1.0, 0.95, 0.84);
+    float3 rp_orange = float3(1.0, 0.416, 0.0);
+    float3 rp_amber = float3(1.0, 0.30, 0.02);
+    float3 rp_violet = float3(0.45, 0.28, 1.0);
+    float rp_heat = clamp(rp_core * 0.9 + rp_inner * 0.3 + rp_kick * 0.5, 0.0, 1.0);
+    float rp_rim = smoothstep(0.5, 1.0, rp_a) * 0.55;
+    float3 rp_base = mix(rp_orange, rp_violet, rp_rim);
+    float3 rp_hot = mix(rp_gold, rp_white, clamp(rp_heat * 2.0 - 1.0, 0.0, 1.0));
+    float3 rp_hue = mix(rp_base, rp_hot, rp_heat);
+    float rp_glow = rp_core * 0.8 + rp_inner * 0.4 + rp_haze;
+    rp_glow = rp_glow + (rp_core * 1.6 + rp_inner * 0.4) * rp_kick;
+    float3 rp_col = rp_hue * rp_glow;
+
+    float3 rp_fl = float3(0.0);
+    float rp_qA = rp_s * 26.0 + rp_seed * 3.0 + 0.0;
+    float rp_iA = floor(rp_qA);
+    float rp_fA = fract(rp_qA) - 0.5;
+    float rp_haA = fract(sin(rp_iA * 12.9898 + rp_seed * 78.233 + 0.0) * 43758.5453);
+    float rp_hbA = fract(sin(rp_iA * 39.346 + rp_seed * 11.135 + 0.0) * 43758.5453);
+    float rp_profA = exp(-rp_fA * rp_fA * 38.0);
+    float rp_phA = rp_x * (0.35 + rp_haA * 0.9) + rp_haA * 6.2831;
+    float rp_runA = rp_t * 5.0 * (0.6 + rp_hbA);
+    float rp_slowA = 0.5 + 0.5 * sin(rp_phA - rp_runA * 0.6);
+    float rp_fastA = 0.5 + 0.5 * sin(rp_phA - rp_runA * 1.5);
+    float rp_flowA = mix(rp_slowA, rp_fastA, rp_nV);
+    rp_flowA = rp_flowA * rp_flowA * rp_flowA;
+    rp_flowA = rp_flowA * rp_flowA;
+    float rp_glA = (0.12 + 1.1 * rp_flowA) * (0.3 + 0.7 * rp_hbA);
+    rp_glA = rp_glA * (0.3 + rp_nD);
+    float3 rp_warmA = mix(rp_amber, rp_orange, clamp(rp_haA * 2.0, 0.0, 1.0));
+    float3 rp_hotA = mix(rp_gold, rp_white, clamp(rp_haA * 2.0 - 1.0, 0.0, 1.0));
+    float3 rp_hueA = mix(rp_warmA, rp_hotA, rp_haA);
+    rp_fl = rp_fl + rp_hueA * (rp_profA * rp_glA * 0.9);
+    float rp_qB = rp_s * 11.0 + rp_seed * 3.0 + 17.0;
+    float rp_iB = floor(rp_qB);
+    float rp_fB = fract(rp_qB) - 0.5;
+    float rp_haB = fract(sin(rp_iB * 12.9898 + rp_seed * 78.233 + 17.0) * 43758.5453);
+    float rp_hbB = fract(sin(rp_iB * 39.346 + rp_seed * 11.135 + 17.0) * 43758.5453);
+    float rp_profB = exp(-rp_fB * rp_fB * 38.0);
+    float rp_phB = rp_x * (0.35 + rp_haB * 0.9) + rp_haB * 6.2831;
+    float rp_runB = rp_t * 3.0 * (0.6 + rp_hbB);
+    float rp_slowB = 0.5 + 0.5 * sin(rp_phB - rp_runB * 0.6);
+    float rp_fastB = 0.5 + 0.5 * sin(rp_phB - rp_runB * 1.5);
+    float rp_flowB = mix(rp_slowB, rp_fastB, rp_nV);
+    rp_flowB = rp_flowB * rp_flowB * rp_flowB;
+    rp_flowB = rp_flowB * rp_flowB;
+    float rp_glB = (0.12 + 1.1 * rp_flowB) * (0.3 + 0.7 * rp_hbB);
+    rp_glB = rp_glB * (0.3 + rp_nD);
+    float3 rp_warmB = mix(rp_amber, rp_orange, clamp(rp_haB * 2.0, 0.0, 1.0));
+    float3 rp_hotB = mix(rp_gold, rp_white, clamp(rp_haB * 2.0 - 1.0, 0.0, 1.0));
+    float3 rp_hueB = mix(rp_warmB, rp_hotB, rp_haB);
+    rp_fl = rp_fl + rp_hueB * (rp_profB * rp_glB * 0.7);
+    float rp_qC = rp_s * 53.0 + rp_seed * 3.0 + 31.0;
+    float rp_iC = floor(rp_qC);
+    float rp_fC = fract(rp_qC) - 0.5;
+    float rp_haC = fract(sin(rp_iC * 12.9898 + rp_seed * 78.233 + 31.0) * 43758.5453);
+    float rp_hbC = fract(sin(rp_iC * 39.346 + rp_seed * 11.135 + 31.0) * 43758.5453);
+    float rp_profC = exp(-rp_fC * rp_fC * 38.0);
+    float rp_phC = rp_x * (0.35 + rp_haC * 0.9) + rp_haC * 6.2831;
+    float rp_runC = rp_t * 7.5 * (0.6 + rp_hbC);
+    float rp_slowC = 0.5 + 0.5 * sin(rp_phC - rp_runC * 0.6);
+    float rp_fastC = 0.5 + 0.5 * sin(rp_phC - rp_runC * 1.5);
+    float rp_flowC = mix(rp_slowC, rp_fastC, rp_nV);
+    rp_flowC = rp_flowC * rp_flowC * rp_flowC;
+    rp_flowC = rp_flowC * rp_flowC;
+    float rp_glC = (0.12 + 1.1 * rp_flowC) * (0.3 + 0.7 * rp_hbC);
+    rp_glC = rp_glC * (0.3 + rp_nD);
+    float3 rp_warmC = mix(rp_amber, rp_orange, clamp(rp_haC * 2.0, 0.0, 1.0));
+    float3 rp_hotC = mix(rp_gold, rp_white, clamp(rp_haC * 2.0 - 1.0, 0.0, 1.0));
+    float3 rp_hueC = mix(rp_warmC, rp_hotC, rp_haC);
+    rp_fl = rp_fl + rp_hueC * (rp_profC * rp_glC * 0.45);
+    rp_col = rp_col + rp_fl * (rp_w2 * 0.4);
+
+    float rp_ph1 = rp_x * 3.1 - rp_t * 2.3 + rp_seed * 1.3 + rp_nH * 2.0;
+    float rp_y1 = 0.32 * (0.6 + 0.8 * rp_nH) * sin(rp_ph1);
+    float rp_e1 = rp_s - rp_y1;
+    float rp_s1 = exp(-rp_e1 * rp_e1 * 900.0) * (0.55 + 0.45 * cos(rp_ph1));
+    float rp_ph2 = rp_x * 2.3 + rp_t * 1.4 + rp_seed * 2.9 - rp_nH * 1.5;
+    float rp_y2 = 0.26 * (1.3 - 0.6 * rp_nH) * sin(rp_ph2);
+    float rp_e2 = rp_s - rp_y2;
+    float rp_s2 = exp(-rp_e2 * rp_e2 * 900.0) * (0.55 + 0.45 * cos(rp_ph2));
+    float rp_helix = (rp_s1 + rp_s2) * rp_w * 0.5 * rp_m;
+    rp_col = rp_col + mix(rp_gold, rp_white, 0.5) * rp_helix;
+
     float rp_rate = rp_t * 6.0;
     float rp_blend = fract(rp_rate);
     rp_blend = rp_blend * rp_blend * (3.0 - 2.0 * rp_blend);
@@ -158,118 +290,45 @@ nonisolated enum GraphShaders {
     float rp_cell = rp_x * 2.2 + rp_seed * 5.0;
     float rp_seg = floor(rp_cell);
     float rp_within = fract(rp_cell);
-    float rp_gate = 0.64 - 0.2 * rp_lit;
+    float rp_gate = 0.66 - 0.2 * rp_lit - 0.3 * (rp_nD - 0.5);
     float rp_bow = sin(rp_within * 3.14159);
     float rp_fork = max(rp_within * 2.0 - 1.0, 0.0);
     float rp_tickA = floor(rp_rate);
-    float rp_h1A = fract(sin(rp_seg * 91.7 + rp_tickA * 37.3 + rp_seed * 11.0) * 43758.547);
-    float rp_h2A = fract(sin(rp_seg * 47.3 + rp_tickA * 19.1 + rp_seed * 3.0) * 24634.633);
-    float rp_h3A = fract(sin(rp_seg * 13.9 + rp_tickA * 71.7 + rp_seed * 7.0) * 17431.231);
-    float rp_onA = step(rp_gate, rp_h1A) * rp_m;
+    float rp_h1A = fract(sin(rp_seg * 91.7 + rp_tickA * 37.3 + rp_seed * 11.0) * 43758.5453);
+    float rp_h2A = fract(sin(rp_seg * 47.3 + rp_tickA * 19.1 + rp_seed * 3.0) * 43758.5453);
+    float rp_h3A = fract(sin(rp_seg * 13.9 + rp_tickA * 71.7 + rp_seed * 7.0) * 43758.5453);
+    float rp_onA = smoothstep(rp_gate, rp_gate + 0.06, rp_h1A) * rp_m;
     float rp_zigA = sin(rp_x * 23.0 + rp_tickA * 2.7 + rp_drift) * 0.08;
     rp_zigA = rp_zigA + sin(rp_x * 47.0 - rp_tickA * 1.3 - rp_drift) * 0.04;
-    float rp_arcAtA = ((rp_h2A - 0.5) * 1.3 + rp_zigA) * rp_bow;
-    float rp_e1A = rp_s - rp_arcAtA;
-    float rp_arcA = exp(-rp_e1A * rp_e1A * 380.0) * rp_bow;
-    float rp_branchAtA = rp_arcAtA + (rp_h3A - 0.5) * 0.9 * rp_fork;
-    float rp_e2A = rp_s - rp_branchAtA;
-    float rp_branchA = exp(-rp_e2A * rp_e2A * 500.0) * rp_fork * step(0.5, rp_h3A);
-    float rp_sparkA = (rp_arcA + 0.7 * rp_branchA) * rp_onA;
+    float rp_atA = ((rp_h2A - 0.5) * 1.1 + rp_zigA) * rp_bow;
+    float rp_eaA = rp_s - rp_atA;
+    float rp_arcA = exp(-rp_eaA * rp_eaA * 380.0) * rp_bow;
+    float rp_batA = rp_atA + (rp_h3A - 0.5) * 0.8 * rp_fork;
+    float rp_ebA = rp_s - rp_batA;
+    float rp_brA = exp(-rp_ebA * rp_ebA * 500.0) * rp_fork * step(0.5, rp_h3A);
+    float rp_sparkA = (rp_arcA + 0.7 * rp_brA) * rp_onA;
     float rp_tickB = floor(rp_rate) + 1.0;
-    float rp_h1B = fract(sin(rp_seg * 91.7 + rp_tickB * 37.3 + rp_seed * 11.0) * 43758.547);
-    float rp_h2B = fract(sin(rp_seg * 47.3 + rp_tickB * 19.1 + rp_seed * 3.0) * 24634.633);
-    float rp_h3B = fract(sin(rp_seg * 13.9 + rp_tickB * 71.7 + rp_seed * 7.0) * 17431.231);
-    float rp_onB = step(rp_gate, rp_h1B) * rp_m;
+    float rp_h1B = fract(sin(rp_seg * 91.7 + rp_tickB * 37.3 + rp_seed * 11.0) * 43758.5453);
+    float rp_h2B = fract(sin(rp_seg * 47.3 + rp_tickB * 19.1 + rp_seed * 3.0) * 43758.5453);
+    float rp_h3B = fract(sin(rp_seg * 13.9 + rp_tickB * 71.7 + rp_seed * 7.0) * 43758.5453);
+    float rp_onB = smoothstep(rp_gate, rp_gate + 0.06, rp_h1B) * rp_m;
     float rp_zigB = sin(rp_x * 23.0 + rp_tickB * 2.7 + rp_drift) * 0.08;
     rp_zigB = rp_zigB + sin(rp_x * 47.0 - rp_tickB * 1.3 - rp_drift) * 0.04;
-    float rp_arcAtB = ((rp_h2B - 0.5) * 1.3 + rp_zigB) * rp_bow;
-    float rp_e1B = rp_s - rp_arcAtB;
-    float rp_arcB = exp(-rp_e1B * rp_e1B * 380.0) * rp_bow;
-    float rp_branchAtB = rp_arcAtB + (rp_h3B - 0.5) * 0.9 * rp_fork;
-    float rp_e2B = rp_s - rp_branchAtB;
-    float rp_branchB = exp(-rp_e2B * rp_e2B * 500.0) * rp_fork * step(0.5, rp_h3B);
-    float rp_sparkB = (rp_arcB + 0.7 * rp_branchB) * rp_onB;
-    float rp_spark = mix(rp_sparkA, rp_sparkB, rp_blend);
-
-    // streaming filaments of light along the link, like a beam: three layers
-    // of thin streaks at different densities, each streak flowing forward at
-    // its own speed, densest in the middle, with a soft orange haze round them
-    float3 rp_bWhite = float3(1.0, 0.95, 0.84);
-    float3 rp_bGold = float3(1.0, 0.753, 0.302);
-    float3 rp_bOrange = float3(1.0, 0.416, 0.0);
-    float3 rp_bAmber = float3(1.0, 0.30, 0.02);
-    float rp_a = abs(rp_s);
-    float rp_env = exp(-rp_a * rp_a * 5.5);
-    float3 rp_streak = float3(0.0);
-    float rp_qS1 = rp_s * 26.0 + rp_seed * 3.0 + 0.0;
-    float rp_iS1 = floor(rp_qS1);
-    float rp_fS1 = fract(rp_qS1) - 0.5;
-    float rp_haS1 = fract(sin(rp_iS1 * 12.9898 + rp_seed * 78.233 + 0.0) * 43758.5453);
-    float rp_hbS1 = fract(sin(rp_iS1 * 39.346 + rp_seed * 11.135 + 0.0) * 43758.5453);
-    float rp_profS1 = exp(-rp_fS1 * rp_fS1 * 38.0);
-    float rp_rateS1 = rp_t * 5.0 * (0.6 + rp_hbS1);
-    float rp_flowS1 = 0.5 + 0.5 * sin(rp_x * (0.35 + rp_haS1 * 0.9) - rp_rateS1 + rp_haS1 * 6.2831);
-    rp_flowS1 = rp_flowS1 * rp_flowS1 * rp_flowS1;
-    rp_flowS1 = rp_flowS1 * rp_flowS1;
-    float rp_glowS1 = (0.12 + 1.1 * rp_flowS1) * (0.3 + 0.7 * rp_hbS1);
-    float3 rp_warmS1 = mix(rp_bAmber, rp_bOrange, clamp(rp_haS1 * 2.0, 0.0, 1.0));
-    float3 rp_hotS1 = mix(rp_bGold, rp_bWhite, clamp(rp_haS1 * 2.0 - 1.0, 0.0, 1.0));
-    float3 rp_hueS1 = mix(rp_warmS1, rp_hotS1, rp_haS1);
-    rp_streak = rp_streak + rp_hueS1 * (rp_profS1 * rp_glowS1 * 0.9 * rp_env);
-    float rp_qS2 = rp_s * 11.0 + rp_seed * 3.0 + 17.0;
-    float rp_iS2 = floor(rp_qS2);
-    float rp_fS2 = fract(rp_qS2) - 0.5;
-    float rp_haS2 = fract(sin(rp_iS2 * 12.9898 + rp_seed * 78.233 + 17.0) * 43758.5453);
-    float rp_hbS2 = fract(sin(rp_iS2 * 39.346 + rp_seed * 11.135 + 17.0) * 43758.5453);
-    float rp_profS2 = exp(-rp_fS2 * rp_fS2 * 38.0);
-    float rp_rateS2 = rp_t * 3.0 * (0.6 + rp_hbS2);
-    float rp_flowS2 = 0.5 + 0.5 * sin(rp_x * (0.35 + rp_haS2 * 0.9) - rp_rateS2 + rp_haS2 * 6.2831);
-    rp_flowS2 = rp_flowS2 * rp_flowS2 * rp_flowS2;
-    rp_flowS2 = rp_flowS2 * rp_flowS2;
-    float rp_glowS2 = (0.12 + 1.1 * rp_flowS2) * (0.3 + 0.7 * rp_hbS2);
-    float3 rp_warmS2 = mix(rp_bAmber, rp_bOrange, clamp(rp_haS2 * 2.0, 0.0, 1.0));
-    float3 rp_hotS2 = mix(rp_bGold, rp_bWhite, clamp(rp_haS2 * 2.0 - 1.0, 0.0, 1.0));
-    float3 rp_hueS2 = mix(rp_warmS2, rp_hotS2, rp_haS2);
-    rp_streak = rp_streak + rp_hueS2 * (rp_profS2 * rp_glowS2 * 0.7 * rp_env);
-    float rp_qS3 = rp_s * 53.0 + rp_seed * 3.0 + 31.0;
-    float rp_iS3 = floor(rp_qS3);
-    float rp_fS3 = fract(rp_qS3) - 0.5;
-    float rp_haS3 = fract(sin(rp_iS3 * 12.9898 + rp_seed * 78.233 + 31.0) * 43758.5453);
-    float rp_hbS3 = fract(sin(rp_iS3 * 39.346 + rp_seed * 11.135 + 31.0) * 43758.5453);
-    float rp_profS3 = exp(-rp_fS3 * rp_fS3 * 38.0);
-    float rp_rateS3 = rp_t * 7.5 * (0.6 + rp_hbS3);
-    float rp_flowS3 = 0.5 + 0.5 * sin(rp_x * (0.35 + rp_haS3 * 0.9) - rp_rateS3 + rp_haS3 * 6.2831);
-    rp_flowS3 = rp_flowS3 * rp_flowS3 * rp_flowS3;
-    rp_flowS3 = rp_flowS3 * rp_flowS3;
-    float rp_glowS3 = (0.12 + 1.1 * rp_flowS3) * (0.3 + 0.7 * rp_hbS3);
-    float3 rp_warmS3 = mix(rp_bAmber, rp_bOrange, clamp(rp_haS3 * 2.0, 0.0, 1.0));
-    float3 rp_hotS3 = mix(rp_bGold, rp_bWhite, clamp(rp_haS3 * 2.0 - 1.0, 0.0, 1.0));
-    float3 rp_hueS3 = mix(rp_warmS3, rp_hotS3, rp_haS3);
-    rp_streak = rp_streak + rp_hueS3 * (rp_profS3 * rp_glowS3 * 0.45 * rp_env);
-    float rp_fade2 = clamp((1.0 - rp_a) * 1.4, 0.0, 1.0);
-    rp_fade2 = rp_fade2 * rp_fade2;
-    float rp_hazeWave = 0.8 + 0.2 * sin(rp_x * 0.8 - rp_t * 1.7 + rp_seed);
-    float rp_haze = exp(-rp_a * rp_a * 4.0) * 0.3 * rp_hazeWave;
-    float3 rp_hazeCol = mix(rp_bOrange, rp_bAmber, rp_a) * rp_haze;
+    float rp_atB = ((rp_h2B - 0.5) * 1.1 + rp_zigB) * rp_bow;
+    float rp_eaB = rp_s - rp_atB;
+    float rp_arcB = exp(-rp_eaB * rp_eaB * 380.0) * rp_bow;
+    float rp_batB = rp_atB + (rp_h3B - 0.5) * 0.8 * rp_fork;
+    float rp_ebB = rp_s - rp_batB;
+    float rp_brB = exp(-rp_ebB * rp_ebB * 500.0) * rp_fork * step(0.5, rp_h3B);
+    float rp_sparkB = (rp_arcB + 0.7 * rp_brB) * rp_onB;
+    float rp_spark = mix(rp_sparkA, rp_sparkB, rp_blend) * rp_w;
+    rp_col = rp_col + float3(1.05, 1.0, 1.25) * rp_spark;
 
     float rp_f = sin(rp_t * 4.1 + rp_seed * 3.1) * sin(rp_t * 2.3 + rp_seed * 7.7);
     float rp_flicker = 1.0 - 0.08 * rp_m * (0.5 + 0.5 * rp_f);
-    float rp_boost = 1.0 + 0.8 * rp_lit;
-    float rp_lift = 1.0 + 2.2 * rp_pulse;
-    float rp_edge = clamp(abs(rp_s) * 1.4 - 0.2, 0.0, 1.0);
-    float rp_fade = clamp((1.0 - abs(rp_s)) * 4.0, 0.0, 1.0);
-
-    float3 rp_white = float3(1.0, 0.93, 0.74);
-    float3 rp_orange = float3(1.0, 0.42, 0.04);
-    float3 rp_violet = float3(0.42, 0.26, 1.0);
-    float3 rp_auraCol = mix(rp_orange, rp_violet, rp_edge);
-    float3 rp_col = rp_white * (rp_core * rp_lift);
-    rp_col = rp_col + rp_orange * (rp_inner * rp_lift);
-    rp_col = rp_col + rp_auraCol * (rp_aura * rp_lift);
-    rp_col = rp_col + float3(1.1, 1.05, 1.3) * rp_spark;
-    rp_col = rp_col + rp_streak * (rp_lift * rp_fade2 * 0.8);
-    rp_col = rp_col + rp_hazeCol * rp_lift;
-    rp_col = rp_col * (rp_flicker * rp_boost * rp_fade * rpEnergy);
+    float rp_boost = 1.0 + 0.5 * rp_lit;
+    float rp_ends = smoothstep(0.0, 0.28, rp_along) * smoothstep(0.0, 0.28, rp_toEnd);
+    rp_col = rp_col * (rp_flicker * rp_boost * rp_ends * rpEnergy);
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 }

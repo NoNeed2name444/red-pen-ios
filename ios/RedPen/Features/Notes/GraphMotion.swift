@@ -653,11 +653,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// notes, turned to face the camera. All the links are one geometry, so
     /// this is one draw however many there are.
     ///
+    /// Each ribbon starts under its notes' rings (GraphShape.linkTrim) and
+    /// the shader fades it in from there, so the rings read in front of it.
+    ///
     /// The texture coordinates carry what the link shader needs (see
-    /// GraphShaders.link): u runs along the link in the space's units, from a
-    /// per-link offset; v is a whole number - the link's seed, doubled, plus
-    /// one if it touches the selected or dragged note - plus the position
-    /// across the ribbon.
+    /// GraphShaders.link): u is the link's seed times 64, plus 1, plus the
+    /// distance along the ribbon in the space's units; v is a whole number -
+    /// the ribbon's length in sixteenths, doubled, plus one if it touches the
+    /// selected or dragged note - plus the position across the ribbon. From
+    /// these the shader knows how far each point is from both ends.
     private func updateLines(eye: SIMD3<Float>) {
         guard let element = lineElement, !shownEdges.isEmpty else {
             lines.geometry = nil
@@ -701,13 +705,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             vertexBuffer.append(SCNVector3(x: b0.x, y: b0.y, z: b0.z))
             vertexBuffer.append(SCNVector3(x: b1.x, y: b1.y, z: b1.z))
 
+            // what the shader needs, packed in the texture coordinates:
+            // u = seed * 64 + 1 + distance along; v = k + across, where k
+            // holds the length in sixteenths (doubled) and the lit bit.
+            // Lengths are capped at 60 so u never crosses into the next
+            // seed's range.
             let seed: Int = e % 61
             let lit: Int = (i == focus || j == focus) ? 1 : 0
-            let band: Float = Float(seed * 2 + lit)
+            let coded: Float = min(span, 60)
+            let sixteenths: Int = Int((coded * 16).rounded(.down))
+            let band: Float = Float(sixteenths * 2 + lit)
             let low: Float = band + 0.002
             let high: Float = band + 0.998
-            let u0: Float = Float(seed) * 1.37
-            let u1: Float = u0 + span
+            let u0: Float = Float(seed * 64 + 1)
+            let u1: Float = u0 + coded
             uvBuffer.append(u0)
             uvBuffer.append(low)
             uvBuffer.append(u0)
