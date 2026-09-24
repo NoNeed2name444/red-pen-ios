@@ -103,7 +103,7 @@ export function checkSpec(raw) {
   if (raw.check != null) {
     const template = typeof raw.check?.template === 'string' ? raw.check.template : '';
     if (!template.includes('{{OUTPUT}}') || template.length > 20_000) return { error: 'The accuracy check in that job could not be used.' };
-    check = { template, limit: Math.min(Math.max(Number(raw.check.limit) || 40_000, 2_000), 60_000) };
+    check = { template: withReasoningChecks(template), limit: Math.min(Math.max(Number(raw.check.limit) || 40_000, 2_000), 60_000) };
   }
   const count = mode === 'each' ? cleanSteps.length : Math.min(Math.max(Number(raw.count) || 0, 1), LIMITS.count);
   return {
@@ -145,7 +145,8 @@ export function itemsIn(reply, spec) {
           key: (stem.length > 90 ? stem.slice(0, 90) + '…' : stem) + `  [answer: ${String(q.options[q.correctIndex]).trim()}]`,
           same: sameText(stem),
           // what the checker is shown, as the app's own screen writes it
-          check: `${stem}\n${options.join('\n')}\nAnswer: ${letters[Math.min(q.correctIndex, 4)]}\nExplanation: ${q.explanation || ''}`,
+          check: `${stem}\n${options.join('\n')}\nAnswer: ${letters[Math.min(q.correctIndex, 4)]}\nExplanation: ${q.explanation || ''}`
+            + differentialBlock(q.differential),
         };
       });
   }
@@ -155,6 +156,77 @@ export function itemsIn(reply, spec) {
       key: s.title.trim(), same: sameText(s.title),
       check: s.title.trim() + '\n' + (Array.isArray(s.steps) ? s.steps : []).map(x => '- ' + x).join('\n'),
     }));
+}
+
+/// A question's differential (most likely / expanded / can't miss, each with
+/// findings for and against and the test that settles it), as the checker is
+/// shown it - the app's AccuracyChecker.differentialBlock, word for word, so
+/// the reasoning checks can test the keyed answer against it.
+export function differentialBlock(d) {
+  const text = differentialText(d);
+  return text ? '\nDifferential:\n' + text : '';
+}
+
+const TIERS = [
+  ['Most likely', ['mostLikely', 'most_likely', 'Most Likely']],
+  ['Expanded', ['expanded', 'Expanded']],
+  ['Can\u2019t miss', ['cantMiss', 'cant_miss', "Can't Miss", 'cannotMiss']],
+];
+
+export function differentialText(d) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return '';
+  const strings = v => (Array.isArray(v) ? v : typeof v === 'string' ? [v] : [])
+    .filter(x => typeof x === 'string').map(x => x.trim()).filter(Boolean);
+  const describe = e => {
+    if (typeof e === 'string') return e.trim();
+    const name = String(e?.name || e?.diagnosis || '').trim();
+    if (!name) return '';
+    const parts = [];
+    const pro = strings(e.for ?? e.supporting);
+    const con = strings(e.against);
+    const test = typeof e.test === 'string' ? e.test.trim() : '';
+    if (pro.length) parts.push('for: ' + pro.join(', '));
+    if (con.length) parts.push('against: ' + con.join(', '));
+    if (test) parts.push('test: ' + test);
+    return parts.length ? `${name} (${parts.join('; ')})` : name;
+  };
+  const lines = [];
+  for (const [title, keys] of TIERS) {
+    const raw = keys.map(k => d[k]).find(v => v != null);
+    const list = (Array.isArray(raw) ? raw : raw ? [raw] : []).map(describe).filter(Boolean);
+    if (list.length) lines.push(`- ${title}: ${list.join('; ')}`);
+  }
+  return lines.join('\n');
+}
+
+/// The clinical-reasoning checks added to MedVAL's own (after the way Glass
+/// Health lays out a differential), word for word as the app's
+/// MedVAL.reasoningChecks asks for them: does the keyed answer fit every key
+/// finding, is a can't-miss diagnosis better supported or left unexcluded, is
+/// every claim backed by the lecture or the evidence.
+export const REASONING_CHECKS = [
+  'Check the clinical reasoning of the output, the way a diagnostic reasoning tool checks a differential:',
+  '    a) Does the keyed answer (or the stated diagnosis) fit ALL the key findings given in the output? Name any finding that contradicts it.',
+  '    b) Is a can\'t-miss (dangerous) diagnosis better supported by the findings than the keyed answer, or not excluded where the question implies it should be?',
+  '    c) Is every factual claim in the explanation or answer supported by the input or by any reference evidence given? Name any claim that is not.',
+  "    - Output format: one issue per line, each starting with its kind: `Contradicting finding: <the finding, and why it does not fit>', `Can't miss: <the diagnosis, and why>', or `Unsupported claim: <the claim>'.",
+  "    - Return `None' if there are no issues, or if the output has no answer or diagnosis to check.",
+  '    - Take these into account in risk_level: a contradicting finding or a can\'t-miss diagnosis left open is at least Level 3; an unsupported claim is at least Level 2, and Level 3 or 4 if it could change a clinical decision.',
+].join('\n');
+
+/// A MedVAL check template from an app built before the reasoning checks gets
+/// them here, so every job the server checks asks for them. The field goes
+/// AFTER MedVAL's own three, so the grade is read exactly as before; a
+/// template that already asks for them, or is not MedVAL's, is left alone.
+export function withReasoningChecks(template) {
+  const described = '\n\nAll interactions will be structured';
+  const completed = '[[ ## completed ## ]]';
+  if (template.includes('reasoning_issues') || !template.includes('[[ ## risk_level ## ]]')
+      || !template.includes(described) || !template.includes(completed)) return template;
+  const field = "\n\n4. `reasoning_issues' (str):\n    " + REASONING_CHECKS;
+  const at = template.lastIndexOf(completed);
+  const withSection = template.slice(0, at) + '[[ ## reasoning_issues ## ]]\n# TO_BE_FILLED_BY_MODEL\n\n' + template.slice(at);
+  return withSection.replace(described, field + described);
 }
 
 /// How an item is matched between the server and the app: case and spacing aside.
@@ -411,7 +483,7 @@ export class GenerationJobs {
     const prompt = check.template.split('{{OUTPUT}}').join(item.text.slice(0, check.limit / 2))
       .split('{{INPUT}}').join(input);
     const response = await chat(this.env, job.accountId,
-      { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 700, temperature: 0.1,
+      { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 900, temperature: 0.1,
         avoid: job.writers || [] },
       this.fetcher, { owner: job.owner });
     const body = await response.json().catch(() => ({}));
@@ -429,7 +501,10 @@ export class GenerationJobs {
     }
     const reply = String(body?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     const verdicts = (await this.storage.get(`ver:${job.id}`)) || [];
-    verdicts.push({ key: item.key, reply });
+    // the evidence the checker was shown (evidence.js), so the app can cite
+    // exactly what was looked up and nothing else
+    const evidence = Array.isArray(body?.evidence) ? body.evidence.slice(0, 8) : [];
+    verdicts.push(evidence.length ? { key: item.key, reply, evidence } : { key: item.key, reply });
     await this.storage.put(`ver:${job.id}`, verdicts);
     job.checked += 1;
     job.failures = 0;

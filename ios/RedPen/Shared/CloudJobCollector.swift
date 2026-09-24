@@ -135,6 +135,7 @@ enum CloudJobCollector {
         var removed = 0, flagged = 0
         switch set.kind {
         case .mcq:
+            set.questions = CloudChecks.cite(set.questions)
             for q in set.questions {
                 if let reply = CloudChecks.reply(forKey: CloudChecks.same(q.stem)) {
                     CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(q))

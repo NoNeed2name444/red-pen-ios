@@ -170,6 +170,8 @@ export function groundedMessages(messages, evidence) {
       '(for example an outdated first-line treatment, a wrong dose, a wrong diagnostic criterion, a wrong answer to a clinical question), ' +
       'list it as an error even if the input (the lecture) says the same: write "Other: contradicts current evidence [Sn]" citing the source, ' +
       'or "Other: contradicts current medical consensus" when no source covers it, and set the risk level to 3 or 4. ' +
+      'If the output format has a reasoning_issues field, a factual claim supported by neither the input nor the reference evidence ' +
+      'is an "Unsupported claim" there, and a claim the evidence contradicts is also named there, citing [Sn]. ' +
       'Do not invent sources. Keep the exact output format asked for.\n\n' +
       'REFERENCE EVIDENCE\n\n' + evidenceBlock(evidence),
   };

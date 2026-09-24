@@ -92,10 +92,13 @@ enum ModeConversion {
         let stem = question.stem.trimmingCharacters(in: .whitespacesAndNewlines)
         let explanation = question.explanation.trimmingCharacters(in: .whitespacesAndNewlines)
         let words = stem.split { $0.isWhitespace }.count
-        return QACard(topic: topic == "General" ? "" : topic,
-                      type: words >= 25 ? .case : .recall,
-                      stem: stem,
-                      answer: [answer] + (explanation.isEmpty ? [] : [explanation]))
+        var card = QACard(topic: topic == "General" ? "" : topic,
+                          type: words >= 25 ? .case : .recall,
+                          stem: stem,
+                          answer: [answer] + (explanation.isEmpty ? [] : [explanation]))
+        // the route to the answer comes with it, for "How to reach it"
+        card.differential = question.differential
+        return card
     }
 
     /// A card as a Cases card: its front and its answer bullets. A cloze

@@ -69,7 +69,7 @@ struct QACardsView: View {
     /// What Check accuracy looks at: the card on screen.
     private var accuracyAsk: AccuracyAsk {
         AccuracyAsk(instruction: "Write a clinical case or recall question with its answer points, from the source.") {
-            card.map { ([$0.stem] + $0.answer).joined(separator: "\n") }
+            card.map { ([$0.stem] + $0.answer).joined(separator: "\n") + AccuracyChecker.differentialBlock($0.differential) }
         }
     }
 
@@ -104,8 +104,18 @@ struct QACardsView: View {
                 .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            if revealed, let tiers = card.differential, !tiers.isEmpty {
+                HowToReachCard(differential: tiers, lecture: lectureLabel(card))
+                    .transition(.opacity)
+            }
         }
         .contentCard()
+    }
+
+    /// The lecture page the card matches, for "How to reach it".
+    private func lectureLabel(_ card: QACard) -> String? {
+        let text: String = ([card.stem] + card.answer).joined(separator: " ")
+        return HowToReachCard.lectureLabel(for: text, in: studySet)
     }
 
     /// Back on the left, small; Reveal, then Next, filling the rest.

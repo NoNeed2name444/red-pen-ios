@@ -18,7 +18,9 @@ enum MedicalGenerate {
         let promptSource = String(sourceText.prefix(backend.promptBudgetChars))
         // Vignette Cloud: the server writes the whole set, even with the app closed
         if let cloud = CloudJobs.endpoint(for: backend) {
-            let perCall = MCQGenerator.maxQuestionsPerCall
+            // fewer per call than on a direct model: each question now carries
+            // its differential, and the server caps one reply's length
+            let perCall = min(4, MCQGenerator.maxQuestionsPerCall)
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: "{{SOURCE}}", count: perCall, subject: subject, highYield: highYield,
                 requestJSONShape: true, alreadyAsked: [MCQCoverage.Asked(stem: "{{ALREADY}}", key: "")])
@@ -26,19 +28,21 @@ enum MedicalGenerate {
                 title: "Writing \(count) questions", mode: "loop", extract: "questions", count: count,
                 sources: [promptSource],
                 steps: [.init(system: instructions, user: "Write the \(perCall) questions now, as JSON only.",
-                              maxTokens: 700 * perCall, temperature: 0.7)])
+                              maxTokens: 950 * perCall, temperature: 0.7)])
             if CloudJobs.context?.serverCheck == true {
                 spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.mcqInstruction,
                                                          limit: backend.promptBudgetChars)
             }
             let questions = try collectQuestions(try await CloudJobs.run(spec, at: cloud, onProgress: onProgress), count: count)
             // the server's verdicts, where the screen's accuracy check finds them
-            for q in questions {
+            // the evidence the server's check read, cited on each question
+            let cited: [MCQQuestion] = CloudChecks.cite(questions)
+            for q in cited {
                 if let reply = CloudChecks.reply(forKey: CloudChecks.same(q.stem)) {
                     CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(q))
                 }
             }
-            return questions
+            return cited
         }
         // a phone model loses the thread on long batches; a hosted one doesn't
         let perCall = backend.isOnDevice ? 3 : MCQGenerator.maxQuestionsPerCall
@@ -56,7 +60,7 @@ enum MedicalGenerate {
             do {
                 let reply = try await backend.complete(
                     [.system(instructions), .user("Write the \(callCount) questions now, as JSON only.")],
-                    maxTokens: 700 * callCount, temperature: 0.7)
+                    maxTokens: 950 * callCount, temperature: 0.7)
                 var kept = 0
                 for question in parseQuestions(reply) {
                     let key = question.options[question.correctIndex]
@@ -191,12 +195,21 @@ enum MedicalGenerate {
     static func parseQuestions(_ raw: String) -> [MCQQuestion] {
         guard let data = LLMText.jsonObject(in: raw),
               let decoded = try? JSONDecoder().decode(RawQuestionSet.self, from: data) else { return [] }
-        return decoded.questions.filter {
-            MCQGenerator.isValidQuestion(stem: $0.stem, options: $0.options, correctIndex: $0.correctIndex)
-        }.map {
-            MCQQuestion(stem: $0.stem, options: $0.options,
-                        correctIndex: $0.correctIndex, explanation: $0.explanation)
+        let tiers: [DifferentialTiers?] = differentials(in: data)
+        var out: [MCQQuestion] = []
+        for (i, r) in decoded.questions.enumerated() {
+            guard MCQGenerator.isValidQuestion(stem: r.stem, options: r.options, correctIndex: r.correctIndex) else { continue }
+            var q = MCQQuestion(stem: r.stem, options: r.options, correctIndex: r.correctIndex, explanation: r.explanation)
+            q.differential = i < tiers.count ? tiers[i] : nil
+            out.append(q)
         }
+        return out
+    }
+
+    /// Each question's differential, by position, read tolerantly on its own
+    /// so a malformed one costs only itself and never the question.
+    static func differentials(in data: Data) -> [DifferentialTiers?] {
+        DifferentialTiers.perItem(in: data, list: "questions")
     }
 
     private struct RawStations: Decodable { var stations: [RawStation] }

@@ -67,9 +67,23 @@ extension MCQGenerator {
         if requestJSONShape {
             lines.append("")
             lines.append("Reply with ONLY a single JSON object — no markdown code fences, no commentary before or after it — of exactly this shape:")
-            lines.append(#"{"questions":[{"stem":"...","options":["...","...","...","...","..."],"correctIndex":0,"explanation":"..."}]}"#)
+            lines.append(#"{"questions":[{"stem":"...","options":["...","...","...","...","..."],"differential":{"mostLikely":[{"name":"...","for":["..."],"against":["..."],"test":"..."}],"expanded":[{"name":"...","for":["..."],"against":["..."],"test":"..."}],"cantMiss":[{"name":"...","for":["..."],"against":["..."],"test":"..."}]},"correctIndex":0,"explanation":"..."}]}"#)
             lines.append("\"options\" must have exactly 5 strings. \"correctIndex\" is the zero-based index into options of the best answer.")
+            lines += differentialRules
         }
         return lines.joined(separator: "\n")
     }
+
+    /// How a question's answer is reached, asked of every JSON-writing model:
+    /// the differential in three tiers (most likely, expanded, can't miss) is
+    /// worked out and written BEFORE the answer is keyed - the order a
+    /// clinician reasons in, and the order the JSON shape puts the fields in.
+    static let differentialRules: [String] = [
+        "\"differential\": for any question built on a clinical vignette (the diagnosis, or the next investigation or treatment for it), first reason through the differential and write it here, BEFORE you choose correctIndex:",
+        "- \"mostLikely\": the leading diagnosis; \"expanded\": 1 or 2 reasonable alternatives; \"cantMiss\": 1 or 2 dangerous diagnoses that must be excluded, where any fit the case (otherwise an empty list).",
+        "- For each: \"for\" and \"against\" are up to 2 findings each, taken from the stem, a few words each; \"test\" is the one test that would confirm or rule it out.",
+        "- Then key the answer so it fits EVERY key finding in the stem, and make the explanation agree with the differential.",
+        "- Leave \"differential\" out of a pure recall question.",
+        "- Follow current guidance, but never cite a source, guideline, journal or reference by name anywhere: the app cites the lecture page and any evidence it checked.",
+    ]
 }

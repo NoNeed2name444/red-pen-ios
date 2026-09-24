@@ -25,7 +25,7 @@ enum LectureWriter {
                                         already: ["{{ALREADY}}"], source: "{{SOURCE}}", style: style,
                                         presentations: kind == .qa ? CaseVariety.plan(cloudPerCall, round: r + 1) : [])
                 return .init(system: prompt, user: "Write the \(cloudPerCall) lines now.",
-                             source: r % windows.count, maxTokens: 160 * cloudPerCall, temperature: 0.6)
+                             source: r % windows.count, maxTokens: (kind == .qa ? 240 : 160) * cloudPerCall, temperature: 0.6)
             }
             var spec = CloudJobs.Spec(
                 title: "Writing \(count) \(kind == .qa ? "cases" : "cards")", mode: "loop", extract: "lines",
@@ -69,7 +69,7 @@ enum LectureWriter {
                                     already: already, source: promptSource, style: style,
                                     presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
             let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
-                                                   maxTokens: 160 * batch, temperature: 0.6)
+                                                   maxTokens: (kind == .qa ? 240 : 160) * batch, temperature: 0.6)
             let fresh = freshLines(in: reply, kind: kind, seen: &seen)
             failures = fresh.isEmpty ? failures + 1 : 0
             lines.append(contentsOf: fresh.prefix(count - lines.count))
@@ -85,9 +85,12 @@ enum LectureWriter {
         if kind == .qa {
             rules = [
                 "Write \(count) Cases cards for a medical student revising \(subject.isEmpty ? "medicine" : subject).",
-                "One card per line, exactly: Topic | case or recall | Question | answer point 1; answer point 2; answer point 3",
+                "One card per line, exactly: Topic | case or recall | Question | answer point 1; answer point 2; answer point 3 | differential (clinical cases only)",
                 "About half should be clinical cases: a two-sentence vignette ending in a question (\"What is the most likely diagnosis?\", \"What is the next step?\"). The rest are direct recall questions.",
                 "Wrap the key term in each answer point in **double asterisks**.",
+                "A clinical case carries a fifth field: the differential you reasoned through BEFORE writing the answer, exactly as: Most likely: Diagnosis (for: finding, finding; against: finding; test: the test that confirms or rules it out) / Expanded: Diagnosis (for: ...; against: ...; test: ...); Diagnosis (for: ...; against: ...; test: ...) / Can't miss: Diagnosis (for: ...; against: ...; test: ...)",
+                "In it, the findings for and against are taken from the vignette, a few words each; Expanded is 1 or 2 reasonable alternatives; Can't miss is 1 or 2 dangerous diagnoses to exclude, or \"Can't miss: none\" if none fit. The answer points must agree with Most likely and fit every key finding. No | inside the field. Recall cards have no fifth field.",
+                "Follow current guidance, but never cite a source, guideline or reference by name: the app cites the lecture.",
                 "Every clinical case must present differently, even when two cases share a disease: vary the patient (age, sex, pregnancy, comorbidities, medications), the setting (GP, emergency department, ward, clinic), the stage (early, classic, late or complicated), typical versus atypical features, the trigger, and what is asked (diagnosis, next investigation, first-line treatment, complication, contraindication, monitoring). Never reuse a vignette already written, reworded.",
             ]
             if !presentations.isEmpty {

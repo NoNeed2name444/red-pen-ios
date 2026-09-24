@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { checkSpec, fill, itemsIn, GenerationJobs, LIMITS } from '../jobs.js';
+import { checkSpec, fill, itemsIn, differentialText, differentialBlock, withReasoningChecks, REASONING_CHECKS, GenerationJobs, LIMITS } from '../jobs.js';
 import { checkerOrder } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -75,6 +75,71 @@ const lines = itemsIn('1. Q one | A one\nnot a card\n- Q two | A two\n{{c1::cloz
 ok(lines.length === 3 && lines[0].key === 'Q one', 'card lines are read, numbering stripped');
 const qs = itemsIn('Here: {"questions":[{"stem":"A man of 60","options":["x","y"],"correctIndex":1,"explanation":"e"}]}', { extract: 'questions' });
 ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read from JSON with their answer');
+
+// a question's differential goes to the checker with it, worded as the app words it
+{
+  const ddx = {
+    mostLikely: [{ name: 'Indirect inguinal hernia', for: ['young man', 'reaches the scrotum'], against: [], test: 'sac lateral to the inferior epigastric vessels' }],
+    expanded: [{ name: 'Femoral hernia', for: ['groin lump'], against: ['above and medial to the pubic tubercle'], test: 'ultrasound' }],
+    cantMiss: [{ name: 'Strangulated hernia', against: ['reducible', 'painless'], test: 'urgent surgical review if tender and irreducible' }],
+  };
+  ok(differentialText(ddx) === [
+    '- Most likely: Indirect inguinal hernia (for: young man, reaches the scrotum; test: sac lateral to the inferior epigastric vessels)',
+    '- Expanded: Femoral hernia (for: groin lump; against: above and medial to the pubic tubercle; test: ultrasound)',
+    '- Can\u2019t miss: Strangulated hernia (against: reducible, painless; test: urgent surgical review if tender and irreducible)',
+  ].join('\n'), 'the differential is written tier by tier, for and against and the test');
+  ok(differentialText({ most_likely: ['Hydrocele'], cant_miss: [] }) === '- Most likely: Hydrocele', 'other key spellings and bare names are read');
+  ok(differentialBlock(undefined) === '' && differentialBlock('text') === '' && differentialBlock({}) === '', 'no differential adds nothing');
+  const withDdx = itemsIn(JSON.stringify({ questions: [{ stem: 'A man of 24 with a groin lump', options: ['x', 'y'], differential: ddx, correctIndex: 0, explanation: 'e' }] }), { extract: 'questions' });
+  ok(withDdx[0].check.includes('Explanation: e\nDifferential:\n- Most likely: Indirect inguinal hernia'), 'the checker sees the differential after the explanation');
+  ok(!qs[0].check.includes('Differential'), 'a question without one is checked as before');
+}
+
+// a MedVAL template from an app built before the reasoning checks gets them on
+// the server, after MedVAL's own three fields; a new one is left as it is
+{
+  const old = 'Your output fields are:\n3. `risk_level\' (Literal[1, 2, 3, 4]):\n    Level 4 (High Risk): ...\n\n' +
+    'All interactions will be structured in the following way.\n\n[[ ## output ## ]]\n{{OUTPUT}}\n\n' +
+    '[[ ## risk_level ## ]]\n# TO_BE_FILLED_BY_MODEL\n\n[[ ## completed ## ]]';
+  const up = withReasoningChecks(old);
+  ok(up.includes("4. `reasoning_issues' (str):\n    " + REASONING_CHECKS + '\n\nAll interactions'), 'the reasoning checks are described after risk_level');
+  ok(up.includes('fit ALL the key findings') && up.includes("can't-miss") && up.includes('Unsupported claim'),
+     'they ask whether the answer fits every finding, about a can\'t-miss diagnosis, and for unsupported claims');
+  ok(up.indexOf('[[ ## risk_level ## ]]') < up.indexOf('[[ ## reasoning_issues ## ]]\n# TO_BE_FILLED_BY_MODEL\n\n[[ ## completed ## ]]'),
+     'and the field is filled in after the risk level, so the grade reads as before');
+  ok(withReasoningChecks(up) === up, 'a template that already asks for them is unchanged');
+  ok(withReasoningChecks('CHECK {{OUTPUT}}') === 'CHECK {{OUTPUT}}', 'a template that is not MedVAL\'s is unchanged');
+  ok(checkSpec({ mode: 'loop', extract: 'questions', count: 1, steps: [{ user: 'a' }], check: { template: old } }).spec.check.template === up,
+     'a job\'s check is upgraded when the job is made');
+}
+
+// the evidence the checker read comes back with its verdict, for the app to cite
+{
+  const store = storage();
+  const fake = async (url, init) => {
+    if (url.includes('europepmc')) return new Response(JSON.stringify({ resultList: { result: [
+      { title: 'Groin hernia guidelines', journalTitle: 'Hernia', pubYear: '2023', doi: '10.1007/hernia', abstractText: 'Mesh repair is recommended for symptomatic inguinal hernia in adults.', source: 'MED', id: '9' },
+    ] } }), { status: 200 });
+    if (!init?.body) return new Response('', { status: 404 });
+    const body = JSON.parse(init.body);
+    const text = body.messages.map(m => m.content).join('\n');
+    const content = text.includes('You pick search terms') ? '{"queries":["inguinal hernia"],"drugs":[]}'
+      : text.includes('[[ ## output ## ]]') ? '[[ ## errors ## ]]\nNone\n[[ ## risk_level ## ]]\n1\n[[ ## reasoning_issues ## ]]\nNone'
+      : '{"questions":[{"stem":"Q1 stem","options":["a","b"],"correctIndex":0,"explanation":"e"}]}';
+    return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+  };
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'MCQ', mode: 'loop', extract: 'questions', count: 1, sources: ['Hernia lecture'],
+    steps: [{ system: 'Write {{SOURCE}}', user: 'Now.', source: 0 }],
+    check: { template: '[[ ## instruction ## ]]\nCheck\n\n[[ ## input ## ]]\n{{INPUT}}\n\n[[ ## output ## ]]\n{{OUTPUT}}\n\n[[ ## reasoning ## ]]' } }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  await runAll(object, store);
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}&outputs=1`))).json();
+  const verdict = got.checks?.[0];
+  ok(verdict?.evidence?.[0]?.id === 'S1' && verdict.evidence[0].url === 'https://doi.org/10.1007/hernia' && verdict.evidence[0].source === 'Europe PMC',
+     'the verdict carries the evidence it was checked against: id, source and link');
+  ok(!('text' in (verdict?.evidence?.[0] || {})), 'but not the abstracts themselves');
+}
 
 // a card job, start to finish
 {

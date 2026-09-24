@@ -39,7 +39,8 @@ enum ReasoningExamples {
             teachingPoint: "Lateral to the inferior epigastric vessels means indirect; the deep-ring test only suggests it.",
             // the deep-ring test (clue 6) is unreliable, as the teaching point
             // and the hernia duel both say: the vessels at operation settle it
-            decisiveClue: 7),
+            decisiveClue: 7,
+            differential: herniaDifferential),
         ClueCase(
             id: fixed(102),
             clues: [
@@ -71,6 +72,60 @@ enum ReasoningExamples {
             teachingPoint: "DKA is three things together: ketones \u{2265}3 mmol/L, glucose >11 mmol/L, and pH <7.3 or bicarbonate <15.",
             decisiveClue: 6),
     ]
+
+    /// What "How to reach it" names as the source of the examples: they were
+    /// written for the app, so no lecture page or paper is claimed for them.
+    static let sourceLabel: String = "Worked example, written for the app"
+
+    /// How the hernia case is reached: the "How to reach it" card's example,
+    /// so it can be seen without writing anything. Every finding is one the
+    /// case's own clues give.
+    static let herniaDifferential = DifferentialTiers(
+        mostLikely: [
+            DifferentialEntry(
+                name: "Indirect inguinal hernia",
+                supporting: ["Young man", "Reduces on lying down, with a cough impulse",
+                             "Runs into the scrotum and you cannot get above it",
+                             "Controlled by pressure over the deep ring"],
+                against: ["The deep-ring test on its own is unreliable"],
+                test: "Sac lateral to the inferior epigastric vessels at operation (ultrasound if in doubt)"),
+        ],
+        expanded: [
+            DifferentialEntry(
+                name: "Direct inguinal hernia",
+                supporting: ["Above and medial to the pubic tubercle", "Cough impulse"],
+                against: ["Aged 24: direct hernias are typically in older men",
+                          "Rarely reaches the scrotum", "Controlled by deep-ring pressure"],
+                test: "Sac medial to the inferior epigastric vessels, through Hesselbach\u{2019}s triangle"),
+            DifferentialEntry(
+                name: "Femoral hernia",
+                supporting: ["A reducible groin lump"],
+                against: ["Above and medial to the pubic tubercle, not below and lateral",
+                          "Runs into the scrotum", "Young man (commoner in older women)"],
+                test: "Ultrasound: a sac through the femoral canal, medial to the femoral vein"),
+            DifferentialEntry(
+                name: "Hydrocele",
+                supporting: ["Scrotal swelling"],
+                against: ["You cannot get above it", "Reduces on lying down and has a cough impulse"],
+                test: "A hydrocele transilluminates and you can get above it; scrotal ultrasound confirms"),
+        ],
+        cantMiss: [
+            DifferentialEntry(
+                name: "Incarcerated or strangulated hernia",
+                supporting: ["Any groin hernia can become trapped"],
+                against: ["Reduces fully on lying down", "Months of a painless lump, no vomiting or distension"],
+                test: "A tender, tense, irreducible lump or bowel obstruction: emergency surgical review"),
+            DifferentialEntry(
+                name: "Testicular torsion",
+                supporting: ["Young man with a scrotal swelling"],
+                against: ["Three months, not sudden severe pain", "Reduces, with a cough impulse"],
+                test: "Sudden testicular pain means urgent scrotal exploration; a scan must not delay it"),
+            DifferentialEntry(
+                name: "Femoral artery aneurysm",
+                supporting: ["A lump in the groin"],
+                against: ["Reduces, with a cough impulse", "Above the inguinal ligament, not over the femoral pulse"],
+                test: "Feel for expansile pulsation and scan with duplex ultrasound before any groin lump is needled or cut"),
+        ])
 
     // MARK: lookalike duels
 

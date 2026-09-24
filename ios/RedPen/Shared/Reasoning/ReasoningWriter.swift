@@ -25,7 +25,7 @@ enum ReasoningWriter {
     static func cases(source: String, count: Int, subject: String, exam: ExamTrack,
                       using backend: LLMBackend,
                       onProgress: @escaping (Int, Int) -> Void) async throws -> [ClueCase] {
-        try await collect(count: count, perCall: backend.isOnDevice ? 2 : 5, tokensEach: 500,
+        try await collect(count: count, perCall: backend.isOnDevice ? 2 : 5, tokensEach: 800,
                           source: source, backend: backend, onProgress: onProgress,
                           key: { $0.diagnosis + " | " + ($0.clues.prefix(2).joined(separator: " ")) },
                           prompt: { n, already, text in
@@ -141,9 +141,12 @@ enum ReasoningWriter {
             "Each case is told as 6 to 8 clues, revealed one at a time, from the least specific to the most specific, in this order where the source allows: age and sex; presenting complaint; a history detail; an examination finding; a bedside test; a key investigation; the decisive result.",
             "Each clue is one short sentence. No clue names the diagnosis.",
             "The early clues must fit all the differentials; the diagnosis should only become certain near the end.",
-            "For each case give: the diagnosis; exactly 3 plausible differentials a student could reach from the early clues (never the diagnosis again); a one-line teaching point; and decisiveClue, the number (counting from 1) of the first clue after which the diagnosis is clear.",
+            "Before naming the diagnosis, reason through the differential from ALL the clues and write it as \"differential\": \"mostLikely\" (the diagnosis), \"expanded\" (reasonable alternatives), and \"cantMiss\" (1 or 2 dangerous diagnoses that must be excluded, where any fit; otherwise an empty list). For each: \"for\" and \"against\" are up to 3 findings taken from the clues, a few words each, and \"test\" is the one test that would confirm or rule it out.",
+            "Then commit: the diagnosis is the mostLikely entry, and it must fit every clue.",
+            "For each case give: the diagnosis; exactly 3 plausible differentials a student could reach from the early clues (never the diagnosis again), taken from expanded or cantMiss; a one-line teaching point; and decisiveClue, the number (counting from 1) of the first clue after which the diagnosis is clear.",
             "Every case is a different disease or a clearly different presentation.",
-            "JSON shape: {\"cases\":[{\"clues\":[\"...\"],\"diagnosis\":\"...\",\"differentials\":[\"...\",\"...\",\"...\"],\"teachingPoint\":\"...\",\"decisiveClue\":6}]}",
+            "Follow current guidance, but never cite a source, guideline or reference by name: the app cites the lecture.",
+            "JSON shape: {\"cases\":[{\"clues\":[\"...\"],\"differential\":{\"mostLikely\":[{\"name\":\"...\",\"for\":[\"...\"],\"against\":[\"...\"],\"test\":\"...\"}],\"expanded\":[{\"name\":\"...\",\"for\":[\"...\"],\"against\":[\"...\"],\"test\":\"...\"}],\"cantMiss\":[{\"name\":\"...\",\"for\":[\"...\"],\"against\":[\"...\"],\"test\":\"...\"}]},\"diagnosis\":\"...\",\"differentials\":[\"...\",\"...\",\"...\"],\"teachingPoint\":\"...\",\"decisiveClue\":6}]}",
         ] + tail(already: already, source: source)).joined(separator: "\n")
     }
 
@@ -192,10 +195,12 @@ enum ReasoningWriter {
             }
             guard differentials.count >= 3 else { return nil }
             let decisive = int(d, "decisiveClue", "decisive_clue", "clearAt") ?? clues.count
+            let tiers: DifferentialTiers? = DifferentialTiers.parse(json: d["differential"] ?? d["ddx"])
             return ClueCase(clues: clues, diagnosis: diagnosis,
                             differentials: Array(differentials.prefix(3)),
                             teachingPoint: string(d, "teachingPoint", "teaching_point", "teaching", "learningPoint"),
-                            decisiveClue: min(max(1, decisive), clues.count))
+                            decisiveClue: min(max(1, decisive), clues.count),
+                            differential: tiers)
         }
     }
 

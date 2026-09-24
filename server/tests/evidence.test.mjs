@@ -46,6 +46,8 @@ ok(silent.length === 0, 'a source that is down gives no evidence, not an error')
 const grounded = groundedMessages([{ role: 'user', content: medval }], evidence);
 ok(grounded[0].role === 'system' && grounded[0].content.includes('[S1]') && grounded[0].content.includes('contradicts current evidence'),
    'the checker is told to flag claims that contradict the evidence, citing it');
+ok(grounded[0].content.includes('reasoning_issues') && grounded[0].content.includes('Unsupported claim'),
+   'and to name a claim neither the lecture nor the evidence supports in the reasoning checks');
 ok(groundedMessages([{ role: 'user', content: 'x' }], []).length === 1, 'with no evidence the check is unchanged');
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

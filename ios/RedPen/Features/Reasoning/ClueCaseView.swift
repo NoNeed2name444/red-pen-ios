@@ -233,6 +233,11 @@ struct ClueCaseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.1)))
             }
+            if let tiers = clueCase.differential, !tiers.isEmpty {
+                // the shipped example was written for the app, not from a lecture
+                HowToReachCard(differential: tiers,
+                               lecture: setId == ReasoningExamples.setId ? ReasoningExamples.sourceLabel : nil)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Also considered").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Text(clueCase.differentials.joined(separator: " \u{00B7} "))

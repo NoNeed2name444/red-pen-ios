@@ -80,6 +80,9 @@ enum CloudJobs {
     struct Verdict: Codable, Sendable {
         var key: String
         var reply: String
+        /// What the server's evidence lookup found for this item and the
+        /// checker read. Absent from older servers' verdicts.
+        var evidence: [EvidenceRef]? = nil
     }
 
     /// A job this device started and has not collected yet, kept on disk so a
@@ -252,6 +255,7 @@ enum CloudChecks {
     private static let lock = NSLock()
     private static var byKey: [String: String] = [:]
     private static var byOutput: [String: String] = [:]
+    private static var evidenceByKey: [String: [EvidenceRef]] = [:]
 
     /// The key the server files a question or station under.
     static func same(_ text: String) -> String {
@@ -263,6 +267,33 @@ enum CloudChecks {
     static func server(_ verdicts: [CloudJobs.Verdict]) {
         lock.lock(); defer { lock.unlock() }
         byKey = Dictionary(verdicts.map { ($0.key, $0.reply) }, uniquingKeysWith: { _, last in last })
+        var found: [String: [EvidenceRef]] = [:]
+        for v in verdicts {
+            if let refs = v.evidence, !refs.isEmpty { found[v.key] = refs }
+        }
+        evidenceByKey = found
+    }
+
+    /// The evidence the server's check read for an item, if any.
+    static func evidence(forKey key: String) -> [EvidenceRef] {
+        lock.lock(); defer { lock.unlock() }
+        return evidenceByKey[key] ?? []
+    }
+
+    /// Questions with the evidence their check read attached to their
+    /// differential, so "How to reach it" can cite it. Only what the lookup
+    /// returned is ever attached; a question without a differential is left
+    /// as it is.
+    static func cite(_ questions: [MCQQuestion]) -> [MCQQuestion] {
+        questions.map { q -> MCQQuestion in
+            guard var tiers = q.differential else { return q }
+            let refs: [EvidenceRef] = evidence(forKey: same(q.stem))
+            guard !refs.isEmpty else { return q }
+            tiers.evidence = refs
+            var cited = q
+            cited.differential = tiers
+            return cited
+        }
     }
 
     static func reply(forKey key: String) -> String? {

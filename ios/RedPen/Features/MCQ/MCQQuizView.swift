@@ -343,7 +343,8 @@ struct MCQQuizView: View {
             let answerLine: String = "Answer: " + letters[min(max(question.correctIndex, 0), 5)]
             let explanationLine: String = "Explanation: " + question.explanation
             let lines: [String] = [question.stem] + options + [answerLine, explanationLine]
-            return lines.joined(separator: "\n")
+            let reasoning: String = AccuracyChecker.differentialBlock(question.differential)
+            return lines.joined(separator: "\n") + reasoning
         }
     }
 
@@ -532,6 +533,9 @@ struct MCQQuizView: View {
                 .font(.headline)
                 .foregroundStyle(correct ? Color.green : Color.red)
             Text(q.explanation).font(.body).lineSpacing(3)
+            if let tiers = q.differential, !tiers.isEmpty {
+                HowToReachCard(differential: tiers, lecture: q.source)
+            }
         }
         .contentCard()
         .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))

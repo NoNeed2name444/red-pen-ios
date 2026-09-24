@@ -34,7 +34,7 @@ jobs:
           mkdir -p build/live out
           cp ios/RedPen/Tests/LiveModelTests.swift build/live/main.swift
           swiftc -O -DNO_FOUNDATION_MODELS build/live/main.swift -o build/live/run \
-            $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift $M/OsceChecklist.swift \
+            $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift $M/OsceChecklist.swift \
             $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
             $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
             $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \

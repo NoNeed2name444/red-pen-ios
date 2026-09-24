@@ -119,25 +119,7 @@ extension GemmaModel {
     /// or adds a sentence either side, so everything outside the outermost
     /// braces is dropped before decoding.
     static func parseQuestions(from raw: String) -> [MCQQuestion] {
-        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
-              start < end else { return [] }
-        guard let data = raw[start...end].data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(RawQuestionSet.self, from: data)
-        else { return [] }
-        return decoded.questions.filter {
-            MCQGenerator.isValidQuestion(stem: $0.stem, options: $0.options,
-                                         correctIndex: $0.correctIndex)
-        }.map {
-            MCQQuestion(stem: $0.stem, options: $0.options,
-                        correctIndex: $0.correctIndex, explanation: $0.explanation)
-        }
-    }
-
-    struct RawQuestionSet: Decodable { var questions: [RawQuestion] }
-    struct RawQuestion: Decodable {
-        var stem: String
-        var options: [String]
-        var correctIndex: Int
-        var explanation: String
+        // the same reading as every other JSON writer, differential included
+        MedicalGenerate.parseQuestions(raw)
     }
 }

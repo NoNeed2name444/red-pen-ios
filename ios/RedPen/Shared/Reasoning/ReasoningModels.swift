@@ -68,6 +68,9 @@ struct ClueCase: Identifiable, Codable, Hashable {
     /// The clue, counting from 1, after which the diagnosis is clear - as the
     /// writer judged it.
     var decisiveClue: Int
+    /// The differential in three tiers, as the writer reasoned it before
+    /// naming the diagnosis. Optional: cases written before it decode as nil.
+    var differential: DifferentialTiers? = nil
 }
 
 extension ClueCase {

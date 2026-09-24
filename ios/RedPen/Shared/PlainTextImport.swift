@@ -25,13 +25,17 @@ enum PlainTextImport {
     }
 
     /// Cases: one card per line — Topic | case or recall | Question | answer1; answer2
+    /// and, for a clinical case, an optional fifth field: its differential,
+    /// `Most likely: X (for: ...; against: ...; test: ...) / Expanded: ... / Can't miss: ...`
     static func parseQA(_ text: String) -> [QACard] {
         text.split(separator: "\n").compactMap { rawLine -> QACard? in
             let parts = rawLine.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
             guard parts.count >= 4 else { return nil }
             let answers = parts[3].components(separatedBy: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             guard !parts[2].isEmpty, !answers.isEmpty else { return nil }
-            return QACard(topic: parts[0], type: parts[1].lowercased().hasPrefix("case") ? .case : .recall, stem: parts[2], answer: answers)
+            var card = QACard(topic: parts[0], type: parts[1].lowercased().hasPrefix("case") ? .case : .recall, stem: parts[2], answer: answers)
+            if parts.count >= 5 { card.differential = DifferentialTiers.parse(line: parts[4]) }
+            return card
         }
     }
 

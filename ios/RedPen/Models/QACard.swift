@@ -11,6 +11,9 @@ struct QACard: Identifiable, Codable, Hashable {
     var type: Kind = .recall
     var stem: String
     var answer: [String] = []
+    /// For a clinical case: the differential reasoned through before the
+    /// answer. Optional, so cards saved before it existed decode unchanged.
+    var differential: DifferentialTiers? = nil
 
     var badge: String { type == .case ? "Clinical case" : "Recall" }
 }

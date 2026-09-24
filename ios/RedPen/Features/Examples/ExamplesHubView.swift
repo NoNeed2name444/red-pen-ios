@@ -14,6 +14,15 @@ struct ExamplesHubView: View {
                     "13 linked groin hernia notes \u{2014} switch List / Board / Space", id: "ideas") { IdeasView() }
                 row("Clue-by-clue cases, lookalike duels, disease scripts", "brain.head.profile",
                     "Open \u{201C}Examples\u{201D} at the top", id: "reasoning") { ReasoningView() }
+                row("How to reach it \u{2014} a groin lump", "signpost.right",
+                    "Most likely, expanded and can\u{2019}t-miss diagnoses, tap one for why", id: "howToReach") {
+                    ScrollView {
+                        HowToReachCard(differential: ReasoningExamples.herniaDifferential,
+                                       lecture: ReasoningExamples.sourceLabel)
+                            .padding(16)
+                    }
+                    .navigationTitle("How to reach it")
+                }
             } header: { Text("Thinking") }
 
             Section {

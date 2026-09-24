@@ -26,7 +26,7 @@ enum AccuracyChecker {
         // which on a phone is most of the wait. Its own `reasoning` field still
         // explains the grade.
         let reply = try await backend.complete([.user(prompt + "\n/no_think")],
-                                               maxTokens: 700, temperature: 0.1)
+                                               maxTokens: 900, temperature: 0.1)
         return parse(reply, checkedBy: backend.label)
     }
 
@@ -48,7 +48,15 @@ enum AccuracyChecker {
     static func checkText(_ q: MCQQuestion) -> String {
         let letters = ["A", "B", "C", "D", "E"]
         let options = q.options.enumerated().map { "\(letters[min($0.offset, 4)]). \($0.element)" }
-        return "\(q.stem)\n\(options.joined(separator: "\n"))\nAnswer: \(letters[min(q.correctIndex, 4)])\nExplanation: \(q.explanation)"
+        let base: String = "\(q.stem)\n\(options.joined(separator: "\n"))\nAnswer: \(letters[min(q.correctIndex, 4)])\nExplanation: \(q.explanation)"
+        return base + differentialBlock(q.differential)
+    }
+
+    /// The writer's differential, for the reasoning checks to test the keyed
+    /// answer against - the same block jobs.js adds on the server.
+    static func differentialBlock(_ d: DifferentialTiers?) -> String {
+        guard let d, !d.isEmpty else { return "" }
+        return "\nDifferential:\n" + d.checkText
     }
 
     static func checkText(_ station: OsceChecklist) -> String {

@@ -32,6 +32,11 @@ struct AccuracyVerdict: Hashable, Codable {
     var reasoning: String
     /// Which backend graded it, for the result sheet.
     var checkedBy: String
+    /// The clinical-reasoning issues the checker named (a finding that
+    /// contradicts the keyed answer, a can't-miss diagnosis left open, an
+    /// unsupported claim), also counted among `findings`. Nil when the reply
+    /// had none, and for every verdict saved before the field existed.
+    var reasoningIssues: [String]? = nil
 
     /// Levels 1 and 2 cannot change a clinical decision; 3 and 4 can.
     var passed: Bool { riskLevel <= 2 }
@@ -103,6 +108,9 @@ enum MedVAL {
             Level 3 (Moderate Risk): The output should contain inconsistencies that could plausibly affect clinical interpretation, documentation, or decision-making. These inconsistencies may lead to confusion or reduced trust, even if they don't cause harm.
             Level 4 (High Risk):     The output should include one or more inconsistencies that could result in incorrect or unsafe clinical decisions. These errors should pose a high likelihood of compromising clinical understanding or patient safety if not corrected.
 
+        4. `reasoning_issues' (str):
+            \(reasoningChecks)
+
         All interactions will be structured in the following way, with the appropriate values filled in.
 
         [[ ## instruction ## ]]
@@ -123,9 +131,29 @@ enum MedVAL {
         [[ ## risk_level ## ]]
         # TO_BE_FILLED_BY_MODEL
 
+        [[ ## reasoning_issues ## ]]
+        # TO_BE_FILLED_BY_MODEL
+
         [[ ## completed ## ]]
         """
     }
+
+    /// The clinical-reasoning checks added to MedVAL's own, after the way
+    /// Glass Health lays out a differential: does the keyed answer fit every
+    /// key finding, is a can't-miss diagnosis better supported or left
+    /// unexcluded, and is every claim backed by the input or the evidence.
+    /// Asked for as a fourth field AFTER MedVAL's three, so a model trained on
+    /// MedVAL's exact format still writes those first and unchanged; an
+    /// answer without the field reads exactly as before.
+    static let reasoningChecks: String = [
+        "Check the clinical reasoning of the output, the way a diagnostic reasoning tool checks a differential:",
+        "    a) Does the keyed answer (or the stated diagnosis) fit ALL the key findings given in the output? Name any finding that contradicts it.",
+        "    b) Is a can't-miss (dangerous) diagnosis better supported by the findings than the keyed answer, or not excluded where the question implies it should be?",
+        "    c) Is every factual claim in the explanation or answer supported by the input or by any reference evidence given? Name any claim that is not.",
+        "    - Output format: one issue per line, each starting with its kind: `Contradicting finding: <the finding, and why it does not fit>', `Can't miss: <the diagnosis, and why>', or `Unsupported claim: <the claim>'.",
+        "    - Return `None' if there are no issues, or if the output has no answer or diagnosis to check.",
+        "    - Take these into account in risk_level: a contradicting finding or a can't-miss diagnosis left open is at least Level 3; an unsupported claim is at least Level 2, and Level 3 or 4 if it could change a clinical decision.",
+    ].joined(separator: "\n")
 
     // MARK: reading the answer
 
@@ -151,13 +179,84 @@ enum MedVAL {
         // a bare "3" both read as 3. Nothing readable is treated as moderate:
         // an unreadable grade is not a pass.
         var risk = riskText.first { "1234".contains($0) }.flatMap { Int(String($0)) } ?? 3
+        // the clinical-reasoning checks: each issue is a finding too, and the
+        // serious kinds hold the grade up whatever number was written
+        let issues: [ReasoningIssue] = reasoningIssues(in: reply)
+        for issue in issues {
+            findings.append(.init(category: issue.kind.category, text: issue.text))
+            risk = max(risk, issue.kind.floor)
+        }
         // a reply that lists errors but grades them "1" is read at least as low risk
         if !findings.isEmpty && risk == 1 { risk = 2 }
-        return AccuracyVerdict(riskLevel: risk, findings: findings,
-                               reasoning: reasoning, checkedBy: checkedBy)
+        var verdict = AccuracyVerdict(riskLevel: risk, findings: findings,
+                                      reasoning: reasoning, checkedBy: checkedBy)
+        verdict.reasoningIssues = issues.isEmpty ? nil : issues.map(\.text)
+        return verdict
     }
 
-    private static func section(_ name: String, in reply: String) -> String? {
+    /// One line of the optional `reasoning_issues` field.
+    struct ReasoningIssue: Hashable {
+        enum Kind: Hashable {
+            case contradictingFinding, cantMiss, unsupportedClaim, other
+
+            /// The lowest risk level an issue of this kind allows.
+            var floor: Int {
+                switch self {
+                case .contradictingFinding, .cantMiss: return 3
+                case .unsupportedClaim, .other: return 2
+                }
+            }
+
+            /// Where it is counted among the app's three kinds of finding: a
+            /// keyed answer the findings contradict is misleading reasoning, a
+            /// danger left open is an omission, an unbacked claim is made up.
+            var category: AccuracyVerdict.Category {
+                switch self {
+                case .contradictingFinding, .unsupportedClaim: return .hallucination
+                case .cantMiss: return .omission
+                case .other: return .other
+                }
+            }
+        }
+        var kind: Kind
+        var text: String
+    }
+
+    /// The `reasoning_issues` field, if the reply has one; "None" is none.
+    static func reasoningIssues(in reply: String) -> [ReasoningIssue] {
+        guard let body = section("reasoning_issues", in: reply) else { return [] }
+        var out: [ReasoningIssue] = []
+        for line in body.components(separatedBy: .newlines) {
+            let trimmed: String = line.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-*\u{2022}")))
+            let bare: String = trimmed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ".`' "))
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), !saysNone(bare) else { continue }
+            out.append(ReasoningIssue(kind: issueKind(of: bare), text: trimmed))
+        }
+        return out
+    }
+
+    /// "None", "None found", "No issues.", "N/A": a line that says there is
+    /// nothing to report is not an issue.
+    static func saysNone(_ lowered: String) -> Bool {
+        let empty: [String] = ["none", "n/a", "na", "nil", "nothing", "no issues", "no issue", "no reasoning issues"]
+        if empty.contains(lowered) { return true }
+        let openers: [String] = ["none ", "none,", "no issues ", "no issue ", "no reasoning issues ", "nothing to report"]
+        return openers.contains { lowered.hasPrefix($0) }
+    }
+
+    static func issueKind(of lowered: String) -> ReasoningIssue.Kind {
+        let cantMiss: [String] = ["can't miss", "can\u{2019}t miss", "cannot miss", "cant miss", "can't-miss"]
+        // the kind the line starts with wins over a word further along it
+        if lowered.hasPrefix("contradict") { return .contradictingFinding }
+        if cantMiss.contains(where: { lowered.hasPrefix($0) }) { return .cantMiss }
+        if lowered.hasPrefix("unsupported") { return .unsupportedClaim }
+        if lowered.contains("contradict") { return .contradictingFinding }
+        if cantMiss.contains(where: { lowered.contains($0) }) { return .cantMiss }
+        if lowered.contains("unsupported") || lowered.contains("not supported") { return .unsupportedClaim }
+        return .other
+    }
+
+    static func section(_ name: String, in reply: String) -> String? {
         guard let start = reply.range(of: "[[ ## \(name) ## ]]") else { return nil }
         let rest = reply[start.upperBound...]
         let end = rest.range(of: "[[ ##")?.lowerBound ?? rest.endIndex
