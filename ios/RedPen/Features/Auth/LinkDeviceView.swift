@@ -40,7 +40,7 @@ struct LinkDeviceView: View {
                     } header: {
                         Text("Add another device")
                     } footer: {
-                        Text("On your other iPhone or iPad, open \(Brand.name) and choose \u{201C}I have a code\u{201D} (or Account \u{2192} Link another device), then type this code. Your library, folders and review schedule then stay the same on both.")
+                        Text("Part of Pro. On your other iPhone or iPad, open \(Brand.name) and choose \u{201C}I have a code\u{201D} (or Account \u{2192} Link another device), then type this code. Your library, folders and review schedule then stay the same on both.")
                     }
                 }
 

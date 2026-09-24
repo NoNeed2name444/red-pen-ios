@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate } from './ai.js';
 import { jobsRoute } from './jobs.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 
@@ -60,6 +60,8 @@ export default {
       if (path.startsWith('/blobs/') && path !== '/blobs/missing') {
         const id = await holder(request, env);
         if (!id) return fail(401, 'Please sign in again.');
+        const refused = await proGate(env, id, fetch, SYNC_IS_PRO);
+        if (refused) return refused;
         // deployed without picture storage (no R2): documents still sync
         if (!env.BLOBS) return fail(503, 'Picture sync is not set up on this server.');
         const name = path.slice('/blobs/'.length);
@@ -95,17 +97,17 @@ export default {
         case '/auth/google': return await withGoogle(body, env);
         case '/auth/refresh': return await refresh(body, env);
         // a second device, by a code shown on the first (pair.js)
-        case '/auth/device': return await deviceAccount(request, env);
+        case '/auth/device': return await deviceAccount(request, body, env);
         case '/auth/pair': return await pairDevice(request, body, env);
-        case '/pair/start': return await guarded(request, env, async id => json(await startPairing(env, id)));
+        case '/pair/start': return await synced(request, env, async id => json(await startPairing(env, id)));
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/signout': return await signOutEverywhere(request, env);
         case '/account/subscription': return await setSubscription(request, body, env);
-        case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
-        case '/sync/push': return await guarded(request, env, id => push(env, id, body));
+        case '/sync/changes': return await synced(request, env, id => changes(env, id, body));
+        case '/sync/push': return await synced(request, env, id => push(env, id, body));
         // Without picture storage nothing is asked for, so a device never
         // tries to upload and the documents' own sync carries on regardless.
-        case '/blobs/missing': return await guarded(request, env, id =>
+        case '/blobs/missing': return await synced(request, env, id =>
           env.BLOBS ? missingBlobs(env, id, body) : json({ missing: [] }));
         // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
         // special case - the session token is the key
@@ -226,11 +228,20 @@ const clientIP = request => request.headers.get('cf-connecting-ip') || 'unknown'
 
 /// An account for a device that started "on this device only", so it can
 /// sync: no name, no email, just a random id.
-async function deviceAccount(request, env) {
+async function deviceAccount(request, body, env) {
   if (!await allowed(env, clientIP(request), 'device', DEVICES_PER_HOUR)) {
     return fail(429, 'Too many new accounts from this network. Try again in an hour.');
   }
   const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
+  // the owner's personal build: its claim, used once, makes this account theirs
+  if (typeof body.claim === 'string' && body.claim.length >= 32 && body.claim.length <= 128) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body.claim));
+    const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+    const used = await env.DB.prepare('UPDATE owner_claims SET used = 1 WHERE hash = ? AND used = 0').bind(hash).run();
+    if (used.meta.changes === 1) {
+      await env.DB.prepare('UPDATE accounts SET owner = 1 WHERE id = ?').bind(account.id).run();
+    }
+  }
   return await session(env, account);
 }
 
@@ -263,6 +274,19 @@ async function guarded(request, env, work) {
   const id = await holder(request, env);
   if (!id) return fail(401, 'Please sign in again.');
   return await work(id);
+}
+
+/// Sync is part of Pro: the library following a student between devices is
+/// what the subscription pays for, alongside the cloud models. Nothing is
+/// deleted when Pro ends - the library stays on each device and on the
+/// server, and syncs again when Pro comes back.
+const SYNC_IS_PRO = 'Syncing between devices is part of Pro.';
+
+async function synced(request, env, work) {
+  return await guarded(request, env, async id => {
+    const refused = await proGate(env, id, fetch, SYNC_IS_PRO);
+    return refused || await work(id);
+  });
 }
 
 async function holder(request, env) {

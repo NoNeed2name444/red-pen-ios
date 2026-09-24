@@ -1,0 +1,38 @@
+# The whole app, compiled on every push to the personal branch - "Swift tests"
+# only compiles the shared model code, so an error in a screen would otherwise
+# first show up in the Swift Playgrounds build on the phone.
+name: App build
+on:
+  push:
+    branches: [personal]
+    paths: ['ios/**', '.github/workflows/app-build.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          # the errors, where they can be read without downloading anything
+          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "BUILD SUCCEEDED" ../build.log

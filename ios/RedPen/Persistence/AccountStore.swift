@@ -112,7 +112,7 @@ final class AccountStore: ObservableObject {
         trouble = nil
         defer { busy = false }
         do {
-            var made = try await AuthAPI.deviceAccount()
+            var made = try await AuthAPI.deviceAccount(claim: OwnerClaim.bundled)
             made.account.displayName = current.account.displayName
             carryAgreement(from: current, to: made)
             adopt(made)

@@ -70,7 +70,7 @@ jobs:
           # the schema is all CREATE ... IF NOT EXISTS; the columns added since
           # are ALTERs that fail harmlessly once they exist
           $W d1 execute redpen-auth --remote --file=schema.sql
-          for col in "original_transaction_id TEXT" "verified_until INTEGER NOT NULL DEFAULT 0" "checked_at INTEGER NOT NULL DEFAULT 0" "signed_out_before INTEGER NOT NULL DEFAULT 0" "apple_env TEXT"; do
+          for col in "original_transaction_id TEXT" "verified_until INTEGER NOT NULL DEFAULT 0" "checked_at INTEGER NOT NULL DEFAULT 0" "signed_out_before INTEGER NOT NULL DEFAULT 0" "apple_env TEXT" "owner INTEGER NOT NULL DEFAULT 0"; do
             $W d1 execute redpen-auth --remote --command "ALTER TABLE accounts ADD COLUMN $col" || true
           done
           # one subscription, one account; an old duplicate must not stop a deploy

@@ -38,7 +38,11 @@ CREATE TABLE IF NOT EXISTS accounts (
   -- "Production" or "Sandbox", as Apple reports it: test purchases unlock Pro
   -- for testing but are not revenue. Existing deployments:
   --   ALTER TABLE accounts ADD COLUMN apple_env TEXT;
-  apple_env TEXT
+  apple_env TEXT,
+  -- The app's owner (their personal build has no App Store subscription):
+  -- Pro without one. Set by hand in the database, never by a request.
+  -- Existing deployments: ALTER TABLE accounts ADD COLUMN owner INTEGER NOT NULL DEFAULT 0;
+  owner INTEGER NOT NULL DEFAULT 0
 );
 -- One subscription, one account (see linkSubscription): the unique index on
 -- original_transaction_id is created by the deploy workflow, where an old
@@ -117,4 +121,12 @@ CREATE TABLE IF NOT EXISTS pair_attempts (
   what    TEXT NOT NULL,
   n       INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (ip, hour, what)
+);
+
+-- The owner's personal build carries a one-time claim (in the build itself,
+-- never in the repository); the first device account made with it becomes
+-- the owner's. Only the hash is kept.
+CREATE TABLE IF NOT EXISTS owner_claims (
+  hash  TEXT PRIMARY KEY,
+  used  INTEGER NOT NULL DEFAULT 0
 );

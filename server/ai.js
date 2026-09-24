@@ -613,7 +613,7 @@ export async function spend(env, accountId, limit) {
 /// everyone else is Pro while Apple last said so, re-asked every few hours.
 export async function isPro(env, account, fetcher = fetch) {
   const owners = (env.OWNER_ACCOUNT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (owners.includes(account.id)) return true;
+  if (owners.includes(account.id) || account.owner === 1) return true;
   if ((account.verified_until || 0) > now() && now() - (account.checked_at || 0) < RECHECK_SECONDS) return true;
   if (!account.original_transaction_id) return false;
   const apple = await askApple(env, account.original_transaction_id, fetcher);

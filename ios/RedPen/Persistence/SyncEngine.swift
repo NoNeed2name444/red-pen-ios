@@ -30,6 +30,8 @@ final class SyncEngine: ObservableObject {
         case syncing
         case offline
         case failed(String)
+        /// Sync is part of Pro, and this account has none.
+        case needsPro
     }
 
     @Published private(set) var status: Status = .idle
@@ -62,6 +64,9 @@ final class SyncEngine: ObservableObject {
 
     func syncNow() async {
         guard let token = account.token, token != Session.localToken else { return }
+        // part of Pro; the library stays on this device (and on the server,
+        // from when it was synced) until Pro comes back
+        guard LocalLLMService.shared.isPro else { status = .needsPro; return }
         // a change made while a run is out is sent by a second run straight
         // after, not left until the app is next opened
         if running { again = true; return }
@@ -87,6 +92,8 @@ final class SyncEngine: ObservableObject {
             // Not a failure worth shouting about. The library is intact and the
             // next run continues from the same bookmark.
             status = .offline
+        } catch AuthAPI.Failure.needsPro {
+            status = .needsPro
         } catch AuthAPI.Failure.signedOut {
             status = .failed("Please sign in again.")
         } catch {

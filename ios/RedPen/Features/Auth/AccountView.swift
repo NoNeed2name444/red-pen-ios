@@ -34,14 +34,18 @@ struct AccountView: View {
 
             Section {
                 LabeledContent("Sync", value: syncSummary)
-                if account.state.session?.isLocalOnly == true {
+                if !subscriptions.isPro {
+                    Text("Keeping your iPhone and iPad the same is part of Pro.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("See plans") { showPaywall = true }
+                } else if account.state.session?.isLocalOnly == true {
                     Text("This library is only on this device. Link another device to keep them the same.")
                         .font(.footnote).foregroundStyle(.secondary)
                 } else {
                     Button("Sync now") { Task { await sync.syncNow() } }
                         .disabled(sync.status == .syncing)
                 }
-                Button { linking = true } label: {
+                Button { if subscriptions.isPro { linking = true } else { showPaywall = true } } label: {
                     Label("Link another device", systemImage: "ipad.and.iphone")
                 }
                 if sync.copiesKept > 0 {
@@ -120,6 +124,7 @@ struct AccountView: View {
         case .syncing: return "Syncing\u{2026}"
         case .offline: return "Waiting for a connection"
         case .failed(let why): return why
+        case .needsPro: return "Part of Pro"
         case .idle:
             guard let when = sync.lastSyncedAt else { return "Not synced yet" }
             let formatter = RelativeDateTimeFormatter()

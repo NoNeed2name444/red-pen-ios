@@ -27,6 +27,8 @@ enum AuthAPI {
         case signedOut
         case tooManyTries
         case notConfigured
+        /// Refused because the account has no Pro (sync, cloud models).
+        case needsPro(String)
         case server(String)
 
         var errorDescription: String? {
@@ -39,7 +41,7 @@ enum AuthAPI {
                 return "Too many requests just now. Try again in a moment."
             case .notConfigured:
                 return "Sign-in isn't set up in this build yet."
-            case .server(let message):
+            case .server(let message), .needsPro(let message):
                 return message
             }
         }
@@ -81,8 +83,9 @@ enum AuthAPI {
     }
 
     /// An account for a device that has none, so its library can sync.
-    static func deviceAccount() async throws -> Session {
-        try await session(at: "/auth/device", body: [:])
+    /// `claim`: the one the owner's personal build carries (OwnerClaim).
+    static func deviceAccount(claim: String? = nil) async throws -> Session {
+        try await session(at: "/auth/device", body: claim.map { ["claim": $0] } ?? [:])
     }
 
     /// Joins the account a code from another device belongs to.
@@ -153,6 +156,9 @@ enum AuthAPI {
         case 401, 403: throw Failure.signedOut
         case 404: throw Failure.notConfigured
         case 429: throw Failure.tooManyTries
+        case 402:
+            let problem = try? JSONDecoder().decode(Problem.self, from: data)
+            throw Failure.needsPro(problem?.message ?? "That is part of Pro.")
         default:
             let problem = try? JSONDecoder().decode(Problem.self, from: data)
             throw Failure.server(problem?.message ?? problem?.error

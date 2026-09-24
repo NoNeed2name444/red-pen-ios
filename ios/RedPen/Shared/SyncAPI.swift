@@ -124,6 +124,7 @@ enum SyncAPI {
         case 200...299: return
         case 401, 403: throw AuthAPI.Failure.signedOut
         case 429: throw AuthAPI.Failure.tooManyTries
+        case 402: throw AuthAPI.Failure.needsPro("Syncing between devices is part of Pro.")
         default: throw AuthAPI.Failure.server("The server refused that (\(http.statusCode)).")
         }
     }
