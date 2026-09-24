@@ -186,6 +186,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
                         { role: 'assistant', content: 'A' }], 100, 0.2);
   ok(g.systemInstruction.parts[0].text === 'Be exact.' && g.contents.length === 2, 'system text becomes the system instruction');
   ok(g.contents[0].parts[0].text === 'Q' && g.contents[1].role === 'model', 'turns carry over, without the Qwen /no_think tag');
+  ok(!g.generationConfig.thinkingConfig && geminiBody([{ role: 'user', content: 'Q' }], 100, 0, 'gemma-4-31b-it').generationConfig.thinkingConfig.thinkingLevel === 'minimal',
+     'Gemma is asked not to think, so its answer is not cut off');
 
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-redpen', OWNER_ACCOUNT_IDS: 'a1' };
   const seen = [];

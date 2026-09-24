@@ -145,13 +145,16 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
 /// Gemini through Firebase AI Logic, the same project Narrate transcribes with.
 /// OpenAI-style turns become Gemini's: system text is the system instruction,
 /// "assistant" is "model".
-export function geminiBody(messages, maxTokens, temperature) {
+export function geminiBody(messages, maxTokens, temperature, model = '') {
   const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const contents = messages.filter(m => m.role !== 'system').map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content.replace(/\n?\/no_think\s*$/, '') }],
   }));
   const body = { contents, generationConfig: { maxOutputTokens: maxTokens, temperature } };
+  // Gemma thinks out loud by default and the thinking counts against the
+  // output limit, which left no room for the answer itself
+  if (model.startsWith('gemma')) body.generationConfig.thinkingConfig = { thinkingLevel: 'minimal' };
   if (system) body.systemInstruction = { parts: [{ text: system }] };
   return body;
 }
@@ -201,12 +204,13 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher) {
             'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
             ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
           },
-          body: JSON.stringify(geminiBody(messages, maxTokens, temperature)),
+          body: JSON.stringify(geminiBody(messages, maxTokens, temperature, model)),
         });
       if (!response.ok) {
         const raw = await response.text();
         last = { ok: false, status: response.status, detail: `${model}: ${errorMessage(raw)}` };
-        if (response.status === 429) wait = Math.max(wait, retryDelay(raw));
+        // "overloaded" comes as a 429 with no delay: a few seconds is enough
+        if (response.status === 429) wait = Math.max(wait, retryDelay(raw) || 5);
         // out of quota, overloaded or not offered: the next model may answer
         if ([404, 429, 500, 502, 503, 504].includes(response.status)) continue;
         return last;
