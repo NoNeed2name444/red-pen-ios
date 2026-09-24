@@ -86,7 +86,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     console.error('upstream', result.status, result.detail);
     // the owner sees the provider's own words, so a clipped error still says
     // what went wrong; everyone else sees a plain sentence
-    if (owner) return fail(502, `Provider ${result.status}: ${String(result.detail).slice(0, 240)}`);
+    if (owner) return fail(502, `Provider ${result.status}: ${String(result.detail).slice(0, 600)}`);
     return fail(502, `The cloud model is unavailable right now (${result.status}). Try again, or use an on-device model.`);
   }
   // only what the app reads, never the upstream's own metadata
@@ -103,17 +103,21 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 /// "busy / out of quota / down" moves on; a real refusal stops.
 async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   let result = { ok: false, status: 503, detail: 'CramDown Cloud is not set up yet.' };
+  const failures = [];
   for (const source of route.sources) {
     if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature);
     else result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
     if (result.ok) { result.source = result.source || source.kind; break; }
+    failures.push(`${source.kind} ${result.status}: ${result.detail}`);
     // busy, out of quota, down - or, for Gemini, locked by the Firebase
     // project's App Check: the next source may still answer
     const next = [408, 429, 500, 502, 503, 504].includes(result.status)
       || (source.kind === 'gemini' && [401, 403].includes(result.status));
     if (!next) break;
   }
+  // every source's reason, not just the last one's
+  if (!result.ok && failures.length > 1) result.detail = failures.join(' | ');
   return result;
 }
 
@@ -185,28 +189,52 @@ async function askGemini(env, messages, maxTokens, temperature, fetcher) {
     .split(',').map(m => m.trim()).filter(Boolean);
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
-  for (const model of models) {
-    const response = await fetcher(
-      `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
-          ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
-        },
-        body: JSON.stringify(geminiBody(messages, maxTokens, temperature)),
-      });
-    if (!response.ok) {
-      last = { ok: false, status: response.status, detail: await readError(response) };
-      // out of quota on this model, or it is not offered: the next may be
-      if ([429, 404].includes(response.status)) continue;
-      return last;
+  // the free tier counts requests per minute: when every model says "too
+  // many", wait as long as Google asks (up to 30 s) and go round once more
+  for (let round = 0; round < 2; round++) {
+    let wait = 0;
+    for (const model of models) {
+      const response = await fetcher(
+        `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
+            ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
+          },
+          body: JSON.stringify(geminiBody(messages, maxTokens, temperature)),
+        });
+      if (!response.ok) {
+        const raw = await response.text();
+        last = { ok: false, status: response.status, detail: `${model}: ${errorMessage(raw)}` };
+        if (response.status === 429) wait = Math.max(wait, retryDelay(raw));
+        // out of quota, overloaded or not offered: the next model may answer
+        if ([404, 429, 500, 502, 503, 504].includes(response.status)) continue;
+        return last;
+      }
+      const parts = (await response.json())?.candidates?.[0]?.content?.parts || [];
+      const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
+      if (content) return { ok: true, content, source: model };
+      last = { ok: false, status: 502, detail: `${model}: sent back nothing usable.` };
     }
-    const parts = (await response.json())?.candidates?.[0]?.content?.parts || [];
-    const content = parts.filter(p => !p.thought).map(p => p.text || '').join('');
-    if (content) return { ok: true, content, source: model };
-    last = { ok: false, status: 502, detail: 'Gemini sent back nothing usable.' };
+    if (last.status !== 429 || !wait || wait > 30) break;
+    await sleep(wait * 1000);
   }
   return last;
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function errorMessage(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.error?.message || raw.slice(0, 400);
+  } catch { return raw.slice(0, 400); }
+}
+
+/// Seconds Google asks to wait before the next request ("retryDelay": "17s").
+export function retryDelay(raw) {
+  const m = String(raw).match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
+  return m ? Math.ceil(parseFloat(m[1])) : 0;
 }
 
 /// Cloudflare Workers AI, on the account's free daily allowance.

@@ -211,6 +211,27 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
   const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
   ok(none.status === 502 && (await none.json()).message.startsWith('Provider 429'), 'with no fallback the owner sees why');
+
+  // Flash overloaded: Flash-Lite answers instead of giving up on Gemini
+  const tried = [];
+  const busyFlash = async url => { tried.push(url);
+    return url.includes('flash-lite') ? new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'lite' }] } }] }), { status: 200 })
+      : new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 503 }); };
+  const bl = await chat(freshEnv(firebase), 'a1', request, busyFlash);
+  ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 2, 'Flash overloaded (503): Flash-Lite answers');
+
+  // per-minute limit on both: wait as asked, then go round again
+  let calls = 0;
+  const perMinute = async () => { calls++;
+    return calls <= 2 ? new Response(JSON.stringify({ error: { message: 'rate', details: [{ retryDelay: '1s' }] } }), { status: 429 })
+      : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'later' }] } }] }), { status: 200 }); };
+  const pm = await chat(freshEnv(firebase), 'a1', request, perMinute);
+  ok(pm.status === 200 && (await pm.json()).choices[0].message.content === 'later' && calls === 3, 'per-minute limit: waits the retryDelay and tries again');
+
+  // both sources fail: the owner sees both reasons, Gemini's first
+  const both = freshEnv({ ...firebase, AI: { run: async () => { throw new Error('4006: daily free allocation'); } } });
+  const bm = await (await chat(both, 'a1', request, gemini(429), { owner: true })).json();
+  ok(bm.message.includes('gemini 429') && bm.message.includes('workers-ai 503'), 'a fallback failure no longer hides why Gemini failed');
 }
 
 // Narrate's second transcriber: Whisper on Workers AI
