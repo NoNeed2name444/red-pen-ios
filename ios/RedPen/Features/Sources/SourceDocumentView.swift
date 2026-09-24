@@ -3,29 +3,22 @@ import PDFKit
 import QuickLook
 import WebKit
 
-/// Which way a whole document moves: down a continuous page, or across one
-/// page at a time like a book or a slide deck. The reader's choice, kept.
-enum SourceScroll: String {
-    case vertical, horizontal
-    static let storageKey = "sourceScrollAxis"
-}
-
 /// A whole lecture, any kind: the real pages when this device has the file -
 /// PDFs as they are, Word and PowerPoint turned into pages on the device -
-/// and the extracted text, page by page, when it does not. Scrolled down or
-/// paged across, as the reader chose.
+/// and the extracted text, page by page, when it does not - all scrolled down
+/// one continuous column.
 struct SourceDocumentView: View {
     let source: SourceDoc
     let file: URL?
     @Binding var page: Int
-    @AppStorage(SourceScroll.storageKey) private var scrollRaw = SourceScroll.vertical.rawValue
 
     @State private var pdf: URL?
     @State private var preparing = false
     /// The file, shown by Quick Look, when it could not be turned into pages.
     @State private var quickLook: URL?
 
-    private var horizontal: Bool { scrollRaw == SourceScroll.horizontal.rawValue }
+    /// One continuous column, top to bottom, for every kind of file.
+    private let horizontal = false
 
     var body: some View {
         Group {

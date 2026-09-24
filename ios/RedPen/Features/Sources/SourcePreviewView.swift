@@ -39,7 +39,6 @@ struct SourcePreviewView: View {
     @State private var file: URL?
     /// The whole document, or one page with the cards made from it.
     @State private var whole = true
-    @AppStorage(SourceScroll.storageKey) private var scrollRaw = SourceScroll.vertical.rawValue
 
     init(source: SourceDoc, set: StudySet? = nil, openAt: Int = 1) {
         self.source = source
@@ -104,19 +103,6 @@ struct SourcePreviewView: View {
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 220)
-        }
-        if whole {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    scrollRaw = scrollRaw == SourceScroll.vertical.rawValue
-                        ? SourceScroll.horizontal.rawValue : SourceScroll.vertical.rawValue
-                } label: {
-                    Label(scrollRaw == SourceScroll.vertical.rawValue ? "Scroll down" : "Page across",
-                          systemImage: scrollRaw == SourceScroll.vertical.rawValue
-                            ? "arrow.up.and.down.text.horizontal" : "arrow.left.and.right.text.vertical")
-                }
-                .accessibilityHint("Switches between scrolling down and paging across")
-            }
         }
         if !wide && !whole {
             ToolbarItem(placement: .primaryAction) {
