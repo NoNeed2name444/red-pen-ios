@@ -362,7 +362,7 @@ nonisolated enum NeuronShaders {
     rp_hk = (rp_hk >> 22u) ^ rp_hk;
     float rp_hn = float(rp_hk & 1023u) / 1023.0;
     float rp_nf = rpDetail > 0.5 ? 4.0 + min(floor(rp_hn * 4.0), 3.0) : 3.0 + min(floor(rp_hn * 2.0), 1.0);
-    rp_nf = min(rp_nf, max(floor(0.758 * rp_Rb / rp_rb), 2.0));
+    rp_nf = min(rp_nf, max(floor(0.68 * rp_Rb / rp_rb), 2.0));
     if (rp_dE < rp_D1 + rp_fw) {
         rp_Pmin = 1000.0;
         float rp_rr = sqrt(rp_dE * rp_dE + rp_y * rp_y);
@@ -392,8 +392,8 @@ nonisolated enum NeuronShaders {
             float rp_rb2 = float(rp_hb & 1023u) / 1023.0;
             float rp_rc = float(rp_hc & 1023u) / 1023.0;
             float rp_gap = 2.1 / rp_nf;
-            float rp_ang = 1.05 * ((float(rp_i) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_ra - 0.5) * rp_gap * 0.35;
-            float rp_angj = 1.05 * ((float(rp_jn) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_rj - 0.5) * rp_gap * 0.35;
+            float rp_ang = 1.05 * ((float(rp_i) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_ra - 0.5) * rp_gap * 0.15;
+            float rp_angj = 1.05 * ((float(rp_jn) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_rj - 0.5) * rp_gap * 0.15;
             float rp_mida = (rp_ang + rp_angj) * 0.5;
             float rp_run = rp_R * (0.6 + 0.9 * rp_rb2) + rp_fw * (1.0 + 1.5 * rp_rc);
             float rp_bp = rp_Rb + rp_run;
@@ -427,7 +427,8 @@ nonisolated enum NeuronShaders {
                 float rp_bxn = rp_bd / rp_bw;
                 rp_xmin = min(rp_xmin, rp_bxn);
                 float rp_path = (rp_len - rp_bp) + rp_arc * rp_bt;
-                float rp_bin = (1.0 - smoothstep(0.9, 1.3, rp_bxn)) * smoothstep(0.7, 1.0, rp_be);
+                float rp_bin = (1.0 - smoothstep(0.9, 1.3, rp_bxn)) * smoothstep(0.7, 1.0, rp_be)
+                    * (1.0 - smoothstep(0.75, 1.0, rp_bt));
                 for (int rp_w = 0; rp_w < 2; rp_w++) {
                     float rp_fa = rp_w == 0 ? rp_front : rp_front2;
                     float rp_live = rp_w == 0 ? step(rp_a1, 50.0) : step(rp_a2, 50.0);
@@ -439,33 +440,60 @@ nonisolated enum NeuronShaders {
                 }
             }
 
-            rp_xmin = min(rp_xmin, rp_be);
-            float rp_knob = sqrt(max(1.0 - rp_be * rp_be, 0.0));
-            rp_knobs = max(rp_knobs, rp_knob);
             float rp_lag = rp_D * rp_pend / rp_Lref;
             float rp_tau1 = rp_a1 - rp_lag;
             float rp_tau2 = rp_a2 - rp_lag;
             float rp_tau = rp_tau1 >= 0.0 ? rp_tau1 : rp_tau2;
             float rp_act = step(0.0, rp_tau) * step(rp_tau, 5.0);
             float rp_tp = max(rp_tau, 0.0);
+
+            float rp_nx = -rp_bx / rp_Rb;
+            float rp_ny = -rp_by / rp_Rb;
+            float rp_cu = rp_qx * rp_nx + rp_qy * rp_ny;
+            float rp_cv = rp_qy * rp_nx - rp_qx * rp_ny;
+            float rp_live2 = rpDetail * rpMotion;
+            float rp_jig = rp_act * rpMotion * exp(-rp_tp / 0.28) * cos(rp_tp * 16.0);
+            float rp_sw = 1.0 + 0.3 * rp_jig;
+            float rp_Wc = rp_rb * 1.15 * (1.0 + 0.12 * rp_jig);
+            float rp_th0 = rp_rb * 0.24 * rp_sw;
+            float rp_vc = clamp(rp_cv, -rp_Wc, rp_Wc);
+            float rp_vr2 = rp_vc / rp_Wc;
+            float rp_lip = rp_vr2 * rp_vr2;
+            float rp_th = rp_th0 * (0.8 + (0.35 + rpDetail * 0.25) * rp_lip);
+            float rp_wob = rp_live2 * 0.12 * rp_rb * sin(rp_t * 1.4 + rp_ra * 6.2832 + rp_vr2 * 2.3);
+            float rp_uc0 = rp_rb - rp_th0 * 0.8;
+            float rp_face0 = rp_rb + rp_vc * rp_vc / (2.0 * rp_R) + rp_wob * rp_lip - 0.25 * rp_th0 * rp_jig;
+            float rp_du = rp_cu - (rp_face0 - rp_th);
+            float rp_dv = rp_cv - rp_vc;
+            float rp_xc = sqrt(rp_du * rp_du + rp_dv * rp_dv) / rp_th;
+            float rp_n0 = -0.9 * rp_rb;
+            float rp_ns = clamp((rp_cu - rp_n0) / max(rp_uc0 - rp_n0, 0.0001), 0.0, 1.0);
+            float rp_nb = (rp_ns - 0.72) / 0.2;
+            float rp_neckw = rp_fw * 0.42 + 0.55 * rp_rb * rp_ns * rp_ns + 0.14 * rp_rb * rpDetail * exp(-rp_nb * rp_nb);
+            float rp_back = min(rp_cu - rp_n0, 0.0);
+            float rp_xn = sqrt(rp_cv * rp_cv + rp_back * rp_back) / rp_neckw + step(rp_uc0, rp_cu) * 1000.0;
+            float rp_xt = min(rp_xc, rp_xn);
+            rp_xmin = min(rp_xmin, rp_xt);
+            float rp_knob = sqrt(max(1.0 - rp_xt * rp_xt, 0.0));
+            rp_knobs = max(rp_knobs, rp_knob);
             rp_bflash = max(rp_bflash, rp_knob * rp_act * exp(-rp_tp / 0.25));
             float rp_near = (rp_pend - rp_front) / 0.07;
             float rp_near2 = (rp_pend - rp_front2) / 0.07;
             float rp_come = max(exp(-rp_near * rp_near) * step(rp_a1, 50.0), exp(-rp_near2 * rp_near2) * step(rp_a2, 50.0));
-            rp_bpulse = max(rp_bpulse, rp_knob * rp_come);
-            if (rpDetail > 0.5 && rp_be < 1.0) {
+            rp_bpulse = max(rp_bpulse, 0.6 * rp_knob * rp_come);
+            if (rpDetail > 0.5 && rp_xc < 1.2) {
                 for (int rp_v = 0; rp_v < 3; rp_v++) {
-                    float rp_va = rp_ra * 7.0 + float(rp_v) * 2.1;
-                    float rp_vr = 0.5 * rp_rb * (0.6 + 0.4 * fract(rp_rb2 * 5.3 + float(rp_v) * 0.37));
-                    float rp_vx = rp_qx - cos(rp_va) * rp_vr;
-                    float rp_vy = rp_qy - sin(rp_va) * rp_vr;
-                    float rp_vd = sqrt(rp_vx * rp_vx + rp_vy * rp_vy) / (0.2 * rp_rb);
+                    float rp_vs = (float(rp_v) - 1.0) * 0.55 * rp_Wc + 0.08 * rp_rb * sin(rp_ra * 9.0 + float(rp_v) * 2.1);
+                    float rp_vu = rp_uc0 + rp_vs * rp_vs / (2.0 * rp_R) - 0.2 * rp_th0;
+                    float rp_vx = rp_cu - rp_vu;
+                    float rp_vy = rp_cv - rp_vs;
+                    float rp_vd = sqrt(rp_vx * rp_vx + rp_vy * rp_vy) / (0.16 * rp_rb);
                     rp_ves = rp_ves + exp(-rp_vd * rp_vd);
                 }
             }
 
-            float rp_dp = (rp_phi - rp_ang) * rp_Rb / rp_rb;
-            float rp_face = exp(-rp_dp * rp_dp);
+            float rp_dp = (rp_phi - rp_ang) * rp_Rb / rp_Wc;
+            float rp_face = exp(-rp_dp * rp_dp * rp_dp * rp_dp);
             float rp_mb = (rp_rr - (rp_R - 0.4 * rp_cl)) / (0.45 * rp_cl + 0.003);
             rp_psd = max(rp_psd, exp(-rp_mb * rp_mb) * rp_face);
             float rp_ingap = step(rp_R, rp_rr) * step(rp_rr, rp_R + rp_cl) * rp_face;
@@ -473,8 +501,8 @@ nonisolated enum NeuronShaders {
             float rp_ntc = rp_act * exp(-rp_tp / 0.18) * smoothstep(0.0, 0.05, rp_tp);
             float rp_cr = (rp_rr - (rp_R + 0.5 * rp_cl)) / (0.6 * rp_cl + 0.002);
             rp_nt = max(rp_nt, rp_ntc * exp(-rp_cr * rp_cr) * rp_face);
-            float rp_sig = (rp_rb / rp_Rb) * (0.8 + 5.0 * rp_tp);
-            float rp_pd = (rp_phi - rp_ang) / rp_sig;
+            float rp_sig = (rp_rb / rp_Rb) * (0.5 + 5.0 * rp_tp);
+            float rp_pd = max(abs(rp_phi - rp_ang) - rp_Wc / rp_Rb, 0.0) / rp_sig;
             float rp_pw = (rp_rr - (rp_R - 0.8 * rp_cl)) / (1.2 * rp_cl + 0.004 + 0.03 * rp_tp);
             float rp_patch = rp_act * smoothstep(0.03, 0.1, rp_tp) * exp(-rp_tp / 0.4);
             rp_nt = max(rp_nt, 1.4 * rp_patch * exp(-rp_pd * rp_pd) * exp(-rp_pw * rp_pw));
@@ -503,7 +531,7 @@ nonisolated enum NeuronShaders {
     rp_col = rp_col + rpTintB * (rp_imp * (0.95 * rp_core + 0.12));
     rp_col = rp_col + rpTintC * (rp_imp * rp_halo * 0.35);
     float3 rp_hot = rpTintB + rpTintC * 0.5;
-    rp_col = rp_col + rp_hot * (0.9 * rp_bflash);
+    rp_col = rp_col + rp_hot * (0.4 * rp_bflash);
     rp_col = rp_col + (rpTintB * 0.55 + rpTintC * 0.45) * (0.8 * rp_nt);
     rp_col = rp_col * (1.0 + 0.45 * rp_lit);
     rp_col = rp_col * smoothstep(0.0, 0.04, rp_along);

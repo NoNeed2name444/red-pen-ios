@@ -7,7 +7,12 @@ import Foundation
 // telodendria), each a different length, curving and tapering, spreading
 // over the target cell's surface; each ends in a swollen bouton pressed
 // against the membrane with a thin dark cleft between them, full of
-// vesicles. An impulse arriving splits into the branchlets and reaches the
+// vesicles. Here each bouton is drawn like a golf tee of gel: the branchlet
+// thins to a stem, swells into a thicker, wet neck and flares into a wide,
+// shallow cup curved to hug the target across the cleft, its rim soft and
+// slowly wobbling on its own phase, the whole cup bulging and settling like
+// jelly as an impulse lands (no wobble or bulge at Smooth or with Reduce
+// Motion). An impulse arriving splits into the branchlets and reaches the
 // boutons at slightly different times; each bouton brightens and a soft
 // glow of transmitter crosses its cleft and spreads on the membrane.
 //
@@ -138,13 +143,13 @@ nonisolated struct GraphLinkArbor: Sendable, Equatable {
     }
 
     /// Where bouton `i` of `n` sits, as an angle from the way in: evenly
-    /// across the spread, jittered by up to a sixth of the gap either way.
+    /// across the spread, jittered by up to 7.5% of the gap either way.
     static func boutonAngle(_ i: Int, of n: Int, seed: Int) -> Float {
         let count: Float = Float(max(n, 1))
         let gap: Float = 2 * spread / count
         let even: Float = (Float(i) + 0.5) / count * 2 - 1
         let a: Float = hash(seed, i, 0)
-        return spread * even + (a - 0.5) * gap * 0.35
+        return spread * even + (a - 0.5) * gap * 0.15
     }
 
     /// How many branchlets a link's brush has: 4 to 7 (3 or 4 at Smooth),
@@ -156,9 +161,11 @@ nonisolated struct GraphLinkArbor: Sendable, Equatable {
         return min(wanted, room(m))
     }
 
-    /// How many boutons fit along the spread, jitter and all.
+    /// How many boutons fit along the spread, jitter and all: each is a
+    /// tee's cup 2.3 bouton radii across (1.15 either side, as the shader
+    /// draws it), which may swell 12% as an impulse lands.
     static func room(_ m: GraphArborMeasures) -> Int {
-        let fit: Float = (0.758 * m.ring / max(m.bouton, 0.0001)).rounded(.down)
+        let fit: Float = (0.68 * m.ring / max(m.bouton, 0.0001)).rounded(.down)
         return max(Int(fit), 2)
     }
 

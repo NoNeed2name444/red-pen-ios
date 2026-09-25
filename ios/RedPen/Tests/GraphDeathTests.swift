@@ -259,7 +259,8 @@ for seed in 0..<256 {
             for x in boutons.indices {
                 for y in (x + 1)..<boutons.count {
                     let d: SIMD2<Float> = boutons[x] - boutons[y]
-                    if (d * d).sum().squareRoot() < m.bouton * 1.8 { arborBad.append("boutons touch (seed \(seed))") }
+                    // each a tee's cup 2.3 bouton radii across, swelling 12% at most
+                    if (d * d).sum().squareRoot() < m.bouton * 2.3 * 1.12 { arborBad.append("cups touch (seed \(seed))") }
                 }
             }
             if !key.isEmpty { shapes.insert(key) }
