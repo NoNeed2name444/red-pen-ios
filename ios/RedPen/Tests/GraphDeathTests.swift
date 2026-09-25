@@ -12,11 +12,10 @@
 //   ends follow a body's live size (GraphLinkEnds).
 // - F: the whole-map framing aims at the middle of the map's box
 //   (GraphMapBounds), whatever the plan's offset.
-// - S: the Neurons' synapse (GraphLinkArbor): the ribbon's widening, the
-//   membrane steps and the v coding round-trip, 4 to 7 branchlets (3 or 4
-//   at Smooth), boutons on the membrane's ring inside the ribbon, apart
-//   from each other, every branch point inside the full-width stretch, and
-//   no two links' brushes alike.
+// - S: the Neurons' synapse (GraphLinkArbor): the membrane steps and the v
+//   coding round-trip; one cup per link, hugging the membrane across the
+//   cleft, inside its ribbon, bigger than the old cups and bounded round
+//   the cell; the impulse landing on it at the arrival time.
 //
 // Compiled with GraphDeath.swift, GraphFrameSync.swift and
 // GraphSynapse.swift (Foundation only).
@@ -199,7 +198,7 @@ let top: Float = centred.map(\.y).max() ?? 0
 check("F1 ... so it is framed evenly above and below", abs(low + top) < 1e-5)
 check("F1 nothing: the origin", GraphMapBounds.centre([]) == SIMD3<Float>(0, 0, 0))
 
-// MARK: S the synapse
+// MARK: S the synapse: one gel golf-tee cup per link
 
 var levelBad: [String] = []
 for q in 0..<GraphLinkArbor.levels {
@@ -227,54 +226,49 @@ check("S1 a membrane's step is within 8% of it", stepWorst < 0.08, "\(stepWorst)
 
 let axon = GraphLinkArbor(membrane: 1.25, share: 0.3)
 let tract = GraphLinkArbor(membrane: 1.25, share: 0.2)
-var arborBad: [String] = []
-var shapes = Set<String>()
-for seed in 0..<256 {
-    for (arbor, h) in [(axon, Float(0.08)), (tract, Float(0.13))] {
-        for q in [0, 3, 7, 12, 15] {
-            let rr: Float = GraphLinkArbor.radius(level: q)
-            let m: GraphArborMeasures = arbor.measures(r: rr, h: h)
-            let n: Int = GraphLinkArbor.count(seed: seed, rich: true, measures: m)
-            let few: Int = GraphLinkArbor.count(seed: seed, rich: false, measures: m)
-            let room: Int = GraphLinkArbor.room(m)
-            if n > 7 || few > 4 || n < min(4, room) || few < min(3, room) || n > room { arborBad.append("count \(n) \(few)") }
-            if rr >= 0.13 && h < 0.1 && n < 4 { arborBad.append("a page-sized cell with \(n)") }
-            if abs(arbor.halfWidth(dEnd: m.start + 0.5, r: rr, h: h) - h) > 1e-6
-                || abs(arbor.halfWidth(dEnd: m.full * 0.5, r: rr, h: h) - m.wide) > 1e-5 {
-                arborBad.append("width ramp")
-            }
-            var boutons: [SIMD2<Float>] = []
-            var key: String = ""
-            for i in 0..<n {
-                let b: GraphArborBranch = GraphLinkArbor.branch(i, of: n, seed: seed, measures: m, r: rr)
-                let spot = SIMD2<Float>(b.to, b.across)
-                let ring: Float = (spot * spot).sum().squareRoot()
-                if abs(ring - m.ring) > 1e-4 { arborBad.append("bouton off the ring") }
-                if abs(b.across) + m.bouton > m.wide + 1e-4 { arborBad.append("bouton outside the ribbon") }
-                if b.from > m.full + 1e-4 || b.from <= m.ring { arborBad.append("branch point outside \(b.from) \(m.full)") }
-                if b.from <= b.to { arborBad.append("branchlet runs backwards") }
-                boutons.append(spot)
-                if q == 7 && h < 0.1 { key += String(format: "%.3f,%.3f;", b.angle, b.from) }
-            }
-            for x in boutons.indices {
-                for y in (x + 1)..<boutons.count {
-                    let d: SIMD2<Float> = boutons[x] - boutons[y]
-                    // each a tee's cup 2.3 bouton radii across, swelling 12% at most
-                    if (d * d).sum().squareRoot() < m.bouton * 2.3 * 1.12 { arborBad.append("cups touch (seed \(seed))") }
-                }
-            }
-            if !key.isEmpty { shapes.insert(key) }
-        }
+var cupBad: [String] = []
+for (arbor, h) in [(axon, Float(0.08)), (tract, Float(0.13))] {
+    for q in 0..<GraphLinkArbor.levels {
+        let rr: Float = GraphLinkArbor.radius(level: q)
+        let m: GraphArborMeasures = arbor.measures(r: rr, h: h)
+        // the cup hugs the membrane across the cleft, its back behind it
+        if abs(m.front - (rr + m.cleft)) > 1e-6 || m.back <= m.front { cupBad.append("hug \(q)") }
+        // bigger than yesterday's cups (1.1 fibre radii either side) wherever
+        // the target is big enough to take it
+        let old: Float = 1.1 * m.fibre
+        if m.cup < old * 1.3 && GraphLinkArbor.widest * m.front - 0.75 * m.thick > old * 1.3 { cupBad.append("small cup \(q)") }
+        // the cup and its rim inside the ribbon where it sits
+        let wide: Float = arbor.halfWidth(dEnd: m.back, r: rr, h: h)
+        if m.cup + 1.5 * m.thick > wide + 1e-5 { cupBad.append("cup outside the ribbon \(q)") }
+        // the neck starts where the ribbon is at its full width
+        if abs(arbor.halfWidth(dEnd: m.back + m.neck, r: rr, h: h) - m.wide) > 1e-5 { cupBad.append("ramp \(q)") }
+        if abs(arbor.halfWidth(dEnd: m.start + 0.5, r: rr, h: h) - h) > 1e-6 { cupBad.append("base width \(q)") }
+        // never reaching further round the cell than its share
+        if arbor.reach(r: rr, h: h) > GraphLinkArbor.widest + 1e-5 { cupBad.append("reach \(q) \(arbor.reach(r: rr, h: h))") }
     }
 }
-check("S2 4 to 7 branchlets (3 or 4 at Smooth; fewer only where they would not fit); boutons on the membrane's ring, inside the ribbon, apart; branch points inside the full width",
-      arborBad.isEmpty, "\(arborBad.prefix(4))")
-check("S3 no two links' brushes alike", shapes.count == 256, "\(shapes.count)")
-// the same values the axon shader's uint hash gives (checked against its
-// C++ copy): 747796405 / 2891336453 / 1442695041, 277803737, 10 bits
-check("S3 the hash is the shader's (fixed values)", abs(GraphLinkArbor.hash(37, 2, 1) - 0.25024438) < 1e-6
-      && abs(GraphLinkArbor.hash(0, 0, 0) - 0.15835777) < 1e-6 && abs(GraphLinkArbor.hash(255, 6, 2) - 0.88856304) < 1e-6
-      && abs(GraphLinkArbor.hash(91, 9, 3) - 0.41055718) < 1e-6)
+check("S2 one cup per link: hugging the membrane across the cleft, inside its ribbon, bigger than the old cups",
+      cupBad.isEmpty, "\(cupBad.prefix(4))")
+// two links arriving from sides further apart than both cups' reach never
+// touch: the cups are bounded round the cell (the widest two together)
+var widestPair: Float = 0
+for q in 0..<GraphLinkArbor.levels {
+    let rq: Float = GraphLinkArbor.radius(level: q)
+    let a: Float = axon.reach(r: rq, h: 0.08)
+    let b: Float = tract.reach(r: rq, h: 0.13)
+    widestPair = max(widestPair, max(a + b, max(a + a, b + b)))
+}
+check("S3 two cups on one cell never touch when their links arrive over 50 degrees apart", widestPair < 0.85,
+      "\(widestPair)")
+// the impulse lands on the cup's back at pos 1: NeuronImpulse's arrival
+var landBad: Int = 0
+for length in [Float(0.8), 1.7, 4.2] {
+    for q in [0, 6, 12] {
+        let m: GraphArborMeasures = axon.measures(r: GraphLinkArbor.radius(level: q), h: 0.08)
+        if abs(GraphLinkArbor.landing(length: length, measures: m) + m.back - length) > 1e-6 { landBad += 1 }
+    }
+}
+check("S4 the impulse lands on the cup at the arrival time (the dendrite glow in step)", landBad == 0)
 let trim: Float = GraphLinkArbor.endTrim(membrane: 0.13)
 check("S4 the ribbon runs to the target's centre, give or take the membrane's step", abs(trim) < 0.13 * 0.08)
 

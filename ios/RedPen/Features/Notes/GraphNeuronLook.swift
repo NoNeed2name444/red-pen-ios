@@ -84,11 +84,11 @@ final class GraphNeuronLook: GraphThemeLook {
     let linkHalfWidth: Float = 0.08
     let farHalfWidth: Float = 0.13
 
-    /// Every axon ends in a terminal arbor of branchlets and boutons on its
-    /// target (GraphLinkArbor, drawn by NeuronShaders.axon): the cell's
-    /// membrane is 1.25 of its trim radius; one fibre is 0.3 of an axon's
-    /// half width, 0.2 of a tract's (three fibres). Only when the axon
-    /// shader works: the plain fallback draws no brush.
+    /// Every axon ends in one synapse on its target, a gel golf-tee cup
+    /// (GraphLinkArbor, drawn by NeuronShaders.axon): the cell's membrane
+    /// is 1.25 of its trim radius; one fibre is 0.3 of an axon's half
+    /// width, 0.2 of a tract's (three fibres, gathered before the cup).
+    /// Only when the axon shader works: the plain fallback draws no cup.
     var arbor: GraphLinkArbor? {
         support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.3) : nil
     }
