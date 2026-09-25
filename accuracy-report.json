@@ -1,0 +1,97 @@
+[
+ {
+  "index": 7,
+  "key": "C",
+  "pick": "C",
+  "wrong": "B",
+  "answerSource": "gemini-3.5-flash-lite",
+  "evidence": 7,
+  "risk": {
+   "correct": 1,
+   "wrongVsCorrect": 3,
+   "wrongEverywhere": 3,
+   "own": 1
+  },
+  "checkErrors": [],
+  "reason": "```json\n{\"answer\":\"C\",\"reason\":\"Dual antiplatelet therapy consisting of aspirin and a P2Y12 inhibitor (such as clopidogrel) is a fundamental requirement following percutaneous coronary intervention in patients with acute coronary syndromes.\"}\n```",
+  "stem": "A 65-year-old man is brought to the emergency department 30 minutes after the onset of acute chest pain. He has hypertension and asthma. Current medications include atorvastatin, lisinopril, and an albuterol inhaler. He "
+ },
+ {
+  "index": 9,
+  "key": "A",
+  "pick": "A",
+  "wrong": "B",
+  "answerSource": "gemini-3.5-flash-lite",
+  "evidence": 4,
+  "risk": {
+   "correct": 1,
+   "wrongVsCorrect": 1,
+   "wrongEverywhere": 1,
+   "own": 1
+  },
+  "checkErrors": [],
+  "reason": "```json\n{\"answer\":\"A\",\"reason\":\"The patient's presentation with nail changes (such as pitting and onycholysis) points toward nail psoriasis [S1], which is frequently associated with cutaneous plaque psoriasis characterized by silvery plaques on extensor surfaces.\"}\n```",
+  "stem": "A 23-year-old woman comes to the physician because she is embarrassed about the appearance of her nails. She has no history of serious illness and takes no medications. She appears well. A photograph of the nails is show"
+ },
+ {
+  "index": 15,
+  "key": "B",
+  "pick": "B",
+  "wrong": "A",
+  "answerSource": "gemini-3.5-flash-lite",
+  "evidence": 4,
+  "risk": {
+   "correct": 1,
+   "wrongVsCorrect": 3,
+   "wrongEverywhere": 3,
+   "own": null
+  },
+  "checkErrors": [
+   "502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used."
+  ],
+  "reason": "```json\n{\"answer\":\"B\",\"reason\":\"A calcified gallbladder wall (porcelain gallbladder) is strongly associated with a significantly increased risk of gallbladder cancer, which must be ruled out [S3].\"}\n```",
+  "stem": "A 59-year-old overweight woman presents to the urgent care clinic with the complaint of severe abdominal pain for the past 2 hours. She also complains of a dull pain in her back with nausea and vomiting several times. He"
+ },
+ {
+  "index": 18,
+  "key": "B",
+  "pick": "B",
+  "wrong": "A",
+  "answerSource": "gemini-3.5-flash-lite",
+  "evidence": 7,
+  "risk": {
+   "correct": 1,
+   "wrongVsCorrect": null,
+   "wrongEverywhere": null,
+   "own": 1
+  },
+  "checkErrors": [
+   "502: Provider 429: gemini 429: gemma-4-31b-it: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-ap",
+   "502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used."
+  ],
+  "reason": "```json\n{\"answer\":\"B\",\"reason\":\"The patient presents with classic signs and symptoms of acute pericarditis (pleuritic chest pain improving with leaning forward, friction rub). First-line therapy consists of an NSAID (such as ibuprofen) combined with colchicine to reduce symptoms and prevent recurren",
+  "stem": "A 29-year-old man presents to the emergency department due to central chest pain over the past 3 days which is constant and unrelated to exertion. The pain is sharp, severe, increases when lying down, and improves with l"
+ },
+ {
+  "index": 30,
+  "key": "D",
+  "pick": "B",
+  "wrong": "A",
+  "answerSource": "gemma-4-31b-it",
+  "evidence": 2,
+  "risk": {
+   "correct": null,
+   "wrongVsCorrect": null,
+   "wrongEverywhere": null,
+   "own": null
+  },
+  "checkErrors": [
+   "skipped: 502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used.",
+   "skipped: 502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used.",
+   "skipped: 502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used.",
+   "skipped: 502: Provider 429: gemini 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later. | workers-ai 429: Workers AI: this account's share of today's free allowance is used."
+  ],
+  "reason": "```json\n{\"answer\":\"B\",\"reason\":\"The patient presents with symptoms of acute cholecystitis, but the cholescintigraphy (HIDA scan) shows the tracer entering the small bowel without filling the gallbladder. In a normal scan or in acute cholecystitis (cystic duct obstruction), the gallbladder would eith",
+  "stem": "A 42-year-old woman comes to the emergency department because of a 2-day history of right upper abdominal pain and nausea. She is 163 cm (5 ft 4 in) tall and weighs 91 kg (200 lb); her BMI is 34 kg/m2. Her temperature is"
+ }
+]
