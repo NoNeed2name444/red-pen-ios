@@ -38,8 +38,25 @@ function d1(db) {
           const r = stmt.run(...args);
           return { meta: { changes: Number(r.changes) } };
         },
+        // what a batch runs: rows for a statement that returns them
+        exec() {
+          if (/\bRETURNING\b|^\s*SELECT/i.test(sql)) {
+            const results = stmt.all(...args);
+            return { results, meta: { changes: results.length } };
+          }
+          return { results: [], meta: { changes: Number(stmt.run(...args).changes) } };
+        },
       };
       return api;
+    },
+    // D1's batch: one transaction, all or nothing
+    async batch(statements) {
+      db.exec('BEGIN');
+      try {
+        const out = statements.map(s => s.exec());
+        db.exec('COMMIT');
+        return out;
+      } catch (error) { db.exec('ROLLBACK'); throw error; }
     },
   };
 }
@@ -145,18 +162,19 @@ await push(env, 'acc', { docs: [doc('a', 0)] });                 // rev 1
 
 const realPrepare = env.DB.prepare.bind(env.DB);
 let interrupted = false;
+const realBatch = env.DB.batch;
 env.DB.prepare = sql => {
   const stmt = realPrepare(sql);
-  if (!interrupted && sql.includes('SELECT rev, updated_at, kind')) {
-    const first = stmt.first.bind(stmt);
-    stmt.first = async () => {
-      const row = await first();
+  if (!interrupted && sql.includes('id IN (')) {
+    const all = stmt.all.bind(stmt);
+    stmt.all = async () => {
+      const rows = await all();
       interrupted = true;
       // The other device, arriving in the gap. It works from revision 1 too,
       // and it gets there first.
-      await push({ ...env, DB: { prepare: realPrepare } }, 'acc',
+      await push({ ...env, DB: { prepare: realPrepare, batch: realBatch } }, 'acc',
                  { docs: [doc('a', 1, { payload: 'dGhlaXJz' })] });
-      return row;   // what WE read a moment ago - now out of date
+      return rows;   // what WE read a moment ago - now out of date
     };
   }
   return stmt;
@@ -266,6 +284,118 @@ ok(tooMuch.status === 507, 'one that would go over the budget is refused');
 
 const wrongName = await putBlob(env, 'acc', 'f'.repeat(64), req(big), Infinity);
 ok(wrongName.status === 400, 'and a picture filed under a name that is not its hash is refused');
+
+// MARK: the revision is taken in the same transaction as the write
+//
+// Taken separately, a device pulling between the two could see a later
+// revision land first, move its cursor past this one, and never be sent it.
+{
+  const e = freshEnv();
+  const loose = [];
+  let batches = 0, calls = 0;
+  const prepare = e.DB.prepare.bind(e.DB);
+  e.DB.prepare = sql => {
+    const stmt = prepare(sql);
+    for (const f of ['first', 'all', 'run']) {
+      const real = stmt[f].bind(stmt);
+      stmt[f] = (...a) => { calls++; if (sql.includes('sync_state')) loose.push(sql); return real(...a); };
+    }
+    return stmt;
+  };
+  const batch = e.DB.batch.bind(e.DB);
+  e.DB.batch = async st => { batches++; calls++; return batch(st); };
+  const r = await body(await push(e, 'acc', { docs: Array.from({ length: 45 }, (_, i) => doc('r' + i, 0)) }));
+  ok(r.accepted.length === 45 && new Set(r.accepted.map(d => d.rev)).size === 45, 'every document gets its own revision');
+  ok(loose.length === 0 && batches === 3, 'and takes it inside the transaction that writes it, twenty documents a call');
+  calls = 0;
+  await push(e, 'acc', { docs: Array.from({ length: 500 }, (_, i) => doc('big' + i, 0)) });
+  ok(calls < 60, `a batch of 500 is a few dozen database calls (${calls}), far inside a Worker's thousand`);
+  const feed = await body(await changes(e, 'acc', { since: 0, limit: 500 }));
+  ok(feed.docs.length === 500 && feed.more, 'and every one of them is in the changes feed');
+}
+
+// MARK: one account cannot fill the database everyone shares
+
+{
+  const e = { ...freshEnv(), DOC_BYTES_PER_ACCOUNT: '20' };
+  let r = await body(await push(e, 'acc', { docs: [doc('q1', 0, { payload: 'x'.repeat(12) })] }));
+  ok(r.accepted.length === 1, 'a document within the account\'s share is kept');
+  const refused = await push(e, 'acc', { docs: [doc('q2', 0, { payload: 'y'.repeat(12) })] });
+  ok(refused.status === 507, 'one that would take it past its share is refused (507)');
+  r = await body(await push(e, 'acc', { docs: [doc('q1', 1, { deleted: true })] }));
+  ok(r.accepted.length === 1, 'but deleting still works on a full library');
+  r = await body(await push(e, 'acc', { docs: [doc('q2', 0, { payload: 'y'.repeat(12) })] }));
+  ok(r.accepted.length === 1, 'and frees the room it took');
+  const row = e.db.prepare("SELECT bytes, docs FROM doc_usage WHERE account_id = 'acc'").get();
+  ok(row.bytes === 12 && row.docs === 2, 'the running total follows every write, tombstones included');
+  await wipe(e, 'acc');
+  ok(!e.db.prepare("SELECT * FROM doc_usage WHERE account_id = 'acc'").get(), 'and goes with the account');
+
+  // the whole database nearly full: nothing may grow, for anyone
+  const f = freshEnv();
+  const batch = f.DB.batch.bind(f.DB);
+  f.DB.batch = async st => (await batch(st)).map(x => ({ ...x, meta: { ...x.meta, size_after: 450_000_000 } }));
+  const r2 = await body(await push(f, 'acc', { docs: Array.from({ length: 30 }, (_, i) => doc('g' + i, 0)) }));
+  ok(r2.accepted.length === 20, 'once the database is nearly full, writes that grow it stop');
+}
+
+// MARK: a page of changes is cut by size too
+
+{
+  const e = { ...freshEnv(), SYNC_PAGE_BYTES: '10' };
+  for (let i = 0; i < 3; i++) await push(e, 'acc', { docs: [doc('p' + i, 0, { payload: 'z'.repeat(8) })] });
+  let r = await body(await changes(e, 'acc', { since: 0, limit: 200 }));
+  ok(r.docs.length === 1 && r.more && r.cursor === 1, 'large documents come a page at a time by size');
+  r = await body(await changes(e, 'acc', { since: r.cursor, limit: 200 }));
+  ok(r.docs.length === 1 && r.docs[0].id === 'p1', 'and the next page carries on from the last one sent');
+  const huge = { ...freshEnv(), SYNC_PAGE_BYTES: '1' };
+  await push(huge, 'acc', { docs: [doc('h', 0, { payload: 'z'.repeat(50) })] });
+  ok((await body(await changes(huge, 'acc', { since: 0 }))).docs.length === 1, 'one document bigger than a page still goes, on its own');
+}
+
+// MARK: past the names checked in one call, pictures are reported missing
+
+{
+  const e = freshEnv();
+  let heads = 0;
+  const head = e.BLOBS.head.bind(e.BLOBS);
+  e.BLOBS.head = async k => { heads++; return head(k); };
+  const names = Array.from({ length: 600 }, (_, i) => i.toString(16).padStart(64, '0'));
+  names.forEach(n => e.BLOBS.held.set('acc/' + n, 'x'));
+  const r = await body(await missingBlobs(e, 'acc', { names }));
+  ok(heads === 500 && r.missing.length === 100 && r.missing[0] === names[500],
+     'names past the 500 checked come back missing, never quietly present');
+  const capped = { ...freshEnv(), BLOB_CHECKS_DAILY: '600' };
+  await missingBlobs(capped, 'acc', { names: names.slice(0, 500) });
+  ok((await missingBlobs(capped, 'acc', { names: names.slice(0, 500) })).status === 429, 'and each account checks only so many a day');
+}
+
+// MARK: uploads arriving together cannot all pass the storage check
+
+{
+  const e = freshEnv();
+  let lists = 0;
+  e.BLOBS.list = async ({ prefix }) => {
+    lists++;
+    return { objects: [...e.BLOBS.held.entries()].filter(([k]) => k.startsWith(prefix)).map(([key, v]) => ({ key, size: v.byteLength })), truncated: false };
+  };
+  const hash = async buf => [...new Uint8Array(await crypto.subtle.digest('SHA-256', buf))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const bufs = Array.from({ length: 6 }, (_, i) => new Uint8Array(1024).fill(i + 1).buffer);
+  const results = await Promise.all(bufs.map(async b => (await putBlob(e, 'acc', await hash(b), { arrayBuffer: async () => b }, 4096)).status));
+  ok(results.filter(x => x === 200).length === 4 && e.BLOBS.held.size === 4, 'six at once against room for four: four are stored');
+  lists = 0;
+  for (const b of bufs) await putBlob(e, 'acc2', await hash(b), { arrayBuffer: async () => b }, 1 << 20);
+  ok(lists === 1, 'and R2 is listed once to start the count, not on every upload');
+  const failing = freshEnv();
+  failing.BLOBS.put = async () => { throw new Error('R2 down'); };
+  const one = new Uint8Array(100).buffer;
+  try { await putBlob(failing, 'acc', await hash(one), { arrayBuffer: async () => one }, 4096); } catch {}
+  ok(failing.db.prepare("SELECT bytes FROM blob_usage WHERE account_id = 'acc'").get().bytes === 0, 'an upload that fails gives its room back');
+  e.BLOBS.held.set('tts/acc/x.mp3', 'audio');
+  await wipe(e, 'acc');
+  ok(![...e.BLOBS.held.keys()].some(k => k.startsWith('acc/') || k.startsWith('tts/acc/')) && e.BLOBS.held.size === 6 && !e.db.prepare("SELECT * FROM blob_usage WHERE account_id = 'acc'").get(),
+     'deleting the account takes its pictures, its read-aloud lines and its count');
+}
 
 // MARK: tokens
 //

@@ -32,16 +32,30 @@ const fail = (status, message) => json({ error: message, message }, status);
 export const LIMITS = {
   active: 3,              // jobs running at once, per account
   steps: 200,             // prompts in one job
-  sources: 40,
+  // a long lecture arrives as windows of the app's prompt size (40,000
+  // characters): sixty of them, and what they add up to, is the real limit
+  sources: 60,
   sourceChars: 1_500_000,
+  totalSourceChars: 6_000_000,
+  // what the accuracy check may queue from one job: past this the rest is
+  // left to the app, rather than a job's queue outgrowing its storage
+  checkChars: 4_000_000,
   promptChars: 60_000,    // a prompt's own text, before {{SOURCE}} goes in
   count: 1_000,           // items asked for
   alreadyItems: 60,
   keepDays: 7,            // a finished job nobody collected
   kept: 20,               // jobs held at once, finished or not, per account
+  // A job still "running" that nothing has touched for this long has lost its
+  // alarm (the platform gave up retrying it): it ends, with what it has.
+  staleHours: 24,
 };
 const RETRY_SECONDS = 20;
 const MAX_FAILURES = 4;
+/// A reply in a job may be as long as the job asked for (checkSpec caps it at
+/// 8,000 tokens): a batch of four questions with their differentials needs
+/// more than the 2,000 a single request from the app gets.
+const JOB_MAX_TOKENS = 8_000;
+const DAY_MS = 86_400_000;
 
 // MARK: the worker's side
 
@@ -81,7 +95,8 @@ export function checkSpec(raw) {
   const extract = ['lines', 'questions', 'stations', 'pages'].includes(raw.extract) ? raw.extract : null;
   if (!extract) return { error: 'Unknown job output.' };
   const sources = Array.isArray(raw.sources) ? raw.sources : [];
-  if (sources.length > LIMITS.sources || sources.some(s => typeof s !== 'string' || s.length > LIMITS.sourceChars)) {
+  if (sources.length > LIMITS.sources || sources.some(s => typeof s !== 'string' || s.length > LIMITS.sourceChars)
+      || sources.reduce((n, s) => n + (typeof s === 'string' ? s.length : 0), 0) > LIMITS.totalSourceChars) {
     return { error: 'The lecture is too large for one job.' };
   }
   const steps = Array.isArray(raw.steps) ? raw.steps : [];
@@ -292,14 +307,18 @@ export class GenerationJobs {
     const id = url.searchParams.get('id');
     switch (url.pathname) {
       case '/create': return this.create(await request.json());
-      case '/list': return json({ jobs: await this.summaries() });
+      case '/list': {
+        await this.revive();
+        return json({ jobs: await this.summaries() });
+      }
       case '/get': {
         const job = await this.storage.get(`job:${id}`);
         if (!job) return fail(404, 'No such job.');
+        if (job.status === 'running') await this.revive();
         const body = { job: summary(job) };
         if (url.searchParams.get('outputs') === '1') {
           body.outputs = await this.outputs(job);
-          body.checks = (await this.storage.get(`ver:${job.id}`)) || [];
+          body.checks = await this.verdicts(job);
         }
         return json(body);
       }
@@ -309,13 +328,29 @@ export class GenerationJobs {
         await this.forget(job);
         return json({ ok: true });
       }
+      // the account is being deleted (worker.js): everything here goes, and
+      // nothing is left to wake up
+      case '/wipe': {
+        await this.storage.deleteAll();
+        await this.storage.deleteAlarm?.();
+        return json({ ok: true });
+      }
       default: return fail(404, 'No such endpoint.');
     }
   }
 
+  /// A running job with no alarm (the platform gave up retrying one that kept
+  /// failing) is started again when the app asks after it, rather than left
+  /// "running" for ever and holding one of the account's three places.
+  async revive() {
+    if (await this.storage.getAlarm()) return;
+    if ((await this.all()).some(j => j.status === 'running')) await this.storage.setAlarm(Date.now() + 50);
+  }
+
   async create({ accountId, owner, spec }) {
     let jobs = await this.all();
-    if (jobs.filter(j => j.status === 'running').length >= LIMITS.active) {
+    const running = jobs.filter(j => j.status === 'running').length;
+    if (running >= LIMITS.active) {
       return fail(429, `${LIMITS.active} jobs are already being written - wait for one to finish.`);
     }
     // Finished jobs wait a week to be collected; without a ceiling, jobs that
@@ -335,26 +370,44 @@ export class GenerationJobs {
       patience: spec.patience, stepCount: spec.steps.length, sourceCount: spec.sources.length,
       status: 'running', done: 0, round: 0, failures: 0, empty: 0, replies: 0,
       phase: 'writing', hasCheck: !!spec.check, checked: 0, checkTotal: 0, checkError: null,
+      // the check queue and its verdicts, one stored value per item (a single
+      // growing list would pass a Durable Object's limit on one value)
+      pendCount: 0, pendChars: 0, verCount: 0, unqueued: 0,
       created: now, updated: now, error: null,
     };
-    const writes = { [`job:${id}`]: job, [`keys:${id}`]: [], [`pend:${id}`]: [], [`ver:${id}`]: [] };
+    const writes = { [`job:${id}`]: job, [`keys:${id}`]: [] };
     if (spec.check) writes[`check:${id}`] = spec.check;
     spec.steps.forEach((step, i) => { writes[`step:${id}:${i}`] = step; });
     spec.sources.forEach((source, i) => { writes[`src:${id}:${i}`] = source; });
     // put() takes at most 128 keys at a time
     const entries = Object.entries(writes);
     for (let i = 0; i < entries.length; i += 100) await this.storage.put(Object.fromEntries(entries.slice(i, i + 100)));
-    if (!await this.storage.getAlarm()) await this.storage.setAlarm(Date.now() + 50);
+    // Start now. An alarm may already be set a week out, to expire finished
+    // jobs; with nothing running, it is brought forward rather than waited for.
+    const at = await this.storage.getAlarm();
+    if (!at || (!running && at > Date.now() + 50)) await this.storage.setAlarm(Date.now() + 50);
     return json({ job: summary(job) }, 201);
   }
 
   /// One model call for the oldest running job, then the next alarm.
   async alarm() {
     const jobs = await this.all();
-    const expired = Date.now() - LIMITS.keepDays * 86_400_000;
+    const now = Date.now();
+    const expired = now - LIMITS.keepDays * DAY_MS;
     for (const old of jobs.filter(j => j.status !== 'running' && j.updated < expired)) await this.forget(old);
+    // running, but untouched for a day: its alarm was lost - it ends here
+    for (const stuck of jobs.filter(j => j.status === 'running' && j.updated < now - LIMITS.staleHours * 3_600_000)) {
+      stop(stuck, 'The cloud stopped working on this. Try again.');
+      stuck.updated = now;
+      await this.storage.put(`job:${stuck.id}`, stuck);
+      await this.release(stuck);
+    }
     const job = jobs.filter(j => j.status === 'running').sort((a, b) => a.created - b.created)[0];
-    if (!job) return;
+    if (!job) {
+      await this.sweep();
+      await this.schedule(0);
+      return;
+    }
     let wait = 0;
     try {
       wait = await this.step(job);
@@ -364,31 +417,61 @@ export class GenerationJobs {
       wait = RETRY_SECONDS;
     }
     if (job.status === 'running' && job.failures >= MAX_FAILURES) {
-      job.status = job.done > 0 ? 'done' : 'failed';
-      if (job.phase === 'checking') job.checkError = job.error || 'The checker kept failing.';
-      else job.error = job.error || 'The cloud model kept failing. Try again later.';
-    }
-    // written: now the accuracy check, before anyone is told it is done
-    if (job.status === 'done' && job.phase === 'writing' && job.hasCheck) {
-      const pend = (await this.storage.get(`pend:${job.id}`)) || [];
-      if (pend.length && !job.error) {
-        job.phase = 'checking';
-        job.status = 'running';
-        job.checkTotal = pend.length;
-        job.failures = 0;
-        wait = 0;
+      if (job.phase === 'checking') {
+        job.status = 'done';
+        job.checkError = job.checkNote || 'The checker kept failing.';
+      } else {
+        stop(job, job.error || 'The cloud model kept failing. Try again later.');
       }
+    }
+    // Written (all of it, or as much as could be): now the accuracy check,
+    // before anyone is told it is done. It runs over what was written even
+    // when the writing stopped early - if the reason was the day's allowance,
+    // its first call is refused at no cost and says so (checkError).
+    if (job.status === 'done' && job.phase === 'writing' && job.hasCheck && job.pendCount > 0) {
+      job.phase = 'checking';
+      job.status = 'running';
+      job.checkTotal = job.pendCount;
+      job.failures = 0;
+      wait = 0;
     }
     job.updated = Date.now();
     // the job may have been cancelled while its call was out
-    if (await this.storage.get(`job:${job.id}`)) {
+    if (!job.gone && await this.storage.get(`job:${job.id}`)) {
       await this.storage.put(`job:${job.id}`, job);
       // finished: the lecture and prompts are no longer needed, only the
       // replies and verdicts the app comes back for
       if (job.status !== 'running') await this.release(job);
     }
-    const more = (await this.all()).some(j => j.status === 'running');
-    if (more) await this.storage.setAlarm(Date.now() + wait * 1000 + 50);
+    await this.schedule(wait);
+  }
+
+  /// The next alarm: soon while anything runs; otherwise when the oldest
+  /// finished job is due to expire, so a job nobody collects is still gone
+  /// after keepDays - not kept until the account happens to start another.
+  async schedule(wait) {
+    const jobs = await this.all();
+    if (jobs.some(j => j.status === 'running')) {
+      await this.storage.setAlarm(Date.now() + wait * 1000 + 50);
+      return;
+    }
+    if (jobs.length) {
+      const due = Math.min(...jobs.map(j => j.updated)) + LIMITS.keepDays * DAY_MS + 60_000;
+      await this.storage.setAlarm(Math.max(due, Date.now() + 1000));
+    } else {
+      await this.storage.deleteAlarm?.();
+    }
+  }
+
+  /// Anything stored for a job that no longer exists. A cancel that landed
+  /// while a model call was out used to leave the call's reply behind, with
+  /// nothing pointing at it; this clears what such a cancel left before it was
+  /// fixed, and anything else like it.
+  async sweep() {
+    const jobs = new Set((await this.all()).map(j => j.id));
+    const all = await this.storage.list({ prefix: '' });
+    const orphans = [...all.keys()].filter(k => !k.startsWith('job:') && !jobs.has(k.split(':')[1]));
+    for (let i = 0; i < orphans.length; i += 100) await this.storage.delete(orphans.slice(i, i + 100));
   }
 
   /// Returns how long to wait before the next call, in seconds.
@@ -403,16 +486,21 @@ export class GenerationJobs {
     if (step.system) messages.push({ role: 'system', content: fill(step.system, source, already) });
     messages.push({ role: 'user', content: fill(step.user, source, already) });
 
+    // One round of trying: a model that is busy is tried again on the next
+    // alarm, not waited for here, where waiting is paid for by the second.
     const response = await chat(this.env, job.accountId,
       { model: 'cramdown-writer', messages, max_tokens: step.maxTokens, temperature: step.temperature },
-      this.fetcher, { owner: job.owner });
+      this.fetcher, { owner: job.owner, maxTokensCap: JOB_MAX_TOKENS, rounds: 1 });
     const body = await response.json().catch(() => ({}));
+    // Cancelled (or the account deleted) while the call was out: nothing of
+    // it is kept. Everything below is storage only, so nothing else can come
+    // between this check and the writes.
+    if (!await this.storage.get(`job:${job.id}`)) { job.gone = true; return 0; }
     if (!response.ok) {
       const message = body?.message || `The cloud model refused (HTTP ${response.status}).`;
       // no Pro, the day's allowance spent, a bad request: waiting will not help
       if ([400, 401, 402, 403, 429].includes(response.status)) {
-        job.status = job.done > 0 ? 'done' : 'failed';
-        job.error = message;
+        stop(job, message);
         return 0;
       }
       job.failures += 1;
@@ -424,9 +512,6 @@ export class GenerationJobs {
     if (typeof body?.source === 'string' && !(job.writers || []).includes(body.source)) {
       job.writers = [...(job.writers || []), body.source].slice(-6);
     }
-    job.round += 1;
-    job.failures = 0;
-    job.error = null;
 
     const seen = new Set(keys.map(k => k.same));
     const fresh = [];
@@ -436,57 +521,87 @@ export class GenerationJobs {
       fresh.push(item);
       if (job.done + fresh.length >= job.count) break;
     }
+    const writes = {};
+    let pendCount = job.pendCount || 0, pendChars = job.pendChars || 0, unqueued = job.unqueued || 0;
     if (job.hasCheck) {
       // what the check will look at: each question or station; a textbook
-      // page; a batch of card lines as one (they are short)
+      // page; a batch of card lines as one (they are short) - with the window
+      // of the lecture it was written from, which is where the check looks
       const toCheck = job.extract === 'pages' ? (reply ? [{ key: String(job.replies), text: reply }] : [])
         : job.extract === 'lines' ? (fresh.length ? [{ key: 'batch:' + job.replies, text: fresh.map(f => f.text).join('\n') }] : [])
         : fresh.map(f => ({ key: f.same, text: f.check }));
-      if (toCheck.length) {
-        const pend = (await this.storage.get(`pend:${job.id}`)) || [];
-        await this.storage.put(`pend:${job.id}`, pend.concat(toCheck));
+      for (const item of toCheck) {
+        if (pendChars + item.text.length > LIMITS.checkChars) { unqueued += 1; continue; }
+        writes[`pend:${job.id}:${pendCount}`] = { ...item, source: step.source };
+        pendCount += 1;
+        pendChars += item.text.length;
       }
     }
+    let replies = job.replies;
     if (job.mode === 'each') {
       // a page is kept even when it came back empty, so page i stays page i
-      await this.storage.put(`out:${job.id}:${job.replies}`, reply);
-      job.replies += 1;
+      writes[`out:${job.id}:${replies}`] = reply;
+      replies += 1;
+    } else if (fresh.length) {
+      writes[`out:${job.id}:${replies}`] = reply;
+      writes[`keys:${job.id}`] = keys.concat(fresh.map(f => ({ key: f.key, same: f.same })));
+      replies += 1;
+    }
+    if (Object.keys(writes).length) await this.storage.put(writes);
+    // Only now, with everything stored, is the call a success: a write that
+    // fails must count as a failure, or the same paid call would be made again
+    // and again with nothing ever counting towards giving up.
+    job.pendCount = pendCount;
+    job.pendChars = pendChars;
+    job.unqueued = unqueued;
+    job.replies = replies;
+    job.round += 1;
+    job.failures = 0;
+    job.error = null;
+    if (job.mode === 'each') {
       job.done += 1;
     } else {
-      if (fresh.length) {
-        await this.storage.put({
-          [`out:${job.id}:${job.replies}`]: reply,
-          [`keys:${job.id}`]: keys.concat(fresh.map(f => ({ key: f.key, same: f.same }))),
-        });
-        job.replies += 1;
-      }
       job.done += fresh.length;
       job.empty = fresh.length ? 0 : job.empty + 1;
-      if (job.empty >= job.patience) {
-        job.status = job.done > 0 ? 'done' : 'failed';
-        if (!job.done) job.error = 'The model wrote nothing usable from this source.';
+      if (job.empty >= job.patience && job.done < job.count) {
+        if (job.done) stop(job, `The model found nothing new to write after ${job.done}.`, { quiet: true });
+        else stop(job, 'The model wrote nothing usable from this source.');
       }
     }
-    if (job.done >= job.count) job.status = 'done';
+    if (job.done >= job.count) { job.status = 'done'; job.partial = false; }
     return 0;
   }
 
   /// One item through the checker (MedVAL's prompt, the cloud checker).
   async checkStep(job) {
-    const pend = (await this.storage.get(`pend:${job.id}`)) || [];
-    const item = pend[job.checked];
+    const item = await this.pendItem(job, job.checked);
     if (!item) { job.status = 'done'; return 0; }
     const check = await this.storage.get(`check:${job.id}`);
-    const sources = [];
-    for (let i = 0; i < job.sourceCount; i++) sources.push((await this.storage.get(`src:${job.id}:${i}`)) || '');
-    const input = nearest(sources.join('\n\n'), item.text, check.limit);
+    // Only the window of the lecture the item was written from is searched.
+    // Reading and re-splitting the whole lecture for every item was several
+    // times the CPU a free-plan invocation may use, once a lecture was long.
+    let lecture;
+    if (Number.isInteger(item.source) && item.source >= 0) {
+      lecture = (await this.storage.get(`src:${job.id}:${item.source}`)) || '';
+    } else {
+      const parts = [];
+      let size = 0;
+      for (let i = 0; i < job.sourceCount && size < 400_000; i++) {
+        const part = (await this.storage.get(`src:${job.id}:${i}`)) || '';
+        parts.push(part);
+        size += part.length;
+      }
+      lecture = parts.join('\n\n').slice(0, 400_000);
+    }
+    const input = nearest(lecture, item.text, check.limit);
     const prompt = check.template.split('{{OUTPUT}}').join(item.text.slice(0, check.limit / 2))
       .split('{{INPUT}}').join(input);
     const response = await chat(this.env, job.accountId,
       { model: 'cramdown-checker', messages: [{ role: 'user', content: prompt }], max_tokens: 900, temperature: 0.1,
         avoid: job.writers || [] },
-      this.fetcher, { owner: job.owner });
+      this.fetcher, { owner: job.owner, rounds: 1 });
     const body = await response.json().catch(() => ({}));
+    if (!await this.storage.get(`job:${job.id}`)) { job.gone = true; return 0; }
     if (!response.ok) {
       const message = body?.message || `The checker refused (HTTP ${response.status}).`;
       if ([400, 401, 402, 403, 429].includes(response.status)) {
@@ -496,21 +611,41 @@ export class GenerationJobs {
         return 0;
       }
       job.failures += 1;
-      job.error = message;
+      job.checkNote = message;
       return RETRY_SECONDS;
     }
     const reply = String(body?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    const verdicts = (await this.storage.get(`ver:${job.id}`)) || [];
     // the evidence the checker was shown (evidence.js), so the app can cite
     // exactly what was looked up and nothing else
     const evidence = Array.isArray(body?.evidence) ? body.evidence.slice(0, 8) : [];
-    verdicts.push(evidence.length ? { key: item.key, reply, evidence } : { key: item.key, reply });
-    await this.storage.put(`ver:${job.id}`, verdicts);
+    await this.storage.put(`ver:${job.id}:${job.verCount || 0}`,
+      evidence.length ? { key: item.key, reply, evidence } : { key: item.key, reply });
+    job.verCount = (job.verCount || 0) + 1;
     job.checked += 1;
     job.failures = 0;
-    job.error = null;
-    if (job.checked >= job.checkTotal) job.status = 'done';
+    job.checkNote = null;
+    if (job.checked >= job.checkTotal) {
+      job.status = 'done';
+      if (job.unqueued) job.checkError = `${job.unqueued} item(s) were too many to check here; the app checks them.`;
+    }
     return 0;
+  }
+
+  /// Item n of the check queue. A job made before the queue was stored item
+  /// by item (pendCount unset) still has it as one list.
+  async pendItem(job, n) {
+    if (job.pendCount === undefined) return ((await this.storage.get(`pend:${job.id}`)) || [])[n];
+    return n < job.pendCount ? this.storage.get(`pend:${job.id}:${n}`) : undefined;
+  }
+
+  async verdicts(job) {
+    if (job.verCount === undefined) return (await this.storage.get(`ver:${job.id}`)) || [];
+    const out = [];
+    for (let i = 0; i < job.verCount; i++) {
+      const verdict = await this.storage.get(`ver:${job.id}:${i}`);
+      if (verdict) out.push(verdict);
+    }
+    return out;
   }
 
   async outputs(job) {
@@ -531,6 +666,7 @@ export class GenerationJobs {
   /// Drops what only a running job needs - its sources, prompts and queue.
   async release(job) {
     const keys = [`pend:${job.id}`, `check:${job.id}`];
+    for (let i = 0; i < (job.pendCount || 0); i++) keys.push(`pend:${job.id}:${i}`);
     for (let i = 0; i < job.stepCount; i++) keys.push(`step:${job.id}:${i}`);
     for (let i = 0; i < job.sourceCount; i++) keys.push(`src:${job.id}:${i}`);
     for (let i = 0; i < keys.length; i += 100) await this.storage.delete(keys.slice(i, i + 100));
@@ -538,6 +674,8 @@ export class GenerationJobs {
 
   async forget(job) {
     const keys = [`job:${job.id}`, `keys:${job.id}`, `pend:${job.id}`, `ver:${job.id}`, `check:${job.id}`];
+    for (let i = 0; i < (job.pendCount || 0); i++) keys.push(`pend:${job.id}:${i}`);
+    for (let i = 0; i < (job.verCount || 0); i++) keys.push(`ver:${job.id}:${i}`);
     for (let i = 0; i < job.stepCount; i++) keys.push(`step:${job.id}:${i}`);
     for (let i = 0; i < job.sourceCount; i++) keys.push(`src:${job.id}:${i}`);
     for (let i = 0; i < job.replies; i++) keys.push(`out:${job.id}:${i}`);
@@ -545,10 +683,24 @@ export class GenerationJobs {
   }
 }
 
+/// Ends the writing early, for a reason. With something written the job is
+/// "done" - the app collects what there is - but marked partial with the
+/// reason, so the app can say "36 of 80: today's cloud allowance is used"
+/// instead of presenting a short set as the whole one.
+function stop(job, reason, { quiet = false } = {}) {
+  job.status = job.done > 0 ? 'done' : 'failed';
+  job.partial = job.done > 0 && job.done < job.count;
+  job.reason = reason;
+  if (!quiet || !job.done) job.error = reason;
+}
+
 function summary(job) {
   const { id, title, status, done, count, error, created, updated, phase, checked, checkTotal, checkError } = job;
   return {
     id, title, status, done, total: count, error, created, updated,
     phase: phase || 'writing', checked: checked || 0, checkTotal: checkTotal || 0, checkError: checkError || null,
+    // written short of what was asked, and why (the app shows it; older
+    // builds ignore both)
+    partial: !!job.partial, reason: job.partial ? job.reason || error || null : null,
   };
 }

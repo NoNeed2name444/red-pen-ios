@@ -21,14 +21,19 @@
 // is not 98% proven, and the report says so.
 //
 // Env: WORKER (base URL), KEY (owner key), N (questions, default 150),
-//      SEED, CONCURRENCY, REPORT (markdown path), TARGET (default 0.98)
+//      SEED, CONCURRENCY, REPORT (markdown path), TARGET (default 0.98),
+//      CALLS (the day's benchmark allowance, default 2500: each question is
+//      five calls, so N is capped at CALLS / 5 and a larger N is run over
+//      several days with different seeds)
 
 import { writeFileSync } from 'node:fs';
 import { limitKind, waitFor } from './checkers.mjs';
 
 const WORKER = (process.env.WORKER || 'https://redpen-auth.vv7sh4rnnw.workers.dev').replace(/\/+$/, '');
 const KEY = process.env.KEY || '';
-const N = Number(process.env.N || 150);
+const CALLS = Number(process.env.CALLS || 2500);
+const ASKED = Number(process.env.N || 150);
+const N = Math.min(ASKED, Math.floor(CALLS / 5));
 const SEED = Number(process.env.SEED || 20260923);
 const CONCURRENCY = Number(process.env.CONCURRENCY || 3);
 const TARGET = Number(process.env.TARGET || 0.98);
@@ -55,14 +60,21 @@ export function wilson(k, n, z = 1.96) {
   return [Math.max(0, c - h), Math.min(1, c + h)];
 }
 
+/// The letter the model chose: from its JSON, or - a reply cut off before the
+/// JSON - from its last explicit conclusion ("the answer is C", "Answer: C").
+/// The letter must be a capital standing alone, so "the answer is a
+/// thiazide" is not read as A, and the last conclusion wins over options
+/// discussed on the way. Nothing clear is no answer, never a guess.
 export function letterFrom(reply) {
   const text = String(reply);
   try {
     const j = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
     if (/^[A-D]$/i.test(String(j.answer).trim())) return String(j.answer).trim().toUpperCase();
   } catch {}
-  const m = text.match(/\b(?:answer|option)\s*(?:is|:)?\s*\(?([A-D])\)?\b/i) || text.match(/^\s*\(?([A-D])[).:]/m);
-  return m ? m[1].toUpperCase() : null;
+  const stated = [...text.matchAll(/\b[Aa]nswer\s*(?:is|:)\s*(?:option\s*)?\(?([A-D])\)?(?![A-Za-z0-9])/g)];
+  if (stated.length) return stated.at(-1)[1];
+  const m = text.match(/^\s*\(?([A-D])[).:](?:\s|$)/m);
+  return m ? m[1] : null;
 }
 
 /// MedVAL's risk level out of a checker reply (the same parse the app uses).
@@ -130,7 +142,8 @@ async function ask(model, content, { ground = true, maxTokens = 700 } = {}) {
     try {
       r = await fetch(`${WORKER}/v1/chat/completions`, {
         method: 'POST', signal: AbortSignal.timeout(150_000),
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
+        // x-bench: the benchmarks' own daily allowance, never the owner app's
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}`, 'x-bench': '1' },
         body: JSON.stringify({ model, ground, max_tokens: maxTokens, temperature: 0, messages: [{ role: 'user', content }] }),
       });
       j = await r.json().catch(() => ({}));
@@ -140,7 +153,7 @@ async function ask(model, content, { ground = true, maxTokens = 700 } = {}) {
     }
     if (r.ok) return { text: j.choices?.[0]?.message?.content || '', source: j.source || '?', evidence: j.evidence || [] };
     const message = `${r.status}: ${j.message || ''}`;
-    const kind = r.status === 429 ? (limitKind(message) || 'minute') : limitKind(message);
+    const kind = r.status === 429 ? (limitKind(message, j) || 'minute') : limitKind(message, j);
     if (kind === 'day') { dayLimit ||= message.slice(0, 200); return { error: message.slice(0, 200) }; }
     if (kind === 'minute' && waits < 8) {
       waits++; attempt--;
@@ -194,6 +207,7 @@ const ci = (k, n) => { const [lo, hi] = wilson(k, n); return `${pct(n ? k / n : 
 
 async function main() {
   if (!KEY) { console.error('KEY (owner key) is required'); process.exit(2); }
+  if (N < ASKED) console.log(`N=${ASKED} is more than a day's ${CALLS} benchmark calls allow (5 per question): running ${N}.`);
   const indices = sample(1273, N, SEED);
   const qs = await rows(indices);
   console.log(`${qs.length} questions loaded`);
@@ -221,6 +235,7 @@ async function main() {
     `# CramDown Cloud medical accuracy benchmark`, ``,
     `${new Date().toISOString().slice(0, 16)} UTC · ${results.length} MedQA (USMLE) test questions, seed ${SEED} · evidence from Europe PMC, MedlinePlus and openFDA on every call.`, ``,
     `Models that answered: ${Object.entries(sources).map(([k, v]) => `${k} ×${v}`).join(', ')}.`, ``,
+    ...(N < ASKED ? [`${ASKED} questions were asked for; a day's ${CALLS} benchmark calls cover ${N}. Run again tomorrow with another SEED for more.`, ``] : []),
     `## The number that matters`, ``,
     `**Accuracy of the answers a student would see** (answered, then passed by the grounded checker): ${ci(shownRight.length, shown.length)}`, ``,
     `Target ${pct(TARGET)}: **${verdict}**`, ``,

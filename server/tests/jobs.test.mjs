@@ -51,11 +51,19 @@ function storage() {
     async list({ prefix }) { return new Map([...map].filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k, copy(v)])); },
     async getAlarm() { return alarm; },
     async setAlarm(at) { alarm = at; },
+    async deleteAlarm() { alarm = null; },
+    async deleteAll() { map.clear(); },
     clearAlarm() { alarm = null; },
   };
 }
+// every alarm that is due soon - not the one a week out that expires finished jobs
 async function runAll(object, store, limit = 50) {
-  for (let i = 0; i < limit && await store.getAlarm(); i++) { store.clearAlarm(); await object.alarm(); }
+  for (let i = 0; i < limit; i++) {
+    const at = await store.getAlarm();
+    if (!at || at > Date.now() + 3_600_000) break;
+    store.clearAlarm();
+    await object.alarm();
+  }
 }
 
 // what is refused at the door
@@ -64,6 +72,10 @@ ok(checkSpec({ mode: 'x', extract: 'lines', steps: [{ user: 'a' }] }).error, 'an
 ok(checkSpec({ mode: 'loop', extract: 'lines', steps: [{ user: 'a', source: 2 }], sources: ['s'] }).error, 'a prompt naming a missing source is refused');
 ok(checkSpec({ mode: 'loop', extract: 'lines', steps: [{ user: 'x'.repeat(70_000) }] }).error, 'an oversized prompt is refused');
 ok(checkSpec({ mode: 'loop', extract: 'lines', count: 10, steps: [{ user: 'a', maxTokens: 1e9 }] }).spec.steps[0].maxTokens === 8000, 'tokens are capped');
+ok(!checkSpec({ mode: 'loop', extract: 'lines', count: 10, sources: Array(45).fill('x'.repeat(40_000)), steps: [{ user: 'a', source: 0 }] }).error,
+   'a long lecture in 45 windows of 40,000 characters is one job');
+ok(checkSpec({ mode: 'loop', extract: 'lines', count: 10, sources: Array(5).fill('x'.repeat(1_400_000)), steps: [{ user: 'a' }] }).error,
+   'but the lecture as a whole still has a limit');
 
 // placeholders
 ok(fill('SOURCE:\n{{SOURCE}}', 'the lecture', []) === 'SOURCE:\nthe lecture', 'the source goes in');
@@ -236,6 +248,158 @@ ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read fro
   ok(checkerOrder({}, all, ['gemini-3.5-flash'])[0] === 'gemini-3.1-pro-preview', 'Flash wrote it: 3.1 Pro checks');
   ok(!checkerOrder({}, all.slice(1), ['gemini-3.5-flash']).includes('gemini-3.5-flash'), 'the writer is left out of the checker chain');
   ok(checkerOrder({}, ['gemma-4-31b-it'], ['gemma-4-31b-it']).length === 1, 'with nothing else left, the one model still checks');
+}
+
+// a job's replies are as long as it asked for
+{
+  const store = storage();
+  let sent;
+  const fake = async (url, init) => { sent = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 }); };
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 1, steps: [{ user: 'Write.', maxTokens: 3800 }] }).spec;
+  await object.create({ accountId: 'owner', owner: true, spec });
+  await runAll(object, store);
+  ok(sent.max_tokens === 3800, 'a step asking for 3,800 tokens is sent 3,800, not cut to 2,000');
+}
+
+// cancelled while its model call was out: nothing of that call is kept
+{
+  const store = storage();
+  let object, id;
+  const fake = async (url, init) => {
+    await object.fetch(new Request(`https://jobs/cancel?id=${id}`, { method: 'POST' }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"questions":[{"stem":"S","options":["a","b"],"correctIndex":0}]}' } }] }), { status: 200 });
+  };
+  object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'MCQ', mode: 'loop', extract: 'questions', count: 3, sources: ['L'], steps: [{ user: 'Write {{SOURCE}}', source: 0 }],
+    check: { template: 'CHECK {{INPUT}} {{OUTPUT}}' } }).spec;
+  id = (await (await object.create({ accountId: 'owner', owner: true, spec })).json()).job.id;
+  await runAll(object, store);
+  ok(store.map.size === 0, 'a cancel that lands mid-call leaves no reply, queue or keys behind');
+}
+
+// a finished job nobody collects is still gone after a week
+{
+  const store = storage();
+  const fake = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 });
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 1, steps: [{ user: 'Write.' }] }).spec;
+  await object.create({ accountId: 'owner', owner: true, spec });
+  await runAll(object, store);
+  const at = await store.getAlarm();
+  ok(at > Date.now() + 6 * 86_400_000, 'once it is done, the next alarm is when it expires');
+  // a new job does not wait a week for that alarm
+  await object.create({ accountId: 'owner', owner: true, spec });
+  ok((await store.getAlarm()) < Date.now() + 1000, 'a new job brings the alarm forward and starts at once');
+  await runAll(object, store);
+  const realNow = Date.now;
+  Date.now = () => realNow() + 8 * 86_400_000;
+  try { store.clearAlarm(); await object.alarm(); } finally { Date.now = realNow; }
+  ok(store.map.size === 0 && !(await store.getAlarm()), 'a week on, the alarm removes it, and sets no other');
+}
+
+// an account deleted: its object is emptied
+{
+  const store = storage();
+  const fake = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 });
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write.' }] }).spec;
+  await object.create({ accountId: 'owner', owner: true, spec });
+  await object.fetch(new Request('https://jobs/wipe', { method: 'POST' }));
+  ok(store.map.size === 0 && !(await store.getAlarm()), '/wipe leaves nothing, and nothing set to wake up');
+}
+
+// anything a job left behind without a job to point at it is swept
+{
+  const store = storage();
+  const object = new GenerationJobs({ storage: store }, env(), async () => new Response('{}'));
+  await store.put({ 'out:00000000-0000-0000-0000-000000000000:0': 'old reply', 'keys:00000000-0000-0000-0000-000000000000': [] });
+  await store.setAlarm(Date.now());
+  store.clearAlarm();
+  await object.alarm();
+  ok(store.map.size === 0, 'orphaned replies from an old cancel are removed');
+}
+
+// a running job whose alarm was lost starts again when the app asks after it; one lost a day ago ends
+{
+  const store = storage();
+  const fake = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 });
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 1, steps: [{ user: 'Write.' }] }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  store.clearAlarm();
+  await object.fetch(new Request(`https://jobs/get?id=${made.job.id}`));
+  ok(await store.getAlarm(), 'asking after a running job with no alarm sets one');
+  const job = await store.get(`job:${made.job.id}`);
+  job.updated = Date.now() - 2 * 86_400_000;
+  await store.put(`job:${made.job.id}`, job);
+  store.clearAlarm();
+  const other = new GenerationJobs({ storage: store }, env(), async () => { throw new Error('should not be called'); });
+  await other.alarm();
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}`))).json();
+  ok(got.job.status === 'failed' && got.job.error, 'a job untouched for a day ends instead of holding a place for ever');
+}
+
+// a storage write that keeps failing counts as a failure, so the paid call is not made for ever
+{
+  const store = storage();
+  let calls = 0;
+  const fake = async () => { calls++; return new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 }); };
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'C', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write.' }] }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  const put = store.put;
+  store.put = async (k, v) => { if (typeof k === 'object' && Object.keys(k).some(x => x.startsWith('out:'))) throw new Error('value too large'); return put(k, v); };
+  for (let i = 0; i < 10; i++) { const at = await store.getAlarm(); if (!at || at > Date.now() + 3_600_000) break; store.clearAlarm(); await object.alarm(); }
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}`))).json();
+  ok(calls === 4 && got.job.status === 'failed', 'it stops after four tries, not when the day\'s allowance runs out');
+}
+
+// the check queue and verdicts are stored item by item, and the checker reads only the item's own window
+{
+  const store = storage();
+  const checks = [];
+  const fake = async (url, init) => {
+    const prompt = JSON.parse(init.body).messages.at(-1).content;
+    if (prompt.startsWith('CHECK')) { checks.push(prompt); return new Response(JSON.stringify({ choices: [{ message: { content: 'risk 1' } }] })); }
+    const n = prompt.includes('WINDOW TWO') ? 2 : 1;
+    return new Response(JSON.stringify({ choices: [{ message: { content: `{"questions":[{"stem":"Stem ${n}","options":["a","b"],"correctIndex":0}]}` } }] }));
+  };
+  const object = new GenerationJobs({ storage: store }, env(), fake);
+  const spec = checkSpec({ title: 'MCQ', mode: 'loop', extract: 'questions', count: 2, sources: ['WINDOW ONE text', 'WINDOW TWO text'],
+    steps: [{ user: '{{SOURCE}}', source: 0 }, { user: '{{SOURCE}}', source: 1 }], check: { template: 'CHECK {{INPUT}} | {{OUTPUT}}' } }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  let pendKeys = 0;
+  const put = store.put;
+  store.put = async (k, v) => { if (typeof k === 'object') pendKeys += Object.keys(k).filter(x => /^pend:.+:\d+$/.test(x)).length; return put(k, v); };
+  await runAll(object, store);
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}&outputs=1`))).json();
+  ok(pendKeys === 2 && got.checks.length === 2, 'each queued item and verdict is its own stored value');
+  ok(checks.find(c => c.includes('Stem 2')).includes('WINDOW TWO') && !checks.find(c => c.includes('Stem 2')).includes('WINDOW ONE'),
+     'a question is checked against the window it was written from');
+}
+
+// stopped early by the day's allowance: done, but marked partial with the reason, and checked as far as it can be
+{
+  const store = storage();
+  let n = 0;
+  const fake = async (url, init) => {
+    const prompt = JSON.parse(init.body).messages.at(-1).content;
+    if (prompt.startsWith('CHECK')) return new Response(JSON.stringify({ choices: [{ message: { content: 'risk 1' } }] }));
+    n++;
+    return new Response(JSON.stringify({ choices: [{ message: { content: `{"questions":[{"stem":"Stem ${n}","options":["a","b"],"correctIndex":0}]}` } }] }));
+  };
+  const e = { ...env(), OWNER_DAILY_LIMIT: '2' };
+  const object = new GenerationJobs({ storage: store }, e, fake);
+  const spec = checkSpec({ title: 'MCQ', mode: 'loop', extract: 'questions', count: 10, steps: [{ user: 'Write.' }],
+    check: { template: 'CHECK {{INPUT}} {{OUTPUT}}' } }).spec;
+  const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
+  await runAll(object, store);
+  const got = await (await object.fetch(new Request(`https://jobs/get?id=${made.job.id}&outputs=1`))).json();
+  ok(got.job.status === 'done' && got.job.partial === true && got.job.done === 2 && /cloud requests/.test(got.job.reason),
+     'two of ten written, then the allowance: done, partial, and why');
+  ok(got.job.phase === 'checking' && got.job.checkError, 'the check was tried, and says why it could not run');
 }
 
 console.log(failures ? `\n${failures} failed` : '\nall passed');

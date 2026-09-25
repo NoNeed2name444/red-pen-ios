@@ -7,20 +7,26 @@
 // "neurons" a day that the text models fall back on - so it is rationed:
 //
 //   1. Every line is kept in R2 (env.BLOBS) under a hash of the voice and the
-//      words, so a card read a second time, by anyone, costs nothing.
+//      words, so a card read a second time costs nothing. Kept per account
+//      (tts/<account>/...): a cache shared by everyone would tell anybody who
+//      asks for a line whether someone else has already had it read - a
+//      student's own notes included - and it would outlive a deleted account.
+//      The deploy expires these files after 60 days (worker-deploy.yml).
 //   2. Aura-2 is used within a small shared number of characters a day
 //      (TTS_FREE_DAILY_CHARS), which keeps it inside the free allowance.
 //   3. Past that, only once Pro pays for things (PRO_PAYS = "on"), a Pro
 //      account may carry on with Aura-2 out of its monthly budget, counted
 //      like every other paid call (see budget() in ai.js).
-//   4. Otherwise MeloTTS, which costs about a fiftieth of a cent an hour of
-//      speech, so it is in effect free. It has one voice only.
+//   4. Otherwise MeloTTS: about 19 neurons a minute of speech, one voice only.
+//   Everything from Workers AI's free daily neurons is also taken from the
+//   account's share of them (takeNeurons in ai.js), so one account cannot
+//   spend the day's allowance for everyone.
 //   5. If Workers AI refuses altogether (the day's allowance is gone), the
 //      answer is 503 and the phone reads the line with its own voice.
 //
 // Each account may ask for TTS_DAILY_LIMIT lines a day (300 by default) of
 // at most 1,500 characters each; the app splits longer text into sentences.
-import { proGate, spend, wallet, canPay, reserve, settle, proPays } from './ai.js';
+import { proGate, spend, wallet, canPay, reserve, settle, proPays, takeNeurons, giveNeurons } from './ai.js';
 
 export const MAX_TTS_CHARS = 1500;
 const DEFAULT_DAILY_LIMIT = 300;
@@ -29,6 +35,10 @@ export const AURA = '@cf/deepgram/aura-2-en';
 export const MELO = '@cf/myshell-ai/melotts';
 // Aura-2's price, in millionths of a dollar per character ($0.03 per 1,000)
 const AURA_MICRO_PER_CHAR = 30;
+// neurons per character: Aura-2 ~2,727 per 1,000 characters; MeloTTS ~19 a
+// minute of speech, and a minute is ~900 characters
+const AURA_NEURONS_PER_CHAR = 2.73;
+const MELO_NEURONS_PER_CHAR = 0.021;
 
 /// Who says what. Both British, one of each sex, so a student with the phone
 /// in a pocket can tell the examiner from the patient at once. Deepgram
@@ -58,11 +68,13 @@ export function tidy(text) {
   return typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
 }
 
-/// The name a line is cached under: which model, which speaker, which words.
-export async function cacheKey(model, speaker, text) {
+/// The name a line is cached under: whose, which model, which speaker, which
+/// words. Under the account (see the top of this file), so wipe() in sync.js
+/// takes an account's lines with it.
+export async function cacheKey(model, speaker, text, scope = 'owner') {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${model}|${speaker}|${text}`));
   const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
-  return `tts/${hex}.mp3`;
+  return `tts/${scope}/${hex}.mp3`;
 }
 
 /// Takes `chars` from today's shared Aura-2 allowance, all or nothing. The
@@ -77,6 +89,13 @@ export async function takeFreeChars(env, chars) {
      WHERE requests + excluded.requests <= ?`)
     .bind(today(), chars, limit).run();
   return (result.meta?.changes ?? 0) > 0;
+}
+
+/// Gives back characters taken for a line Aura-2 never made.
+async function giveFreeChars(env, chars) {
+  await env.DB.prepare(
+    "UPDATE ai_usage SET requests = MAX(0, requests - ?) WHERE account_id = 'tts-chars:all' AND day = ?")
+    .bind(chars, today()).run();
 }
 
 /// Whatever the Workers AI binding hands back, as bytes: Aura-2 sends a
@@ -147,18 +166,32 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
   const role = body?.voice === 'patient' ? 'patient' : 'narrator';
   const speaker = voiceFor(env, role);
 
-  const limit = owner ? Number(env.OWNER_TTS_DAILY_LIMIT) || 1000 : Number(env.TTS_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
-  if (!await spend(env, `tts:${owner ? 'owner' : accountId}`, limit)) {
-    return fail(429, `That's today's ${limit} natural-voice lines used. The phone's own voice carries on, and it resets at midnight UTC.`);
-  }
+  const scope = owner ? 'owner' : accountId;
 
-  // Aura-2, from the cache, then free, then (once Pro pays) out of the budget
-  const auraKey = await cacheKey(AURA, speaker, text);
+  // Aura-2, from the cache (which costs nothing, so is not counted), then
+  // free, then (once Pro pays) out of the budget
+  const auraKey = await cacheKey(AURA, speaker, text, scope);
   const hit = await cached(env, auraKey);
   if (hit) return audio(hit, AURA, true);
 
-  let payer = null, reserved = 0;
+  const limit = owner ? Number(env.OWNER_TTS_DAILY_LIMIT) || 1000 : Number(env.TTS_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
+  if (!await spend(env, `tts:${scope}`, limit)) {
+    return fail(429, `That's today's ${limit} natural-voice lines used. The phone's own voice carries on, and it resets at midnight UTC.`);
+  }
+
+  let payer = null, reserved = 0, freeChars = 0, auraNeurons = 0;
   let useAura = await takeFreeChars(env, text.length);
+  if (useAura) {
+    freeChars = text.length;
+    // the free characters are free neurons too: out of this account's share
+    auraNeurons = text.length * AURA_NEURONS_PER_CHAR;
+    if (!await takeNeurons(env, scope, auraNeurons, owner)) {
+      await giveFreeChars(env, freeChars);
+      useAura = false;
+      freeChars = 0;
+      auraNeurons = 0;
+    }
+  }
   if (!useAura && proPays(env)) {
     payer = await wallet(env, accountId, owner);
     if (payer && await canPay(env, accountId, owner, payer)) {
@@ -173,18 +206,25 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
       await keep(env, auraKey, bytes);
       return audio(bytes, AURA, false);
     }
-    // nothing came back, so nothing is charged for it
+    // nothing came back, so nothing is charged for it - and the day's free
+    // characters and neurons it took go back for everyone else
     if (reserved) await settle(env, payer, reserved, 0).catch(e => console.error('settle', e));
+    if (freeChars) await giveFreeChars(env, freeChars).catch(e => console.error('tts chars', e));
+    if (auraNeurons) await giveNeurons(env, scope, auraNeurons, owner).catch(e => console.error('tts neurons', e));
   }
 
   // MeloTTS: one voice for both roles, so the cache ignores the speaker
-  const meloKey = await cacheKey(MELO, 'default', text);
+  const meloKey = await cacheKey(MELO, 'default', text, scope);
   const meloHit = await cached(env, meloKey);
   if (meloHit) return audio(meloHit, MELO, true);
-  const melo = await synthesise(env, MELO, 'default', text);
-  if (melo) {
-    await keep(env, meloKey, melo);
-    return audio(melo, MELO, false);
+  const meloNeurons = text.length * MELO_NEURONS_PER_CHAR;
+  if (await takeNeurons(env, scope, meloNeurons, owner)) {
+    const melo = await synthesise(env, MELO, 'default', text);
+    if (melo) {
+      await keep(env, meloKey, melo);
+      return audio(melo, MELO, false);
+    }
+    await giveNeurons(env, scope, meloNeurons, owner).catch(e => console.error('tts neurons', e));
   }
   return fail(503, "The natural voice isn't available right now; the phone's own voice will read instead.");
 }

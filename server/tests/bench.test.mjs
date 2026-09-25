@@ -13,6 +13,9 @@ ok(lo2 > 0.98, '99% of 1000 proves more than 98%');
 ok(letterFrom('{"answer":"c","reason":"x"}') === 'C', 'the answer letter is read from JSON');
 ok(letterFrom('The answer is (B) because') === 'B', 'or from prose');
 ok(letterFrom('no idea') === null, 'no letter is no answer, not a guess');
+ok(letterFrom('The answer is a thiazide diuretic (C)') === null, 'a lower-case "a" in a sentence is not option A');
+ok(letterFrom('Option A is unlikely. Option B fits less well, so the best answer is C.') === 'C', 'the last conclusion counts, not the first option mentioned');
+ok(letterFrom('Answer: B\nOn reflection the answer is D') === 'D', 'a changed mind is read as the final answer');
 ok(riskFrom('[[ ## risk_level ## ]]\n3') === 3 && riskFrom('risk_level: Level 1') === 1, 'the risk level is read like the app reads it');
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
@@ -62,6 +65,8 @@ console.log('all passed');
   const ok2 = limitKind('[quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=20; retry 41s]') === 'day'
     && limitKind('[quota GenerateRequestsPerMinutePerProjectPerModel-FreeTier=15; retry 20s]') === 'minute'
     && limitKind('4006: you have used up your daily free allocation of 10,000 neurons') === 'day'
+    && limitKind("429: That's today's 2500 cloud requests used. On-device models still work, and the allowance resets at midnight UTC.") === 'day'
+    && limitKind('429: anything', { limit: 'day' }) === 'day'
     && waitFor('retry 41s') === 41 && waitFor('') === 20
     && Math.round(neuronsFor('workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct', 4000, 1200)) === 48;
   if (!ok2) { console.log('FAIL limit handling'); process.exit(1); }

@@ -169,6 +169,48 @@ const said = async r => new TextDecoder().decode(await r.arrayBuffer());
   ok(r.status === 200, 'the owner key gets audio');
 }
 
+// the cache is each account's own: it cannot tell anyone what someone else had read
+{
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'pro,pro2' });
+  env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('pro2', 'apple', 's3', 0)`).run();
+  await speech(env, 'pro', { text: 'A private note.' }, noApple);
+  const other = await speech(env, 'pro2', { text: 'A private note.' }, noApple);
+  ok(other.headers.get('x-voice-cache') === 'miss' && env.AI.calls.length === 2, "another account's line is not a hit");
+  ok([...env.BLOBS.store.keys()].every(k => /^tts\/pro2?\/[0-9a-f]{64}\.mp3$/.test(k)), 'lines are kept under the account they were made for');
+}
+
+// a line from the cache costs nothing, so it is not counted against the day
+{
+  const env = freshEnv({ TTS_DAILY_LIMIT: '1' });
+  const statuses = [];
+  for (let i = 0; i < 3; i++) statuses.push((await speech(env, 'pro', { text: 'Same line.' }, noApple)).status);
+  ok(statuses.join() === '200,200,200', 'a cached line again and again stays within a one-line day');
+}
+
+// Aura-2 failing gives its free characters back
+{
+  const env = freshEnv({ AI: fakeAI({ auraFails: true }), TTS_FREE_DAILY_CHARS: '10' });
+  await speech(env, 'pro', { text: 'Hello.' }, noApple);
+  const row = env.db.prepare(`SELECT requests FROM ai_usage WHERE account_id = 'tts-chars:all'`).get();
+  ok(row.requests === 0, 'a line Aura-2 never made does not use up the day\'s free characters');
+}
+
+// one account's share of the free neurons, not everyone's
+{
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'pro,pro2', WORKERS_AI_NEURONS_PER_ACCOUNT: '30' });
+  env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('pro2', 'apple', 's3', 0)`).run();
+  const first = await speech(env, 'pro', { text: 'Ten chars.' }, noApple);
+  ok(first.headers.get('x-voice-model') === 'aura-2', 'within its share: Aura-2');
+  const second = await speech(env, 'pro', { text: 'Ten again.' }, noApple);
+  ok(second.headers.get('x-voice-model') === 'melotts', 'past its share of Aura-2: MeloTTS, which costs far less');
+  for (let i = 0; i < 3; i++) await speech(env, 'pro', { text: 'Line ' + i }, noApple);
+  const other = await speech(env, 'pro2', { text: 'Ten chars.' }, noApple);
+  ok(other.headers.get('x-voice-model') === 'aura-2', "and another account's share is untouched");
+  const empty = freshEnv({ WORKERS_AI_NEURONS_PER_ACCOUNT: '0' });
+  ok((await speech(empty, 'pro', { text: 'Hello.' }, noApple)).status === 503 && empty.AI.calls.length === 0,
+     'with no share left the model is not called, and the phone reads it');
+}
+
 // small pieces
 ok(voiceFor({}, 'narrator') === 'pandora' && voiceFor({}, 'patient') === 'draco', 'default voices');
 ok(voiceFor({ TTS_VOICES: 'patient:thalia,bogus:x,narrator:BAD!' }, 'patient') === 'thalia', 'TTS_VOICES overrides a voice');

@@ -40,7 +40,7 @@ jobs:
           node-version: '22'
       - name: Tests first
         working-directory: .
-        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs && node server/tests/jobs.test.mjs && node server/tests/pair.test.mjs && node server/tests/evidence.test.mjs
+        run: for t in server/tests/*.test.mjs; do node "$t" || exit 1; done
       - name: Check the secrets are there
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
@@ -62,6 +62,12 @@ jobs:
           # slide pictures stay on the device that has them.
           if $W r2 bucket create redpen-blobs > r2.log 2>&1 || grep -qi "already exists\|already own" r2.log; then
             echo "Picture storage: on"
+            # read-aloud lines (tts/) are a cache: gone after 60 days, so it
+            # cannot grow into a storage bill. Adding the rule again fails
+            # harmlessly once it exists.
+            $W r2 bucket lifecycle add redpen-blobs --name tts-expiry --prefix tts/ --expire-days 60 --force > lifecycle.log 2>&1 \
+              && echo "Read-aloud cache: expires after 60 days" \
+              || { grep -qi "already exists\|conflict\|duplicate" lifecycle.log && echo "Read-aloud cache expiry: already set" || { cat lifecycle.log; echo "::warning::Could not set the read-aloud cache expiry (R2 lifecycle)."; }; }
           else
             cat r2.log
             echo "::warning::No R2 picture storage (add a card in Cloudflare to turn it on). Deploying without picture sync."
@@ -75,6 +81,10 @@ jobs:
           done
           # one subscription, one account; an old duplicate must not stop a deploy
           $W d1 execute redpen-auth --remote --command "CREATE UNIQUE INDEX IF NOT EXISTS accounts_original_transaction ON accounts (original_transaction_id) WHERE original_transaction_id IS NOT NULL" || echo "::warning::Could not add the one-subscription-one-account index (duplicates?)"
+          # the owner's claim remembers the account it made (worker.js deviceAccount)
+          $W d1 execute redpen-auth --remote --command "ALTER TABLE owner_claims ADD COLUMN claimed_by TEXT" || true
+          # Pro's budget counts live production subscribers (ai.js budget) without reading every account
+          $W d1 execute redpen-auth --remote --command "CREATE INDEX IF NOT EXISTS accounts_by_verified ON accounts (verified_until, apple_env)" || true
       - name: Owner accounts
         if: inputs.owner_account_ids != ''
         env:

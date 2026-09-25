@@ -87,6 +87,25 @@ CREATE TABLE IF NOT EXISTS sync_state (
   rev         INTEGER NOT NULL DEFAULT 0
 );
 
+-- How much of the shared database each account's documents take, kept as a
+-- running total as documents are written (sync.js push), so a push need not
+-- count the whole library first and one account cannot fill the database.
+CREATE TABLE IF NOT EXISTS doc_usage (
+  account_id  TEXT PRIMARY KEY,
+  bytes       INTEGER NOT NULL DEFAULT 0,
+  docs        INTEGER NOT NULL DEFAULT 0
+);
+
+-- The same for pictures in R2: claimed before an upload is stored, so
+-- uploads arriving together cannot all pass the check, and corrected from a
+-- listing of R2 once a day (sync.js claim).
+CREATE TABLE IF NOT EXISTS blob_usage (
+  account_id  TEXT PRIMARY KEY,
+  bytes       INTEGER NOT NULL DEFAULT 0,
+  objects     INTEGER NOT NULL DEFAULT 0,
+  counted_at  INTEGER NOT NULL DEFAULT 0
+);
+
 -- Cloud model requests per account per UTC day, so one account cannot run up
 -- the provider bill for everybody.
 CREATE TABLE IF NOT EXISTS ai_usage (
@@ -104,6 +123,9 @@ CREATE TABLE IF NOT EXISTS ai_cost (
   micro_usd  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (account_id, month)
 );
+-- the month's total across everyone (budget() in ai.js) without reading
+-- every month there has ever been
+CREATE INDEX IF NOT EXISTS ai_cost_by_month ON ai_cost (month);
 
 -- Linking a second device (pair.js): a short code, shown on a device that is
 -- already in, typed on the new one. Single use, ten minutes.
@@ -126,7 +148,31 @@ CREATE TABLE IF NOT EXISTS pair_attempts (
 -- The owner's personal build carries a one-time claim (in the build itself,
 -- never in the repository); the first device account made with it becomes
 -- the owner's. Only the hash is kept.
+-- `claimed_by` is the account it made, so the same build presenting it again
+-- (a lost response, a sign-out) gets that account back rather than an
+-- ordinary one. Existing deployments: ALTER TABLE owner_claims ADD COLUMN claimed_by TEXT;
 CREATE TABLE IF NOT EXISTS owner_claims (
   hash  TEXT PRIMARY KEY,
-  used  INTEGER NOT NULL DEFAULT 0
+  used  INTEGER NOT NULL DEFAULT 0,
+  claimed_by TEXT
+);
+
+-- Accounts deleted, kept by id only (no name, no email) until everything that
+-- belonged to them has been removed twice: once at once, and again by the
+-- nightly pass, which also catches anything a device was still writing at the
+-- moment of deletion (worker.js scheduled).
+CREATE TABLE IF NOT EXISTS deleted_accounts (
+  id          TEXT PRIMARY KEY,
+  deleted_at  INTEGER NOT NULL,
+  passes      INTEGER NOT NULL DEFAULT 0
+);
+
+-- The purchase tag (appAccountToken) of a deleted account, with the sign-in it
+-- belonged to: the same person signing in again with the same Apple or Google
+-- account may link the subscription they bought before (ai.js mayUse).
+CREATE TABLE IF NOT EXISTS released_tokens (
+  token        TEXT PRIMARY KEY,
+  provider     TEXT NOT NULL,
+  subject      TEXT NOT NULL,
+  released_at  INTEGER NOT NULL
 );

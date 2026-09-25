@@ -29,6 +29,11 @@ class_name = "GenerationJobs"
 tag = "v1-jobs"
 new_sqlite_classes = ["GenerationJobs"]
 
+# Once a night: whatever a deleted account left behind is removed again
+# (worker.js scheduled). Cron triggers are part of the free plan.
+[triggers]
+crons = ["41 3 * * *"]
+
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.
@@ -52,8 +57,20 @@ AI_DAILY_LIMIT = "400"
 # independently, MedXpertQA 80.7% self-reported). It has no free allowance, so
 # it answers only once the Firebase project is on the Blaze plan; until
 # PRO_PAYS is on, only the owner key uses it (PAID_ONLY_MODELS).
+# CAREFUL: on the Blaze plan Google bills 3.5 Flash and Flash-Lite from the
+# first token as well - a billed project has no free tier. Set GEMINI_BILLING
+# to "on" the moment the Firebase project is billed: every paid call is then
+# counted against a budget (PRO_MONTHLY_BUDGET_USD / PRO_NET_MONTHLY_USD, and
+# OWNER_MONTHLY_USD for the owner key), and with no budget set, students get
+# the free Gemma only. The server also switches to this by itself the first
+# time a paid-only model answers, and never makes more than
+# GEMINI_DAILY_CEILING non-Gemma calls a day before paid calls are budgeted.
 CLOUD_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
 PAID_ONLY_MODELS = "gemini-3.1-pro-preview"
+GEMINI_BILLING = "off"
+GEMINI_DAILY_CEILING = "1000"
+# each account's share of the scarce free allowances, requests a day
+FREE_MODEL_SHARES = "gemini-3.5-flash:4,gemini-3.5-flash-lite:100"
 TRANSCRIBE_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite"
 # Pro pays for everything that costs money (see budget() in ai.js). Until
 # launch PRO_PAYS stays "off" and only free services are used. At launch:
@@ -76,9 +93,20 @@ MONTHLY_BILLS = "apple-developer:8.25,github-actions:0,cloudflare-workers:0"
 # free allowance is 0), reachable through the same Firebase project
 PAID_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
 GEMINI_PRICES = "gemini-3.1-pro-preview:2.00/12.00,gemini-3.5-flash:0.30/2.50,gemini-3.5-flash-lite:0.10/0.40,baichuan/baichuan-m2-32b:0.07/0.07"
+# Audio input (Narrate's transcription) is priced apart from text, and higher:
+# dollars per million audio tokens. Check at launch with GEMINI_PRICES.
+GEMINI_AUDIO_PRICES = "gemini-3.5-flash:1.00,gemini-3.5-flash-lite:0.30"
 FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
 # Accounts that are always Pro for the cloud models (comma-separated ids).
 OWNER_ACCOUNT_IDS = ""
+# Workers AI's free 10,000 neurons a day are one pool for the whole account
+# (the voice and the text fallback): kept a little under it, and no account may
+# take more than its share (ai.js takeNeurons).
+WORKERS_AI_DAILY_NEURONS = "9000"
+WORKERS_AI_NEURONS_PER_ACCOUNT = "4500"
+# The owner's benchmarks have a daily allowance of their own (x-bench), so a
+# long run cannot leave the owner's own app without cloud for the day.
+OWNER_BENCH_DAILY_LIMIT = "2500"
 # The natural voice (POST /tts, see tts.js): Deepgram Aura-2 on Workers AI.
 # It costs $0.03 per 1,000 characters out of the same free 10,000 neurons a
 # day as the text fallback (1,000 characters is about 2,700 neurons), so
@@ -86,6 +114,8 @@ OWNER_ACCOUNT_IDS = ""
 # is cached in R2, so a repeated line costs nothing. Past that, MeloTTS (about
 # 19 neurons a minute of speech, one voice only) - or, once PRO_PAYS is on,
 # Aura-2 out of Pro's budget. TTS_DAILY_LIMIT is lines per account per day.
+# Lines are cached per account (tts/<account>/) and expire after 60 days (an
+# R2 lifecycle rule the deploy sets).
 TTS_FREE_DAILY_CHARS = "2500"
 TTS_DAILY_LIMIT = "300"
 TTS_VOICES = "narrator:pandora,patient:draco"

@@ -440,5 +440,133 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(refused, 'a body over the limit stops being read');
 }
 
+// a background job's reply may be as long as the job asked for; the app's own requests stay at 2,000
+{
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1' });
+  await chat(env, 'a1', { ...request, max_tokens: 3800 }, fakeFetch({}), { maxTokensCap: 8000 });
+  ok(upstreamCalls.at(-1).body.max_tokens === 3800, 'a job step gets the 3,800 tokens it was sized for');
+  await chat(env, 'a1', { ...request, max_tokens: 99999 }, fakeFetch({}), { maxTokensCap: 99999 });
+  ok(upstreamCalls.at(-1).body.max_tokens === 8000, 'but never more than 8,000');
+}
+
+// Gemini 3 is given room to think on top of the answer, and a short call thinks briefly
+{
+  const { geminiBody } = await import('../ai.js');
+  const terms = geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-3.5-flash');
+  ok(terms.generationConfig.maxOutputTokens === 400 && terms.generationConfig.thinkingConfig.thinkingLevel === 'low',
+     "a 200-token call leaves room for Gemini 3's thinking and asks for little of it");
+  const long = geminiBody([{ role: 'user', content: 'Q' }], 2000, 0, 'gemini-3.1-pro-preview');
+  ok(long.generationConfig.maxOutputTokens === 4000 && !long.generationConfig.thinkingConfig, 'a long call keeps its default thinking, with room for it');
+  ok(geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-2.5-flash').generationConfig.maxOutputTokens === 200, 'other models are left as they were');
+}
+
+// the owner's own daily allowance: its refusal says it is a day limit; the benchmarks count apart
+{
+  const env = freshEnv({ OWNER_DAILY_LIMIT: '1', OWNER_BENCH_DAILY_LIMIT: '1' });
+  await chat(env, 'owner', request, fakeFetch({}), { owner: true, bench: true });
+  const benchOut = await chat(env, 'owner', request, fakeFetch({}), { owner: true, bench: true });
+  ok(benchOut.status === 429 && (await benchOut.json()).limit === 'day', 'a spent allowance says "day", so the benchmark stops rather than waits');
+  ok((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status === 200, 'and a benchmark run never uses up the owner app\'s allowance');
+}
+
+// the owner's checker comparison can switch the evidence lookup off; nobody else can
+{
+  const seen = [];
+  const fetcher = async (url, init) => { seen.push(url); return new Response(JSON.stringify({ choices: [{ message: { content: 'risk 1' } }] }), { status: 200 }); };
+  const medval = { model: 'cramdown-checker', ground: false, messages: [{ role: 'user', content: '[[ ## input ## ]]\nlecture\n\n[[ ## output ## ]]\nclaim\n\n[[ ## reasoning ## ]]' }] };
+  await chat(freshEnv(), 'owner', medval, fetcher, { owner: true });
+  ok(seen.length === 1, 'ground: false from the owner: one call, no search terms, no evidence');
+  seen.length = 0;
+  await chat(freshEnv({ OWNER_ACCOUNT_IDS: 'a1' }), 'a1', medval, fetcher);
+  ok(seen.length > 1, 'a student\'s check is always grounded');
+}
+
+// a billed Firebase project is noticed, and paid calls are budgeted from then on
+{
+  const { geminiModels, billingSeen } = await import('../ai.js');
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
+  const env = freshEnv(firebase);
+  ok((await geminiModels(env, 'a1')).includes('gemini-3.5-flash'), 'billing off: students use the free allowances');
+  const answers = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from 3.1 Pro' }] } }] }), { status: 200 });
+  await chat(env, 'owner', request, answers, { owner: true });
+  ok(await billingSeen(env), 'a paid-only model answering shows the project is billed');
+  ok((await geminiModels(env, 'a1')).join() === 'gemma-4-31b-it', 'from then on, with no budget set, students get the free Gemma only');
+  ok((await geminiModels(env, 'a1', false, 'transcribe')).length === 0, 'and transcription goes back to the phone');
+}
+
+// before paid calls are budgeted: a share of the scarce free allowances per account, and a ceiling for all
+{
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', FREE_MODEL_SHARES: 'gemini-3.5-flash:2', GEMINI_DAILY_CEILING: '100' };
+  const env = freshEnv(firebase);
+  const models = [];
+  const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'x' }] } }] }), { status: 200 }); };
+  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, fetcher);
+  ok(models.join() === 'gemini-3.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite', "past its share of 3.5 Flash's free requests, an account moves on to Flash-Lite");
+  const capped = freshEnv({ ...firebase, GEMINI_DAILY_CEILING: '1', AI: { run: async () => ({ response: 'free' }) } });
+  await chat(capped, 'a1', request, fetcher);
+  const r = await (await chat(capped, 'a1', request, fetcher)).json();
+  ok(r.source === 'gemma-4-31b-it', 'past the day\'s ceiling on Gemini calls, only the free Gemma is asked');
+}
+
+// the Workers AI fallback: its neurons come out of the account's share, and long prompts are not sent to it
+{
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
+  let asked = 0;
+  const env = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free' }; } } });
+  const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
+  ok((await chat(env, 'a1', request, busy)).status === 200 && asked === 1, 'Gemini busy: Workers AI answers, within the account\'s share');
+  ok((await chat(env, 'a1', request, busy)).status === 502 && asked === 1, 'past its share of the free neurons it is not asked again today');
+  const longOne = { ...request, messages: [{ role: 'user', content: 'x'.repeat(30_000) }] };
+  const fresh = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free' }; } } });
+  ok((await chat(fresh, 'a1', longOne, busy)).status === 502 && asked === 1, 'a 30,000-character prompt is not sent to the free fallback');
+}
+
+// a sandbox (test) purchase gets no share of the money Pro brings in
+{
+  const { wallet, canPay } = await import('../ai.js');
+  const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5' });
+  env.DB.prepare("UPDATE accounts SET apple_env = 'Sandbox' WHERE id = 'a1'").run();
+  ok((await wallet(env, 'a1')).cap === 0 && !(await canPay(env, 'a1')), 'a TestFlight subscription uses the free models, not paid ones');
+  env.DB.prepare("UPDATE accounts SET apple_env = 'Production' WHERE id = 'a1'").run();
+  ok(await canPay(env, 'a1'), 'a real subscription does');
+}
+
+// transcription audio is priced as audio even when nobody set its price
+{
+  const { costOf } = await import('../ai.js');
+  const env = { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,other:0.10/0.40' };
+  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 1e6,
+     'the default audio price is used, not the lower text one');
+  ok(Math.round(costOf(env, 'other', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] })) === 300000,
+     'and a model with no audio price at all is taken at three times its text price');
+}
+
+// deleted and back with the same Apple ID: the subscription they bought is still theirs
+{
+  const env = freshEnv(asc);
+  const oldToken = await accountToken('gone-account');
+  env.DB.prepare("UPDATE accounts SET provider = 'apple', subject = 'same-person' WHERE id = 'a1'").run();
+  env.DB.prepare(`INSERT INTO released_tokens (token, provider, subject, released_at) VALUES (?, 'apple', 'same-person', 0)`).bind(oldToken).run();
+  const apple = { bundleId: 'com.cramdown.app', environment: 'Production', data: [{ lastTransactions: [
+    { status: 1, signedTransactionInfo: jws({ expiresDate: Date.now() + 1e9, appAccountToken: oldToken }) }] }] };
+  const puts = [];
+  const fetcher = async (url, init) => { if (init?.method === 'PUT') { puts.push({ url, body: JSON.parse(init.body) }); return new Response('', { status: 200 }); } return fakeFetch(apple)(url, init); };
+  const linked = await (await linkSubscription(env, 'a1', { originalTransactionId: '2000000900' }, fetcher)).json();
+  ok(linked.pro === true, 'the same Apple sign-in, after deleting the account, links the subscription it bought');
+  ok(puts[0]?.url.endsWith('/inApps/v1/transactions/2000000900/appAccountToken') && puts[0].body.appAccountToken === a1Token,
+     "and Apple is asked to tag the purchase with the new account");
+  const stranger = freshEnv(asc);
+  stranger.DB.prepare("UPDATE accounts SET provider = 'apple', subject = 'someone-else' WHERE id = 'a1'").run();
+  stranger.DB.prepare(`INSERT INTO released_tokens (token, provider, subject, released_at) VALUES (?, 'apple', 'same-person', 0)`).bind(oldToken).run();
+  ok((await linkSubscription(stranger, 'a1', { originalTransactionId: '2000000901' }, fetcher)).status === 403,
+     "but a released tag is no use to anyone else's sign-in");
+  // asked again soon after, Apple is not asked again
+  let appleAsked = 0;
+  const counting = async (url, init) => { if (url.includes('storekit')) appleAsked++; return fetcher(url, init); };
+  await linkSubscription(env, 'a1', { originalTransactionId: '2000000900' }, counting);
+  ok(appleAsked === 0, 'a subscription confirmed a moment ago is not asked about again');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

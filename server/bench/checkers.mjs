@@ -57,10 +57,13 @@ export const NEURON_RATES = {   // neurons per million tokens: [input, output]
   '@cf/google/gemma-4-26b-a4b-it': [9091, 27273],
 };
 
-/// 'day' (stop until tomorrow), 'minute' (wait and go on), or null.
-export function limitKind(message) {
+/// 'day' (stop until tomorrow), 'minute' (wait and go on), or null. The
+/// worker's own daily allowance ("That's today's 2500 cloud requests used
+/// ... resets at midnight UTC") is a day limit too, and says so in `limit`.
+export function limitKind(message, body = {}) {
+  if (body?.limit === 'day') return 'day';
   const m = String(message || '');
-  if (/PerDay|4006|daily free allocation|per day/i.test(m)) return 'day';
+  if (/PerDay|4006|daily free allocation|per day|today's \d+ cloud requests|resets at midnight/i.test(m)) return 'day';
   if (/PerMinute|per minute|RESOURCE_EXHAUSTED|exceeded your current quota|overloaded|rate limit/i.test(m)) return 'minute';
   return null;
 }
@@ -137,8 +140,11 @@ async function check(use, content) {
       method: 'POST',
       // one stuck provider must not hold the whole comparison
       signal: AbortSignal.timeout(150_000),
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
-      body: JSON.stringify({ model: 'cramdown-checker', use, max_tokens: 900, temperature: 0, messages: [{ role: 'user', content }] }),
+      // x-bench: counted on the benchmarks' own daily allowance, not the owner app's
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}`, 'x-bench': '1' },
+      // ground: false - no evidence lookup, so this measures the model's own
+      // judgement, one upstream call per check (the worker grounds every other check)
+      body: JSON.stringify({ model: 'cramdown-checker', use, ground: false, max_tokens: 900, temperature: 0, messages: [{ role: 'user', content }] }),
     }); } catch (error) {
       if (attempt === 2) return { error: `no answer: ${String(error?.name || error).slice(0, 80)}` };
       continue;
@@ -146,7 +152,7 @@ async function check(use, content) {
     const j = await r.json().catch(() => ({}));
     if (r.ok) return { text: j.choices?.[0]?.message?.content || '', ms: Date.now() - started };
     const message = String(j.message || '');
-    const kind = r.status === 429 || /quota|4006|RESOURCE_EXHAUSTED/i.test(message) ? (limitKind(message) || 'minute') : null;
+    const kind = r.status === 429 || /quota|4006|RESOURCE_EXHAUSTED/i.test(message) ? (limitKind(message, j) || 'minute') : null;
     if (kind) {
       const named = message.match(/\[quota [^\]]+\]/);
       if (named) limitsSeen[use] = named[0];

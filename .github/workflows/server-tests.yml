@@ -21,11 +21,8 @@ jobs:
         with:
           # node:sqlite, which these tests run against, arrived in 22.5.
           node-version: '22'
-      - name: The sync worker
-        run: node server/tests/sync.test.mjs
-      - name: CramDown Cloud
-        run: node server/tests/ai.test.mjs
-      - name: Background generation jobs
-        run: node server/tests/jobs.test.mjs
-      - name: Linking a second device
-        run: node server/tests/pair.test.mjs
+      - name: Every server test (sync, cloud models, jobs, pairing, voice, evidence, benchmarks)
+        run: |
+          failed=0
+          for t in server/tests/*.test.mjs; do node "$t" || { echo "::error::$t failed"; failed=1; }; done
+          exit $failed

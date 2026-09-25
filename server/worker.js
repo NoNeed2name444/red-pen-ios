@@ -12,7 +12,7 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
 import { jobsRoute } from './jobs.js';
 import { speech } from './tts.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
@@ -133,7 +133,7 @@ export default {
         case '/pair/start': return await synced(request, env, async id => json(await startPairing(env, id)));
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/signout': return await signOutEverywhere(request, env);
-        case '/account/subscription': return await setSubscription(request, body, env);
+        case '/account/subscription': return await setSubscription(request, body, env, clientIP(request));
         case '/sync/changes': return await synced(request, env, id => changes(env, id, body));
         case '/sync/push': return await synced(request, env, id => push(env, id, body));
         // Without picture storage nothing is asked for, so a device never
@@ -143,7 +143,8 @@ export default {
         // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
         // special case - the session token is the key
         case '/v1/chat/completions':
-          if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true });
+          // the owner's benchmarks say so (x-bench), and count apart from the owner's app
+          if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true, bench: request.headers.get('x-bench') === '1' });
           return await guarded(request, env, id => chat(env, id, body));
         // Narrate's cloud transcription, for Pro: the audio comes here in
         // ten-minute chunks and the server asks Gemini, so the Google key
@@ -152,7 +153,7 @@ export default {
         // this month
         case '/costs':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
-          return json(await budget(env)); // forUse is null until the price is set (capped: false)
+          return json(await budget(env, { fresh: true })); // forUse is null until the price is set (capped: false)
         // a line read aloud in a natural voice, for Pro (tts.js): MP3 back
         case '/tts':
           if (isOwnerKey(request, env)) return await speech(env, 'owner', body, fetch, { owner: true });
@@ -168,6 +169,11 @@ export default {
       console.error(path, error);
       return fail(500, 'Something went wrong. Please try again.');
     }
+  },
+
+  // Once a night (wrangler.toml [triggers]): what deleted accounts left behind.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sweepDeleted(env).catch(error => console.error('sweep', error)));
   },
 };
 
@@ -267,16 +273,43 @@ async function deviceAccount(request, body, env) {
   if (!await allowed(env, clientIP(request), 'device', DEVICES_PER_HOUR)) {
     return fail(429, 'Too many new accounts from this network. Try again in an hour.');
   }
-  const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
-  // the owner's personal build: its claim, used once, makes this account theirs
+  // The owner's personal build carries a claim that makes its account the
+  // owner's. It is tied to the account it made: presented again - the answer
+  // to the first request was lost, or the owner signed out and started again -
+  // it opens that same account, rather than making an ordinary one and
+  // leaving the owner without Pro for good. (So the claim is a lasting
+  // credential for the owner's account, which is why it lives only inside the
+  // owner's own build.)
   if (typeof body.claim === 'string' && body.claim.length >= 32 && body.claim.length <= 128) {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body.claim));
     const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
-    const used = await env.DB.prepare('UPDATE owner_claims SET used = 1 WHERE hash = ? AND used = 0').bind(hash).run();
-    if (used.meta.changes === 1) {
-      await env.DB.prepare('UPDATE accounts SET owner = 1 WHERE id = ?').bind(account.id).run();
+    const claim = await env.DB.prepare('SELECT used, claimed_by FROM owner_claims WHERE hash = ?').bind(hash).first();
+    if (claim) {
+      let mine = claim.claimed_by;
+      // redeemed before the account was recorded: the owner account is the one
+      // account marked as the owner's, if there is exactly one
+      if (claim.used && !mine) {
+        const owners = (await env.DB.prepare('SELECT id FROM accounts WHERE owner = 1 LIMIT 2').all()).results || [];
+        if (owners.length === 1) {
+          mine = owners[0].id;
+          await env.DB.prepare('UPDATE owner_claims SET claimed_by = ? WHERE hash = ? AND claimed_by IS NULL').bind(mine, hash).run();
+        }
+      }
+      const existing = mine ? await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(mine).first() : null;
+      if (existing) return await session(env, existing);
+      // never used, or its account has since been deleted: a new one, made
+      // the owner's - by whichever request gets there first
+      const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
+      const taken = await env.DB.prepare(
+        'UPDATE owner_claims SET used = 1, claimed_by = ? WHERE hash = ? AND (claimed_by IS ? OR (used = 0 AND claimed_by IS NULL))')
+        .bind(account.id, hash, mine ?? null).run();
+      if (taken.meta.changes === 1) {
+        await env.DB.prepare('UPDATE accounts SET owner = 1 WHERE id = ?').bind(account.id).run();
+      }
+      return await session(env, account);
     }
   }
+  const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
   return await session(env, account);
 }
 
@@ -360,6 +393,8 @@ async function signOutEverywhere(request, env) {
   // the one that authorised this call - is on the wrong side of the line.
   await env.DB.prepare('UPDATE accounts SET signed_out_before = ? WHERE id = ?')
     .bind(now() + 1, id).run();
+  // and a pairing code still on some screen can no longer bring a device in
+  await env.DB.prepare('DELETE FROM pair_codes WHERE account_id = ?').bind(id).run();
   return json({ ok: true });
 }
 
@@ -369,18 +404,76 @@ async function deleteAccount(request, env) {
   // Actually deleted, not flagged, and the library goes with it. The App Store
   // requires the account to be removable from inside the app, and an account
   // whose data outlives it has not been deleted.
-  await wipe(env, id);
+  //
+  // The account goes FIRST. From that moment every token for it is refused
+  // (stillValid), so the student's other devices - an iPad syncing on its own
+  // timer - cannot write anything new while the library is being removed.
+  // Something a device had already started writing can still land, which is
+  // what the note below is for: the nightly pass removes everything under this
+  // id again (sweepDeleted), and finishes the job if this request cannot.
+  const account = await env.DB.prepare('SELECT provider, subject FROM accounts WHERE id = ?').bind(id).first();
+  await env.DB.prepare('INSERT OR REPLACE INTO deleted_accounts (id, deleted_at, passes) VALUES (?, ?, 0)').bind(id, now()).run();
+  // What the App Store put on this account's purchases, released to the same
+  // Apple or Google sign-in: signing in again makes a new account, and its
+  // subscription must still be theirs (ai.js mayUse). No name, no email.
+  if (account && account.provider !== 'device') {
+    await env.DB.prepare('INSERT OR REPLACE INTO released_tokens (token, provider, subject, released_at) VALUES (?, ?, ?, ?)')
+      .bind(await accountToken(id), account.provider, account.subject, now()).run();
+  }
   // The month's AI spend and today's allowance stay: they hold no personal
   // data, and deleting them would let a new account on the same subscription
   // start the month over.
   await env.DB.prepare('DELETE FROM pair_codes WHERE account_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
+  try {
+    await forgetEverything(env, id);
+  } catch (error) {
+    // the account is gone and cannot come back; the nightly pass will finish
+    console.error('delete', error);
+  }
   return json({ ok: true });
 }
 
-async function setSubscription(request, body, env) {
+/// Everything an account left: its library and pictures (sync.js wipe), and
+/// its background jobs and their outputs (jobs.js), which live in a Durable
+/// Object of their own that nothing else would ever reach again.
+async function forgetEverything(env, id) {
+  await wipe(env, id);
+  if (env.JOBS) {
+    const stub = env.JOBS.get(env.JOBS.idFromName(id));
+    await stub.fetch(new Request('https://jobs/wipe', { method: 'POST' }));
+  }
+}
+
+/// The nightly pass over deleted accounts: everything under each id removed
+/// again - a push or an upload that was already under way when the account
+/// went lands after the first removal - and the note of it dropped once it
+/// has been removed twice, a day apart.
+export async function sweepDeleted(env, clock = now) {
+  const rows = (await env.DB.prepare(
+    'SELECT id, passes FROM deleted_accounts WHERE deleted_at < ? ORDER BY deleted_at LIMIT 25')
+    .bind(clock() - 600).all()).results || [];
+  for (const row of rows) {
+    await forgetEverything(env, row.id);
+    if (row.passes >= 1) await env.DB.prepare('DELETE FROM deleted_accounts WHERE id = ?').bind(row.id).run();
+    else await env.DB.prepare('UPDATE deleted_accounts SET passes = passes + 1 WHERE id = ?').bind(row.id).run();
+  }
+  return rows.length;
+}
+
+/// How often one account, and one network, may ask Apple about a
+/// subscription: every ask is a call to the App Store Server API, whose limit
+/// is shared by every subscriber. The app reports its plan a few times a day.
+const LINKS_PER_DAY = 30;
+const LINKS_PER_HOUR_PER_ADDRESS = 60;
+
+async function setSubscription(request, body, env, ip = 'unknown') {
   const id = await holder(request, env);
   if (!id) return fail(401, 'Please sign in again.');
+  if (body.originalTransactionId && (!await spend(env, `link:${id}`, LINKS_PER_DAY)
+      || !await allowed(env, ip, 'link', LINKS_PER_HOUR_PER_ADDRESS))) {
+    return fail(429, 'Too many subscription checks. Try again later.');
+  }
   const expires = Math.floor(new Date(body.expiresAt || 0).getTime() / 1000) || null;
   await env.DB.prepare('UPDATE accounts SET plan = ?, expires_at = ? WHERE id = ?')
     .bind(text(body.plan, 40), expires, id).run();
