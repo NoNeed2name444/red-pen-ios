@@ -125,9 +125,9 @@ struct AuroraCurtain: View {
     var body: some View {
         let dark: Bool = scheme == .dark
         let moving: Bool = quality.isFull && running
-        let start: Date = self.start
+        let began: Date = self.start
         TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !moving)) { timeline in
-            let elapsed: Double = moving ? timeline.date.timeIntervalSince(start) : AuroraCurtain.playFor
+            let elapsed: Double = moving ? timeline.date.timeIntervalSince(began) : AuroraCurtain.playFor
             let t: Double = min(AuroraCurtain.playFor, elapsed)
             Canvas { context, size in
                 AuroraCurtain.draw(t: t, dark: dark, in: &context, size: size)
@@ -141,7 +141,7 @@ struct AuroraCurtain: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .task {
-            start = Date()
+            self.start = Date()
             let wait: UInt64 = UInt64(AuroraCurtain.playFor * 1_000_000_000)
             try? await Task.sleep(nanoseconds: wait)
             running = false
