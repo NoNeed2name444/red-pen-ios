@@ -72,6 +72,7 @@ final class LecturePlayer: NSObject, ObservableObject {
             clock.time = 0
             failure = nil
         } catch {
+            Diagnostics.record(.error, area: .audio, message: "lecture_player.open_failed", error: error)
             player = nil
             duration = 0
             failure = error.localizedDescription

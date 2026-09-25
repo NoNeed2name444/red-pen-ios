@@ -85,6 +85,7 @@ struct AnalyticsView: View {
             }
         }
         .navigationTitle("Analytics")
+        .diagnosticsScreen("screen:analytics")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: coverageKey) { await findGaps() }
         .onAppear {

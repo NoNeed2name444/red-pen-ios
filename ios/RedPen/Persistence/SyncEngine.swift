@@ -168,6 +168,7 @@ final class SyncEngine: ObservableObject {
             }
             status = .failed("Please sign in again.")
         } catch {
+            Diagnostics.record(.error, area: .sync, message: "sync.failed", error: error)
             status = .failed((error as? LocalizedError)?.errorDescription
                              ?? error.localizedDescription)
         }

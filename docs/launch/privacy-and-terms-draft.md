@@ -45,6 +45,7 @@ Each gap names the file to change. Other jobs own those files, so this list is f
 | G9 | **AI usage counters outlive the account.** `ai_usage` and `ai_cost` rows are keyed by the deleted account's id and kept on purpose, so a new account cannot restart the month. They hold no content, but they are pseudonymous. | `server/worker.js` `deleteAccount` | Keep them, but prune `ai_usage` after 35 days and `ai_cost` after 13 months in the maintenance cron. B8 says so. |
 | G10 | **No `PrivacyInfo.xcprivacy` file.** The app uses `UserDefaults`, which is a required-reason API (reason `CA92.1`). | `ios/` | P3.1 (design F build step F7). |
 | G11 | **Terms gate v2 has no education-only or patient-data point.** | `RecordingTermsView.swift` | Gate v3 (P2.9), using the text in E3. |
+| G12 | **Crash and failure reports are ON by default and stored with the account** (the owner's request, 2026-09-25: `Shared/Diagnostics`, `server/diagnostics.js`). This differs from B4.9 (opt-in, unlinked), which remains the plan for MetricKit performance data and usage counts. Reviewer: confirm on-by-default diagnostics with a Settings switch is acceptable under 5.1.1(ii) (it is common for crash reporting; the alternative is a one-time ask). | `Features/Support/DiagnosticsSettingsView.swift` | Keep B4.9a and the A3 row below in step with the code. |
 
 ### A3. App Store Connect answers that must match this policy (owner, at publish time)
 
@@ -64,6 +65,7 @@ These are the only manual steps this document causes. They are the same as plan 
 | User Content → Customer Support | Linked | App Functionality | `[ship-gated: P1.8]` support messages |
 | Usage Data → Product Interaction | Linked | App Functionality | `[ship-gated: P1.2]` weekly counts for leaderboard opt-ins only |
 | Diagnostics → Crash Data, Performance Data, Other Diagnostic Data | **Not linked** | Analytics, App Functionality | `[ship-gated: P1.7/P2.8]` opt-in only |
+| Diagnostics → Crash Data, Other Diagnostic Data | Linked | App Functionality | Crash and failure reports (B4.9a): on by default, stored with the account so the daily cap works and account deletion removes them |
 | Usage Data → Product Interaction | **Not linked** | Analytics | `[ship-gated: P1.7/P2.8]` opt-in usage counts |
 
    Not collected: location, contacts, health and fitness, financial info, browsing and search history, photos, sensitive info, advertising data, and face data. Face tracking never leaves the device, so under Apple's definition of "collect" it is not collected.

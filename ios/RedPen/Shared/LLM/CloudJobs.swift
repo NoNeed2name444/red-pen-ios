@@ -220,6 +220,7 @@ enum CloudJobs {
                         // the server still has it: collected when the app next opens
                         pending.launch = nil
                         save(pending)
+                        Diagnostics.record(.warning, area: .cloudJobs, message: "cloud_job.lost_connection")
                         throw LLMError.notReady("Lost the connection. The cloud is still writing \u{2014} it will be in your library when it is done.")
                     }
                     continue
@@ -257,6 +258,7 @@ enum CloudJobs {
                     }
                     return fetched.outputs
                 case "failed":
+                    Diagnostics.record(.error, area: .cloudJobs, message: "cloud_job.failed")
                     remove(id)
                     await forget(id, at: endpoint)
                     throw LLMError.notReady(status.error ?? "The cloud model could not write this.")

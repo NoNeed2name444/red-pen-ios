@@ -21,6 +21,7 @@ struct CaseChatView: View {
         NavigationStack {
             content
                 .navigationTitle(card.topic.isEmpty ? "Simulated patient" : card.topic)
+                .diagnosticsScreen("screen:case_chat")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }

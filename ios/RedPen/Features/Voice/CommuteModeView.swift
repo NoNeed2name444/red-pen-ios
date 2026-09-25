@@ -34,6 +34,7 @@ struct CommuteModeView: View {
         }
         .modeScreen(.anki)
         .navigationTitle("Commute mode")
+        .diagnosticsScreen("screen:commute")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { session.end() }
         // the microphone is listening: the camera stays off

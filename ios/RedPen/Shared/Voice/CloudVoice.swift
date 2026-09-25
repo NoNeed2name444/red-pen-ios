@@ -154,6 +154,10 @@ final class CloudVoice: NSObject {
             let clip = CloudClip(data: data, distinctVoices: model == "aura-2")
             return CloudFetch(clip: clip, rest: 0)
         }
+        // a server error, or a line the server could not take (a bug here)
+        if status >= 500 || status == 400 {
+            Diagnostics.record(.warning, area: .voice, message: "tts.http_status", code: status)
+        }
         return CloudFetch(clip: nil, rest: restAfter(status))
     }
 

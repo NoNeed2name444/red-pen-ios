@@ -101,6 +101,7 @@ enum VoiceAccess {
             do {
                 try session.setCategory(.playAndRecord, mode: .default, options: options)
             } catch {
+                Diagnostics.record(.error, area: .audio, message: "audio.category_failed", error: error)
                 return false
             }
         }
@@ -108,6 +109,7 @@ enum VoiceAccess {
             try session.setActive(true)
             return true
         } catch {
+            Diagnostics.record(.error, area: .audio, message: "audio.activate_failed", error: error)
             return false
         }
     }

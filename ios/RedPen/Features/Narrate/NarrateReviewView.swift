@@ -122,6 +122,7 @@ struct NarrateReviewView: View {
         }
         .modeScreen(.narrate)
         .navigationTitle(title)
+        .diagnosticsScreen("screen:narrate")
         .navigationBarTitleDisplayMode(.inline)
     }
 

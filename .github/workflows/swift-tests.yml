@@ -171,6 +171,11 @@ jobs:
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
                 $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
+          # crash and failure reports: nothing a student wrote can leave in
+          # one, fingerprints match the server's, the queue's caps, unclean
+          # exits, MetricKit's call stacks
+          suite diagnostics DiagnosticsTests.swift $S/Diagnostics/DiagnosticsModel.swift \
+                $S/Diagnostics/DiagnosticsQueue.swift $S/Diagnostics/Diagnostics.swift
 
       - name: Fail the job if anything failed
         run: |

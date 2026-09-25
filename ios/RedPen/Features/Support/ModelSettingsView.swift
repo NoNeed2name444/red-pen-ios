@@ -41,6 +41,17 @@ struct ModelSettingsView: View {
             deviceSection
             cloudSection
             ownKeySection
+            // crash and failure reports: the switch, what is sent, and (in
+            // the personal build) the developer tools
+            Section {
+                NavigationLink {
+                    DiagnosticsSettingsView()
+                } label: {
+                    Label("Crash and failure reports", systemImage: "stethoscope")
+                }
+            } footer: {
+                Text("Technical reports so problems get fixed. Never your notes, questions or recordings.")
+            }
             Section {
                 Text("A study aid, not medical advice. Generated text can be wrong even when checked.")
                     .font(.caption).foregroundStyle(.secondary)

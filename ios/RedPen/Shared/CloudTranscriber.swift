@@ -149,15 +149,18 @@ enum CloudTranscriber {
             switch code {
             case 200:
                 if let text = object?["text"] as? String, let phrases = CloudTranscript.phrases(fromReply: text) { return phrases }
+                Diagnostics.record(.warning, area: .transcribe, message: "transcribe.unreadable_reply")
                 lastError = .failed("Gemini's answer couldn't be read.")
             case 401: throw Failure.failed("Please sign in again to use cloud transcription.")
             case 402: throw Failure.needsPro
             case 429: throw Failure.busy(message ?? "Cloud transcription is busy. Try again later, or transcribe on this phone.")
             case 404, 410, 503: throw Failure.notSetUp
             case 500...599:
+                Diagnostics.record(.error, area: .transcribe, message: "transcribe.server_error", code: code)
                 lastError = .failed(message ?? "The server couldn't transcribe that (\(code)).")
                 if attempt == 0 { try await Task.sleep(nanoseconds: 3_000_000_000) }
             default:
+                Diagnostics.record(.error, area: .transcribe, message: "transcribe.http_status", code: code)
                 throw Failure.failed(message ?? "The server couldn't transcribe that (\(code)).")
             }
         }

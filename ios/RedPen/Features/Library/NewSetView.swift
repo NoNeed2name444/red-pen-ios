@@ -168,6 +168,7 @@ struct NewSetView: View {
                 .tint(kind.tint)
                 .environment(\.modeTint, kind.tint)
                 .navigationTitle("New set")
+                .diagnosticsScreen("screen:new_set")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -720,6 +721,7 @@ struct NewSetView: View {
                 dismiss()
             }
         } catch {
+            Diagnostics.record(.error, area: .importing, message: "import.set_file_unreadable", error: error)
             importError = "Couldn't read that file: \(error.localizedDescription)"
         }
     }

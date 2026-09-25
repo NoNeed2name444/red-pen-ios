@@ -293,6 +293,7 @@ struct LibraryView: View {
             // category's colour, or Ideas' gold
             .background(AppBackdrop(tint: backdropTint))
             .navigationTitle(screenTitle)
+            .diagnosticsScreen("screen:library")
             .navigationBarTitleDisplayMode(titleMode)
             // pinned in the bar's drawer at the top, so it never fights the
             // dock at the bottom for the thumb
@@ -726,6 +727,7 @@ struct LibraryView: View {
             do {
                 exportURL = try await ApkgExporter.exportInBackground(restored)
             } catch {
+                Diagnostics.record(.error, area: .export, message: "export.apkg_failed", error: error)
                 exportFailedSetName = set.name
             }
         }

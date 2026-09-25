@@ -1,0 +1,55 @@
+# Crash and failure reports from the app, turned into GitHub issues: the queue
+# the fixing sessions work from.
+#
+# Once a day (and by hand): reads the worker's groups (GET /diagnostics/summary,
+# owner key derived from AI_API_KEY the same way the deploy does), then opens an
+# issue per new group, refreshes the ones that grew, reopens one that came back
+# on a newer build, and closes one absent from two newer builds. Issues carry
+# the labels "diagnostics" plus "crash" or "failure".
+#
+# Symbolication: an Xcode build (ipa.yml, personal.yml) publishes its app's dSYM
+# to the "dsyms" release as <UUID>.zip (tools/publish_dsyms.sh). Frames from a
+# build whose dSYM is there are symbolicated with llvm-symbolizer; others -
+# every Swift Playgrounds build, which has no dSYM - stay as binary+offset.
+#
+# Costs nothing: an Ubuntu runner for a minute, GITHUB_TOKEN for the issues.
+name: Diagnostics triage
+on:
+  schedule:
+    - cron: '37 5 * * *'
+  workflow_dispatch:
+    inputs:
+      max_new:
+        description: Most new issues this run
+        required: false
+        default: '10'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: diagnostics-triage
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The triage's own tests
+        run: node server/tests/diagnostics.test.mjs
+      - name: Symbolicator
+        run: command -v llvm-symbolizer || ls /usr/bin/llvm-symbolizer-* 2>/dev/null || echo "none - frames stay as offsets"
+      - name: Issues from the reports
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          DSYM_DIR: ${{ runner.temp }}/dsyms
+          MAX_NEW: ${{ inputs.max_new || '10' }}
+        run: |
+          if [ -z "$AI_API_KEY" ]; then echo "AI_API_KEY is not set: nothing to read the reports with"; exit 0; fi
+          OWNER_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$OWNER_KEY"
+          OWNER_KEY="$OWNER_KEY" node server/triage/diagnostics-triage.mjs

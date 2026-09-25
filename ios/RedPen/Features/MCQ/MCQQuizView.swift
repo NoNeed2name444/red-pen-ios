@@ -178,6 +178,7 @@ struct MCQQuizView: View {
         }
         .examToolSheets($toolSheet)
         .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
+        .diagnosticsScreen("screen:mcq_quiz")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isUnsaved {

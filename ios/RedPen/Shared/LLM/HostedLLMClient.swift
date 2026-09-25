@@ -138,10 +138,18 @@ struct HostedLLMClient: LLMBackend {
             let message = object?["message"] as? String
                 ?? (object?["error"] as? [String: Any])?["message"] as? String
                 ?? String(data: data, encoding: .utf8) ?? ""
+            // a server error, or a request the provider could not read (a
+            // bug on this side); refusals like Pro or quota are not failures
+            if http.statusCode >= 500 || [400, 404, 422].contains(http.statusCode) {
+                Diagnostics.record(.error, area: .ai, message: "hosted.http_status", code: http.statusCode)
+            }
             throw LLMError.http(http.statusCode, message)
         }
         let text = LLMText.stripThinking(try parse(data))
-        guard !text.isEmpty else { throw LLMError.emptyReply }
+        guard !text.isEmpty else {
+            Diagnostics.record(.warning, area: .ai, message: "hosted.empty_reply")
+            throw LLMError.emptyReply
+        }
         return text
     }
 

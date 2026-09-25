@@ -52,8 +52,16 @@ jobs:
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
             build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
           grep -q "BUILD SUCCEEDED" ../build.log
+      # the app's debug symbols, so crash reports from this build can be read
+      # (diagnostics-triage.yml); never fails the build
+      - name: Publish the dSYM
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/publish_dsyms.sh ios/build/Build/Products
       - name: Wrap it as an .ipa
         run: |
           set -euo pipefail

@@ -203,6 +203,7 @@ struct LecturePDFSection: View {
             } catch is CancellationError {
                 // New set closed: nobody is waiting for this file any more
             } catch {
+                Diagnostics.record(.warning, area: .importing, message: "import.lecture_unreadable", error: error)
                 status = (error as? LocalizedError)?.errorDescription
                     ?? error.localizedDescription
             }

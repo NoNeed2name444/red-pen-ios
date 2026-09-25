@@ -17,6 +17,7 @@ import { jobsRoute } from './jobs.js';
 import { checkBatch, report as reportError, modelWeights, setWeights, listReports } from './accuracy.js';
 import { speech } from './tts.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
+import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -110,6 +111,13 @@ export default {
         return await guarded(request, env, id => jobsRoute(request, env, id));
       }
 
+      // crash and failure groups, for the owner and the triage workflow
+      // (diagnostics.js): anybody else is told there is no such endpoint
+      if (path === '/diagnostics/summary' && request.method === 'GET') {
+        if (!isOwnerKey(request, env) && !await isOwnerAccount(env, await holder(request, env))) return fail(404, 'No such endpoint.');
+        return await diagnosticsSummary(env, new URL(request.url));
+      }
+
       if (request.method !== 'POST') return fail(405, 'POST only.');
       // Sized before it is read, since a body is read into memory whole:
       // a transcription chunk is about 3 MB (never over 9), a sync batch can
@@ -117,6 +125,7 @@ export default {
       const size = Number(request.headers.get('content-length')) || 0;
       const allowed = path === '/transcribe/chunk' ? 10 * 1024 * 1024
         : path === '/sync/push' ? 24 * 1024 * 1024   // a batch of documents
+        : path === '/diagnostics' ? DIAGNOSTICS_MAX  // crash and failure reports
         : 2 * 1024 * 1024;
       if (size > allowed) return fail(413, 'That request is too large.');
       // a big body with no declared size is refused rather than read blind
@@ -135,6 +144,8 @@ export default {
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/signout': return await signOutEverywhere(request, env);
         case '/account/subscription': return await setSubscription(request, body, env, clientIP(request));
+        // crash and failure reports from the app (diagnostics.js)
+        case '/diagnostics': return await guarded(request, env, id => diagnosticsRoute(env, id, body));
         case '/sync/changes': return await synced(request, env, id => changes(env, id, body));
         case '/sync/push': return await synced(request, env, id => push(env, id, body));
         // Without picture storage nothing is asked for, so a device never
@@ -191,6 +202,8 @@ export default {
   // Once a night (wrangler.toml [triggers]): what deleted accounts left behind.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(sweepDeleted(env).catch(error => console.error('sweep', error)));
+    // crash and failure reports past their time (diagnostics.js)
+    ctx.waitUntil(pruneDiagnostics(env).catch(error => console.error('diagnostics', error)));
   },
 };
 
@@ -458,6 +471,8 @@ async function forgetEverything(env, id) {
   await wipe(env, id);
   // the errors this account reported, with the items it sent
   try { await env.DB.prepare('DELETE FROM accuracy_reports WHERE account_id = ?').bind(id).run(); } catch { /* no table yet */ }
+  // the crash and failure reports it sent
+  try { await forgetDiagnostics(env, id); } catch { /* no table yet */ }
   if (env.JOBS) {
     const stub = env.JOBS.get(env.JOBS.idFromName(id));
     await stub.fetch(new Request('https://jobs/wipe', { method: 'POST' }));

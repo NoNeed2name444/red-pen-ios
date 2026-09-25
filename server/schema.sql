@@ -209,3 +209,56 @@ CREATE TABLE IF NOT EXISTS accuracy_model (
   body        TEXT NOT NULL,
   created_at  INTEGER NOT NULL
 );
+
+-- Crash and failure reports (diagnostics.js): what went wrong in the app,
+-- grouped by fingerprint so each problem is one row. A group and its counts
+-- per build hold nothing about anybody; the reports themselves are kept with
+-- the account that sent them (the daily cap is per account) and deleted with
+-- it. Only fixed messages, error types and call-stack addresses - never note
+-- text, names, emails, paths or tokens (checked again on the way in).
+CREATE TABLE IF NOT EXISTS diagnostic_groups (
+  fingerprint  TEXT PRIMARY KEY,
+  kind         TEXT NOT NULL,
+  area         TEXT NOT NULL,
+  title        TEXT NOT NULL,
+  first_seen   INTEGER NOT NULL,
+  last_seen    INTEGER NOT NULL,
+  first_build  TEXT,
+  last_build   TEXT,
+  n            INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS diagnostic_groups_seen ON diagnostic_groups (last_seen);
+CREATE TABLE IF NOT EXISTS diagnostic_counts (
+  fingerprint  TEXT NOT NULL,
+  build        TEXT NOT NULL,
+  n            INTEGER NOT NULL DEFAULT 0,
+  last_seen    INTEGER NOT NULL,
+  PRIMARY KEY (fingerprint, build)
+);
+CREATE TABLE IF NOT EXISTS diagnostic_events (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  fingerprint  TEXT NOT NULL,
+  account_id   TEXT NOT NULL,
+  build        TEXT,
+  received_at  INTEGER NOT NULL,
+  body         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS diagnostic_events_by_group ON diagnostic_events (fingerprint, id);
+CREATE INDEX IF NOT EXISTS diagnostic_events_by_account ON diagnostic_events (account_id);
+CREATE TABLE IF NOT EXISTS diagnostic_quota (
+  account_id   TEXT NOT NULL,
+  day          TEXT NOT NULL,
+  n            INTEGER NOT NULL DEFAULT 0,
+  requests     INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (account_id, day)
+);
+-- every build that has run (a daily "still running" from the app), so the
+-- triage can tell a fixed problem from a quiet week
+CREATE TABLE IF NOT EXISTS diagnostic_builds (
+  build        TEXT PRIMARY KEY,
+  flavour      TEXT,
+  first_seen   INTEGER NOT NULL,
+  last_seen    INTEGER NOT NULL,
+  pings        INTEGER NOT NULL DEFAULT 0
+);
+

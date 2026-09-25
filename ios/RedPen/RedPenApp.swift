@@ -35,6 +35,9 @@ struct RedPenApp: App {
         // A CI screenshot launch (see PreviewLaunch) runs on a throwaway,
         // pre-seeded store; a normal launch opens the user's own library.
         let seeded = PreviewLaunch.screen != nil
+        // crash and failure reports: what the last run left, and MetricKit
+        // (Shared/Diagnostics) - never for a screenshot run
+        if !seeded { DiagnosticsRuntime.start() }
         let store = seeded ? PreviewLaunch.seededStore() : Store()
         // a personal build opens with a finished example in every mode, so
         // each one can be tried straight away
@@ -230,6 +233,11 @@ struct RedPenApp: App {
             // the one motion source for the pop-out: started while the app
             // is active, stopped in the background (see PopOut.swift)
             .popOutLifecycle()
+            // the running marker follows the app to and from the background,
+            // and waiting reports go a little after it comes back
+            .onChange(of: phase, initial: true) { _, new in
+                DiagnosticsRuntime.phaseChanged(new, token: { account.token })
+            }
             // the launch screen's picture, dissolving over the app that is
             // already running beneath it (and the only launch screen the
             // Playgrounds build has) - see LaunchSplash

@@ -85,6 +85,7 @@ struct OsceReviewView: View {
             .popOutFacePaused()
         }
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
+        .diagnosticsScreen("screen:osce_review")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: resume)
         // Saved on every change rather than on the way out: a station is
