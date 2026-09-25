@@ -790,6 +790,12 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
   }
   try {
     const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
+    // what was taken assumed the whole max_tokens came back; when the model
+    // says what it used, the rest goes back to the pool, or the day's
+    // allowance runs out at a fraction of what was really spent
+    const spent = usedNeurons(out?.usage, rateIn, rateOut);
+    const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
+    if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
     const content = out?.response ?? out?.choices?.[0]?.message?.content;
     if (typeof content === 'string' && content) return { ok: true, content, source: model };
     return { ok: false, status: 502, detail: 'Workers AI sent back nothing usable.' };
@@ -797,6 +803,14 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
     await giveNeurons(env, account, neurons, owner).catch(() => {});
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
   }
+}
+
+/// The neurons a Workers AI reply says it used, or null when it says nothing.
+export function usedNeurons(usage, rateIn, rateOut) {
+  const input = Number(usage?.prompt_tokens ?? usage?.input_tokens);
+  const output = Number(usage?.completion_tokens ?? usage?.output_tokens);
+  if (!Number.isFinite(input) || !Number.isFinite(output) || input < 0 || output < 0) return null;
+  return input * rateIn / 1e6 + output * rateOut / 1e6;
 }
 
 /// Where each of the app's model names goes: which server, which key, which

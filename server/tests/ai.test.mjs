@@ -522,6 +522,21 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await chat(fresh, 'a1', longOne, busy)).status === 502 && asked === 1, 'a 30,000-character prompt is not sent to the free fallback');
 }
 
+// what a Workers AI reply says it used is what counts: the rest of what was
+// taken for the whole max_tokens goes back, so a share lasts as long as it should
+{
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
+  let asked = 0;
+  const env = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free', usage: { prompt_tokens: 20, completion_tokens: 10 } }; } } });
+  const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
+  const first = (await chat(env, 'a1', request, busy)).status;
+  const second = (await chat(env, 'a1', request, busy)).status;
+  ok(first === 200 && second === 200 && asked === 2, 'a short reply gives back the neurons it did not use, so the next call still fits the share');
+  const { usedNeurons } = await import('../ai.js');
+  ok(usedNeurons(undefined, 1, 1) === null && usedNeurons({ prompt_tokens: 1e6, completion_tokens: 0 }, 5, 7) === 5
+     && usedNeurons({ input_tokens: 0, output_tokens: 2e6 }, 5, 7) === 14, 'usage read from the reply in either naming, or nothing when there is none');
+}
+
 // a sandbox (test) purchase gets no share of the money Pro brings in
 {
   const { wallet, canPay } = await import('../ai.js');
