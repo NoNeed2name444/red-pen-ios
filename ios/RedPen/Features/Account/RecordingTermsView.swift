@@ -17,6 +17,9 @@ struct RecordingTermsView: View {
     static let waitSeconds = 5
 
     @State private var remaining = RecordingTermsView.waitSeconds
+    /// The one place the student is asked about crash and failure reports:
+    /// on unless they switch it off here (or later in Settings).
+    @AppStorage(Diagnostics.enabledKey) private var shareReports = true
 
     var body: some View {
         ScrollView {
@@ -49,6 +52,17 @@ struct RecordingTermsView: View {
                 point("cloud",
                       "Cloud transcription",
                       "When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
+
+                Toggle(isOn: $shareReports) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Share crash and failure reports")
+                            .font(.subheadline.weight(.semibold))
+                        Text("When something breaks, \(Brand.name) sends what went wrong and the phone model to be fixed \u{2014} never your notes, questions, recordings, name or email. You can change this any time in Settings.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier("shareCrashReports")
 
                 Text("By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
                     .font(.footnote.weight(.semibold))
