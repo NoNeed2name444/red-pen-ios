@@ -44,6 +44,20 @@ account). The combiner's weights are trained for free by
 `bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
 from `accuracy_model`; before any training the bundled prior is used.
 
+## Exams
+
+`exams.js` holds the prompt side of the exam catalogue (the app's
+`Shared/Exam/ExamCatalog.swift` has the full blueprints; `tests/exams.test.mjs`
+keeps the two in step). Nothing is fine-tuned: a question writer is given the
+chosen exam's format rules and two or three real items in its style, from
+`exam-exemplars.js` - built by `bench/exam-exemplars.mjs` from MedQA (MIT) and
+MedMCQA (Apache-2.0) only, never from a copyrighted bank. A job's prompt may
+carry `{{EXEMPLARS:<exam>:<topic>:<n>}}`, filled with different items each
+batch; `/exams/catalogue` and `/exams/exemplars` serve the same data. With
+`exam` in `/accuracy/check`, that exam's management questions need a higher
+P(accurate) to be Verified, and `bench/train-accuracy.mjs` reports the model
+per exam style and per exam.
+
 ## Deploying it
 
     cd server

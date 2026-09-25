@@ -175,6 +175,7 @@ struct MCQSummaryView: View {
             .readableColumn()
         }
         .studyBar { barButtons }
+        .reviewPromptAfterStreak(true)
         .modeScreen(.mcq)
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)

@@ -21,6 +21,9 @@ struct RedPenApp: App {
     @StateObject private var sync: SyncEngine
     /// Who has agreed to the recording terms (see RecordingTermsView).
     @StateObject private var terms = RecordingTermsStore()
+    /// Whether "Which exam are you preparing for?" has been answered or
+    /// skipped (ExamOnboardingView, once, after the terms).
+    @StateObject private var examQuestion = ExamQuestionStore()
     // GemmaModel is a true singleton (its download must survive view
     // teardown), so it's observed here rather than owned by @StateObject.
     @ObservedObject private var gemma = GemmaModel.shared
@@ -97,6 +100,14 @@ struct RedPenApp: App {
         return "This device has \(sets) from another account. Added, they sync to this account and every device on it. Kept here, they stay only on this device; anything new still syncs."
     }
 
+    /// The signed-in library is on screen: where links, widgets, Siri and
+    /// opened files land (platformRoutes waits for it).
+    private var libraryShowing: Bool {
+        if GraphPreview.isOn || !account.isSignedIn || !examQuestion.asked { return false }
+        guard let signedIn = account.account else { return true }
+        return terms.hasAgreed(signedIn.id)
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -116,6 +127,9 @@ struct RedPenApp: App {
                     // once per account, before anything else: recordings are
                     // only transcribed with the speakers' permission
                     RecordingTermsView { terms.agree(signedIn.id) }
+                } else if account.isSignedIn && !examQuestion.asked {
+                    // once, skippable: the exam everything will put first
+                    ExamOnboardingView { examQuestion.done() }
                 } else if account.isSignedIn {
                     // the library, with the five categories and Ideas in its
                     // dock and the pages about the app in its account menu
@@ -201,6 +215,8 @@ struct RedPenApp: App {
                                     // models use it too
                                     if new == .active { await account.refreshIfNeeded() }
                                     if new == .active { AccuracyStore.shared.kick() }
+                                    // question reports and messages written offline
+                                    if new == .active { await SupportSender.shared.flush() }
                                     await sync.syncNow()
                                 }
                             }
@@ -220,6 +236,9 @@ struct RedPenApp: App {
                     SignInView()
                 }
             }
+            // links, opened files, Spotlight, Siri, the widgets' digest, the
+            // app lock (AppIntentsRouting.swift)
+            .platformRoutes(libraryShowing: libraryShowing)
             .environmentObject(store)
             .environmentObject(learned)
             .environmentObject(reviews)
@@ -242,6 +261,31 @@ struct RedPenApp: App {
             // already running beneath it (and the only launch screen the
             // Playgrounds build has) - see LaunchSplash
             .launchSplash()
+            // iPad, two windows: links, opened files, widget taps and
+            // Spotlight go to a main window already open, not a new one
+            .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
+        // iPad keyboard: search, due cards, a set in a new window
+        .commands { StethoscoreCommands() }
+
+        // iPad: a set in a window of its own, beside a lecture (SetWindow).
+        // Only reachable where multiple windows are declared (the Xcode build).
+        WindowGroup(id: SetWindow.sceneID, for: UUID.self) { $setID in
+            SkyRoot(content: SetWindowRoot(setID: setID))
+                .appLockShield()
+                .environmentObject(store)
+                .environmentObject(learned)
+                .environmentObject(reviews)
+                .environmentObject(account)
+                .environmentObject(subscriptions)
+                .environmentObject(noteStore)
+                .environmentObject(sync)
+                .environmentObject(gemma)
+                .environmentObject(llm)
+                .tint(Color(red: 0.78, green: 0.16, blue: 0.16))
+        }
+        // never the window a link or opened file lands in (it has no
+        // routes): only its own openWindow requests open it
+        .handlesExternalEvents(matching: [SetWindow.sceneID])
     }
 }

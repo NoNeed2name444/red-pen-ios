@@ -52,6 +52,8 @@ enum NewSetStep: Int, CaseIterable, Identifiable, Comparable {
 struct NewSetView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var gemma: GemmaModel
+    /// Anki's schedule comes in with an imported deck.
+    @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
@@ -63,6 +65,14 @@ struct NewSetView: View {
     /// Said once a shared set is in, when some of its pictures never came
     /// with it; New set closes when it is read.
     @State private var importNotice: String?
+    /// Which kind of file "Open a file" is asking for.
+    @State private var importSource: ImportSource = .anki
+    /// A deck or table read and waiting for Import in its preview sheet.
+    @State private var importPreview: ImportPreview?
+    /// A picked file being read, for the progress row.
+    @State private var readingFile: String?
+    /// Set once Import is tapped, so New set closes after the preview does.
+    @State private var imported = false
     @State private var showFormat = false
     /// Which of the three steps is showing.
     @State private var step: NewSetStep = .kind
@@ -75,7 +85,7 @@ struct NewSetView: View {
             switch self {
             case .lecture: return "From a lecture file"
             case .type: return "Type or paste"
-            case .importFile: return "Open a saved set"
+            case .importFile: return "Open a file"
             }
         }
         /// One plain line under the title.
@@ -83,7 +93,7 @@ struct NewSetView: View {
             switch self {
             case .lecture: return "A PDF, Word or PowerPoint file \u{2014} or notes you paste"
             case .type: return "Write the questions or cards yourself"
-            case .importFile: return "A .json set someone shared with you"
+            case .importFile: return "An Anki deck, a Quizlet or CSV table, or a shared set"
             }
         }
         var symbol: String {
@@ -185,8 +195,13 @@ struct NewSetView: View {
                     bookFigures = []
                     diagrams = DiagramCards()
                 }
-                .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
+                .fileImporter(isPresented: $showImporter, allowedContentTypes: importSource.types) { result in
                     handleImport(result)
+                }
+                .sheet(item: $importPreview, onDismiss: {
+                    if imported { dismiss() }
+                }) { preview in
+                    ImportPreviewSheet(preview: preview) { commitImport(preview) }
                 }
                 .alert("Set imported", isPresented: importNoticeShown) {
                     Button("OK") { dismiss() }
@@ -545,17 +560,35 @@ struct NewSetView: View {
         }
     }
 
-    /// A shared set: what it can be, or why the chosen file could not be
-    /// read. The button that picks it is at the bottom, under the thumb.
+    /// A file from elsewhere: which kind, what it can be, a file being
+    /// read, or why the chosen one could not be. The button that picks it is
+    /// at the bottom, under the thumb.
     private var importSection: some View {
-        let plain: String = "A .json set exported from \(Brand.name) (formerly Vignette or CramDown) or the Red Pen web app. Choose it below \u{2014} it goes straight into your library."
-        let message: String = importError ?? plain
+        let message: String = importError ?? importSource.help
         let ink: Color = importError == nil ? Color.secondary : Color.red
-        let symbol: String = importError == nil ? "square.and.arrow.down" : "exclamationmark.triangle"
+        let symbol: String = importError == nil ? importSource.symbol : "exclamationmark.triangle"
         return Section {
-            Label(message, systemImage: symbol)
-                .font(.footnote)
-                .foregroundStyle(ink)
+            Picker("From", selection: $importSource) {
+                ForEach(ImportSource.allCases) { source in
+                    Text(source.title).tag(source)
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+            .onChange(of: importSource) { _, _ in importError = nil }
+            if let readingFile {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("Reading \u{201C}\(readingFile)\u{201D}\u{2026}")
+                        .font(.footnote)
+                        .lineLimit(2)
+                }
+                .accessibilityElement(children: .combine)
+            } else {
+                Label(message, systemImage: symbol)
+                    .font(.footnote)
+                    .foregroundStyle(ink)
+            }
         }
     }
 
@@ -609,8 +642,8 @@ struct NewSetView: View {
 
     private func formatHelp(for kind: StudySetKind) -> String {
         switch kind {
-        case .mcq: return "One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation"
-        case .anki: return "One card per line: Front | bullet1; bullet2 | why (optional)"
+        case .mcq: return "One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation. A table pasted from a spreadsheet works too: Question, A, B, C, D, Answer."
+        case .anki: return "One card per line: Front | bullet1; bullet2 | why (optional). A table pasted from Quizlet or a spreadsheet works too: term, tab, definition."
         case .book: return "Markdown. Every # or ## heading starts a new page."
         case .qa: return "One card per line: Topic | case or recall | Question | answer1; answer2"
         case .osce: return "## Station title, then one step per line. Blank line or the next ## starts a new station."
@@ -628,9 +661,9 @@ struct NewSetView: View {
 
     private var itemCount: Int {
         switch kind {
-        case .mcq: return PlainTextImport.parseMCQ(bodyText).count
+        case .mcq: return PlainTextImport.parseAnyMCQ(bodyText).count
         case .anki:
-            let written: Int = PlainTextImport.parseAnkiQA(bodyText).count
+            let written: Int = PlainTextImport.parseAnyCards(bodyText).count
             let pictures: Int = diagrams.included ? diagrams.cards.count : 0
             return written + pictures
         case .book:
@@ -668,9 +701,9 @@ struct NewSetView: View {
         var set = StudySet(name: name, subject: subject.isEmpty ? "General" : subject, kind: kind)
         set.folderId = preset?.folderId
         switch kind {
-        case .mcq: set.questions = PlainTextImport.parseMCQ(bodyText)
+        case .mcq: set.questions = PlainTextImport.parseAnyMCQ(bodyText)
         case .anki:
-            set.cards = PlainTextImport.parseAnkiQA(bodyText)
+            set.cards = PlainTextImport.parseAnyCards(bodyText)
             // image occlusion cards from the lecture's diagrams, with their pictures
             if diagrams.included {
                 set.cards += diagrams.cards
@@ -692,6 +725,34 @@ struct NewSetView: View {
         dismiss()
     }
 
+    /// Reads a deck or table into its preview.
+    private func readFile(_ url: URL) {
+        readingFile = url.deletingPathExtension().lastPathComponent
+        let kind: StudySetKind = self.kind
+        let subject: String = self.subject
+        Task {
+            do {
+                let preview = try await LibraryImport.preview(of: url, kind: kind, subject: subject)
+                readingFile = nil
+                importPreview = preview
+            } catch {
+                readingFile = nil
+                Diagnostics.record(.error, area: .importing, message: "import.package_unreadable", error: error)
+                ReviewPromptRules.noteTrouble()
+                importError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Everything in the preview into the library at once, then the
+    /// lift-off, and New set closes once the sheet has.
+    private func commitImport(_ preview: ImportPreview) {
+        LibraryImport.commit(preview, store: store, reviews: reviews, into: preset?.folderId)
+        SpaceWarp.liftOff()
+        imported = true
+        importPreview = nil
+    }
+
     /// Whether the note about a shared set's missing pictures is showing.
     private var importNoticeShown: Binding<Bool> {
         Binding(get: { importNotice != nil },
@@ -699,6 +760,13 @@ struct NewSetView: View {
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
+        importError = nil
+        // an Anki deck or a table: read off the main actor into a preview,
+        // and nothing is added until Import is tapped there
+        if case .success(let picked) = result, ImportSource.of(picked) != .appFile {
+            readFile(picked)
+            return
+        }
         do {
             let url = try result.get()
             // a file picked outside the app's sandbox needs this while it's read
@@ -722,6 +790,7 @@ struct NewSetView: View {
             }
         } catch {
             Diagnostics.record(.error, area: .importing, message: "import.set_file_unreadable", error: error)
+            ReviewPromptRules.noteTrouble()
             importError = "Couldn't read that file: \(error.localizedDescription)"
         }
     }

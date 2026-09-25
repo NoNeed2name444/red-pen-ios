@@ -27,6 +27,11 @@ struct KindShelfView: View {
         let sets: [StudySet] = feature.shelfSets(store)
         let heading: String = sets.count == 1 ? "Your set" : "All \(sets.count)"
         List {
+            if feature == .pictures {
+                Section {
+                    PhotoCardsTile(tint: kind.tint)
+                }
+            }
             Section {
                 if sets.isEmpty {
                     Text("None yet \u{2014} tap New to make one.")
@@ -116,6 +121,45 @@ extension CategoryFeature {
         case .lectures: return "narrated lecture"
         default: return "set"
         }
+    }
+}
+
+/// Picture cards: "From a photo or scan", a tile above the decks, standing
+/// out of the glass like the category's own tiles. Its page is pushed with
+/// its destination, as every link on this page is.
+struct PhotoCardsTile: View {
+    let tint: Color
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        NavigationLink {
+            PictureFromPhotoView()
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("From a photo or scan").font(.headline).foregroundStyle(.primary)
+                    Text("Labels read and covered for you, then adjust")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+            .contentShape(shape)
+            .accessibilityElement(children: .combine)
+        }
+        .buttonStyle(.popTile)
+        .accessibilityIdentifier("pictureFromPhoto")
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 

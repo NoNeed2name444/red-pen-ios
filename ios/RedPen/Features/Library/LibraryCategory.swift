@@ -203,7 +203,10 @@ extension LibraryView {
         case .shelf(let kind):
             // no sets of this kind yet: straight to making one, as the old
             // mode tab's empty page did
-            if feature.shelfSets(store).isEmpty { newSetKind = kind } else { featurePage = feature }
+            // (the picture cards' page opens anyway: it is where a photo or
+            // a scan becomes the first deck)
+            let straightToNew: Bool = feature.shelfSets(store).isEmpty && feature != .pictures
+            if straightToNew { newSetKind = kind } else { featurePage = feature }
         case .support(let page):
             // Ideas is a place in the dock, not a pushed page
             if page == .notes { goToIdeas() } else { support = page }

@@ -38,6 +38,17 @@ final class StudyLog: ObservableObject {
         defaults.set(days, forKey: Self.storageKey)
     }
 
+    /// Days from a backup joined to this log: the larger count for each day,
+    /// so restoring never shortens a streak.
+    func merge(_ other: [String: Int]) {
+        var joined = days
+        for (day, count) in other where count > (joined[day] ?? 0) { joined[day] = count }
+        guard joined != days else { return }
+        days = joined
+        prune()
+        defaults.set(days, forKey: Self.storageKey)
+    }
+
     /// How much has been done today.
     var today: Int { days[Self.key(for: Date())] ?? 0 }
 

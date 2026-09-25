@@ -39,7 +39,10 @@ final class SyncEngine: ObservableObject {
         case needsLibraryChoice
     }
 
-    @Published private(set) var status: Status = .idle
+    @Published private(set) var status: Status = .idle {
+        // a failure the student can see: no rating prompt for a while
+        didSet { if case .failed = status { ReviewPromptRules.noteTrouble() } }
+    }
     @Published private(set) var lastSyncedAt: Date?
     /// How many conflict copies the last run had to keep. Worth surfacing: it
     /// is the one outcome the student has to act on.

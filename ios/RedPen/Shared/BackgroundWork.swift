@@ -97,7 +97,9 @@ enum AppNotifications {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["review-due"])
         let decks = sets.filter { $0.kind == .anki && !$0.cards.isEmpty }
-        let dueNow = decks.reduce(0) { $0 + reviews.dueCount(for: $1.cards, now: now) }
+        // every deck at once, so the library's daily limits apply once
+        let allCards: [AnkiCard] = decks.flatMap(\.cards)
+        let dueNow: Int = reviews.dueCount(for: allCards, now: now)
         let when: Date
         let body: String
         if dueNow > 0 {

@@ -9,6 +9,9 @@
 # runs on the accuracy-model branch (a slice a week, or more by hand). The fit,
 # its calibration report and the weights are pushed there too, and the weights
 # go to the worker (and so to every app) only when they beat the current ones.
+# The report also breaks the fit down per exam style (MedQA Step 1, Step 2&3,
+# MedMCQA's NEET-PG / AIIMS) and shows how each exam's stricter cut-off for
+# management questions (server/exams.js) would have done on its slice.
 name: Accuracy model
 on:
   schedule:
@@ -39,7 +42,10 @@ jobs:
           # node:sqlite, which the tests run against, arrived in 22.5
           node-version: '22'
       - name: The accuracy engine's own tests
-        run: node server/tests/accuracy.test.mjs
+        run: |
+          node server/tests/accuracy.test.mjs
+          # the exam slices and the stricter management cut-offs it reports on
+          node server/tests/exams.test.mjs
       - name: Signals so far
         run: |
           mkdir -p out

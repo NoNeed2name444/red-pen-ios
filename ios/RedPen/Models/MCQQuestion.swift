@@ -18,12 +18,15 @@ struct MCQQuestion: Identifiable, Codable, Hashable {
     /// the question is about a diagnosis. Nil for recall questions and for
     /// every set saved before it existed.
     var differential: DifferentialTiers?
+    /// Labels for finding and filtering, kept on import and export. Nil for
+    /// an untagged question and for every set saved before tags existed.
+    var tags: [String]?
 
     // Spelled out rather than synthesised, so it is obvious that a new field
     // has to be added here too - leaving it out silently drops the field on
     // save, and the loss only shows up after a restart.
     enum CodingKeys: String, CodingKey {
-        case id, stem, options, correctIndex, explanation, imageIndex, source, differential
+        case id, stem, options, correctIndex, explanation, imageIndex, source, differential, tags
     }
 }
 

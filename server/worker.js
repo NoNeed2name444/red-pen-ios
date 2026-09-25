@@ -18,6 +18,8 @@ import { checkBatch, report as reportError, modelWeights, setWeights, listReport
 import { speech } from './tts.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
+import { examsRoute } from './exams.js';
+import { supportMessage, listSupportMessages, forgetSupport } from './support.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -180,12 +182,22 @@ export default {
           return await guarded(request, env, id => reportError(env, id, body));
         // the weights are not a secret: the app fetches them signed in or not
         case '/accuracy/model': return await modelWeights(env);
+        // "Contact us" (support.js)
+        case '/support/message': return await guarded(request, env, id => supportMessage(env, id, body));
+        case '/support/messages':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await listSupportMessages(env, body);
         case '/accuracy/model/set':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
           return await setWeights(env, body);
         case '/accuracy/reports':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
           return await listReports(env, body);
+        // the exam catalogue's format rules and the exam-style exemplars
+        // (exams.js): public, like the accuracy weights - nothing in them is
+        // anyone's own, and every exemplar is openly licensed
+        case '/exams/catalogue':
+        case '/exams/exemplars': return examsRoute(path, body);
         case '/transcribe/config': return await transcribeConfig();
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
@@ -473,6 +485,8 @@ async function forgetEverything(env, id) {
   try { await env.DB.prepare('DELETE FROM accuracy_reports WHERE account_id = ?').bind(id).run(); } catch { /* no table yet */ }
   // the crash and failure reports it sent
   try { await forgetDiagnostics(env, id); } catch { /* no table yet */ }
+  // the messages it sent us
+  try { await forgetSupport(env, id); } catch { /* no table yet */ }
   if (env.JOBS) {
     const stub = env.JOBS.get(env.JOBS.idFromName(id));
     await stub.fetch(new Request('https://jobs/wipe', { method: 'POST' }));

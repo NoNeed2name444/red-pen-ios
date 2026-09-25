@@ -13,8 +13,9 @@ import Compression
 /// framework, which is on every device and on the test runner, so this is a few
 /// dozen lines of offsets rather than a dependency.
 ///
-/// Zip64 archives - over four gigabytes, or over 65,535 entries - are not
-/// handled. A Word document that size is not a lecture handout.
+/// Zip64 - an archive over four gigabytes or 65,535 entries - is read too:
+/// no Word document is that size, but a whole Anki collection with its
+/// pictures (AnKing) can be, and Anki writes zip64 when it is.
 ///
 /// Everything an archive says about itself is a claim, and the file can come
 /// from anyone - a handout shared in a group chat is opened the moment it is
@@ -175,16 +176,26 @@ enum Zip {
             guard offset >= 0, offset + 46 <= raw.count,
                   read32(raw, offset) == 0x0201_4b50 else { break }
             let method = read16(raw, offset + 10)
-            let compressed = Int(read32(raw, offset + 20))
-            let uncompressed = Int(read32(raw, offset + 24))
+            var compressed = Int(read32(raw, offset + 20))
+            var uncompressed = Int(read32(raw, offset + 24))
             let nameLength = Int(read16(raw, offset + 28))
             let extraLength = Int(read16(raw, offset + 30))
             let commentLength = Int(read16(raw, offset + 32))
-            let localOffset = Int(read32(raw, offset + 42))
+            var localOffset = Int(read32(raw, offset + 42))
             let nameStart = offset + 46
             guard nameStart + nameLength <= raw.count else { break }
             let nameBytes = UnsafeRawBufferPointer(rebasing: raw[nameStart..<(nameStart + nameLength)])
             let name = String(decoding: nameBytes, as: UTF8.self)
+            // a field too big for 32 bits says 0xFFFFFFFF and puts the real
+            // value in the zip64 extra field, in this order
+            let extraStart = nameStart + nameLength
+            if uncompressed == 0xFFFF_FFFF || compressed == 0xFFFF_FFFF || localOffset == 0xFFFF_FFFF,
+               let wide = zip64Extra(raw, from: extraStart, length: extraLength) {
+                var next = 0
+                if uncompressed == 0xFFFF_FFFF, next < wide.count { uncompressed = wide[next]; next += 1 }
+                if compressed == 0xFFFF_FFFF, next < wide.count { compressed = wide[next]; next += 1 }
+                if localOffset == 0xFFFF_FFFF, next < wide.count { localOffset = wide[next] }
+            }
             offset = nameStart + nameLength + extraLength + commentLength
 
             // The local header's own name and extra-field lengths are read
@@ -221,6 +232,30 @@ enum Zip {
         return entries.indices.filter { keep[$0] }.map { entries[$0] }
     }
 
+    /// The 64-bit values in an entry's zip64 extra field (header 0x0001).
+    private static func zip64Extra(_ raw: UnsafeRawBufferPointer, from start: Int, length: Int) -> [Int]? {
+        var at = start
+        let end = min(start + length, raw.count)
+        while at + 4 <= end {
+            let id = read16(raw, at)
+            let size = Int(read16(raw, at + 2))
+            let body = at + 4
+            if id == 0x0001 {
+                var values: [Int] = []
+                var i = body
+                while i + 8 <= min(body + size, end) {
+                    let value = read64(raw, i)
+                    guard value <= UInt64(Int.max) else { return nil }
+                    values.append(Int(value))
+                    i += 8
+                }
+                return values
+            }
+            at = body + size
+        }
+        return nil
+    }
+
     /// Where the central directory starts, and how many entries it lists.
     ///
     /// The record sits at the very end of the file, unless the archive carries
@@ -232,7 +267,22 @@ enum Zip {
         var offset = raw.count - 22
         while offset >= lowest {
             if read32(raw, offset) == 0x0605_4b50 {
-                return (Int(read32(raw, offset + 16)), Int(read16(raw, offset + 10)))
+                let start = Int(read32(raw, offset + 16))
+                let count = Int(read16(raw, offset + 10))
+                // zip64: a locator just before this record points at the
+                // zip64 end record, which holds the real count and start
+                if start == 0xFFFF_FFFF || count == 0xFFFF, offset >= 20,
+                   read32(raw, offset - 20) == 0x0706_4b50 {
+                    let record = read64(raw, offset - 12)
+                    if raw.count >= 56, record <= UInt64(raw.count - 56), read32(raw, Int(record)) == 0x0606_4b50 {
+                        let wideCount = read64(raw, Int(record) + 32)
+                        let wideStart = read64(raw, Int(record) + 48)
+                        if wideCount <= UInt64(raw.count), wideStart <= UInt64(raw.count) {
+                            return (Int(wideStart), Int(wideCount))
+                        }
+                    }
+                }
+                return (start, count)
             }
             offset -= 1
         }
@@ -242,6 +292,13 @@ enum Zip {
     private static func read16(_ raw: UnsafeRawBufferPointer, _ offset: Int) -> UInt16 {
         guard offset >= 0, offset + 2 <= raw.count else { return 0 }
         return UInt16(raw[offset]) | UInt16(raw[offset + 1]) << 8
+    }
+
+    private static func read64(_ raw: UnsafeRawBufferPointer, _ offset: Int) -> UInt64 {
+        guard offset >= 0, offset + 8 <= raw.count else { return 0 }
+        let low = UInt64(read32(raw, offset))
+        let high = UInt64(read32(raw, offset + 4))
+        return low | high << 32
     }
 
     private static func read32(_ raw: UnsafeRawBufferPointer, _ offset: Int) -> UInt32 {

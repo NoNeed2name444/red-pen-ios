@@ -580,6 +580,97 @@ final class Store: ObservableObject {
     }
 }
 
+// MARK: - many sets at once, and the backup's progress
+
+extension Store {
+    /// Many sets at once - an Anki package's subdecks, a restored backup -
+    /// as ONE change to the library: the list redraws once and the file is
+    /// written once, rather than once per set.
+    func addSets(_ sets: [StudySet]) {
+        guard !sets.isEmpty else { return }
+        library.append(contentsOf: sets)
+        save()
+    }
+
+    /// Everything about how the studying is going, as the progress file
+    /// holds it - for a backup (LibraryBackupRunner).
+    func studyBackup() -> Data? {
+        var study = StudyFile()
+        study.quizProgress = quizProgress
+        study.osceProgress = osceProgress
+        study.readingProgress = readingProgress
+        study.flagged = flagged
+        study.answerHistory = answerHistory
+        study.answerLog = answerLog
+        study.mistakeReasons = mistakeReasons
+        study.ruleSheet = ruleSheet
+        return try? JSONEncoder.redPen.encode(study)
+    }
+
+    /// A backup's progress merged into this phone's: nothing here is
+    /// overwritten. Positions and notes fill in where there are none, flags
+    /// are joined, a longer answer history wins, and the answer log is the
+    /// two logs together in date order. `renamed` moves a set's positions to
+    /// the id it came back under.
+    func mergeStudy(from data: Data, renamed: [UUID: UUID]) {
+        guard let study = try? JSONDecoder.redPen.decode(StudyFile.self, from: data) else { return }
+        var quiz = quizProgress
+        for (id, value) in study.quizProgress where quiz[renamed[id] ?? id] == nil { quiz[renamed[id] ?? id] = value }
+        if quiz.count != quizProgress.count { quizProgress = quiz }
+        var osce = osceProgress
+        for (id, value) in study.osceProgress where osce[renamed[id] ?? id] == nil { osce[renamed[id] ?? id] = value }
+        if osce.count != osceProgress.count { osceProgress = osce }
+        var reading = readingProgress
+        for (id, value) in study.readingProgress where reading[renamed[id] ?? id] == nil { reading[renamed[id] ?? id] = value }
+        if reading.count != readingProgress.count { readingProgress = reading }
+        let flags: Set<UUID> = flagged.union(study.flagged)
+        if flags.count != flagged.count { flagged = flags }
+        var history = answerHistory
+        for (id, answers) in study.answerHistory where answers.count > (history[id]?.count ?? 0) { history[id] = answers }
+        if history != answerHistory { answerHistory = history }
+        var seen = Set(answerLog.map { "\($0.questionId)|\($0.date.timeIntervalSince1970)" })
+        var log = answerLog
+        for event in study.answerLog {
+            let key = "\(event.questionId)|\(event.date.timeIntervalSince1970)"
+            if seen.insert(key).inserted { log.append(event) }
+        }
+        if log.count != answerLog.count {
+            log.sort { $0.date < $1.date }
+            if log.count > Self.answerLogDepth { log.removeFirst(log.count - Self.answerLogDepth) }
+            answerLog = log
+        }
+        var reasons = mistakeReasons
+        for (id, note) in study.mistakeReasons where reasons[id] == nil { reasons[id] = note }
+        if reasons.count != mistakeReasons.count { mistakeReasons = reasons }
+        var rules = ruleSheet
+        for (id, rule) in study.ruleSheet where rules[id] == nil { rules[id] = rule }
+        if rules.count != ruleSheet.count { ruleSheet = rules }
+        save()
+    }
+}
+
+// MARK: - read-only
+
+extension Store {
+    /// The library as last saved, read without a Store: no lifecycle
+    /// observers, no migration, no write. For an App Intent's query when
+    /// Siri or Shortcuts woke the app with no library on screen - a second
+    /// Store there would be a second writer to the same files. Call it off
+    /// the main thread: the whole library is decoded.
+    nonisolated static func savedLibrary(fileURL: URL? = nil) -> [StudySet] {
+        let url: URL
+        if let fileURL {
+            url = fileURL
+        } else {
+            let dir: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            url = dir.appendingPathComponent("redpen-library.json")
+        }
+        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
+              let file = try? JSONDecoder.redPen.decode(LibraryFile.self, from: data) else { return [] }
+        return file.library
+    }
+}
+
 // MARK: - the two files
 
 /// The library file. Read tolerantly: a set this version cannot decode is
@@ -697,8 +788,10 @@ struct ReadingProgress: Codable, Hashable {
     var savedAt: Date = Date()
 }
 
-/// A station part way through: which checklist, which step, and which steps
-/// have been missed so far.
+/// A station part way through: which checklist, which step, and the step each
+/// start over happened at so far (`missed`, one entry per start over).
+/// `repeatQueue` and `repeatPos` are from the old second pass over missed
+/// steps; they are no longer written, only read so older saves still load.
 ///
 /// `checklistTitle` rather than only the index, because a set can be edited
 /// between sessions. Resuming by index alone into a set whose stations have

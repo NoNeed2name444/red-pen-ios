@@ -15,7 +15,8 @@
 // allowance at all.
 //
 // Routes (worker.js):
-//   POST /accuracy/check      { items: [...], priority?, writer? }   Pro (or owner)
+//   POST /accuracy/check      { items: [...], priority?, writer?, exam? }   Pro (or owner)
+//     exam: a catalogue id (exams.js); its management questions need more to be Verified
 //   POST /accuracy/report     { item, note }                         signed in
 //   POST /accuracy/model      -> the accuracy model's current weights (anyone)
 //   POST /accuracy/model/set  { weights }                            owner key
@@ -24,7 +25,8 @@
 import { proGate, askModel, spend } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights } from './accuracy-model.js';
+import { exam as examById } from './exams.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -216,7 +218,7 @@ export function forgetWeights() { weightsCache = { value: null, until: 0 }; }
 
 /// What the app is told about one item: the verdict, P(accurate), why, and
 /// the raw features (so the phone can re-score it when the weights change).
-export function describe(item, hash, signals, weights) {
+export function describe(item, hash, signals, weights, strictness = 0) {
   const rules = ruleHits(item);
   const votes = signals?.votes || [];
   const keyLetter = item.kind === 'mcq' && item.key >= 0 ? letter(item.key) : null;
@@ -224,7 +226,7 @@ export function describe(item, hash, signals, weights) {
                        sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter });
   const p = predict(f, weights);
   return {
-    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: verdict(p, f, weights), modelVersion: weights.version,
+    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: verdict(p, f, examWeights(weights, item, strictness)), modelVersion: weights.version,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: suggestedFix(item, votes),
   };
 }
@@ -262,11 +264,12 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   // what was actually checked
   for (const item of items) item.source = (item.source || '').trim().slice(0, MAX_SOURCE_CHARS);
   const weights = await currentWeights(env);
+  const strict = examById(body?.exam)?.strict || 0;
   const hashes = await Promise.all(items.map(itemHash));
 
   const cached = await Promise.all(hashes.map(h => readVerdict(env, h)));
   const todo = items.map((_, i) => i).filter(i => !cached[i]);
-  const results = items.map((item, i) => (cached[i] ? { ...describe(item, hashes[i], cached[i], weights), cached: true } : null));
+  const results = items.map((item, i) => (cached[i] ? { ...describe(item, hashes[i], cached[i], weights, strict), cached: true } : null));
   if (!todo.length) return json({ items: results });
 
   // the day's allowance, per batch: background checks have a smaller share of
@@ -276,7 +279,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const limit = bench ? Number(env.OWNER_BENCH_DAILY_LIMIT) || 2500 : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000
     : Number(env.ACCURACY_DAILY_BATCHES) || 40;
   const background = body.priority === 'background';
-  const unchecked = reason => items.map((item, i) => results[i] || { ...describe(item, hashes[i], null, weights), reason });
+  const unchecked = reason => items.map((item, i) => results[i] || { ...describe(item, hashes[i], null, weights, strict), reason });
   if (background && !owner && !await spend(env, `accuracy-bg:${account}`, Number(env.ACCURACY_BACKGROUND_BATCHES) || 20)) {
     return json({ items: unchecked('day'), limit: 'day' }, 429);
   }
@@ -309,7 +312,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
     };
     if (votes.length) await writeVerdict(env, hashes[e.i], signals);
-    results[e.i] = { ...describe(e.item, hashes[e.i], votes.length ? signals : null, weights),
+    results[e.i] = { ...describe(e.item, hashes[e.i], votes.length ? signals : null, weights, strict),
                      ...(votes.length ? {} : { reason: 'busy' }) };
   }
   if (!ballots.length) console.error('accuracy: no voter answered', failures.join(' | '));

@@ -198,6 +198,22 @@ final class NoteStore: ObservableObject {
         save()
     }
 
+    /// Notes and folders from a backup that this phone does not have, added
+    /// in one change; a note already here stays as it is. Returns how many
+    /// notes came in.
+    @discardableResult
+    func restore(notes incoming: [Note], folders incomingFolders: [NoteFolder]) -> Int {
+        let haveFolders = Set(folders.map(\.id))
+        let newFolders = incomingFolders.filter { !haveFolders.contains($0.id) }
+        let haveNotes = Set(notes.map(\.id))
+        let newNotes = incoming.filter { !haveNotes.contains($0.id) }
+        guard !newFolders.isEmpty || !newNotes.isEmpty else { return 0 }
+        folders += newFolders
+        notes += newNotes
+        save()
+        return newNotes.count
+    }
+
     /// Deletes a note and every hand-made link to it. `[[Title]]` links in
     /// other notes are left as written: they simply point nowhere until a note
     /// of that name exists again.

@@ -22,6 +22,12 @@ struct ExamPlanView: View {
         let rings: [SecuredRule.Ring] = SecuredRule.rings(subjects: store.questionSubjects(), standings: standings)
         List {
             Section { PhaseHero(phase: phase) }
+            // the chosen exam: countdown, blueprint coverage, readiness, study next
+            Section {
+                ExamDashboardCard()
+            } header: {
+                Text("Your exam")
+            }
             Section {
                 ForecastCard(forecast: forecast, phase: phase)
             } header: {

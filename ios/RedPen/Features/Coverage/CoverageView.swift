@@ -20,13 +20,28 @@ struct CoverageView: View {
     /// Everything / Gaps only choice in the slab.
     @State private var statusFilter: CoverageStatus?
     @State private var preset: NewSetPreset?
+    /// Bumped when the exam is changed here, to re-read the choice.
+    @State private var examVersion = 0
+    @State private var pickingExam = false
+
+    /// The exam the student picked, under this track: the map is then its
+    /// blueprint, weighted, rather than the track's condensed syllabus.
+    private var target: TargetExam? {
+        guard let picked = ExamChoice.picked(), picked.family == track else { return nil }
+        return picked
+    }
+
+    private var plan: [BlueprintArea] {
+        target.map { ExamBlueprint.plan(primary: $0, secondary: ExamChoice.currentSecondary) } ?? []
+    }
 
     /// Re-run the keyword check when the exam, the library or the answers
     /// change - not on every redraw.
     private var assessmentKey: String {
         let edited = store.library.map(\.updatedAt).max()?.timeIntervalSince1970 ?? 0
         let answers = store.answerHistory.values.reduce(0) { $0 + $1.count }
-        return "\(track.rawValue)-\(store.library.count)-\(edited)-\(answers)"
+        let exam: String = (target?.id ?? "-") + "/" + (ExamChoice.currentSecondary?.id ?? "-")
+        return "\(track.rawValue)-\(exam)-\(examVersion)-\(store.library.count)-\(edited)-\(answers)"
     }
 
     /// Everything / Gaps only; choosing either lets go of a picked count.
@@ -50,6 +65,7 @@ struct CoverageView: View {
                 }
             } else {
                 summarySection
+                if target != nil { blueprintSection }
                 aiSection
                 ForEach(areas) { area in
                     areaSection(area)
@@ -75,6 +91,9 @@ struct CoverageView: View {
             checker.load(for: now, areas: [])
         }
         .sheet(item: $preset) { NewSetView(preset: $0) }
+        .sheet(isPresented: $pickingExam) {
+            NavigationStack { ExamPickerView(onDone: { examVersion += 1; track = ExamTrack.current }) }
+        }
     }
 
     // MARK: - Working it out
@@ -83,7 +102,7 @@ struct CoverageView: View {
         computing = true
         let library = store.library
         let history = store.answerHistory
-        let blueprint = Syllabus.areas(for: track)
+        let blueprint: [SyllabusArea] = target != nil ? ExamBlueprint.syllabus(plan) : Syllabus.areas(for: track)
         let result = await Task.detached(priority: .userInitiated) {
             CoverageEngine.assess(library: library, history: history, areas: blueprint)
         }.value
@@ -123,8 +142,9 @@ struct CoverageView: View {
                     Text(exam.title).tag(exam)
                 }
             }
+            Button("Choose a specific exam\u{2026}", systemImage: "list.bullet") { pickingExam = true }
         } label: {
-            Label(Self.shortName(track), systemImage: "graduationcap")
+            Label(target?.shortName ?? Self.shortName(track), systemImage: "graduationcap")
                 .labelStyle(.titleAndIcon)
         }
         .accessibilityLabel("Exam")
@@ -174,7 +194,7 @@ struct CoverageView: View {
         let covered = all.filter { shown($0) == .covered }.count
         let thin = all.filter { shown($0) == .thin }.count
         let missing = all.filter { shown($0) == .notCovered }.count
-        let source: String = Syllabus.blueprint(for: track)
+        let source: String = target?.blueprintSource ?? Syllabus.blueprint(for: track)
         let footer: String = "Condensed from \(source), so approximate: it shows where your gaps probably are, not what the exam will ask. Tap a count to show only those."
         return Section {
             HStack(spacing: 10) {
@@ -280,12 +300,40 @@ struct CoverageView: View {
         return "\(failed.count) area\(plural) could not be checked this time: \(names)."
     }
 
+    /// The chosen exam's blueprint: each area's share with how much of it is
+    /// covered, the predicted score, and the areas worth most now.
+    @ViewBuilder
+    private var blueprintSection: some View {
+        if let target {
+            let standings: [BlueprintStanding] = ExamBlueprint.standings(plan: plan, assessed: areas)
+            let predicted: Double = ExamBlueprint.predictedScore(standings)
+            let covered: Double = ExamBlueprint.weightedCoverage(standings)
+            let next: String = ExamBlueprint.studyNext(standings, limit: 3).map(\.area.title).joined(separator: ", ")
+            Section {
+                ForEach(standings.filter { $0.area.percent > 0 }) { s in
+                    BlueprintBar(standing: s)
+                }
+                if !next.isEmpty {
+                    Label("Study next: \(next)", systemImage: "arrow.forward.circle")
+                        .font(.subheadline)
+                }
+            } header: {
+                Text("\(target.name) blueprint")
+            } footer: {
+                Text("Blueprint covered \(ExamDashboardCard.percent(covered)) \u{00B7} predicted ~\(ExamDashboardCard.percent(predicted)) against a pass mark of ~\(ExamDashboardCard.percent(target.passMark)). An estimate from your library and answers, weighted by each area\u{2019}s share of the exam.")
+            }
+        }
+    }
+
     @ViewBuilder
     private func areaSection(_ area: AreaCoverage) -> some View {
         let rows = area.subtopics.filter { passes($0) }
         if !rows.isEmpty {
             let covered: Int = area.subtopics.filter { shown($0) == .covered }.count
-            let tally: String = "\(covered) of \(area.subtopics.count) covered"
+            // with an exam chosen, each area says what share of it it is
+            let share: String = plan.first { $0.title == area.area.name && $0.percent > 0 }
+                .map { " \u{00B7} \(Int($0.percent.rounded()))%" } ?? ""
+            let tally: String = "\(covered) of \(area.subtopics.count) covered" + share
             Section {
                 ForEach(rows) { sub in
                     row(sub, area: area.area.name)
@@ -303,8 +351,14 @@ struct CoverageView: View {
 
     private func generate(_ sub: SubtopicCoverage, area: String) {
         let ai = verdict(sub)
-        preset = NewSetPreset(syllabus: sub.subtopic.name, area: area, exam: track,
-                              suggestion: ai?.suggestion)
+        var made = NewSetPreset(syllabus: sub.subtopic.name, area: area, exam: track,
+                                suggestion: ai?.suggestion)
+        // written to the chosen exam's format and level
+        if let target {
+            made.notes = "Write \(target.name) questions on \(sub.subtopic.name) (\(area)), in its format and at its level."
+                + ((ai?.suggestion).map { $0.isEmpty ? "" : " " + $0 } ?? "")
+        }
+        preset = made
     }
 
     private func row(_ sub: SubtopicCoverage, area: String) -> some View {

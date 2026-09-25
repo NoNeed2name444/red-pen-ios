@@ -424,7 +424,7 @@ extension View {
 /// At least 56 points tall and the full width of the bar, so it can be hit
 /// without looking. The text is the headline style, which is 17 points and
 /// grows with the reader's own text size setting. The quiet version is for a
-/// second choice sitting beside the main one - "Missed it" next to "Knew it",
+/// second choice sitting beside the main one - "Start over" next to "I got it",
 /// "Back" next to "Next" - so there is never any doubt which is the main one.
 ///
 /// Depth: the primary is the screen's hero - it stands highest out of the
@@ -757,6 +757,25 @@ struct FinishSymbol: View {
 struct AccuracyAsk {
     let instruction: String
     let text: () -> String?
+    /// The item on screen as the accuracy engine reads it, for Report a
+    /// problem; nil falls back to `text`. Unlike `text` it may be given
+    /// before an answer is checked: a report shows nothing.
+    var item: (() -> AccuracyItem?)?
+
+    init(instruction: String, item: (() -> AccuracyItem?)? = nil, text: @escaping () -> String?) {
+        self.instruction = instruction
+        self.item = item
+        self.text = text
+    }
+
+    /// What Report a problem sends: the structured item, else the text on
+    /// screen, else the set itself by name.
+    func reportItem(in set: StudySet) -> AccuracyItem {
+        if let made = item?() { return made }
+        let shown: String = text() ?? ""
+        let body: String = shown.isEmpty ? "Set: " + set.name : shown
+        return AccuracyItem(id: set.id.uuidString, kind: .fact, text: body)
+    }
 }
 
 /// The one "More" menu in a study screen's top corner.
@@ -773,6 +792,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
     let extra: Extra
     @State private var turning: StudySet?
     @State private var request: AccuracyRequest?
+    @State private var reporting: QuestionReport?
 
     func body(content: Content) -> some View {
         content
@@ -788,6 +808,12 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                             } label: {
                                 Label("Check accuracy", systemImage: "checkmark.shield")
                             }
+                            Button {
+                                reporting = QuestionReport(set: set, item: check.reportItem(in: set))
+                            } label: {
+                                Label("Report a problem", systemImage: "flag")
+                            }
+                            .accessibilityIdentifier("reportProblem")
                         }
                         if turnInto {
                             Button { turning = set } label: {
@@ -805,6 +831,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
             }
             .turnIntoPicker(for: $turning)
             .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
+            .sheet(item: $reporting) { QuestionReportSheet(report: $0) }
     }
 }
 

@@ -125,10 +125,10 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     /// about how the studying is going.
     private var toolTiles: [CategoryFeature] {
         switch self {
-        case .questions: return [.examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
-        case .cards: return [.add, .turn]
-        case .cases: return [.reasoning, .add, .turn]
-        case .osce: return [.add, .turn]
+        case .questions: return [.lens, .examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
+        case .cards: return [.lens, .add, .turn]
+        case .cases: return [.lens, .reasoning, .add, .turn]
+        case .osce: return [.lens, .add, .turn]
         case .audio: return [.record, .add, .turn]
         }
     }
@@ -171,6 +171,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     case commute, explain, record
     // Every category
     case add, turn
+    // Questions, Cards, Cases, OSCE: the camera that answers questions
+    case lens
 
     var id: String { rawValue }
 
@@ -215,7 +217,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .examKit: return .learn(.examKit)
         case .bedtime: return .learn(.bedtime)
         case .rules, .coverage, .draw, .clues, .duels, .scripts, .reasoning,
-             .patient, .commute, .explain, .turn, .mock: return .page
+             .patient, .commute, .explain, .turn, .mock, .lens: return .page
         }
     }
 
@@ -263,6 +265,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .record: return "Add an audio file"
         case .add: return "Paste or import"
         case .turn: return "Turn into\u{2026}"
+        case .lens: return "Study Lens"
         }
     }
 
@@ -302,8 +305,9 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .commute: return "Listen and answer aloud"
         case .explain: return "Say it, get it marked"
         case .record: return "A lecture recording, written out and read along"
-        case .add: return "Type it in, or open a saved set"
+        case .add: return "Type, paste, or open Anki, Quizlet or CSV"
         case .turn: return "Make a set another mode"
+        case .lens: return "Point the camera at questions to answer and keep them"
         }
     }
 
@@ -345,6 +349,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .record: return "waveform.badge.plus"
         case .add: return "square.and.arrow.down"
         case .turn: return "arrow.triangle.2.circlepath"
+        case .lens: return "camera.viewfinder"
         }
     }
 
@@ -380,6 +385,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .commute: CommuteModeView()
         case .explain: ExplainBackView()
         case .mock: MockPaperView()
+        case .lens: StudyLensView()
         default: EmptyView()
         }
     }

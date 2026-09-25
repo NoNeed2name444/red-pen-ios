@@ -26,6 +26,8 @@ struct MCQQuizView: View {
     /// How sure the student said they were before checking, by question id.
     /// Optional for every question: an answer can be checked without it.
     @State private var confidences: [UUID: AnswerConfidence] = [:]
+    /// Settings > Review: whether to show the Sure / Maybe / Guess row.
+    @AppStorage(ConfidenceSetting.key) private var asksConfidence = true
     /// Why a wrong answer was wrong, as picked this sitting, by question id -
     /// kept here only to show which chip is on; the store has the record.
     @State private var reasons: [UUID: MistakeReason] = [:]
@@ -363,10 +365,18 @@ struct MCQQuizView: View {
         }
     }
 
+    /// What Report a problem sends: the question on screen, answered or not
+    /// (a report shows nothing of the answer).
+    private func reportItem() -> AccuracyItem? {
+        guard questions.indices.contains(current) else { return nil }
+        return AccuracyItem.mcq(questions[current])
+    }
+
     /// What Check accuracy looks at: the question on screen, and only once it
     /// has been answered, because the check shows the answer.
     private var accuracyAsk: AccuracyAsk {
-        AccuracyAsk(instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.") {
+        AccuracyAsk(instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.",
+                    item: reportItem) {
             guard !examMode, questions.indices.contains(current),
                   answers.indices.contains(current), answers[current].checked else { return nil }
             let question = questions[current]
@@ -971,7 +981,7 @@ struct MCQQuizView: View {
         } else {
             // inside the bar, above the buttons, so it is never hidden under
             // the bar and is where the thumb already is
-            if !a.checked && shuffle { confidencePicker }
+            if !a.checked && shuffle && asksConfidence { confidencePicker }
             answerButtons
         }
     }

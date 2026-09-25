@@ -71,6 +71,33 @@ enum ApkgExporter {
     }
 
     static func export(_ set: StudySet) throws -> URL {
+        let deckName = set.name.isEmpty ? Brand.name : set.name
+        return try export(decks: [(deckName, set)], fileName: set.name)
+    }
+
+    /// Every card set in the library as ONE package, a deck per set - filed
+    /// "Folder::Set" when the set is in a folder, which Anki shows as a
+    /// subdeck. For "Export all as Anki" in Settings.
+    static func exportAll(_ sets: [StudySet], folders: [StudyFolder], fileName: String) throws -> URL {
+        let names: [UUID: String] = Dictionary(folders.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+        var decks: [(name: String, set: StudySet)] = []
+        for set in sets where set.kind == .anki && !set.cards.isEmpty {
+            let own = set.name.isEmpty ? Brand.name : set.name
+            let folder: String? = set.folderId.flatMap { names[$0] }
+            decks.append((folder.map { $0 + "::" + own } ?? own, set))
+        }
+        guard !decks.isEmpty else { throw ExportError() }
+        return try export(decks: decks, fileName: fileName)
+    }
+
+    /// Builds every set's cards on a background thread.
+    static func exportAllInBackground(_ sets: [StudySet], folders: [StudyFolder], fileName: String) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            try exportAll(sets, folders: folders, fileName: fileName)
+        }.value
+    }
+
+    private static func export(decks: [(name: String, set: StudySet)], fileName: String) throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("apkg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -78,7 +105,7 @@ enum ApkgExporter {
 
         // each picture goes to disk as it is drawn, not into memory
         var media: [(name: String, file: URL)] = []
-        try buildCollection(at: dbURL, set: set, mediaFolder: dir, media: &media)
+        try buildCollection(at: dbURL, decks: decks, mediaFolder: dir, media: &media)
 
         // media manifest: {"0": "file.jpg", ...}; zipped entries are named by index
         var manifest: [String: String] = [:]
@@ -95,7 +122,7 @@ enum ApkgExporter {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("apkg-out-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let out = folder.appendingPathComponent(safeFileName(set.name)).appendingPathExtension("apkg")
+        let out = folder.appendingPathComponent(safeFileName(fileName)).appendingPathExtension("apkg")
         try MiniZip.write(files: entries, to: out)
         return out
     }
@@ -111,7 +138,7 @@ enum ApkgExporter {
     img { max-width: 100%; border-radius: 8px; }
     """
 
-    private static func buildCollection(at url: URL, set: StudySet, mediaFolder: URL,
+    private static func buildCollection(at url: URL, decks deckList: [(name: String, set: StudySet)], mediaFolder: URL,
                                         media: inout [(name: String, file: URL)]) throws {
         var db: OpaquePointer?
         guard sqlite3_open(url.path, &db) == SQLITE_OK, let db else { throw ExportError() }
@@ -136,8 +163,8 @@ enum ApkgExporter {
 
         var idc = Int(Date().timeIntervalSince1970 * 1000)
         func nextId() -> Int { idc += 1; return idc }
-        let deckName = set.name.isEmpty ? Brand.name : set.name
-        let did = deckId(for: deckName)
+        let firstName = deckList.first?.name ?? Brand.name
+        let did = deckId(for: firstName)
         let now = Int(Date().timeIntervalSince1970)
 
         let models: [String: Any] = [
@@ -146,10 +173,24 @@ enum ApkgExporter {
             String(midCloze): model(id: midCloze, name: "\(Brand.name) Cloze", cloze: true, fields: ["Text", "Extra"],
                                    templates: [["name": "Cloze", "ord": 0, "qfmt": "{{cloze:Text}}", "afmt": "{{cloze:Text}}{{#Extra}}<div class=\"why\"><b>Why / how</b>{{Extra}}</div>{{/Extra}}", "bqfmt": "", "bafmt": "", "did": NSNull()]], did: did),
         ]
-        let decks: [String: Any] = [
+        var decks: [String: Any] = [
             "1": ["id": 1, "name": "Default", "desc": "", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
-            String(did): ["id": did, "name": deckName, "desc": "Exported from \(Brand.name).", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
         ]
+        // a deck per set, and a parent deck for every "Folder::" above one -
+        // Anki makes the parents itself on import, but only if they are named
+        var deckNames: [String] = []
+        for entry in deckList {
+            let levels = entry.name.components(separatedBy: "::")
+            for depth in 1...max(1, levels.count) {
+                let name = levels.prefix(depth).joined(separator: "::")
+                if !deckNames.contains(name) { deckNames.append(name) }
+            }
+        }
+        for name in deckNames {
+            let id = deckId(for: name)
+            let entry: [String: Any] = ["id": id, "name": name, "desc": "Exported from \(Brand.name).", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false]
+            decks[String(id)] = entry
+        }
         let conf: [String: Any] = ["nextPos": 1, "estTimes": true, "activeDecks": [1], "sortType": "noteFld", "timeLim": 0, "sortBackwards": false, "addToCur": true, "curDeck": 1, "newBury": true, "newSpread": 0, "dueCounts": true, "curModel": String(midBasic), "collapseTime": 1200]
         let dconf: [String: Any] = ["1": ["id": 1, "name": "Default", "replayq": true, "lapse": ["leechFails": 8, "minInt": 1, "delays": [10], "leechAction": 0, "mult": 0], "rev": ["perDay": 200, "ivlFct": 1, "maxIvl": 36500, "ease4": 1.3, "bury": true, "minSpace": 1, "fuzz": 0.05], "timer": 0, "maxTaken": 60, "usn": 0, "new": ["perDay": 20, "delays": [1, 10], "separate": true, "ints": [1, 4, 7], "initialFactor": 2500, "bury": true, "order": 1], "mod": 0, "autoplay": true]]
 
@@ -157,76 +198,81 @@ enum ApkgExporter {
         let collection = try Statement(db, "INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')")
         try collection.run([.int(now), .int(now * 1000), .int(now * 1000), .text(json(conf)),
                             .text(json(models)), .text(json(decks)), .text(json(dconf))])
-        let notes = try Statement(db, "INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, ?, 0, '')")
+        let notes = try Statement(db, "INSERT INTO notes VALUES (?, ?, ?, ?, -1, ?, ?, ?, ?, 0, '')")
         let cardRows = try Statement(db, "INSERT INTO cards VALUES (?, ?, ?, ?, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')")
         // the picture drawn last, since a diagram's cards sit together:
         // decoding it once per diagram rather than once per card, without
         // holding every diagram at once
         var picture: (index: Int, image: UIImage)?
 
-        for card in set.cards {
-            let why = card.why
-            var mid = midBasic, fields: [String], sort: String, isCloze = false
-            // The card's own id, not its text: editing a card must not create a
-            // second note, which is the whole reason a GUID exists.
-            let guid = guidFor(card.id.uuidString)
-            switch card.type {
-            case .cloze:
-                mid = midCloze; isCloze = true
-                let extra = why.isEmpty ? "" : AnkiFields.bold(why)
-                // escaped like every other field: a cloze from a shared set
-                // or a model is HTML to Anki, and runs as HTML if left raw
-                fields = [AnkiFields.cloze(card.clozeText), extra]
-                sort = AnkiFields.plain(card.clozeText)
-            case .qa:
-                let front = AnkiFields.bold(card.front)
-                let items: String = card.bullets.map { "<li>\(AnkiFields.bold($0))</li>" }.joined()
-                let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
-                fields = [front, "<ul class=\"bullets\">" + items + "</ul>" + reason]
-                sort = AnkiFields.plain(card.front)
-            case .occlusion:
-                guard let idx = card.imageIndex, let occ = card.occlusion else { continue }
-                if picture?.index != idx {
-                    picture = nil
-                    if set.images.indices.contains(idx),
-                       let data = BlobRefs.data(fromStored: set.images[idx]),
-                       let decoded = UIImage(data: data) {
-                        picture = (idx, decoded)
+        for (deckName, set) in deckList {
+            let did = deckId(for: deckName)
+            // pictures are numbered per set
+            picture = nil
+            for card in set.cards {
+                let why = card.why
+                var mid = midBasic, fields: [String], sort: String, isCloze = false
+                // The card's own id, not its text: editing a card must not create a
+                // second note, which is the whole reason a GUID exists.
+                let guid = guidFor(card.id.uuidString)
+                switch card.type {
+                case .cloze:
+                    mid = midCloze; isCloze = true
+                    let extra = why.isEmpty ? "" : AnkiFields.bold(why)
+                    // escaped like every other field: a cloze from a shared set
+                    // or a model is HTML to Anki, and runs as HTML if left raw
+                    fields = [AnkiFields.cloze(card.clozeText), extra]
+                    sort = AnkiFields.plain(card.clozeText)
+                case .qa:
+                    let front = AnkiFields.bold(card.front)
+                    let items: String = card.bullets.map { "<li>\(AnkiFields.bold($0))</li>" }.joined()
+                    let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
+                    fields = [front, "<ul class=\"bullets\">" + items + "</ul>" + reason]
+                    sort = AnkiFields.plain(card.front)
+                case .occlusion:
+                    guard let idx = card.imageIndex, let occ = card.occlusion else { continue }
+                    if picture?.index != idx {
+                        picture = nil
+                        if set.images.indices.contains(idx),
+                           let data = BlobRefs.data(fromStored: set.images[idx]),
+                           let decoded = UIImage(data: data) {
+                            picture = (idx, decoded)
+                        }
                     }
+                    // a picture not on this phone: counted beforehand by
+                    // missingPictures, and asked about there
+                    guard let base = picture?.image else { continue }
+                    // named from the card's id so re-exporting overwrites the same
+                    // media rather than piling up a copy per export
+                    let short = card.id.uuidString.prefix(8)
+                    let f = "occ_\(short)_front.jpg", b = "occ_\(short)_back.jpg"
+                    let drawn: Bool = try autoreleasepool {
+                        guard let pair = renderOcclusion(base, occ,
+                                                         others: OcclusionCovers.others(for: card, in: set.cards))
+                        else { return false }
+                        let frontFile = mediaFolder.appendingPathComponent("m\(media.count)")
+                        try pair.front.write(to: frontFile)
+                        media.append((f, frontFile))
+                        let backFile = mediaFolder.appendingPathComponent("m\(media.count)")
+                        try pair.back.write(to: backFile)
+                        media.append((b, backFile))
+                        return true
+                    }
+                    guard drawn else { continue }
+                    let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
+                    fields = ["<img src=\"\(f)\">" + (card.front.isEmpty ? "" : "<div>\(AnkiFields.bold(card.front))</div>"),
+                              "<img src=\"\(b)\">" + reason]
+                    sort = AnkiFields.plain(card.front.isEmpty ? "Image occlusion" : card.front)
                 }
-                // a picture not on this phone: counted beforehand by
-                // missingPictures, and asked about there
-                guard let base = picture?.image else { continue }
-                // named from the card's id so re-exporting overwrites the same
-                // media rather than piling up a copy per export
-                let short = card.id.uuidString.prefix(8)
-                let f = "occ_\(short)_front.jpg", b = "occ_\(short)_back.jpg"
-                let drawn: Bool = try autoreleasepool {
-                    guard let pair = renderOcclusion(base, occ,
-                                                     others: OcclusionCovers.others(for: card, in: set.cards))
-                    else { return false }
-                    let frontFile = mediaFolder.appendingPathComponent("m\(media.count)")
-                    try pair.front.write(to: frontFile)
-                    media.append((f, frontFile))
-                    let backFile = mediaFolder.appendingPathComponent("m\(media.count)")
-                    try pair.back.write(to: backFile)
-                    media.append((b, backFile))
-                    return true
+                let nid = nextId()
+                let flds = fields.joined(separator: "\u{1f}")
+                try notes.run([.int(nid), .text(guid), .int(mid), .int(now), .text(ankiTags(card.tags, set.tags)),
+                               .text(flds), .text(sort), .int(checksum(fields[0]))])
+                // one card per note; cloze notes get one card per distinct cN as Anki would
+                let ords = isCloze ? AnkiFields.clozeOrdinals(card.clozeText) : [0]
+                for ord in ords {
+                    try cardRows.run([.int(nextId()), .int(nid), .int(did), .int(ord), .int(now), .int(nid % 1_000_000)])
                 }
-                guard drawn else { continue }
-                let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
-                fields = ["<img src=\"\(f)\">" + (card.front.isEmpty ? "" : "<div>\(AnkiFields.bold(card.front))</div>"),
-                          "<img src=\"\(b)\">" + reason]
-                sort = AnkiFields.plain(card.front.isEmpty ? "Image occlusion" : card.front)
-            }
-            let nid = nextId()
-            let flds = fields.joined(separator: "\u{1f}")
-            try notes.run([.int(nid), .text(guid), .int(mid), .int(now), .text(flds), .text(sort),
-                           .int(checksum(fields[0]))])
-            // one card per note; cloze notes get one card per distinct cN as Anki would
-            let ords = isCloze ? AnkiFields.clozeOrdinals(card.clozeText) : [0]
-            for ord in ords {
-                try cardRows.run([.int(nextId()), .int(nid), .int(did), .int(ord), .int(now), .int(nid % 1_000_000)])
             }
         }
         try exec(db, "COMMIT")
@@ -240,6 +286,18 @@ enum ApkgExporter {
             "css": cardCSS, "latexPre": "\\documentclass[12pt]{article}\\special{papersize=3in,5in}\\usepackage[utf8]{inputenc}\\usepackage{amssymb,amsmath}\\pagestyle{empty}\\setlength{\\parindent}{0in}\\begin{document}",
             "latexPost": "\\end{document}", "latexsvg": false, "req": [[0, "any", [0]]], "tags": [], "vers": [],
         ]
+    }
+
+    /// A note's tags as Anki stores them: space-separated with a space at
+    /// each end, the card's own and its set's together. A tag cannot hold a
+    /// space in Anki, so any left in one become "_".
+    static func ankiTags(_ own: [String]?, _ set: [String]?) -> String {
+        var all: [String] = []
+        for tag in (own ?? []) + (set ?? []) {
+            let clean = tag.split(whereSeparator: { $0.isWhitespace }).joined(separator: "_")
+            if !clean.isEmpty && !all.contains(clean) { all.append(clean) }
+        }
+        return all.isEmpty ? "" : " " + all.joined(separator: " ") + " "
     }
 
     // MARK: identity

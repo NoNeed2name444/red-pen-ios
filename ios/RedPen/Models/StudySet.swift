@@ -62,6 +62,12 @@ struct StudySet: Identifiable, Codable, Hashable {
     /// Empty for every set made before sources were kept, and for any set typed
     /// in by hand - so nothing may assume there is one.
     var sources: [SourceDoc] = []
+    /// The exam this set was written for (an ExamCatalog id), shown as a
+    /// badge; nil for a set made with no exam chosen, or by hand.
+    var exam: String? = nil
+    /// Labels for the whole set - a deck's name in Anki, "Step 1", a block.
+    /// Nil for a set nobody has tagged, and for every set saved before tags.
+    var tags: [String]? = nil
 
     var itemCount: Int {
         switch kind {
@@ -141,7 +147,7 @@ struct StudyFolder: Identifiable, Codable, Hashable {
 extension StudySet {
     private enum Keys: String, CodingKey {
         case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
-             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources
+             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags
     }
 
     init(from decoder: Decoder) throws {
@@ -161,6 +167,8 @@ extension StudySet {
         narrateSegments = try c.decodeIfPresent([NarrateSegment].self, forKey: .narrateSegments) ?? []
         images = try c.decodeIfPresent([String].self, forKey: .images) ?? []
         sources = try c.decodeIfPresent([SourceDoc].self, forKey: .sources) ?? []
+        exam = try c.decodeIfPresent(String.self, forKey: .exam)
+        tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
     }
 }
 

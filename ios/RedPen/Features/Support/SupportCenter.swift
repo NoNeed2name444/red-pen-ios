@@ -169,7 +169,11 @@ struct SettingsPage: View {
             StudyReminderSettings()
                 .environmentObject(store)
             studySection
-            reviewSection
+            ReviewSettingsSection()
+                .environmentObject(reviews)
+            LibraryDataSettingsSection()
+            PlatformSettingsSection()
+                .environmentObject(store)
             modelsSection
             versionSection
         }
@@ -277,7 +281,13 @@ struct SettingsPage: View {
 
     private var examSection: some View {
         Section {
-            Picker("Exam", selection: $exam) {
+            NavigationLink {
+                ExamPickerView(onDone: { exam = ExamTrack.current.rawValue })
+            } label: {
+                LabeledContent("Exam", value: ExamChoice.current?.shortName ?? "Choose")
+            }
+            .accessibilityIdentifier("chooseExam")
+            Picker("Exam style", selection: $exam) {
                 ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
             }
             Toggle("I have an exam date", isOn: hasExamDate)
@@ -318,12 +328,6 @@ struct SettingsPage: View {
             Text("Study")
         } footer: {
             Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
-        }
-    }
-
-    private var reviewSection: some View {
-        Section("Review") {
-            LabeledContent("Cards scheduled", value: "\(reviews.records.count)")
         }
     }
 
@@ -371,6 +375,7 @@ struct HelpPage: View {
                 materialSection
                 exportSection
                 questionsSection
+                HelpContactSection()
             }
             .scrollContentBackground(.hidden)
             .background(LibraryBackdrop())

@@ -21,6 +21,8 @@ import UIKit
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
+    /// Read only, for search: notes are found here and opened in their editor.
+    @EnvironmentObject var noteStore: NoteStore
 
     /// New set, opened on this kind of set (the category's own, from its
     /// "+ New set").
@@ -40,6 +42,21 @@ struct LibraryView: View {
     @State var selecting = false
     /// What the search field holds: set names, subjects and question stems.
     @State var query = ""
+    /// The search field has the keyboard: ⌘F, `redpen://search` and the
+    /// search intents put it there (PlatformNotice.search).
+    @FocusState var searchFocused: Bool
+    /// The search's index and results, worked out off the main thread
+    /// (LibrarySearchModel).
+    @StateObject var search = LibrarySearchModel()
+    /// A card a search found, shown on its own.
+    @State var foundCard: FoundCard?
+    /// A note a search found, open in its editor.
+    @State var foundNote: FoundNote?
+    /// Whether "Build a session" is up, and the search it starts from.
+    @State var buildingSession = false
+    @State var sessionText = ""
+    /// A custom session's cards, being reviewed.
+    @State var sessionDeck: StudySet?
     @State var selected: Set<UUID> = []
     @State var naming: NamingSheet?
     @State var renaming: StudySet?
@@ -99,18 +116,16 @@ struct LibraryView: View {
 
     /// The sets in a category - or, while searching, every set that matches,
     /// whatever its category: a search should not miss a set because the
-    /// dock happened to be on another one.
+    /// dock happened to be on another one. The matching is LibrarySearch's,
+    /// done off the main thread; its name matches come first.
     func sets(in category: StudyCategory) -> [StudySet] {
-        let words = query.trimmingCharacters(in: .whitespaces)
-        guard !words.isEmpty else {
+        guard searching else {
             return store.library.filter { category.kinds.contains($0.kind) }
         }
-        return store.library.filter { set in
-            set.name.localizedCaseInsensitiveContains(words)
-                || set.subject.localizedCaseInsensitiveContains(words)
-                || set.questions.contains { $0.stem.localizedCaseInsensitiveContains(words) }
-                || set.cards.contains { $0.front.localizedCaseInsensitiveContains(words) }
-        }
+        let found: [UUID] = search.results.sets
+        let order: [UUID: Int] = Dictionary(found.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+        let matched: [StudySet] = store.library.filter { order[$0.id] != nil }
+        return matched.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
     }
 
     /// How many sets each category holds, for the dock's spoken labels.
@@ -202,6 +217,48 @@ struct LibraryView: View {
             }
         }
         .task { restoreLastSet() }
+        // the search's index follows the library and the notes; it is only
+        // rebuilt while a search is showing
+        .onReceive(store.$library) { search.libraryChanged($0) }
+        .onReceive(noteStore.$notes) { search.notesChanged($0) }
+        .onChange(of: query) { _, text in search.update(query: text) }
+        .sheet(isPresented: $buildingSession) {
+            CustomSessionSheet(text: sessionText) { set, mode in startSession(set, mode) }
+        }
+        .sheet(item: $foundCard) { found in
+            FoundCardSheet(found: found) { set in opened.append(set) }
+        }
+        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id) }
+        // decks, tables and backups opened from other apps: the import preview
+        // (waiting while one of the library's own sheets is up)
+        .incomingImportPreview(busy: presentingSheet)
+        // ⌘F, redpen://search and the search intents (AppRouter)
+        .onReceive(PlatformNotice.publisher(PlatformNotice.search)) { note in
+            openSearch(note.userInfo?["text"] as? String)
+        }
+    }
+
+    /// Whether one of the library's own sheets is up.
+    var presentingSheet: Bool {
+        let sets: Bool = newSetKind != nil || addingKind != nil || naming != nil || renaming != nil
+        let edits: Bool = renamingFolder != nil || editing != nil || reading != nil || reasoningFor != nil
+        let found: Bool = buildingSession || foundCard != nil || foundNote != nil || exportURL != nil
+        let turned: Bool = turning != nil || modeSwitch.writing != nil
+        return sets || edits || found || turned
+    }
+
+    /// The library's search, open with the keyboard in it - back on the
+    /// library itself, out of Ideas - and the text given, when there is one.
+    private func openSearch(_ text: String?) {
+        if !opened.isEmpty { opened = [] }
+        support = nil
+        if inIdeas { dockSelection.wrappedValue = category }
+        if let text, !text.isEmpty { query = text }
+        // after a pop back to the library has landed
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            searchFocused = true
+        }
     }
 
     /// The pushed support page - never Ideas, which is a place of its own.
@@ -299,6 +356,7 @@ struct LibraryView: View {
             // dock at the bottom for the thumb
             .searchable(text: searchText, placement: .navigationBarDrawer(displayMode: .automatic),
                         prompt: searchPrompt)
+            .searchFocused($searchFocused)
             .toolbar { toolbarItems }
             // the wide iPad's rail, under the left hand
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
@@ -328,6 +386,8 @@ struct LibraryView: View {
             }
             .navigationDestination(item: $featurePage) { featurePageView($0) }
             .navigationDestination(isPresented: $showingDue) { DueTodayView() }
+            // a custom session's cards, reviewed and rescheduled where they live
+            .navigationDestination(item: $sessionDeck) { AnkiReviewView(set: $0) }
             .alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in
                 Button("OK", role: .cancel) {}
             } message: { feature in
@@ -371,7 +431,7 @@ struct LibraryView: View {
     /// The one search field at the top searches whatever is on show.
     private var searchText: Binding<String> { inIdeas ? $ideasQuery : $query }
 
-    private var searchPrompt: String { inIdeas ? "Search ideas" : "Search your sets" }
+    private var searchPrompt: String { inIdeas ? "Search ideas" : "Search questions, cards, notes" }
 
     /// The dock on end, on a wide iPad, while no sets are being picked.
     @ViewBuilder
@@ -488,8 +548,17 @@ struct LibraryView: View {
     /// tiles, then the pages about the whole app.
     @ViewBuilder
     private var listBody: some View {
-        setsSections
+        if searching { searchScopeSection }
+        if !searching || search.scope == .all { setsSections }
+        if searching { searchItemsSection }
         if !searching {
+            if category == .questions || category == .cards {
+                Section {
+                    buildSessionButton(from: "")
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
             featureSection
             moreSection
             examplesSection
@@ -510,7 +579,7 @@ struct LibraryView: View {
     /// The category's sets: the loose ones, then each folder that holds any.
     @ViewBuilder
     private var setsSections: some View {
-        if shown.isEmpty && searching {
+        if shown.isEmpty && searching && search.results.items.isEmpty && !search.busy {
             // a search that found nothing says so, rather than leaving a
             // blank page
             Section {
@@ -528,7 +597,7 @@ struct LibraryView: View {
                     row(set)
                 }
                 .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
-            } header: { setsHeader(searching ? "Found" : category.setsHeading) }
+            } header: { setsHeader(searching ? "Sets" : category.setsHeading) }
         }
         ForEach(store.folders) { folder in
             folderSection(folder)
@@ -728,6 +797,7 @@ struct LibraryView: View {
                 exportURL = try await ApkgExporter.exportInBackground(restored)
             } catch {
                 Diagnostics.record(.error, area: .export, message: "export.apkg_failed", error: error)
+                ReviewPromptRules.noteTrouble()
                 exportFailedSetName = set.name
             }
         }

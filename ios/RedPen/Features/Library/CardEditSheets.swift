@@ -7,14 +7,17 @@ import SwiftUI
 /// invites someone to fill in the one that will never be read.
 struct CardEditSheet: View {
     let card: AnkiCard
+    /// The library's tags, most used first, offered under the tag field.
+    let knownTags: [(tag: String, count: Int)]
     let onSave: (AnkiCard) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var working: AnkiCard
     @State private var bullets: String
 
-    init(card: AnkiCard, onSave: @escaping (AnkiCard) -> Void) {
+    init(card: AnkiCard, knownTags: [(tag: String, count: Int)] = [], onSave: @escaping (AnkiCard) -> Void) {
         self.card = card
+        self.knownTags = knownTags
         self.onSave = onSave
         _working = State(initialValue: card)
         _bullets = State(initialValue: card.bullets.joined(separator: "\n"))
@@ -66,6 +69,14 @@ struct CardEditSheet: View {
                     TextEditor(text: $working.why).frame(minHeight: 70)
                         .popEditorRow()
                 }
+                Section {
+                    TagChipsField(tags: $working.tags, known: knownTags)
+                        .listRowBackground(Color.clear)
+                } header: {
+                    Text("Tags")
+                } footer: {
+                    Text("For finding it again: search for #tag. Tags go with the card to Anki.")
+                }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {
                         Text(source).font(.footnote).foregroundStyle(.secondary)
@@ -98,13 +109,16 @@ struct CardEditSheet: View {
 /// keeps that true is in MCQEdit, where it is tested.
 struct QuestionEditSheet: View {
     let question: MCQQuestion
+    /// The library's tags, most used first, offered under the tag field.
+    let knownTags: [(tag: String, count: Int)]
     let onSave: (MCQQuestion) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var working: MCQQuestion
 
-    init(question: MCQQuestion, onSave: @escaping (MCQQuestion) -> Void) {
+    init(question: MCQQuestion, knownTags: [(tag: String, count: Int)] = [], onSave: @escaping (MCQQuestion) -> Void) {
         self.question = question
+        self.knownTags = knownTags
         self.onSave = onSave
         _working = State(initialValue: question)
     }
@@ -136,6 +150,10 @@ struct QuestionEditSheet: View {
                 Section("Explanation") {
                     TextEditor(text: $working.explanation).frame(minHeight: 90)
                         .popEditorRow()
+                }
+                Section("Tags") {
+                    TagChipsField(tags: $working.tags, known: knownTags)
+                        .listRowBackground(Color.clear)
                 }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {

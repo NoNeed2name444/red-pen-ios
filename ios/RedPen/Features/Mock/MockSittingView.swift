@@ -496,7 +496,7 @@ struct MockSittingView: View {
             }
         }
         store.save()
-        let passMark: Double = PassMark.typical(for: sitting.track)
+        let passMark: Double = sitting.passMark ?? PassMark.typical(for: sitting.track)
         let made = MockResult(marks: marks, passMark: passMark)
         let total: Int = made.total
         ExamStore.shared.record(MockRecord(title: sitting.title, track: sitting.track.rawValue,

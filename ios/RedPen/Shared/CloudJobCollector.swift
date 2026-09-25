@@ -19,6 +19,8 @@ struct CloudRecipe: Codable {
     /// The accuracy check it was asked for: "server" (checked in the cloud
     /// job), "device" (a checker on this device), or nil for none.
     var check: String?
+    /// The exam it was written for (ExamCatalog id), for the set's badge.
+    var exam: String? = nil
 
     var encoded: Data? { try? JSONEncoder().encode(self) }
 
@@ -27,6 +29,7 @@ struct CloudRecipe: Codable {
         let title = name.trimmingCharacters(in: .whitespaces)
         var set = StudySet(name: title.isEmpty ? "\(subject.isEmpty ? "Generated" : subject) \u{2013} \(kind.cloudNoun)" : title,
                            subject: subject.isEmpty ? "General" : subject, kind: kind)
+        set.exam = exam
         switch kind {
         case .mcq:
             guard let questions = try? MedicalGenerate.collectQuestions(replies, count: count) else { return nil }
@@ -150,6 +153,8 @@ enum CloudJobCollector {
                 outputs = fetched.outputs
                 checks = fetched.checks
             case "failed":
+                // the student is told the job failed: no rating prompt soon
+                ReviewPromptRules.noteTrouble()
                 CloudJobs.remove(pending.id)
                 UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["job-" + pending.id])
                 await CloudJobs.forget(pending.id, at: endpoint)

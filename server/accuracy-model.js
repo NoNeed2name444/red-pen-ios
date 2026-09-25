@@ -87,6 +87,45 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS) {
   return 'check';
 }
 
+// MARK: stricter for an exam's management questions
+
+/// Lead-ins of a management question - the same list as the app's
+/// AccuracyModel.managementCues.
+export const MANAGEMENT_CUES = [
+  'next step', 'next best step', 'most appropriate management', 'most appropriate treatment',
+  'most appropriate therapy', 'most appropriate pharmacotherapy', 'most appropriate initial',
+  'most appropriate immediate', 'most appropriate next', 'most appropriate intervention',
+  'most appropriate action', 'best management', 'best treatment', 'initial management',
+  'immediate management', 'treatment of choice', 'drug of choice', 'first-line', 'first line',
+  'should be managed', 'should be prescribed',
+];
+
+export function isManagement(text) {
+  const t = String(text || '').toLowerCase();
+  return MANAGEMENT_CUES.some(c => t.includes(c));
+}
+
+/// Cut-offs made stricter by s (0-1): Verified moves s of the way to 0.99,
+/// Flagged up by a tenth of s (always 0.05 under Verified). The app's
+/// AccuracyModel.stricter, number for number.
+export function stricter(t, s) {
+  const k = Math.min(1, Math.max(0, Number(s) || 0));
+  if (!k) return t;
+  const verified = t.verified < 0.99 ? t.verified + (0.99 - t.verified) * k : t.verified;
+  const flagged = Math.min(verified - 0.05, t.flagged + 0.1 * k);
+  const r4 = x => Math.round(x * 10000) / 10000;
+  return { verified: r4(verified), flagged: r4(Math.max(0, flagged)) };
+}
+
+/// The weights to grade one item with: stricter cut-offs for a management
+/// question when the exam asks for it.
+export function examWeights(model, item, strictness) {
+  if (!strictness || !item) return model;
+  const text = item.kind === 'mcq' ? item.stem : item.text;
+  if (!isManagement(text)) return model;
+  return { ...model, thresholds: stricter(model.thresholds || DEFAULT_WEIGHTS.thresholds, strictness) };
+}
+
 /// Weights the worker will accept: the same feature names, every number finite.
 export function validWeights(w) {
   return !!w && Array.isArray(w.features) && Array.isArray(w.weights) && w.features.length === w.weights.length

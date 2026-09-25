@@ -51,6 +51,8 @@ struct MockResultsView: View {
             .readableColumn()
         }
         .studyBar { bar }
+        // a first mock that went reasonably is a good moment to ask for a rating, once
+        .reviewPromptAfterMock(result.fraction >= 0.5)
         .navigationDestination(item: $practising) { set in
             MCQQuizView(set: set, keepsProgress: false)
         }

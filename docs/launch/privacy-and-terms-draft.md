@@ -188,6 +188,10 @@ In Settings → Privacy choices you can turn on either or both:
 
 Both are **off by default** and are sent **without your account, without a device id, and without an IP address being stored**. They cannot be linked back to you, so we cannot look them up or delete them one person at a time. They are deleted on the schedule in B8 instead. Pro never depends on these settings. "See exactly what is sent" shows the data.
 
+#### B4.9a Crash and failure reports (on unless you turn them off)
+
+When the app crashes, freezes, is closed by iOS while you are using it, or something fails (a cloud request, a sync, a file that will not open), it sends us a short technical report so we can fix it: which part of the app, a fixed error code, the names of the last screens you opened, the crash's call-stack addresses, and your device model, iOS and app version, memory, free space, temperature state and graphics setting. It **never** includes your notes, questions, cards, lectures, recordings, name or email: the app can only send messages and screen names written into its own code, and our server refuses anything else. At most 40 reports a day are sent, with your account, so they are deleted when you delete your account. Turn them off in Settings → AI models → Crash and failure reports; reports waiting on the device are then deleted too.
+
 #### B4.10 Security and abuse prevention
 
 Our server is on Cloudflare. Cloudflare sees your network address when your device connects, as every web service does. We use the address briefly to limit abuse, such as too many pairing codes or new accounts from one network. We store only counters, deleted after **48 hours** `[needs G4]`. When something fails, we log short technical error messages, never the content you sent.
@@ -249,6 +253,7 @@ Stethoscore is a study tool for medical students. **It is not for patient care, 
 | `[ship-gated]` Support messages | 1 year. Deleted when you delete your account. |
 | `[ship-gated]` Shared sets | Until you stop sharing, delete your account, or we remove them after a report |
 | `[ship-gated]` Leaderboard weekly numbers | 8 weeks |
+| Crash and failure reports (B4.9a) | The newest 20 per problem, and none older than 90 days; deleted with your account. Counts per problem and app version (no account) are kept to track fixes. |
 | `[ship-gated]` Crash and usage data (not linked to you) | Raw reports 8 days; crash samples 90 days; crash counts 180 days; daily totals 400 days |
 | `[ship-gated]` Saved results for re-use ("generated before" cache) | 180 days, or until you delete your account |
 
@@ -260,6 +265,7 @@ We may keep something longer only if the law requires it, for example tax record
 - **Sign out everywhere:** Account → Sign out everywhere ends every session on every device, which helps if you lose one.
 - **Stop cloud AI:** choose "This phone only" or "On this device" in Settings → Models, or withdraw cloud AI consent in Settings `[ship-gated: P2.9]`.
 - **Stop sharing, leave a group, or "Hide me" on a leaderboard** `[ship-gated]`.
+- **Turn crash and failure reports off** in Settings → AI models → Crash and failure reports.
 - **Turn crash reports and usage counts off** in Settings → Privacy choices `[ship-gated]`.
 - **Camera, microphone and speech recognition:** iOS Settings → Stethoscore.
 

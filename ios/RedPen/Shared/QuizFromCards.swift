@@ -174,9 +174,22 @@ enum QuizFromCards {
     /// instead of silently producing three questions.
     static func build(from cards: [AnkiCard], optionCount: Int = 5,
                       seed: UInt64 = 0) -> (questions: [MCQQuestion], skipped: [Skipped]) {
+        // no wider deck: the pool is exactly these cards' answers, as it always was
+        build(from: cards, distractorsFrom: [], optionCount: optionCount, seed: seed)
+    }
+
+    /// The same, with the wrong answers drawn from a wider deck than the
+    /// cards being asked about: a custom session of six missed cards cannot
+    /// supply four distractors each, but the decks they came from can - and
+    /// those are still real answers from the same lectures.
+    static func build(from cards: [AnkiCard], distractorsFrom poolCards: [AnkiCard], optionCount: Int = 5,
+                      seed: UInt64 = 0) -> (questions: [MCQQuestion], skipped: [Skipped]) {
         var rng = SeededGenerator(seed: seed == 0 ? 0x9E3779B97F4A7C15 : seed)
         let answers = cards.map { answer(of: $0) }
-        let pool = answers.compactMap { $0 }
+        let asked: [String] = answers.compactMap { $0 }
+        let asking: Set<UUID> = Set(cards.map(\.id))
+        let wider: [String] = poolCards.filter { !asking.contains($0.id) }.compactMap { answer(of: $0) }
+        let pool: [String] = asked + wider
         var questions: [MCQQuestion] = []
         var skipped: [Skipped] = []
 

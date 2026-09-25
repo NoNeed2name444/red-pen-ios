@@ -31,6 +31,14 @@ final class LocalSignInUITests: XCTestCase {
         accept.tap()
         expectation(for: gone, evaluatedWith: accept)
         waitForExpectations(timeout: 10)
+        // then, once, "Which exam are you preparing for?" - skippable
+        let skipExam = app.buttons["examOnboardingSkip"]
+        XCTAssertTrue(skipExam.waitForExistence(timeout: 10), "the exam question didn't appear")
+        let question = XCTAttachment(screenshot: app.screenshot())
+        question.name = "exam-question"
+        question.lifetime = .keepAlways
+        add(question)
+        skipExam.tap()
         // and the library is really there, not a blank screen
         XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 15), "the library didn't open after agreeing")
         let shot = XCTAttachment(screenshot: app.screenshot())

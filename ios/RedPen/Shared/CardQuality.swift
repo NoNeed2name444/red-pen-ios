@@ -51,7 +51,8 @@ enum CardQuality {
         let stem = q.stem.trimmingCharacters(in: .whitespacesAndNewlines)
         let options = q.options.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-        if options.count != 5 { flag("option-count", "\(options.count) options, expected 5") }
+        // five, or four for the exams that use A-D (ExamCatalog)
+        if !(4...5).contains(options.count) { flag("option-count", "\(options.count) options, expected 4 or 5") }
         guard options.indices.contains(q.correctIndex) else {
             flag("no-key", "correctIndex \(q.correctIndex)")
             return out

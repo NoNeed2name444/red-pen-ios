@@ -227,7 +227,7 @@ extension Store {
 
     func readiness(dueCards: Int, track: ExamTrack = .current) -> ReadinessEstimate? {
         Readiness.estimate(recent: recentAnswers, subjects: subjectStats(), dueCards: dueCards,
-                           passMark: PassMark.typical(for: track))
+                           passMark: PassMark.typical(for: ExamChoice.effective(for: track), track: track))
     }
 }
 

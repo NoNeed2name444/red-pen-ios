@@ -16,6 +16,8 @@
 //   {{ALREADY}} - on a line of its own (after any prefix, such as "- "), the
 //                 items written so far, one per line, so a long set does not
 //                 repeat itself
+//   {{EXEMPLARS:<exam>:<topic>:<n>}} - n real items in the chosen exam's
+//                 style (exams.js), different ones each batch
 //
 // A job can also carry the accuracy check (`check`: MedVAL's prompt with
 // {{INPUT}} and {{OUTPUT}} left open). Once the writing is done the server
@@ -23,6 +25,7 @@
 // checker, as the app would - so a set finished while the phone was away is
 // checked too.
 import { chat, proGate } from './ai.js';
+import { fillExemplars } from './exams.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
@@ -278,8 +281,9 @@ function parseObject(text) {
 }
 
 /// A prompt ready to send: its source put in, and what has been written so far.
-export function fill(text, source, already) {
-  let out = text.split('{{SOURCE}}').join(source);
+export function fill(text, source, already, round = 0) {
+  // the exemplars first: the lecture itself must never be read as a placeholder
+  let out = fillExemplars(text, round).split('{{SOURCE}}').join(source);
   if (out.includes('{{ALREADY}}')) {
     const recent = already.slice(-LIMITS.alreadyItems);
     out = out.split('\n').map(line => {
@@ -483,8 +487,9 @@ export class GenerationJobs {
     const keys = (await this.storage.get(`keys:${job.id}`)) || [];
     const already = keys.map(k => k.key);
     const messages = [];
-    if (step.system) messages.push({ role: 'system', content: fill(step.system, source, already) });
-    messages.push({ role: 'user', content: fill(step.user, source, already) });
+    const round = job.mode === 'each' ? job.done : job.round;
+    if (step.system) messages.push({ role: 'system', content: fill(step.system, source, already, round) });
+    messages.push({ role: 'user', content: fill(step.user, source, already, round) });
 
     // One round of trying: a model that is busy is tried again on the next
     // alarm, not waited for here, where waiting is paid for by the second.

@@ -254,7 +254,7 @@ struct MCQGenerateForm: View {
                     let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
                     let check: String? = MCQGenerateForm.checkPlace(checker != nil, onServer: onServer)
                     let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
-                                             source: cite?.doc(), check: check).encoded
+                                             source: cite?.doc(), check: check, exam: ExamChoice.current?.id).encoded
                     questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
@@ -307,6 +307,8 @@ struct MCQGenerateForm: View {
                     let setTitle: String = setName.isEmpty ? fallback : setName
                     let setSubject: String = subj.isEmpty ? "General" : subj
                     var set = StudySet(name: setTitle, subject: setSubject, kind: .mcq)
+                    // written to the chosen exam's format: badged with it
+                    set.exam = ExamChoice.current?.id
                     // each question is matched back to the page whose words it
                     // shares; one that matches nothing is left uncited, which
                     // is itself worth seeing

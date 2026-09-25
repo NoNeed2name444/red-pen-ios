@@ -39,6 +39,8 @@ struct AnkiReviewView: View {
     /// The lecture page a citation asked for, if one is open.
     @State private var reading: SourceOpening?
     @State private var quizNote: String?
+    /// When Undo stops being offered; nil while it is not.
+    @State private var undoUntil: Date?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,6 +58,14 @@ struct AnkiReviewView: View {
                 Label("Quiz me", systemImage: "list.bullet.rectangle")
             }
             .disabled(studySet.cards.count < 5)
+            if current != nil {
+                Button(action: buryCurrent) {
+                    Label("Bury until tomorrow", systemImage: "moon.zzz")
+                }
+                Button(action: suspendCurrent) {
+                    Label("Suspend this card", systemImage: "pause.circle")
+                }
+            }
         }
         .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
@@ -78,7 +88,8 @@ struct AnkiReviewView: View {
 
     /// What Check accuracy looks at: the card on screen.
     private var accuracyAsk: AccuracyAsk {
-        AccuracyAsk(instruction: "Write a flashcard (question and answer) from the source.") {
+        AccuracyAsk(instruction: "Write a flashcard (question and answer) from the source.",
+                    item: { current.flatMap { AccuracyItem.card($0.card) } }) {
             current.map { item -> String in
                 let c = item.card
                 let parts: [String] = [c.front, c.clozeText] + c.bullets + [c.why]
@@ -114,6 +125,7 @@ struct AnkiReviewView: View {
                          deck: studySet.cards)
                 .contentCard()
                 .cardFlip(revealed: revealed, enabled: !startRevealed)
+                .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, revealed ? 8 : 24)
@@ -129,6 +141,7 @@ struct AnkiReviewView: View {
                 .readableColumn()
             }
         }
+        .reviewUndoChip(until: $undoUntil, action: undo)
         .studyBar { footer(item) }
     }
 
@@ -146,7 +159,10 @@ struct AnkiReviewView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
+        .reviewUndoChip(until: $undoUntil, action: undo)
         .studyBar { finishButtons }
+        // a streak of a week, finished here, is a good moment to ask once
+        .reviewPromptAfterStreak(reviewedCount > 0)
     }
 
     /// The deck as a quiz, under the finish - the same as More's Quiz me.
@@ -207,7 +223,9 @@ struct AnkiReviewView: View {
         // from the card's stored standing, so studying ahead promises what
         // an early rating will actually store
         let kept: ReviewRecord = ReviewPlan.record(for: item.card, in: reviews.records)
-        let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept)
+        let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept, now: Date(),
+                                                                    exam: ExamCap.storedDate(),
+                                                                    scheduler: ReviewSettings.scheduler())
         return AnkiFooter(revealed: revealed, labels: labels,
                           onReveal: {
                               revealed = true
@@ -250,6 +268,41 @@ struct AnkiReviewView: View {
             queue.append(AnkiQueueItem(card: item.card, due: kept.due,
                                        intervalMin: kept.intervalMin))
         }
+        undoUntil = Date().addingTimeInterval(5)
+        showNext()
+    }
+
+    /// Takes the last rating back: the card returns to the front, question
+    /// side up, and its schedule is as it was.
+    private func undo() {
+        undoUntil = nil
+        guard let last = reviews.undoLast(),
+              let card = studySet.cards.first(where: { $0.id == last.cardID }) else { return }
+        queue.removeAll { $0.id == card.id }
+        let before: ReviewRecord = ReviewPlan.record(for: card, in: reviews.records)
+        let back = AnkiQueueItem(card: card, due: .distantPast, intervalMin: before.intervalMin)
+        queue.insert(back, at: 0)
+        reviewedCount = max(0, reviewedCount - 1)
+        current = back
+        revealed = false
+    }
+
+    private func buryCurrent() {
+        guard let item = current else { return }
+        reviews.bury(item.card)
+        leaveSitting(item)
+    }
+
+    private func suspendCurrent() {
+        guard let item = current else { return }
+        reviews.suspend(item.card)
+        leaveSitting(item)
+    }
+
+    /// A card buried or suspended leaves this sitting at once.
+    private func leaveSitting(_ item: AnkiQueueItem) {
+        undoUntil = nil
+        queue.removeAll { $0.id == item.id }
         showNext()
     }
 

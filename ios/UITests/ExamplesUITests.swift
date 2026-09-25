@@ -21,6 +21,9 @@ final class ExamplesUITests: XCTestCase {
             waitForExpectations(timeout: 12)
             accept.tap()
         }
+        // then, once, "Which exam are you preparing for?" - skipped here
+        let skipExam = app.buttons["examOnboardingSkip"]
+        if skipExam.waitForExistence(timeout: 8) { skipExam.tap() }
 
         // at the bottom of the library page
         let banner = app.buttons["examplesBanner"]

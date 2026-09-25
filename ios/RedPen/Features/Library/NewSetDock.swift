@@ -106,7 +106,7 @@ private struct NewSetDockPrimaryButton: View {
             .accessibilityIdentifier("newSetNext")
         case .chooseSaved:
             Button(action: chooseSaved) {
-                Label("Choose a saved set", systemImage: "square.and.arrow.down")
+                Label("Choose a file", systemImage: "square.and.arrow.down")
             }
             .buttonStyle(.bigPrimary)
         case .floating(let id):

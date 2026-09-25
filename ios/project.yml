@@ -33,11 +33,19 @@ targets:
         # suite landed in this folder.
         excludes:
           - "Tests/**"
+      # The privacy manifest (required-reason APIs; no tracking). Outside
+      # RedPen/ so the Playgrounds package, which copies RedPen/, never sees it.
+      - path: AppResources/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: LocalLLMClient
         product: LocalLLMClient
       - package: LocalLLMClient
         product: LocalLLMClientLlama
+      # Home and Lock Screen widgets, the Review due control and the exam-day
+      # Live Activity (Xcode build only; ios/StethoscoreWidgets)
+      - target: StethoscoreWidgets
+        embed: true
     entitlements:
       path: RedPen/RedPen.entitlements
       properties:
@@ -45,6 +53,14 @@ targets:
         # it the sheet appears and then fails with an unhelpful error.
         com.apple.developer.applesignin:
           - Default
+        # The widgets read the digest the app writes here (GlanceShelf).
+        com.apple.security.application-groups:
+          - $(RED_PEN_APP_GROUP)
+        # Settings > "Log focus rounds to Health": writes mindful minutes only.
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        # Asked only before a community feature opens (AgeGate).
+        com.apple.developer.declared-age-range: true
     info:
       path: RedPen/Info.plist
       properties:
@@ -83,7 +99,7 @@ targets:
         # ARKit face tracking follows where the head is so the pop-out lines
         # up with the eyes. PopOutMotion.faceTrackingAvailable is false
         # without this string, so a build missing it never reaches the camera.
-        NSCameraUsageDescription: Stethoscore can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.
+        NSCameraUsageDescription: Stethoscore uses the front camera to follow where your head is, so the pop-out effect lines up with your eyes, and the camera to scan pages you choose to turn into picture cards. Nothing is recorded or sent.
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:
           - audio
@@ -96,10 +112,91 @@ targets:
           - $(PRODUCT_BUNDLE_IDENTIFIER).jobs
         # Google's sign-in comes back to redpen://auth. The scheme has to be
         # declared or the system browser has nowhere to return to.
+        # The same scheme carries the app's own links (AppLink: redpen://due,
+        # redpen://set/<id>, redpen://quiz?subject=...), which widgets,
+        # Spotlight and shared links open; stethoscore:// is the name people see.
         CFBundleURLTypes:
           - CFBundleURLName: com.redpen.app.auth
             CFBundleURLSchemes:
               - redpen
+              - stethoscore
+        # "Open in Stethoscore" from Files, Mail, WhatsApp and AirDrop. The
+        # file is copied and shown in the import preview (ImportRouter);
+        # nothing is added to the library until the student taps.
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Anki deck
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.ankiweb.apkg
+              - com.ankiweb.colpkg
+          - CFBundleTypeName: Spreadsheet of cards
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.comma-separated-values-text
+              - public.tab-separated-values-text
+          - CFBundleTypeName: Stethoscore set
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.cramdown.stethoscore.set
+              - com.cramdown.stethoscore.backup
+        # Anki's own formats, declared as Anki's (imported, not ours)
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.ankiweb.apkg
+            UTTypeDescription: Anki deck
+            UTTypeConformsTo:
+              - public.data
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - apkg
+          - UTTypeIdentifier: com.ankiweb.colpkg
+            UTTypeDescription: Anki collection
+            UTTypeConformsTo:
+              - public.data
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - colpkg
+        # Stethoscore's own: one shared set (JSON) and a whole-library backup
+        # (a zip) - see ImportKind
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.cramdown.stethoscore.set
+            UTTypeDescription: Stethoscore set
+            UTTypeConformsTo:
+              - public.json
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - stethoscore
+              public.mime-type:
+                - application/vnd.stethoscore+json
+          - UTTypeIdentifier: com.cramdown.stethoscore.backup
+            UTTypeDescription: Stethoscore backup
+            UTTypeConformsTo:
+              - public.zip-archive
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - stethoscorebackup
+        # iPad: a set in a second window beside a lecture (SetWindow). The
+        # window not in use draws a still sky.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        # The exam-day Live Activity (ExamDayActivity).
+        NSSupportsLiveActivities: true
+        # Settings > "Lock with Face ID" (AppLock). Without this string iOS
+        # ends the app the moment Face ID is asked for.
+        NSFaceIDUsageDescription: Stethoscore uses Face ID to unlock the app when you have turned on the app lock.
+        # Settings > "Log focus rounds to Health" (MindfulMinutes).
+        NSHealthUpdateUsageDescription: Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on.
+        NSHealthShareUsageDescription: Stethoscore does not read anything from Health.
+        # The widgets' shared container, read by GlanceShelf (never spelled in
+        # Swift, so a fork's team can change it here alone).
+        RedPenAppGroup: $(RED_PEN_APP_GROUP)
         # Configuration rather than source, so a build can point at a local
         # worker and a real client id without editing Swift. Both are filled in
         # per build; empty means the app says sign-in is not set up rather than
@@ -117,6 +214,7 @@ targets:
         RED_PEN_AUTH_URL: "https://redpen-auth.vv7sh4rnnw.workers.dev"
         RED_PEN_OWNER_KEY: ""
         RED_PEN_GOOGLE_CLIENT_ID: ""
+        RED_PEN_APP_GROUP: group.com.cramdown.app
         # LocalLLMClientLlamaC's own header hard-errors ("needs to be
         # compiled in C++ interoperability mode") unless the CONSUMING
         # target - this app, not just the package's own target - also
@@ -124,6 +222,40 @@ targets:
         # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
         # doesn't propagate to a plain .xcodeproj app target automatically.
         OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
+  # Widgets, the Control and the exam-day Live Activity. Xcode build only:
+  # the Playgrounds package copies ios/RedPen and nothing else, so it never
+  # sees this target. The few app files it shares are Foundation or
+  # AppIntents only; WIDGET_EXTENSION compiles out their app-side halves.
+  StethoscoreWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: StethoscoreWidgets
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+      - path: RedPen/Shared/Platform/GlanceDigest.swift
+      - path: RedPen/Shared/Platform/AppLink.swift
+      - path: RedPen/Shared/Platform/ExamDayAttributes.swift
+      - path: RedPen/Shared/Platform/ReviewDueIntent.swift
+    entitlements:
+      path: StethoscoreWidgets/StethoscoreWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(RED_PEN_APP_GROUP)
+    info:
+      path: StethoscoreWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Stethoscore
+        RedPenAppGroup: $(RED_PEN_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.app.widgets
+        RED_PEN_APP_GROUP: group.com.cramdown.app
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
+        SKIP_INSTALL: YES
   RedPenUITests:
     type: bundle.ui-testing
     platform: iOS

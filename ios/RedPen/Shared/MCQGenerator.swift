@@ -93,9 +93,11 @@ enum MCQGenerator {
     }
 
     /// Shared by both backends: Apple's `@Generable` result and Gemma's
-    /// hand-parsed JSON funnel through this same check.
+    /// hand-parsed JSON funnel through this same check. Four options are as
+    /// good as five: NEET-PG, FMGE, SMLE and the Gulf exams use four
+    /// (ExamCatalog), and the prompt asks for the chosen exam's count.
     static func isValidQuestion(stem: String, options: [String], correctIndex: Int) -> Bool {
-        options.count == 5 && (0...4).contains(correctIndex) &&
+        (4...5).contains(options.count) && options.indices.contains(correctIndex) &&
             !stem.trimmingCharacters(in: .whitespaces).isEmpty &&
             lengthBalanced(options, correctIndex: correctIndex)
     }
@@ -139,9 +141,10 @@ enum MCQGenerator {
             let callCount = min(maxQuestionsPerCall, count - collected.count)
             onProgress(collected.count, count)
 
+            // one exemplar, turned over each batch: Apple's model has a small window
             let instructionsText = buildPrompt(
                 sourceText: promptSource, count: callCount, subject: subject,
-                highYield: highYield, alreadyAsked: asked)
+                highYield: highYield, alreadyAsked: asked, exemplars: 1, round: asked.count)
             let session = LanguageModelSession(instructions: Instructions { instructionsText })
             do {
                 let response = try await session.respond(
@@ -152,7 +155,8 @@ enum MCQGenerator {
                     guard isValidQuestion(stem: generated.stem, options: generated.options,
                                           correctIndex: generated.correctIndex) else { continue }
                     let key = generated.options[generated.correctIndex]
-                    guard !MCQCoverage.isRepeat(stem: generated.stem, key: key, of: asked)
+                    guard !MCQCoverage.isRepeat(stem: generated.stem, key: key, of: asked),
+                          !ExamExemplars.copies(generated.stem)
                     else { continue }
                     collected.append(MCQQuestion(stem: generated.stem,
                                                  options: generated.options,
@@ -184,9 +188,9 @@ enum MCQGenerator {
 struct GeneratedQuestion {
     @Guide(description: "The question stem \u{2014} a clinical vignette or a direct recall question, ending the way an exam question would.")
     var stem: String
-    @Guide(description: "Exactly five answer options, in plain text with no letter or number prefix.")
+    @Guide(description: "The answer options - exactly as many as the instructions ask for (four or five) - in plain text with no letter or number prefix.")
     var options: [String]
-    @Guide(description: "The zero-based index (0 to 4) into options of the single best answer.")
+    @Guide(description: "The zero-based index into options of the single best answer.")
     var correctIndex: Int
     @Guide(description: "Why the best answer is best, and why at least one other tempting option falls short.")
     var explanation: String

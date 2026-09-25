@@ -56,6 +56,11 @@ struct AnkiCard: Identifiable, Codable, Hashable {
     /// before this existed; those take the masks from the set's other cards on
     /// the same picture (OcclusionCovers.others).
     var siblings: [OcclusionBox] = []
+    /// Labels for finding and filtering - "#AK_Step1::Cardio", "pharm".
+    /// Kept from an Anki deck's notes on import and written back on export.
+    /// Optional, so cards saved before tags existed decode, and an untagged
+    /// card adds nothing to the library file.
+    var tags: [String]? = nil
 
     var displayFront: String {
         if type == .occlusion, front.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -86,7 +91,7 @@ struct AnkiQueueItem: Identifiable {
 /// may lack a field this one has.
 extension AnkiCard {
     private enum Keys: String, CodingKey {
-        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source, siblings
+        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source, siblings, tags
     }
 
     init(from decoder: Decoder) throws {
@@ -101,5 +106,6 @@ extension AnkiCard {
         occlusion = try c.decodeIfPresent(OcclusionBox.self, forKey: .occlusion)
         source = try c.decodeIfPresent(String.self, forKey: .source)
         siblings = (try? c.decodeIfPresent([OcclusionBox].self, forKey: .siblings)) ?? []
+        tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
     }
 }

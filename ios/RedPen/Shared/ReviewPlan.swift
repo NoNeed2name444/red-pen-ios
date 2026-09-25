@@ -16,6 +16,28 @@ struct ReviewRecord: Codable, Equatable {
     /// later one. Without it a whole day of reviews can vanish silently, which
     /// is the worst way for a study app to fail.
     var ratedAt: Date = Date()
+
+    // Anki review essentials. All optional, so a schedule written before they
+    // existed (or by an older build on another device) decodes unchanged.
+
+    /// Held out of every queue until the student lets it back in.
+    var suspended: Bool? = nil
+    /// Held out of every queue until this moment (the next day's start).
+    var buriedUntil: Date? = nil
+    /// FSRS memory, when the FSRS scheduler rated it last.
+    var stability: Double? = nil
+    var difficulty: Double? = nil
+    /// When it was first rated: what the daily new-card limit counts.
+    var introducedAt: Date? = nil
+    /// When something other than a rating changed it - a suspend, a bury, an
+    /// undo - so the merge takes that change over an older rating.
+    var changedAt: Date? = nil
+
+    /// Which of two versions of this card's record is the later word on it.
+    var mergeStamp: Date {
+        guard let changedAt else { return ratedAt }
+        return max(ratedAt, changedAt)
+    }
 }
 
 /// A deck, as the schedule needs to see one.
@@ -89,11 +111,14 @@ enum ReviewPlan {
                       now: Date = Date(), exam: Date? = nil) -> ReviewRecord {
         let plain = earned(rating: rating, record: kept, now: now)
         let next = ExamCap.capped(plain, now: now, exam: exam)
-        return ReviewRecord(due: now.addingTimeInterval(next * 60),
-                            intervalMin: next,
-                            reviews: kept.reviews + 1,
-                            lapses: kept.lapses + (rating == .again ? 1 : 0),
-                            ratedAt: now)
+        var out = ReviewRecord(due: now.addingTimeInterval(next * 60),
+                               intervalMin: next,
+                               reviews: kept.reviews + 1,
+                               lapses: kept.lapses + (rating == .again ? 1 : 0),
+                               ratedAt: now)
+        out.introducedAt = kept.reviews == 0 ? now : kept.introducedAt
+        out.suspended = kept.suspended
+        return out
     }
 
     /// The interval a rating earns, before any exam cap.
@@ -186,7 +211,8 @@ enum ReviewPlan {
                 out[id] = record
                 continue
             }
-            if record.ratedAt > existing.ratedAt { out[id] = record }
+            // a suspend, bury or undo counts from when it was made
+            if record.mergeStamp > existing.mergeStamp { out[id] = record }
         }
         return out
     }

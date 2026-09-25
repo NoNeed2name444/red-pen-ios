@@ -507,7 +507,11 @@ extension LibraryView {
         return HStack(spacing: 16) {
             ModeTile(kind: set.kind)
             VStack(alignment: .leading, spacing: 3) {
-                Text(set.name).font(.body.weight(.semibold)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(set.name).font(.body.weight(.semibold)).lineLimit(1)
+                    // the exam it was written for
+                    ExamBadge(examId: set.exam)
+                }
                 HStack(spacing: 6) {
                     Text(set.kind.label)
                         .font(.caption.weight(.semibold))

@@ -39,6 +39,9 @@ final class TurnIntoUITests: XCTestCase {
             expectation(for: gone, evaluatedWith: accept)
             waitForExpectations(timeout: 10)
         }
+        // then, once, "Which exam are you preparing for?" - skipped here
+        let skipExam = app.buttons["examOnboardingSkip"]
+        if skipExam.waitForExistence(timeout: 8) { skipExam.tap() }
         XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 15), "the library didn't open")
         snap(app, "1-library")
 

@@ -262,3 +262,14 @@ CREATE TABLE IF NOT EXISTS diagnostic_builds (
   pings        INTEGER NOT NULL DEFAULT 0
 );
 
+-- "Contact us" messages (support.js), read by the owner; removed with the
+-- account.
+CREATE TABLE IF NOT EXISTS support_messages (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id  TEXT NOT NULL,
+  topic       TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  version     TEXT,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS support_messages_by_account ON support_messages (account_id);

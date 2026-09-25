@@ -12,7 +12,13 @@ struct MockPaperView: View {
 
     private var track: ExamTrack { ExamTrack.current }
 
-    private var papers: [MockPaperSpec] { MockFormat.papers(for: track, usmleBlocks: usmleBlocks) }
+    /// The chosen exam: its own papers, clock and blueprint, when there is one.
+    private var target: TargetExam? { ExamChoice.current }
+
+    private var papers: [MockPaperSpec] {
+        if let target { return MockFormat.papers(for: target, blocks: usmleBlocks) }
+        return MockFormat.papers(for: track, usmleBlocks: usmleBlocks)
+    }
 
     private var paper: MockPaperSpec {
         papers.first { $0.id == paperId } ?? papers[0]
@@ -48,7 +54,7 @@ struct MockPaperView: View {
     }
 
     private var intro: some View {
-        let exam: String = track == .general ? "General revision" : track.title
+        let exam: String = target?.name ?? (track == .general ? "General revision" : track.title)
         return VStack(alignment: .leading, spacing: 6) {
             Text(exam)
                 .font(.subheadline.weight(.semibold))
@@ -74,7 +80,14 @@ struct MockPaperView: View {
             } else {
                 Text(paper.title).font(.headline)
             }
-            if track == .usmle {
+            if let target, target.sitsBlockwise {
+                let per: Int = target.sections.first?.questions ?? 40
+                Stepper(value: $usmleBlocks, in: 1...max(1, target.sections.count)) {
+                    Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")
+                }
+                .popField()
+                .onChange(of: usmleBlocks) { _, _ in paperId = papers[0].id }
+            } else if target == nil && track == .usmle {
                 Stepper(value: $usmleBlocks, in: 1...MockFormat.usmleMaxBlocks) {
                     Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of 40")
                 }
@@ -111,7 +124,8 @@ struct MockPaperView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentCard()
         } else {
-            Label("Drawn from \(available) questions in your library, spread across your subjects.",
+            let spread: String = target.map { "weighted by the \($0.shortName) blueprint" } ?? "spread across your subjects"
+            Label("Drawn from \(available) questions in your library, \(spread).",
                   systemImage: "checkmark.circle")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -182,13 +196,30 @@ struct MockPaperView: View {
 
     private func start() {
         let spec: MockPaperSpec = paper
-        guard let made = MockAssembler.assemble(spec, from: pool) else { return }
+        guard let made = MockAssembler.assemble(spec, from: weightedPool(for: spec)) else { return }
         let picks: [QuestionPick] = store.mcqPicks { _ in true }
         var byId: [UUID: QuestionPick] = [:]
         for p in picks { byId[p.question.id] = p }
         let sections: [[QuestionPick]] = made.questionIds.map { ids in ids.compactMap { byId[$0] } }
         sitting = MockSitting(title: spec.title, specs: made.sections, picks: sections,
-                              wanted: made.wanted, track: track)
+                              wanted: made.wanted, track: track, passMark: target?.passMark)
+    }
+
+    /// With an exam chosen, the paper's questions are drawn in its
+    /// blueprint's proportions (ExamMock), each question filed under the
+    /// area its set's subject or its stem is about.
+    private func weightedPool(for spec: MockPaperSpec) -> [MockCandidate] {
+        guard let target else { return pool }
+        let plan: [BlueprintArea] = ExamBlueprint.plan(primary: target, secondary: ExamChoice.currentSecondary)
+        let within: Set<ExamDomain> = Set(plan.map(\.domain))
+        let filed: [(candidate: MockCandidate, domain: ExamDomain?)] = store.mcqPicks { _ in true }.map { pick in
+            let subject: String = Store.subjectName(pick.set)
+            let domain: ExamDomain? = ExamBlueprint.domain(of: subject, within: within)
+                ?? ExamBlueprint.domain(of: pick.question.stem, within: within)
+            return (candidate: MockCandidate(id: pick.question.id, subject: subject), domain: domain)
+        }
+        var rng = SystemRandomNumberGenerator()
+        return ExamMock.select(filed, wanted: spec.questionCount, plan: plan, using: &rng)
     }
 
     /// "3 h", "1 h 40 min", "45 min".
@@ -208,4 +239,6 @@ struct MockSitting: Identifiable {
     let picks: [[QuestionPick]]
     let wanted: Int
     let track: ExamTrack
+    /// The chosen exam's pass mark, when there is one.
+    var passMark: Double? = nil
 }

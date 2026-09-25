@@ -86,7 +86,7 @@ let package = Package(
             capabilities: [
                 .microphone(purposeString: "Stethoscore uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice."),
                 .speechRecognition(purposeString: "Stethoscore turns lecture recordings and your spoken answers into text, on this device where it can."),
-                .camera(purposeString: "Stethoscore can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.")
+                .camera(purposeString: "Stethoscore uses the camera to read exam questions in Study Lens, and the front camera to line the pop-out effect up with your eyes. Pictures are read on this device; nothing is recorded or sent.")
             ]
         )
     ],

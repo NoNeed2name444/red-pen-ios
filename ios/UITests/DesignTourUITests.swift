@@ -442,6 +442,8 @@ final class DesignTourUITests: XCTestCase {
     private func signIn() {
         let door = app.buttons["localSignIn"]
         let accept = app.buttons["acceptRecordingTerms"]
+        // then, once, "Which exam are you preparing for?" - skipped here
+        let skipExam = app.buttons["examOnboardingSkip"]
         let dock = element("dockCategory-questions")
         for _ in 0..<80 {
             if dock.exists { return }
@@ -450,6 +452,9 @@ final class DesignTourUITests: XCTestCase {
                 sleep(1)
             } else if accept.exists && accept.isEnabled && accept.isHittable {
                 accept.tap()
+                sleep(1)
+            } else if skipExam.exists && skipExam.isHittable {
+                skipExam.tap()
                 sleep(1)
             } else {
                 usleep(500_000)

@@ -58,16 +58,44 @@ final class ReviewStore: ObservableObject {
 
     // MARK: what the review screens ask for
 
+    /// Today's queue for one deck: due, not suspended or buried, and within
+    /// the daily limits in Settings > Review.
     func queue(for cards: [AnkiCard], now: Date = Date()) -> [AnkiQueueItem] {
-        ReviewPlan.queue(for: cards, records: records, now: now)
+        let limits: ReviewLimits = ReviewSettings.limits()
+        return ReviewPlan.dailyQueue(for: cards, records: records, now: now, limits: limits,
+                                     today: today(now, limits: limits))
     }
 
+    /// Today's counts, worked out once per change to the schedule (and per
+    /// study day) rather than once per deck row; nil with no limits set,
+    /// when nothing needs them.
+    private func today(_ now: Date, limits: ReviewLimits) -> ReviewPlan.DayCounts? {
+        guard !limits.isUnlimited else { return nil }
+        let day: Date = ReviewDay.start(of: now)
+        if let cached = dayCounts, cached.change == changeCount, cached.day == day { return cached.counts }
+        let counted: ReviewPlan.DayCounts = ReviewPlan.counts(records, now: now)
+        dayCounts = DayCountsCache(change: changeCount, day: day, counts: counted)
+        return counted
+    }
+
+    private struct DayCountsCache {
+        let change: Int
+        let day: Date
+        let counts: ReviewPlan.DayCounts
+    }
+
+    private var dayCounts: DayCountsCache?
+
+    /// Study ahead: the whole deck except suspended cards.
     func everything(_ cards: [AnkiCard], now: Date = Date()) -> [AnkiQueueItem] {
-        ReviewPlan.everything(cards, records: records, now: now)
+        ReviewPlan.studyAhead(cards, records: records, now: now)
     }
 
+    /// How many of these cards today's queue holds - counted, not built.
     func dueCount(for cards: [AnkiCard], now: Date = Date()) -> Int {
-        cards.filter { ReviewPlan.isDue($0, in: records, now: now) }.count
+        let limits: ReviewLimits = ReviewSettings.limits()
+        return ReviewPlan.dueCount(for: cards, records: records, now: now, limits: limits,
+                                   today: today(now, limits: limits))
     }
 
     func nextDue(for cards: [AnkiCard]) -> Date? {
@@ -75,7 +103,21 @@ final class ReviewStore: ObservableObject {
     }
 
     func dueAcross(_ sets: [StudySet], now: Date = Date()) -> [ReviewPlan.Due] {
-        ReviewPlan.dueAcross(sets, records: records, now: now)
+        let limits: ReviewLimits = ReviewSettings.limits()
+        return ReviewPlan.dueToday(sets, records: records, now: now, limits: limits,
+                                   today: today(now, limits: limits))
+    }
+
+    /// Cards the student has suspended.
+    var suspendedCount: Int {
+        records.values.filter { $0.suspended == true }.count
+    }
+
+    /// Settings > Review changed a limit or the scheduler: every due count
+    /// on screen is out of date.
+    func settingsChanged() {
+        objectWillChange.send()
+        changeCount &+= 1
     }
 
     // MARK: what a rating changes
@@ -85,10 +127,64 @@ final class ReviewStore: ObservableObject {
     func rate(_ rating: AnkiRating, card: AnkiCard, now: Date = Date()) -> ReviewRecord {
         let kept = ReviewPlan.record(for: card, in: records, now: now)
         let next = ReviewPlan.after(rating: rating, record: kept, now: now,
-                                    exam: ExamCap.storedDate())
+                                    exam: ExamCap.storedDate(),
+                                    scheduler: ReviewSettings.scheduler())
+        lastRating = UndoableRating(cardID: card.id, previous: records[card.id], rating: rating, at: now)
         records[card.id] = next
         save()
         return next
+    }
+
+    // MARK: undo, suspend, bury
+
+    /// The rating that Undo would take back: the card and its record from
+    /// before. One step, as in Anki's review screen.
+    struct UndoableRating: Equatable {
+        var cardID: UUID
+        var previous: ReviewRecord?
+        var rating: AnkiRating
+        var at: Date
+    }
+
+    private(set) var lastRating: UndoableRating?
+
+    /// Takes back the last rating. Returns the card it was, or nil when there
+    /// is nothing to undo.
+    @discardableResult
+    func undoLast(now: Date = Date()) -> UndoableRating? {
+        guard let last = lastRating else { return nil }
+        lastRating = nil
+        records[last.cardID] = ReviewPlan.restoring(last.previous, now: now)
+        save()
+        return last
+    }
+
+    /// Out of every queue until let back in (Settings > Review).
+    func suspend(_ card: AnkiCard, now: Date = Date()) {
+        records[card.id] = ReviewPlan.suspending(card, true, in: records, now: now)
+        if lastRating?.cardID == card.id { lastRating = nil }
+        save()
+    }
+
+    /// Out of today's queues, back tomorrow.
+    func bury(_ card: AnkiCard, now: Date = Date()) {
+        records[card.id] = ReviewPlan.burying(card, in: records, now: now)
+        if lastRating?.cardID == card.id { lastRating = nil }
+        save()
+    }
+
+    /// Every suspended card back into its deck's schedule.
+    func unsuspendAll(now: Date = Date()) {
+        var kept = records
+        for (id, record) in records where record.suspended == true {
+            var back = record
+            back.suspended = nil
+            back.changedAt = now
+            kept[id] = back
+        }
+        guard kept != records else { return }
+        records = kept
+        save()
     }
 
     /// A card that was deleted loses its place.

@@ -38,22 +38,20 @@ struct StudySetEntity: AppEntity {
 struct StudySetQuery: EntityQuery {
     @MainActor
     func entities(for identifiers: [UUID]) async throws -> [StudySetEntity] {
-        StudySetQuery.all().filter { identifiers.contains($0.id) }
+        await StudySetQuery.all().filter { identifiers.contains($0.id) }
     }
 
     @MainActor
     func suggestedEntities() async throws -> [StudySetEntity] {
-        StudySetQuery.all()
+        await StudySetQuery.all()
     }
 
-    /// The library as the app last saved it.
-    ///
-    /// A Store of its own, read fresh each time: an intent may run while the
-    /// app is not, and it must not show a library from whenever the process
-    /// last happened to be alive.
+    /// The library on screen, or as the app last saved it (IntentLibrary):
+    /// read off the main thread, and never through a second Store, which
+    /// would be a second writer to the library's files.
     @MainActor
-    static func all() -> [StudySetEntity] {
-        Store().library.map {
+    static func all() async -> [StudySetEntity] {
+        await IntentLibrary.sets().map {
             StudySetEntity(id: $0.id, name: $0.name, kind: $0.kind.label, cards: $0.itemCount)
         }
     }
@@ -76,7 +74,8 @@ struct ExportDeckIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
-        guard let studySet = Store().library.first(where: { $0.id == set.id }) else {
+        let library: [StudySet] = await IntentLibrary.sets()
+        guard let studySet = library.first(where: { $0.id == set.id }) else {
             throw DeckExportError.gone(set.name)
         }
         return .result(value: try await DeckExport.file(for: studySet))
@@ -101,7 +100,8 @@ struct ExportEveryDeckIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<[IntentFile]> {
         let wanted = subject.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let sets = Store().library.filter {
+        let library: [StudySet] = await IntentLibrary.sets()
+        let sets = library.filter {
             wanted.isEmpty || $0.subject.lowercased().contains(wanted)
         }
         guard !sets.isEmpty else { throw DeckExportError.nothingToBuild }
@@ -167,5 +167,23 @@ struct RedPenShortcuts: AppShortcutsProvider {
         AppShortcut(intent: ExportEveryDeckIntent(), phrases: [
             "Export every \(.applicationName) deck",
         ], shortTitle: "Export every deck", systemImageName: "square.stack.3d.up")
+
+        // Siri, the Action button and iOS 26's Spotlight actions (AppIntents.swift)
+        AppShortcut(intent: ReviewDueIntent(), phrases: [
+            "Review my due cards in \(.applicationName)",
+            "Review due cards in \(.applicationName)",
+            "What's due in \(.applicationName)",
+        ], shortTitle: "Review due", systemImageName: "rectangle.stack.badge.play")
+
+        AppShortcut(intent: QuizMeIntent(), phrases: [
+            "Quiz me on \(\.$subject) in \(.applicationName)",
+            "\(.applicationName) quiz on \(\.$subject)",
+            "Quiz me in \(.applicationName)",
+        ], shortTitle: "Quiz me", systemImageName: "questionmark.bubble")
+
+        AppShortcut(intent: OpenSetIntent(), phrases: [
+            "Open \(\.$target) in \(.applicationName)",
+            "Open a set in \(.applicationName)",
+        ], shortTitle: "Open set", systemImageName: "rectangle.stack")
     }
 }

@@ -205,6 +205,52 @@ enum AccuracyModel {
         return 1 / (1 + exp(-z))
     }
 
+    // MARK: stricter for the chosen exam's management questions
+
+    /// Where ExamChoice leaves the chosen exam's strictness (0-1) and the
+    /// track it was chosen under, as plain values so this file needs
+    /// nothing from the exam catalogue.
+    static let examStrictnessKey = "exam.accuracyStrictness"
+    static let examFamilyKey = "exam.accuracyFamily"
+
+    /// Lead-ins of a management question - "next best step", "most
+    /// appropriate treatment" - the same list as server/accuracy-model.js.
+    static let managementCues: [String] = [
+        "next step", "next best step", "most appropriate management", "most appropriate treatment",
+        "most appropriate therapy", "most appropriate pharmacotherapy", "most appropriate initial",
+        "most appropriate immediate", "most appropriate next", "most appropriate intervention",
+        "most appropriate action", "best management", "best treatment", "initial management",
+        "immediate management", "treatment of choice", "drug of choice", "first-line", "first line",
+        "should be managed", "should be prescribed",
+    ]
+
+    static func isManagement(_ text: String) -> Bool {
+        let t: String = text.lowercased()
+        return managementCues.contains { t.contains($0) }
+    }
+
+    /// Cut-offs made stricter by `s` (0-1): Verified moves `s` of the way
+    /// to 0.99, Flagged up by a tenth of `s` (always 0.05 under Verified).
+    static func stricter(_ t: AccuracyWeights.Thresholds, by s: Double) -> AccuracyWeights.Thresholds {
+        let k: Double = min(1, max(0, s))
+        guard k > 0 else { return t }
+        let verified: Double = t.verified < 0.99 ? t.verified + (0.99 - t.verified) * k : t.verified
+        let flagged: Double = min(verified - 0.05, t.flagged + 0.1 * k)
+        let round4: (Double) -> Double = { ($0 * 10000).rounded() / 10000 }
+        return AccuracyWeights.Thresholds(verified: round4(verified), flagged: round4(max(0, flagged)))
+    }
+
+    /// How much stricter to be with this item: the chosen exam's strictness
+    /// for a management question or card, while that exam's track is still
+    /// the one chosen; 0 otherwise.
+    static func examStrictness(for item: AccuracyItem, defaults: UserDefaults = .standard) -> Double {
+        let s: Double = defaults.double(forKey: examStrictnessKey)
+        guard s > 0, let family = defaults.string(forKey: examFamilyKey),
+              family == (defaults.string(forKey: "examTrack") ?? "general") else { return 0 }
+        let text: String = item.kind == .mcq ? item.stem : item.text
+        return isManagement(text) ? s : 0
+    }
+
     /// Rules alone can flag an item but never verify one; a severe rule hit
     /// keeps an item from Verified whatever the models said.
     static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled) -> AccuracyGrade {

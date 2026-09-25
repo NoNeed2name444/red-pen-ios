@@ -7,6 +7,11 @@
 //      validation, Apache-2.0, with explanations). Loaded from Hugging
 //      Face's dataset server at run time; nothing is committed but the
 //      signals and the weights.
+//    Each question is filed under an exam slice - MedQA's Step 1 items,
+//    its Step 2&3 items, MedMCQA's AIIMS / NEET-PG items - so the report
+//    gives the model's quality per exam style and, for every exam in the
+//    catalogue (exams.js), how its stricter cut-offs for management
+//    questions would have done on its slice.
 //    Each question becomes a correct item and one wrong one, in turn:
 //      swapped key        - a distractor keyed, the explanation still right
 //      wrong everywhere   - a distractor keyed and explained, the "lecture"
@@ -34,7 +39,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { sample, rng } from './accuracy.mjs';
 import { limitKind } from './checkers.mjs';
-import { FEATURES, DEFAULT_WEIGHTS, vector, fit, crossValidate, probability, metrics, thresholds, predict } from '../accuracy-model.js';
+import { FEATURES, DEFAULT_WEIGHTS, vector, fit, crossValidate, probability, metrics, thresholds, predict, isManagement, stricter } from '../accuracy-model.js';
+import { EXAMS } from '../exams.js';
 
 const WORKER = (process.env.WORKER || 'https://redpen-auth.vv7sh4rnnw.workers.dev').replace(/\/+$/, '');
 const KEY = process.env.KEY || '';
@@ -55,6 +61,16 @@ export const SETS = {
 
 const letter = i => String.fromCharCode(65 + i);
 
+// MARK: exam slices
+
+/// The slice a MedQA row belongs to, by its meta_info.
+export const sliceOfMedQA = meta => (String(meta || '').trim().toLowerCase() === 'step1' ? 'usmle-step1' : 'usmle-step2-3');
+
+/// Which slice stands for each exam's style: the same bank its exemplars
+/// come from (exams.js).
+export const SLICE_OF_SOURCE = { 'medqa-step1': 'usmle-step1', 'medqa-step23': 'usmle-step2-3', medmcqa: 'neetpg-aiims' };
+export const examSlice = e => SLICE_OF_SOURCE[e.exemplars] || null;
+
 // MARK: the labelled set (pure, tested in tests/accuracy.test.mjs)
 
 export function normaliseMedQA(row, index) {
@@ -62,7 +78,8 @@ export function normaliseMedQA(row, index) {
   const options = letters.map(l => String(row.options[l]));
   const key = letters.indexOf(String(row.answer_idx).trim());
   if (options.length < 2 || key < 0) return null;
-  return { qid: `medqa:${index}`, stem: String(row.question), options, key, explanation: '' };
+  return { qid: `medqa:${index}`, stem: String(row.question), options, key, explanation: '',
+           slice: sliceOfMedQA(row.meta_info) };
 }
 
 export function normaliseMedMCQA(row, index) {
@@ -72,7 +89,7 @@ export function normaliseMedMCQA(row, index) {
   if (options.some(o => !o) || !(key >= 0 && key < 4)) return null;
   // MedMCQA's explanations often begin "Ans. is 'a' i.e., ..." - the letter
   // there is lower-case and names the key, which is fine; they are kept whole
-  return { qid: `medmcqa:${row.id || index}`, stem: String(row.question), options, key,
+  return { qid: `medmcqa:${row.id || index}`, stem: String(row.question), options, key, slice: 'neetpg-aiims',
            explanation: String(row.exp || '').replace(/\s+/g, ' ').trim().slice(0, 1500) };
 }
 
@@ -114,7 +131,9 @@ export function variants(q, index) {
   const mcq = (key, explanation, source) => ({ kind: 'mcq', stem: q.stem, options: q.options, key, explanation, source });
   const asCard = (answer, why, source) => ({ kind: 'card', text: `Q: ${q.stem}\nA: ${answer}\nWhy: ${why}`, source });
   const out = [];
-  const add = (variant, label, item) => out.push({ id: `${q.qid}:${variant}`, group: q.qid, variant, label, weight: 1, item });
+  const mgmt = isManagement(q.stem);
+  const add = (variant, label, item) => out.push({ id: `${q.qid}:${variant}`, group: q.qid, variant, label, weight: 1, item,
+                                                  slice: q.slice || null, mgmt });
   if (card) {
     add('correct', 1, asCard(keyText, right, q.explanation));
     const swapped = q.explanation ? swapIn(q.explanation, keyText, dText) : `The answer is ${dText}.`;
@@ -183,15 +202,57 @@ export function train(results, { lambdas = [0.01, 0.1, 1, 10], k = 5, current = 
     if (best.p[i] < cut.flagged) v.flagged++;
     if (best.p[i] >= cut.verified) v.verified++;
   });
+  const bySlice = sliceMetrics(rows, best.p, y, cut);
+  const byExam = examMetrics(rows, best.p, y, cut);
   const weights = {
     version: version || `trained-${new Date().toISOString().slice(0, 10)}-${X.length}`,
     features: FEATURES,
     weights: beta.map(b => Math.round(b * 10000) / 10000),
     thresholds: { verified: cut.verified, flagged: cut.flagged },
     metrics: { n: X.length, lambda: best.lambda, cv: pick(best.m), current: pick(theirs),
-               verified: cut.verifiedStats, flagged: cut.flaggedStats },
+               verified: cut.verifiedStats, flagged: cut.flaggedStats, bySlice },
   };
-  return { weights, cv: best.m, current: theirs, cut, byVariant, better: best.m.logLoss < theirs.logLoss };
+  return { weights, cv: best.m, current: theirs, cut, byVariant, bySlice, byExam, better: best.m.logLoss < theirs.logLoss };
+}
+
+/// Held-out quality per exam slice: items, AUC, and how many accurate ones
+/// are Verified and wrong ones Flagged at the shared cut-offs.
+export function sliceMetrics(rows, p, y, cut) {
+  const out = {};
+  rows.forEach((r, i) => {
+    const s = out[r.slice || 'unfiled'] ||= { n: 0, p: [], y: [], verifiedRight: 0, right: 0, flaggedWrong: 0, wrong: 0 };
+    s.n++; s.p.push(p[i]); s.y.push(y[i]);
+    if (y[i]) { s.right++; if (p[i] >= cut.verified) s.verifiedRight++; }
+    else { s.wrong++; if (p[i] < cut.flagged) s.flaggedWrong++; }
+  });
+  for (const [k, s] of Object.entries(out)) {
+    const m = s.p.length && s.y.some(v => v) && s.y.some(v => !v) ? metrics(s.p, s.y) : null;
+    out[k] = { n: s.n, auc: m ? round(m.auc) : null, logLoss: m ? round(m.logLoss) : null,
+               verifiedRecall: s.right ? round(s.verifiedRight / s.right) : null,
+               flaggedRecall: s.wrong ? round(s.flaggedWrong / s.wrong) : null };
+  }
+  return out;
+}
+
+/// For every exam with stricter management cut-offs: on its slice's
+/// management items, the precision of Verified at the shared cut-off and at
+/// the exam's own, and how many accurate items each still verifies.
+export function examMetrics(rows, p, y, cut, exams = EXAMS) {
+  const out = {};
+  for (const e of exams) {
+    const slice = examSlice(e);
+    const idx = rows.map((r, i) => i).filter(i => rows[i].slice === slice && rows[i].mgmt);
+    const strict = stricter({ verified: cut.verified, flagged: cut.flagged }, e.strict);
+    const at = v => {
+      const above = idx.filter(i => p[i] >= v);
+      const right = above.filter(i => y[i]).length;
+      const all = idx.filter(i => y[i]).length;
+      return { verified: above.length, precision: above.length ? round(right / above.length) : null,
+               recall: all ? round(right / all) : null };
+    };
+    out[e.id] = { slice, strictness: e.strict, n: idx.length, cutoff: strict.verified, shared: at(cut.verified), own: at(strict.verified) };
+  }
+  return out;
 }
 
 const pick = m => ({ logLoss: round(m.logLoss), brier: round(m.brier), auc: round(m.auc), ece: round(m.ece) });
@@ -213,6 +274,12 @@ export function reportMarkdown(t, notes = []) {
     ...t.cv.bins.filter(b => b.n).map(b => `| ${b.lo.toFixed(1)}–${b.hi.toFixed(1)} | ${b.n} | ${pct(b.meanP)} | ${pct(b.rate)} |`),
     '', '## By kind of item', '', '| Variant | Items | Flagged | Verified |', '|---|---|---|---|',
     ...Object.entries(t.byVariant).map(([v, s]) => `| ${v} | ${s.n} | ${pct(s.flagged / s.n)} | ${pct(s.verified / s.n)} |`),
+    ...(t.bySlice ? ['', '## By exam slice (held-out)', '', '| Slice | Items | AUC | Accurate verified | Wrong flagged |', '|---|---|---|---|---|',
+      ...Object.entries(t.bySlice).map(([k, s]) => `| ${k} | ${s.n} | ${s.auc ?? '-'} | ${s.verifiedRecall == null ? '-' : pct(s.verifiedRecall)} | ${s.flaggedRecall == null ? '-' : pct(s.flaggedRecall)} |`)] : []),
+    ...(t.byExam ? ['', '## Management questions, per exam', '', 'Each exam\'s stricter Verified cut-off for management questions ("next best step", "most appropriate treatment") on its style slice, against the shared one.', '',
+      '| Exam | Slice | Strictness | Items | Cut-off | Precision (shared → own) | Accurate verified (shared → own) |', '|---|---|---|---|---|---|---|',
+      ...Object.entries(t.byExam).filter(([, e]) => e.strictness > 0).map(([id, e]) =>
+        `| ${id} | ${e.slice} | ${e.strictness} | ${e.n} | ${e.cutoff} | ${e.shared.precision == null ? '-' : pct(e.shared.precision)} → ${e.own.precision == null ? '-' : pct(e.own.precision)} | ${e.shared.recall == null ? '-' : pct(e.shared.recall)} → ${e.own.recall == null ? '-' : pct(e.own.recall)} |`)] : []),
     '', '## Weights', '', '| Feature | Weight |', '|---|---|',
     ...w.features.map((f, i) => `| ${f} | ${w.weights[i]} |`),
     '', t.better ? '**Better than the current weights on these items: published.**' : '**Not better than the current weights: kept the current ones.**',
@@ -279,10 +346,16 @@ async function main() {
       // only an item some model actually voted on is a training example
       if (!got || got.features?.no_models) continue;
       done.set(e.id, { id: e.id, group: e.group, variant: e.variant, label: e.label, weight: e.weight,
-                       kind: e.item.kind, features: got.features, p: got.p, verdict: got.verdict });
+                       kind: e.item.kind, slice: e.slice, mgmt: e.mgmt, features: got.features, p: got.p, verdict: got.verdict });
     }
     process.stdout.write('.');
     writeFileSync(STATE, JSON.stringify([...done.values()]));
+  }
+  // signals kept from before slices existed get theirs from this run's questions
+  const known = new Map(examples.map(e => [e.id, e]));
+  for (const r of done.values()) {
+    if (r.slice == null && known.has(r.id)) { r.slice = known.get(r.id).slice; r.mgmt = known.get(r.id).mgmt; }
+    if (r.slice == null && String(r.group).startsWith('medmcqa:')) r.slice = 'neetpg-aiims';
   }
   const results = [...done.values()];
   writeFileSync(STATE, JSON.stringify(results));

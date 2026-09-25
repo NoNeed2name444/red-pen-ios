@@ -24,19 +24,25 @@ struct ExamDayKitView: View {
 
     var body: some View {
         let track: ExamTrack = ExamTrack.current
-        let paper = ExamWeekPlanner.paper(for: track)
+        // the chosen exam's own paper, when there is one
+        let exam: TargetExam? = ExamChoice.current
+        let paper: ExamWeekPlanner.Paper = exam.map { ExamWeekPlanner.paper(for: $0) } ?? ExamWeekPlanner.paper(for: track)
         List {
             Section {
                 PacingTable(paper: paper)
             } header: {
                 Text("Pacing \u{00B7} \(paper.name)")
             } footer: {
-                Text(Self.paceNote(paper, track: track))
+                Text(Self.paceNote(paper, seconds: exam?.secondsPerQuestion ?? track.secondsPerQuestion))
             }
             Section("A question you can\u{2019}t crack") {
                 tip("flag.fill", "Flag it, pick your best answer now, and move on. Come back at the end with fresh eyes.")
                 tip("arrow.triangle.branch", "Rule out what you can. Two options left is a far better guess than five.")
-                tip("hourglass", "Never leave one blank: an unanswered question scores nothing.")
+                if let negative = exam?.negativeMarking {
+                    tip("hourglass", "\(exam?.shortName ?? "Your exam") marks \(negative): guess when you are down to two options, leave it blank when you have no idea.")
+                } else {
+                    tip("hourglass", "Never leave one blank: an unanswered question scores nothing.")
+                }
             }
             Section {
                 tip("arrow.uturn.backward", "Changing an answer helps more often than it hurts in studies of medical exams \u{2014} when you have a reason, such as a detail you misread. Without a reason, leave it.")
@@ -71,12 +77,12 @@ struct ExamDayKitView: View {
         .onAppear { resetTicksIfNewDay() }
     }
 
-    private static func paceNote(_ paper: ExamWeekPlanner.Paper, track: ExamTrack) -> String {
+    private static func paceNote(_ paper: ExamWeekPlanner.Paper, seconds: Int) -> String {
         if paper.published {
             let time: String = ExamWeekPlanner.clock(paper.minutes)
             return "\(paper.questions) questions in \(time). Glance at the clock at each checkpoint; ahead or a little behind is fine."
         }
-        return "About a question every \(track.secondsPerQuestion) seconds. Check your own paper\u{2019}s question count and time on your confirmation."
+        return "About a question every \(seconds) seconds. Check your own paper\u{2019}s question count and time on your confirmation."
     }
 
     private func tip(_ symbol: String, _ text: String) -> some View {

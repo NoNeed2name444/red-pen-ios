@@ -21,9 +21,12 @@ enum MedicalGenerate {
             // fewer per call than on a direct model: each question now carries
             // its differential, and the server caps one reply's length
             let perCall = min(4, MCQGenerator.maxQuestionsPerCall)
+            // the exemplars are left for the server, which turns them over
+            // from batch to batch (server/exams.js); the topic is read here
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: "{{SOURCE}}", count: perCall, subject: subject, highYield: highYield,
-                requestJSONShape: true, alreadyAsked: [MCQCoverage.Asked(stem: "{{ALREADY}}", key: "")])
+                requestJSONShape: true, alreadyAsked: [MCQCoverage.Asked(stem: "{{ALREADY}}", key: "")],
+                exemplars: 2, exemplarPlaceholder: true, topicText: String(promptSource.prefix(4000)))
             var spec = CloudJobs.Spec(
                 title: "Writing \(count) questions", mode: "loop", extract: "questions", count: count,
                 sources: [promptSource],
@@ -56,7 +59,8 @@ enum MedicalGenerate {
             onProgress(collected.count, count)
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: promptSource, count: callCount, subject: subject,
-                highYield: highYield, requestJSONShape: true, alreadyAsked: asked)
+                highYield: highYield, requestJSONShape: true, alreadyAsked: asked,
+                exemplars: backend.isOnDevice ? 1 : 2, round: asked.count / max(1, perCall))
             do {
                 let reply = try await backend.complete(
                     [.system(instructions), .user("Write the \(callCount) questions now, as JSON only.")],
@@ -64,7 +68,8 @@ enum MedicalGenerate {
                 var kept = 0
                 for question in parseQuestions(reply) {
                     let key = question.options[question.correctIndex]
-                    guard !MCQCoverage.isRepeat(stem: question.stem, key: key, of: asked) else { continue }
+                    guard !MCQCoverage.isRepeat(stem: question.stem, key: key, of: asked),
+                          !ExamExemplars.copies(question.stem) else { continue }
                     collected.append(question)
                     asked.append(MCQCoverage.Asked(stem: question.stem, key: key))
                     kept += 1
@@ -162,7 +167,9 @@ enum MedicalGenerate {
         var asked: [MCQCoverage.Asked] = []
         for question in replies.flatMap(parseQuestions) where collected.count < count {
             let key = question.options[question.correctIndex]
-            guard !MCQCoverage.isRepeat(stem: question.stem, key: key, of: asked) else { continue }
+            // a question that lifted its style example is not the student's
+            guard !MCQCoverage.isRepeat(stem: question.stem, key: key, of: asked),
+                  !ExamExemplars.copies(question.stem) else { continue }
             collected.append(question)
             asked.append(MCQCoverage.Asked(stem: question.stem, key: key))
         }

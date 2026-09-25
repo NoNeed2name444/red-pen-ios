@@ -37,7 +37,7 @@ final class BlobCache {
     /// Where a blob lives - only for a real blob name. A name is used as a
     /// file name, so one that is not a hash (`../../Documents/...`, from a
     /// crafted file) must never get as far as the file system.
-    private func url(_ name: String) -> URL? {
+    nonisolated private func url(_ name: String) -> URL? {
         guard BlobRefs.isName(name) else { return nil }
         return directory.appendingPathComponent(name)
     }
@@ -47,7 +47,7 @@ final class BlobCache {
         return FileManager.default.fileExists(atPath: file.path)
     }
 
-    func data(_ name: String) -> Data? {
+    nonisolated func data(_ name: String) -> Data? {
         guard let file = url(name) else { return nil }
         return try? Data(contentsOf: file)
     }
@@ -73,8 +73,9 @@ final class BlobCache {
     }
 
     /// Fills in the images of a set from the cache, leaving any that have not
-    /// arrived yet as references.
-    func restore(_ set: StudySet) -> StudySet {
+    /// arrived yet as references. Only reads files, so it may run off the
+    /// main thread (Export all as Anki reads every picture this way).
+    nonisolated func restore(_ set: StudySet) -> StudySet {
         var out = set
         var blobs: [String: Data] = [:]
         for ref in set.images {

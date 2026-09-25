@@ -63,7 +63,8 @@ extension GemmaModel {
 
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: promptSource, count: callCount, subject: subject,
-                highYield: highYield, requestJSONShape: true, alreadyAsked: asked)
+                highYield: highYield, requestJSONShape: true, alreadyAsked: asked,
+                exemplars: 1, round: asked.count)
             do {
                 let input = LLMInput.chat([
                     .system(instructions),

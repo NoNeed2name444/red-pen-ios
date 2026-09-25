@@ -192,11 +192,77 @@ jobs:
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
                 $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
+          # Anki review essentials: daily limits, suspend and bury, undo that
+          # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
+          suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \
+                $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/FSRS.swift $S/ReviewOptions.swift \
+                $S/SupportOutbox.swift
           # crash and failure reports: nothing a student wrote can leave in
           # one, fingerprints match the server's, the queue's caps, unclean
           # exits, MetricKit's call stacks
           suite diagnostics DiagnosticsTests.swift $S/Diagnostics/DiagnosticsModel.swift \
                 $S/Diagnostics/DiagnosticsQueue.swift $S/Diagnostics/Diagnostics.swift
+          # the exam catalogue: every blueprint sums to 100%, the choice and
+          # its fallback, coverage / readiness / study next by blueprint, a
+          # set's topics by quota, the exemplars and each exam's prompt, its
+          # mock papers, a blueprint-weighted mock, stricter accuracy cut-offs
+          suite examcatalog ExamCatalogTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+                $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+                $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/ExamTrack.swift \
+                $S/Insight/InsightModels.swift $S/Learn/RetentionForecast.swift $S/Learn/SecuredRule.swift \
+                $S/Learn/ExamWeekPlanner.swift $S/Learn/SymptomBlocks.swift $S/Learn/Pretest.swift $S/Learn/StudyRhythm.swift \
+                $S/Exam/MockPaper.swift $S/Coverage/Syllabus.swift $S/Coverage/CoverageEngine.swift \
+                $S/MCQCoverage.swift $S/MCQGenerator.swift $S/MCQPrompt.swift \
+                $S/Exam/ExamCatalog.swift $S/Exam/ExamChoice.swift $S/Exam/ExamBlueprint.swift $S/Exam/ExamExemplarData.swift \
+                $S/Exam/ExamExemplars.swift $S/Exam/ExamPrompt.swift $S/Exam/ExamFormats.swift
+          # search that finds the item: the index, phrase and word matching,
+          # scopes, the fifty cap, snippets that mark the match, opening a
+          # question in its set; and custom sessions - missed this week, due,
+          # subject, tag, accuracy flags - sat as a quiz or a review
+          suite librarysearch LibrarySearchTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/CardQuality.swift $S/QuizFromCards.swift $S/SourceSearch.swift \
+                $S/LibrarySearch.swift $S/CustomSession.swift $S/CardTags.swift
+          # data in and out: Anki .apkg/.colpkg of every generation (zstd
+          # included) written by Anki itself, Quizlet / Sheets / Anki text
+          # tables, tags and their search filter, the backup's format and merge
+          suite dataio DataIOTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/PlainTextImport.swift \
+                $S/Zip.swift $S/MiniZip.swift $S/Zstd.swift $S/AnkiNoteText.swift $S/ApkgImport.swift \
+                $S/CardTags.swift $S/LibraryBackup.swift
+          # picture cards from your own photo or scan: covers dragged, stretched
+          # and drawn, and the cards they make
+          suite photoocclusion PhotoOcclusionTests.swift $M/AnkiCard.swift $S/OcclusionFilter.swift \
+                $S/OcclusionPhrases.swift $S/PhotoOcclusion.swift
+          # the platform lane: links and where they go, "quiz me on cardio",
+          # what kind of file arrived, the widgets' digest, the exam-day
+          # window and the age signal
+          suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceDigest.swift \
+                $S/Platform/AgeSignal.swift
+          # Study Lens: questions found in camera text (typed, numbered,
+          # two-column, cases, T/F, calculations, OCR noise), one chip per
+          # question as the camera moves, each type's answer read, and a
+          # capture turned into every mode
+          suite lens LensTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift \
+                $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift \
+                $S/Lens/QuestionDetector.swift $S/Lens/LensTracking.swift $S/Lens/LensAnswer.swift \
+                $S/Lens/LensConversion.swift
 
       - name: Fail the job if anything failed
         run: |

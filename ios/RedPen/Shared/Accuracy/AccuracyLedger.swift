@@ -89,7 +89,11 @@ struct AccuracyLedger: Codable {
                                                              evidenceCount: record?.evidence.count ?? 0,
                                                              sourceMatch: match, keyLetter: key)
         let p: Double = AccuracyModel.probability(f, weights: weights)
-        var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: weights)
+        // the chosen exam's management questions need more to be Verified
+        var cutoffs: AccuracyWeights = weights
+        let strict: Double = AccuracyModel.examStrictness(for: item)
+        if strict > 0 { cutoffs.thresholds = AccuracyModel.stricter(weights.thresholds, by: strict) }
+        var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: cutoffs)
         // the student said it is wrong: never shown as Verified to them again
         if record?.reported == true && grade == .verified { grade = .check }
         return AccuracyAssessment(grade: grade, probability: p, rules: rules, record: record, features: f)

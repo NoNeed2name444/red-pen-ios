@@ -25,6 +25,9 @@ struct CardsEditorView: View {
     @State private var editingQuestion: MCQQuestion?
     /// Whether anything has been changed since the editor opened.
     @State private var changed = false
+    /// The library's tags, most used first - worked out once, when the
+    /// editor opens, for the suggestions under every tag field.
+    @State private var knownTags: [(tag: String, count: Int)] = []
 
     init(set: StudySet) {
         self.set = set
@@ -56,16 +59,24 @@ struct CardsEditorView: View {
                 }
                 .animation(.snappy(duration: 0.25), value: changed)
                 .sheet(item: $editingCard) { card in
-                    CardEditSheet(card: card) { edited in replace(edited) }
+                    CardEditSheet(card: card, knownTags: knownTags) { edited in replace(edited) }
                 }
                 .sheet(item: $editingQuestion) { question in
-                    QuestionEditSheet(question: question) { edited in replace(edited) }
+                    QuestionEditSheet(question: question, knownTags: knownTags) { edited in replace(edited) }
                 }
+                .task { knownTags = CardTags.counts(in: store.library) }
         }
     }
 
     private var rows: some View {
         List {
+            // the whole set's tags: they cover every card in it
+            Section {
+                TagChipsField(tags: setTags, known: knownTags)
+                    .listRowBackground(Color.clear)
+            } header: {
+                Text("Set tags")
+            }
             if working.kind == .anki {
                 ForEach(working.cards) { card in
                     Button { editingCard = card } label: { cardRow(card) }
@@ -90,6 +101,12 @@ struct CardsEditorView: View {
         }
     }
 
+    /// The set's own tags; changing them is a change to save.
+    private var setTags: Binding<[String]?> {
+        Binding(get: { working.tags },
+                set: { working.tags = $0; changed = true })
+    }
+
     /// The one main button, once there is something to save.
     private var saveBar: some View {
         StudyActionBar {
@@ -112,6 +129,7 @@ struct CardsEditorView: View {
                 if let source = card.source, !source.isEmpty {
                     Text(source).font(.caption2).foregroundStyle(.tertiary)
                 }
+                TagLine(tags: card.tags)
             }
         }
         .padding(.vertical, 2)
@@ -128,6 +146,7 @@ struct CardsEditorView: View {
                 if let source = question.source, !source.isEmpty {
                     Text(source).font(.caption2).foregroundStyle(.tertiary)
                 }
+                TagLine(tags: question.tags)
             }
         }
         .padding(.vertical, 2)
