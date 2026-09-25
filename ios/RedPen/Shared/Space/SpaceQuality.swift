@@ -37,6 +37,9 @@ enum SpaceQuality: Int, Comparable, Sendable {
     static func current() -> SpaceQuality {
         if UIAccessibility.isReduceMotionEnabled { return .still }
         let info = ProcessInfo.processInfo
+        // UI tests that check what taps do: a simulator draws the moving sky
+        // on the CPU, and a main thread that busy loses taps
+        if info.arguments.contains("-stillSky") { return .still }
         if info.isLowPowerModeEnabled { return .still }
         let thermal: ProcessInfo.ThermalState = info.thermalState
         if thermal == .serious || thermal == .critical { return .still }

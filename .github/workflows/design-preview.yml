@@ -25,6 +25,11 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        # no token left in .git/config for the build: the packages it
+        # compiles (and their macros and plugins) run in later steps, and
+        # the push step brings its own token
+        with:
+          persist-credentials: false
       - name: Tools
         run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - name: Generate the project
@@ -103,13 +108,17 @@ jobs:
 
           echo "iPhone: $IPHONE_NAME ($IPHONE)"
           boot "$IPHONE"
-          # a screen recording of the 3D map's run, for the owner to watch
-          xcrun simctl io "$IPHONE" recordVideo --codec=h264 --force ../graph.mp4 &
-          REC=$!
-          sleep 2
-          run_tests "$IPHONE" iphone-graph.xcresult iphone-graph.log "$GRAPH"
-          kill -INT $REC || true
-          sleep 3
+          # a screen recording of each 3D map test, for the owner to watch:
+          # one file per test, in HEVC, so none comes near GitHub's 100 MB
+          # limit on a single file (one recording of every test was 127 MB)
+          for t in $(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPreviewUITests.swift | awk '{print $2}'); do
+            xcrun simctl io "$IPHONE" recordVideo --codec=hevc --force "../graph-$t.mp4" &
+            REC=$!
+            sleep 2
+            run_tests "$IPHONE" "iphone-graph-$t.xcresult" "iphone-graph-$t.log" "$GRAPH/$t"
+            kill -INT $REC || true
+            wait $REC || true
+          done
           # the tour, on the same phone, not recorded
           run_tests "$IPHONE" iphone-tour.xcresult iphone-tour.log "$TOUR"
           xcrun simctl shutdown "$IPHONE" || true
@@ -150,7 +159,7 @@ jobs:
                       n += 1
                   shutil.copy(os.path.join(raw, a['exportedFileName']), target)
           PY
-          for pair in iphone-graph.xcresult:iphone iphone-tour.xcresult:iphone ipad.xcresult:ipad; do
+          for pair in $(ls -d iphone-graph-*.xcresult 2>/dev/null | sed 's/$/:iphone/') iphone-tour.xcresult:iphone ipad.xcresult:ipad; do
             bundle="${pair%%:*}"
             device="${pair##*:}"
             [ -d "$bundle" ] || continue
@@ -161,16 +170,27 @@ jobs:
             fi
             rm -rf out/raw
           done
-          [ -f graph.mp4 ] && cp graph.mp4 out/shots/iphone/graph.mp4 || true
+          # the recordings; one that is still over 95 MB is left out (and
+          # said so in the log) rather than failing the push of everything
+          : > out/videos.txt
+          for v in graph-*.mp4; do
+            [ -f "$v" ] || continue
+            bytes=$(stat -f%z "$v")
+            if [ "$bytes" -lt 95000000 ]; then
+              cp "$v" "out/shots/iphone/$v"
+            else
+              echo "$v left out: $bytes bytes" >> out/videos.txt
+            fi
+          done
 
           # the test lines and any errors, per run
           : > out/log.txt
-          for log in iphone-graph.log iphone-tour.log ipad.log; do
+          for log in iphone-graph-*.log iphone-tour.log ipad.log; do
             [ -f "$log" ] || continue
             echo "== $log" >> out/log.txt
             grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" "$log" | tail -30 >> out/log.txt || true
           done
-          for log in iphone-graph.log iphone-tour.log ipad.log; do
+          for log in iphone-graph-*.log iphone-tour.log ipad.log; do
             [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
           done | sort -u | head -40 >> out/log.txt || true
 

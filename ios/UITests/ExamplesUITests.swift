@@ -8,7 +8,9 @@ final class ExamplesUITests: XCTestCase {
 
     func testEveryExampleOpens() {
         let app = XCUIApplication()
-        app.launchArguments += ["-personalBuild"]
+        // a still sky: this checks what each tap opens, and a simulator busy
+        // drawing the moving one on its CPU can drop a tap
+        app.launchArguments += ["-personalBuild", "-stillSky"]
         app.launch()
 
         let door = app.buttons["localSignIn"]
@@ -29,6 +31,7 @@ final class ExamplesUITests: XCTestCase {
         banner.tap()
         snap(app, "hub")
 
+        let hub = app.collectionViews["examplesHub"]
         for id in rows {
             let row = app.buttons["example-\(id)"]
             // lower rows may need a scroll to come on screen
@@ -36,12 +39,24 @@ final class ExamplesUITests: XCTestCase {
             while !row.isHittable && tries < 6 { app.swipeUp(); tries += 1 }
             XCTAssertTrue(row.exists, "no row for \(id)")
             row.tap()
+            // it opened when the list has gone; a tap the simulator dropped is
+            // tried once more, and one that still opens nothing is a failure
+            let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: row)
+            if XCTWaiter.wait(for: [gone], timeout: 6) != .completed,
+               row.exists && row.isHittable {
+                row.tap()
+            }
             sleep(3)
             XCTAssertEqual(app.state, .runningForeground, "the app stopped opening \(id)")
+            XCTAssertFalse(row.exists && row.isHittable, "tapping \(id) opened nothing")
             snap(app, id)
-            let back = app.navigationBars.buttons.firstMatch
-            if back.exists { back.tap() }
-            sleep(1)
+            // back to the list - one step only, never past it to the library
+            if !hub.exists {
+                let back = app.navigationBars.buttons.firstMatch
+                if back.exists { back.tap() }
+                sleep(1)
+            }
+            XCTAssertTrue(hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
             while app.buttons["example-ideas"].exists && !app.buttons["example-ideas"].isHittable { app.swipeDown() }
         }
     }
