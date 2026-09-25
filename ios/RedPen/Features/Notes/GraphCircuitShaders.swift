@@ -3,17 +3,16 @@ import Foundation
 // The Circuit theme's shader modifiers (GraphCircuitLook builds the materials
 // and checks they compile; GraphCircuit plans what they dress).
 //
-// The look is a real board under a desk lamp, on the app's dark ground: a
-// deep green solder mask with the copper pour's hatching faintly showing
-// through it, vias and mounting holes, silkscreen outlines; chips in black
-// epoxy or under a brushed metal lid; tinned and gold pins; electrolytic
-// cans with their vent scored in the aluminium; resistors with their colour
-// bands; enamelled copper windings; LEDs in tinted epoxy. Traces are copper
-// under the mask, with a pad and via where each meets its part; current
-// drifts along them as faint dots, and every trace sends a bright packet at
-// its own random times (NeuronImpulse's timing, mirrored here exactly, as
-// the Neurons' axons do), flashing on the pad it reaches - and the LED
-// there lights (GraphCircuitLook's ticker).
+// The look is calm boards on a dark bench under a desk lamp: plain dark
+// green solder mask with a soft vignette and a thin silkscreen outline;
+// chips in the style of modern system-on-chip packages - a near-black,
+// lightly brushed lid with a bright bevel, an etched outline and a faint
+// die layout under it; capacitor cans; LEDs in amber epoxy; gold pads.
+// Traces are copper, one per link; now and then a packet of cyan current
+// runs along one at its own random time (NeuronImpulse's timing, mirrored
+// here exactly, as the Neurons' axons do), flashing on the pad it reaches -
+// and the LED there lights (GraphCircuitLook's ticker). No drifting dots:
+// between packets the copper is still.
 //
 // They follow the other themes' rules (GraphStyleShaders): constant
 // lighting, the final colour written to `_surface.diffuse`, designed as it
@@ -22,8 +21,7 @@ import Foundation
 // depends on the scene's lights; time is `rpClock` times `rpMotion` (0 with
 // Reduce Motion); `rpProbe` is added at the end so a modifier that fails to
 // compile is caught; no helper functions. `rpDetail` 0 (the Smooth budget)
-// drops the mask's grain, the pour's hatching, the vias, the drifting dots
-// and the bursts.
+// drops the mask's grain and the die's finest detail.
 //
 // A part's shader reads where it is drawn in the part's own frame from the
 // node's model-view axes (every part node is scaled evenly), so one shader
@@ -33,9 +31,9 @@ import Foundation
 nonisolated enum CircuitShaders {
     // MARK: the boards
 
-    /// The motherboard (`rpZone` 0) or a module's sub-board (1), on a box
+    /// A collection's board (`rpZone` 0) or a sub-folder's sub-board (1), on a box
     /// whose own y is the board's up; `rpSize` is half the box. Tint A the
-    /// solder mask, B the copper under it, C the silkscreen.
+    /// solder mask (a soft vignette darkens its edges), C its thin outline.
     static let board: String = """
     #pragma arguments
     float rpProbe;
@@ -60,41 +58,17 @@ nonisolated enum CircuitShaders {
     float2 rp_q = float2(rp_lp.x, rp_lp.z);
 
     float rp_gh = fract(sin(dot(floor(rp_q * 60.0), float2(12.9898, 78.233))) * 43758.5453);
-    float3 rp_col = rpTintA * (0.9 + 0.1 * rp_gh * rpDetail);
-    float rp_main = 1.0 - rpZone;
-    float rp_hq = abs(fract((rp_q.x + rp_q.y) * 7.0) - 0.5);
-    float rp_hatch = (1.0 - smoothstep(0.05, 0.09, rp_hq)) * rpDetail * rp_main;
-    rp_col = mix(rp_col, rpTintB * 0.5, 0.2 * rp_hatch);
-
-    float2 rp_cell = floor(rp_q * 2.2);
-    float rp_vh = fract(sin(dot(rp_cell, float2(27.17, 91.31))) * 24634.6345);
-    float2 rp_jit = float2(fract(rp_vh * 7.1), fract(rp_vh * 3.3)) - float2(0.5, 0.5);
-    float2 rp_vc = (rp_cell + float2(0.5, 0.5) + rp_jit * 0.5) / 2.2;
-    float rp_vd = length(rp_q - rp_vc);
-    float rp_via = step(0.82, rp_vh) * rpDetail * rp_main;
-    float rp_vr = (1.0 - smoothstep(0.034, 0.04, rp_vd)) * step(0.016, rp_vd) * rp_via;
-    float rp_vo = (1.0 - smoothstep(0.012, 0.016, rp_vd)) * rp_via;
-    rp_col = mix(rp_col, rpTintB, rp_vr * 0.8);
-    rp_col = mix(rp_col, float3(0.01, 0.01, 0.01), rp_vo);
-
+    float3 rp_col = rpTintA * (0.93 + 0.07 * rp_gh * rpDetail);
     float rp_ex = rpSize.x - abs(rp_q.x);
     float rp_ez = rpSize.z - abs(rp_q.y);
     float rp_ed = min(rp_ex, rp_ez);
-    float rp_inset = mix(0.12, 0.03, rpZone);
-    float rp_lw = mix(0.011, 0.008, rpZone);
-    float rp_line = 1.0 - smoothstep(rp_lw, rp_lw + 0.006, abs(rp_ed - rp_inset));
-    float rp_cnx = step(rpSize.x - 0.28, abs(rp_q.x));
-    float rp_cnz = step(rpSize.z - 0.28, abs(rp_q.y));
-    rp_line = rp_line * mix(1.0, max(rp_cnx * rp_cnz, 0.0), rpZone);
-    rp_col = mix(rp_col, rpTintC, rp_line * 0.8);
-
-    float2 rp_hs = float2(rpSize.x - 0.17, rpSize.z - 0.17);
-    float2 rp_hc = float2(rp_q.x > 0.0 ? rp_hs.x : -rp_hs.x, rp_q.y > 0.0 ? rp_hs.y : -rp_hs.y);
-    float rp_hd = length(rp_q - rp_hc);
-    float rp_hole = (1.0 - smoothstep(0.055, 0.062, rp_hd)) * rp_main;
-    float rp_hring = (1.0 - smoothstep(0.095, 0.1, rp_hd)) * rp_main;
-    rp_col = mix(rp_col, rpTintB * 1.1, rp_hring);
-    rp_col = mix(rp_col, float3(0.0, 0.0, 0.0), rp_hole);
+    float rp_vig = smoothstep(0.0, mix(0.9, 0.35, rpZone), rp_ed);
+    rp_col = rp_col * (0.62 + 0.38 * rp_vig);
+    float rp_inset = mix(0.07, 0.025, rpZone);
+    float rp_lw = mix(0.006, 0.005, rpZone);
+    float rp_line = 1.0 - smoothstep(rp_lw, rp_lw + 0.005, abs(rp_ed - rp_inset));
+    rp_col = mix(rp_col, rpTintC, rp_line * mix(0.45, 0.3, rpZone));
+    float rp_hole = 0.0;
 
     float rp_lay = step(0.5, fract(rp_lp.y * 45.0));
     float3 rp_side = float3(0.30, 0.27, 0.15) * (0.75 + 0.25 * rp_lay);
@@ -173,10 +147,6 @@ nonisolated enum CircuitShaders {
     rp_col = rp_col * (1.0 - 0.85 * rp_via);
     float3 rp_light = float3(0.0);
 
-    float rp_dr = fract(rp_along * 4.0 - rp_t * 1.3 + rp_seed * 0.137) - 0.5;
-    float rp_dot = exp(-rp_dr * rp_dr * 90.0) * (1.0 - smoothstep(0.2, 0.6, rp_x));
-    rp_light = rp_light + rpTintB * (0.16 * rp_dot * rpDetail * rpMotion * rp_cu);
-
     uint rp_su = uint(rp_seed);
     uint rp_h = rp_su * 747796405u + 2891336453u;
     rp_h = ((rp_h >> ((rp_h >> 28u) + 4u)) ^ rp_h) * 277803737u;
@@ -244,7 +214,10 @@ nonisolated enum CircuitShaders {
     /// inductor's copper windings (a ring round y), 6 matte plastic, 7
     /// bright metal, 8 a surface-mount part's tinned ends (along x), 9 an
     /// LED's tinted epoxy (`rpGlow` how lit), 10 gold, 11 a gold pad with a
-    /// hole, 12 a processor's green substrate. Tint A the body, B the
+    /// hole, 12 a processor's green substrate, 13 a system-on-chip lid (tint
+    /// A the anodised metal, B its bevel and etched outline, C unused;
+    /// `rpGlow` how busy its die: more cores and GPU cells, and a neural
+    /// block from a quarter). Tint A the body, B the
     /// second colour (bands, stripe, ends), C the third (the can's top).
     /// `rpShine` scales the highlight.
     static let part: String = """
@@ -349,6 +322,42 @@ nonisolated enum CircuitShaders {
         float rp_hole = 1.0 - smoothstep(0.3, 0.34, rp_r);
         rp_base = mix(rp_base, float3(0.01, 0.01, 0.01), rp_hole);
         rp_metal = 1.0 - rp_hole;
+    } else if (rp_pat > 12.5) {
+        float rp_ax2 = abs(rp_lp.x);
+        float rp_az2 = abs(rp_lp.z);
+        float rp_box = max(rp_ax2, rp_az2);
+        float rp_bru = fract(sin(floor(rp_lp.z * 320.0) * 91.7) * 43758.5453);
+        rp_base = rpTintA * (0.9 + 0.1 * rp_bru);
+        float3 rp_die = float3(0.0, 0.0, 0.0);
+        float rp_k = rpGlow;
+        float rp_in = step(rp_box, 0.6) * rp_topF;
+        float rp_ux = rp_lp.x;
+        float rp_uz = rp_lp.z;
+        float rp_pc = step(-0.55, rp_ux) * step(rp_ux, -0.08) * step(-0.55, rp_uz) * step(rp_uz, -0.12);
+        float rp_pn = 2.0 + floor(2.0 * rp_k);
+        float rp_pg = abs(fract((rp_ux + 0.55) / 0.47 * rp_pn) - 0.5);
+        float rp_pl = 1.0 - smoothstep(0.42, 0.47, rp_pg);
+        rp_die = rp_die + float3(0.9, 0.75, 0.55) * (rp_pc * (0.55 + 0.45 * rp_pl));
+        float rp_ec = step(-0.55, rp_ux) * step(rp_ux, -0.2) * step(-0.05, rp_uz) * step(rp_uz, 0.18);
+        float rp_eg = abs(fract((rp_ux + 0.55) / 0.35 * 4.0) - 0.5);
+        rp_die = rp_die + float3(0.6, 0.8, 0.7) * (rp_ec * (1.0 - smoothstep(0.4, 0.47, rp_eg)) * 0.8);
+        float rp_gc = step(0.0, rp_ux) * step(rp_ux, 0.55) * step(-0.55, rp_uz) * step(rp_uz, 0.18);
+        float rp_gn = 3.0 + floor(4.0 * rp_k);
+        float rp_gx = abs(fract((rp_ux) / 0.55 * rp_gn) - 0.5);
+        float rp_gz = abs(fract((rp_uz + 0.55) / 0.73 * rp_gn) - 0.5);
+        float rp_gcell = (1.0 - smoothstep(0.38, 0.46, rp_gx)) * (1.0 - smoothstep(0.38, 0.46, rp_gz));
+        rp_die = rp_die + float3(0.55, 0.5, 0.95) * (rp_gc * (0.35 + 0.65 * rp_gcell));
+        float rp_nc = step(-0.1, rp_ux) * step(rp_ux, 0.55) * step(0.26, rp_uz) * step(rp_uz, 0.55);
+        float rp_nq = abs(fract(rp_ux * 16.0) - 0.5) * abs(fract(rp_uz * 16.0) - 0.5);
+        rp_die = rp_die + float3(0.35, 0.85, 0.85) * (rp_nc * (0.6 + 0.4 * step(0.05, rp_nq) * rpDetail) * step(0.25, rp_k));
+        float rp_cc = step(-0.55, rp_ux) * step(rp_ux, -0.2) * step(0.26, rp_uz) * step(rp_uz, 0.55);
+        rp_die = rp_die + float3(0.7, 0.72, 0.78) * (rp_cc * 0.7);
+        rp_base = rp_base + rp_die * (0.05 * rp_in);
+        float rp_etch = 1.0 - smoothstep(0.004, 0.009, abs(rp_box - 0.66));
+        rp_base = mix(rp_base, rpTintB * 0.3, rp_etch * rp_topF * 0.6);
+        float rp_bev = smoothstep(0.7, 0.78, rp_box) * rp_topF + (1.0 - rp_topF) * step(0.2, rp_up);
+        rp_base = rp_base + rpTintB * (0.35 * rp_bev);
+        rp_metal = 1.0;
     } else {
         float2 rp_g = fract(rp_tq * 9.0) - float2(0.5, 0.5);
         float rp_band = step(0.78, max(abs(rp_lp.x), abs(rp_lp.z)));

@@ -19,6 +19,10 @@ nonisolated enum ThemeBodyKind: Sendable, Equatable {
     case folder
     /// The one container of a vault with no folders (GraphUniverse.homeID).
     case home
+    /// A piece of a theme's own wiring that stands for no note or folder
+    /// (the Circuit's power and ground taps and its edge connectors): drawn
+    /// and moved like a body, never picked, named or counted.
+    case fixture
 }
 
 nonisolated struct ThemeBody: Sendable, Equatable {
@@ -60,7 +64,10 @@ nonisolated struct ThemeBody: Sendable, Equatable {
 /// containers of one region (arched away from `centre`, a body index), 2
 /// between regions or to a loose note (arched round the origin, in the
 /// far geometry), 3 hidden (drawn as touching instead), 4 a pathway: a
-/// container to the container inside it (straight, in the far geometry).
+/// container to the container inside it (straight, in the far geometry);
+/// 5 and 6 a theme's own wiring (the Circuit's feeds, taps and buses): 5
+/// with the links, 6 in the far geometry, both always sent from `a` to `b`
+/// whatever the ends' ranks.
 nonisolated struct ThemeLink: Sendable, Equatable {
     let a: Int
     let b: Int
@@ -89,6 +96,12 @@ nonisolated struct ThemePlan: Sendable {
     /// own sub-board) - its centre's x and y from the body and its half
     /// width and height; all zero for none. Empty when the theme has none.
     var patches: [SIMD4<Float>] = []
+    /// Straight bars a theme draws on its ground (the Circuit's power and
+    /// ground rails), each carried by a body.
+    var bars: [ThemeBar] = []
+    /// Per body, the body current (or an impulse) comes into it from - its
+    /// feed in the theme's wiring - or -1. Empty when the theme has none.
+    var feeds: [Int] = []
 
     static let empty = ThemePlan(bodies: [], links: [], envelope: [], systems: [], regions: [], summary: "")
 
@@ -104,6 +117,17 @@ nonisolated struct ThemePlan: Sendable {
         }
         return p
     }
+}
+
+/// A straight bar on a theme's ground, carried by body `owner`: its
+/// middle's x and y on the ground from the owner, half its length along x,
+/// and what it is (the Circuit: 0 the power rail, 1 a ground rail).
+nonisolated struct ThemeBar: Sendable, Equatable {
+    let owner: Int
+    let x: Float
+    let y: Float
+    let half: Float
+    let kind: Int
 }
 
 // MARK: - Placing without overlaps

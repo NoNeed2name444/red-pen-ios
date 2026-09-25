@@ -84,6 +84,9 @@ struct Graph3DView: View {
     @AppStorage(GraphTheme.key) private var themeRaw: String = GraphTheme.standard.rawValue
     /// The other themes whose first-run card has been seen ("neurons,...").
     @AppStorage(GraphTheme.hintsKey) private var themeHintsSeen: String = ""
+    /// The empty-bench hint's "Add circuit" (or "Add folder") is naming a
+    /// new folder - the same store action as the Ideas bar's + › New folder.
+    @State private var addingFolder: Bool = false
 
     init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
         self.open = open
@@ -109,9 +112,20 @@ struct Graph3DView: View {
         .onChange(of: notes.folders) { _, _ in
             if case .folder(let id) = filter, notes.folder(id) == nil { filter = .all }
         }
+        .sheet(isPresented: $addingFolder) {
+            NameSheet(title: "New folder", prompt: "Folder name", initial: "", confirm: "Create") { name in
+                _ = notes.createFolder(name: name)
+            }
+        }
         .sheet(isPresented: $showingLegend) {
             GraphLegendSheet(theme: built?.theme ?? theme)
                 .presentationDetents([.medium, .large])
+        }
+        .task {
+            // the design preview's deletions, to catch bodies dying
+            guard GraphPreview.removes != nil else { return }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            GraphPreview.remove(from: notes)
         }
         .task {
             // the design preview's picture of the legend
@@ -146,6 +160,14 @@ struct Graph3DView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .allowsHitTesting(false)
+            }
+        }
+        .overlay(alignment: .top) {
+            // a near-empty map with no folders yet: how to start a collection
+            if notes.folders.isEmpty && notes.notes.count < 25 && !GraphPreview.isOn {
+                GraphEmptyHint(theme: built.theme) { addingFolder = true }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
             }
         }
         .overlay(alignment: .bottomLeading) {
@@ -610,6 +632,7 @@ enum GraphSceneBuilder {
             info.swell = made.swell
             info.stretchGain = made.stretchGain
             info.glowGain = 0.82 + 0.18 * min(Float(links) / 5, 1)
+            info.deathKind = GraphDeath.kind(style: style.rawValue)
             infos.append(info)
         }
 
@@ -677,9 +700,14 @@ enum GraphSceneBuilder {
         // only what changed since the scene on screen pops, grows or fades
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles,
                                              lively: lively)
+        // notes deleted since the scene on screen die in this one
+        let key: String = "look"
+        let dyingLinks = GraphDeathLinks(material: linkMaterial, halfWidth: GraphShape.linkHalfWidth)
+        simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
+                                              lively: lively, links: dyingLinks)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
-        GraphMemory.remember(sim, edges: edges, styles: styles)
+        GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
         return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
     }
 
@@ -1162,7 +1190,10 @@ struct GraphSCNView: UIViewRepresentable {
         /// Fits the whole graph to the screen (GraphFraming): its longest
         /// spread along the screen's long side, filling 80% of the shorter
         /// one of the part not under glass (88% of the Universe's
-        /// envelope), centred in that part, seen from the front.
+        /// envelope), centred in that part, seen from the front. It aims
+        /// at the middle of the map's box (GraphMapBounds), not the
+        /// origin: a theme's plan (the Neurons' pathway running down, the
+        /// Circuit's boards) need not be centred on it.
         private func frame(animated: Bool) {
             guard let view, let camera, let sim else { return }
             let size: CGSize = view.bounds.size
@@ -1171,13 +1202,15 @@ struct GraphSCNView: UIViewRepresentable {
             framedWide = wide
             let turn: simd_quatf = worldTurn(wide: wide)
             let turned: [SIMD3<Float>] = homes.map { turn.act($0) }
+            let middle: SIMD3<Float> = GraphMapBounds.centre(turned)
+            let around: [SIMD3<Float>] = turned.map { $0 - middle }
             let window: GraphWindow = GraphFraming.window(width: Float(size.width),
                                                           height: Float(size.height), insets: insets)
             let fill: Float = universe ? 0.88 : GraphFraming.fill
-            let distance: Float = GraphFraming.distance(points: turned, pad: pad, window: window, fill: fill)
-            let home: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
+            let distance: Float = GraphFraming.distance(points: around, pad: pad, window: window, fill: fill)
+            let home: SIMD3<Float> = middle + GraphFraming.cameraHome(distance: distance, window: window)
             view.pointOfView = camera
-            view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
+            view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = animated ? 0.6 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)

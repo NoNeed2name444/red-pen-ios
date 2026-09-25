@@ -203,7 +203,9 @@ nonisolated struct GraphLinkBoard: Sendable, Equatable {
 /// quadratic curve whose tangent runs on into the straight on each side,
 /// so it never kinks), and its height eased from one end's to the other's.
 /// Each end leaves its part at its own pin, to one side of the middle, so
-/// traces from one chip fan out instead of lying on top of one another.
+/// traces from one chip fan out instead of lying on top of one another;
+/// parts nearly in line are joined by one straight run, and a trace that
+/// runs mostly one way keeps its diagonal for the end.
 ///
 /// Sampled by distance along, but with each corner given extra samples
 /// (a tenth of the length's worth each), so even the Smooth budget's
@@ -253,13 +255,26 @@ nonisolated struct GraphLinkRoute: Sendable {
         let h3: Float = GraphLinkRoute.fraction(seed, 0.302776)
         let side: SIMD2<Float> = alongX ? SIMD2<Float>(0, 1) : SIMD2<Float>(1, 0)
         let start: SIMD2<Float> = qa + side * ((h1 - 0.5) * trimA * 0.7)
-        let end: SIMD2<Float> = qb + side * ((h2 - 0.5) * trimB * 0.7)
+        var end: SIMD2<Float> = qb + side * ((h2 - 0.5) * trimB * 0.7)
+        // parts nearly in line: one straight run, the end's pin in line
+        // with the start's (no jog where a straight run works)
+        let minor: Float = alongX ? abs(d.y) : abs(d.x)
+        if minor <= max(trimA, trimB) * 0.35 + 0.001 {
+            if alongX {
+                end.y = start.y
+            } else {
+                end.x = start.x
+            }
+        }
         let e: SIMD2<Float> = end - start
         let ax: Float = abs(e.x)
         let ay: Float = abs(e.y)
         let sx: Float = e.x >= 0 ? 1 : -1
         let sy: Float = e.y >= 0 ? 1 : -1
-        let split: Float = 0.25 + 0.5 * h3
+        // mostly one way: straight along it, and the one diagonal at the
+        // end (a bus's drops into its parts); else the diagonal part way
+        let lean: Bool = min(ax, ay) < max(ax, ay) * 0.4
+        let split: Float = lean ? 1 : 0.25 + 0.5 * h3
         var c1: SIMD2<Float>
         var c2: SIMD2<Float>
         if ax >= ay {

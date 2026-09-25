@@ -24,6 +24,9 @@ on:
       - 'ios/RedPen/Features/Notes/GraphNeuronImpulses.swift'
       - 'ios/RedPen/Features/Notes/GraphTheme.swift'
       - 'ios/RedPen/Features/Notes/GraphCircuit.swift'
+      - 'ios/RedPen/Features/Notes/GraphDeath.swift'
+      - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
+      - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -182,6 +185,10 @@ jobs:
           suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
                 $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
                 $F/Notes/GraphTheme.swift
+          # removing a note: how each body dies (stars, planets, black holes;
+          # apoptosis; a short circuit), link buffers never rewritten in flight,
+          # and the synapse's terminal arbor
+          suite death GraphDeathTests.swift $F/Notes/GraphDeath.swift $F/Notes/GraphFrameSync.swift $F/Notes/GraphSynapse.swift
           # the accuracy engine: dose, lab and contradiction rules (the same
           # cases as the server's), the accuracy model's grades, the cache key,
           # the order background checks run in, and one-tap corrections

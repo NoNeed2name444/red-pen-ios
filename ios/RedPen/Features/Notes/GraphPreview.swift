@@ -38,15 +38,16 @@ import SwiftUI
 ///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
 ///   `-graphPreviewLegend` work with it too.
 /// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
-///   the motherboard, Cardiology and Examples as two processors in their
-///   zones, Inguinal and Femoral as module chips on sub-boards beside
-///   Examples' with Anatomy beside Inguinal's, pages as capacitors (Heart
-///   failure, the long read, an inductor coil), ideas as resistors and LEDs,
-///   Spermatic cord coverings (wired only up into Inguinal) a diode, the six
-///   short one-link ideas as surface-mount parts, the bridging idea as a
-///   bus header and the two loose notes as edge fingers on the board's
-///   bottom edge. `-graphPreviewFly`, `-graphPreviewDrag` and
-///   `-graphPreviewLegend` work with it too.
+///   Cardiology and Examples as two circuit boards side by side on the
+///   bench, each with its chip, power rail along the top and ground rail
+///   along the bottom; Inguinal and Femoral as smaller chips on sub-boards
+///   on branches of Examples' bus, with Anatomy on Inguinal's; pages as
+///   capacitors, ideas as LEDs in branches off the pages they link to, and
+///   the two loose notes as gold pads on their boards' left edges.
+///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
+///   work with it too.
+/// - `-graphPreviewRemove [names]` deletes some folders and notes three
+///   seconds in (see `removes`), in any theme, to show them dying.
 ///
 /// The Universe seeds by names here, as the store's ids change every
 /// launch. The owner's own look setting is never read or written. The space
@@ -62,6 +63,36 @@ enum GraphPreview {
         guard let at = args.firstIndex(of: "-graphPreviewFly"), at + 1 < args.count else { return nil }
         return args[at + 1]
     }()
+    /// What `-graphPreviewRemove [titles]` deletes from the preview's store
+    /// three seconds after the space appears, so screenshots can catch the
+    /// bodies dying (GraphDeath): the folders and notes named in the
+    /// comma-separated list that follows, or by default the Femoral and
+    /// Anatomy folders (stars; relays; sub-chips) and BNP, Murmurs, Troponin,
+    /// Expansile cough impulse and Richter's hernia (a moon, a gas giant, a
+    /// rocky planet, the pulsar and a comet; cells; parts). Nil without it.
+    static let removes: [String]? = {
+        let args: [String] = ProcessInfo.processInfo.arguments
+        guard isOn, let at = args.firstIndex(of: "-graphPreviewRemove") else { return nil }
+        if at + 1 < args.count, !args[at + 1].hasPrefix("-") {
+            return args[at + 1].split(separator: ",").map { String($0) }
+        }
+        return ["Femoral", "Anatomy", "BNP", "Murmurs", "Troponin", "Expansile cough impulse", "Richter's hernia"]
+    }()
+
+    /// Deletes what `removes` names: a folder by name (its notes move up),
+    /// else a note by title.
+    @MainActor
+    static func remove(from store: NoteStore) {
+        guard let names = removes else { return }
+        for name in names {
+            if let folder = store.folders.first(where: { $0.name == name }) {
+                store.deleteFolder(folder.id)
+            } else if let note = store.notes.first(where: { $0.title == name }) {
+                store.delete(note.id)
+            }
+        }
+    }
+
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
     static let chooses: Bool = isOn && !drags && fly == nil
 

@@ -69,12 +69,13 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// The legend's title (and the Look menu's button for it).
+    /// The legend's title (and the Look menu's button for it): how the map
+    /// is built, and how to add to it.
     var legendTitle: String {
         switch self {
-        case .space: return "What the bodies mean"
-        case .neurons: return "What the cells mean"
-        case .circuit: return "What the parts mean"
+        case .space: return "How your universe is built"
+        case .neurons: return "How your network is built"
+        case .circuit: return "How your circuits are built"
         }
     }
 
@@ -123,8 +124,27 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
             return "Top-level folders are brain regions, folders are relays down the pathway, "
                 + "pages are large neurons and ideas small ones. Links are axons carrying impulses."
         case .circuit:
-            return "Top-level folders are processors, folders are module chips on their own boards, "
-                + "pages are capacitors and ideas resistors or LEDs. Links are copper traces carrying current."
+            return "Each top-level folder is its own circuit board with its chip; pages are capacitors "
+                + "and ideas LEDs. Links are copper traces carrying current."
+        }
+    }
+
+    /// The first-run card's three ways to add, with the app's own controls
+    /// (the + button in the Ideas bar, and [[ ]] in a note).
+    var cardSteps: [String] {
+        switch self {
+        case .space:
+            return ["Tap + \u{203A} New folder: a new galaxy round its black hole.",
+                    "Tap + \u{203A} New page for a gas giant, New idea for a rocky planet.",
+                    "Type [[ and a note\u{2019}s title in a note: a link joins them."]
+        case .neurons:
+            return ["Tap + \u{203A} New folder: a new brain region.",
+                    "Tap + \u{203A} New page for a large neuron, New idea for a small one.",
+                    "Type [[ and a note\u{2019}s title in a note: an axon joins them."]
+        case .circuit:
+            return ["Tap + \u{203A} New folder: a new circuit board with its chip.",
+                    "Tap + \u{203A} New page for a capacitor, New idea for an LED.",
+                    "Type [[ and a note\u{2019}s title in a note: a copper trace joins them."]
         }
     }
 

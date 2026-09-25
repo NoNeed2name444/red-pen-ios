@@ -83,6 +83,19 @@ final class GraphNeuronLook: GraphThemeLook {
     let farMaterial: SCNMaterial
     let linkHalfWidth: Float = 0.08
     let farHalfWidth: Float = 0.13
+
+    /// Every axon ends in a terminal arbor of branchlets and boutons on its
+    /// target (GraphLinkArbor, drawn by NeuronShaders.axon): the cell's
+    /// membrane is 1.25 of its trim radius; one fibre is 0.3 of an axon's
+    /// half width, 0.2 of a tract's (three fibres). Only when the axon
+    /// shader works: the plain fallback draws no brush.
+    var arbor: GraphLinkArbor? {
+        support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.3) : nil
+    }
+
+    var farArbor: GraphLinkArbor? {
+        support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.2) : nil
+    }
     let hotRing: SCNGeometry
     private(set) var clocked: [SCNMaterial] = []
     /// Materials whose geometry modifiers read `rpSway` (NeuronImpulses
@@ -105,8 +118,10 @@ final class GraphNeuronLook: GraphThemeLook {
         self.budget = budget
         let support: NeuronSupport = NeuronProbe.support
         self.support = support
-        linkMaterial = Self.axonMaterial(bundle: false, bold: bold, lively: lively, budget: budget, support: support)
-        farMaterial = Self.axonMaterial(bundle: true, bold: bold, lively: lively, budget: budget, support: support)
+        linkMaterial = Self.axonMaterial(bundle: false, bold: bold, lively: lively, budget: budget, support: support,
+                                         half: 0.08)
+        farMaterial = Self.axonMaterial(bundle: true, bold: bold, lively: lively, budget: budget, support: support,
+                                        half: 0.13)
         let ball = SCNSphere(radius: 1)
         ball.segmentCount = budget.tier == .high ? 40 : 24
         sphere = ball
@@ -169,6 +184,7 @@ final class GraphNeuronLook: GraphThemeLook {
         case .note: node.name = "note:" + body.id.uuidString
         case .folder: node.name = "folder:" + body.id.uuidString
         case .home: node.name = "home"
+        case .fixture: node.name = "fixture"
         }
         let role: NeuronRole = NeuronRole(rawValue: body.role) ?? .interneuron
         let kind: NeuronCellKind = NeuronCellKind.of(role)
@@ -373,7 +389,7 @@ final class GraphNeuronLook: GraphThemeLook {
     /// An axon (a tract of three when `bundle`): the impulses' rate and
     /// bursts from the Graphics budget.
     private static func axonMaterial(bundle: Bool, bold: Bool, lively: Bool, budget: GraphicsBudget,
-                                     support: NeuronSupport) -> SCNMaterial {
+                                     support: NeuronSupport, half: Float) -> SCNMaterial {
         let base: SIMD3<Float> = bundle ? tract : fibre
         let strength: Float = bold ? 1.35 : 1
         guard support.has("axon") else {
@@ -392,6 +408,8 @@ final class GraphNeuronLook: GraphThemeLook {
         set(material, "rpRate", lively ? (high ? 0.55 : 0.3) : 0)
         set(material, "rpBurst", lively && high ? 0.18 : 0)
         set(material, "rpBundle", bundle ? 1 : 0)
+        set(material, "rpHalf", half)
+        set(material, "rpDetail", budget.shaderDetail)
         tint(material, "rpTintA", base * strength)
         tint(material, "rpTintB", impulse)
         tint(material, "rpTintC", impulseHalo)
@@ -869,7 +887,7 @@ nonisolated enum NeuronProbe {
             let ok: Bool = GraphStyleProbe.renders(modifiers, on: shape, device: device) { material in
                 let values: [(String, Float)] = [("rpMotion", 1), ("rpNucleus", 0.4), ("rpSway", 0),
                                                  ("rpWobble", 0.02), ("rpGain", 1), ("rpRate", 0.5),
-                                                 ("rpBurst", 0.2), ("rpBundle", 0)]
+                                                 ("rpBurst", 0.2), ("rpBundle", 0), ("rpHalf", 0.08)]
                 for (key, value) in values { material.setValue(NSNumber(value: value), forKey: key) }
             }
             if ok { passed.insert(name) }

@@ -118,6 +118,10 @@ extension GraphSceneBuilder {
             info.glowGain = 0.82 + 0.18 * min(Float(body.links) / 5, 1)
             info.body = dress.kind
             info.parent = body.parent
+            info.count = body.count
+            info.deathKind = override != nil && dress.kind == .note
+                ? GraphDeath.kind(style: dress.style.rawValue)
+                : GraphDeath.kind(universeRole: body.role.rawValue, count: body.count)
             info.orbit = body.orbit
             info.shell = body.shell
             info.light = body.light
@@ -222,9 +226,14 @@ extension GraphSceneBuilder {
         simLooks.styler = styler
         simLooks.universe = universe
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles, lively: lively)
+        // bodies deleted since the scene on screen die in this one
+        let key: String = "universe"
+        let dyingLinks = GraphDeathLinks(material: linkMaterial, halfWidth: universe.halfWidth)
+        simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
+                                              lively: lively, links: dyingLinks)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
-        GraphMemory.remember(sim, edges: edges, styles: styles)
+        GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.systems = plan.systems

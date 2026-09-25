@@ -6,30 +6,41 @@ import simd
 // MARK: - The Circuit look
 //
 // How the Circuit theme (GraphCircuit) is dressed, for the shared theme
-// scene (GraphThemeScene): a motherboard in dark green solder mask under
-// everything (decorate), each chip's zone its own sub-board in its zone's
-// shade, and on them the parts - processors under brushed lids on green
-// substrates in their sockets, module chips in black epoxy with tinned
-// pins, both with their folder's name silkscreened on top; electrolytic
-// cans, copper inductor coils, banded resistors and diodes on their leads,
-// LEDs in their zone's colour, pin headers, tiny surface-mount parts, gold
-// edge fingers and pads. Links are copper traces lying flat on the board,
-// routed square with rounded 45° corners (the board passed to the ribbon
-// writer), buses three traces wide; current drifts along them and packets
-// run at random times, and the LED (or chip) a packet reaches lights up.
+// scene (GraphThemeScene): calm, readable boards on a dark bench, with few
+// kinds of part.
 //
-// Colours suit the app's dark ground: near-black green board, copper and
-// gold, cyan-white current; each processor's zone has its own accent (amber,
-// cyan, green, magenta, red) for its LEDs and its name pills' rims.
+// - each collection's board: plain dark green solder mask with a soft
+//   vignette and a thin outline, its copper power rail along the top and
+//   ground rail along the bottom (a child of its chip, so dragging the chip
+//   moves the whole circuit); a sub-folder's sub-board a shade lighter;
+// - chips in the style of modern system-on-chip packages (evoking, never
+//   copying): a rounded square package, its near-black, lightly brushed
+//   anodised lid with a soft sheen, a thin bright bevel and an etched
+//   outline inset, a faint die layout showing under it (performance and
+//   efficiency cores, a GPU grid, a neural block, cache) - more blocks the
+//   more the folder holds - its folder's name printed on it in the
+//   system font with the app's own model tag ("S-12 Pro"); at High a
+//   subtle ring of tiny passives round the controller;
+// - capacitors (pages): dark cans with a pale stripe and aluminium tops;
+// - LEDs (ideas): amber domes, lit when the idea has links, dim when not;
+// - gold pads (loose notes) on the board's edge, and gold edge connectors
+//   where a link leaves for another board;
+// - traces: one copper trace per link, square with rounded 45° corners
+//   (GraphLinkRoute), a thin gold bus between boards; now and then a cyan
+//   packet runs down from the power rail, and the LED it reaches lights.
 //
-// Nothing is made per part but its nodes: geometry is one shape per kind of
-// part, materials one per pattern and colour, shared; only each chip's
-// silkscreened name is its own small picture.
+// Colours: restrained copper, green and white, with one accent - cyan
+// current, amber LEDs.
+//
+// The glows (an LED's light, a busy chip's, the chosen part's ring) are
+// camera-facing squares: they stand at the part's top and are lifted
+// towards the camera by a third of their size, so the board never cuts
+// off their lower half while nearer parts still hide them.
 //
 // The Graphics budget (GraphQuality.current) sets the cost: at Smooth the
-// shapes have fewer segments and a chip fewer pins, the shaders their simple
-// path (rpDetail 0: no grain, hatching, vias, drifting dots or bursts) and
-// fewer packets run. Reduce Motion or a still space: no current moves.
+// shapes have fewer segments, no passives ring or rail labels, the shaders
+// their simple path (rpDetail 0) and fewer packets run. Reduce Motion or a
+// still space: no current moves.
 
 @MainActor
 final class GraphCircuitLook: GraphThemeLook {
@@ -40,8 +51,8 @@ final class GraphCircuitLook: GraphThemeLook {
     let support: CircuitSupport
     let linkMaterial: SCNMaterial
     let farMaterial: SCNMaterial
-    let linkHalfWidth: Float = 0.045
-    let farHalfWidth: Float = 0.09
+    let linkHalfWidth: Float = 0.032
+    let farHalfWidth: Float = 0.022
     let hotRing: SCNGeometry
     private(set) var clocked: [SCNMaterial] = []
     let board: GraphLinkBoard?
@@ -52,8 +63,12 @@ final class GraphCircuitLook: GraphThemeLook {
     private var dressed: [CircuitPieceKey: SCNGeometry] = [:]
     private var halos: [String: SCNGeometry] = [:]
     private var glows: [Int: SCNGeometry] = [:]
-    private var slotOf: [Int: Int] = [:]
-    private var slotsFor: Int = -1
+    private var silks: [String: SCNMaterial] = [:]
+    /// Packets per slot: calm - now and then, not all the time.
+    private var packetRate: Float {
+        guard lively else { return 0 }
+        return budget.tier == .high ? 0.28 : 0.18
+    }
 
     init(lively: Bool, bold: Bool) {
         self.lively = lively
@@ -68,10 +83,12 @@ final class GraphCircuitLook: GraphThemeLook {
         board = GraphLinkBoard(right: r, forward: f, normal: n)
         let angle: Float = Float.pi / 2 - Float(GraphCircuit.tilt)
         upTurn = simd_quatf(angle: angle, axis: SIMD3<Float>(1, 0, 0))
+        let high: Bool = budget.tier == .high
+        let rate: Float = lively ? (high ? 0.28 : 0.18) : 0
         linkMaterial = Self.traceMaterial(bus: false, bold: bold, lively: lively, budget: budget, support: support,
-                                          width: 0.045)
+                                          width: 0.032, rate: rate)
         farMaterial = Self.traceMaterial(bus: true, bold: bold, lively: lively, budget: budget, support: support,
-                                         width: 0.09)
+                                         width: 0.022, rate: rate)
         hotRing = GraphSceneBuilder.plane(Self.glowMaterial(tint: Self.current * 0.5, ring: Self.hot, gain: 0.3,
                                                             support: support))
         if support.has("trace") {
@@ -83,44 +100,21 @@ final class GraphCircuitLook: GraphThemeLook {
     // MARK: colours (sRGB, as on screen)
 
     static let mask = SIMD3<Float>(0.035, 0.13, 0.085)
-    static let copper = SIMD3<Float>(0.98, 0.64, 0.32)
+    static let subMask = SIMD3<Float>(0.05, 0.17, 0.11)
+    static let copper = SIMD3<Float>(0.92, 0.60, 0.32)
     static let gold = SIMD3<Float>(1.0, 0.78, 0.36)
-    static let silk = SIMD3<Float>(0.86, 0.88, 0.82)
+    static let silk = SIMD3<Float>(0.86, 0.88, 0.84)
     static let tin = SIMD3<Float>(0.78, 0.80, 0.83)
-    static let current = SIMD3<Float>(0.62, 0.95, 1.0)
-    static let currentGlow = SIMD3<Float>(0.25, 0.55, 1.0)
+    static let current = SIMD3<Float>(0.55, 0.95, 1.0)
+    static let currentGlow = SIMD3<Float>(0.25, 0.6, 1.0)
     static let hot = SIMD3<Float>(0.6, 0.95, 1.0)
-    /// Each processor's zone: its sub-board's mask and its accent (its
-    /// LEDs, its name pills' rims).
-    static let zones: [(SIMD3<Float>, SIMD3<Float>)] = [
-        (SIMD3<Float>(0.05, 0.19, 0.12), SIMD3<Float>(1.0, 0.72, 0.22)),
-        (SIMD3<Float>(0.03, 0.15, 0.17), SIMD3<Float>(0.30, 0.90, 1.0)),
-        (SIMD3<Float>(0.04, 0.09, 0.20), SIMD3<Float>(0.40, 1.0, 0.45)),
-        (SIMD3<Float>(0.12, 0.06, 0.17), SIMD3<Float>(1.0, 0.38, 0.82)),
-        (SIMD3<Float>(0.07, 0.07, 0.08), SIMD3<Float>(1.0, 0.32, 0.25))
-    ]
-    /// Loose notes' accent: the edge's gold.
-    static let edgeZone = (SIMD3<Float>(0.05, 0.12, 0.09), SIMD3<Float>(1.0, 0.8, 0.4))
-
-    /// A body's zone slot: its processor's place in the plan, 5 round.
-    private func slot(_ body: ThemeBody, plan: ThemePlan) -> Int {
-        if slotsFor != plan.bodies.count {
-            slotOf = [:]
-            for (k, r) in plan.regions.enumerated() { slotOf[r] = k % Self.zones.count }
-            slotsFor = plan.bodies.count
-        }
-        if body.region >= 0 { return slotOf[body.region] ?? 0 }
-        return -1
-    }
-
-    private static func zone(_ slot: Int) -> (SIMD3<Float>, SIMD3<Float>) {
-        slot < 0 ? edgeZone : zones[slot % zones.count]
-    }
+    static let amber = SIMD3<Float>(1.0, 0.70, 0.22)
+    static let lid = SIMD3<Float>(0.055, 0.058, 0.066)
+    static let substrate = SIMD3<Float>(0.05, 0.10, 0.075)
 
     func tone(region: Int, plan: ThemePlan) -> UIColor? {
-        guard region >= 0, region < plan.bodies.count else { return nil }
-        let c: SIMD3<Float> = Self.zone(slot(plan.bodies[region], plan: plan)).1
-        return UIColor(red: CGFloat(c.x), green: CGFloat(c.y), blue: CGFloat(c.z), alpha: 1)
+        // one restrained rim for every board's name pills: copper
+        Self.colour(Self.copper)
     }
 
     // MARK: a part
@@ -131,71 +125,88 @@ final class GraphCircuitLook: GraphThemeLook {
         case .note: node.name = "note:" + body.id.uuidString
         case .folder: node.name = "folder:" + body.id.uuidString
         case .home: node.name = "home"
+        case .fixture: node.name = "fixture"
         }
-        let role: CircuitRole = CircuitRole(rawValue: body.role) ?? .resistor
-        let zoneSlot: Int = slot(body, plan: plan)
+        let role: CircuitRole = CircuitRole(rawValue: body.role) ?? .led
         let size: Float = body.sphere
 
-        // the board's frame (y up out of it), turned along y for a part
-        // lying along the board's y, and scaled to the part's size
+        // the board's frame (y up out of it), scaled to the part's size
         let up = SCNNode()
         up.simdOrientation = upTurn
         node.addChildNode(up)
-        let orient = SCNNode()
-        let vertical: Bool = simd_dot(body.axis, GraphUniverse.float3(GraphCircuit.forward)) > 0.5
-        if vertical && role.isOriented {
-            orient.simdOrientation = simd_quatf(angle: Float.pi / 2, axis: SIMD3<Float>(0, 1, 0))
-        }
-        up.addChildNode(orient)
         let shape = SCNNode()
         shape.simdScale = SIMD3<Float>(size, size, size)
-        orient.addChildNode(shape)
-        for piece in pieces(role, zone: zoneSlot) { shape.addChildNode(piece) }
+        up.addChildNode(shape)
+        for piece in pieces(role, body: body) { shape.addChildNode(piece) }
         if role.isContainer {
             shape.addChildNode(nameplate(body, role: role))
-            if index < plan.patches.count {
-                if let zoneBoard = subBoard(plan.patches[index], zone: zoneSlot) { node.addChildNode(zoneBoard) }
+            if index < plan.patches.count, let slab = boardSlab(plan.patches[index], sub: role == .module) {
+                node.addChildNode(slab)
+            }
+            for bar in plan.bars where bar.owner == index {
+                node.addChildNode(rail(bar))
+            }
+            if role != .module && budget.tier == .high {
+                for bar in plan.bars where bar.owner == index && (bar.kind == 0 || bar.y == lowestRail(plan, index)) {
+                    if let label = railLabel(bar) { node.addChildNode(label) }
+                }
             }
         }
 
-        // the halo, on GraphSim's ring pieces
+        // the halo, on GraphSim's ring pieces: at the part's top, lifted
+        // towards the camera (so the board never cuts off its lower half)
+        let top: Float = size * Self.height(role)
         let holder = SCNNode()
+        holder.simdPosition = GraphUniverse.float3(GraphCircuit.normal) * top
         let facing = SCNBillboardConstraint()
         facing.freeAxes = .all
         holder.constraints = [facing]
-        let stretch = SCNNode()
-        // only an LED and a chip have a standing glow, and none on Smooth
-        // (no haze); a passive part's, at a twentieth of the light, cost a
-        // blended quad five times its size and showed nothing
         let glowing: Bool = role == .led || role.isContainer
-        let halo: SCNGeometry = glowing && budget.haze ? haloGeometry(role, zone: zoneSlot) : GraphThemeParts.noHalo
-        let leaf = SCNNode(geometry: halo)
         let across: Float = size * (role.isContainer ? 4.2 : 5)
+        let lift = SCNNode()
+        lift.simdPosition = SIMD3<Float>(0, 0, across * 0.35)
+        holder.addChildNode(lift)
+        let stretch = SCNNode()
+        let lit: Bool = body.links > 0
+        let standing: Bool = glowing && budget.haze && (role != .led || lit)
+        let halo: SCNGeometry = standing ? haloGeometry(role) : GraphThemeParts.noHalo
+        let leaf = SCNNode(geometry: halo)
         leaf.simdScale = SIMD3<Float>(across, across, 1)
         leaf.renderingOrder = 7
         leaf.categoryBitMask = 2
         stretch.addChildNode(leaf)
-        holder.addChildNode(stretch)
+        lift.addChildNode(stretch)
         node.addChildNode(holder)
         let disk = SCNNode()
         node.addChildNode(disk)
 
         var parts = GraphThemeParts(node: node, radius: size * Self.reach(role), ringStretch: stretch,
                                     ringLeaf: leaf, ringGeometry: halo, diskLeaf: disk)
-        // a lit LED's light, or a busy chip's, as current arrives
+        // an LED's light, or a busy chip's, as current arrives
         if role == .led || role.isContainer {
-            let light = SCNNode(geometry: glowGeometry(role == .led ? zoneSlot : 99))
+            let light = SCNNode(geometry: glowGeometry(role == .led ? 0 : 99))
             let wide: Float = size * (role == .led ? 7 : 4.5)
             light.simdScale = SIMD3<Float>(wide, wide, 1)
             light.renderingOrder = 8
             light.categoryBitMask = 2
             light.opacity = 0
             light.isHidden = true
-            holder.addChildNode(light)
+            lift.addChildNode(light)
             parts.glow = light
+        }
+        if body.kind == .fixture {
+            node.categoryBitMask = 2
+            shape.categoryBitMask = 2
         }
         parts.thinnable = !glowing
         return parts
+    }
+
+    /// The lowest ground rail a board carries (its bottom edge's).
+    private func lowestRail(_ plan: ThemePlan, _ owner: Int) -> Float {
+        var y: Float = Float.greatestFiniteMagnitude
+        for bar in plan.bars where bar.owner == owner && bar.kind == 1 { y = min(y, bar.y) }
+        return y
     }
 
     /// How far out from its centre a part's traces start (times the links'
@@ -203,80 +214,69 @@ final class GraphCircuitLook: GraphThemeLook {
     private static func reach(_ role: CircuitRole) -> Float {
         switch role {
         case .processor, .module, .soc: return 1.0
-        case .resistor, .diode: return 1.2
-        case .header: return 1.3
         case .capacitor: return 0.8
-        case .inductor: return 0.85
         case .led: return 0.75
-        case .smd: return 0.9
-        case .edgePin: return 1.0
         case .pad: return 0.7
+        case .vcc, .ground, .bus: return 0.4
+        case .connector: return 0.8
+        }
+    }
+
+    /// A part's top, in sizes above the board (where its glow stands).
+    private static func height(_ role: CircuitRole) -> Float {
+        switch role {
+        case .processor, .soc, .module: return 0.2
+        case .capacitor: return 1.6
+        case .led: return 1.7
+        default: return 0.05
         }
     }
 
     // MARK: the parts' pieces
 
     /// The pieces of a part, in its own unit frame (y up from the board).
-    private func pieces(_ role: CircuitRole, zone: Int) -> [SCNNode] {
+    private func pieces(_ role: CircuitRole, body: ThemeBody) -> [SCNNode] {
         let high: Bool = budget.tier == .high
-        let accent: SIMD3<Float> = Self.zone(zone).1
         switch role {
-        case .processor, .soc:
-            let socket = piece(box("socket", 2.3, 0.05, 2.3, 0.02), y: 0.025,
-                               look: material(6, SIMD3<Float>(0.13, 0.13, 0.14), shine: 0.2))
-            let substrate = piece(box("substrate", 1.9, 0.08, 1.9, 0.02), y: 0.09,
-                                  look: material(12, SIMD3<Float>(0.10, 0.30, 0.18), b: Self.gold, shine: 0.4))
-            let lid = piece(box("lid", 1.4, 0.12, 1.4, 0.05), y: 0.19,
-                            look: material(1, SIMD3<Float>(0.72, 0.74, 0.77), shine: 1))
-            return [socket, substrate, lid]
-        case .module:
-            let body = piece(box("ic", 1.7, 0.24, 1.7, 0.03), y: 0.16,
-                             look: material(0, SIMD3<Float>(0.075, 0.075, 0.085), shine: 0.35))
-            let pins = piece(icPins(high ? 8 : 5), y: 0, look: material(7, Self.tin, shine: 1))
-            return [body, pins]
+        case .processor, .soc, .module:
+            let small: Bool = role == .module
+            let blocks: Float = GraphUniverse.clamp(log2(1 + Double(body.count)) / 6, 0, 1).float
+            let base = piece(box("package", 1.9, 0.07, 1.9, 0.14), y: 0.035,
+                             look: material(6, Self.substrate, shine: 0.25))
+            let lidShape: SCNGeometry = box(small ? "lidSmall" : "lid", small ? 1.55 : 1.6, 0.12,
+                                            small ? 1.55 : 1.6, 0.16)
+            let cover = piece(lidShape, y: 0.13,
+                              look: material(13, Self.lid, b: Self.silk, c: SIMD3<Float>(0.35, 0.42, 0.6),
+                                             shine: 0.9, glow: small ? blocks * 0.5 : blocks))
+            var out: [SCNNode] = [base, cover]
+            if !small && high {
+                out.append(piece(passives(), y: 0, look: material(8, SIMD3<Float>(0.32, 0.26, 0.2), b: Self.tin,
+                                                                  shine: 0.5)))
+            }
+            return out
         case .capacitor:
             let can = piece(cylinder("can", 0.8, 1.6, high ? 32 : 16), y: 0.8,
-                            look: material(4, SIMD3<Float>(0.10, 0.16, 0.42), b: SIMD3<Float>(0.62, 0.68, 0.78),
-                                           c: SIMD3<Float>(0.78, 0.80, 0.83), shine: 0.7))
+                            look: material(4, SIMD3<Float>(0.10, 0.12, 0.13), b: SIMD3<Float>(0.80, 0.82, 0.80),
+                                           c: SIMD3<Float>(0.74, 0.76, 0.79), shine: 0.7))
             return [can]
-        case .inductor:
-            let coil = piece(torus(high), y: 0.3, look: material(5, SIMD3<Float>(0.86, 0.46, 0.22), shine: 0.9))
-            let core = piece(cylinder("core", 0.42, 0.5, high ? 24 : 12), y: 0.25,
-                             look: material(6, SIMD3<Float>(0.16, 0.16, 0.17), shine: 0.3))
-            return [core, coil]
-        case .resistor, .diode:
-            let isDiode: Bool = role == .diode
-            let bodyLook: SCNMaterial = isDiode
-                ? material(3, SIMD3<Float>(0.10, 0.10, 0.11), b: SIMD3<Float>(0.86, 0.87, 0.9), shine: 0.9)
-                : material(2, SIMD3<Float>(0.80, 0.68, 0.48), b: Self.gold, shine: 0.5)
-            let long: CGFloat = isDiode ? 2.2 : 2.5
-            let round: CGFloat = isDiode ? 0.38 : 0.42
-            let body = piece(capsule(isDiode ? "diode" : "resistor", round, long, high), y: 0.5, look: bodyLook)
-            body.simdOrientation = simd_quatf(angle: -Float.pi / 2, axis: SIMD3<Float>(0, 0, 1))
-            let leads = piece(axialLeads(), y: 0, look: material(7, Self.tin, shine: 1))
-            return [body, leads]
         case .led:
+            let lit: Bool = body.links > 0
+            let glow: Float = lit ? (lively ? 0.45 : 0.35) : 0.05
             let dome = piece(capsule("led", 0.62, 1.9, high), y: 1.0,
-                             look: material(9, accent, shine: 1, glow: lively ? 0.45 : 0.35))
+                             look: material(9, Self.amber, shine: 1, glow: glow))
             let rim = piece(cylinder("ledRim", 0.72, 0.12, high ? 24 : 12), y: 0.06,
-                            look: material(9, accent, shine: 0.6, glow: 0.15))
+                            look: material(9, Self.amber, shine: 0.6, glow: lit ? 0.15 : 0.02))
             return [rim, dome]
-        case .header:
-            let base = piece(box("header", 4.0, 0.5, 0.9, 0.04), y: 0.25,
-                             look: material(6, SIMD3<Float>(0.07, 0.07, 0.08), shine: 0.25))
-            let pins = piece(headerPins(), y: 0, look: material(7, Self.gold, shine: 1))
-            return [base, pins]
-        case .smd:
-            let chip = piece(box("smd", 2.0, 0.55, 1.0, 0.03), y: 0.275,
-                             look: material(8, SIMD3<Float>(0.14, 0.11, 0.09), b: Self.tin, shine: 0.6))
-            return [chip]
-        case .edgePin:
-            let finger = piece(box("finger", 1.0, 0.04, 2.6, 0.01), y: 0.02, look: material(10, Self.gold, shine: 1))
-            return [finger]
         case .pad:
-            let pad = piece(cylinder("pad", 0.8, 0.04, high ? 24 : 12), y: 0.02,
+            let pad = piece(cylinder("pad", 0.9, 0.05, high ? 24 : 12), y: 0.025,
                             look: material(11, Self.gold, shine: 1))
             return [pad]
+        case .connector:
+            let finger = piece(box("finger", 1.2, 0.05, 2.2, 0.02), y: 0.025, look: material(10, Self.gold, shine: 1))
+            return [finger]
+        case .vcc, .ground, .bus:
+            let via = piece(cylinder("via", 0.9, 0.05, 12), y: 0.025, look: material(7, Self.tin, shine: 0.8))
+            return [via]
         }
     }
 
@@ -303,7 +303,7 @@ final class GraphCircuitLook: GraphThemeLook {
     private func box(_ key: String, _ w: CGFloat, _ h: CGFloat, _ l: CGFloat, _ round: CGFloat) -> SCNGeometry {
         if let made = shapes[key] { return made }
         let made = SCNBox(width: w, height: h, length: l, chamferRadius: round)
-        made.chamferSegmentCount = budget.tier == .high ? 3 : 1
+        made.chamferSegmentCount = budget.tier == .high ? 4 : 2
         shapes[key] = made
         return made
     }
@@ -325,59 +325,22 @@ final class GraphCircuitLook: GraphThemeLook {
         return made
     }
 
-    private func torus(_ high: Bool) -> SCNGeometry {
-        if let made = shapes["torus"] { return made }
-        let made = SCNTorus(ringRadius: 0.72, pipeRadius: 0.3)
-        made.ringSegmentCount = high ? 48 : 24
-        made.pipeSegmentCount = high ? 14 : 8
-        shapes["torus"] = made
-        return made
-    }
-
-    /// A chip's gull-wing pins, `perSide` on each side, as one geometry.
-    private func icPins(_ perSide: Int) -> SCNGeometry {
-        let key: String = "pins\(perSide)"
-        if let made = shapes[key] { return made }
+    /// A subtle ring of tiny passives round a controller's package, as one
+    /// geometry: small two-tone chips along each side.
+    private func passives() -> SCNGeometry {
+        if let made = shapes["passives"] { return made }
         var list: [(SIMD3<Float>, SIMD3<Float>)] = []
-        let pitch: Float = 1.4 / Float(max(perSide, 1))
-        for k in 0..<perSide {
-            let along: Float = (Float(k) - Float(perSide - 1) * 0.5) * pitch
-            let half = SIMD3<Float>(0.15, 0.025, 0.045)
-            list.append((SIMD3<Float>(1.0, 0.025, along), half))
-            list.append((SIMD3<Float>(-1.0, 0.025, along), half))
-            let across = SIMD3<Float>(0.045, 0.025, 0.15)
-            list.append((SIMD3<Float>(along, 0.025, 1.0), across))
-            list.append((SIMD3<Float>(along, 0.025, -1.0), across))
+        let half = SIMD3<Float>(0.05, 0.025, 0.025)
+        for k in 0..<7 {
+            let along: Float = -0.72 + Float(k) * 0.24
+            list.append((SIMD3<Float>(along, 0.095, 1.07), half))
+            list.append((SIMD3<Float>(along, 0.095, -1.07), half))
+            let turned = SIMD3<Float>(0.025, 0.025, 0.05)
+            list.append((SIMD3<Float>(1.07, 0.095, along), turned))
+            list.append((SIMD3<Float>(-1.07, 0.095, along), turned))
         }
         let made: SCNGeometry = CircuitMesh.boxes(list)
-        shapes[key] = made
-        return made
-    }
-
-    /// A resistor's or diode's two leads: down into the board at each end,
-    /// and the wire through the body.
-    private func axialLeads() -> SCNGeometry {
-        if let made = shapes["leads"] { return made }
-        let list: [(SIMD3<Float>, SIMD3<Float>)] = [
-            (SIMD3<Float>(-1.5, 0.25, 0), SIMD3<Float>(0.045, 0.25, 0.045)),
-            (SIMD3<Float>(1.5, 0.25, 0), SIMD3<Float>(0.045, 0.25, 0.045)),
-            (SIMD3<Float>(0, 0.5, 0), SIMD3<Float>(1.54, 0.04, 0.04))
-        ]
-        let made: SCNGeometry = CircuitMesh.boxes(list)
-        shapes["leads"] = made
-        return made
-    }
-
-    /// A header's four pins, standing up out of its base.
-    private func headerPins() -> SCNGeometry {
-        if let made = shapes["headerPins"] { return made }
-        var list: [(SIMD3<Float>, SIMD3<Float>)] = []
-        for k in 0..<4 {
-            let x: Float = -1.5 + Float(k)
-            list.append((SIMD3<Float>(x, 0.6, 0), SIMD3<Float>(0.08, 0.6, 0.08)))
-        }
-        let made: SCNGeometry = CircuitMesh.boxes(list)
-        shapes["headerPins"] = made
+        shapes["passives"] = made
         return made
     }
 
@@ -411,9 +374,10 @@ final class GraphCircuitLook: GraphThemeLook {
         return material
     }
 
-    /// A trace (a bus of three when `bus`): copper, with current in cyan.
+    /// A trace: copper, with current in cyan; `bus` the thin gold bus
+    /// between boards.
     private static func traceMaterial(bus: Bool, bold: Bool, lively: Bool, budget: GraphicsBudget,
-                                      support: CircuitSupport, width: Float) -> SCNMaterial {
+                                      support: CircuitSupport, width: Float, rate: Float) -> SCNMaterial {
         let base: SIMD3<Float> = bus ? gold : copper
         let strength: Float = bold ? 1.3 : 1
         guard support.has("trace") else {
@@ -438,12 +402,11 @@ final class GraphCircuitLook: GraphThemeLook {
         GraphStyleUniforms.defaults(material)
         set(material, "rpMotion", lively ? 1 : 0)
         set(material, "rpDetail", budget.shaderDetail)
-        let high: Bool = budget.tier == .high
         // held still (Reduce Motion, a still space): no packets at all,
         // rather than packets frozen partway along
-        set(material, "rpRate", lively ? (high ? 0.6 : 0.35) : 0)
-        set(material, "rpBurst", lively && high ? 0.2 : 0)
-        set(material, "rpBundle", bus ? 1 : 0)
+        set(material, "rpRate", rate)
+        set(material, "rpBurst", 0)
+        set(material, "rpBundle", 0)
         set(material, "rpWidth", width)
         tint(material, "rpTintA", base * strength)
         tint(material, "rpTintB", current)
@@ -451,28 +414,26 @@ final class GraphCircuitLook: GraphThemeLook {
         return material
     }
 
-    private func haloGeometry(_ role: CircuitRole, zone: Int) -> SCNGeometry {
+    private func haloGeometry(_ role: CircuitRole) -> SCNGeometry {
         let lit: Bool = role == .led
-        let key: String = lit ? "led\(zone)" : (role.isContainer ? "chip\(zone)" : "part")
+        let key: String = lit ? "led" : "chip"
         if let made = halos[key] { return made }
-        let accent: SIMD3<Float> = Self.zone(zone).1
-        let gain: Float = lit ? 0.55 : (role.isContainer ? 0.12 : 0.05)
-        let tint: SIMD3<Float> = lit || role.isContainer ? accent : Self.current
+        let gain: Float = lit ? 0.5 : 0.1
+        let tint: SIMD3<Float> = lit ? Self.amber : Self.current
         let made: SCNGeometry = GraphSceneBuilder.plane(Self.glowMaterial(tint: tint, ring: SIMD3<Float>(0, 0, 0),
                                                                           gain: gain, support: support))
         halos[key] = made
         return made
     }
 
-    /// The light of current arriving: an LED's in its zone's colour (`zone`
-    /// 0...5), a chip's cyan (99).
-    private func glowGeometry(_ zone: Int) -> SCNGeometry {
-        if let made = glows[zone] { return made }
-        let tint: SIMD3<Float> = zone == 99 ? Self.current : Self.zone(zone).1
-        let gain: Float = zone == 99 ? 0.7 : 1.6
+    /// The light of current arriving: an LED's amber (0), a chip's cyan (99).
+    private func glowGeometry(_ which: Int) -> SCNGeometry {
+        if let made = glows[which] { return made }
+        let tint: SIMD3<Float> = which == 99 ? Self.current : Self.amber
+        let gain: Float = which == 99 ? 0.6 : 1.5
         let made: SCNGeometry = GraphSceneBuilder.plane(Self.glowMaterial(tint: tint, ring: SIMD3<Float>(0, 0, 0),
                                                                           gain: gain, support: support))
-        glows[zone] = made
+        glows[which] = made
         return made
     }
 
@@ -498,7 +459,8 @@ final class GraphCircuitLook: GraphThemeLook {
         return material
     }
 
-    private func boardMaterial(zone: Bool, mask: SIMD3<Float>, size: SIMD3<Float>) -> SCNMaterial {
+    private func boardMaterial(sub: Bool, size: SIMD3<Float>) -> SCNMaterial {
+        let mask: SIMD3<Float> = sub ? Self.subMask : Self.mask
         let material = SCNMaterial()
         material.lightingModel = .constant
         guard support.has("board") else {
@@ -509,7 +471,7 @@ final class GraphCircuitLook: GraphThemeLook {
         material.shaderModifiers = [.surface: CircuitShaders.board]
         GraphStyleUniforms.defaults(material)
         Self.set(material, "rpDetail", budget.shaderDetail)
-        Self.set(material, "rpZone", zone ? 1 : 0)
+        Self.set(material, "rpZone", sub ? 1 : 0)
         material.setValue(NSValue(scnVector3: SCNVector3(x: size.x, y: size.y, z: size.z)), forKey: "rpSize")
         Self.tint(material, "rpTintA", mask)
         Self.tint(material, "rpTintB", Self.copper)
@@ -529,62 +491,94 @@ final class GraphCircuitLook: GraphThemeLook {
         UIColor(red: CGFloat(min(c.x, 1)), green: CGFloat(min(c.y, 1)), blue: CGFloat(min(c.z, 1)), alpha: 1)
     }
 
-    // MARK: boards
+    // MARK: boards and rails
 
-    /// A chip's own sub-board: `patch` (its centre from the chip, on the
-    /// board, and its half size) as a thin slab just above the motherboard,
-    /// a child of the chip so it moves with it.
-    private func subBoard(_ patch: SIMD4<Float>, zone: Int) -> SCNNode? {
+    /// A board (a controller's `patch`: its centre from the chip, on the
+    /// bench, and its half size) or a sub-board (a sub-folder chip's), as a
+    /// slab under the parts, a child of the chip so it moves with it.
+    private func boardSlab(_ patch: SIMD4<Float>, sub: Bool) -> SCNNode? {
         guard patch.z > 0.001, patch.w > 0.001 else { return nil }
-        let size = SIMD3<Float>(patch.z, 0.003, patch.w)
-        let slab = SCNBox(width: CGFloat(patch.z * 2), height: 0.006, length: CGFloat(patch.w * 2), chamferRadius: 0)
-        slab.materials = [boardMaterial(zone: true, mask: Self.zone(zone).0, size: size)]
+        let thick: Float = sub ? 0.006 : 0.08
+        let size = SIMD3<Float>(patch.z, thick * 0.5, patch.w)
+        let slab = SCNBox(width: CGFloat(patch.z * 2), height: CGFloat(thick), length: CGFloat(patch.w * 2),
+                          chamferRadius: sub ? 0 : 0.03)
+        slab.materials = [boardMaterial(sub: sub, size: size)]
         let node = SCNNode(geometry: slab)
         let r: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.right)
         let f: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
         let n: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.normal)
-        node.simdPosition = r * patch.x + f * patch.y + n * 0.003
+        let lift: Float = sub ? 0.003 : -thick * 0.5
+        node.simdPosition = r * patch.x + f * patch.y + n * lift
         node.simdOrientation = upTurn
         node.categoryBitMask = 2
-        node.renderingOrder = -2
+        node.renderingOrder = sub ? -2 : -3
         return node
     }
 
-    /// The motherboard, under everything.
-    func decorate(world: SCNNode, plan: ThemePlan) {
-        guard let g = plan.ground else { return }
-        let half = SIMD3<Float>((g.z - g.x) * 0.5, 0.04, (g.w - g.y) * 0.5)
-        let slab = SCNBox(width: CGFloat(half.x * 2), height: 0.08, length: CGFloat(half.z * 2), chamferRadius: 0.02)
-        slab.materials = [boardMaterial(zone: false, mask: Self.mask, size: half)]
-        let node = SCNNode(geometry: slab)
-        node.name = "motherboard"
+    /// A power or ground rail: a flat copper bar on the board.
+    private func rail(_ bar: ThemeBar) -> SCNNode {
+        let wide: CGFloat = CGFloat(bar.half * 2)
+        let across: CGFloat = bar.kind == 0 ? 0.05 : 0.04
+        let shape = SCNBox(width: wide, height: 0.008, length: across, chamferRadius: 0)
+        shape.materials = [material(7, bar.kind == 0 ? Self.copper : Self.copper * 0.85, shine: 0.7)]
+        let node = SCNNode(geometry: shape)
         let r: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.right)
         let f: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
         let n: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.normal)
-        let cx: Float = (g.x + g.z) * 0.5
-        let cy: Float = (g.y + g.w) * 0.5
-        node.simdPosition = r * cx + f * cy - n * 0.04
+        node.simdPosition = r * bar.x + f * bar.y + n * 0.006
         node.simdOrientation = upTurn
         node.categoryBitMask = 2
-        node.renderingOrder = -3
-        world.addChildNode(node)
+        node.renderingOrder = -1
+        return node
     }
 
-    /// A chip's name, silkscreened (a processor's on its lid, a module's
-    /// on its epoxy): its folder's name and a part number.
+    /// "VCC" or "GND", silkscreened at a rail's left end.
+    private func railLabel(_ bar: ThemeBar) -> SCNNode? {
+        let text: String = bar.kind == 0 ? "VCC" : "GND"
+        let look: SCNMaterial
+        if let made = silks[text] {
+            look = made
+        } else {
+            let made = SCNMaterial()
+            made.lightingModel = .constant
+            made.diffuse.contents = CircuitArt.silk(text)
+            made.blendMode = .alpha
+            made.writesToDepthBuffer = false
+            made.readsFromDepthBuffer = true
+            silks[text] = made
+            look = made
+        }
+        let plane = SCNPlane(width: 0.16, height: 0.06)
+        plane.materials = [look]
+        let node = SCNNode(geometry: plane)
+        let r: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.right)
+        let f: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
+        let n: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.normal)
+        let x: Float = bar.x - bar.half + 0.1
+        let y: Float = bar.y + (bar.kind == 0 ? -0.07 : 0.07)
+        node.simdPosition = r * x + f * y + n * 0.004
+        // lying on the board, reading along x
+        node.simdOrientation = upTurn * simd_quatf(angle: -Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        node.categoryBitMask = 2
+        node.renderingOrder = -1
+        return node
+    }
+
+    /// A chip's name, printed on its lid: its folder's name and its model
+    /// tag (GraphCircuit.modelTag).
     private func nameplate(_ body: ThemeBody, role: CircuitRole) -> SCNNode {
-        let lid: Bool = role != .module
-        let wide: CGFloat = lid ? 1.2 : 1.4
+        let wide: CGFloat = role == .module ? 1.25 : 1.3
         let plane = SCNPlane(width: wide, height: wide * 0.5)
         let material = SCNMaterial()
         material.lightingModel = .constant
-        material.diffuse.contents = CircuitArt.nameplate(body.title, number: body.seed, dark: lid)
+        let tag: String = GraphCircuit.modelTag(count: body.count, depth: max(body.depth, 0))
+        material.diffuse.contents = CircuitArt.nameplate(body.title, tag: tag)
         material.blendMode = .alpha
         material.writesToDepthBuffer = false
         material.readsFromDepthBuffer = true
         plane.materials = [material]
         let node = SCNNode(geometry: plane)
-        node.simdPosition = SIMD3<Float>(0, lid ? 0.252 : 0.282, 0)
+        node.simdPosition = SIMD3<Float>(0, 0.192, 0.1)
         node.simdOrientation = simd_quatf(angle: -Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         node.categoryBitMask = 2
         node.renderingOrder = 3
@@ -598,16 +592,18 @@ final class GraphCircuitLook: GraphThemeLook {
     /// NeuronImpulses on the same timing.
     func ticker(parts: [GraphThemeParts], plan: ThemePlan) -> GraphThemeTicker? {
         guard lively, support.has("trace") else { return nil }
-        let high: Bool = budget.tier == .high
-        return NeuronImpulses(glows: parts.map(\.glow), swaying: [], rate: high ? 0.6 : 0.35,
-                              bursts: high ? 0.2 : 0)
+        return NeuronImpulses(glows: parts.map(\.glow), swaying: [], rate: packetRate, bursts: 0)
     }
 
-    // MARK: behind the board
+    // MARK: behind the boards
 
     func makeSky() -> SCNNode {
         CircuitRoom.makeSky()
     }
+}
+
+private extension Double {
+    var float: Float { Float(self) }
 }
 
 /// A shape and a material, as a dictionary key.
@@ -729,30 +725,47 @@ enum CircuitRoom {
     }
 }
 
-/// A chip's silkscreened name: its folder's name in capitals and a part
-/// number, in pale ink (laser-etched grey on a processor's metal lid).
+/// A chip's printed name and the rails' silkscreen, drawn once each.
 @MainActor
 enum CircuitArt {
-    static func nameplate(_ title: String, number: UInt64, dark: Bool) -> UIImage {
+    /// Its folder's name in the system font, and under it the app's own
+    /// model tag, in soft white on the chip's dark lid.
+    static func nameplate(_ title: String, tag: String) -> UIImage {
         let size = CGSize(width: 256, height: 128)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        let ink: UIColor = dark ? UIColor(white: 0.18, alpha: 0.85) : UIColor(white: 0.9, alpha: 0.9)
-        let name: String = String(title.uppercased().prefix(12))
-        let code: String = "RP" + String(1000 + Int(number % 9000)) + "-" + String(Int((number >> 16) % 90) + 10)
+        let ink = UIColor(white: 0.93, alpha: 0.92)
+        let soft = UIColor(white: 0.72, alpha: 0.85)
+        let name: String = String(title.prefix(14))
         return renderer.image { _ in
-            let big = UIFont.monospacedSystemFont(ofSize: name.count > 8 ? 26 : 32, weight: .bold)
-            let small = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
+            let big = UIFont.systemFont(ofSize: name.count > 9 ? 25 : 31, weight: .semibold)
+            let small = UIFont.systemFont(ofSize: 19, weight: .medium)
             let top: [NSAttributedString.Key: Any] = [.font: big, .foregroundColor: ink]
-            let bottom: [NSAttributedString.Key: Any] = [.font: small, .foregroundColor: ink]
+            let bottom: [NSAttributedString.Key: Any] = [.font: small, .foregroundColor: soft]
             let first = NSAttributedString(string: name, attributes: top)
-            let second = NSAttributedString(string: code, attributes: bottom)
+            let second = NSAttributedString(string: tag, attributes: bottom)
             let a: CGSize = first.size()
             let b: CGSize = second.size()
             first.draw(at: CGPoint(x: (size.width - a.width) / 2, y: 30))
-            second.draw(at: CGPoint(x: (size.width - b.width) / 2, y: 36 + a.height))
+            second.draw(at: CGPoint(x: (size.width - b.width) / 2, y: 38 + a.height))
+        }
+    }
+
+    /// A rail's silkscreen ("VCC", "GND") in pale ink.
+    static func silk(_ text: String) -> UIImage {
+        let size = CGSize(width: 128, height: 48)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            let font = UIFont.monospacedSystemFont(ofSize: 30, weight: .bold)
+            let look: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor(white: 0.85, alpha: 0.8)]
+            let words = NSAttributedString(string: text, attributes: look)
+            let s: CGSize = words.size()
+            words.draw(at: CGPoint(x: (size.width - s.width) / 2, y: (size.height - s.height) / 2))
         }
     }
 }

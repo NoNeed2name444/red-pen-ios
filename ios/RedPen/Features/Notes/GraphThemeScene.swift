@@ -80,6 +80,11 @@ protocol GraphThemeLook: AnyObject {
     /// A board the links are routed on, flat, square to its edges (the
     /// Circuit); nil (the default) draws them as camera-facing beams.
     var board: GraphLinkBoard? { get }
+    /// How the links end at their targets (the Neurons: a terminal arbor
+    /// of branchlets and boutons, GraphLinkArbor) - the links' and the far
+    /// links'; nil (the default) trims them at the target's rim.
+    var arbor: GraphLinkArbor? { get }
+    var farArbor: GraphLinkArbor? { get }
     /// Anything the look adds to the world beside the bodies (the Circuit:
     /// the motherboard under everything). Nothing by default.
     func decorate(world: SCNNode, plan: ThemePlan)
@@ -87,6 +92,8 @@ protocol GraphThemeLook: AnyObject {
 
 extension GraphThemeLook {
     var board: GraphLinkBoard? { nil }
+    var arbor: GraphLinkArbor? { nil }
+    var farArbor: GraphLinkArbor? { nil }
     func decorate(world: SCNNode, plan: ThemePlan) {}
 }
 
@@ -168,8 +175,9 @@ extension GraphSceneBuilder {
                 rim = tones[body.region].map { Self.rim(tone: $0) }
             }
             let isNote: Bool = body.kind == .note
-            let label: SCNNode = Self.label(body.label, color: textColor, height: 1, contrast: contrast, rim: rim,
-                                            cut: isNote)
+            // wiring is never named: an empty holder, never shown
+            let label: SCNNode = body.kind == .fixture ? SCNNode()
+                : Self.label(body.label, color: textColor, height: 1, contrast: contrast, rim: rim, cut: isNote)
             node.addChildNode(label)
             world.addChildNode(node)
             let regionID: UUID? = body.region >= 0 ? plan.bodies[body.region].id : nil
@@ -191,9 +199,11 @@ extension GraphSceneBuilder {
             info.orbit = body.orbit
             info.linkCode = body.rank
             info.thinnable = made.thinnable
+            info.count = body.count
+            info.deathKind = Self.deathKind(body, theme: look.theme)
             infos.append(info)
             parts.append(made)
-            if !isNote {
+            if !isNote && body.kind != .fixture {
                 folders[body.id] = i
                 titles[body.title] = i
             }
@@ -208,7 +218,9 @@ extension GraphSceneBuilder {
             let a: UUID = plan.bodies[link.a].id
             let b: UUID = plan.bodies[link.b].id
             kinds[GraphMemory.key(a, b)] = (link.kind, link.centre)
-            if link.kind == 4 { edges.append((a, b)) }
+            // the theme's own wiring: a pathway (4), or the Circuit's
+            // feeds, taps and buses (5, 6), none of them notes' links
+            if link.kind >= 4 { edges.append((a, b)) }
         }
 
         var extent: Float = 1
@@ -237,6 +249,8 @@ extension GraphSceneBuilder {
         universe.farHalfWidth = look.farHalfWidth
         universe.seeded = true
         universe.board = look.board
+        universe.arbor = look.arbor
+        universe.farArbor = look.farArbor
         universe.ticker = look.ticker(parts: parts, plan: plan)
         var simLooks = GraphSimLooks(linkMaterial: look.linkMaterial, hotRing: look.hotRing, hotDisk: SCNGeometry(),
                                      clocked: look.clocked, emitters: [], trails: [], sky: sky)
@@ -244,9 +258,18 @@ extension GraphSceneBuilder {
         // no styles: a body whose look changes (another theme) pops in anew
         let styles: [UUID: GraphNodeStyle] = [:]
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles, lively: lively)
+        // bodies deleted since the scene on screen die in this one: cells by
+        // apoptosis, parts by a short circuit
+        let key: String = "theme:" + look.theme.rawValue
+        var dyingLinks = GraphDeathLinks(material: look.linkMaterial, halfWidth: look.linkHalfWidth)
+        dyingLinks.seeded = true
+        dyingLinks.board = look.board
+        dyingLinks.arbor = look.arbor
+        simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
+                                              lively: lively, links: dyingLinks)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
-        GraphMemory.remember(sim, edges: edges, styles: styles)
+        GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.theme = look.theme
@@ -260,11 +283,23 @@ extension GraphSceneBuilder {
         return built
     }
 
+    /// How a theme's body dies (GraphDeath): a Neurons cell by apoptosis, a
+    /// Circuit part by a short circuit, its wiring fading.
+    private static func deathKind(_ body: ThemeBody, theme: GraphTheme) -> GraphDeathKind {
+        if body.kind == .fixture { return .wiring }
+        switch theme {
+        case .neurons: return .cell
+        case .circuit: return .part
+        case .space: return .plain
+        }
+    }
+
     private static func kind(_ kind: ThemeBodyKind) -> GraphBodyKind {
         switch kind {
         case .note: return .note
         case .folder: return .folder
         case .home: return .home
+        case .fixture: return .fixture
         }
     }
 
@@ -278,7 +313,8 @@ extension GraphSceneBuilder {
             most = body.count
         }
         if best != nil { return best }
-        for (i, body) in plan.bodies.enumerated() where body.kind != .note && body.count > most {
+        for (i, body) in plan.bodies.enumerated() where body.kind != .note && body.kind != .fixture
+            && body.count > most {
             best = i
             most = body.count
         }

@@ -1,19 +1,19 @@
-// The Circuit theme (GraphCircuit): the ideas' hierarchy as a printed
-// circuit board - the vault the motherboard, top-level folders processors,
-// folders inside them modules on their own sub-boards, pages capacitors (an
-// inductor when long), ideas resistors, LEDs and diodes, short one-link
-// ideas small surface-mount parts beside their note, bridging ideas bus
-// headers, loose notes edge fingers or pads on the board's edges - joined by
-// traces routed square to the board with rounded 45° corners
-// (GraphLinkRoute).
+// The Circuit theme (GraphCircuit): one small board per collection (each
+// top-level folder), each a closed circuit - a power rail along its top, a
+// ground rail along its bottom, the folder's chip as controller, sub-folders
+// as smaller chips on branches of its bus, pages as capacitors on the bus,
+// ideas as LEDs in parallel branches off the page they link to and their
+// linked ideas in series after them, every branch ending on the ground rail;
+// loose notes as gold pads on a board's edge; links between boards through
+// edge connectors and a thin bus - boards in a tidy grid on a dark bench.
 //
-// None of this needs a screen, so it is all checked here: the parts the
-// design preview must show, the links' kinds and which way current runs,
-// the size ladder over hundreds of random vaults, that no two footprints
-// ever overlap and every sub-board is clear of the others, that everything
-// lies flat on the board, that the same notes always give the same board,
-// the edge cases, scale, and that every routed trace is one smooth piece of
-// straights and 45° diagonals.
+// None of this needs a screen, so it is all checked here: the design
+// preview's boards and parts; that every part lies on a closed path from
+// the power rail to ground; that series and parallel follow the hierarchy;
+// that current (the ranks) always runs away from the power rail; the same
+// notes always give the same boards; no overlaps, flat, boards apart; edge
+// cases; 300 notes in under 2 s; the words; and that every routed trace is
+// one smooth piece of straights and 45 degree diagonals.
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphCircuit.swift,
 // GraphLinkCurve.swift, GraphNeuronImpulses.swift and GraphTheme.swift
@@ -309,11 +309,11 @@ func randomVault(_ seed: UInt64, maxNotes: Int, maxFolders: Int, exact: Bool = f
 // MARK: helpers over a plan
 
 func bodyNamed(_ plan: ThemePlan, _ title: String) -> Int? {
-    plan.bodies.firstIndex { $0.title == title }
+    plan.bodies.firstIndex { $0.title == title && $0.kind != .fixture }
 }
 
 func roleOf(_ body: ThemeBody) -> CircuitRole {
-    CircuitRole(rawValue: body.role) ?? .resistor
+    CircuitRole(rawValue: body.role) ?? .led
 }
 
 func titles(_ plan: ThemePlan, _ role: CircuitRole) -> Set<String> {
@@ -332,114 +332,168 @@ let boardRight: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.right)
 let boardForward: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
 let boardNormal: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.normal)
 
-/// A body's place on the board.
+/// A body's place on the bench.
 func onBoard(_ p: SIMD3<Float>) -> SIMD2<Double> {
     SIMD2<Double>(Double(dot3(p, boardRight)), Double(dot3(p, boardForward)))
 }
 
-/// A body's footprint on the board, as the planner keeps it clear.
 func footprint(_ body: ThemeBody) -> CircuitRect {
-    let role: CircuitRole = roleOf(body)
-    var f: SIMD2<Double> = role.foot * Double(body.sphere)
-    let vertical: Bool = dot3(body.axis, boardForward) > 0.5
-    if vertical && role.isOriented { f = SIMD2<Double>(f.y, f.x) }
+    let f: SIMD2<Double> = roleOf(body).foot * Double(body.sphere)
     return CircuitRect(c: onBoard(body.home), h: f)
 }
 
-/// Pairs of parts whose footprints overlap.
+/// Parts (not wiring) whose footprints overlap.
 func footprintOverlaps(_ plan: ThemePlan) -> [String] {
     var bad: [String] = []
-    let rects: [CircuitRect] = plan.bodies.map(footprint)
+    let parts: [Int] = plan.bodies.indices.filter { plan.bodies[$0].kind != .fixture }
+    let rects: [CircuitRect] = parts.map { footprint(plan.bodies[$0]) }
     for x in rects.indices {
         for y in (x + 1)..<rects.count where !rects[x].clears(rects[y], gap: 0.0001) {
-            if bad.count < 5 { bad.append("\(plan.bodies[x].title)/\(plan.bodies[y].title)") }
+            if bad.count < 5 { bad.append("\(plan.bodies[parts[x]].title)/\(plan.bodies[parts[y]].title)") }
         }
     }
     return bad
 }
 
-/// A container's sub-board, on the board.
-func patchOf(_ plan: ThemePlan, _ i: Int) -> CircuitRect {
+/// The board (a top chip's patch) on the bench.
+func boardOf(_ plan: ThemePlan, _ i: Int) -> CircuitRect {
     let p: SIMD4<Float> = plan.patches[i]
     let at: SIMD2<Double> = onBoard(plan.bodies[i].home)
     return CircuitRect(c: at + SIMD2<Double>(Double(p.x), Double(p.y)), h: SIMD2<Double>(Double(p.z), Double(p.w)))
 }
 
-/// Sub-boards that overlap, and parts outside their own chip's sub-board.
-func patchProblems(_ plan: ThemePlan) -> [String] {
-    var bad: [String] = []
-    guard plan.patches.count == plan.bodies.count else { return ["patches \(plan.patches.count)"] }
-    let chips: [Int] = plan.bodies.indices.filter { roleOf(plan.bodies[$0]).isContainer }
-    for x in chips.indices {
-        for y in (x + 1)..<chips.count {
-            let a: CircuitRect = patchOf(plan, chips[x])
-            let b: CircuitRect = patchOf(plan, chips[y])
-            if !a.clears(b, gap: 0) && bad.count < 5 {
-                bad.append("sub-boards \(plan.bodies[chips[x]].title)/\(plan.bodies[chips[y]].title)")
-            }
+/// Each body's board (its top chip), by walking up.
+func topOf(_ plan: ThemePlan, _ i: Int) -> Int {
+    var at: Int = i
+    var steps: Int = 0
+    while plan.bodies[at].parent >= 0 && steps < plan.bodies.count {
+        at = plan.bodies[at].parent
+        steps += 1
+    }
+    return at
+}
+
+/// The circuit as a directed graph: the wiring (kinds 5 and 6, sent from
+/// a) and the note links that carry current (sent from the higher rank).
+func flowGraph(_ plan: ThemePlan) -> [[Int]] {
+    var next = [[Int]](repeating: [], count: plan.bodies.count)
+    for l in plan.links {
+        if l.kind == 5 || l.kind == 6 {
+            next[l.a].append(l.b)
+        } else if l.kind == 0 {
+            let ra: Int = plan.bodies[l.a].rank
+            let rb: Int = plan.bodies[l.b].rank
+            if ra > rb { next[l.a].append(l.b) } else if rb > ra { next[l.b].append(l.a) }
         }
     }
-    for (i, b) in plan.bodies.enumerated() where !roleOf(b).isContainer && b.parent >= 0 {
-        var up: Int = b.parent
-        while up >= 0 && !roleOf(plan.bodies[up]).isContainer { up = plan.bodies[up].parent }
-        guard up >= 0 else { continue }
-        let zone: CircuitRect = patchOf(plan, up)
-        let r: CircuitRect = footprint(b)
-        let inside: Bool = r.low.x >= zone.low.x - 1e-6 && r.low.y >= zone.low.y - 1e-6
-            && r.high.x <= zone.high.x + 1e-6 && r.high.y <= zone.high.y + 1e-6
-        if !inside && bad.count < 5 { bad.append("\(b.title) outside \(plan.bodies[up].title)'s sub-board") }
-        _ = i
-    }
-    return bad
+    return next
 }
 
-/// The ladder's rules, for any vault.
-func ladderProblems(_ plan: ThemePlan) -> [String] {
+func reach(_ next: [[Int]], from starts: [Int]) -> Set<Int> {
+    var seen = Set<Int>(starts)
+    var queue: [Int] = starts
+    var head: Int = 0
+    while head < queue.count {
+        let x: Int = queue[head]
+        head += 1
+        for y in next[x] where seen.insert(y).inserted { queue.append(y) }
+    }
+    return seen
+}
+
+/// Parts not on a closed path from a power tap to a ground tap.
+func openParts(_ plan: ThemePlan) -> [String] {
+    let next: [[Int]] = flowGraph(plan)
+    var back = [[Int]](repeating: [], count: next.count)
+    for (a, list) in next.enumerated() { for b in list { back[b].append(a) } }
+    let vcc: [Int] = plan.bodies.indices.filter { plan.bodies[$0].role == CircuitRole.vcc.rawValue }
+    let gnd: [Int] = plan.bodies.indices.filter { plan.bodies[$0].role == CircuitRole.ground.rawValue }
+    let fromPower: Set<Int> = reach(next, from: vcc)
+    let toGround: Set<Int> = reach(back, from: gnd)
     var bad: [String] = []
-    let bodies: [ThemeBody] = plan.bodies
-    let chips: [ThemeBody] = bodies.filter { roleOf($0).isContainer }
-    let parts: [ThemeBody] = bodies.filter { !roleOf($0).isContainer }
-    let smallestChip: Float = chips.map(\.sphere).min() ?? 99
-    let biggestPart: Float = parts.map(\.sphere).max() ?? 0
-    if !chips.isEmpty && !parts.isEmpty && smallestChip <= biggestPart {
-        bad.append("chip \(smallestChip) <= part \(biggestPart)")
-    }
-    for (i, b) in bodies.enumerated() {
-        if b.parent >= i { bad.append("\(b.title) before its parent") }
-        guard roleOf(b) == .module else { continue }
-        let up: ThemeBody = bodies[b.parent]
-        if !roleOf(up).isContainer { bad.append("\(b.title)'s parent is not a chip") }
-        if b.sphere >= up.sphere { bad.append("\(b.title) \(b.sphere) >= parent \(up.sphere)") }
-    }
-    func sizes(_ roles: [CircuitRole]) -> [Float] {
-        bodies.filter { roles.contains(roleOf($0)) }.map(\.sphere)
-    }
-    let pages: [Float] = sizes([.capacitor, .inductor])
-    let ideas: [Float] = sizes([.resistor, .led, .diode])
-    let headers: [Float] = sizes([.header])
-    let smds: [Float] = sizes([.smd])
-    if let p = pages.min(), let q = ideas.max(), p <= q { bad.append("page \(p) <= idea \(q)") }
-    if let p = pages.min(), let q = headers.max(), p <= q { bad.append("page \(p) <= header \(q)") }
-    if let p = ideas.min(), let q = smds.max(), p <= q { bad.append("idea \(p) <= smd \(q)") }
-    for b in bodies where roleOf(b) == .smd {
-        if roleOf(bodies[b.parent]).isContainer { bad.append("smd \(b.title) on a chip") }
+    for (i, b) in plan.bodies.enumerated() where b.kind != .fixture {
+        if !fromPower.contains(i) || !toGround.contains(i) {
+            if bad.count < 5 { bad.append(b.title + (fromPower.contains(i) ? " no ground" : " no power")) }
+        }
     }
     return bad
 }
 
-/// Everything on the board's plane (height 0) and inside the motherboard.
+/// Series and parallel against the hierarchy, from the feeds.
+func topologyProblems(_ plan: ThemePlan) -> [String] {
+    var bad: [String] = []
+    let feeds: [Int] = plan.feeds
+    guard feeds.count == plan.bodies.count else { return ["no feeds"] }
+    func note(_ s: String) { if bad.count < 6 { bad.append(s) } }
+    for (i, b) in plan.bodies.enumerated() {
+        let f: Int = feeds[i]
+        let r: CircuitRole = roleOf(b)
+        switch r {
+        case .processor, .soc:
+            if f < 0 || roleOf(plan.bodies[f]) != .vcc { note("\(b.title) not fed from the power rail") }
+        case .module:
+            // from its parent chip's bus
+            guard f >= 0, roleOf(plan.bodies[f]) == .bus, feeds[f] >= 0 else { note("\(b.title) no bus"); continue }
+            var up: Int = feeds[f]
+            while up >= 0 && roleOf(plan.bodies[up]) == .bus { up = feeds[up] }
+            if up != b.parent { note("\(b.title) fed from \(up) not its parent chip \(b.parent)") }
+        case .capacitor:
+            // on its own folder's bus: fed by a bus tap under its chip
+            guard f >= 0, roleOf(plan.bodies[f]) == .bus else { note("\(b.title) not on a bus"); continue }
+        case .led:
+            guard f >= 0 else { note("\(b.title) unfed"); continue }
+            let fr: CircuitRole = roleOf(plan.bodies[f])
+            if fr != .capacitor && fr != .led && fr != .bus { note("\(b.title) fed by \(fr)") }
+            if fr != .bus && plan.bodies[f].parent != b.parent { note("\(b.title) fed across folders") }
+        case .pad:
+            if f < 0 || roleOf(plan.bodies[f]) != .vcc { note("\(b.title) pad not on the power rail") }
+        default:
+            break
+        }
+    }
+    return bad
+}
+
+/// Current running towards the power rail on any wire or circuit link.
+func backwards(_ plan: ThemePlan) -> [String] {
+    var bad: [String] = []
+    for l in plan.links where l.kind == 5 {
+        let ra: Int = plan.bodies[l.a].rank
+        let rb: Int = plan.bodies[l.b].rank
+        let cross: Bool = plan.bodies[l.a].role == CircuitRole.connector.rawValue
+            || plan.bodies[l.b].role == CircuitRole.connector.rawValue
+        if !cross && ra <= rb && bad.count < 4 { bad.append("\(plan.bodies[l.a].title)->\(plan.bodies[l.b].title)") }
+    }
+    for (b, f) in plan.feeds.enumerated() where f >= 0 && plan.bodies[f].rank != plan.bodies[b].rank + 1 {
+        if bad.count < 4 { bad.append("feed rank \(plan.bodies[b].title)") }
+    }
+    return bad
+}
+
+/// Everything flat on the bench, still, inside its own board.
 func flatProblems(_ plan: ThemePlan) -> [String] {
     var bad: [String] = []
-    guard let g = plan.ground else { return ["no motherboard"] }
-    for b in plan.bodies {
+    for (i, b) in plan.bodies.enumerated() {
         let h: Float = dot3(b.home, boardNormal)
         if abs(h) > 1e-4 && bad.count < 3 { bad.append("\(b.title) at height \(h)") }
+        let top: Int = topOf(plan, i)
+        let board: CircuitRect = boardOf(plan, top)
         let r: CircuitRect = footprint(b)
-        let inside: Bool = r.low.x >= Double(g.x) - 1e-4 && r.low.y >= Double(g.y) - 1e-4
-            && r.high.x <= Double(g.z) + 1e-4 && r.high.y <= Double(g.w) + 1e-4
-        if !inside && bad.count < 3 { bad.append("\(b.title) off the board") }
-        for t in [0.0, 30.0, 600.0] where length3(plan.position(of: plan.bodies.firstIndex(of: b) ?? 0, time: t) - b.home) > 1e-4 {
-            if bad.count < 3 { bad.append("\(b.title) moves") }
+        let inside: Bool = r.low.x >= board.low.x - 1e-4 && r.low.y >= board.low.y - 1e-4
+            && r.high.x <= board.high.x + 1e-4 && r.high.y <= board.high.y + 1e-4
+        if !inside && bad.count < 3 { bad.append("\(b.title) off its board") }
+        if length3(plan.position(of: i, time: 30) - b.home) > 1e-4 && bad.count < 3 { bad.append("\(b.title) moves") }
+    }
+    return bad
+}
+
+/// Boards that overlap or touch.
+func boardsTouching(_ plan: ThemePlan) -> [String] {
+    let tops: [Int] = plan.regions
+    var bad: [String] = []
+    for x in tops.indices {
+        for y in (x + 1)..<tops.count where !boardOf(plan, tops[x]).clears(boardOf(plan, tops[y]), gap: 0.3) {
+            bad.append("\(plan.bodies[tops[x]].title)/\(plan.bodies[tops[y]].title)")
         }
     }
     return bad
@@ -465,254 +519,191 @@ func envelopeHolds(_ plan: ThemePlan) -> [String] {
     return bad
 }
 
-// MARK: T1 the design preview's parts
+func whole(_ plan: ThemePlan) -> [String] {
+    openParts(plan) + topologyProblems(plan) + backwards(plan) + footprintOverlaps(plan) + flatProblems(plan)
+        + boardsTouching(plan)
+}
+
+// MARK: T1 the design preview's boards
 
 let preview: ThemePlan = GraphCircuit.plan(previewInput())
-check("T1 two processors", titles(preview, .processor) == ["Cardiology", "Examples"], "\(titles(preview, .processor))")
-check("T1 three modules", titles(preview, .module) == ["Inguinal", "Femoral", "Anatomy"], "\(titles(preview, .module))")
-let expectedCaps: Set<String> = [
-    "Groin hernia", "Inguinal canal", "Femoral hernia", "Indirect inguinal hernia",
-    "Direct inguinal hernia", "Acute coronary syndrome", "Atrial fibrillation", "Murmurs"
-]
-check("T1 eight capacitors", titles(preview, .capacitor) == expectedCaps, "\(titles(preview, .capacitor))")
-check("T1 the long read is an inductor", titles(preview, .inductor) == ["Heart failure"], "\(titles(preview, .inductor))")
-let ledsAndResistors: Set<String> = titles(preview, .led).union(titles(preview, .resistor))
-let expectedIdeas: Set<String> = [
-    "Inferior epigastric vessels", "Internal ring test", "Canal boundaries",
-    "Loop diuretics", "ACE inhibitors", "Hypokalaemia", "NSTEMI", "Troponin", "STEMI", "Heart sounds", "Syncope"
-]
-check("T1 eleven ideas as resistors and LEDs", ledsAndResistors == expectedIdeas, "\(ledsAndResistors)")
-let ledsOK: Bool = preview.bodies.filter { roleOf($0) == .led }.allSatisfy { $0.links >= 2 }
-    && preview.bodies.filter { roleOf($0) == .resistor }.allSatisfy { $0.links < 2 }
-check("T1 LEDs are the ideas with two or more links", ledsOK && titles(preview, .led).count >= 4,
-      "\(titles(preview, .led))")
-let expectedSmd: [String: String] = [
-    "Hernia repair": "Groin hernia", "LA/PM mnemonic": "Canal boundaries", "Femoral canal": "Femoral hernia",
-    "Saphena varix": "Femoral hernia", "BNP": "Heart failure", "CHA2DS2-VASc": "Atrial fibrillation"
-]
-var foundSmd: [String: String] = [:]
-for body in preview.bodies where body.role == CircuitRole.smd.rawValue {
-    foundSmd[body.title] = preview.bodies[body.parent].title
+let chips: Set<String> = titles(preview, .processor)
+check("T1 one board per collection: Cardiology and Examples", chips == ["Cardiology", "Examples"]
+      && preview.regions.count == 2, "\(chips)")
+check("T1 sub-folders are smaller chips", titles(preview, .module) == ["Inguinal", "Femoral", "Anatomy"])
+check("T1 pages are capacitors", titles(preview, .capacitor).contains("Heart failure")
+      && titles(preview, .capacitor).contains("Groin hernia"))
+check("T1 ideas are LEDs", titles(preview, .led).contains("BNP") && titles(preview, .led).contains("LA/PM mnemonic"))
+check("T1 loose notes are gold pads", titles(preview, .pad).count == 2)
+let used: Set<Int> = Set(preview.bodies.map(\.role))
+check("T1 only chips, capacitors, LEDs and pads (and wiring)",
+      used.isSubset(of: Set(CircuitRole.allCases.map(\.rawValue))))
+check("T1 the summary counts boards", preview.summary.hasPrefix("2 boards"), preview.summary)
+let tags: [String] = preview.bodies.filter { roleOf($0).isContainer }.map {
+    GraphCircuit.modelTag(count: $0.count, depth: $0.depth)
 }
-check("T1 six surface-mount parts beside their notes", foundSmd == expectedSmd, "\(foundSmd)")
-check("T1 the bridging idea is a bus header", titles(preview, .header) == ["Expansile cough impulse"],
-      "\(titles(preview, .header))")
-check("T1 both loose notes are edge fingers", titles(preview, .edgePin) == ["Richter's hernia", "Pericarditis"],
-      "\(titles(preview, .edgePin))")
-check("T1 Anatomy's idea wired only up into Inguinal is a diode",
-      titles(preview, .diode) == ["Spermatic cord coverings"], "\(titles(preview, .diode))")
-check("T1 no pads", titles(preview, .pad).isEmpty)
-check("T1 summary", preview.summary.hasPrefix("2 processors, 3 modules, 8 capacitors, 1 inductor")
-      && preview.summary.hasSuffix("1 diode, 6 surface-mount parts, 1 bus header, 2 edge fingers"), preview.summary)
-let anatomy: Int = bodyNamed(preview, "Anatomy") ?? -1
-let inguinal: Int = bodyNamed(preview, "Inguinal") ?? -1
-let examples: Int = bodyNamed(preview, "Examples") ?? -1
-check("T1 Anatomy sits under Inguinal, Inguinal under Examples",
-      anatomy >= 0 && preview.bodies[anatomy].parent == inguinal && preview.bodies[inguinal].parent == examples)
-check("T1 processors listed", preview.regions.map { preview.bodies[$0].title }.sorted() == ["Cardiology", "Examples"])
-check("T1 Anatomy's zone is Examples'", anatomy >= 0 && preview.bodies[anatomy].region == examples)
+check("T1 model tags are the app's own", tags.allSatisfy { $0.hasPrefix("S") }
+      && !tags.contains { $0.contains("Apple") || $0.contains("A20") || $0.contains("M5") || $0.contains("M4") },
+      "\(tags)")
+check("T1 the controller's tag outranks its sub-chips'",
+      GraphCircuit.modelTag(count: 30, depth: 0).hasPrefix("S-") && !GraphCircuit.modelTag(count: 5, depth: 1).contains("-"))
 
-// MARK: T2 links and current
+// MARK: T2 closed circuits
 
-func link(_ plan: ThemePlan, _ a: String, _ b: String) -> ThemeLink? {
-    guard let i = bodyNamed(plan, a), let j = bodyNamed(plan, b) else { return nil }
-    return plan.links.first { ($0.a == i && $0.b == j) || ($0.a == j && $0.b == i) }
+check("T2 every part on a closed path from power to ground", openParts(preview).isEmpty, "\(openParts(preview))")
+check("T2 series and parallel follow the hierarchy", topologyProblems(preview).isEmpty, "\(topologyProblems(preview))")
+check("T2 current runs away from the power rail", backwards(preview).isEmpty, "\(backwards(preview))")
+if let hf = bodyNamed(preview, "Heart failure"), let bnp = bodyNamed(preview, "BNP") {
+    check("T2 an idea hangs off the page it links to", preview.feeds[bnp] == hf || preview.feeds[preview.feeds[bnp]] == hf,
+          "\(preview.feeds[bnp])")
 }
+// two collections linked twice: two buses between their edge connectors
+let pairInput = UniverseInput(notes: [
+    UniverseNote(id: fixedID(800), title: "P1", isPage: true, folder: fixedID(810), words: 50, created: 0),
+    UniverseNote(id: fixedID(801), title: "I1", isPage: false, folder: fixedID(810), words: 20, created: 1),
+    UniverseNote(id: fixedID(802), title: "P2", isPage: true, folder: fixedID(811), words: 50, created: 2),
+    UniverseNote(id: fixedID(803), title: "I2", isPage: false, folder: fixedID(811), words: 20, created: 3)],
+    folders: [UniverseFolder(id: fixedID(810), name: "One", parent: nil),
+              UniverseFolder(id: fixedID(811), name: "Two", parent: nil)],
+    edges: [UniverseEdge(a: fixedID(800), b: fixedID(802)), UniverseEdge(a: fixedID(801), b: fixedID(803)),
+            UniverseEdge(a: fixedID(800), b: fixedID(801))], seedByName: false)
+let pairPlan: ThemePlan = GraphCircuit.plan(pairInput)
+let crossing: [ThemeLink] = pairPlan.links.filter { $0.kind == 6 }
+check("T2 links between boards run as buses between edge connectors", crossing.count == 2 && crossing.allSatisfy {
+    roleOf(pairPlan.bodies[$0.a]) == .connector && roleOf(pairPlan.bodies[$0.b]) == .connector
+        && topOf(pairPlan, $0.a) != topOf(pairPlan, $0.b)
+} && whole(pairPlan).isEmpty, "\(crossing) \(whole(pairPlan))")
+let pairHidden: [ThemeLink] = pairPlan.links.filter { $0.kind == 3 }
+check("T2 each is hidden as itself", pairHidden.count == 2 && pairHidden.allSatisfy {
+    topOf(pairPlan, $0.a) != topOf(pairPlan, $0.b)
+})
+let hidden: [ThemeLink] = preview.links.filter { $0.kind == 3 }
+let inside: [ThemeLink] = preview.links.filter { $0.kind == 0 }
+check("T2 links inside a board are its traces", inside.allSatisfy { topOf(preview, $0.a) == topOf(preview, $0.b) })
+check("T2 every note link kept", inside.count + hidden.count == 35, "\(inside.count + hidden.count)")
 
-check("T2 a surface-mount part's link is hidden (it is soldered on)", link(preview, "BNP", "Heart failure")?.kind == 3)
-check("T2 inside one zone: a signal trace", link(preview, "Loop diuretics", "Hypokalaemia")?.kind == 0)
-check("T2 between zones of one processor", link(preview, "Femoral hernia", "Inguinal canal")?.kind == 1)
-check("T2 to an edge finger: a bus trace", link(preview, "Pericarditis", "STEMI")?.kind == 2)
-let buses: [ThemeLink] = preview.links.filter { $0.kind == 4 }
-check("T2 one bus per module", buses.count == 3, "\(buses.count)")
-check("T2 each bus runs from a chip to the module under it",
-      buses.allSatisfy { preview.bodies[$0.b].parent == $0.a && preview.bodies[$0.a].rank >= preview.bodies[$0.b].rank })
-let ledRank: Int = CircuitRole.led.rank
-check("T2 LEDs only ever receive", CircuitRole.allCases.filter { $0 != .led && $0 != .pad }.allSatisfy { $0.rank > ledRank })
-check("T2 edge fingers feed current in", CircuitRole.edgePin.rank > CircuitRole.capacitor.rank)
-check("T2 ranks fit the link coding (0...7)", CircuitRole.allCases.allSatisfy { $0.rank >= 0 && $0.rank <= 7 })
-check("T2 every note link kept", preview.links.filter { $0.kind != 4 }.count == 35)
+// MARK: T3 layout
 
-// MARK: T3 the ladder, footprints and sub-boards
-
-check("T3 preview ladder", ladderProblems(preview).isEmpty, "\(ladderProblems(preview))")
-check("T3 preview: no footprints overlap", footprintOverlaps(preview).isEmpty, "\(footprintOverlaps(preview))")
-check("T3 preview: sub-boards apart, parts on their own", patchProblems(preview).isEmpty, "\(patchProblems(preview))")
-check("T3 preview: flat, still and on the board", flatProblems(preview).isEmpty, "\(flatProblems(preview))")
-check("T3 preview: inside the envelope", envelopeHolds(preview).isEmpty, "\(envelopeHolds(preview))")
-var ladderBad: [String] = []
-var overlapBad: [String] = []
-var patchBad: [String] = []
-var flatBad: [String] = []
-for seed in 1...200 {
-    let input: UniverseInput = randomVault(UInt64(seed), maxNotes: 60, maxFolders: 12)
-    let plan: ThemePlan = GraphCircuit.plan(input)
-    let problems: [String] = ladderProblems(plan)
-    if !problems.isEmpty && ladderBad.count < 3 { ladderBad.append("seed \(seed): \(problems)") }
-    let o: [String] = footprintOverlaps(plan)
-    if !o.isEmpty && overlapBad.count < 3 { overlapBad.append("seed \(seed): \(o)") }
-    let p: [String] = patchProblems(plan)
-    if !p.isEmpty && patchBad.count < 3 { patchBad.append("seed \(seed): \(p)") }
-    let f: [String] = flatProblems(plan) + envelopeHolds(plan)
-    if !f.isEmpty && !plan.bodies.isEmpty && flatBad.count < 3 { flatBad.append("seed \(seed): \(f)") }
-    let planned: Int = plan.bodies.filter { !roleOf($0).isContainer }.count
-    if planned != input.notes.count && ladderBad.count < 3 { ladderBad.append("seed \(seed): lost notes") }
+check("T3 no parts overlap", footprintOverlaps(preview).isEmpty, "\(footprintOverlaps(preview))")
+check("T3 flat, still, each on its own board", flatProblems(preview).isEmpty, "\(flatProblems(preview))")
+check("T3 boards apart on the bench", boardsTouching(preview).isEmpty, "\(boardsTouching(preview))")
+check("T3 the envelope holds everything", envelopeHolds(preview).isEmpty, "\(envelopeHolds(preview))")
+var railsOK: Bool = true
+for t in preview.regions {
+    let mine: [ThemeBar] = preview.bars.filter { $0.owner == t }
+    let power: [ThemeBar] = mine.filter { $0.kind == 0 }
+    let ground: [ThemeBar] = mine.filter { $0.kind == 1 }
+    guard power.count == 1, let top = power.first, let low = ground.min(by: { $0.y < $1.y }) else {
+        railsOK = false
+        continue
+    }
+    let board: CircuitRect = boardOf(preview, t)
+    let at: SIMD2<Double> = onBoard(preview.bodies[t].home)
+    if Double(top.y) + at.y < board.high.y - 0.4 || Double(low.y) + at.y > board.low.y + 0.4 { railsOK = false }
 }
-check("T3 200 random vaults keep the ladder", ladderBad.isEmpty, "\(ladderBad)")
-check("T3 200 random vaults: no footprints overlap", overlapBad.isEmpty, "\(overlapBad)")
-check("T3 200 random vaults: sub-boards apart", patchBad.isEmpty, "\(patchBad)")
-check("T3 200 random vaults: flat, on the board, in the envelope", flatBad.isEmpty, "\(flatBad)")
+check("T3 power rail along each board's top, ground along its bottom", railsOK)
+let taps: [Int] = preview.bodies.indices.filter { preview.bodies[$0].role == CircuitRole.ground.rawValue }
+var tapsOnRails: Bool = true
+for g in taps {
+    let t: Int = topOf(preview, g)
+    let y: Double = onBoard(preview.bodies[g].home).y - onBoard(preview.bodies[t].home).y
+    let onRail: Bool = preview.bars.contains { $0.owner == t && $0.kind == 1 && abs(Double($0.y) - y) < 1e-4 }
+    if !onRail { tapsOnRails = false }
+}
+check("T3 every ground tap sits on a ground rail", tapsOnRails && !taps.isEmpty)
+var sizesOK: Bool = true
+for (i, b) in preview.bodies.enumerated() where roleOf(b) == .module {
+    if b.sphere >= preview.bodies[b.parent].sphere { sizesOK = false }
+    _ = i
+}
+let pages: [Float] = preview.bodies.filter { roleOf($0) == .capacitor }.map(\.sphere)
+let ideas: [Float] = preview.bodies.filter { roleOf($0) == .led }.map(\.sphere)
+let chipsMin: Float = preview.bodies.filter { roleOf($0).isContainer }.map(\.sphere).min() ?? 0
+check("T3 sizes: chips > pages > ideas, sub-chips under their chip", sizesOK
+      && (pages.min() ?? 1) > (ideas.max() ?? 0) && chipsMin > (pages.max() ?? 0))
 
-// MARK: T4 the same notes, the same board
+// MARK: T4 the same notes, the same boards
 
 let again: ThemePlan = GraphCircuit.plan(previewInput())
-check("T4 planned twice, identical", again.bodies == preview.bodies && again.links == preview.links
-      && again.patches == preview.patches && again.ground == preview.ground)
-let base: UniverseInput = previewInput()
-let shuffled = UniverseInput(notes: base.notes.reversed(), folders: base.folders.reversed(),
-                             edges: base.edges.reversed(), seedByName: true)
-check("T4 in any order, identical", GraphCircuit.plan(shuffled).bodies == preview.bodies)
+let shuffledInput: UniverseInput = {
+    let i: UniverseInput = previewInput()
+    return UniverseInput(notes: i.notes.reversed(), folders: i.folders.reversed(), edges: i.edges.reversed(),
+                         seedByName: true)
+}()
+let shuffled: ThemePlan = GraphCircuit.plan(shuffledInput)
+check("T4 deterministic", again.bodies == preview.bodies && again.links == preview.links && again.bars == preview.bars)
+check("T4 input order does not matter", shuffled.bodies == preview.bodies && shuffled.links == preview.links)
+let fixtureIDs: [UUID] = preview.bodies.filter { $0.kind == .fixture }.map(\.id)
+check("T4 wiring ids are stable and unique", Set(fixtureIDs).count == fixtureIDs.count
+      && fixtureIDs == again.bodies.filter { $0.kind == .fixture }.map(\.id))
 
-// MARK: T5 the board's shape
+// MARK: T5 random vaults
 
-var offAxis: [String] = []
-for b in preview.bodies where roleOf(b) == .module {
-    let d: SIMD2<Double> = onBoard(b.home) - onBoard(preview.bodies[b.parent].home)
-    let square: Bool = abs(d.x) < 1e-4 || abs(d.y) < 1e-4 || abs(abs(d.x) - abs(d.y)) < 1e-4
-    if !square { offAxis.append(b.title) }
+var vaultBad: [String] = []
+for seed in 0..<120 {
+    let input: UniverseInput = randomVault(UInt64(seed) &* 7919 &+ 3, maxNotes: 60, maxFolders: 9)
+    let plan: ThemePlan = GraphCircuit.plan(input)
+    let problems: [String] = whole(plan)
+    if !problems.isEmpty && vaultBad.count < 4 { vaultBad.append("vault \(seed): \(problems)") }
+    let noteBodies: Int = plan.bodies.filter { $0.kind == .note }.count
+    if noteBodies != Set(input.notes.map(\.id)).count && vaultBad.count < 4 { vaultBad.append("vault \(seed) lost notes") }
 }
-check("T5 every module sits square (or at 45°) off its parent chip", offAxis.isEmpty, "\(offAxis)")
-var systemsBad: [String] = []
-for (i, b) in preview.bodies.enumerated() where roleOf(b).isContainer && preview.systems[i].isEmpty {
-    systemsBad.append(b.title)
-}
-check("T5 every chip has a zone to fly in to", systemsBad.isEmpty, "\(systemsBad)")
-let zoneReach: Float = preview.systems[examples].map(length3).max() ?? 0
-let anatomyFar: Float = length3(preview.bodies[anatomy].home - preview.bodies[examples].home)
-check("T5 a processor's fly-in holds its modules", zoneReach > anatomyFar, "\(zoneReach) vs \(anatomyFar)")
-if let g = preview.ground {
-    let width: Float = g.z - g.x
-    let height: Float = g.w - g.y
-    check("T5 the motherboard stands tall, like the phone", height > width * 0.8, "\(width) x \(height)")
-    let fingersOnEdge: Bool = preview.bodies.filter { roleOf($0) == .edgePin }.allSatisfy { b in
-        abs(footprint(b).low.y - Double(g.y)) < 1e-4
-    }
-    check("T5 edge fingers sit on the board's bottom edge", fingersOnEdge)
-}
-let orientedOK: Bool = preview.bodies.filter { roleOf($0).isOriented && roleOf($0) != .smd }.allSatisfy { b in
-    let d: SIMD2<Double> = onBoard(b.home) - onBoard(preview.bodies[b.parent].home)
-    let vertical: Bool = dot3(b.axis, boardForward) > 0.5
-    return vertical ? abs(d.y) >= abs(d.x) - 0.05 : abs(d.x) >= abs(d.y) - 0.05
-}
-check("T5 resistors and headers point at their chip", orientedOK)
+check("T5 120 random vaults: closed, in order, apart, flat", vaultBad.isEmpty, "\(vaultBad)")
 
 // MARK: T6 edge cases
 
-let top1: UUID = fixedID(5001)
-let homeOnly: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: (1...8).map { UniverseNote(id: fixedID($0), title: "N\($0)", isPage: $0 % 3 == 0, folder: nil,
-                                      words: 20 * $0, created: 0) },
-    folders: [], edges: [UniverseEdge(a: fixedID(1), b: fixedID(2))], seedByName: false))
-check("T6 no folders: one system chip first", homeOnly.bodies.first?.role == CircuitRole.soc.rawValue
-      && homeOnly.bodies.first?.id == GraphUniverse.homeID)
-check("T6 no folders: every note on it", homeOnly.bodies.dropFirst().allSatisfy { $0.parent >= 0 })
-check("T6 no folders: summary", homeOnly.summary.hasPrefix("1 system chip"), homeOnly.summary)
-check("T6 no folders: no overlaps", footprintOverlaps(homeOnly).isEmpty)
-
-let fa: UUID = fixedID(6001)
-let fb: UUID = fixedID(6002)
-let cyc: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: [UniverseNote(id: fixedID(1), title: "x", isPage: false, folder: fa, words: 5, created: 0)],
-    folders: [UniverseFolder(id: fa, name: "A", parent: fb), UniverseFolder(id: fb, name: "B", parent: fa)],
-    edges: [], seedByName: false))
-check("T6 a folder cycle is cut into one processor and one module",
-      titles(cyc, .processor).count == 1 && titles(cyc, .module).count == 1, cyc.summary)
-
-var deepFolders: [UniverseFolder] = []
-for k in 0..<10 {
-    let parent: UUID? = k == 0 ? nil : fixedID(7000 + k - 1)
-    deepFolders.append(UniverseFolder(id: fixedID(7000 + k), name: "D\(k)", parent: parent))
-}
-let deep: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: [UniverseNote(id: fixedID(1), title: "bottom", isPage: true, folder: fixedID(7009), words: 3000,
-                         created: 0)],
-    folders: deepFolders, edges: [], seedByName: false))
-check("T6 ten deep: the ladder holds", ladderProblems(deep).isEmpty, "\(ladderProblems(deep))")
-check("T6 ten deep: no overlaps", footprintOverlaps(deep).isEmpty && patchProblems(deep).isEmpty,
-      "\(footprintOverlaps(deep)) \(patchProblems(deep))")
-
-let emptyPlan: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: [], folders: [UniverseFolder(id: top1, name: "Empty", parent: nil)], edges: [], seedByName: false))
-check("T6 an empty folder is a small processor", emptyPlan.bodies.count == 1
-      && emptyPlan.bodies.first?.sphere == 0.40 && emptyPlan.ground != nil)
-check("T6 nothing at all plans nothing", GraphCircuit.plan(UniverseInput(notes: [], folders: [], edges: [],
-                                                                      seedByName: false)).bodies.isEmpty)
-
-var looseNotes: [UniverseNote] = [UniverseNote(id: fixedID(1), title: "anchor", isPage: true, folder: top1,
-                                               words: 100, created: 0)]
-var looseEdges: [UniverseEdge] = []
-for k in 2...41 {
-    looseNotes.append(UniverseNote(id: fixedID(k), title: "L\(k)", isPage: false, folder: nil, words: 10,
-                                   created: Double(k)))
-    if k % 2 == 0 { looseEdges.append(UniverseEdge(a: fixedID(1), b: fixedID(k))) }
-}
-let loosePlan: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: looseNotes, folders: [UniverseFolder(id: top1, name: "Top", parent: nil)], edges: looseEdges,
-    seedByName: false))
-check("T6 forty loose: twenty edge fingers and twenty pads",
-      titles(loosePlan, .edgePin).count == 20 && titles(loosePlan, .pad).count == 20, loosePlan.summary)
-check("T6 forty loose: none overlap", footprintOverlaps(loosePlan).isEmpty, "\(footprintOverlaps(loosePlan))")
-check("T6 forty loose: all on the board", flatProblems(loosePlan).isEmpty, "\(flatProblems(loosePlan))")
-let anchorY: Double = onBoard(loosePlan.bodies[0].home).y
-check("T6 edge fingers below the chips, pads above",
-      loosePlan.bodies.filter { roleOf($0) == .edgePin }.allSatisfy { onBoard($0.home).y < anchorY }
-      && loosePlan.bodies.filter { roleOf($0) == .pad }.allSatisfy { onBoard($0.home).y > anchorY })
-
-// a diode: an idea whose links all run into one other folder
-let fx: UUID = fixedID(8001)
-let fy: UUID = fixedID(8002)
-let diodePlan: ThemePlan = GraphCircuit.plan(UniverseInput(
-    notes: [UniverseNote(id: fixedID(1), title: "valve", isPage: false, folder: fx, words: 80, created: 0),
-            UniverseNote(id: fixedID(2), title: "far page", isPage: true, folder: fy, words: 80, created: 1),
-            UniverseNote(id: fixedID(3), title: "far idea", isPage: false, folder: fy, words: 80, created: 2)],
-    folders: [UniverseFolder(id: fx, name: "X", parent: nil), UniverseFolder(id: fy, name: "Y", parent: nil)],
-    edges: [UniverseEdge(a: fixedID(1), b: fixedID(2)), UniverseEdge(a: fixedID(1), b: fixedID(3)),
-            UniverseEdge(a: fixedID(3), b: fixedID(2))],
-    seedByName: false))
-check("T6 an idea wired only into one other folder is a diode", titles(diodePlan, .diode) == ["valve"],
-      diodePlan.summary)
+check("T6 nothing: no boards", GraphCircuit.plan(UniverseInput(notes: [], folders: [], edges: [],
+                                                                seedByName: false)).bodies.isEmpty)
+let onlyNotes: ThemePlan = GraphCircuit.plan(UniverseInput(notes: (0..<7).map {
+    UniverseNote(id: fixedID(500 + $0), title: "N\($0)", isPage: $0 == 0, folder: nil, words: 30, created: 0)
+}, folders: [], edges: [UniverseEdge(a: fixedID(501), b: fixedID(502))], seedByName: false))
+check("T6 no folders: one board, one chip holds every note", onlyNotes.regions.count == 1
+      && titles(onlyNotes, .soc).count == 1 && whole(onlyNotes).isEmpty, "\(whole(onlyNotes))")
+let emptyFolders: ThemePlan = GraphCircuit.plan(UniverseInput(notes: [UniverseNote(id: fixedID(600), title: "Loose",
+    isPage: false, folder: nil, words: 5, created: 0)], folders: [UniverseFolder(id: fixedID(601), name: "A",
+    parent: nil), UniverseFolder(id: fixedID(602), name: "B", parent: fixedID(601))], edges: [], seedByName: false))
+check("T6 empty folders still close their loops; a loose note is a pad", whole(emptyFolders).isEmpty
+      && titles(emptyFolders, .pad) == ["Loose"], "\(whole(emptyFolders))")
+let cycle: ThemePlan = GraphCircuit.plan(UniverseInput(notes: [], folders: [
+    UniverseFolder(id: fixedID(700), name: "X", parent: fixedID(701)),
+    UniverseFolder(id: fixedID(701), name: "Y", parent: fixedID(700))], edges: [], seedByName: false))
+check("T6 a folder cycle is cut", cycle.regions.count == 1 && whole(cycle).isEmpty)
 
 // MARK: T7 scale
 
-let started: Date = Date()
-let big: ThemePlan = GraphCircuit.plan(randomVault(300, maxNotes: 300, maxFolders: 30, exact: true))
-let took: Double = Date().timeIntervalSince(started)
-check("T7 300 notes: every note planned", big.bodies.filter { !roleOf($0).isContainer }.count == 300)
-check("T7 300 notes: planned in under 2 s", took < 2, "\(took) s")
-check("T7 300 notes: the ladder holds", ladderProblems(big).isEmpty, "\(ladderProblems(big))")
-check("T7 300 notes: no overlaps", footprintOverlaps(big).isEmpty && patchProblems(big).isEmpty,
-      "\(footprintOverlaps(big)) \(patchProblems(big))")
-check("T7 300 notes: on the board, in the envelope", flatProblems(big).isEmpty && envelopeHolds(big).isEmpty)
+let top1: UUID = fixedID(20_000)
 var crowdFolder: [UniverseNote] = []
-for k in 1...300 {
-    crowdFolder.append(UniverseNote(id: fixedID(k), title: "C\(k)", isPage: k % 4 == 0, folder: top1,
-                                    words: 30 * (k % 40), created: Double(k)))
+var crowdEdges: [UniverseEdge] = []
+for k in 0..<300 {
+    crowdFolder.append(UniverseNote(id: fixedID(30_000 + k), title: "Crowd \(k)", isPage: k % 5 == 0,
+                                    folder: top1, words: 40 + k, created: Double(k)))
+    if k % 3 == 1 { crowdEdges.append(UniverseEdge(a: fixedID(30_000 + k), b: fixedID(30_000 + k - 1))) }
 }
 let crowdStart: Date = Date()
 let crowd: ThemePlan = GraphCircuit.plan(UniverseInput(notes: crowdFolder,
                                                        folders: [UniverseFolder(id: top1, name: "One", parent: nil)],
-                                                       edges: [], seedByName: false))
+                                                       edges: crowdEdges, seedByName: false))
 let crowdTook: Double = Date().timeIntervalSince(crowdStart)
-check("T7 300 notes in one folder: under 2 s, no overlaps", crowdTook < 2 && footprintOverlaps(crowd).isEmpty,
-      "\(crowdTook) s")
+check("T7 300 notes in one folder: under 2 s", crowdTook < 2, "\(crowdTook) s")
+check("T7 ... closed, apart, flat", whole(crowd).isEmpty, "\(whole(crowd))")
+let crowdBoard: CircuitRect = boardOf(crowd, crowd.regions[0])
+check("T7 ... wrapped into tiers, not one long row", crowdBoard.h.x < crowdBoard.h.y * 4, "\(crowdBoard.h)")
+let many: UniverseInput = randomVault(99, maxNotes: 300, maxFolders: 12, exact: true)
+let manyStart: Date = Date()
+let manyPlan: ThemePlan = GraphCircuit.plan(many)
+let manyTook: Double = Date().timeIntervalSince(manyStart)
+check("T7 300 notes in 12 folders: under 2 s, whole", manyTook < 2 && whole(manyPlan).isEmpty,
+      "\(manyTook) s \(whole(manyPlan))")
 
 // MARK: T8 the theme choice
 
 check("T8 Circuit is offered", GraphTheme.circuit.isReady && GraphTheme.offered.contains(.circuit))
 check("T8 Circuit is kept", GraphTheme.stored("circuit") == .circuit)
 check("T8 the menu's order: Space, Neurons, Circuit", GraphTheme.offered == [.space, .neurons, .circuit])
-check("T8 the Circuit's own words", GraphTheme.circuit.legendTitle == "What the parts mean"
-      && GraphTheme.circuit.cardText.contains("processors"))
+check("T8 the Circuit's own words teach how to add", GraphTheme.circuit.legendTitle == "How your circuits are built"
+      && GraphTheme.circuit.cardSteps.count == 3
+      && GraphTheme.circuit.cardSteps.contains { $0.contains("New folder") })
+check("T8 every theme's card teaches three ways to add", GraphTheme.allCases.allSatisfy { $0.cardSteps.count == 3 })
 
 // MARK: T9 routed traces
 

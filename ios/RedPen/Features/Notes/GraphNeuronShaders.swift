@@ -8,10 +8,12 @@ import Foundation
 // whose glow deepens where there is more of it to look through, a nucleus
 // and nucleolus seen through it, faint organelles, a wet highlight, and the
 // whole membrane slowly breathing and wobbling. Axons are soft gel fibres
-// with myelin sheaths beaded at the nodes of Ranvier, branching at the end
-// into synaptic boutons; action potentials run along them at each axon's
-// own random times (NeuronImpulse, mirrored here exactly) and flash at the
-// synapse on arrival.
+// with myelin sheaths beaded at the nodes of Ranvier, ending in a terminal
+// arbor (GraphLinkArbor): a brush of curving, tapering branchlets, each
+// ending in a bouton pressed on the target's membrane across a thin dark
+// cleft; action potentials run along them at each axon's own random times
+// (NeuronImpulse, mirrored here exactly), split into the branchlets, and
+// on reaching each bouton send transmitter across its cleft.
 //
 // They follow the Space's rules (GraphStyleShaders): surface modifiers write
 // the final colour into `_surface.diffuse` (constant lighting, added to
@@ -227,20 +229,34 @@ nonisolated enum NeuronShaders {
 
     // MARK: the axon
 
-    /// A link as an axon, on GraphRibbonWriter's strip in its themes'
-    /// coding (u = seed * 64 + 1 + distance along; v = length in
-    /// sixteenths doubled, plus the lit bit, plus the position across).
-    /// Tint A the fibre, B the impulse, C its halo; `rpBundle` 1 draws a
-    /// fascicle of three fibres (tracts and pathways); `rpRate` the chance
-    /// a slot fires, `rpBurst` the chance a firing is a burst.
+    /// A link as an axon, on GraphRibbonWriter's strip in its arbor coding
+    /// (GraphLinkArbor): u = seed * 64 + 1 + distance from the END (the
+    /// target's centre); v = ((length in eighths * 16 + the target's
+    /// membrane step) * 2 + the lit bit) plus the position across. The
+    /// strip widens over its last stretch (the same ramp as the writer's)
+    /// to hold the terminal arbor: the fibre loses its myelin, thins as
+    /// branchlets leave it at staggered points, and ends in the last of
+    /// them; each branchlet (4 to 7, 3 or 4 at Smooth, from the link's
+    /// seed) curves out and tapers to a round bouton pressed on the
+    /// membrane across a thin dark cleft, facing a faint bright density on
+    /// the membrane, with vesicle specks inside. An impulse splits into the
+    /// branchlets and reaches each bouton in turn (the one straight ahead
+    /// at the moment NeuronImpulse lands, the rest a little after); the
+    /// bouton brightens and transmitter glows across its cleft and spreads
+    /// along the membrane as a patch. Tint A the fibre, B the impulse, C
+    /// its halo; `rpBundle` 1 draws a tract's three fibres, which gather
+    /// before the arbor; `rpHalf` the strip's base half width; `rpRate`
+    /// the chance a slot fires, `rpBurst` the chance a firing is a burst.
     static let axon: String = """
     #pragma arguments
     float rpClock;
     float rpMotion;
     float rpProbe;
+    float rpDetail;
     float rpRate;
     float rpBurst;
     float rpBundle;
+    float rpHalf;
     float3 rpTintA;
     float3 rpTintB;
     float3 rpTintC;
@@ -248,39 +264,41 @@ nonisolated enum NeuronShaders {
     #pragma body
     float2 rp_uv = _surface.diffuseTexcoord;
     float rp_seed = floor(rp_uv.x / 64.0);
-    float rp_along = rp_uv.x - rp_seed * 64.0 - 1.0;
+    float rp_dE = rp_uv.x - rp_seed * 64.0 - 1.0;
     float rp_k = floor(rp_uv.y);
-    float rp_spanQ = floor(rp_k * 0.5);
-    float rp_lit = rp_k - 2.0 * rp_spanQ;
-    float rp_len = max(rp_spanQ * 0.0625, 0.05);
+    float rp_q2 = floor(rp_k * 0.5);
+    float rp_lit = rp_k - 2.0 * rp_q2;
+    float rp_q16 = floor(rp_q2 / 16.0);
+    float rp_lvl = rp_q2 - 16.0 * rp_q16;
+    float rp_len = max(rp_q16 * 0.125 + 0.0625, 0.05);
+    float rp_along = max(rp_len - rp_dE, 0.0);
     float rp_s = fract(rp_uv.y) * 2.0 - 1.0;
-    float rp_f = clamp(rp_along / rp_len, 0.0, 1.0);
     float rp_t = rpClock * rpMotion;
 
-    float rp_br = smoothstep(0.82, 0.98, rp_f);
-    float rp_lane = max(0.42 * rpBundle, 0.5 * rp_br);
-    float rp_d0 = abs(rp_s);
-    float rp_d1 = abs(rp_s - rp_lane);
-    float rp_d2 = abs(rp_s + rp_lane);
-    float rp_side = max(rpBundle, rp_br);
-    float rp_dm = min(rp_d0, mix(rp_d0, min(rp_d1, rp_d2), rp_side));
+    float rp_R = 0.05 * exp(rp_lvl * 0.14842);
+    float rp_fw = rpHalf * mix(0.3, 0.2, rpBundle);
+    float rp_rb = 0.95 * rp_fw;
+    float rp_cl = 0.3 * rp_fw;
+    float rp_Rb = rp_R + rp_cl + rp_rb;
+    float rp_D1 = rp_Rb + 1.5 * rp_R + 2.5 * rp_fw + 0.02;
+    float rp_D0 = rp_D1 + 0.5 * rp_R + 4.0 * rp_fw;
+    float rp_We = max(rp_Rb * 0.867 + rp_rb + 3.0 * rp_fw, rpHalf);
+    float rp_ramp = clamp((rp_D0 - rp_dE) / max(rp_D0 - rp_D1, 0.0001), 0.0, 1.0);
+    float rp_W = rpHalf + (rp_We - rpHalf) * rp_ramp;
+    float rp_y = rp_s * rp_W;
+    float rp_Lref = max(rp_len - rp_Rb, 0.05);
+
     float rp_mq = rp_along / 0.55 + rp_seed * 0.37;
     float rp_m = fract(rp_mq) - 0.5;
-    float rp_node = exp(-rp_m * rp_m / 0.0016);
+    float rp_myel = clamp((rp_dE - rp_D1) / 0.15, 0.0, 1.0);
+    float rp_node = exp(-rp_m * rp_m / 0.0016) * rp_myel;
     float rp_hill = 1.0 + 0.5 * exp(-rp_along / 0.12);
-    float rp_wb = mix(0.3, 0.2, rpBundle) * rp_hill;
-    float rp_w = rp_wb * (1.0 - 0.1 * rp_node) * mix(1.0, 0.55, rp_br);
-    float rp_x = rp_dm / rp_w;
-    float rp_tube = sqrt(max(1.0 - rp_x * rp_x, 0.0));
-    float rp_bx = (rp_f - 0.985) * rp_len / 0.05;
-    float rp_bout = exp(-rp_bx * rp_bx) * rp_br;
-    float rp_kx = rp_dm / (rp_w * 1.9);
-    float rp_knob = sqrt(max(1.0 - rp_kx * rp_kx, 0.0)) * rp_bout;
-    rp_tube = max(rp_tube, rp_knob);
-    float rp_sheath = (rp_x - 0.82) / 0.16;
-    float rp_edge = exp(-rp_sheath * rp_sheath) * (1.0 - 0.5 * rp_node);
-    float rp_halo = exp(-max(rp_x - 1.0, 0.0) * 1.6);
-    float rp_bead = 1.0 + 0.12 * rp_node;
+    float rp_conv = clamp((rp_dE - rp_D0) / 0.4, 0.0, 1.0);
+    float rp_lane = 0.42 * rpHalf * rpBundle * rp_conv;
+    float rp_d0 = abs(rp_y);
+    float rp_d1 = abs(rp_y - rp_lane);
+    float rp_d2 = abs(rp_y + rp_lane);
+    float rp_dm = min(rp_d0, mix(rp_d0, min(rp_d1, rp_d2), rpBundle));
 
     uint rp_su = uint(rp_seed);
     uint rp_h = rp_su * 747796405u + 2891336453u;
@@ -292,7 +310,8 @@ nonisolated enum NeuronShaders {
     float rp_tt = rp_t + rp_ph;
     float rp_k0 = floor(rp_tt / rp_P);
     float rp_pulse = 0.0;
-    float rp_flash = 0.0;
+    float rp_a1 = 1000.0;
+    float rp_a2 = 1000.0;
     int rp_nb = rpBurst > 0.0 ? 3 : 1;
     for (int rp_j = 0; rp_j < 3; rp_j++) {
         float rp_ks = rp_k0 - float(rp_j);
@@ -308,30 +327,184 @@ nonisolated enum NeuronShaders {
             float rp_on = rp_b == 0 ? rp_fire : rp_fire * rp_many;
             float rp_age = rp_tt - rp_tf - float(rp_b) * 0.12;
             float rp_pos = rp_age / rp_D;
-            float rp_dx = (rp_f - rp_pos) * rp_len;
+            float rp_dx = rp_along - rp_pos * rp_Lref;
             float rp_fr = rp_dx / 0.08;
             float rp_head = exp(-rp_fr * rp_fr);
             float rp_tail = exp(rp_dx / 0.45);
             float rp_spk = rp_dx > 0.0 ? rp_head : rp_tail;
-            float rp_fly = step(0.0, rp_age) * step(rp_pos, 1.0);
+            float rp_fly = step(0.0, rp_age) * (1.0 - smoothstep(1.0, 1.2, rp_pos));
             rp_pulse = rp_pulse + rp_on * rp_spk * rp_fly;
-            float rp_after = rp_age - rp_D;
-            float rp_fade = exp(-max(rp_after, 0.0) / 0.22);
-            rp_flash = rp_flash + rp_on * step(0.0, rp_after) * rp_fade;
+            if (rp_on > 0.5 && rp_age >= 0.0) {
+                if (rp_age < rp_a1) {
+                    rp_a2 = rp_a1;
+                    rp_a1 = rp_age;
+                } else if (rp_age < rp_a2) {
+                    rp_a2 = rp_age;
+                }
+            }
+        }
+    }
+    float rp_front = rp_a1 / rp_D * rp_Lref;
+    float rp_front2 = rp_a2 / rp_D * rp_Lref;
+
+    float rp_xmin = 1000.0;
+    float rp_split = 0.0;
+    float rp_Pmin = -1.0;
+    float rp_bpulse = 0.0;
+    float rp_knobs = 0.0;
+    float rp_bflash = 0.0;
+    float rp_ves = 0.0;
+    float rp_psd = 0.0;
+    float rp_cleft = 0.0;
+    float rp_nt = 0.0;
+    uint rp_hk = rp_su * 747796405u + 39u * 2891336453u + 1442695041u;
+    rp_hk = ((rp_hk >> ((rp_hk >> 28u) + 4u)) ^ rp_hk) * 277803737u;
+    rp_hk = (rp_hk >> 22u) ^ rp_hk;
+    float rp_hn = float(rp_hk & 1023u) / 1023.0;
+    float rp_nf = rpDetail > 0.5 ? 4.0 + min(floor(rp_hn * 4.0), 3.0) : 3.0 + min(floor(rp_hn * 2.0), 1.0);
+    rp_nf = min(rp_nf, max(floor(0.758 * rp_Rb / rp_rb), 2.0));
+    if (rp_dE < rp_D1 + rp_fw) {
+        rp_Pmin = 1000.0;
+        float rp_rr = sqrt(rp_dE * rp_dE + rp_y * rp_y);
+        float rp_phi = atan2(rp_y, rp_dE);
+        for (int rp_i = 0; rp_i < 7; rp_i++) {
+            if (float(rp_i) >= rp_nf) { break; }
+            int rp_jn = rp_i - 2 * (rp_i / 2) == 0 ? rp_i + 1 : rp_i - 1;
+            if (float(rp_jn) >= rp_nf) { rp_jn = rp_i; }
+            int rp_lo = rp_i < rp_jn ? rp_i : rp_jn;
+            uint rp_ka = uint(rp_i * 4);
+            uint rp_kj = uint(rp_jn * 4);
+            uint rp_kl = uint(rp_lo * 4);
+            uint rp_ha = rp_su * 747796405u + rp_ka * 2891336453u + 1442695041u;
+            rp_ha = ((rp_ha >> ((rp_ha >> 28u) + 4u)) ^ rp_ha) * 277803737u;
+            rp_ha = (rp_ha >> 22u) ^ rp_ha;
+            uint rp_hj = rp_su * 747796405u + rp_kj * 2891336453u + 1442695041u;
+            rp_hj = ((rp_hj >> ((rp_hj >> 28u) + 4u)) ^ rp_hj) * 277803737u;
+            rp_hj = (rp_hj >> 22u) ^ rp_hj;
+            uint rp_hb = rp_su * 747796405u + (rp_kl + 1u) * 2891336453u + 1442695041u;
+            rp_hb = ((rp_hb >> ((rp_hb >> 28u) + 4u)) ^ rp_hb) * 277803737u;
+            rp_hb = (rp_hb >> 22u) ^ rp_hb;
+            uint rp_hc = rp_su * 747796405u + (rp_kl + 2u) * 2891336453u + 1442695041u;
+            rp_hc = ((rp_hc >> ((rp_hc >> 28u) + 4u)) ^ rp_hc) * 277803737u;
+            rp_hc = (rp_hc >> 22u) ^ rp_hc;
+            float rp_ra = float(rp_ha & 1023u) / 1023.0;
+            float rp_rj = float(rp_hj & 1023u) / 1023.0;
+            float rp_rb2 = float(rp_hb & 1023u) / 1023.0;
+            float rp_rc = float(rp_hc & 1023u) / 1023.0;
+            float rp_gap = 2.1 / rp_nf;
+            float rp_ang = 1.05 * ((float(rp_i) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_ra - 0.5) * rp_gap * 0.35;
+            float rp_angj = 1.05 * ((float(rp_jn) + 0.5) / rp_nf * 2.0 - 1.0) + (rp_rj - 0.5) * rp_gap * 0.35;
+            float rp_mida = (rp_ang + rp_angj) * 0.5;
+            float rp_run = rp_R * (0.6 + 0.9 * rp_rb2) + rp_fw * (1.0 + 1.5 * rp_rc);
+            float rp_bp = rp_Rb + rp_run;
+            float rp_bx = rp_Rb * cos(rp_ang);
+            float rp_by = rp_Rb * sin(rp_ang);
+            float rp_span = max(rp_bp - rp_bx, 0.0001);
+            float rp_spanP = max(rp_bp - rp_Rb * cos(rp_mida), 0.0001);
+            float rp_mid = rp_Rb * sin(rp_mida) * 0.85;
+            float rp_ts = 0.3 + 0.25 * rp_rc;
+            rp_Pmin = min(rp_Pmin, rp_bp);
+            rp_split = rp_split + (1.0 - smoothstep(rp_bp - 2.0 * rp_fw, rp_bp + rp_fw, rp_dE)) * 0.5;
+            float rp_arc = sqrt(rp_span * rp_span + rp_by * rp_by) * 1.08;
+            float rp_pend = (rp_len - rp_bp) + rp_arc;
+
+            float rp_qx = rp_dE - rp_bx;
+            float rp_qy = rp_y - rp_by;
+            float rp_be = sqrt(rp_qx * rp_qx + rp_qy * rp_qy) / rp_rb;
+            float rp_bt = (rp_bp - rp_dE) / rp_span;
+            if (rp_bt >= 0.0 && rp_bt <= 1.0) {
+                float rp_tp = min((rp_bp - rp_dE) / rp_spanP, 1.0);
+                float rp_u1 = clamp(rp_tp / (rp_ts + 0.3), 0.0, 1.0);
+                float rp_s1 = rp_u1 * rp_u1 * (3.0 - 2.0 * rp_u1);
+                float rp_d1s = 6.0 * rp_u1 * (1.0 - rp_u1) / (rp_ts + 0.3);
+                float rp_u2 = clamp((rp_bt - rp_ts) / (1.0 - rp_ts), 0.0, 1.0);
+                float rp_s2 = rp_u2 * rp_u2 * (3.0 - 2.0 * rp_u2);
+                float rp_d2s = 6.0 * rp_u2 * (1.0 - rp_u2) / (1.0 - rp_ts);
+                float rp_gy = rp_mid * rp_s1 + (rp_by - rp_mid) * rp_s2;
+                float rp_sl = rp_mid * rp_d1s / rp_spanP + (rp_by - rp_mid) * rp_d2s / rp_span;
+                float rp_bd = abs(rp_y - rp_gy) / sqrt(1.0 + rp_sl * rp_sl);
+                float rp_bw = rp_fw * (0.7 - 0.35 * rp_bt);
+                float rp_bxn = rp_bd / rp_bw;
+                rp_xmin = min(rp_xmin, rp_bxn);
+                float rp_path = (rp_len - rp_bp) + rp_arc * rp_bt;
+                float rp_bin = (1.0 - smoothstep(0.9, 1.3, rp_bxn)) * smoothstep(0.7, 1.0, rp_be);
+                for (int rp_w = 0; rp_w < 2; rp_w++) {
+                    float rp_fa = rp_w == 0 ? rp_front : rp_front2;
+                    float rp_live = rp_w == 0 ? step(rp_a1, 50.0) : step(rp_a2, 50.0);
+                    float rp_bdx = rp_path - rp_fa;
+                    float rp_bfr = rp_bdx / 0.08;
+                    float rp_bspk = rp_bdx > 0.0 ? exp(-rp_bfr * rp_bfr) : exp(rp_bdx / 0.45);
+                    float rp_bfly = step(rp_fa, rp_pend + 0.03) * rp_live;
+                    rp_bpulse = max(rp_bpulse, rp_bspk * rp_bfly * rp_bin);
+                }
+            }
+
+            rp_xmin = min(rp_xmin, rp_be);
+            float rp_knob = sqrt(max(1.0 - rp_be * rp_be, 0.0));
+            rp_knobs = max(rp_knobs, rp_knob);
+            float rp_lag = rp_D * rp_pend / rp_Lref;
+            float rp_tau1 = rp_a1 - rp_lag;
+            float rp_tau2 = rp_a2 - rp_lag;
+            float rp_tau = rp_tau1 >= 0.0 ? rp_tau1 : rp_tau2;
+            float rp_act = step(0.0, rp_tau) * step(rp_tau, 5.0);
+            float rp_tp = max(rp_tau, 0.0);
+            rp_bflash = max(rp_bflash, rp_knob * rp_act * exp(-rp_tp / 0.25));
+            float rp_near = (rp_pend - rp_front) / 0.07;
+            float rp_near2 = (rp_pend - rp_front2) / 0.07;
+            float rp_come = max(exp(-rp_near * rp_near) * step(rp_a1, 50.0), exp(-rp_near2 * rp_near2) * step(rp_a2, 50.0));
+            rp_bpulse = max(rp_bpulse, rp_knob * rp_come);
+            if (rpDetail > 0.5 && rp_be < 1.0) {
+                for (int rp_v = 0; rp_v < 3; rp_v++) {
+                    float rp_va = rp_ra * 7.0 + float(rp_v) * 2.1;
+                    float rp_vr = 0.5 * rp_rb * (0.6 + 0.4 * fract(rp_rb2 * 5.3 + float(rp_v) * 0.37));
+                    float rp_vx = rp_qx - cos(rp_va) * rp_vr;
+                    float rp_vy = rp_qy - sin(rp_va) * rp_vr;
+                    float rp_vd = sqrt(rp_vx * rp_vx + rp_vy * rp_vy) / (0.2 * rp_rb);
+                    rp_ves = rp_ves + exp(-rp_vd * rp_vd);
+                }
+            }
+
+            float rp_dp = (rp_phi - rp_ang) * rp_Rb / rp_rb;
+            float rp_face = exp(-rp_dp * rp_dp);
+            float rp_mb = (rp_rr - (rp_R - 0.4 * rp_cl)) / (0.45 * rp_cl + 0.003);
+            rp_psd = max(rp_psd, exp(-rp_mb * rp_mb) * rp_face);
+            float rp_ingap = step(rp_R, rp_rr) * step(rp_rr, rp_R + rp_cl) * rp_face;
+            rp_cleft = max(rp_cleft, rp_ingap);
+            float rp_ntc = rp_act * exp(-rp_tp / 0.18) * smoothstep(0.0, 0.05, rp_tp);
+            float rp_cr = (rp_rr - (rp_R + 0.5 * rp_cl)) / (0.6 * rp_cl + 0.002);
+            rp_nt = max(rp_nt, rp_ntc * exp(-rp_cr * rp_cr) * rp_face);
+            float rp_sig = (rp_rb / rp_Rb) * (0.8 + 5.0 * rp_tp);
+            float rp_pd = (rp_phi - rp_ang) / rp_sig;
+            float rp_pw = (rp_rr - (rp_R - 0.8 * rp_cl)) / (1.2 * rp_cl + 0.004 + 0.03 * rp_tp);
+            float rp_patch = rp_act * smoothstep(0.03, 0.1, rp_tp) * exp(-rp_tp / 0.4);
+            rp_nt = max(rp_nt, 1.4 * rp_patch * exp(-rp_pd * rp_pd) * exp(-rp_pw * rp_pw));
         }
     }
 
-    float rp_imp = min(rp_pulse * (1.0 + 0.7 * rp_node), 1.6);
+    float rp_thin = 1.0 - 0.8 * rp_split / rp_nf;
+    float rp_mend = smoothstep(rp_Pmin - 0.5 * rp_fw, rp_Pmin + 0.5 * rp_fw, rp_dE);
+    float rp_wm = rp_fw * rp_hill * (1.0 - 0.1 * rp_node) * rp_thin * rp_mend + 0.00001;
+    float rp_xm = rp_dm / rp_wm;
+    float rp_x = min(rp_xm, rp_xmin);
+    float rp_tube = sqrt(max(1.0 - rp_x * rp_x, 0.0));
+    float rp_sheath = (rp_x - 0.82) / 0.16;
+    float rp_edge = exp(-rp_sheath * rp_sheath) * (1.0 - 0.5 * rp_node);
+    float rp_halo = exp(-max(rp_x - 1.0, 0.0) * 1.6) * (1.0 - rp_cleft);
+    float rp_bead = 1.0 + 0.12 * rp_node;
+
+    float rp_imp = min(rp_pulse * (1.0 + 0.7 * rp_node), 1.6) * (1.0 - smoothstep(0.9, 1.3, rp_xm));
+    rp_imp = max(rp_imp, rp_bpulse);
     float rp_in = 1.0 - smoothstep(0.92, 1.08, rp_x);
     float rp_fibre = (0.2 * rp_tube + 0.34 * rp_edge) * rp_in * rp_bead;
     float3 rp_col = rpTintA * (rp_fibre + 0.05 * rp_halo);
+    rp_col = rp_col + rpTintA * (0.1 * rp_knobs + 0.18 * rp_psd);
+    rp_col = rp_col + (rpTintA * 0.6 + float3(0.25, 0.25, 0.25)) * (0.16 * min(rp_ves, 1.0) * rp_knobs);
     float rp_core = exp(-rp_x * rp_x * 1.5);
     rp_col = rp_col + rpTintB * (rp_imp * (0.95 * rp_core + 0.12));
     rp_col = rp_col + rpTintC * (rp_imp * rp_halo * 0.35);
-    float rp_endW = exp(-(rp_len - rp_along) / 0.14);
-    float rp_fl = min(rp_flash, 1.5) * rp_endW;
     float3 rp_hot = rpTintB + rpTintC * 0.5;
-    rp_col = rp_col + rp_hot * (rp_fl * (0.35 + rp_core));
+    rp_col = rp_col + rp_hot * (0.9 * rp_bflash);
+    rp_col = rp_col + (rpTintB * 0.55 + rpTintC * 0.45) * (0.8 * rp_nt);
     rp_col = rp_col * (1.0 + 0.45 * rp_lit);
     rp_col = rp_col * smoothstep(0.0, 0.04, rp_along);
 

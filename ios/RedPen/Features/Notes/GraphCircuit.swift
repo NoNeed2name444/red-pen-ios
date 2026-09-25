@@ -1,115 +1,83 @@
 import Foundation
 
-// The Circuit theme: the ideas' own hierarchy drawn as a printed circuit
-// board, laid out the way a real board is - flat, square to its edges, parts
-// clustered round the chip they serve, joined by routed copper.
+// The Circuit theme: the ideas' own hierarchy drawn as circuit boards on a
+// dark bench - one small board per collection, each a closed circuit that
+// follows real circuit logic, so it reads at a glance.
 //
-// - the whole vault is the motherboard;
-// - a top-level folder is a processor: a big chip package under a metal lid,
-//   its name silkscreened on it, at the heart of its own zone of the board;
-// - a folder inside a folder is a module: a smaller chip (a controller, a
-//   regulator) on its own sub-board, placed on its parent's side of the
-//   board - to the east, south, west or north of it - and always a little
-//   smaller than the chip it hangs from;
-// - a page is a capacitor, bigger the longer it is; a page of 250 words or
-//   more is an inductor coil;
-// - an idea is a resistor; an idea with two or more links an LED (it
-//   lights up as current arrives); an idea whose links all run out of its
-//   folder into one other folder a diode (current one way out);
-// - a short idea linked only to the note it sits with is a small surface
-//   mount part soldered beside that note;
-// - an idea linking notes in two or more other folders is a bus header, a
-//   row of pins the traces between modules run through;
-// - a note in no folder sits on the board's edge: an edge-connector finger
-//   when it has links (current comes in there), an unconnected pad on the
-//   far edge when it has none;
-// - with no folders at all, one system chip holds every note.
+// - every top-level folder is its own board, with its chip - the
+//   controller at the top of its hierarchy - in the top left corner;
+// - a power rail (VCC) runs along each board's top edge and a ground rail
+//   (GND) along its bottom; every part sits on a closed path from the power
+//   rail, through the chip, through the part and back down to ground -
+//   nothing dangles;
+// - the hierarchy is the topology: the chip feeds a bus; a folder inside
+//   it is a smaller chip on its own sub-board, on a branch of that bus,
+//   with its own bus; pages are capacitors on the bus; ideas are LEDs in
+//   parallel branches off the page they link to (or straight off the chip's
+//   bus when they link to none); an idea's own linked ideas chain in series
+//   after it; each branch ends in a tap on the ground rail;
+// - links inside a collection are its traces; a link between collections
+//   leaves its board at an edge connector and runs as a thin bus to the
+//   other board's connector;
+// - a note in no folder is a gold pad on the left edge of the board it
+//   links to most (the biggest board when it links to none), wired from the
+//   power rail to ground like everything else;
+// - with no folders at all, one board with one chip holds every note.
 //
-// Links are copper traces, routed square to the board's edges with 45°
-// corners (GraphLinkRoute draws them, rounded): inside a zone thin signal
-// traces, between zones and down each folder's pathway wider bus traces.
-// Current runs from the sending end (the higher rank: processors and
-// modules drive, edge fingers feed in, LEDs only ever receive).
+// Current runs from the power rail through the chip, down the branches to
+// the LEDs and on to ground: every link's sending end is the one nearer the
+// power rail (its rank, 1000 less its steps from the rail), and the wiring
+// (links of kind 5 and 6) is always sent from its first end.
 //
-// The same four rules as the other themes: what a part is = what the item
-// is; size = how much is in it (every chip bigger than every part, a module
-// always smaller than the chip it sits under, pages bigger than ideas, the
-// small surface-mount parts smallest); position = which folder holds it;
-// the pathway runs outward from each chip.
+// A big collection's board wraps its branches into tiers, each with its own
+// bus fed down the chip's spine and its own ground rail, so no board grows
+// ever wider. Boards sit in a tidy grid with gaps, biggest first.
 //
 // Pure and deterministic: Foundation only, the same notes always give the
-// same board, and no two parts' footprints overlap (each is placed in the
-// first clear spot, spiralling out from its chip). Tested on Linux
-// (Tests/CircuitHierarchyTests).
+// same boards, no two parts' footprints overlap, and everything lies flat.
+// Tested on Linux (Tests/CircuitHierarchyTests).
 
 nonisolated enum CircuitRole: Int, Sendable, CaseIterable {
-    /// A top-level folder: a processor under a metal lid.
+    /// A top-level folder: its board's controller chip.
     case processor = 0
-    /// A folder inside a folder: a module's chip on its own sub-board.
+    /// A folder inside a folder: a smaller chip on its own sub-board.
     case module = 1
-    /// The one container of a vault with no folders: a system chip.
+    /// The one container of a vault with no folders.
     case soc = 2
-    /// A page: an electrolytic capacitor.
+    /// A page: a capacitor.
     case capacitor = 3
-    /// A page of 250 words or more: an inductor coil.
-    case inductor = 4
-    /// An idea: a resistor.
-    case resistor = 5
-    /// An idea with two or more links: an LED.
+    /// An idea: an LED (lit when it has links).
     case led = 6
-    /// An idea whose links all run into one other folder: a diode.
-    case diode = 7
-    /// A short idea linked only to the note it sits beside.
-    case smd = 8
-    /// An idea linking notes in two or more other folders: a bus header.
-    case header = 9
-    /// A loose note with links: an edge-connector finger.
-    case edgePin = 10
-    /// A loose note with no links: an unconnected pad.
+    /// A note in no folder: a gold pad on a board's edge.
     case pad = 11
-
-    /// Which end of a trace sends: chips drive, edge fingers feed in,
-    /// passives pass it on, LEDs only receive.
-    var rank: Int {
-        switch self {
-        case .processor, .soc: return 7
-        case .module, .edgePin: return 6
-        case .capacitor, .inductor: return 5
-        case .header: return 4
-        case .resistor, .diode: return 3
-        case .smd: return 2
-        case .led: return 1
-        case .pad: return 0
-        }
-    }
+    /// Wiring (fixtures): the power rail's tap, a tap on a ground rail, a
+    /// bus's tap, an edge connector for a link to another board.
+    case vcc = 12
+    case ground = 13
+    case bus = 14
+    case connector = 15
 
     var isContainer: Bool {
         self == .processor || self == .module || self == .soc
     }
 
-    /// Parts drawn along an axis (turned to point at their chip).
-    var isOriented: Bool {
-        self == .resistor || self == .diode || self == .header || self == .smd
+    var isFixture: Bool {
+        self == .vcc || self == .ground || self == .bus || self == .connector
     }
 
-    /// Half its footprint, in sizes, lying along x: what must stay clear.
+    /// Half its footprint, in sizes: what must stay clear.
     var foot: SIMD2<Double> {
         switch self {
         case .processor, .module, .soc: return SIMD2<Double>(1.25, 1.25)
         case .capacitor: return SIMD2<Double>(0.95, 0.95)
-        case .inductor: return SIMD2<Double>(1.12, 1.12)
-        case .resistor: return SIMD2<Double>(1.72, 0.55)
-        case .diode: return SIMD2<Double>(1.6, 0.52)
         case .led: return SIMD2<Double>(0.85, 0.85)
-        case .smd: return SIMD2<Double>(1.05, 0.55)
-        case .header: return SIMD2<Double>(2.1, 0.58)
-        case .edgePin: return SIMD2<Double>(0.6, 1.4)
         case .pad: return SIMD2<Double>(0.9, 0.9)
+        case .vcc, .ground, .bus, .connector: return SIMD2<Double>(0.5, 0.5)
         }
     }
 }
 
-/// A rectangle on the board, square to its edges: its centre and half its
+/// A rectangle on a board, square to its edges: its centre and half its
 /// size.
 nonisolated struct CircuitRect: Sendable, Equatable {
     var c: SIMD2<Double>
@@ -155,85 +123,86 @@ nonisolated struct CircuitRect: Sendable, Equatable {
 }
 
 nonisolated enum GraphCircuit {
-    /// Room left between two parts' footprints.
-    static let gap: Double = 0.03
-    /// How far a surface-mount part sits off its note.
-    static let hug: Double = 0.012
-    /// Room round a zone's parts, to its sub-board's edge.
-    static let zoneMargin: Double = 0.07
-    /// The motherboard's border beyond everything on it.
-    static let border: Double = 0.3
-    /// How far the board leans back from facing the camera (radians): a
-    /// board on a desk, seen a little from above.
+    /// How far the boards lean back from facing the camera (radians): boards
+    /// on a bench, seen a little from above.
     static let tilt: Double = 0.30
-    /// The board's aspect (width over height) the zones are packed towards:
-    /// tall, like the phone held upright.
-    static let aspect: Double = 0.62
+    /// Room between boards on the bench.
+    static let benchGap: Double = 0.55
+    /// A branch's longest run of LEDs before another branch starts.
+    static let longestRun: Int = 6
+    /// Unlinked ideas are strung in series in strings of up to this many.
+    static let stringOf: Int = 5
 
-    // MARK: the board's plane
+    // MARK: the boards' plane
 
-    /// The board's x, y and up in the space: x across, y up the board
-    /// (leaning back by `tilt`), up out of it towards the camera.
+    /// The bench's x, y and up in the space: x across, y up the boards
+    /// (leaning back by `tilt`), up out of them towards the camera.
     static let right = SIMD3<Double>(1, 0, 0)
     static let forward = SIMD3<Double>(0, cos(tilt), -sin(tilt))
     static let normal = SIMD3<Double>(0, sin(tilt), cos(tilt))
 
-    /// A point of the board (and a height above it) in the space.
+    /// A point of the bench (and a height above it) in the space.
     static func world(_ q: SIMD2<Double>, height: Double = 0) -> SIMD3<Double> {
         right * q.x + forward * q.y + normal * height
     }
 
     // MARK: sizes (the ladder)
 
-    /// A page: 0.13 to 0.218 by length.
+    /// A controller chip: 0.30 to 0.42 by how many notes it holds.
+    static func processorSphere(count: Int) -> Double {
+        guard count > 0 else { return 0.30 }
+        let size: Double = log2(1 + Double(count))
+        return GraphUniverse.clamp(0.30 + 0.016 * size, 0.30, 0.42)
+    }
+
+    /// A sub-folder's chip: by what it holds, always smaller than the chip
+    /// it hangs from and bigger than any page.
+    static func moduleSphere(count: Int, parent: Double) -> Double {
+        let size: Double = log2(1 + Double(count))
+        let own: Double = GraphUniverse.clamp(0.19 + 0.01 * size, 0.19, 0.27)
+        return max(min(own, parent * 0.85), 0.165)
+    }
+
+    static let socSphere: Double = 0.34
+
+    /// A page: 0.10 to 0.148 by length.
     static func pageSphere(words: Int) -> Double {
         let lv: Int = min(GraphUniverse.level(words: words), 8)
-        return 0.13 + 0.011 * Double(lv)
+        return 0.10 + 0.006 * Double(lv)
     }
 
-    /// An idea: 0.075 to 0.105 by length.
+    /// An idea: 0.06 to 0.078 by length.
     static func ideaSphere(words: Int) -> Double {
         let lv: Int = min(GraphUniverse.level(words: words), 6)
-        return 0.075 + 0.005 * Double(lv)
+        return 0.06 + 0.003 * Double(lv)
     }
 
-    /// A bus header: just above the biggest idea, under any page.
-    static let headerSphere: Double = 0.12
+    static let padSphere: Double = 0.075
+    static let fixtureSphere: Double = 0.028
 
-    /// A surface-mount part: 0.045 to 0.053.
-    static func smdSphere(words: Int) -> Double {
-        let lv: Int = min(GraphUniverse.level(words: words), 2)
-        return 0.045 + 0.004 * Double(lv)
+    // MARK: the chips' names
+
+    /// A chip's printed model tag, by its place in the hierarchy and how
+    /// much it holds: "S-12 Pro" for a board's controller (the number and
+    /// suffix growing with its notes), "S7" for a chip on a sub-board. S
+    /// for Stethoscore; never anyone else's name or numbering.
+    static func modelTag(count: Int, depth: Int) -> String {
+        let lv: Int = min(GraphUniverse.level(words: max(count, 0) * 40), 8)
+        if depth > 0 {
+            let n: Int = 5 + min(lv, 6) - min(depth - 1, 2)
+            return "S" + String(max(n, 3))
+        }
+        let n: Int = 8 + lv
+        var suffix: String = ""
+        if count >= 40 {
+            suffix = " Ultra"
+        } else if count >= 16 {
+            suffix = " Max"
+        } else if count >= 6 {
+            suffix = " Pro"
+        }
+        return "S-" + String(n) + suffix
     }
-
-    /// A processor: 0.40 to 0.54 by how many notes it holds.
-    static func processorSphere(count: Int) -> Double {
-        guard count > 0 else { return 0.40 }
-        let size: Double = log2(1 + Double(count))
-        return GraphUniverse.clamp(0.40 + 0.02 * size, 0.40, 0.54)
-    }
-
-    /// The smallest a module at depth `d` is drawn: 0.31, 0.28, 0.27, ...,
-    /// always above the biggest page.
-    static func moduleFloor(_ d: Int) -> Double {
-        0.25 + 0.06 / Double(max(d, 1))
-    }
-
-    /// A module: by how many notes it holds, always a little smaller than
-    /// the chip it sits under.
-    static func moduleSphere(count: Int, depth: Int, parent: Double) -> Double {
-        let size: Double = log2(1 + Double(count))
-        let own: Double = GraphUniverse.clamp(0.29 + 0.012 * size, 0.29, 0.37)
-        return max(min(own, parent * 0.9), moduleFloor(depth))
-    }
-
-    static let socSphere: Double = 0.44
-
-    /// Links from which an idea is an LED.
-    static let ledLinks: Int = 2
-
-    /// Words from which a page is an inductor.
-    static let inductorWords: Int = 250
 
     // MARK: planning
 
@@ -243,35 +212,56 @@ nonisolated enum GraphCircuit {
         return planner.run()
     }
 
-    /// "2 processors, 3 modules, 4 capacitors, ...".
+    /// "2 boards, 2 chips, 4 capacitors, 12 LEDs, 2 pads".
     static func summary(_ bodies: [ThemeBody]) -> String {
-        var counts = [Int](repeating: 0, count: CircuitRole.allCases.count)
-        for body in bodies where body.role >= 0 && body.role < counts.count { counts[body.role] += 1 }
-        let words: [(CircuitRole, String, String)] = [
-            (.processor, "processor", "processors"), (.soc, "system chip", "system chips"),
-            (.module, "module", "modules"), (.capacitor, "capacitor", "capacitors"),
-            (.inductor, "inductor", "inductors"), (.resistor, "resistor", "resistors"), (.led, "LED", "LEDs"),
-            (.diode, "diode", "diodes"), (.smd, "surface-mount part", "surface-mount parts"),
-            (.header, "bus header", "bus headers"), (.edgePin, "edge finger", "edge fingers"),
-            (.pad, "pad", "pads")
-        ]
+        var counts = [Int](repeating: 0, count: 16)
+        var boards: Int = 0
+        for body in bodies where body.role >= 0 && body.role < counts.count {
+            counts[body.role] += 1
+            if body.kind != .note && body.kind != .fixture && body.parent < 0 { boards += 1 }
+        }
+        let chips: Int = counts[CircuitRole.processor.rawValue] + counts[CircuitRole.module.rawValue]
+            + counts[CircuitRole.soc.rawValue]
         var parts: [String] = []
+        if boards > 0 { parts.append("\(boards) " + (boards == 1 ? "board" : "boards")) }
+        if chips > 0 { parts.append("\(chips) " + (chips == 1 ? "chip" : "chips")) }
+        let words: [(CircuitRole, String, String)] = [
+            (.capacitor, "capacitor", "capacitors"), (.led, "LED", "LEDs"), (.pad, "pad", "pads")
+        ]
         for (role, one, many) in words {
             let n: Int = counts[role.rawValue]
             if n > 0 { parts.append("\(n) " + (n == 1 ? one : many)) }
         }
         return parts.joined(separator: ", ")
     }
+
+    /// A fixture's id: stable for its board, what it is and its number.
+    static func fixtureID(_ board: UUID, _ tag: String, _ k: Int) -> UUID {
+        let key: String = board.uuidString + "|" + tag + "|" + String(k)
+        let a: UInt64 = GraphUniverse.fnv(key)
+        let b: UInt64 = GraphUniverse.fnv(key + "#")
+        var bytes: [UInt8] = []
+        for s in stride(from: 56, through: 0, by: -8) { bytes.append(UInt8(truncatingIfNeeded: a >> UInt64(s))) }
+        for s in stride(from: 56, through: 0, by: -8) { bytes.append(UInt8(truncatingIfNeeded: b >> UInt64(s))) }
+        let t: uuid_t = (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+                         bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15])
+        return UUID(uuid: t)
+    }
 }
 
-/// One chip's own layout, in its own place (its chip at the origin): where
-/// its parts sit and which way they lie, where each module inside it sits,
-/// its own sub-board, and every rectangle its whole subtree keeps clear.
-nonisolated struct CircuitLocal: Sendable {
-    var members: [(Int, SIMD2<Double>, Bool)] = []
-    var children: [(Int, SIMD2<Double>)] = []
-    var patch = CircuitRect(c: SIMD2<Double>(0, 0), h: SIMD2<Double>(0, 0))
-    var rects: [CircuitRect] = []
+/// One column hanging from a bus: a page with its parallel branches of
+/// LEDs below it, a series string of LEDs, or a sub-folder's chip with its
+/// own columns beside it.
+nonisolated struct CircuitColumn: Sendable {
+    /// 0 a page, 1 a string of LEDs, 2 a sub-folder's chip.
+    var kind: Int
+    /// The page's or the chip's index (note or container); -1 for a string.
+    var head: Int
+    /// The branches (a page's) or the one string (a string's): notes, top
+    /// to bottom, each after the one before it in series.
+    var branches: [[Int]]
+    var width: Double = 0
+    var height: Double = 0
 }
 
 /// The plan's working state. Reuses the Universe planner's tree: folders
@@ -282,18 +272,38 @@ nonisolated struct CircuitPlanner: Sendable {
     var role: [CircuitRole] = []
     var sphere: [Double] = []
     var cSphere: [Double] = []
-    var smdOf: [[Int]] = []
-    var smdHost: [Int] = []
-    var local: [CircuitLocal] = []
+    /// Each container's columns (its pages, strings and sub-folders).
+    var columns: [[CircuitColumn]] = []
+    /// Each note's board (a top container), and the loose notes each board
+    /// carries as pads.
+    var boardOfNote: [Int] = []
+    var padsOf: [[Int]] = []
+    // the boards' own layouts, then the bench
+    var boardRect: [CircuitRect] = []
+    var boardAt: [SIMD2<Double>] = []
     // the output
     var bodies: [ThemeBody] = []
     var patches: [SIMD4<Float>] = []
+    var links: [ThemeLink] = []
+    var bars: [ThemeBar] = []
+    /// Wiring by body: (from, to), sent from the first.
+    var wires: [(Int, Int)] = []
+    /// Note links that are part of a circuit (a page to its LED, an LED to
+    /// the next in series), by body.
+    var topology: [(Int, Int)] = []
     var noteBody: [Int] = []
     var cBody: [Int] = []
-    var cPos: [SIMD2<Double>] = []
-    var worldRects: [[CircuitRect]] = []
-    var looseSpot: [SIMD2<Double>] = []
-    var looseOrder: [Int] = []
+    /// Body positions on the bench (for connectors), and each body's board.
+    var at: [SIMD2<Double>] = []
+    var boardOfBody: [Int] = []
+    var systems: [[SIMD3<Float>]] = []
+
+    // layout measures
+    let colGap: Double = 0.10
+    let rowGap: Double = 0.12
+    let drop: Double = 0.16
+    let railGap: Double = 0.2
+    let margin: Double = 0.22
 
     init(_ input: UniverseInput) {
         tree = UniversePlanner(input)
@@ -306,86 +316,32 @@ nonisolated struct CircuitPlanner: Sendable {
         tree.buildLinks()
         assignRoles()
         sizeParts()
-        local = [CircuitLocal](repeating: CircuitLocal(), count: tree.cCount)
+        columns = [[CircuitColumn]](repeating: [], count: tree.cCount)
+        for c in 0..<tree.cCount { buildColumns(c) }
+        assignPads()
         let tops: [Int] = topOrder()
-        for t in tops { layOut(t) }
         noteBody = [Int](repeating: -1, count: noteCount)
         cBody = [Int](repeating: -1, count: tree.cCount)
-        cPos = [SIMD2<Double>](repeating: SIMD2<Double>(0, 0), count: tree.cCount)
-        worldRects = [[CircuitRect]](repeating: [], count: tree.cCount)
-        let placed: [CircuitRect] = placeTops(tops)
-        let loose: [CircuitRect] = placeLoose(placed)
-        return finish(tops, main: placed, loose: loose)
+        measureBoards(tops)
+        placeBench(tops)
+        for t in tops { emitBoard(t) }
+        connectBoards()
+        return finish(tops)
     }
 
-    // MARK: roles
+    // MARK: roles and sizes
 
     mutating func assignRoles() {
-        let n: Int = noteCount
-        let homeC: Int = tree.homeC
-        var found = [CircuitRole?](repeating: nil, count: n)
-        // headers and diodes: ideas in a folder whose links leave it
-        for i in 0..<n {
-            let h: Int = tree.noteHome[i]
-            if tree.noteList[i].isPage || h < 0 || h == homeC { continue }
-            var others = Set<Int>()
-            var inside: Int = 0
-            for m in tree.nbr[i] {
-                let o: Int = tree.noteHome[m]
-                if o >= 0 && o != homeC && o != h {
-                    others.insert(o)
-                } else {
-                    inside += 1
-                }
-            }
-            if others.count >= 2 {
-                found[i] = .header
-            } else if others.count == 1 && inside == 0 {
-                found[i] = .diode
-            }
-        }
-        // surface-mount parts, shortest first: an idea under 60 words with
-        // one link, to a note in the same container that is a page or has
-        // other links
-        smdOf = [[Int]](repeating: [], count: n)
-        smdHost = [Int](repeating: -1, count: n)
-        let byLength: [Int] = (0..<n).sorted { a, b in
-            let wa: Int = tree.noteList[a].words
-            let wb: Int = tree.noteList[b].words
-            if wa != wb { return wa < wb }
-            return tree.lessN(a, b)
-        }
-        for i in byLength {
-            let h: Int = tree.noteHome[i]
-            if found[i] != nil || tree.noteList[i].isPage || h < 0 { continue }
-            if tree.nbr[i].count != 1 || tree.noteList[i].words >= 60 { continue }
-            let p: Int = tree.nbr[i][0]
-            if tree.noteHome[p] != h || found[p] == .header || found[p] == .smd { continue }
-            let host: UniverseNote = tree.noteList[p]
-            if !host.isPage && tree.nbr[p].count < 2 { continue }
-            let cap: Int = host.isPage ? 4 : 2
-            if smdOf[p].count >= cap { continue }
-            smdOf[p].append(i)
-            smdHost[i] = p
-            found[i] = .smd
-        }
         role = []
-        role.reserveCapacity(n)
-        for i in 0..<n {
-            let note: UniverseNote = tree.noteList[i]
-            if let r = found[i] {
-                role.append(r)
-            } else if tree.noteHome[i] < 0 {
-                role.append(tree.nbr[i].isEmpty ? .pad : .edgePin)
-            } else if note.isPage {
-                role.append(note.words >= GraphCircuit.inductorWords ? .inductor : .capacitor)
+        role.reserveCapacity(noteCount)
+        for i in 0..<noteCount {
+            if tree.noteHome[i] < 0 {
+                role.append(.pad)
             } else {
-                role.append(tree.nbr[i].count >= GraphCircuit.ledLinks ? .led : .resistor)
+                role.append(tree.noteList[i].isPage ? .capacitor : .led)
             }
         }
     }
-
-    // MARK: sizes
 
     mutating func sizeParts() {
         sphere = []
@@ -393,12 +349,9 @@ nonisolated struct CircuitPlanner: Sendable {
         for i in 0..<noteCount {
             let note: UniverseNote = tree.noteList[i]
             switch role[i] {
-            case .smd: sphere.append(GraphCircuit.smdSphere(words: note.words))
-            case .header: sphere.append(GraphCircuit.headerSphere)
-            default:
-                let s: Double = note.isPage ? GraphCircuit.pageSphere(words: note.words)
-                    : GraphCircuit.ideaSphere(words: note.words)
-                sphere.append(s)
+            case .pad: sphere.append(GraphCircuit.padSphere)
+            case .capacitor: sphere.append(GraphCircuit.pageSphere(words: note.words))
+            default: sphere.append(GraphCircuit.ideaSphere(words: note.words))
             }
         }
         cSphere = [Double](repeating: 0, count: tree.cCount)
@@ -412,7 +365,7 @@ nonisolated struct CircuitPlanner: Sendable {
                 cSphere[c] = GraphCircuit.processorSphere(count: tree.count[c])
             } else {
                 let up: Double = cSphere[tree.parent[c]]
-                cSphere[c] = GraphCircuit.moduleSphere(count: tree.count[c], depth: tree.depth[c], parent: up)
+                cSphere[c] = GraphCircuit.moduleSphere(count: tree.count[c], parent: up)
             }
         }
     }
@@ -422,50 +375,15 @@ nonisolated struct CircuitPlanner: Sendable {
         return tree.parent[c] < 0 ? .processor : .module
     }
 
-    /// Half a part's own footprint, lying along x or (`vertical`) along y.
-    func partFoot(_ i: Int, vertical: Bool) -> SIMD2<Double> {
-        let f: SIMD2<Double> = role[i].foot * sphere[i]
-        return vertical && role[i].isOriented ? SIMD2<Double>(f.y, f.x) : f
+    func half(_ i: Int) -> SIMD2<Double> {
+        role[i].foot * sphere[i]
     }
 
-    /// Where note `host`'s k-th surface-mount part sits, from its centre:
-    /// in a row beside it, alternately above and below (left and right
-    /// when it lies along y), each lying the same way as its note.
-    func smdOffset(_ host: Int, _ k: Int, vertical: Bool) -> SIMD2<Double> {
-        let list: [Int] = smdOf[host]
-        let hostFoot: SIMD2<Double> = partFoot(host, vertical: false)
-        let side: Double = k % 2 == 0 ? 1 : -1
-        let row: Int = (list.count + (k % 2 == 0 ? 1 : 0)) / 2
-        let index: Int = k / 2
-        let g: Int = list[k]
-        let own: SIMD2<Double> = CircuitRole.smd.foot * sphere[g]
-        let pitch: Double = own.x * 2 + GraphCircuit.gap
-        let along: Double = (Double(index) - Double(max(row, 1) - 1) * 0.5) * pitch
-        let across: Double = side * (hostFoot.y + GraphCircuit.hug + own.y)
-        return vertical ? SIMD2<Double>(across, along) : SIMD2<Double>(along, across)
-    }
-
-    /// Half the footprint of a note together with its surface-mount parts
-    /// (the same both sides, to be safe).
-    func groupFoot(_ i: Int, vertical: Bool) -> SIMD2<Double> {
-        var f: SIMD2<Double> = partFoot(i, vertical: vertical)
-        let list: [Int] = smdOf[i]
-        for k in list.indices {
-            let o: SIMD2<Double> = smdOffset(i, k, vertical: vertical)
-            let own: SIMD2<Double> = partFoot(list[k], vertical: vertical)
-            f.x = max(f.x, abs(o.x) + own.x)
-            f.y = max(f.y, abs(o.y) + own.y)
-        }
-        return f
-    }
-
-    func cFoot(_ c: Int) -> SIMD2<Double> {
+    func cHalf(_ c: Int) -> SIMD2<Double> {
         cRole(c).foot * cSphere[c]
     }
 
-    // MARK: layout, bottom up
-
-    /// Tops by how much they hold (most first, in the middle), then name.
+    /// Tops by how much they hold (most first), then name.
     func topOrder() -> [Int] {
         let tops: [Int] = (0..<tree.cCount).filter { tree.parent[$0] < 0 }
         return tops.sorted { a, b in
@@ -474,369 +392,734 @@ nonisolated struct CircuitPlanner: Sendable {
         }
     }
 
-    /// Lays out chip `c` and everything under it, round its own origin.
-    mutating func layOut(_ c: Int) {
-        for k in tree.kids[c] { layOut(k) }
-        let chip = CircuitRect(c: SIMD2<Double>(0, 0), h: cFoot(c))
-        var placed: [CircuitRect] = [chip]
-        var out = CircuitLocal()
-        // its parts round it, biggest first, each in the first clear spot
-        // spiralling out from the chip, lying towards it
-        var members: [Int] = (0..<noteCount).filter { tree.noteHome[$0] == c && role[$0] != .smd }
-        members.sort { a, b in
-            let fa: SIMD2<Double> = groupFoot(a, vertical: false)
-            let fb: SIMD2<Double> = groupFoot(b, vertical: false)
-            let aa: Double = fa.x * fa.y
-            let ab: Double = fb.x * fb.y
-            if aa != ab { return aa > ab }
-            return tree.lessN(a, b)
-        }
-        var ring: Int = 0
-        for i in members {
-            let spot: (SIMD2<Double>, Bool, Int) = findSpot(i, round: chip.h, placed: placed, from: ring)
-            let f: SIMD2<Double> = groupFoot(i, vertical: spot.1)
-            placed.append(CircuitRect(c: spot.0, h: f))
-            out.members.append((i, spot.0, spot.1))
-            ring = max(spot.2 - 3, 0)
-        }
-        // its own sub-board, under the chip and its parts
-        let patch: CircuitRect = CircuitRect.bounding(placed).grown(GraphCircuit.zoneMargin)
-        out.patch = patch
-        var rects: [CircuitRect] = [patch]
-        // the modules under it, out along the board's axes: east, south,
-        // west, north, then the corners
-        for (j, k) in tree.kids[c].enumerated() {
-            let dir: SIMD2<Double> = Self.kidDirection(j)
-            let group: [CircuitRect] = local[k].rects
-            let s: Double = Self.slide(group, along: dir, step: 0.05, placed: rects, gap: GraphCircuit.gap * 2)
-            let at: SIMD2<Double> = dir * s
-            for r in group { rects.append(r.moved(at)) }
-            out.children.append((k, at))
-        }
-        out.rects = rects
-        local[c] = out
-    }
+    // MARK: the topology
 
-    /// The first clear spot for part `i` round a chip of half size `round`:
-    /// on square rings ever further out, each side's middle first, then
-    /// out towards its corners, the four sides in turn. Returns the spot,
-    /// whether it lies along y (on the chip's north or south side, pointing
-    /// at it), and the ring.
-    func findSpot(_ i: Int, round: SIMD2<Double>, placed: [CircuitRect],
-                  from: Int) -> (SIMD2<Double>, Bool, Int) {
-        let step: Double = 0.04
-        let small: SIMD2<Double> = groupFoot(i, vertical: false)
-        let least: Double = min(small.x, small.y)
-        let first: Int = max(from, Int(((least + GraphCircuit.gap) / step).rounded(.down)))
-        var k: Int = first
-        while k < 4000 {
-            let hx: Double = round.x + step * Double(k + 1)
-            let hy: Double = round.y + step * Double(k + 1)
-            let reach: Int = Int((max(hx, hy) / step).rounded(.down))
-            for j in 0...(reach * 2) {
-                let o: Double = Double((j + 1) / 2) * step * (j % 2 == 1 ? 1 : -1)
-                for side in 0..<4 {
-                    let vertical: Bool = side % 2 == 1
-                    var at: SIMD2<Double>
-                    switch side {
-                    case 0: at = SIMD2<Double>(hx, o)
-                    case 1: at = SIMD2<Double>(-o, -hy)
-                    case 2: at = SIMD2<Double>(-hx, -o)
-                    default: at = SIMD2<Double>(o, hy)
-                    }
-                    if vertical && abs(at.x) > hx { continue }
-                    if !vertical && abs(at.y) > hy { continue }
-                    let rect = CircuitRect(c: at, h: groupFoot(i, vertical: vertical))
-                    if Self.fits([rect], placed: placed, gap: GraphCircuit.gap) { return (at, vertical, k) }
-                }
+    /// Container `c`'s columns: its pages (each with the ideas that link to
+    /// it in parallel branches below it, and their own linked ideas in
+    /// series after them), strings of its other ideas (linked ones in
+    /// series along their links, unlinked ones strung together), then its
+    /// sub-folders' chips. A branch longer than `longestRun` carries on as
+    /// another branch beside it.
+    mutating func buildColumns(_ c: Int) {
+        let members: [Int] = (0..<noteCount).filter { tree.noteHome[$0] == c }.sorted { tree.lessN($0, $1) }
+        let pages: [Int] = members.filter { role[$0] == .capacitor }
+        let ideas: [Int] = members.filter { role[$0] == .led }
+        let ideaSet = Set<Int>(ideas)
+        let pageSet = Set<Int>(pages)
+        var placed = Set<Int>()
+        var hosted: [Int: [Int]] = [:]
+        for i in ideas {
+            let linkedPages: [Int] = tree.nbr[i].filter { pageSet.contains($0) }
+            guard let host = linkedPages.min(by: { tree.lessN($0, $1) }) else { continue }
+            hosted[host, default: []].append(i)
+            placed.insert(i)
+        }
+        var out: [CircuitColumn] = []
+        for p in pages {
+            var branches: [[Int]] = []
+            for i in hosted[p] ?? [] {
+                let chain: [Int] = follow(i, ideas: ideaSet, placed: &placed)
+                branches.append(contentsOf: Self.pieces(chain, GraphCircuit.longestRun))
             }
-            k += 1
+            out.append(CircuitColumn(kind: 0, head: p, branches: branches))
         }
-        let far = SIMD2<Double>(round.x + step * Double(k + 1), 0)
-        return (far, false, k)
-    }
-
-    /// The j-th module's way out from its chip: east, south, west, north,
-    /// then the four corners, then round again.
-    static func kidDirection(_ j: Int) -> SIMD2<Double> {
-        let d: Double = 0.70710678118654752
-        switch j % 8 {
-        case 0: return SIMD2<Double>(1, 0)
-        case 1: return SIMD2<Double>(0, -1)
-        case 2: return SIMD2<Double>(-1, 0)
-        case 3: return SIMD2<Double>(0, 1)
-        case 4: return SIMD2<Double>(d, -d)
-        case 5: return SIMD2<Double>(-d, -d)
-        case 6: return SIMD2<Double>(-d, d)
-        default: return SIMD2<Double>(d, d)
-        }
-    }
-
-    /// Whether every rectangle of `group` is `gap` clear of every one in
-    /// `placed` - checking the group's bounds first, so far groups cost
-    /// almost nothing.
-    static func fits(_ group: [CircuitRect], placed: [CircuitRect], gap: Double) -> Bool {
-        let whole: CircuitRect = CircuitRect.bounding(group)
-        for other in placed {
-            if whole.clears(other, gap: gap) { continue }
-            for r in group where !r.clears(other, gap: gap) { return false }
-        }
-        return true
-    }
-
-    /// How far along `dir` to move `group` so it clears `placed`: the
-    /// first multiple of `step` that does.
-    static func slide(_ group: [CircuitRect], along dir: SIMD2<Double>, step: Double, placed: [CircuitRect],
-                      gap: Double, limit: Int = 20000) -> Double {
-        var s: Double = 0
-        var tries: Int = 0
-        while tries < limit {
-            let moved: [CircuitRect] = group.map { $0.moved(dir * s) }
-            if fits(moved, placed: placed, gap: gap) { return s }
-            s += step
-            tries += 1
-        }
-        return s
-    }
-
-    // MARK: placing, top down
-
-    /// The processors on the motherboard, most notes first: the first in
-    /// the middle, each next slid out along whichever of the eight board
-    /// directions keeps the board most compact (and tall, like the phone).
-    mutating func placeTops(_ tops: [Int]) -> [CircuitRect] {
-        var placed: [CircuitRect] = []
-        for (k, t) in tops.enumerated() {
-            let group: [CircuitRect] = local[t].rects
-            var at = SIMD2<Double>(0, 0)
-            if k > 0 {
-                var best: Double = Double.greatestFiniteMagnitude
-                for j in 0..<8 {
-                    let dir: SIMD2<Double> = Self.kidDirection(j)
-                    let s: Double = Self.slide(group, along: dir, step: 0.08, placed: placed,
-                                               gap: GraphCircuit.gap * 4)
-                    let shift: SIMD2<Double> = dir * s
-                    var all: [CircuitRect] = placed
-                    for r in group { all.append(r.moved(shift)) }
-                    let box: CircuitRect = CircuitRect.bounding(all)
-                    let wide: Double = box.h.x / GraphCircuit.aspect
-                    let score: Double = max(wide, box.h.y) + 0.001 * s
-                    if score < best - 1e-9 {
-                        best = score
-                        at = shift
-                    }
-                }
+        var loners: [Int] = []
+        for i in ideas where !placed.contains(i) {
+            let free: Bool = tree.nbr[i].contains { ideaSet.contains($0) && !placed.contains($0) }
+            if !free {
+                loners.append(i)
+                continue
             }
-            for r in group { placed.append(r.moved(at)) }
-            place(t, at: at)
-        }
-        return placed
-    }
-
-    /// Where chip `c` and its subtree are on the board.
-    mutating func place(_ c: Int, at origin: SIMD2<Double>) {
-        cPos[c] = origin
-        worldRects[c] = local[c].rects.map { $0.moved(origin) }
-        for (k, at) in local[c].children { place(k, at: origin + at) }
-    }
-
-    /// Loose notes on the board's edges: edge fingers in a row along the
-    /// bottom edge, each as near under the processor it links to most as
-    /// it can be; pads along the top edge from the left.
-    mutating func placeLoose(_ placed: [CircuitRect]) -> [CircuitRect] {
-        let whole: CircuitRect = CircuitRect.bounding(placed).grown(GraphCircuit.border)
-        var all: [CircuitRect] = placed
-        var out: [CircuitRect] = []
-        var loose: [Int] = (0..<noteCount).filter { tree.noteHome[$0] < 0 }
-        loose.sort { a, b in
-            if role[a] != role[b] { return role[a].rawValue < role[b].rawValue }
-            return tree.lessN(a, b)
-        }
-        looseSpot = [SIMD2<Double>](repeating: SIMD2<Double>(0, 0), count: noteCount)
-        let step: Double = 0.05
-        for i in loose {
-            let f: SIMD2<Double> = partFoot(i, vertical: false)
-            let bottom: Bool = role[i] == .edgePin
-            var want: Double = placed.isEmpty ? 0 : whole.low.x + f.x
-            if bottom, let t = favouriteTop(i) { want = cPos[t].x }
-            let y0: Double = bottom ? whole.low.y + f.y : whole.high.y - f.y
-            let away: Double = bottom ? -1 : 1
-            var spot = SIMD2<Double>(want, y0)
-            var done: Bool = false
-            var row: Int = 0
-            while !done && row < 400 {
-                let y: Double = y0 + away * Double(row) * (f.y * 2 + GraphCircuit.gap)
-                let reach: Int = Int((whole.h.x * 2 / step).rounded(.up)) + 1
-                for j in 0...(reach * 2) {
-                    let o: Double = Double((j + 1) / 2) * step * (j % 2 == 1 ? 1 : -1)
-                    let at = SIMD2<Double>(want + o, y)
-                    let rect = CircuitRect(c: at, h: f)
-                    if Self.fits([rect], placed: all, gap: GraphCircuit.gap * 2) {
-                        spot = at
-                        done = true
-                        break
-                    }
-                }
-                row += 1
+            placed.insert(i)
+            let chain: [Int] = follow(i, ideas: ideaSet, placed: &placed)
+            for piece in Self.pieces(chain, GraphCircuit.longestRun) {
+                out.append(CircuitColumn(kind: 1, head: -1, branches: [piece]))
             }
-            let rect = CircuitRect(c: spot, h: f)
-            all.append(rect)
-            out.append(rect)
-            looseSpot[i] = spot
         }
-        looseOrder = loose
+        for piece in Self.pieces(loners, GraphCircuit.stringOf) {
+            out.append(CircuitColumn(kind: 1, head: -1, branches: [piece]))
+        }
+        for k in tree.kids[c] {
+            out.append(CircuitColumn(kind: 2, head: k, branches: []))
+        }
+        columns[c] = out
+    }
+
+    /// Idea `i` and the ideas linked on from it not yet placed, depth
+    /// first (so each is next to one it links to wherever it can be).
+    func follow(_ i: Int, ideas: Set<Int>, placed: inout Set<Int>) -> [Int] {
+        var order: [Int] = []
+        var stack: [Int] = [i]
+        placed.insert(i)
+        while let x = stack.popLast() {
+            order.append(x)
+            for y in tree.nbr[x].reversed() where ideas.contains(y) && !placed.contains(y) {
+                placed.insert(y)
+                stack.append(y)
+            }
+        }
+        return order
+    }
+
+    /// `list` cut into runs of at most `size`.
+    static func pieces(_ list: [Int], _ size: Int) -> [[Int]] {
+        var out: [[Int]] = []
+        var k: Int = 0
+        while k < list.count {
+            let end: Int = min(k + size, list.count)
+            out.append(Array(list[k..<end]))
+            k = end
+        }
         return out
     }
 
-    /// The processor holding most of a loose note's links (ties: by name).
-    func favouriteTop(_ i: Int) -> Int? {
-        var tally: [Int: Int] = [:]
-        for m in tree.nbr[i] {
-            let h: Int = tree.noteHome[m]
-            if h >= 0 { tally[tree.top[h], default: 0] += 1 }
-        }
-        var best: Int?
-        var most: Int = 0
-        for t in tally.keys.sorted(by: { tree.lessC($0, $1) }) {
-            let n: Int = tally[t] ?? 0
-            if n > most {
-                best = t
-                most = n
-            }
-        }
-        return best
+    /// Whether notes `a` and `b` are linked.
+    func linked(_ a: Int, _ b: Int) -> Bool {
+        tree.nbr[a].contains(b)
     }
 
-    // MARK: the bodies
+    /// Loose notes: each on the board it links to most (ties: the bigger
+    /// board, then by name); with no links, the biggest board.
+    mutating func assignPads() {
+        boardOfNote = [Int](repeating: -1, count: noteCount)
+        for i in 0..<noteCount where tree.noteHome[i] >= 0 {
+            boardOfNote[i] = tree.top[tree.noteHome[i]]
+        }
+        padsOf = [[Int]](repeating: [], count: tree.cCount)
+        let tops: [Int] = topOrder()
+        guard let biggest = tops.first else { return }
+        let loose: [Int] = (0..<noteCount).filter { tree.noteHome[$0] < 0 }.sorted { tree.lessN($0, $1) }
+        for i in loose {
+            var tally: [Int: Int] = [:]
+            for m in tree.nbr[i] where boardOfNote[m] >= 0 { tally[boardOfNote[m], default: 0] += 1 }
+            var best: Int = biggest
+            var most: Int = 0
+            for t in tops {
+                let n: Int = tally[t] ?? 0
+                if n > most {
+                    best = t
+                    most = n
+                }
+            }
+            boardOfNote[i] = best
+            padsOf[best].append(i)
+        }
+    }
 
-    mutating func finish(_ tops: [Int], main: [CircuitRect], loose: [CircuitRect]) -> ThemePlan {
-        bodies = []
-        patches = []
-        for t in tops { emitContainer(t) }
-        for i in looseOrder { emitLoose(i) }
-        var links: [ThemeLink] = []
+    // MARK: measuring
+
+    /// A branch's width (its widest LED, and room).
+    func branchWidth(_ branch: [Int]) -> Double {
+        var w: Double = 0
+        for i in branch { w = max(w, half(i).x * 2) }
+        return w + colGap
+    }
+
+    /// A branch's height, top to bottom.
+    func branchHeight(_ branch: [Int]) -> Double {
+        var h: Double = 0
+        for i in branch { h += half(i).y * 2 + rowGap }
+        return h
+    }
+
+    /// A column's size: width across, height down from its top.
+    func measure(_ col: CircuitColumn) -> SIMD2<Double> {
+        switch col.kind {
+        case 0:
+            let page: SIMD2<Double> = half(col.head)
+            var across: Double = 0
+            var down: Double = 0
+            for b in col.branches {
+                across += branchWidth(b)
+                down = max(down, branchHeight(b))
+            }
+            let w: Double = max(page.x * 2 + colGap, across)
+            let h: Double = page.y * 2 + (col.branches.isEmpty ? 0 : rowGap + down)
+            return SIMD2<Double>(w, h)
+        case 1:
+            let b: [Int] = col.branches.first ?? []
+            return SIMD2<Double>(branchWidth(b), branchHeight(b))
+        default:
+            return measureBlock(col.head)
+        }
+    }
+
+    /// A sub-folder's block: its chip, then its columns in a row beside it
+    /// under its own bus.
+    func measureBlock(_ c: Int) -> SIMD2<Double> {
+        let chip: SIMD2<Double> = cHalf(c)
+        var across: Double = chip.x * 2 + 0.3
+        var down: Double = chip.y * 2
+        for col in columns[c] {
+            let s: SIMD2<Double> = measure(col)
+            across += s.x
+            down = max(down, drop + s.y + chip.y * 0.5)
+        }
+        return SIMD2<Double>(across + colGap, down + rowGap)
+    }
+
+    // MARK: laying out a board
+
+    /// Each board's rectangle round its chip (the chip at the origin).
+    mutating func measureBoards(_ tops: [Int]) {
+        boardRect = [CircuitRect](repeating: CircuitRect(c: SIMD2<Double>(0, 0), h: SIMD2<Double>(0, 0)),
+                                  count: tree.cCount)
+        for t in tops {
+            let layout: CircuitBoardLayout = layOutBoard(t)
+            boardRect[t] = layout.rect
+        }
+    }
+
+    /// Where board `t`'s tiers go: tier 1 beside the chip, the rest below,
+    /// each packed to about the same width.
+    func layOutBoard(_ t: Int) -> CircuitBoardLayout {
+        let chip: SIMD2<Double> = cHalf(t)
+        let sizes: [SIMD2<Double>] = columns[t].map { measure($0) }
+        var total: Double = 0
+        for s in sizes { total += s.x }
+        let wrap: Double = max(2.4, min((total * 1.4).squareRoot() + 0.8, 6.5))
+        var tiers: [[Int]] = [[]]
+        var width: Double = 0
+        for (k, s) in sizes.enumerated() {
+            let full: Bool = !(tiers.last?.isEmpty ?? true) && width + s.x > wrap
+            if full {
+                tiers.append([])
+                width = 0
+            }
+            tiers[tiers.count - 1].append(k)
+            width += s.x
+        }
+        var layout = CircuitBoardLayout()
+        layout.tiers = tiers
+        let firstLeft: Double = chip.x + 0.34
+        let laterLeft: Double = 0.3
+        var right: Double = firstLeft + 0.3
+        var busY: Double = chip.y * 0.5
+        var gnd: [Double] = []
+        var buses: [Double] = []
+        for (n, tier) in tiers.enumerated() {
+            var x: Double = n == 0 ? firstLeft : laterLeft
+            var low: Double = n == 0 ? -chip.y : busY
+            for k in tier {
+                x += sizes[k].x
+                low = min(low, busY - drop - sizes[k].y)
+            }
+            right = max(right, x)
+            buses.append(busY)
+            let g: Double = low - railGap
+            gnd.append(g)
+            busY = g - 0.26
+        }
+        layout.buses = buses
+        layout.grounds = gnd
+        let pads: Int = padsOf[t].count
+        let padsLeft: Double = pads > 0 ? -chip.x - 0.42 : -chip.x - margin
+        var bottom: Double = (gnd.last ?? -chip.y) - 0.16
+        if pads > 0 {
+            let padRun: Double = Double(pads) * (GraphCircuit.padSphere * 1.8 + rowGap)
+            bottom = min(bottom, -chip.y - 0.2 - padRun - railGap - 0.16)
+            layout.grounds[layout.grounds.count - 1] = min(gnd.last ?? 0, bottom + 0.16)
+        }
+        let top: Double = chip.y + railGap + 0.16
+        layout.vcc = chip.y + railGap
+        layout.left = padsLeft
+        layout.rect = CircuitRect.around(low: SIMD2<Double>(padsLeft - 0.08, bottom),
+                                         high: SIMD2<Double>(right + margin, top))
+        return layout
+    }
+
+    // MARK: the bench
+
+    /// Boards in a tidy grid, biggest first, rows of about the square root
+    /// of how many there are, with gaps; the whole bench centred.
+    mutating func placeBench(_ tops: [Int]) {
+        boardAt = [SIMD2<Double>](repeating: SIMD2<Double>(0, 0), count: tree.cCount)
+        let n: Int = tops.count
+        guard n > 0 else { return }
+        let across: Int = max(1, Int((Double(n).squareRoot() * 0.9).rounded(.up)))
+        var y: Double = 0
+        var k: Int = 0
+        var lowX: Double = Double.greatestFiniteMagnitude
+        var highX: Double = -Double.greatestFiniteMagnitude
+        var lowY: Double = Double.greatestFiniteMagnitude
+        var highY: Double = -Double.greatestFiniteMagnitude
+        while k < n {
+            let row: [Int] = Array(tops[k..<min(k + across, n)])
+            var tallest: Double = 0
+            for t in row { tallest = max(tallest, boardRect[t].h.y * 2) }
+            var x: Double = 0
+            for t in row {
+                let r: CircuitRect = boardRect[t]
+                // the board's top left at (x, y): its chip where that puts it
+                let origin = SIMD2<Double>(x - r.low.x, y - r.high.y)
+                boardAt[t] = origin
+                x += r.h.x * 2 + GraphCircuit.benchGap
+                let moved: CircuitRect = r.moved(origin)
+                lowX = min(lowX, moved.low.x)
+                highX = max(highX, moved.high.x)
+                lowY = min(lowY, moved.low.y)
+                highY = max(highY, moved.high.y)
+            }
+            y -= tallest + GraphCircuit.benchGap
+            k += across
+        }
+        let middle = SIMD2<Double>((lowX + highX) * 0.5, (lowY + highY) * 0.5)
+        for t in tops { boardAt[t] -= middle }
+    }
+
+    // MARK: emitting
+
+    /// A body; returns its index.
+    mutating func add(id: UUID, kind: ThemeBodyKind, role r: CircuitRole, parent: Int, sphere s: Double,
+                      depth: Int, region: Int, count: Int, links: Int, words: Int, seed: UInt64,
+                      spot: SIMD2<Double>, title: String, label: String, board: Int) -> Int {
+        let home: SIMD3<Double> = GraphCircuit.world(spot)
+        var base: SIMD3<Double> = home
+        if parent >= 0 { base = home - GraphCircuit.world(at[parent]) }
+        let index: Int = bodies.count
+        let axis: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
+        bodies.append(ThemeBody(id: id, kind: kind, role: r.rawValue, parent: parent, sphere: Float(s),
+                                depth: depth, region: region, count: count, links: links, words: words,
+                                rank: 0, seed: seed, orbit: .fixed(GraphUniverse.float3(base)),
+                                home: GraphUniverse.float3(home), axis: axis, title: title, label: label))
+        patches.append(SIMD4<Float>(0, 0, 0, 0))
+        at.append(spot)
+        boardOfBody.append(board)
+        return index
+    }
+
+    mutating func addNote(_ i: Int, parent: Int, region: Int, spot: SIMD2<Double>, board: Int) -> Int {
+        let note: UniverseNote = tree.noteList[i]
+        let index: Int = add(id: note.id, kind: .note, role: role[i], parent: parent, sphere: sphere[i],
+                             depth: -1, region: region, count: 0, links: tree.nbr[i].count, words: note.words,
+                             seed: tree.nSeed(i), spot: spot, title: note.title,
+                             label: UniversePlanner.noteLabel(note.title), board: board)
+        noteBody[i] = index
+        return index
+    }
+
+    mutating func addFixture(_ r: CircuitRole, board t: Int, tag: String, k: Int, parent: Int,
+                             spot: SIMD2<Double>) -> Int {
+        let id: UUID = GraphCircuit.fixtureID(tree.cID(t), tag, k)
+        let region: Int = cBody[t]
+        return add(id: id, kind: .fixture, role: r, parent: parent, sphere: GraphCircuit.fixtureSphere,
+                   depth: -1, region: region, count: 0, links: 0, words: 0, seed: GraphUniverse.fnv(tag),
+                   spot: spot, title: "", label: "", board: t)
+    }
+
+    mutating func addChip(_ c: Int, parent: Int, spot: SIMD2<Double>, board: Int) -> Int {
+        let isHome: Bool = c == tree.homeC
+        let name: String = tree.cName(c)
+        let label: String = UniversePlanner.folderLabel(name, count: tree.count[c])
+        let region: Int = parent >= 0 ? cBody[board] : bodies.count
+        let index: Int = add(id: tree.cID(c), kind: isHome ? .home : .folder, role: cRole(c), parent: parent,
+                             sphere: cSphere[c], depth: tree.depth[c], region: region, count: tree.count[c],
+                             links: 0, words: 0, seed: tree.cSeed(c), spot: spot, title: name, label: label,
+                             board: board)
+        cBody[c] = index
+        return index
+    }
+
+    /// Board `t`: its chip, rails, taps, tiers of columns and pads.
+    mutating func emitBoard(_ t: Int) {
+        let origin: SIMD2<Double> = boardAt[t]
+        let layout: CircuitBoardLayout = layOutBoard(t)
+        let chip: Int = addChip(t, parent: -1, spot: origin, board: t)
+        let r: CircuitRect = layout.rect
+        patches[chip] = SIMD4<Float>(Float(r.c.x), Float(r.c.y), Float(r.h.x), Float(r.h.y))
+        let railHalf: Float = Float(r.h.x) - 0.06
+        bars.append(ThemeBar(owner: chip, x: Float(r.c.x), y: Float(layout.vcc), half: railHalf, kind: 0))
+        // the power tap over the chip
+        let vccSpot: SIMD2<Double> = origin + SIMD2<Double>(0, layout.vcc)
+        let vcc: Int = addFixture(.vcc, board: t, tag: "vcc", k: 0, parent: chip, spot: vccSpot)
+        wires.append((vcc, chip))
+        let chipHalf: SIMD2<Double> = cHalf(t)
+        let sizes: [SIMD2<Double>] = columns[t].map { measure($0) }
+        var spine: Int = chip
+        var anything: Bool = false
+        for (n, tier) in layout.tiers.enumerated() {
+            let busY: Double = layout.buses[n]
+            let gndY: Double = layout.grounds[n]
+            let last: Bool = n == layout.tiers.count - 1
+            // the ground rail under the tier: all the board's width for the
+            // last, beside the chip's spine for the others
+            if last {
+                bars.append(ThemeBar(owner: chip, x: Float(r.c.x), y: Float(gndY), half: railHalf, kind: 1))
+            } else {
+                let from: Double = 0.14
+                let to: Double = r.high.x - 0.06
+                let mid: Double = (from + to) * 0.5
+                bars.append(ThemeBar(owner: chip, x: Float(mid), y: Float(gndY), half: Float((to - from) * 0.5),
+                                     kind: 1))
+            }
+            guard !tier.isEmpty else { continue }
+            anything = true
+            // the tier's bus tap: beside the chip for the first, on the
+            // chip's spine below it for the others
+            let tapX: Double = n == 0 ? chipHalf.x + 0.17 : 0
+            let tapSpot: SIMD2<Double> = origin + SIMD2<Double>(tapX, busY)
+            let tap: Int = addFixture(.bus, board: t, tag: "bus", k: n, parent: chip, spot: tapSpot)
+            // the first tier's bus from the chip; the rest down the spine
+            wires.append((n == 0 ? chip : spine, tap))
+            if n > 0 { spine = tap }
+            var x: Double = n == 0 ? chipHalf.x + 0.34 : 0.3
+            for k in tier {
+                let col: CircuitColumn = columns[t][k]
+                placeColumn(col, board: t, owner: t, parentBody: chip, left: origin.x + x,
+                            top: origin.y + busY - drop, gnd: origin.y + gndY, tap: tap, size: sizes[k])
+                x += sizes[k].x
+            }
+        }
+        if !anything {
+            // a chip with nothing on it still closes its loop to ground
+            let g: Int = addFixture(.ground, board: t, tag: "gnd", k: 0, parent: chip,
+                                    spot: origin + SIMD2<Double>(0, layout.grounds[0]))
+            wires.append((chip, g))
+        }
+        emitPads(t, layout: layout, chip: chip, origin: origin)
+        var box: [ThemeBall] = []
+        for k in 0..<4 {
+            let cx: Double = k % 2 == 0 ? r.low.x : r.high.x
+            let cy: Double = k < 2 ? r.low.y : r.high.y
+            let corner: SIMD3<Double> = GraphCircuit.world(SIMD2<Double>(cx, cy), height: 0.1)
+            box.append(ThemeBall(c: corner, r: 0.06))
+        }
+        systemsFor[chip] = ThemeLayout.points(box, around: SIMD3<Double>(0, 0, 0))
+    }
+
+    var systemsFor: [Int: [SIMD3<Float>]] = [:]
+
+    /// A column under a bus: its head fed from the bus tap `tap`; a page's
+    /// branches (and a string) down to their ground taps on the rail at
+    /// `gnd`; a sub-folder's chip with its own bus and columns.
+    mutating func placeColumn(_ col: CircuitColumn, board t: Int, owner c: Int, parentBody: Int, left: Double,
+                              top: Double, gnd: Double, tap: Int, size: SIMD2<Double>) {
+        let region: Int = cBody[t]
+        switch col.kind {
+        case 0:
+            let page: SIMD2<Double> = half(col.head)
+            let spot = SIMD2<Double>(left + size.x * 0.5, top - page.y)
+            let p: Int = addNote(col.head, parent: parentBody, region: region, spot: spot, board: t)
+            wires.append((tap, p))
+            if col.branches.isEmpty {
+                ground(from: p, x: spot.x, gnd: gnd, board: t)
+                return
+            }
+            var across: Double = 0
+            for b in col.branches { across += branchWidth(b) }
+            var x: Double = left + (size.x - across) * 0.5
+            let below: Double = top - page.y * 2 - rowGap
+            for b in col.branches {
+                let w: Double = branchWidth(b)
+                placeBranch(b, from: p, fromNote: col.head, x: x + w * 0.5, top: below, gnd: gnd, board: t,
+                            parent: parentBody)
+                x += w
+            }
+        case 1:
+            let b: [Int] = col.branches.first ?? []
+            placeBranch(b, from: tap, fromNote: -1, x: left + size.x * 0.5, top: top, gnd: gnd, board: t,
+                        parent: parentBody)
+        default:
+            let k: Int = col.head
+            let chip: SIMD2<Double> = cHalf(k)
+            let spot = SIMD2<Double>(left + chip.x + colGap * 0.5, top - chip.y)
+            let m: Int = addChip(k, parent: parentBody, spot: spot, board: t)
+            wires.append((tap, m))
+            // its sub-board: the whole block
+            let blockLow = SIMD2<Double>(left, top - size.y + rowGap * 0.5)
+            let blockHigh = SIMD2<Double>(left + size.x - colGap * 0.5, top + 0.04)
+            let block: CircuitRect = CircuitRect.around(low: blockLow, high: blockHigh)
+            let rel: SIMD2<Double> = block.c - spot
+            patches[m] = SIMD4<Float>(Float(rel.x), Float(rel.y), Float(block.h.x), Float(block.h.y))
+            systemsFor[m] = [GraphUniverse.float3(GraphCircuit.world(block.low - spot)),
+                             GraphUniverse.float3(GraphCircuit.world(block.high - spot)),
+                             GraphUniverse.float3(GraphCircuit.world(SIMD2<Double>(block.low.x, block.high.y) - spot,
+                                                                     height: 0.1)),
+                             GraphUniverse.float3(GraphCircuit.world(SIMD2<Double>(block.high.x, block.low.y) - spot,
+                                                                     height: 0.1))]
+            let inner: [CircuitColumn] = columns[k]
+            if inner.isEmpty {
+                ground(from: m, x: spot.x, gnd: gnd, board: t)
+                return
+            }
+            let busY: Double = spot.y + chip.y * 0.5
+            let subTap: Int = addFixture(.bus, board: t, tag: "sub" + String(k), k: 0, parent: m,
+                                         spot: SIMD2<Double>(spot.x + chip.x + 0.15, busY))
+            wires.append((m, subTap))
+            var x: Double = spot.x + chip.x + 0.3
+            for sub in inner {
+                let s: SIMD2<Double> = measure(sub)
+                placeColumn(sub, board: t, owner: k, parentBody: m, left: x, top: busY - drop, gnd: gnd,
+                            tap: subTap, size: s)
+                x += s.x
+            }
+        }
+    }
+
+    /// A branch of LEDs in series, top to bottom from `top`, fed from
+    /// body `from` (a page, note `fromNote`, or a bus tap), ending in a
+    /// ground tap. Where two in a row are linked notes, their link is the
+    /// wire; elsewhere the board's own wiring joins them.
+    mutating func placeBranch(_ branch: [Int], from: Int, fromNote: Int, x: Double, top: Double, gnd: Double,
+                              board t: Int, parent: Int) {
+        var y: Double = top
+        var before: Int = from
+        var beforeNote: Int = fromNote
+        let region: Int = cBody[t]
+        for i in branch {
+            let h: SIMD2<Double> = half(i)
+            let spot = SIMD2<Double>(x, y - h.y)
+            let b: Int = addNote(i, parent: parent, region: region, spot: spot, board: t)
+            if beforeNote >= 0 && linked(beforeNote, i) {
+                topology.append((before, b))
+            } else {
+                wires.append((before, b))
+            }
+            before = b
+            beforeNote = i
+            y -= h.y * 2 + rowGap
+        }
+        ground(from: before, x: x, gnd: gnd, board: t)
+    }
+
+    /// A tap on the ground rail under `x`, wired from `from`.
+    mutating func ground(from: Int, x: Double, gnd: Double, board t: Int) {
+        let k: Int = groundCount[t, default: 0]
+        groundCount[t] = k + 1
+        let g: Int = addFixture(.ground, board: t, tag: "gnd", k: k, parent: cBody[t],
+                                spot: SIMD2<Double>(x, gnd))
+        wires.append((from, g))
+    }
+
+    var groundCount: [Int: Int] = [:]
+
+    /// Board `t`'s loose notes: gold pads down its left edge, each wired
+    /// from the power rail (a tap in the margin) to ground.
+    mutating func emitPads(_ t: Int, layout: CircuitBoardLayout, chip: Int, origin: SIMD2<Double>) {
+        let pads: [Int] = padsOf[t]
+        guard !pads.isEmpty else { return }
+        let x: Double = layout.left + 0.08
+        let tapSpot: SIMD2<Double> = origin + SIMD2<Double>(x, layout.vcc)
+        let tap: Int = addFixture(.vcc, board: t, tag: "padVcc", k: 0, parent: chip, spot: tapSpot)
+        let chipHalf: SIMD2<Double> = cHalf(t)
+        var y: Double = -chipHalf.y - 0.2
+        let gnd: Double = layout.grounds.last ?? (y - 1)
+        for i in pads {
+            let h: SIMD2<Double> = half(i)
+            let spot: SIMD2<Double> = origin + SIMD2<Double>(x, y - h.y)
+            let p: Int = addNote(i, parent: chip, region: -1, spot: spot, board: t)
+            wires.append((tap, p))
+            let k: Int = groundCount[t, default: 0]
+            groundCount[t] = k + 1
+            let g: Int = addFixture(.ground, board: t, tag: "gnd", k: k, parent: chip,
+                                    spot: SIMD2<Double>(spot.x, origin.y + gnd))
+            wires.append((p, g))
+            y -= h.y * 2 + rowGap
+        }
+    }
+
+    // MARK: between boards
+
+    /// Every link between two boards: hidden as itself, drawn as a trace
+    /// out to an edge connector on each board and a thin bus between
+    /// them, sent from the end nearer its power rail.
+    mutating func connectBoards() {
+        var crossing: [(Int, Int)] = []
+        for (i, j) in tree.edgePairs {
+            let bi: Int = boardOfNote[i]
+            let bj: Int = boardOfNote[j]
+            guard bi >= 0, bj >= 0, bi != bj, noteBody[i] >= 0, noteBody[j] >= 0 else { continue }
+            crossing.append((i, j))
+        }
+        guard !crossing.isEmpty else { return }
+        let depth: [Int] = flowDepths()
+        // each board's connectors on the edge facing the other board
+        var slots: [String: [(Int, Double)]] = [:]
+        var plans: [(Int, Int, Int, Int, Int, Int)] = []
+        for (n, (i, j)) in crossing.enumerated() {
+            let a: Int = noteBody[i]
+            let b: Int = noteBody[j]
+            let da: Int = depth[a]
+            let db: Int = depth[b]
+            let send: Bool = da < db || (da == db && lessBoard(boardOfNote[i], boardOfNote[j]))
+            let from: Int = send ? a : b
+            let to: Int = send ? b : a
+            let bf: Int = boardOfBody[from]
+            let bt: Int = boardOfBody[to]
+            let edgeF: Int = facing(bf, bt)
+            let edgeT: Int = facing(bt, bf)
+            let keyF: String = String(bf) + ":" + String(edgeF)
+            let keyT: String = String(bt) + ":" + String(edgeT)
+            slots[keyF, default: []].append((n, sortKey(at[to], edge: edgeF)))
+            slots[keyT, default: []].append((n, sortKey(at[from], edge: edgeT)))
+            plans.append((from, to, bf, bt, edgeF, edgeT))
+        }
+        var connectorOf: [String: Int] = [:]
+        for key in slots.keys.sorted() {
+            guard let list = slots[key] else { continue }
+            let parts: [Substring] = key.split(separator: ":")
+            guard parts.count == 2, let t = Int(parts[0]), let e = Int(parts[1]) else { continue }
+            let sorted: [(Int, Double)] = list.sorted { $0.1 != $1.1 ? $0.1 < $1.1 : $0.0 < $1.0 }
+            for (k, entry) in sorted.enumerated() {
+                let spot: SIMD2<Double> = edgeSpot(t, edge: e, k: k, of: sorted.count)
+                let c: Int = addFixture(.connector, board: t, tag: "edge" + String(e), k: k, parent: cBody[t],
+                                        spot: spot)
+                connectorOf[key + ":" + String(entry.0)] = c
+            }
+        }
+        for (n, p) in plans.enumerated() {
+            let keyF: String = String(p.2) + ":" + String(p.4) + ":" + String(n)
+            let keyT: String = String(p.3) + ":" + String(p.5) + ":" + String(n)
+            guard let cf = connectorOf[keyF], let ct = connectorOf[keyT] else { continue }
+            links.append(ThemeLink(a: p.0, b: cf, kind: 5, centre: -1))
+            links.append(ThemeLink(a: cf, b: ct, kind: 6, centre: -1))
+            links.append(ThemeLink(a: ct, b: p.1, kind: 5, centre: -1))
+            hiddenPairs.insert(pairKey(p.0, p.1))
+        }
+    }
+
+    var hiddenPairs = Set<Int>()
+
+    func pairKey(_ a: Int, _ b: Int) -> Int {
+        min(a, b) * 1_000_003 + max(a, b)
+    }
+
+    func lessBoard(_ a: Int, _ b: Int) -> Bool {
+        let order: [Int] = topOrder()
+        let ia: Int = order.firstIndex(of: a) ?? 0
+        let ib: Int = order.firstIndex(of: b) ?? 0
+        return ia < ib
+    }
+
+    /// Which edge of board `t` faces board `u`: 0 right, 1 bottom, 2 left,
+    /// 3 top.
+    func facing(_ t: Int, _ u: Int) -> Int {
+        let a: SIMD2<Double> = boardRect[t].c + boardAt[t]
+        let b: SIMD2<Double> = boardRect[u].c + boardAt[u]
+        let d: SIMD2<Double> = b - a
+        if abs(d.x) >= abs(d.y) { return d.x >= 0 ? 0 : 2 }
+        return d.y >= 0 ? 3 : 1
+    }
+
+    /// Where along an edge a connector's partner lies (so their buses do
+    /// not cross).
+    func sortKey(_ partner: SIMD2<Double>, edge: Int) -> Double {
+        edge % 2 == 0 ? -partner.y : partner.x
+    }
+
+    /// Connector `k` of `n` on edge `e` of board `t`, spread along it, just
+    /// inside.
+    func edgeSpot(_ t: Int, edge e: Int, k: Int, of n: Int) -> SIMD2<Double> {
+        let r: CircuitRect = boardRect[t].moved(boardAt[t])
+        let share: Double = (Double(k) + 1) / (Double(n) + 1)
+        let inset: Double = 0.07
+        switch e {
+        case 0:
+            let y: Double = r.high.y - 0.35 - (r.h.y * 2 - 0.7) * share
+            return SIMD2<Double>(r.high.x - inset, y)
+        case 2:
+            let y: Double = r.high.y - 0.35 - (r.h.y * 2 - 0.7) * share
+            return SIMD2<Double>(r.low.x + inset, y)
+        case 1:
+            let x: Double = r.low.x + 0.35 + (r.h.x * 2 - 0.7) * share
+            return SIMD2<Double>(x, r.low.y + inset)
+        default:
+            let x: Double = r.low.x + 0.35 + (r.h.x * 2 - 0.7) * share
+            return SIMD2<Double>(x, r.high.y - inset)
+        }
+    }
+
+    // MARK: the flow
+
+    /// Each body's steps from its board's power rail along the wiring and
+    /// the circuit's note links (-1: not reached).
+    func flowDepths() -> [Int] {
+        var next = [[Int]](repeating: [], count: bodies.count)
+        for (a, b) in wires { next[a].append(b) }
+        for (a, b) in topology { next[a].append(b) }
+        var depth = [Int](repeating: -1, count: bodies.count)
+        var queue: [Int] = []
+        for (i, body) in bodies.enumerated() where body.role == CircuitRole.vcc.rawValue {
+            depth[i] = 0
+            queue.append(i)
+        }
+        var head: Int = 0
+        while head < queue.count {
+            let x: Int = queue[head]
+            head += 1
+            for y in next[x] where depth[y] < 0 {
+                depth[y] = depth[x] + 1
+                queue.append(y)
+            }
+        }
+        return depth
+    }
+
+    // MARK: the plan
+
+    mutating func finish(_ tops: [Int]) -> ThemePlan {
+        let depth: [Int] = flowDepths()
+        var feeds = [Int](repeating: -1, count: bodies.count)
+        for (a, b) in wires where feeds[b] < 0 && depth[a] >= 0 && depth[b] == depth[a] + 1 { feeds[b] = a }
+        for (a, b) in topology where feeds[b] < 0 && depth[a] >= 0 && depth[b] == depth[a] + 1 { feeds[b] = a }
+        // ranks: nearer the power rail sends
+        var ranked: [ThemeBody] = []
+        ranked.reserveCapacity(bodies.count)
+        for (i, b) in bodies.enumerated() {
+            let steps: Int = depth[i] >= 0 ? depth[i] : 999
+            ranked.append(ThemeBody(id: b.id, kind: b.kind, role: b.role, parent: b.parent, sphere: b.sphere,
+                                    depth: b.depth, region: b.region, count: b.count, links: b.links,
+                                    words: b.words, rank: 1000 - steps, seed: b.seed, orbit: b.orbit,
+                                    home: b.home, axis: b.axis, title: b.title, label: b.label))
+        }
+        bodies = ranked
+        // the notes' own links: inside a board a trace, between boards
+        // hidden (drawn through the connectors instead)
+        var all: [ThemeLink] = []
         for (i, j) in tree.edgePairs {
             let a: Int = noteBody[i]
             let b: Int = noteBody[j]
             guard a >= 0, b >= 0 else { continue }
-            let kind: Int = linkKind(i, j)
-            let centre: Int = kind == 1 ? cBody[tree.top[tree.noteHome[i]]] : -1
-            links.append(ThemeLink(a: a, b: b, kind: kind, centre: centre))
+            let kind: Int = hiddenPairs.contains(pairKey(a, b)) ? 3 : 0
+            all.append(ThemeLink(a: a, b: b, kind: kind, centre: -1))
         }
-        // every chip wired to the modules under it: its bus
-        for c in 0..<tree.cCount where tree.parent[c] >= 0 {
-            let up: Int = cBody[tree.parent[c]]
-            let down: Int = cBody[c]
-            if up >= 0 && down >= 0 { links.append(ThemeLink(a: up, b: down, kind: 4, centre: -1)) }
-        }
+        for (a, b) in wires { all.append(ThemeLink(a: a, b: b, kind: 5, centre: -1)) }
+        all.append(contentsOf: links)
         var systems = [[SIMD3<Float>]](repeating: [], count: bodies.count)
-        for c in 0..<tree.cCount where cBody[c] >= 0 {
-            let origin: SIMD3<Double> = GraphCircuit.world(cPos[c])
-            systems[cBody[c]] = ThemeLayout.points(Self.balls(worldRects[c]), around: origin)
+        for (i, points) in systemsFor { systems[i] = points }
+        var margin: [ThemeBall] = []
+        for t in tops {
+            let r: CircuitRect = boardRect[t].moved(boardAt[t])
+            for k in 0..<4 {
+                let cx: Double = k % 2 == 0 ? r.low.x : r.high.x
+                let cy: Double = k < 2 ? r.low.y : r.high.y
+                margin.append(ThemeBall(c: GraphCircuit.world(SIMD2<Double>(cx, cy), height: 0.1), r: 0.08))
+            }
         }
-        // the motherboard: everything, with a border, reaching down to the
-        // edge fingers and up to the pads, which sit on its edges
-        var board: CircuitRect = CircuitRect.bounding(main).grown(GraphCircuit.border)
-        if main.isEmpty { board = CircuitRect.bounding(loose).grown(GraphCircuit.border) }
-        if !loose.isEmpty {
-            let edge: CircuitRect = CircuitRect.bounding(loose)
-            let lo = SIMD2<Double>(min(board.low.x, edge.low.x), min(board.low.y, edge.low.y))
-            let hi = SIMD2<Double>(max(board.high.x, edge.high.x), max(board.high.y, edge.high.y))
-            board = CircuitRect.around(low: lo, high: hi)
-        }
-        var margin: [ThemeBall] = Self.balls(main + loose)
-        for k in 0..<4 {
-            let corner = SIMD2<Double>(k % 2 == 0 ? board.low.x : board.high.x, k < 2 ? board.low.y : board.high.y)
-            margin.append(ThemeBall(c: GraphCircuit.world(corner), r: 0.05))
+        for b in bodies where b.kind != .fixture {
+            let reach: Double = Double(b.sphere) * 1.3
+            margin.append(ThemeBall(c: SIMD3<Double>(Double(b.home.x), Double(b.home.y), Double(b.home.z)),
+                                    r: reach))
         }
         let envelope: [SIMD3<Float>] = ThemeLayout.points(margin, around: SIMD3<Double>(0, 0, 0))
         let regions: [Int] = tops.map { cBody[$0] }
-        var plan = ThemePlan(bodies: bodies, links: links, envelope: envelope, systems: systems, regions: regions,
+        var plan = ThemePlan(bodies: bodies, links: all, envelope: envelope, systems: systems, regions: regions,
                              summary: GraphCircuit.summary(bodies))
-        plan.ground = SIMD4<Float>(Float(board.low.x), Float(board.low.y), Float(board.high.x), Float(board.high.y))
         plan.patches = patches
+        plan.bars = bars
+        plan.feeds = feeds
         return plan
     }
+}
 
-    /// A ball round each rectangle, a little above the board (the parts
-    /// stand up from it), for framing.
-    static func balls(_ rects: [CircuitRect]) -> [ThemeBall] {
-        rects.map { r in
-            let reach: Double = (r.h.x * r.h.x + r.h.y * r.h.y).squareRoot()
-            return ThemeBall(c: GraphCircuit.world(r.c, height: 0.08), r: reach + 0.05)
-        }
-    }
-
-    func linkKind(_ i: Int, _ j: Int) -> Int {
-        if smdHost[i] == j || smdHost[j] == i { return 3 }
-        let hi: Int = tree.noteHome[i]
-        let hj: Int = tree.noteHome[j]
-        if hi < 0 || hj < 0 { return 2 }
-        if hi == hj { return 0 }
-        return tree.top[hi] == tree.top[hj] ? 1 : 2
-    }
-
-    /// A body's direction on the board: along y for a part lying that
-    /// way, else along x.
-    static func axis(vertical: Bool) -> SIMD3<Float> {
-        GraphUniverse.float3(vertical ? GraphCircuit.forward : GraphCircuit.right)
-    }
-
-    mutating func emitContainer(_ c: Int) {
-        let up: Int = tree.parent[c]
-        let parentBody: Int = up >= 0 ? cBody[up] : -1
-        let home: SIMD3<Double> = GraphCircuit.world(cPos[c])
-        let base: SIMD3<Double> = up >= 0 ? home - GraphCircuit.world(cPos[up]) : home
-        let index: Int = bodies.count
-        let region: Int = up >= 0 ? cBody[tree.top[c]] : index
-        let isHome: Bool = c == tree.homeC
-        let name: String = tree.cName(c)
-        let label: String = UniversePlanner.folderLabel(name, count: tree.count[c])
-        let r: CircuitRole = cRole(c)
-        bodies.append(ThemeBody(id: tree.cID(c), kind: isHome ? .home : .folder, role: r.rawValue,
-                                parent: parentBody, sphere: Float(cSphere[c]), depth: tree.depth[c],
-                                region: region, count: tree.count[c], links: 0, words: 0, rank: r.rank,
-                                seed: tree.cSeed(c), orbit: .fixed(GraphUniverse.float3(base)),
-                                home: GraphUniverse.float3(home), axis: Self.axis(vertical: true), title: name,
-                                label: label))
-        let p: CircuitRect = local[c].patch
-        patches.append(SIMD4<Float>(Float(p.c.x), Float(p.c.y), Float(p.h.x), Float(p.h.y)))
-        cBody[c] = index
-        for (i, at, vertical) in local[c].members {
-            emitNote(i, parent: index, region: region, at: cPos[c] + at, from: cPos[c], vertical: vertical)
-            emitSmds(i, at: cPos[c] + at, region: region, vertical: vertical)
-        }
-        for (k, _) in local[c].children { emitContainer(k) }
-    }
-
-    mutating func emitNote(_ i: Int, parent: Int, region: Int, at: SIMD2<Double>, from: SIMD2<Double>?,
-                           vertical: Bool) {
-        let note: UniverseNote = tree.noteList[i]
-        let home: SIMD3<Double> = GraphCircuit.world(at)
-        let base: SIMD3<Double> = from.map { home - GraphCircuit.world($0) } ?? home
-        let r: CircuitRole = role[i]
-        noteBody[i] = bodies.count
-        bodies.append(ThemeBody(id: note.id, kind: .note, role: r.rawValue, parent: parent,
-                                sphere: Float(sphere[i]), depth: -1, region: region, count: 0,
-                                links: tree.nbr[i].count, words: note.words, rank: r.rank, seed: tree.nSeed(i),
-                                orbit: .fixed(GraphUniverse.float3(base)), home: GraphUniverse.float3(home),
-                                axis: Self.axis(vertical: vertical), title: note.title,
-                                label: UniversePlanner.noteLabel(note.title)))
-        patches.append(SIMD4<Float>(0, 0, 0, 0))
-    }
-
-    /// A note's surface-mount parts, in their row beside it.
-    mutating func emitSmds(_ host: Int, at: SIMD2<Double>, region: Int, vertical: Bool) {
-        let list: [Int] = smdOf[host]
-        guard !list.isEmpty else { return }
-        let hostBody: Int = noteBody[host]
-        for (k, g) in list.enumerated() {
-            let spot: SIMD2<Double> = at + smdOffset(host, k, vertical: vertical)
-            emitNote(g, parent: hostBody, region: region, at: spot, from: at, vertical: vertical)
-        }
-    }
-
-    mutating func emitLoose(_ i: Int) {
-        emitNote(i, parent: -1, region: -1, at: looseSpot[i], from: nil, vertical: false)
-    }
+/// A board's own layout round its chip: its tiers (column indices), each
+/// tier's bus and ground rail heights, the power rail's height, its left
+/// edge (the pads' margin) and its rectangle.
+nonisolated struct CircuitBoardLayout: Sendable {
+    var tiers: [[Int]] = []
+    var buses: [Double] = []
+    var grounds: [Double] = []
+    var vcc: Double = 0
+    var left: Double = 0
+    var rect = CircuitRect(c: SIMD2<Double>(0, 0), h: SIMD2<Double>(0, 0))
 }

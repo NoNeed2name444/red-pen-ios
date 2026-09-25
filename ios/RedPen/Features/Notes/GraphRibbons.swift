@@ -38,10 +38,12 @@ nonisolated struct GraphRibbonLink {
 /// the fallback, reads the same numbers (its seed is just larger).
 ///
 /// No geometry is made per frame. The vertices live in Metal buffers that
-/// SceneKit draws straight from, three sets in turn (so the one being
-/// written is never one the GPU may still be reading); each frame only
-/// their contents are rewritten and the node is pointed at the set just
-/// written. The index list is made once for as many links as the scene can
+/// SceneKit draws straight from, in sets: each frame one set whose last
+/// frame the GPU has finished drawing (GraphFrameFence, GraphBufferRing)
+/// is rewritten and the node is pointed at it, so the one being written is
+/// never one the GPU is still reading - a set in flight overwritten showed
+/// as the links' ends jittering behind a dragged body. Three sets to start;
+/// another is made when all are still in flight. The index list is made once for as many links as the scene can
 /// show; slots not used this frame are collapsed to a point, which draws
 /// nothing. Without Metal (never on a device) it falls back to a new
 /// geometry a frame.
@@ -81,14 +83,26 @@ nonisolated final class GraphRibbonWriter {
     /// (GraphLinkRoute), its strip lying flat on the board instead of
     /// facing the camera. Nil everywhere else.
     private let board: GraphLinkBoard?
+    /// Which frames the GPU has finished (nil: assume three frames in
+    /// flight, as before).
+    private let fence: GraphFrameFence?
+    /// The Neurons' terminal arbor (GraphLinkArbor): each link runs to its
+    /// target's centre, widens round it for the brush of branchlets and
+    /// boutons its shader draws, and codes the distance from its end and
+    /// the target's membrane size. Nil everywhere else.
+    private let arbor: GraphLinkArbor?
+    /// Frames counted here when there is no fence.
+    private var ownFrame: UInt64 = 0
 
     init(halfWidth: Float = GraphShape.linkHalfWidth, material: SCNMaterial,
          samples: Int = GraphQuality.current.linkSamples, expected: Int = 0, seeded: Bool = false,
-         board: GraphLinkBoard? = nil) {
+         board: GraphLinkBoard? = nil, fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil) {
         self.halfWidth = halfWidth
         self.material = material
         self.seeded = seeded
         self.board = board
+        self.fence = fence
+        self.arbor = board == nil ? arbor : nil
         self.samples = max(samples, 2)
         let count: Int = self.samples + 1
         points = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: count)
@@ -114,7 +128,7 @@ nonisolated final class GraphRibbonWriter {
             grow(to: links.count, device: device)
         }
         guard !sets.isEmpty else { return nil }
-        turn = (turn + 1) % sets.count
+        turn = freeSet(device: device)
         let set: GraphRibbonBuffers = sets[turn]
         let perLink: Int = vertsPerLink
         let posCount: Int = capacity * perLink * 3
@@ -135,40 +149,73 @@ nonisolated final class GraphRibbonWriter {
             for k in from..<upTo { pos[k] = 0 }
         }
         set.filled = used
+        set.frame = frameNow
         set.geometry.boundingBox = bounds()
         return set.geometry
     }
 
-    /// Makes (or remakes, larger) the three buffer sets and the index list.
+    /// This frame's number: the fence's, or counted here.
+    private var frameNow: UInt64 {
+        fence?.frame ?? ownFrame
+    }
+
+    /// A set the GPU is done with, made if need be (GraphBufferRing).
+    private func freeSet(device: MTLDevice) -> Int {
+        if fence == nil { ownFrame += 1 }
+        let now: UInt64 = frameNow
+        let finished: UInt64
+        if let fence {
+            finished = fence.finished
+        } else {
+            finished = now > 3 ? now - 3 : 0
+        }
+        let used: [UInt64] = sets.map(\.frame)
+        if let k = GraphBufferRing.pick(used: used, finished: finished, now: now) { return k }
+        if sets.count < GraphBufferRing.most, let element, let made = makeSet(device: device, element: element) {
+            sets.append(made)
+            return sets.count - 1
+        }
+        return GraphBufferRing.fallback(used: used, now: now)
+    }
+
+    /// Makes (or remakes, larger) the first three buffer sets and the index
+    /// list.
     private func grow(to count: Int, device: MTLDevice) {
         let wanted: Int = max(count, capacity, 8)
         let doubled: Int = sets.isEmpty ? wanted : max(wanted, capacity * 2)
         capacity = doubled
-        let perLink: Int = vertsPerLink
-        let vertexCount: Int = capacity * perLink
         element = Self.indices(links: capacity, samples: samples)
         guard let element else { return }
         var made: [GraphRibbonBuffers] = []
         for _ in 0..<3 {
-            let posBytes: Int = vertexCount * 3 * MemoryLayout<Float>.stride
-            let uvBytes: Int = vertexCount * 2 * MemoryLayout<Float>.stride
-            guard let positions = device.makeBuffer(length: posBytes, options: .storageModeShared),
-                  let coords = device.makeBuffer(length: uvBytes, options: .storageModeShared) else {
+            guard let set = makeSet(device: device, element: element) else {
                 sets = []
                 return
             }
-            // every slot starts collapsed to a point: nothing drawn
-            memset(positions.contents(), 0, posBytes)
-            memset(coords.contents(), 0, uvBytes)
-            let vertexSource = SCNGeometrySource(buffer: positions, vertexFormat: .float3, semantic: .vertex,
-                                                 vertexCount: vertexCount, dataOffset: 0, dataStride: 12)
-            let coordSource = SCNGeometrySource(buffer: coords, vertexFormat: .float2, semantic: .texcoord,
-                                                vertexCount: vertexCount, dataOffset: 0, dataStride: 8)
-            let geometry = SCNGeometry(sources: [vertexSource, coordSource], elements: [element])
-            geometry.materials = [material]
-            made.append(GraphRibbonBuffers(positions: positions, coords: coords, geometry: geometry))
+            made.append(set)
         }
         sets = made
+    }
+
+    /// One buffer set at the present capacity, every slot collapsed to a
+    /// point (nothing drawn).
+    private func makeSet(device: MTLDevice, element: SCNGeometryElement) -> GraphRibbonBuffers? {
+        let vertexCount: Int = capacity * vertsPerLink
+        let posBytes: Int = vertexCount * 3 * MemoryLayout<Float>.stride
+        let uvBytes: Int = vertexCount * 2 * MemoryLayout<Float>.stride
+        guard let positions = device.makeBuffer(length: posBytes, options: .storageModeShared),
+              let coords = device.makeBuffer(length: uvBytes, options: .storageModeShared) else {
+            return nil
+        }
+        memset(positions.contents(), 0, posBytes)
+        memset(coords.contents(), 0, uvBytes)
+        let vertexSource = SCNGeometrySource(buffer: positions, vertexFormat: .float3, semantic: .vertex,
+                                             vertexCount: vertexCount, dataOffset: 0, dataStride: 12)
+        let coordSource = SCNGeometrySource(buffer: coords, vertexFormat: .float2, semantic: .texcoord,
+                                            vertexCount: vertexCount, dataOffset: 0, dataStride: 8)
+        let geometry = SCNGeometry(sources: [vertexSource, coordSource], elements: [element])
+        geometry.materials = [material]
+        return GraphRibbonBuffers(positions: positions, coords: coords, geometry: geometry)
     }
 
     /// Two triangles between each pair of neighbouring samples, for
@@ -239,9 +286,19 @@ nonisolated final class GraphRibbonWriter {
                       axis: [SIMD3<Float>]?, focus: Int, eye: SIMD3<Float>,
                       pos: UnsafeMutablePointer<Float>, uv: UnsafeMutablePointer<Float>, first: Int) {
         let n: Int = samples
+        // the arbor: the target's membrane, as the step the shader reads
+        var level: Int = 0
+        var membrane: Float = 0
+        if let arbor {
+            let trueMembrane: Float = radius[link.b] * arbor.membrane
+            level = GraphLinkArbor.level(for: trueMembrane)
+            membrane = GraphLinkArbor.radius(level: level)
+        }
         let path: GraphLinkPath = self.path(link, position: position, radius: radius, codes: codes, axis: axis)
         let total: Float = GraphLinkCurve.sample(path, count: n, points: &points, lengths: &lengths)
         let dir: SIMD3<Float> = GraphLinkCurve.unit(path.end - path.start, or: SIMD3<Float>(1, 0, 0))
+        // the whole link's length (a growing link is drawn only in part)
+        let whole: Float = link.grow > 0.001 ? total / min(link.grow, 1) : total
 
         let codeA: Int = codes[link.a]
         let codeB: Int = codes[link.b]
@@ -250,10 +307,14 @@ nonisolated final class GraphRibbonWriter {
         let styled: Int = pair * 16 + seed
         let code: Int = seeded ? Self.themeSeed(link.seed) : styled
         let lit: Int = (link.a == focus || link.b == focus) ? 1 : 0
-        let scale: Float = GraphLinkCurve.alongScale(total: total)
+        let scale: Float = GraphLinkCurve.alongScale(total: arbor == nil ? total : whole)
         let coded: Float = min(total * scale, GraphLinkCurve.alongCap)
         let sixteenths: Int = Int((coded * 16).rounded(.down))
-        let band: Float = Float(sixteenths * 2 + lit)
+        var band: Float = Float(sixteenths * 2 + lit)
+        if arbor != nil {
+            let wholeCoded: Float = min(whole * scale, GraphLinkCurve.alongCap)
+            band = Float(GraphLinkArbor.band(length: wholeCoded, level: level, lit: lit))
+        }
         let lowV: Float = band + 0.002
         let highV: Float = band + 0.998
         let u0: Float = Float(code * 64 + 1)
@@ -268,13 +329,20 @@ nonisolated final class GraphRibbonWriter {
                 // part has pulled it up off the board)
                 side = GraphLinkCurve.unit(GraphLinkCurve.cross(board.normal, tangent), or: side)
             }
-            let offset: SIMD3<Float> = side * halfWidth
+            var width: Float = halfWidth
+            var along: Float = min(lengths[k] * scale, GraphLinkCurve.alongCap)
+            if let arbor {
+                // coded from the end: the brush sits exactly on the target
+                let fromEnd: Float = max(whole - lengths[k], 0) * scale
+                along = min(fromEnd, GraphLinkCurve.alongCap)
+                width = arbor.halfWidth(dEnd: along, r: membrane, h: halfWidth)
+            }
+            let offset: SIMD3<Float> = side * width
             let p0: SIMD3<Float> = p - offset
             let p1: SIMD3<Float> = p + offset
             let v: Int = first + k * 2
             put(p0, pos, v)
             put(p1, pos, v + 1)
-            let along: Float = min(lengths[k] * scale, GraphLinkCurve.alongCap)
             let u: Float = u0 + along
             uv[v * 2] = u
             uv[v * 2 + 1] = lowV
@@ -302,7 +370,12 @@ nonisolated final class GraphRibbonWriter {
         let length: Float = simd_length(delta)
         let dir: SIMD3<Float> = length > 0.0001 ? delta / length : SIMD3<Float>(1, 0, 0)
         let trimA: Float = min(radius[link.a] * GraphShape.linkTrim, length * 0.45)
-        let trimB: Float = min(radius[link.b] * GraphShape.linkTrim, length * 0.45)
+        var trimB: Float = min(radius[link.b] * GraphShape.linkTrim, length * 0.45)
+        if let arbor {
+            // to the target's centre (give or take the membrane's step)
+            let membrane: Float = radius[link.b] * arbor.membrane
+            trimB = min(GraphLinkArbor.endTrim(membrane: membrane), length * 0.45)
+        }
         var path = GraphLinkPath(start: pa + dir * trimA, end: pb - dir * trimB)
         path.grow = link.grow
         if let board {
@@ -373,11 +446,55 @@ nonisolated final class GraphRibbonBuffers {
     let coords: MTLBuffer
     let geometry: SCNGeometry
     var filled: Int = 0
+    /// The frame it was last written in (GraphFrameFence), 0 for never.
+    var frame: UInt64 = 0
 
     init(positions: MTLBuffer, coords: MTLBuffer, geometry: SCNGeometry) {
         self.positions = positions
         self.coords = coords
         self.geometry = geometry
+    }
+}
+
+/// Which frames the GPU has finished drawing, for the link writers
+/// (GraphBufferRing). At the start of each frame (GraphSim's update, on the
+/// render thread) it commits an empty command buffer on SceneKit's own
+/// queue, after the previous frame's work: a queue finishes its buffers in
+/// order, so when that marker completes the previous frame has been drawn
+/// and every buffer set written in it may be written again.
+nonisolated final class GraphFrameFence: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done: UInt64 = 0
+    /// The frame being prepared (render thread only).
+    private(set) var frame: UInt64 = 0
+
+    /// The newest frame the GPU has finished.
+    var finished: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return done
+    }
+
+    /// A new frame begins: the previous one is marked finished once the
+    /// GPU is through with it (at once when there is no queue).
+    func begin(queue: MTLCommandQueue?) {
+        let previous: UInt64 = frame
+        frame += 1
+        guard previous > 0 else { return }
+        guard let queue, let marker = queue.makeCommandBuffer() else {
+            mark(previous)
+            return
+        }
+        marker.addCompletedHandler { [weak self] _ in
+            self?.mark(previous)
+        }
+        marker.commit()
+    }
+
+    private func mark(_ finishedFrame: UInt64) {
+        lock.lock()
+        if finishedFrame > done { done = finishedFrame }
+        lock.unlock()
     }
 }
 
@@ -408,6 +525,9 @@ enum GraphMemory {
     private static var lastStyles: [UUID: GraphNodeStyle] = [:]
     private static var lastLinks: Set<String> = []
     private static var lastPairs: [String: (UUID, UUID)] = [:]
+    /// What the scene on screen was (its theme and look): bodies leave with
+    /// a death (GraphDeathStage) only within one.
+    private static var lastKey: String = ""
 
     nonisolated static func key(_ a: UUID, _ b: UUID) -> String {
         let x: String = a.uuidString
@@ -444,11 +564,22 @@ enum GraphMemory {
         return recalled
     }
 
+    /// The bodies the scene still on screen shows that a new one of the
+    /// same kind (`key`: its theme and look) will not have - deleted notes
+    /// and folders - handed over to die (GraphDeathStage). None across a
+    /// change of theme or look, where everything is rebuilt anyway.
+    static func leaving(keeping: Set<UUID>, key scene: String) -> [GraphDeparture] {
+        guard let sim = lastSim, scene == lastKey, !scene.isEmpty else { return [] }
+        return sim.departures(keeping: keeping)
+    }
+
     /// Remembers the scene now on screen. Its orbit clock is read from the
     /// sim itself when the next scene is built, so it carries over as it
     /// stands then.
-    static func remember(_ sim: GraphSim, edges: [(UUID, UUID)], styles: [UUID: GraphNodeStyle]) {
+    static func remember(_ sim: GraphSim, edges: [(UUID, UUID)], styles: [UUID: GraphNodeStyle],
+                         key scene: String = "") {
         lastSim = sim
+        lastKey = scene
         lastStyles = styles
         var links = Set<String>()
         var pairs: [String: (UUID, UUID)] = [:]
