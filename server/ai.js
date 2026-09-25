@@ -139,6 +139,27 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   });
 }
 
+/// One named free model, for the accuracy engine's votes (accuracy.js):
+/// "gemini:<model>" or "workers-ai:<model>" only - never a paid host - and a
+/// Gemini model only when this account may use it right now (geminiModels:
+/// the free chain, or Gemma alone once over a Pro budget). Every free limit
+/// still applies: the account's share of scarce Gemini models (freeShare),
+/// the day's Gemini ceiling, and the Workers AI neuron shares (takeNeurons).
+/// One round: a per-minute limit is the next voter's turn, not a wait.
+export async function askModel(env, account, owner, use, messages, maxTokens, fetcher = fetch) {
+  if (!/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
+  const source = pinnedSource(env, use);
+  if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
+  const route = { sources: [source], account: owner ? 'owner' : account, owner, rounds: 1 };
+  route.wallet = await wallet(env, account, owner);
+  route.canPay = await canPay(env, account, owner, route.wallet);
+  if (source.kind === 'gemini') {
+    const allowed = await geminiModels(env, account, owner, 'modes', route.canPay);
+    if (!allowed.includes(source.models[0])) return { ok: false, status: 429, detail: `${use} is not available to this account now.` };
+  }
+  return complete(env, route, messages, maxTokens, 0, fetcher);
+}
+
 export function pinnedSource(env, use) {
   const at = use.indexOf(':');
   const kind = use.slice(0, at), model = use.slice(at + 1).trim();

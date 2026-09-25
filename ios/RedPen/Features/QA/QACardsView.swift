@@ -96,6 +96,9 @@ struct QACardsView: View {
                 if !card.topic.isEmpty {
                     Text(card.topic).font(.subheadline).foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 4)
+                // revealed: the case's accuracy, and why
+                if revealed { AccuracyBadge(set: studySet, itemID: card.id.uuidString) }
             }
             Text(hl(card.stem)).font(.title3.weight(.semibold)).lineSpacing(2)
             if revealed {

@@ -291,6 +291,8 @@ struct OsceReviewView: View {
         return ScrollView {
             VStack(spacing: 16) {
                 FinishHero(symbol: "checkmark.seal.fill", title: title, message: message)
+                // the station worked through: its accuracy, and why
+                AccuracyBadge(set: studySet, itemID: checklist.id.uuidString)
                 Button { spoken = checklist } label: {
                     Label("Practise it with a spoken patient", systemImage: "person.wave.2")
                 }

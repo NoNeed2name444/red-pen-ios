@@ -116,8 +116,18 @@ struct AnkiReviewView: View {
                 .cardFlip(revealed: revealed, enabled: !startRevealed)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
+                .padding(.bottom, revealed ? 8 : 24)
+                .readableColumn()
+            // turned over: the card's accuracy, and why
+            if revealed {
+                HStack {
+                    AccuracyBadge(set: studySet, itemID: item.card.id.uuidString)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
                 .readableColumn()
+            }
         }
         .studyBar { footer(item) }
     }

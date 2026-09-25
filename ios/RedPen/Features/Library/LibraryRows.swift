@@ -327,6 +327,8 @@ extension LibraryView {
             }
         }
         Button("Rename", systemImage: "pencil") { renaming = set }
+        // the set's accuracy in words: verified, to check, flagged
+        AccuracySetSummary(set: set)
         // any mode into any other: rearranged on the spot where it can be,
         // written from the lecture where it cannot
         if ModeConversion.targets.contains(where: { ModeConversion.canTurn(set, into: $0) }) {
@@ -517,6 +519,8 @@ extension LibraryView {
                         Text("\u{00b7}").foregroundStyle(.tertiary)
                         Text(set.subject).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
+                    // flagged or to check, once anything in it is checked
+                    AccuracySetMark(set: set)
                 }
             }
             Spacer(minLength: 0)

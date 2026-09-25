@@ -78,6 +78,9 @@ struct BookReaderView: View {
                     ForEach(Array(BookPages.blocks(page.markdown).enumerated()), id: \.offset) { _, block in
                         blockView(block)
                     }
+                    // the page's accuracy, and why
+                    AccuracyBadge(set: studySet, itemID: studySet.id.uuidString + "#p\(page.id)")
+                        .padding(.top, 6)
                 } else {
                     Text("This textbook is empty.").foregroundStyle(.secondary)
                 }

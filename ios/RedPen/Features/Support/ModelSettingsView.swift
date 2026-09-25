@@ -37,6 +37,7 @@ struct ModelSettingsView: View {
     private var form: some View {
         Form {
             useSection
+            AccuracyEngineSection()
             deviceSection
             cloudSection
             ownKeySection
@@ -393,6 +394,30 @@ private struct ProviderEditor: View {
             testResult = "Answered: \(reply.prefix(60))"
         } catch {
             testResult = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+}
+
+/// The app's accuracy engine: every question, card, case, station and page
+/// checked against its lecture and the literature by free models voting,
+/// scored by the trained accuracy model. Only the background pass over the
+/// whole library can be turned off; new content is always checked.
+private struct AccuracyEngineSection: View {
+    @ObservedObject private var accuracy = AccuracyStore.shared
+
+    var body: some View {
+        let checked: Int = accuracy.ledger.records.values.filter { !$0.votes.isEmpty }.count
+        Section {
+            Toggle("Check my whole library in the background", isOn: $accuracy.background)
+            LabeledContent("Items checked", value: "\(checked)")
+            LabeledContent("Accuracy model", value: accuracy.weights.version)
+            if let reason = accuracy.pausedReason {
+                Text(reason).font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Accuracy engine")
+        } footer: {
+            Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item is checked against its lecture and current literature (PubMed reviews, MedlinePlus, FDA labels) by two or three free models voting, never only by the model that wrote it, plus rule checks for doses, lab values and contradictions. An item is checked again only when it changes. Needs \(Brand.name) Cloud; rule checks work everywhere.")
         }
     }
 }

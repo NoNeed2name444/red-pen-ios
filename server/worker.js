@@ -14,6 +14,7 @@ import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
 import { jobsRoute } from './jobs.js';
+import { checkBatch, report as reportError, modelWeights, setWeights, listReports } from './accuracy.js';
 import { speech } from './tts.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 
@@ -158,6 +159,22 @@ export default {
         case '/tts':
           if (isOwnerKey(request, env)) return await speech(env, 'owner', body, fetch, { owner: true });
           return await guarded(request, env, id => speech(env, id, body));
+        // the accuracy engine (accuracy.js): a batch of items checked by
+        // voting free models against their lecture and the literature
+        case '/accuracy/check':
+          if (isOwnerKey(request, env)) return await checkBatch(env, 'owner', body, fetch, { owner: true, bench: request.headers.get('x-bench') === '1' });
+          return await guarded(request, env, id => checkBatch(env, id, body));
+        case '/accuracy/report':
+          if (isOwnerKey(request, env)) return await reportError(env, 'owner', body);
+          return await guarded(request, env, id => reportError(env, id, body));
+        // the weights are not a secret: the app fetches them signed in or not
+        case '/accuracy/model': return await modelWeights(env);
+        case '/accuracy/model/set':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await setWeights(env, body);
+        case '/accuracy/reports':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await listReports(env, body);
         case '/transcribe/config': return await transcribeConfig();
         case '/transcribe/chunk':
           if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
@@ -439,6 +456,8 @@ async function deleteAccount(request, env) {
 /// Object of their own that nothing else would ever reach again.
 async function forgetEverything(env, id) {
   await wipe(env, id);
+  // the errors this account reported, with the items it sent
+  try { await env.DB.prepare('DELETE FROM accuracy_reports WHERE account_id = ?').bind(id).run(); } catch { /* no table yet */ }
   if (env.JOBS) {
     const stub = env.JOBS.get(env.JOBS.idFromName(id));
     await stub.fetch(new Request('https://jobs/wipe', { method: 'POST' }));

@@ -27,6 +27,23 @@ Conflicts are settled on the device, in `SyncMerge`, where the rule is that the
 loser is kept as a visible copy rather than dropped. The server does not decide
 whose work survives.
 
+## The accuracy engine
+
+`accuracy.js` checks questions, cards, cases, OSCE stations, textbook pages,
+narrated facts and (when a student asks) their own notes. Each batch of up to
+four items is shown with its lecture excerpt and free literature
+(`evidence.js`: Europe PMC, MedlinePlus, openFDA) to two free checker models -
+a third when they disagree, never the model that wrote the items - and every
+call goes through `ai.js`'s free shares and neuron limits. `accuracy-rules.js`
+adds deterministic checks (doses, lab values and units, key/explanation
+contradictions), and `accuracy-model.js` combines everything into P(accurate)
+and Verified / Check this / Flagged. Verdict signals are cached in
+`accuracy_verdicts` by the hash of the item's content, so nothing is checked
+twice unless edited. Reports go to `accuracy_reports` (deleted with the
+account). The combiner's weights are trained for free by
+`bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
+from `accuracy_model`; before any training the bundled prior is used.
+
 ## Deploying it
 
     cd server

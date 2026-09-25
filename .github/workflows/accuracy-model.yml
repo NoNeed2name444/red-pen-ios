@@ -1,0 +1,68 @@
+# Trains the app's accuracy model - the small combiner that turns the checker
+# models' votes, the literature, the rule checks and the source match into one
+# P(accurate) and Verified / Check this / Flagged (server/accuracy-model.js).
+#
+# Free: public exam questions with known answers (MedQA-USMLE test, MedMCQA
+# dev) are loaded from Hugging Face at run time, each shown right and wrong to
+# the deployed worker's /accuracy/check with the owner key - on the benchmarks'
+# own daily allowance, within every free limit - and the signals add up across
+# runs on the accuracy-model branch (a slice a week, or more by hand). The fit,
+# its calibration report and the weights are pushed there too, and the weights
+# go to the worker (and so to every app) only when they beat the current ones.
+name: Accuracy model
+on:
+  schedule:
+    # Sundays, after the free limits reset at midnight UTC
+    - cron: '41 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      batches:
+        description: Batches of four items to check this run (free limits allow a few dozen)
+        required: false
+        default: '60'
+      publish:
+        description: Publish the weights to the worker when they beat the current ones
+        required: false
+        default: 'yes'
+permissions:
+  contents: write
+concurrency:
+  group: accuracy-model
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # node:sqlite, which the tests run against, arrived in 22.5
+          node-version: '22'
+      - name: The accuracy engine's own tests
+        run: node server/tests/accuracy.test.mjs
+      - name: Signals so far
+        run: |
+          mkdir -p out
+          if git fetch -q origin accuracy-model; then
+            git archive origin/accuracy-model | tar -x -C out
+          fi
+          [ -f out/signals.json ] || echo '[]' > out/signals.json
+      - name: Check a slice, fit, report
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          MAX_BATCHES: ${{ inputs.batches || '60' }}
+          PUBLISH: ${{ (inputs.publish || 'yes') == 'yes' && '1' || '0' }}
+        run: |
+          if [ -z "$AI_API_KEY" ]; then echo "::warning::No AI_API_KEY secret: nothing to check"; exit 0; fi
+          KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          KEY="$KEY" OUT=out STATE=out/signals.json node server/bench/train-accuracy.mjs 2>&1 | tee out/run.log
+      - name: Push the signals, report and weights
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q && git checkout -q -b accuracy-model
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "accuracy model $GITHUB_RUN_ID" || exit 0
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" accuracy-model:accuracy-model

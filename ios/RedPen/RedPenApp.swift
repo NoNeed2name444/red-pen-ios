@@ -125,6 +125,10 @@ struct RedPenApp: App {
                         .learnRoutes()
                         // sets the cloud finished while the app was closed
                         .task { await CloudJobCollector.collect(into: store) }
+                        // the accuracy engine: new and edited content checked
+                        // at once, the rest of the library in the background,
+                        // within the free limits (AccuracyStore)
+                        .task { AccuracyStore.shared.attach(store) }
                         // An edit reaches the other device in seconds, not at
                         // the next launch: a sync shortly after the library or
                         // the review schedule changes...
@@ -193,6 +197,7 @@ struct RedPenApp: App {
                                     // way back in, sync or no sync: the cloud
                                     // models use it too
                                     if new == .active { await account.refreshIfNeeded() }
+                                    if new == .active { AccuracyStore.shared.kick() }
                                     await sync.syncNow()
                                 }
                             }

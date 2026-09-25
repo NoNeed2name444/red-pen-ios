@@ -176,3 +176,36 @@ CREATE TABLE IF NOT EXISTS released_tokens (
   subject      TEXT NOT NULL,
   released_at  INTEGER NOT NULL
 );
+
+-- The accuracy engine (accuracy.js). A verdict's signals - each checker
+-- model's vote, the evidence it was shown, how much of the item its lecture
+-- contains - kept by the hash of the item's own content, so an item is never
+-- checked twice unless it is edited. No account, no item text: only what the
+-- models said about content with that hash.
+CREATE TABLE IF NOT EXISTS accuracy_verdicts (
+  hash        TEXT PRIMARY KEY,
+  signals     TEXT NOT NULL,
+  created_at  INTEGER NOT NULL
+);
+
+-- "Report an error": one row per item and account, with the item itself (the
+-- training run needs to know what was reported) and the student's note.
+-- Removed with the account.
+CREATE TABLE IF NOT EXISTS accuracy_reports (
+  hash        TEXT NOT NULL,
+  account_id  TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  item        TEXT NOT NULL,
+  note        TEXT,
+  created_at  INTEGER NOT NULL,
+  PRIMARY KEY (hash, account_id)
+);
+CREATE INDEX IF NOT EXISTS accuracy_reports_by_account ON accuracy_reports (account_id);
+
+-- The accuracy model's weights, as each training run published them
+-- (bench/train-accuracy.mjs); the newest is used.
+CREATE TABLE IF NOT EXISTS accuracy_model (
+  version     TEXT PRIMARY KEY,
+  body        TEXT NOT NULL,
+  created_at  INTEGER NOT NULL
+);

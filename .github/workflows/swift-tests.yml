@@ -161,6 +161,16 @@ jobs:
           # the Universe look: folders as black holes and stars, notes as planets,
           # moons, pulsars and comets - the size ladder, no overlaps, determinism
           suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
+          # the accuracy engine: dose, lab and contradiction rules (the same
+          # cases as the server's), the accuracy model's grades, the cache key,
+          # the order background checks run in, and one-tap corrections
+          suite accuracy AccuracyTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+                $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
 
       - name: Fail the job if anything failed
         run: |

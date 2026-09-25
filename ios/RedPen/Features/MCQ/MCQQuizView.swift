@@ -520,6 +520,10 @@ struct MCQQuizView: View {
                 if canHint { HintChip(used: hints[q.id] != nil, action: askHint) }
                 if inLibrary(q.id) { flagButton }
             }
+            // once answered: Verified / Check this / Flagged, and why
+            if a.checked && !examMode {
+                AccuracyBadge(set: studySet, itemID: q.id.uuidString)
+            }
             HighlightableStem(stem: q.stem, plain: stemText, marked: highlightBinding,
                               highlighting: highlighting)
                 .font(.title3.weight(.semibold))
