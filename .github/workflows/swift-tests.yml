@@ -270,6 +270,9 @@ jobs:
                 $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift \
                 $S/Lens/QuestionDetector.swift $S/Lens/LensTracking.swift $S/Lens/LensAnswer.swift \
                 $S/Lens/LensConversion.swift
+          # the first run: who sees the first-run pages and when, the daily
+          # goal's key and range, and tips that wait for a familiar screen
+          suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
 
       - name: Fail the job if anything failed
         run: |
