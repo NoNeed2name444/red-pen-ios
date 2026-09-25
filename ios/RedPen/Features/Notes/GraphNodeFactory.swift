@@ -24,6 +24,35 @@ struct GraphStyledParts {
     let stretchGain: Float
 }
 
+/// How the Universe dresses a body (GraphUniverse); .plain is the graph
+/// look, unchanged.
+nonisolated enum GraphBodyLook: Equatable, Sendable {
+    case plain
+    /// A top-level folder's black hole; a dormant one has no disk.
+    case galaxy(empty: Bool)
+    /// A folder's star in its tier's colour; a dark star has no corona.
+    case star(tier: Int, dark: Bool)
+    /// No decorative moon; a gas giant's ring only for a long read.
+    case planet(ringed: Bool)
+    /// A real note as a moon: the grey mottled sphere and a faint glow.
+    case moon
+    /// An Oort comet rests with no tail.
+    case comet(active: Bool)
+}
+
+/// Where a body's lit materials take their light from.
+nonisolated enum GraphLight: Equatable, Sendable {
+    /// The graph look: the four busiest suns, shared.
+    case shared
+    /// Never a sun: the key light only.
+    case key
+    /// Its owner star or black hole (a body index).
+    case fixed(Int)
+    /// Its own materials, lit each frame by the nearest light (a comet;
+    /// the body's own index).
+    case nearest(Int)
+}
+
 /// Builds every note in its style, sharing geometry and materials: one
 /// unit sphere and one unit plane per material, one material per style
 /// (and per folder where the folder tints or picks a palette), never one
@@ -52,7 +81,17 @@ final class GraphStyleKit {
     private(set) var clocked: [SCNMaterial] = []
     private(set) var lit: [SCNMaterial] = []
     private(set) var rigs: [GraphStyleRig] = []
+    /// Lit materials with a fixed owner (a planet's star), and a comet's
+    /// own, lit by the nearest light (the Universe; GraphStyleAnimator).
+    private(set) var owned: [(SCNMaterial, Int)] = []
+    private(set) var nearest: [(SCNMaterial, Int)] = []
     private var cache: [String: SCNGeometry] = [:]
+    /// Each folder's tone where the caller knows better than the store's
+    /// top-level walk (the Universe: its planned galaxy's tone).
+    var tones: [UUID: UIColor] = [:]
+    /// Where the body being made takes its light from, and its key ending.
+    private var lightNow: GraphLight = .shared
+    private var lightKey: String = ""
 
     init(store: NoteStore, shaders: GraphShaderSupport, support: GraphStyleSupport,
          lively: Bool, detail: Float) {
@@ -65,10 +104,25 @@ final class GraphStyleKit {
 
     // MARK: a note
 
+    /// A note in the graph look: every piece as it has always been.
     func make(note: Note, style: GraphNodeStyle, radius r: Float,
               random: inout SplitMix64) -> GraphStyledParts {
+        let palette: Int = GraphStyleChoice.palette(for: note.folderId)
+        return make(name: "note:\(note.id.uuidString)", folder: note.folderId, style: style, radius: r,
+                    random: &random, look: .plain, light: .shared, palette: palette)
+    }
+
+    /// Any body: a note, a folder's star or black hole, or the home star.
+    /// `look` is how the Universe dresses it (.plain: the graph look);
+    /// `light` where its lit materials take their light from; `palette`
+    /// its planets' family (GraphStyleArt).
+    func make(name: String, folder: UUID?, style: GraphNodeStyle, radius r: Float,
+              random: inout SplitMix64, look: GraphBodyLook, light: GraphLight,
+              palette: Int) -> GraphStyledParts {
+        lightNow = light
+        lightKey = Self.suffix(light)
         let node = SCNNode()
-        node.name = "note:\(note.id.uuidString)"
+        node.name = name
         let seed: Float = random.unit()
 
         // the note's frame: tilted so a disk is seen a little from above,
@@ -85,21 +139,23 @@ final class GraphStyleKit {
         node.addChildNode(tilt)
 
         let bodyRadius: Float = r * Self.bodyScale(style)
-        let body = SCNNode(geometry: bodyGeometry(style, folder: note.folderId))
+        let body = SCNNode(geometry: bodyGeometry(style, palette: palette, look: look))
         body.categoryBitMask = 1
         body.simdScale = SIMD3<Float>(bodyRadius, bodyRadius, bodyRadius)
         let bodyTurn = simd_quatf(angle: Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         body.simdOrientation = bodyTurn
         tilt.addChildNode(body)
 
-        // the disk slot
+        // the disk slot: a black hole's disk (none when dormant), a gas
+        // giant's ring (in the Universe only from 250 words)
         let disk = SCNNode()
-        let diskGeometry: SCNGeometry? = diskGeometry(style, folder: note.folderId)
-        let hotDisk: SCNGeometry? = style == .blackHole ? hotHole().disk : nil
+        let hasDisk: Bool = Self.hasDisk(style, look: look)
+        let diskGeometry: SCNGeometry? = hasDisk ? diskGeometry(style, folder: folder, palette: palette) : nil
+        let hotDisk: SCNGeometry? = style == .blackHole && hasDisk ? hotHole().disk : nil
         disk.geometry = diskGeometry
         var diskSide: Float = 0
-        if style == .blackHole { diskSide = r * GraphShape.diskRadius * 2 }
-        if style == .gasGiant { diskSide = bodyRadius * 4.8 }
+        if style == .blackHole && hasDisk { diskSide = r * GraphShape.diskRadius * 2 }
+        if style == .gasGiant && hasDisk { diskSide = bodyRadius * 4.8 }
         let startSpin: Float = random.unit() * Float.pi
         disk.simdEulerAngles = SIMD3<Float>(0, 0, startSpin)
         if diskSide > 0 { disk.simdScale = SIMD3<Float>(diskSide, diskSide, diskSide) }
@@ -118,15 +174,18 @@ final class GraphStyleKit {
         let lift: Float = reachRadius * GraphShape.ringLift
         stretch.simdPosition = SIMD3<Float>(0, 0, lift)
         stretch.opacity = 0.85
-        let ringGeometry: SCNGeometry = ringGeometry(style, folder: note.folderId)
+        let ringGeometry: SCNGeometry = ringGeometry(style, folder: folder, palette: palette, look: look)
         let ring = SCNNode(geometry: ringGeometry)
-        let ringSide: Float = Self.ringSide(style, r: r, body: bodyRadius)
+        var ringSide: Float = Self.ringSide(style, r: r, body: bodyRadius)
+        if look == .moon { ringSide = bodyRadius * 2.4 }
         ring.simdScale = SIMD3<Float>(ringSide, ringSide, 1)
         ring.renderingOrder = 6
         ring.categoryBitMask = 2
         stretch.addChildNode(ring)
         holder.addChildNode(stretch)
         node.addChildNode(holder)
+        // a dark star has no corona
+        if case .star(_, let dark) = look, dark { stretch.isHidden = true }
 
         var haze: [SCNNode] = [holder, disk]
         var moon: SCNNode?
@@ -134,7 +193,9 @@ final class GraphStyleKit {
         var tail: SCNNode?
         var extra = SIMD2<Float>(0, 0)
         switch style {
-        case .rocky:
+        case .rocky where look == .plain:
+            // the graph look's decorative moon; in the Universe every moon
+            // on screen is a real note
             let made = SCNNode(geometry: moonGeometry())
             let size: Float = bodyRadius * 0.27
             made.simdScale = SIMD3<Float>(size, size, size)
@@ -151,6 +212,9 @@ final class GraphStyleKit {
             haze.append(made)
             extra = SIMD2<Float>(r * 0.9, r * 6)
         case .comet:
+            // an Oort comet rests with no tail: none is made, so the
+            // animator never swings a hidden one
+            if case .comet(let active) = look, !active { break }
             let made = SCNNode(geometry: plane("cometTail", source: GraphStyleShaders.cometTail,
                                                fallback: GraphStyleArt.streak, tint: nil))
             made.renderingOrder = 3
@@ -177,10 +241,77 @@ final class GraphStyleKit {
         let swell: Float = style == .sun ? 0.3 : 0
         let gain: Float = style == .blackHole ? 1 : 0.4
         let hotRing: SCNGeometry? = style == .blackHole ? hotHole().ring : nil
+        lightNow = .shared
+        lightKey = ""
         return GraphStyledParts(node: node, ringStretch: stretch, ringLeaf: ring,
                                 ringGeometry: ringGeometry, hotRing: hotRing, diskLeaf: disk,
                                 diskGeometry: diskGeometry, hotDisk: hotDisk, radius: reachRadius,
                                 spin: startSpin, spinRate: spinRate, swell: swell, stretchGain: gain)
+    }
+
+    /// The clocked materials split in two: those shared by many bodies, and
+    /// the Universe's copies made for one owner star or one comet, each with
+    /// that body's index (GraphSim ticks these less often).
+    func splitClocked() -> (shared: [SCNMaterial], owned: [(SCNMaterial, Int)]) {
+        var ownerOf: [ObjectIdentifier: Int] = [:]
+        for (material, body) in owned { ownerOf[ObjectIdentifier(material)] = body }
+        for (material, body) in nearest { ownerOf[ObjectIdentifier(material)] = body }
+        var shared: [SCNMaterial] = []
+        var mine: [(SCNMaterial, Int)] = []
+        for material in clocked {
+            if let body = ownerOf[ObjectIdentifier(material)] {
+                mine.append((material, body))
+            } else {
+                shared.append(material)
+            }
+        }
+        return (shared, mine)
+    }
+
+    /// Whether a body has its disk: a black hole unless dormant, a gas giant
+    /// unless the Universe keeps its ring for a long read.
+    private static func hasDisk(_ style: GraphNodeStyle, look: GraphBodyLook) -> Bool {
+        switch look {
+        case .galaxy(let empty): return !empty && style == .blackHole
+        case .planet(let ringed): return style == .gasGiant ? ringed : style == .blackHole
+        default: return style == .blackHole || style == .gasGiant
+        }
+    }
+
+    /// The cache-key ending for a light: materials lit by different owners
+    /// are different materials.
+    private static func suffix(_ light: GraphLight) -> String {
+        switch light {
+        case .shared: return ""
+        case .key: return "-k"
+        case .fixed(let owner): return "-o\(owner)"
+        case .nearest(let body): return "-c\(body)"
+        }
+    }
+
+    /// Registers a new lit material with whatever lights the body being made.
+    private func markLit(_ material: SCNMaterial) {
+        switch lightNow {
+        case .shared:
+            if !lit.contains(material) { lit.append(material) }
+        case .key:
+            break
+        case .fixed(let owner):
+            owned.append((material, owner))
+        case .nearest(let body):
+            nearest.append((material, body))
+        }
+    }
+
+    /// A star's colour by tier: white (today's sun), orange, red; a dark
+    /// star's ember.
+    static func tierColour(_ tier: Int, dark: Bool) -> UIColor {
+        if dark { return UIColor(red: 0.42, green: 0.20, blue: 0.14, alpha: 1) }
+        switch tier {
+        case 2: return UIColor(red: 1.0, green: 0.74, blue: 0.50, alpha: 1)
+        case 3: return UIColor(red: 1.0, green: 0.52, blue: 0.36, alpha: 1)
+        default: return UIColor.white
+        }
     }
 
     // MARK: sizes
@@ -236,19 +367,35 @@ final class GraphStyleKit {
         folder?.uuidString ?? "none"
     }
 
-    private func bodyGeometry(_ style: GraphNodeStyle, folder: UUID?) -> SCNGeometry {
-        let palette: Int = GraphStyleChoice.palette(for: folder)
+    private func bodyGeometry(_ style: GraphNodeStyle, palette: Int, look: GraphBodyLook) -> SCNGeometry {
+        if look == .moon { return moonGeometry() }
+        var tier: Int = 1
+        var dark: Bool = false
+        if case .star(let t, let d) = look {
+            tier = t
+            dark = d
+        }
         let key: String
         switch style {
-        case .rocky, .gasGiant: key = "body-\(style.rawValue)-\(palette)"
+        case .rocky, .gasGiant: key = "body-\(style.rawValue)-\(palette)" + lightKey
+        case .comet: key = "body-comet" + lightKey
+        case .sun: key = "body-sun" + Self.tierKey(tier, dark: dark)
         default: key = "body-\(style.rawValue)"
         }
         if let made = cache[key] { return made }
         let sphere = SCNSphere(radius: 1)
         sphere.segmentCount = style == .blackHole ? 28 : 36
-        sphere.materials = [bodyMaterial(style, palette: palette)]
+        let material: SCNMaterial = bodyMaterial(style, palette: palette)
+        if style == .sun { material.multiply.contents = Self.tierColour(tier, dark: dark) }
+        sphere.materials = [material]
         cache[key] = sphere
         return sphere
+    }
+
+    /// "" for today's sun, else the tier's own key.
+    private static func tierKey(_ tier: Int, dark: Bool) -> String {
+        if dark { return "-dark" }
+        return tier > 1 ? "-t\(tier)" : ""
     }
 
     private func bodyMaterial(_ style: GraphNodeStyle, palette: Int) -> SCNMaterial {
@@ -261,7 +408,7 @@ final class GraphStyleKit {
         attach(material, source)
         if style == .rocky { tints(material, GraphStyleArt.rockPalette(palette)) }
         if style == .gasGiant { tints(material, GraphStyleArt.gasPalette(palette)) }
-        if style == .rocky || style == .gasGiant || style == .comet { lit.append(material) }
+        if style == .rocky || style == .gasGiant || style == .comet { markLit(material) }
         return material
     }
 
@@ -276,46 +423,53 @@ final class GraphStyleKit {
     }
 
     private func moonGeometry() -> SCNGeometry {
-        if let made = cache["moon"] { return made }
+        let key: String = "moon" + lightKey
+        if let made = cache[key] { return made }
         let sphere = SCNSphere(radius: 1)
         sphere.segmentCount = 16
         let material = Self.opaque(UIColor(white: 0.55, alpha: 1))
         if support.has("moonBody") {
             attach(material, GraphStyleShaders.moonBody)
-            lit.append(material)
+            markLit(material)
         }
         sphere.materials = [material]
-        cache["moon"] = sphere
+        cache[key] = sphere
         return sphere
     }
 
-    private func diskGeometry(_ style: GraphNodeStyle, folder: UUID?) -> SCNGeometry? {
+    private func diskGeometry(_ style: GraphNodeStyle, folder: UUID?, palette: Int) -> SCNGeometry? {
         switch style {
         case .blackHole: return holeLook(folder).disk
         case .gasGiant:
             let cream = UIColor(red: 1, green: 0.9, blue: 0.7, alpha: 1)
-            let made: SCNGeometry = plane("gasRing", source: GraphStyleShaders.gasRing,
+            let key: String = "gasRing" + lightKey
+            let fresh: Bool = cache[key] == nil
+            let made: SCNGeometry = plane(key, source: GraphStyleShaders.gasRing,
                                           fallback: GraphStyleArt.band, tint: cream)
-            if support.has("gasRing"), let material = made.firstMaterial, !lit.contains(material) {
-                lit.append(material)
-            }
+            if fresh, support.has("gasRing"), let material = made.firstMaterial { markLit(material) }
             return made
         default: return nil
         }
     }
 
-    private func ringGeometry(_ style: GraphNodeStyle, folder: UUID?) -> SCNGeometry {
+    private func ringGeometry(_ style: GraphNodeStyle, folder: UUID?, palette: Int,
+                              look: GraphBodyLook) -> SCNGeometry {
+        if look == .moon { return moonGlow() }
         switch style {
         case .blackHole:
             return holeLook(folder).ring
         case .sun:
-            return plane("sunCorona", source: GraphStyleShaders.sunCorona,
-                         fallback: GraphStyleArt.glow, tint: UIColor(red: 1, green: 0.85, blue: 0.6, alpha: 1))
+            var tier: Int = 1
+            var dark: Bool = false
+            if case .star(let t, let d) = look {
+                tier = t
+                dark = d
+            }
+            return corona(tier: tier, dark: dark)
         case .rocky, .gasGiant:
-            let palette: Int = GraphStyleChoice.palette(for: folder)
             let air: SIMD3<Float> = style == .rocky ? SIMD3<Float>(0.38, 0.64, 1.0)
                 : GraphStyleArt.gasGlow(palette)
-            let key: String = "halo-\(style.rawValue)-\(palette)"
+            let key: String = "halo-\(style.rawValue)-\(palette)" + lightKey
             if let made = cache[key] { return made }
             let tint = UIColor(red: CGFloat(air.x), green: CGFloat(air.y), blue: CGFloat(air.z), alpha: 1)
             let material = Self.glow(GraphStyleArt.glow)
@@ -325,7 +479,7 @@ final class GraphStyleKit {
                 attach(material, GraphStyleShaders.halo)
                 let v = SCNVector3(x: air.x, y: air.y, z: air.z)
                 material.setValue(NSValue(scnVector3: v), forKey: "rpTintA")
-                lit.append(material)
+                markLit(material)
             }
             let made = Self.unitPlane(material)
             cache[key] = made
@@ -334,22 +488,58 @@ final class GraphStyleKit {
             return plane("pulsarGlow", source: GraphStyleShaders.pulsarGlow,
                          fallback: GraphStyleArt.glow, tint: UIColor(red: 0.6, green: 0.72, blue: 1, alpha: 1))
         case .comet:
-            let made: SCNGeometry = plane("cometComa", source: GraphStyleShaders.cometComa,
+            let key: String = "cometComa" + lightKey
+            let fresh: Bool = cache[key] == nil
+            let made: SCNGeometry = plane(key, source: GraphStyleShaders.cometComa,
                                           fallback: GraphStyleArt.glow,
                                           tint: UIColor(red: 0.45, green: 1, blue: 0.85, alpha: 1))
-            if support.has("cometComa"), let material = made.firstMaterial, !lit.contains(material) {
-                lit.append(material)
-            }
+            if fresh, support.has("cometComa"), let material = made.firstMaterial { markLit(material) }
             return made
         }
     }
 
-    /// A shared unit plane with a glow shader (or its baked fallback).
-    private func plane(_ name: String, source: String, fallback: UIImage, tint: UIColor?) -> SCNGeometry {
+    /// A sun's corona in its tier's colour: today's for tier 1.
+    private func corona(tier: Int, dark: Bool) -> SCNGeometry {
+        let warm = UIColor(red: 1, green: 0.85, blue: 0.6, alpha: 1)
+        let tierKey: String = Self.tierKey(tier, dark: dark)
+        let key: String = "sunCorona" + tierKey
+        let fresh: Bool = cache[key] == nil
+        let made: SCNGeometry = plane(key, source: GraphStyleShaders.sunCorona, fallback: GraphStyleArt.glow,
+                                      tint: warm, shader: "sunCorona")
+        guard fresh, !tierKey.isEmpty, let material = made.firstMaterial else { return made }
+        let colour: UIColor = Self.tierColour(tier, dark: dark)
+        material.multiply.contents = support.has("sunCorona") ? colour : Self.mix(warm, colour)
+        return made
+    }
+
+    /// A moon's faint grey glow (unlit).
+    private func moonGlow() -> SCNGeometry {
+        if let made = cache["moonGlow"] { return made }
+        let material = Self.glow(GraphStyleArt.glow)
+        material.multiply.contents = UIColor(white: 0.32, alpha: 1)
+        let made = Self.unitPlane(material)
+        cache["moonGlow"] = made
+        return made
+    }
+
+    /// Two colours multiplied.
+    private static func mix(_ a: UIColor, _ b: UIColor) -> UIColor {
+        let x: SIMD3<Float> = GraphStyleArt.components(a)
+        let y: SIMD3<Float> = GraphStyleArt.components(b)
+        let m: SIMD3<Float> = x * y
+        return UIColor(red: CGFloat(m.x), green: CGFloat(m.y), blue: CGFloat(m.z), alpha: 1)
+    }
+
+    /// A shared unit plane with a glow shader (or its baked fallback),
+    /// cached as `name`; `shader` is the probe's name for it when the two
+    /// differ (a copy per owner or tier).
+    private func plane(_ name: String, source: String, fallback: UIImage, tint: UIColor?,
+                       shader: String? = nil) -> SCNGeometry {
         if let made = cache[name] { return made }
         let material = Self.glow(fallback)
         if let tint { material.multiply.contents = tint }
-        if support.has(name) {
+        let probe: String = shader ?? Self.probeName(name)
+        if support.has(probe) {
             material.multiply.contents = UIColor.white
             attach(material, source)
         }
@@ -358,12 +548,20 @@ final class GraphStyleKit {
         return made
     }
 
+    /// The probe's name for a cached plane: its key without an owner's or
+    /// comet's ending.
+    private static func probeName(_ key: String) -> String {
+        guard let dash = key.firstIndex(of: "-") else { return key }
+        return String(key[key.startIndex..<dash])
+    }
+
     /// The black hole's ring and disk for a folder: the elevated shaders,
     /// or the approved older ones (GraphLook) when these did not compile.
     private func holeLook(_ folder: UUID?) -> (ring: SCNGeometry, disk: SCNGeometry) {
         let key: String = "hole-" + folderKey(folder)
         if let ring = cache[key + "-ring"], let disk = cache[key + "-disk"] { return (ring, disk) }
-        let tint: UIColor = GraphLook.tint(NoteTone.uiColor(for: folder, in: store))
+        let tone: UIColor = folder.flatMap { tones[$0] } ?? NoteTone.uiColor(for: folder, in: store)
+        let tint: UIColor = GraphLook.tint(tone)
         let pair = holePair(tint: tint)
         cache[key + "-ring"] = pair.ring
         cache[key + "-disk"] = pair.disk
@@ -461,25 +659,36 @@ final class GraphStyleKit {
             var reach: Float = 0
             for p in points { reach = max(reach, simd_distance(p, centre)) }
             let side: Float = (reach + radius * 3) * 2.2
-            let material = Self.glow(GraphStyleArt.glow)
-            attach(material, GraphStyleShaders.well)
-            let colour: SIMD3<Float> = GraphStyleArt.components(NoteTone.uiColor(for: root, in: store))
-            let v = SCNVector3(x: colour.x, y: colour.y, z: colour.z)
-            material.setValue(NSValue(scnVector3: v), forKey: "rpTintA")
-            material.readsFromDepthBuffer = false
-            let node = SCNNode(geometry: Self.unitPlane(material))
+            let colour: UIColor = NoteTone.uiColor(for: root, in: store)
+            let node: SCNNode = makeWell(colour: colour, side: side)
             node.simdPosition = centre
-            node.simdScale = SIMD3<Float>(side, side, 1)
-            let billboard = SCNBillboardConstraint()
-            billboard.freeAxes = .all
-            node.constraints = [billboard]
-            node.renderingOrder = -5
-            node.categoryBitMask = 2
-            node.name = "well"
             wells.append(node)
         }
         return wells
     }
+
+    /// One faint gravity well of `side`, in `colour`, billboarded. Only
+    /// called when the well shader compiled.
+    func makeWell(colour: UIColor, side: Float) -> SCNNode {
+        let material = Self.glow(GraphStyleArt.glow)
+        attach(material, GraphStyleShaders.well)
+        let tone: SIMD3<Float> = GraphStyleArt.components(colour)
+        let v = SCNVector3(x: tone.x, y: tone.y, z: tone.z)
+        material.setValue(NSValue(scnVector3: v), forKey: "rpTintA")
+        material.readsFromDepthBuffer = false
+        let node = SCNNode(geometry: Self.unitPlane(material))
+        node.simdScale = SIMD3<Float>(side, side, 1)
+        let billboard = SCNBillboardConstraint()
+        billboard.freeAxes = .all
+        node.constraints = [billboard]
+        node.renderingOrder = -5
+        node.categoryBitMask = 2
+        node.name = "well"
+        return node
+    }
+
+    /// Whether the wells can be drawn.
+    var hasWells: Bool { support.has("well") }
 
     // MARK: the links
 

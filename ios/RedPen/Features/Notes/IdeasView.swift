@@ -142,7 +142,13 @@ struct IdeasView: View {
             switch mode {
             case .list: listView
             case .board: IdeaBoardView(open: openNote)
-            case .space: Graph3DView(open: openNote)
+            case .space:
+                // two double taps on a star or black hole open its folder
+                // in the List (the home star: the top level)
+                Graph3DView(open: openNote, openFolder: { id in
+                    folderId = id
+                    modeRaw = IdeasMode.list.rawValue
+                })
             }
         }
     }

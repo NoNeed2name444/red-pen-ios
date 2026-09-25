@@ -29,11 +29,23 @@ import simd
 /// springs home when let go (see GraphSim). Drag empty space to turn it,
 /// pinch to come closer. With Reduce Motion on the space stands still.
 ///
-/// Where each note belongs is worked out by ForceLayout3D, off the main
-/// thread, and again only when notes or links change.
+/// The Universe look (the default; GraphUniverse) maps the ideas' own
+/// hierarchy onto bodies by size instead: top-level folders are black holes
+/// at the hearts of galaxies, folders inside them stars, pages gas giants,
+/// ideas rocky planets, short one-link ideas moons, a bridging idea its
+/// galaxy's pulsar and loose notes comets - planned off the main thread,
+/// with no force layout, and orbiting on GraphSim. Two taps on a star or
+/// black hole fly in to its system; two more open the folder in the List.
+///
+/// Where each note belongs in the single looks is worked out by
+/// ForceLayout3D, off the main thread, and again only when notes or links
+/// change.
 struct Graph3DView: View {
     @EnvironmentObject private var notes: NoteStore
     let open: (UUID) -> Void
+    /// Opens a folder in the List (nil: its top level) - two double taps on
+    /// a star or black hole in the Universe.
+    var openFolder: (UUID?) -> Void = { _ in }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The sky's shared switch (SpaceQuality): at .still - Low Power Mode,
     /// a hot device - the map holds still too.
@@ -45,9 +57,19 @@ struct Graph3DView: View {
     @State private var filter: GraphFilter = .all
     /// Bumped by the recentre button; the view notices the change.
     @State private var recenter: Int = 0
+    /// The legend ("What the bodies mean"), from the Look menu or the
+    /// first-run card.
+    @State private var showingLegend: Bool = false
     /// The notes' look (GraphStyleChoice), remembered; a change rebuilds.
     @AppStorage(GraphStyleChoice.key) private var nodeStyle: String = GraphStyleChoice.standard
     @AppStorage(GraphStyleChoice.foldersKey) private var folderStyles: String = ""
+    /// The Universe's first-run card has been seen.
+    @AppStorage("vignette.space.universeHintSeen") private var hintSeen: Bool = false
+
+    init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
+        self.open = open
+        self.openFolder = openFolder
+    }
 
     var body: some View {
         Group {
@@ -68,6 +90,16 @@ struct Graph3DView: View {
         .onChange(of: notes.folders) { _, _ in
             if case .folder(let id) = filter, notes.folder(id) == nil { filter = .all }
         }
+        .sheet(isPresented: $showingLegend) {
+            GraphLegendSheet()
+                .presentationDetents([.medium, .large])
+        }
+        .task {
+            // the design preview's picture of the legend
+            guard GraphPreview.showsLegend else { return }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            showingLegend = true
+        }
     }
 
     /// The space itself, running on under the glass, with its tools in the
@@ -80,10 +112,11 @@ struct Graph3DView: View {
             GeometryReader { geo in
                 let insets: GraphInsets = screenInsets(geo.safeAreaInsets)
                 GraphSCNView(built: built, filter: filter, recenter: recenter,
-                             insets: insets, onTap: open)
+                             insets: insets, onTap: open, openFolder: openFolder)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Space of ideas")
-                    .accessibilityHint("Drag to turn, pinch to zoom. Press and hold a note to see its name; tap it twice to open it.")
+                    .accessibilityValue(built.universe ? built.summary : "")
+                    .accessibilityHint(built.universe ? Self.universeHint : Self.graphHint)
                     .accessibilityIdentifier("graph3D")
             }
             .ignoresSafeArea()
@@ -96,10 +129,31 @@ struct Graph3DView: View {
                     .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            if built.universe && !hintSeen && !GraphPreview.isOn {
+                // sized to what the round tools (44 points, 12 from the
+                // card) leave, so it never runs under them on a phone
+                GraphUniverseHint(more: {
+                    hintSeen = true
+                    showingLegend = true
+                }, done: {
+                    hintSeen = true
+                })
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 16)
+                .padding(.trailing, 16 + 44 + 12)
+                .padding(.bottom, 16)
+            }
+        }
         .ideaTools { tools }
         // the space is always night, whatever the phone's setting
         .environment(\.colorScheme, .dark)
     }
+
+    private static let graphHint: String =
+        "Drag to turn, pinch to zoom. Press and hold a note to see its name; tap it twice to open it."
+    private static let universeHint: String = "Drag to turn, pinch to zoom. Press and hold a body to see its name. "
+        + "Tap a note twice to open it; tap a star or black hole twice to fly in, and twice again to open the folder."
 
     /// The safe area's insets, left and right as on screen.
     private func screenInsets(_ edges: EdgeInsets) -> GraphInsets {
@@ -134,11 +188,22 @@ struct Graph3DView: View {
         .hoverEffect(.highlight)
         .accessibilityLabel("Filter")
 
-        GraphStyleTool(main: $nodeStyle, folderRaw: $folderStyles, folders: notes.subfolders(of: nil))
+        GraphStyleTool(main: lookBinding, folderRaw: folderBinding, folders: topFolders,
+                       showLegend: { showingLegend = true })
 
         IdeaToolButton(symbol: "scope", label: "Recentre") {
             recenter += 1
         }
+    }
+
+    /// The look in force: the owner's choice, never read or written in the
+    /// design preview.
+    private var lookBinding: Binding<String> {
+        GraphPreview.isOn ? .constant(GraphStyleChoice.main) : $nodeStyle
+    }
+
+    private var folderBinding: Binding<String> {
+        GraphPreview.isOn ? .constant("") : $folderStyles
     }
 
     @ViewBuilder
@@ -150,7 +215,7 @@ struct Graph3DView: View {
             Text("Linked notes").tag(GraphFilter.linked)
         }
         .pickerStyle(.inline)
-        let tops: [NoteFolder] = notes.subfolders(of: nil)
+        let tops: [NoteFolder] = topFolders
         if !tops.isEmpty {
             Picker("Folder", selection: $filter) {
                 ForEach(tops) { folder in
@@ -159,6 +224,16 @@ struct Graph3DView: View {
             }
             .pickerStyle(.menu)
         }
+    }
+
+    /// The top-level folders the filter and folder looks offer: in the
+    /// Universe the plan's galaxies (a folder with a missing parent, or the
+    /// one where a cycle is cut, is a galaxy too), in name order; in the
+    /// single looks the store's top level.
+    private var topFolders: [NoteFolder] {
+        guard let built, built.universe else { return notes.subfolders(of: nil) }
+        let found: [NoteFolder] = built.galaxies.compactMap { notes.folder($0) }
+        return found.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     /// How many notes the current filter lets through, to say so when none do.
@@ -170,7 +245,8 @@ struct Graph3DView: View {
         }
         var count: Int = 0
         for note in notes.notes {
-            let root: UUID? = notes.rootFolder(of: note.folderId)
+            var root: UUID? = notes.rootFolder(of: note.folderId)
+            if let built, built.universe { root = built.galaxyOf[note.id] }
             let links: Int = degree[note.id] ?? 0
             if filter.admits(kind: note.kind, root: root, degree: links) { count += 1 }
         }
@@ -179,13 +255,32 @@ struct Graph3DView: View {
 
     // MARK: building
 
+    /// The main look in force (GraphStyleChoice).
+    private var mainLook: String {
+        GraphPreview.isOn ? GraphStyleChoice.main : nodeStyle
+    }
+
+    /// Whether the notes are drawn as the Universe (GraphUniverse): any main
+    /// look that is not one single style.
+    private var isUniverse: Bool {
+        GraphNodeStyle(rawValue: mainLook) == nil
+    }
+
     /// Everything the picture depends on. When this changes the layout is
-    /// worked out again; moving a card on the board does not change it.
+    /// worked out again; moving a card on the board does not change it. In
+    /// the Universe each note's size step counts too (GraphUniverse.level),
+    /// so typing rebuilds only when a note crosses one.
     private var signature: String {
+        let universe: Bool = isUniverse
         var parts: [String] = []
         for note in notes.notes {
             let folder: String = note.folderId?.uuidString ?? ""
-            parts.append("\(note.id.uuidString)|\(note.title)|\(note.kind.rawValue)|\(folder)")
+            var line: String = "\(note.id.uuidString)|\(note.title)|\(note.kind.rawValue)|\(folder)"
+            if universe {
+                let words: Int = GraphUniverse.wordCount(note.body)
+                line += "|L\(GraphUniverse.level(words: words))"
+            }
+            parts.append(line)
         }
         for edge in notes.allEdges() {
             parts.append(edge.0.uuidString + edge.1.uuidString)
@@ -213,6 +308,10 @@ struct Graph3DView: View {
     }
 
     private func rebuild() async {
+        if isUniverse {
+            await rebuildUniverse()
+            return
+        }
         let ids = notes.notes.map(\.id)
         let edges = notes.allEdges()
         var folders: [UUID: UUID] = [:]
@@ -239,6 +338,44 @@ struct Graph3DView: View {
                                         lively: lively, bold: bold, shaders: worked.1,
                                         pageRadius: worked.2, contrast: highContrast)
     }
+
+    /// The Universe: the plan (GraphUniverse) off the main thread, no force
+    /// layout; then the scene.
+    private func rebuildUniverse() async {
+        let edges = notes.allEdges()
+        let input: UniverseInput = universeInput(edges: edges)
+        let worked = await Task.detached(priority: .userInitiated) {
+            let plan: UniversePlan = GraphUniverse.plan(input)
+            let support: GraphShaderSupport = GraphShaderProbe.support
+            _ = GraphStyleProbe.support
+            return (plan, support)
+        }.value
+        guard !Task.isCancelled else { return }
+        let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
+        // folder looks by the plan's galaxy, not the store's top-level walk
+        let looks: [UUID: GraphNodeStyle] = GraphStyleChoice.folders(GraphStyleChoice.folderRaw)
+        built = GraphSceneBuilder.buildUniverse(store: notes, plan: worked.0, edges: edges, lively: lively,
+                                                bold: bold, shaders: worked.1, contrast: highContrast,
+                                                folderLooks: looks)
+    }
+
+    /// What the plan reads from the store: notes, folders and links only.
+    /// The design preview seeds by name, as its ids change every launch.
+    private func universeInput(edges: [(UUID, UUID)]) -> UniverseInput {
+        var list: [UniverseNote] = []
+        list.reserveCapacity(notes.notes.count)
+        for note in notes.notes {
+            let words: Int = GraphUniverse.wordCount(note.body)
+            let made: Double = note.createdAt.timeIntervalSinceReferenceDate
+            list.append(UniverseNote(id: note.id, title: note.title, isPage: note.kind == .page,
+                                     folder: note.folderId, words: words, created: made))
+        }
+        let folders: [UniverseFolder] = notes.folders.map { folder in
+            UniverseFolder(id: folder.id, name: folder.name, parent: folder.parentId)
+        }
+        let links: [UniverseEdge] = edges.map { UniverseEdge(a: $0.0, b: $0.1) }
+        return UniverseInput(notes: list, folders: folders, edges: links, seedByName: GraphPreview.isOn)
+    }
 }
 
 /// A built scene, the camera it is seen through, where that camera starts,
@@ -247,10 +384,29 @@ struct GraphScene {
     let scene: SCNScene
     let camera: SCNNode
     let sim: GraphSim
-    /// Every note's home, for framing (GraphFraming.distance).
+    /// Every note's home, for framing (GraphFraming.distance); in the
+    /// Universe the plan's envelope.
     let homes: [SIMD3<Float>]
     /// How far a note's look reaches past its centre.
     let pad: Float
+    /// The Universe (GraphUniverse): framed to fill 0.88, with folders to
+    /// fly into.
+    var universe: Bool = false
+    /// Each folder body's system, relative to it, for its fly-in framing.
+    var systems: [[SIMD3<Float>]] = []
+    /// What VoiceOver reads as the space's value.
+    var summary: String = ""
+    /// Each folder body's index, by folder id (the home star by
+    /// GraphUniverse.homeID), and by name (the design preview).
+    var folders: [UUID: Int] = [:]
+    var containerTitles: [String: Int] = [:]
+    /// The design preview's drag in the Universe: the busiest star.
+    var dragTarget: Int? = nil
+    /// The Universe's galaxies (the plan's top level, which also takes in
+    /// a folder whose parent is missing or that closes a cycle), and each
+    /// note's galaxy - what the filter and folder looks go by.
+    var galaxies: [UUID] = []
+    var galaxyOf: [UUID: UUID] = [:]
 }
 
 /// Turns notes and their positions into SceneKit nodes.
@@ -445,7 +601,7 @@ enum GraphSceneBuilder {
     }
 
     /// A one-by-one square plane; each note scales it to size.
-    private static func plane(_ material: SCNMaterial) -> SCNGeometry {
+    static func plane(_ material: SCNMaterial) -> SCNGeometry {
         let plane = SCNPlane(width: 1, height: 1)
         plane.materials = [material]
         return plane
@@ -457,8 +613,12 @@ enum GraphSceneBuilder {
     /// without depth testing, so no link, glow or note ever shows through or
     /// hides it. It starts hidden; GraphSim shows it for the hovered,
     /// pressed or chosen note.
-    private static func label(_ text: String, color: UIColor, height: Float, contrast: Bool) -> SCNNode {
-        let shown: String = text.count > 28 ? String(text.prefix(27)) + "\u{2026}" : text
+    /// `rim` tints the rim (a galaxy's names); `cut` shortens a long title
+    /// (a folder's label comes already cut, so its count always shows).
+    static func label(_ text: String, color: UIColor, height: Float, contrast: Bool,
+                      rim rimTint: UIColor? = nil, cut: Bool = true) -> SCNNode {
+        let long: Bool = cut && text.count > 28
+        let shown: String = long ? String(text.prefix(27)) + "\u{2026}" : text
         let geometry = SCNText(string: shown, extrusionDepth: 0)
         geometry.font = UIFont.systemFont(ofSize: 10, weight: .bold)
         geometry.flatness = 0.3
@@ -499,7 +659,7 @@ enum GraphSceneBuilder {
         let edge: Float = height * 0.12
         let rimWidth: Float = pillWidth + edge
         let rimHeight: Float = pillHeight + edge
-        let rimColor: UIColor = contrast ? UIColor.white : Self.rimFill
+        let rimColor: UIColor = contrast ? UIColor.white : (rimTint ?? Self.rimFill)
         let rim = SCNPlane(width: CGFloat(rimWidth), height: CGFloat(rimHeight))
         rim.cornerRadius = CGFloat(rimHeight / 2)
         rim.materials = [Self.solid(rimColor)]
@@ -526,12 +686,12 @@ enum GraphSceneBuilder {
 
     /// A solid dark slate: dark enough for the pale words, not so black it
     /// reads as a hole.
-    private static let pillFill = UIColor(red: 0.12, green: 0.13, blue: 0.19, alpha: 1)
-    private static let rimFill = UIColor(red: 0.40, green: 0.43, blue: 0.55, alpha: 1)
+    static let pillFill = UIColor(red: 0.12, green: 0.13, blue: 0.19, alpha: 1)
+    static let rimFill = UIColor(red: 0.40, green: 0.43, blue: 0.55, alpha: 1)
 
     /// Fully opaque, unlit, and never tested against depth: it replaces what
     /// is behind it rather than blending with it.
-    private static func solid(_ colour: UIColor) -> SCNMaterial {
+    static func solid(_ colour: UIColor) -> SCNMaterial {
         let look = SCNMaterial()
         look.diffuse.contents = colour
         look.lightingModel = .constant
@@ -549,19 +709,25 @@ enum GraphSceneBuilder {
 /// Turning and zooming, when the finger is not on a note, are SceneKit's own
 /// camera control.
 ///
-/// - A finger (or Pencil, or click) down on a note shows its name for as
+/// - A finger (or Pencil, or click) down on a body shows its name for as
 ///   long as it is held (FramingSCNView forwards touch down and lift).
-/// - One tap on a note chooses it: its ring brightens and there is a small
+/// - One tap on a body chooses it: its ring brightens and there is a small
 ///   selection tick. One tap on empty space lets it go. A single tap never
 ///   opens anything, and never waits for a second.
-/// - Two taps on a note open it. Two taps on empty space are SceneKit's own
-///   (bring the camera back), which wait for ours to find no note there.
-/// - The pointer (trackpad, mouse, Pencil hover) shows the name of the note
+/// - Two taps on a note open it. In the Universe, two taps on a star or
+///   black hole fly the camera in to its system, and two more open the
+///   folder in the List. Two taps on empty space are SceneKit's own (bring
+///   the camera back), which wait for ours to find nothing there.
+/// - The pointer (trackpad, mouse, Pencil hover) shows the name of the body
 ///   it is over.
 ///
-/// A note is found by where it is on screen - the nearest within 28 points
-/// of a finger, 16 of the pointer - with SceneKit's own hit test as the
-/// fallback for a note drawn bigger than that up close.
+/// A body is found by where it is on screen and how big it is drawn (see
+/// `pick`), with SceneKit's own hit test as the last resort.
+///
+/// In the Universe the view runs at 120 frames a second from any touch,
+/// press, pan, tap or hover until 3 seconds after the last one, and at 60
+/// otherwise - the orbits stay smooth and idle battery use halves. A drag
+/// always runs at 120.
 struct GraphSCNView: UIViewRepresentable {
     let built: GraphScene
     let filter: GraphFilter
@@ -570,9 +736,10 @@ struct GraphSCNView: UIViewRepresentable {
     /// framed to the rest.
     let insets: GraphInsets
     let onTap: (UUID) -> Void
+    var openFolder: (UUID?) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onTap: onTap, recenter: recenter, insets: insets)
+        Coordinator(onTap: onTap, openFolder: openFolder, recenter: recenter, insets: insets)
     }
 
     func makeUIView(context: Context) -> FramingSCNView {
@@ -594,6 +761,7 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.view = view
         view.onResize = { [weak coordinator] size in coordinator?.resized(to: size) }
         view.onPress = { [weak coordinator] point in coordinator?.pressed(at: point) }
+        view.onMove = { [weak coordinator] in coordinator?.wake() }
         let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.delegate = coordinator
         view.addGestureRecognizer(tap)
@@ -619,6 +787,7 @@ struct GraphSCNView: UIViewRepresentable {
     func updateUIView(_ view: FramingSCNView, context: Context) {
         let coordinator = context.coordinator
         coordinator.onTap = onTap
+        coordinator.openFolder = openFolder
         if coordinator.sim !== built.sim {
             coordinator.attach(built, to: view)
         }
@@ -636,9 +805,22 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.stop()
     }
 
+    /// One body as a pick sees it: its index, where its centre is on screen,
+    /// how big it is drawn there (points), how deep it is, and whether it is
+    /// a folder.
+    struct Seen {
+        let index: Int
+        let centre: CGPoint
+        let size: CGFloat
+        let depth: Float
+        let folder: Bool
+        let distance: CGFloat
+    }
+
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onTap: (UUID) -> Void
+        var openFolder: (UUID?) -> Void
         var recenterCount: Int
         /// How much of the view is under glass; framing fits the rest.
         var insets: GraphInsets
@@ -651,6 +833,16 @@ struct GraphSCNView: UIViewRepresentable {
         /// The notes' homes and how far each reaches, for framing.
         private var homes: [SIMD3<Float>] = []
         private var pad: Float = 0
+        /// The Universe: framing fills 0.88; folders to fly into.
+        private var universe: Bool = false
+        private var systems: [[SIMD3<Float>]] = []
+        private var folders: [UUID: Int] = [:]
+        private var titles: [String: Int] = [:]
+        private var dragTarget: Int?
+        /// The folder body the camera has flown in to (its index and id),
+        /// or nil at the whole map.
+        private var flown: Int?
+        private var flownID: UUID?
         /// Whether the graph was last framed for a wide (landscape) view;
         /// nil before the first framing.
         private var framedWide: Bool?
@@ -678,9 +870,15 @@ struct GraphSCNView: UIViewRepresentable {
         private var lastHover: CGPoint?
         /// The small tick when a note is chosen.
         private let chooser = UISelectionFeedbackGenerator()
+        /// The last touch, press, pan, tap or hover (the Universe's frame
+        /// rate), and whether a check to slow down is already waiting.
+        private var lastWake: CFTimeInterval = 0
+        private var settling: Bool = false
 
-        init(onTap: @escaping (UUID) -> Void, recenter: Int, insets: GraphInsets) {
+        init(onTap: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void, recenter: Int,
+             insets: GraphInsets) {
             self.onTap = onTap
+            self.openFolder = openFolder
             self.recenterCount = recenter
             self.insets = insets
         }
@@ -691,6 +889,11 @@ struct GraphSCNView: UIViewRepresentable {
             camera = built.camera
             homes = built.homes
             pad = built.pad
+            universe = built.universe
+            systems = built.systems
+            folders = built.folders
+            titles = built.containerTitles
+            dragTarget = built.dragTarget
             framedWide = nil
             framedPose = nil
             shownFilter = nil
@@ -700,12 +903,26 @@ struct GraphSCNView: UIViewRepresentable {
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
             view.isPlaying = true
+            view.preferredFramesPerSecond = 120
+            built.sim.setViewHeight(Float(view.bounds.height))
             wireCameraGestures(in: view)
-            frame(animated: false)
+            // still flown in to a folder that is still there: stay on it
+            if universe, let id = flownID, let slot = folders[id] {
+                frame(animated: false)
+                fly(to: slot, animated: false)
+            } else {
+                flown = nil
+                flownID = nil
+                frame(animated: false)
+            }
             built.sim.appear()
+            wake()
             if GraphPreview.drags && !previewDragged {
                 previewDragged = true
                 runPreviewDrag()
+            } else if GraphPreview.fly != nil && !previewChosen {
+                previewChosen = true
+                runPreviewFly()
             } else if GraphPreview.chooses && !previewChosen {
                 previewChosen = true
                 runPreviewChoice()
@@ -713,26 +930,44 @@ struct GraphSCNView: UIViewRepresentable {
         }
 
         /// For the design preview (`-graphPreview` alone): a moment after
-        /// the space appears, chooses the most-linked note and holds it as a
-        /// press would, so the picture at rest shows one name on its pill.
+        /// the space appears, chooses the most-linked note and shows its
+        /// name - not as a press, which would stop the orbits - so the
+        /// picture at rest shows one name on its pill and the one two
+        /// seconds later shows the Universe still turning.
         private func runPreviewChoice() {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
                 guard let self, let sim = self.sim, let i = sim.busiestNote() else { return }
                 sim.select(i)
+                sim.showName(i)
+            }
+        }
+
+        /// For the design preview (`-graphPreviewFly <folder>`): a moment
+        /// after the space appears, flies in to that folder and holds it as
+        /// a press would.
+        private func runPreviewFly() {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard let self, let sim = self.sim, let name = GraphPreview.fly,
+                      let i = self.titles[name] else { return }
+                sim.select(i)
                 sim.press(i)
+                self.fly(to: i, animated: true)
             }
         }
 
         /// For the design preview (`-graphPreviewDrag`): a second after the
-        /// space appears, picks up the most-linked note, carries it along an
-        /// arc across the screen for two seconds, and lets go - so a
-        /// screenshot can catch the moving look.
+        /// space appears, picks up the most-linked note (in the Universe,
+        /// the busiest star), carries it along an arc across the screen for
+        /// two seconds, and lets go - so a screenshot can catch the moving
+        /// look.
         private func runPreviewDrag() {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
-                guard let self, let sim = self.sim, let view = self.view,
-                      let i = sim.busiestNote() else { return }
+                guard let self, let sim = self.sim, let view = self.view else { return }
+                let target: Int? = self.universe ? self.dragTarget : sim.busiestNote()
+                guard let i = target else { return }
                 let pov: simd_float4x4 = view.pointOfView?.simdWorldTransform ?? matrix_identity_float4x4
                 let screenRight = SIMD3<Float>(pov.columns.0.x, pov.columns.0.y, pov.columns.0.z)
                 let screenUp = SIMD3<Float>(pov.columns.1.x, pov.columns.1.y, pov.columns.1.z)
@@ -740,6 +975,7 @@ struct GraphSCNView: UIViewRepresentable {
                 let up: SIMD3<Float> = sim.world.simdConvertVector(screenUp, from: nil)
                 let start: SIMD3<Float> = sim.currentPosition(i)
                 sim.grab(i)
+                self.wake()
                 let steps: Int = 120
                 for k in 1...steps {
                     try? await Task.sleep(nanoseconds: 16_666_667)
@@ -757,12 +993,25 @@ struct GraphSCNView: UIViewRepresentable {
         func apply(_ filter: GraphFilter) {
             guard let sim else { return }
             if shownFilter == filter { return }
+            let before: GraphFilter? = shownFilter
             shownFilter = filter
             sim.apply(filter)
+            // the Universe: a folder filter flies to its galaxy, and
+            // Everything frames the whole map again
+            guard universe, let before else { return }
+            if case .folder(let id) = filter, let slot = folders[id] {
+                fly(to: slot, animated: true)
+            } else if filter == .all && before != .all {
+                flown = nil
+                flownID = nil
+                frame(animated: true)
+            }
         }
 
         /// Glides the camera back to the fitted view of the whole graph.
         func recentre() {
+            flown = nil
+            flownID = nil
             frame(animated: true)
         }
 
@@ -774,7 +1023,7 @@ struct GraphSCNView: UIViewRepresentable {
         func inset(to new: GraphInsets) {
             insets = new
             guard framedWide != nil, untouched else { return }
-            frame(animated: true)
+            refit(animated: true)
         }
 
         /// Whether the camera is still where the last framing put it.
@@ -797,29 +1046,46 @@ struct GraphSCNView: UIViewRepresentable {
         /// it turns between upright and wide, the graph is framed again.
         func resized(to size: CGSize) {
             guard size.width > 1, size.height > 1 else { return }
+            sim?.setViewHeight(Float(size.height))
             let wide: Bool = size.width > size.height
             guard framedWide != wide else { return }
-            frame(animated: framedWide != nil)
+            refit(animated: framedWide != nil)
+        }
+
+        /// Frames again what was framed: the flown-in folder, or everything.
+        private func refit(animated: Bool) {
+            if let slot = flown {
+                frame(animated: false)
+                fly(to: slot, animated: animated)
+            } else {
+                frame(animated: animated)
+            }
+        }
+
+        /// The world's turn for the view's shape: upright, the graph's long
+        /// axis (y) runs up the screen; wide, turned a quarter so it runs
+        /// across.
+        private func worldTurn(wide: Bool) -> simd_quatf {
+            let angle: Float = wide ? -Float.pi / 2 : 0
+            return simd_quatf(angle: angle, axis: SIMD3<Float>(0, 0, 1))
         }
 
         /// Fits the whole graph to the screen (GraphFraming): its longest
         /// spread along the screen's long side, filling 80% of the shorter
-        /// one of the part not under glass, centred in that part, seen from
-        /// the front.
+        /// one of the part not under glass (88% of the Universe's
+        /// envelope), centred in that part, seen from the front.
         private func frame(animated: Bool) {
             guard let view, let camera, let sim else { return }
             let size: CGSize = view.bounds.size
             guard size.width > 1, size.height > 1 else { return }
             let wide: Bool = size.width > size.height
             framedWide = wide
-            // upright: the graph's long axis (y) runs up the screen; wide:
-            // turned a quarter so it runs across
-            let angle: Float = wide ? -Float.pi / 2 : 0
-            let turn = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 0, 1))
+            let turn: simd_quatf = worldTurn(wide: wide)
             let turned: [SIMD3<Float>] = homes.map { turn.act($0) }
             let window: GraphWindow = GraphFraming.window(width: Float(size.width),
                                                           height: Float(size.height), insets: insets)
-            let distance: Float = GraphFraming.distance(points: turned, pad: pad, window: window)
+            let fill: Float = universe ? 0.88 : GraphFraming.fill
+            let distance: Float = GraphFraming.distance(points: turned, pad: pad, window: window, fill: fill)
             let home: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
@@ -833,10 +1099,85 @@ struct GraphSCNView: UIViewRepresentable {
             framedPose = camera.simdTransform
         }
 
+        /// Flies the camera in to frame folder body `i`'s whole system - its
+        /// planets, companion stars and theirs - over 0.8 s (at once with
+        /// Reduce Motion, or while the space holds still: SpaceQuality
+        /// .still). It centres on where the folder rests (folders never
+        /// orbit), not where it is this instant: after a rebuild that is
+        /// still a recalled start gliding to its new home, and after a drag
+        /// a star springing back. The world keeps its turn.
+        private func fly(to i: Int, animated: Bool) {
+            guard let view, let camera, let sim, i >= 0, i < systems.count else { return }
+            let points: [SIMD3<Float>] = systems[i]
+            guard !points.isEmpty else { return }
+            let size: CGSize = view.bounds.size
+            guard size.width > 1, size.height > 1 else { return }
+            let wide: Bool = size.width > size.height
+            let turn: simd_quatf = worldTurn(wide: wide)
+            let turned: [SIMD3<Float>] = points.map { turn.act($0) }
+            let window: GraphWindow = GraphFraming.window(width: Float(size.width),
+                                                          height: Float(size.height), insets: insets)
+            let distance: Float = GraphFraming.distance(points: turned, pad: 0.25, window: window, fill: 0.88)
+            let offset: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
+            let local: SIMD3<Float> = sim.homePosition(i)
+            let centre: SIMD3<Float> = turn.act(local)
+            flown = i
+            flownID = sim.ids[i]
+            let still: Bool = !sim.lively || UIAccessibility.isReduceMotionEnabled
+            view.pointOfView = camera
+            view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
+            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            sim.world.simdOrientation = turn
+            camera.simdPosition = centre + offset
+            camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+            SCNTransaction.commit()
+            framedPose = camera.simdTransform
+            wake()
+        }
+
         /// The view is going: stop drawing and let go of the simulation.
         func stop() {
             view?.isPlaying = false
             view?.delegate = nil
+        }
+
+        // MARK: the frame rate
+
+        /// Any touch, press, pan, tap or hover: 120 frames a second, until 3
+        /// seconds after the last one (the Universe; the graph look always
+        /// runs at 120). A Universe that holds still (Reduce Motion, Low
+        /// Power Mode, a hot device) stays at 60: nothing animates, and a
+        /// drag is smooth enough there.
+        func wake() {
+            guard let view else { return }
+            if universe, let sim, !sim.lively {
+                if view.preferredFramesPerSecond != 60 { view.preferredFramesPerSecond = 60 }
+                return
+            }
+            lastWake = CACurrentMediaTime()
+            if view.preferredFramesPerSecond != 120 { view.preferredFramesPerSecond = 120 }
+            guard universe, !settling else { return }
+            settling = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.05) { [weak self] in
+                self?.settle()
+            }
+        }
+
+        private func settle() {
+            settling = false
+            guard let view, universe else { return }
+            let quiet: CFTimeInterval = CACurrentMediaTime() - lastWake
+            if dragging || quiet < 3 {
+                settling = true
+                let wait: Double = dragging ? 1 : max(3.05 - quiet, 0.1)
+                DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+                    self?.settle()
+                }
+                return
+            }
+            view.preferredFramesPerSecond = 60
         }
 
         // MARK: gestures
@@ -865,14 +1206,14 @@ struct GraphSCNView: UIViewRepresentable {
         func gestureRecognizerShouldBegin(_ gesture: UIGestureRecognizer) -> Bool {
             guard let view else { return true }
             if gesture === doubleTapper {
-                // only on a note; on empty space SceneKit's own double tap
+                // only on a body; on empty space SceneKit's own double tap
                 // takes over
                 let point: CGPoint = gesture.location(in: view)
                 return pick(at: point, radius: 28, in: view) != nil
             }
             guard gesture === panner else { return true }
             let point: CGPoint = gesture.location(in: view)
-            pending = noteIndex(at: point, in: view)
+            pending = dragPick(at: point, in: view)
             guard pending != nil else { return false }
             // on a note: make sure the camera does not turn as well, by
             // switching its drags off and on again, which cancels them
@@ -897,6 +1238,7 @@ struct GraphSCNView: UIViewRepresentable {
         @objc func panned(_ gesture: UIPanGestureRecognizer) {
             guard let view, let sim else { return }
             let point: CGPoint = gesture.location(in: view)
+            wake()
             switch gesture.state {
             case .began:
                 guard let i = pending else { return }
@@ -933,11 +1275,12 @@ struct GraphSCNView: UIViewRepresentable {
             return sim.world.simdConvertPosition(inScene, from: nil)
         }
 
-        /// One tap: chooses the note under the finger (its ring brightens;
+        /// One tap: chooses the body under the finger (its ring brightens;
         /// its name showed only while it was pressed), or, on empty space,
-        /// lets the chosen one go. Never opens.
+        /// lets the chosen one go. Never opens, and never moves the camera.
         @objc func tapped(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
+            wake()
             let point: CGPoint = gesture.location(in: view)
             guard let i = pick(at: point, radius: 28, in: view) else {
                 sim.clearSelection()
@@ -949,16 +1292,30 @@ struct GraphSCNView: UIViewRepresentable {
             chooser.selectionChanged()
         }
 
-        /// Two taps on a note: open it.
+        /// Two taps on a note: open it. On a star, black hole or the home
+        /// star: fly in to its system; two more while flown in: open the
+        /// folder in the List (the home star: its top level).
         @objc func opened(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
+            wake()
             let point: CGPoint = gesture.location(in: view)
             guard let i = pick(at: point, radius: 28, in: view) else { return }
             if sim.selectedNote != i { sim.select(i) }
-            onTap(sim.ids[i])
+            let kind: GraphBodyKind = sim.kind(of: i)
+            if kind == .note {
+                onTap(sim.ids[i])
+                return
+            }
+            // open only while the camera is still where the fly-in left it;
+            // once pinched, turned or reset, two taps fly in again
+            if flown == i && untouched {
+                openFolder(kind == .home ? nil : sim.ids[i])
+                return
+            }
+            fly(to: i, animated: true)
         }
 
-        /// The pointer over the space: the note under it shows its name.
+        /// The pointer over the space: the body under it shows its name.
         /// Looked for again only once the pointer has moved 2 points.
         @objc func hovered(_ gesture: UIHoverGestureRecognizer) {
             guard let view, let sim else { return }
@@ -972,6 +1329,7 @@ struct GraphSCNView: UIViewRepresentable {
                     if moved <= 4 { return }
                 }
                 lastHover = point
+                wake()
                 sim.hover(pick(at: point, radius: 16, in: view))
             default:
                 lastHover = nil
@@ -980,10 +1338,11 @@ struct GraphSCNView: UIViewRepresentable {
         }
 
         /// A finger, Pencil or click down on the space (`point`), or lifted
-        /// (nil): the note under it shows its name for as long as it is
+        /// (nil): the body under it shows its name for as long as it is
         /// held. Taps, double taps and drags see the same touches as before.
         func pressed(at point: CGPoint?) {
             guard let sim else { return }
+            wake()
             guard let point, let view else {
                 sim.press(nil)
                 return
@@ -991,33 +1350,108 @@ struct GraphSCNView: UIViewRepresentable {
             sim.press(pick(at: point, radius: 28, in: view))
         }
 
-        /// The shown note nearest `point` on screen, within `radius` points;
-        /// SceneKit's hit test when none is that close (a note drawn large,
-        /// up close).
+        /// The body under `point`, by how it is drawn on screen:
+        ///
+        /// (a) among bodies whose drawn disc (plus 6 points) holds the
+        ///     finger, the smallest - unless a nearer one's disc holds that
+        ///     body's centre, so it is behind it: then the nearer one
+        ///     (`pickHolding`);
+        /// (b) else the nearest centre within `radius` (28 points for a
+        ///     finger, 16 for the pointer); within 6 points of the best, a
+        ///     note beats a folder, then the smaller;
+        /// (c) else SceneKit's own hit test.
         private func pick(at point: CGPoint, radius: CGFloat = 28, in view: SCNView) -> Int? {
-            guard let sim else { return nil }
-            var best: Int?
-            var bestSquared: CGFloat = radius * radius
-            for (i, local) in sim.visiblePositions() {
-                let world: SIMD3<Float> = sim.world.simdConvertPosition(local, to: nil)
-                let scenePoint = SCNVector3(x: world.x, y: world.y, z: world.z)
-                let projected: SCNVector3 = view.projectPoint(scenePoint)
-                let depth: Float = projected.z
-                guard depth >= 0, depth <= 1 else { continue }
-                let dx: CGFloat = CGFloat(projected.x) - point.x
-                let dy: CGFloat = CGFloat(projected.y) - point.y
-                let squared: CGFloat = dx * dx + dy * dy
-                if squared < bestSquared {
-                    best = i
-                    bestSquared = squared
+            let seen: [Seen] = project(at: point, in: view)
+            if let held = Self.pickHolding(seen, least: 0) { return held }
+            let close: [Seen] = seen.filter { $0.distance <= radius }
+            if let nearest = close.min(by: { $0.distance < $1.distance }) {
+                let ties: [Seen] = close.filter { $0.distance <= nearest.distance + 6 }
+                let ranked: [Seen] = ties.sorted { a, b in
+                    if a.folder != b.folder { return !a.folder }
+                    return a.size < b.size
                 }
+                return ranked.first?.index ?? nearest.index
             }
-            return best ?? noteIndex(at: point, in: view)
+            return noteIndex(at: point, in: view)
+        }
+
+        /// The body a drag starting at `point` picks up. In the Universe,
+        /// rule (a) of `pick` - first by each body's drawn disc, then with
+        /// every disc floored at 12 points, so a planet 4 points across at
+        /// the whole-map framing can still be grabbed - and SceneKit's hit
+        /// test only when neither finds one. Never rule (b): a drag on empty
+        /// space still turns the camera.
+        private func dragPick(at point: CGPoint, in view: SCNView) -> Int? {
+            guard universe else { return noteIndex(at: point, in: view) }
+            let seen: [Seen] = project(at: point, in: view)
+            if let held = Self.pickHolding(seen, least: 0) { return held }
+            if let near = Self.pickHolding(seen, least: 12) { return near }
+            return noteIndex(at: point, in: view)
+        }
+
+        /// Rule (a): among bodies whose disc - drawn size, at least `least`
+        /// points, plus 6 - holds the finger, the smallest; unless a nearer
+        /// one's drawn disc holds that body's centre (it is in front of it):
+        /// then the nearer one.
+        private static func pickHolding(_ seen: [Seen], least: CGFloat) -> Int? {
+            let holding: [Seen] = seen.filter { $0.distance <= max($0.size, least) + 6 }
+            guard let smallest = holding.min(by: { $0.size < $1.size }) else { return nil }
+            var best: Seen = smallest
+            for other in holding where other.depth < best.depth && other.index != smallest.index {
+                let dx: CGFloat = smallest.centre.x - other.centre.x
+                let dy: CGFloat = smallest.centre.y - other.centre.y
+                let apart: CGFloat = (dx * dx + dy * dy).squareRoot()
+                if apart <= other.size { best = other }
+            }
+            return best.index
+        }
+
+        /// Every pickable body as it is drawn now: its centre and radius on
+        /// screen, and its depth in front of the camera. The camera's and
+        /// the space's matrices are read once, from their presentation
+        /// nodes (so a pick follows the camera through a fly-in), and every
+        /// body is projected in simd - no SceneKit call per body. The
+        /// radius on screen is its pick radius over its depth, scaled by
+        /// the projection's vertical focal length.
+        private func project(at point: CGPoint, in view: SCNView) -> [Seen] {
+            guard let sim, let pov = view.pointOfView, let lens = pov.camera else { return [] }
+            let size: CGSize = view.bounds.size
+            guard size.width > 1, size.height > 1 else { return [] }
+            let eye: simd_float4x4 = pov.presentation.simdWorldTransform
+            let lensMatrix: SCNMatrix4 = lens.projectionTransform(withViewportSize: size)
+            let projection = simd_float4x4(lensMatrix)
+            let toScene: simd_float4x4 = sim.world.presentation.simdWorldTransform
+            let toView: simd_float4x4 = eye.inverse * toScene
+            let halfWidth: Float = Float(size.width) / 2
+            let halfHeight: Float = Float(size.height) / 2
+            let focal: Float = projection.columns.1.y * halfHeight
+            let near: Float = Float(lens.zNear)
+            let far: Float = Float(lens.zFar)
+            let fingerX: Float = Float(point.x)
+            let fingerY: Float = Float(point.y)
+            var seen: [Seen] = []
+            for (i, local, reach, folder) in sim.pickables() {
+                let inView: SIMD4<Float> = toView * SIMD4<Float>(local.x, local.y, local.z, 1)
+                let depth: Float = -inView.z
+                guard depth > near, depth < far else { continue }
+                let clip: SIMD4<Float> = projection * inView
+                guard abs(clip.w) > 0.000_001 else { continue }
+                let x: Float = (clip.x / clip.w + 1) * halfWidth
+                let y: Float = (1 - clip.y / clip.w) * halfHeight
+                let radius: Float = reach * focal / depth
+                let dx: Float = x - fingerX
+                let dy: Float = y - fingerY
+                let distance: Float = (dx * dx + dy * dy).squareRoot()
+                let at = CGPoint(x: CGFloat(x), y: CGFloat(y))
+                seen.append(Seen(index: i, centre: at, size: CGFloat(radius), depth: depth, folder: folder,
+                                 distance: CGFloat(distance)))
+            }
+            return seen
         }
 
         /// Looks through everything under the finger for the nearest shown
-        /// note, climbing from a
-        /// label to the note it belongs to.
+        /// body, climbing from a label or a piece to the body it belongs to:
+        /// a note, a folder or the home star.
         private func noteIndex(at point: CGPoint, in view: SCNView) -> Int? {
             guard let sim else { return nil }
             // only the spheres and titles (category 1): not the rings,
@@ -1031,13 +1465,24 @@ struct GraphSCNView: UIViewRepresentable {
             for hit in hits {
                 var node: SCNNode? = hit.node
                 while let current = node {
-                    if let name = current.name, name.hasPrefix("note:"),
-                       let id = UUID(uuidString: String(name.dropFirst(5))),
-                       let slot = sim.index[id] {
+                    if let slot = Self.slot(of: current.name, in: sim), sim.isVisible(slot) {
                         return slot
                     }
                     node = current.parent
                 }
+            }
+            return nil
+        }
+
+        /// The body a node's name stands for: "note:<id>", "folder:<id>" or
+        /// "home".
+        private static func slot(of name: String?, in sim: GraphSim) -> Int? {
+            guard let name else { return nil }
+            if name == "home" { return sim.index[GraphUniverse.homeID] }
+            for prefix in ["note:", "folder:"] where name.hasPrefix(prefix) {
+                let rest: String = String(name.dropFirst(prefix.count))
+                guard let id = UUID(uuidString: rest) else { return nil }
+                return sim.index[id]
             }
             return nil
         }
@@ -1047,12 +1492,14 @@ struct GraphSCNView: UIViewRepresentable {
 /// An SCNView that says when its size changes, so the graph can be framed
 /// once it has a size and again when the phone turns; and when one finger
 /// goes down on it and lifts, so a pressed note can show its name while it
-/// is held. The touches still reach every gesture recogniser as before.
+/// is held; and when a finger moves (the Universe's frame rate). The
+/// touches still reach every gesture recogniser as before.
 final class FramingSCNView: SCNView {
     var onResize: ((CGSize) -> Void)?
     /// Where a single finger went down, or nil when it lifts, is cancelled
     /// or a second finger joins it.
     var onPress: ((CGPoint?) -> Void)?
+    var onMove: (() -> Void)?
     private var lastSize: CGSize = .zero
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -1063,6 +1510,11 @@ final class FramingSCNView: SCNView {
             return
         }
         onPress?(touch.location(in: self))
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesMoved(touches, with: event)
+        onMove?()
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {

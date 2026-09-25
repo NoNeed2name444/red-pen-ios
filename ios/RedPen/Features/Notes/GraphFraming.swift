@@ -242,6 +242,12 @@ nonisolated enum GraphFraming {
     /// point nearer or further than the origin sits a little to one side of
     /// it, which is allowed for too.
     static func distance(points: [SIMD3<Float>], pad: Float, window: GraphWindow) -> Float {
+        distance(points: points, pad: pad, window: window, fill: fill)
+    }
+
+    /// The same, filling `fill` of the window instead of the usual 80% (the
+    /// Universe uses 0.88: its envelope is already conservative).
+    static func distance(points: [SIMD3<Float>], pad: Float, window: GraphWindow, fill: Float) -> Float {
         let tanFull: Float = tan(halfField)
         let tanUp: Float = tanFull * fill * window.share
         let tanSide: Float = tanUp * max(window.aspect, 0.1)

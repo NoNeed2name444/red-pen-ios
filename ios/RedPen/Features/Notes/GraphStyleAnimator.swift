@@ -79,6 +79,11 @@ nonisolated struct GraphStyleFrame {
 ///   and swings behind and stretches as it moves;
 /// - every note: glows dim with distance (haze);
 /// - the chosen note: an orbit ring, eased in.
+///
+/// Light: in the graph look every lit material is lit by the four busiest
+/// suns. In the Universe each planet's materials are lit by its own star or
+/// black hole (written only when that owner moves), each flying comet by
+/// the nearest light, and the Oort cloud by the key light alone.
 nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     private let rigs: [GraphStyleRig]
     /// The notes that are suns, the busiest first (at most four light).
@@ -103,18 +108,48 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     private var orbitNote: Int?
     private var orbitGrow: Float = 0
     private var litOnce: Bool = false
+    /// The Universe's lights: each owner and the materials it lights, where
+    /// it was last written, and each comet's own materials.
+    private let owners: [Int]
+    private let ownedBy: [[SCNMaterial]]
+    /// Where each owner was, in the space's own coordinates, when its
+    /// materials were last written.
+    private var ownerShown: [SIMD3<Float>]
+    /// The space-to-scene turn (its first two columns) at the last write:
+    /// the device-tilt rig turns it a little all the time, which moves no
+    /// star in the space, so only a turn past 0.01 rad rewrites them all.
+    private var turnShown: (SIMD3<Float>, SIMD3<Float>) = (SIMD3<Float>(0, 0, 0), SIMD3<Float>(0, 0, 0))
+    private let nearest: [(SCNMaterial, Int)]
+    private var nearestShown: [SIMD3<Float>]
+    /// What comet tails point away from: every light in the Universe, the
+    /// suns in the graph look.
+    private let tailLights: [Int]
 
     private let leanStiffness: Float = 40
     private let leanDamping: Float = 3.8
     private let moonStiffness: Float = 30
     private let moonDamping: Float = 3.8
 
-    init(rigs: [GraphStyleRig], suns: [Int], lit: [SCNMaterial], orbit: SCNNode?, extent: Float) {
+    init(rigs: [GraphStyleRig], suns: [Int], lit: [SCNMaterial], orbit: SCNNode?, extent: Float,
+         owned: [(SCNMaterial, Int)] = [], nearest: [(SCNMaterial, Int)] = [], lights: [Int]? = nil) {
         self.rigs = rigs
         self.suns = Array(suns.prefix(4))
         self.lit = lit
         self.orbit = orbit
         self.extent = max(extent, 1)
+        var order: [Int] = []
+        var groups: [Int: [SCNMaterial]] = [:]
+        for (material, owner) in owned {
+            if groups[owner] == nil { order.append(owner) }
+            groups[owner, default: []].append(material)
+        }
+        owners = order
+        ownedBy = order.map { groups[$0] ?? [] }
+        let far = SIMD3<Float>(1e9, 1e9, 1e9)
+        ownerShown = [SIMD3<Float>](repeating: far, count: order.count)
+        self.nearest = nearest
+        nearestShown = [SIMD3<Float>](repeating: far, count: nearest.count)
+        tailLights = lights ?? Array(suns.prefix(4))
         let count: Int = rigs.count
         let zero = SIMD3<Float>(0, 0, 0)
         leafTurn = [Float](repeating: 0, count: count)
@@ -181,6 +216,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         }
         placeOrbit(f, position: position, visible: visible, pop: pop)
         light(f, position: position, visible: visible)
+        lightOwned(f, position: position)
+        lightNearest(f, position: position)
     }
 
     /// Precession, and the lean into the motion on a soft spring. Returns
@@ -318,7 +355,7 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         guard let tail = rig.tail else { return }
         var away: SIMD3<Float> = -f.key
         var nearest: Float = Float.greatestFiniteMagnitude
-        for s in suns {
+        for s in tailLights where s < position.count {
             let gap: SIMD3<Float> = p - position[s]
             let d: Float = simd_length_squared(gap)
             if d < nearest && d > 0.0001 {
@@ -410,5 +447,64 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         for material in lit {
             for k in 0..<4 { material.setValue(values[k], forKey: "rpSun\(k)") }
         }
+    }
+
+    /// Each owner's place in the scene, handed to the materials it lights -
+    /// only when the owner has moved more than 0.002 in the space (a star
+    /// dragged, springing back or a new scene gliding in), or the space
+    /// itself has turned more than about 0.01 rad in the scene since the
+    /// last write (a fly-in, turning the phone). The device-tilt rig's few
+    /// hundredths of a radian turn a star and its planets together, so the
+    /// slightly stale light cannot be seen.
+    private func lightOwned(_ f: GraphStyleFrame, position: [SIMD3<Float>]) {
+        guard !owners.isEmpty else { return }
+        let c0 = SIMD3<Float>(f.toScene.columns.0.x, f.toScene.columns.0.y, f.toScene.columns.0.z)
+        let c1 = SIMD3<Float>(f.toScene.columns.1.x, f.toScene.columns.1.y, f.toScene.columns.1.z)
+        let drift0: Float = simd_length_squared(c0 - turnShown.0)
+        let drift1: Float = simd_length_squared(c1 - turnShown.1)
+        let turned: Bool = drift0 > 0.0001 || drift1 > 0.0001
+        if turned { turnShown = (c0, c1) }
+        for (k, owner) in owners.enumerated() where owner < position.count {
+            let local: SIMD3<Float> = position[owner]
+            let gap: SIMD3<Float> = local - ownerShown[k]
+            if !turned && simd_length_squared(gap) < 0.000_004 { continue }
+            ownerShown[k] = local
+            let value: NSValue = Self.sun(Self.scene(local, f))
+            for material in ownedBy[k] { material.setValue(value, forKey: "rpSun0") }
+        }
+    }
+
+    /// Each flying comet's own materials, lit by the nearest light.
+    private func lightNearest(_ f: GraphStyleFrame, position: [SIMD3<Float>]) {
+        guard !tailLights.isEmpty else { return }
+        for (k, pair) in nearest.enumerated() where pair.1 < position.count {
+            let p: SIMD3<Float> = position[pair.1]
+            var best: Int = tailLights[0]
+            var bestSquared: Float = Float.greatestFiniteMagnitude
+            for s in tailLights where s < position.count {
+                let d: Float = simd_distance_squared(p, position[s])
+                if d < bestSquared {
+                    bestSquared = d
+                    best = s
+                }
+            }
+            let world: SIMD3<Float> = Self.scene(position[best], f)
+            let gap: SIMD3<Float> = world - nearestShown[k]
+            if simd_length_squared(gap) < 0.000_004 { continue }
+            nearestShown[k] = world
+            pair.0.setValue(Self.sun(world), forKey: "rpSun0")
+        }
+    }
+
+    /// A point in the space's coordinates, in the scene's.
+    private static func scene(_ local: SIMD3<Float>, _ f: GraphStyleFrame) -> SIMD3<Float> {
+        let world: SIMD4<Float> = f.toScene * SIMD4<Float>(local.x, local.y, local.z, 1)
+        return SIMD3<Float>(world.x, world.y, world.z)
+    }
+
+    /// A light at a scene position, as a sun uniform.
+    private static func sun(_ world: SIMD3<Float>) -> NSValue {
+        let v = SCNVector4(x: world.x, y: world.y, z: world.z, w: 1)
+        return NSValue(scnVector4: v)
     }
 }

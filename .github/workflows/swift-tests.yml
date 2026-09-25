@@ -17,6 +17,7 @@ on:
       - 'ios/RedPen/Shared/**'
       - 'ios/RedPen/Models/**'
       - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
+      - 'ios/RedPen/Features/Notes/GraphUniverse.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -157,6 +158,9 @@ jobs:
                 $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift \
                 $S/Reasoning/ReasoningModels.swift $S/Reasoning/ReasoningExamples.swift $S/Reasoning/ReasoningWriter.swift \
                 $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/ExamTrack.swift $S/PlainTextImport.swift $S/OsceStations.swift
+          # the Universe look: folders as black holes and stars, notes as planets,
+          # moons, pulsars and comets - the size ladder, no overlaps, determinism
+          suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
 
       - name: Fail the job if anything failed
         run: |

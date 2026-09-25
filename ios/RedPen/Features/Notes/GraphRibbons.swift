@@ -4,12 +4,16 @@ import simd
 
 /// One link to draw this frame: its sending end `a` (the higher style
 /// code), its receiving end `b`, its seed, and how far it has grown (0 to
-/// 1, eased; less than 1 while it grows in or fades out).
+/// 1, eased; less than 1 while it grows in or fades out). In the Universe a
+/// link between folders arches: `bow` of its length away from `centre` (a
+/// galaxy core, or the origin); 0 draws it straight.
 nonisolated struct GraphRibbonLink {
     let a: Int
     let b: Int
     let seed: Int
     let grow: Float
+    var bow: Float = 0
+    var centre = SIMD3<Float>(0, 0, 0)
 }
 
 /// Builds every shown link as one geometry of camera-facing ribbons, each
@@ -36,8 +40,12 @@ nonisolated final class GraphRibbonWriter {
     private var lengths: [Float] = []
     private var element: SCNGeometryElement?
     private var elementLinks: Int = -1
+    /// Half the ribbon's width: today's in the graph look, finer in the
+    /// Universe.
+    private let halfWidth: Float
 
-    init() {
+    init(halfWidth: Float = GraphShape.linkHalfWidth) {
+        self.halfWidth = halfWidth
         let count: Int = Self.segments + 1
         points = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: count)
         lengths = [Float](repeating: 0, count: count)
@@ -99,9 +107,15 @@ nonisolated final class GraphRibbonWriter {
         let end: SIMD3<Float> = pb - dir * trimB
         let codeA: Int = codes[link.a]
         let codeB: Int = codes[link.b]
+        let arch: SIMD3<Float> = link.bow > 0 ? archDirection(link, from: pa, to: pb, dir: dir) : .zero
+        let archSize: Float = link.bow * length
         for k in 0...n {
             let s: Float = Float(k) / Float(n) * link.grow
             var p: SIMD3<Float> = start + (end - start) * s
+            if link.bow > 0 {
+                let hump: Float = 4 * s * (1 - s) * archSize
+                p += arch * hump
+            }
             if let axis {
                 p = bend(p, s: s, centre: pb, axis: axis[link.b], code: codeB)
                 p = bend(p, s: 1 - s, centre: pa, axis: axis[link.a], code: codeA)
@@ -125,7 +139,6 @@ nonisolated final class GraphRibbonWriter {
         let low: Float = band + 0.002
         let high: Float = band + 0.998
         let u0: Float = Float(code * 64 + 1)
-        let halfWidth: Float = GraphShape.linkHalfWidth
         for k in 0...n {
             let before: SIMD3<Float> = points[max(k - 1, 0)]
             let after: SIMD3<Float> = points[min(k + 1, n)]
@@ -147,6 +160,20 @@ nonisolated final class GraphRibbonWriter {
             uvs.append(u)
             uvs.append(high)
         }
+    }
+
+    /// Which way a link arches: away from its centre, square to the link;
+    /// any square direction when the centre is on the line.
+    private func archDirection(_ link: GraphRibbonLink, from pa: SIMD3<Float>, to pb: SIMD3<Float>,
+                               dir: SIMD3<Float>) -> SIMD3<Float> {
+        let middle: SIMD3<Float> = (pa + pb) * 0.5
+        var w: SIMD3<Float> = middle - link.centre
+        w -= dir * simd_dot(w, dir)
+        let size: Float = simd_length(w)
+        if size > 0.0001 { return w / size }
+        let side: SIMD3<Float> = simd_cross(dir, SIMD3<Float>(0, 0, 1))
+        let sideSize: Float = simd_length(side)
+        return sideSize > 0.0001 ? side / sideSize : Self.perpendicular(to: dir)
     }
 
     /// Bends a point `s` of the way from the far end towards an end at
@@ -194,6 +221,9 @@ nonisolated struct GraphRecall: Sendable {
     let ghosts: [(UUID, UUID)]
     /// Where each known note was.
     let starts: [UUID: SIMD3<Float>]
+    /// The Universe's orbit clock on the scene being replaced, so a rebuild
+    /// never rewinds the orbits; 0 when the space opens.
+    var orbitTime: Double = 0
 
     static let everything = GraphRecall(fresh: nil, freshLinks: nil, ghosts: [], starts: [:])
 }
@@ -235,9 +265,14 @@ enum GraphMemory {
             guard let pair = lastPairs[gone], here.contains(pair.0), here.contains(pair.1) else { continue }
             ghosts.append(pair)
         }
-        return GraphRecall(fresh: fresh, freshLinks: freshLinks, ghosts: ghosts, starts: starts)
+        var recalled = GraphRecall(fresh: fresh, freshLinks: freshLinks, ghosts: ghosts, starts: starts)
+        recalled.orbitTime = sim.orbitClock
+        return recalled
     }
 
+    /// Remembers the scene now on screen. Its orbit clock is read from the
+    /// sim itself when the next scene is built, so it carries over as it
+    /// stands then.
     static func remember(_ sim: GraphSim, edges: [(UUID, UUID)], styles: [UUID: GraphNodeStyle]) {
         lastSim = sim
         lastStyles = styles

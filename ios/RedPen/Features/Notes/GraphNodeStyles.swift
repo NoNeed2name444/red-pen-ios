@@ -73,20 +73,24 @@ nonisolated enum GraphNodeStyle: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// Which look the notes take, as the owner chose it in the Space's tools:
-/// one style for every note, or "Star systems", where each note's role
-/// picks it; and optionally a style per top-level folder, which wins.
+/// the Universe (GraphUniverse: folders as black holes and stars, notes as
+/// planets, moons, pulsars and comets, by size), or one style for every
+/// note in today's force layout; and optionally a style per top-level
+/// folder, which re-skins that folder's notes.
 ///
 /// Stored in UserDefaults (the view reads the same keys with @AppStorage,
-/// so a change rebuilds the space). The design preview (`-graphPreview`)
-/// always shows star systems and never reads or writes the owner's choice.
+/// so a change rebuilds the space). A stored "auto" (once "Star systems")
+/// is the Universe; a stored style keeps that single look. The design
+/// preview (`-graphPreview`) shows the Universe unless a style is asked for,
+/// and never reads or writes the owner's choice.
 @MainActor
 enum GraphStyleChoice {
     static let key = "vignette.space.nodeStyle"
     static let foldersKey = "vignette.space.nodeStyleFolders"
-    /// The stored value for star systems.
+    /// The stored value for the Universe.
     static let auto = "auto"
-    /// Until the owner chooses, every note is a black hole, as before.
-    static let standard = GraphNodeStyle.blackHole.rawValue
+    /// Until the owner chooses, the Universe.
+    static let standard = auto
 
     /// The main choice in force.
     static var main: String {
@@ -128,63 +132,32 @@ enum GraphStyleChoice {
         resolve(store: store, main: main, folderRaw: folderRaw)
     }
 
+    /// Every note's style for the single looks. A main that is not a style
+    /// (the Universe, drawn by GraphUniverse instead) falls back to pages as
+    /// gas giants and ideas as rocky planets - only a safety net. A folder
+    /// look wins for the notes in that top-level folder.
     static func resolve(store: NoteStore, main: String, folderRaw: String) -> [UUID: GraphNodeStyle] {
-        let byFolder: [UUID: GraphNodeStyle] = folders(folderRaw)
         var result: [UUID: GraphNodeStyle] = [:]
-        if let single = GraphNodeStyle(rawValue: main) {
-            for note in store.notes { result[note.id] = single }
-        } else {
-            result = starSystems(store: store)
-        }
-        guard !byFolder.isEmpty else { return result }
+        let single: GraphNodeStyle? = GraphNodeStyle(rawValue: main)
         for note in store.notes {
-            guard let root = store.rootFolder(of: note.folderId),
-                  let style = byFolder[root] else { continue }
-            result[note.id] = style
+            let byKind: GraphNodeStyle = note.kind == .page ? .gasGiant : .rocky
+            result[note.id] = single ?? byKind
         }
+        let byNote: [UUID: GraphNodeStyle] = overrides(store: store, folderRaw: folderRaw)
+        for (id, style) in byNote { result[id] = style }
         return result
     }
 
-    /// Star systems: a note's role in the vault picks its look.
-    ///
-    /// - the most-linked note of all is the galaxy's black hole;
-    /// - each top-level folder's most-linked remaining note is its sun;
-    /// - the most recently edited note is a pulsar, a beacon;
-    /// - notes with no links wander as comets;
-    /// - pages are gas giants, and the other ideas rocky planets.
-    static func starSystems(store: NoteStore) -> [UUID: GraphNodeStyle] {
-        var degree: [UUID: Int] = [:]
-        for edge in store.allEdges() {
-            degree[edge.0, default: 0] += 1
-            degree[edge.1, default: 0] += 1
-        }
+    /// Each note's folder look in the single looks, from its top-level
+    /// folder. (The Universe goes by its planned galaxy instead:
+    /// GraphSceneBuilder.buildUniverse.)
+    static func overrides(store: NoteStore, folderRaw: String) -> [UUID: GraphNodeStyle] {
+        let byFolder: [UUID: GraphNodeStyle] = folders(folderRaw)
+        guard !byFolder.isEmpty else { return [:] }
         var result: [UUID: GraphNodeStyle] = [:]
-        // the most linked, ties broken by title so it never flickers
-        let ranked: [Note] = store.notes.sorted { a, b in
-            let da: Int = degree[a.id] ?? 0
-            let db: Int = degree[b.id] ?? 0
-            if da != db { return da > db }
-            return a.title < b.title
-        }
-        if let core = ranked.first, (degree[core.id] ?? 0) >= 2 {
-            result[core.id] = .blackHole
-        }
-        var litRoots = Set<String>()
-        for note in ranked where result[note.id] == nil && (degree[note.id] ?? 0) >= 1 {
-            let root: String = store.rootFolder(of: note.folderId)?.uuidString ?? "none"
-            if litRoots.insert(root).inserted { result[note.id] = .sun }
-        }
-        let recent: Note? = store.notes
-            .filter { result[$0.id] == nil }
-            .max { $0.updatedAt < $1.updatedAt }
-        if let recent { result[recent.id] = .pulsar }
-        for note in store.notes where result[note.id] == nil {
-            let links: Int = degree[note.id] ?? 0
-            if links == 0 {
-                result[note.id] = .comet
-            } else {
-                result[note.id] = note.kind == .page ? .gasGiant : .rocky
-            }
+        for note in store.notes {
+            guard let root = store.rootFolder(of: note.folderId), let style = byFolder[root] else { continue }
+            result[note.id] = style
         }
         return result
     }
@@ -202,20 +175,22 @@ enum GraphStyleChoice {
 
 /// The look tool, in the Space's cluster of round tools (under the thumb
 /// on a phone, at the trailing edge on a wide iPad - IdeaTools' placement):
-/// one choice for every note, and a submenu with a choice per top-level
-/// folder.
+/// the Universe or one look for every note, a submenu with a look per
+/// top-level folder, and, in the Universe, what the bodies mean.
 struct GraphStyleTool: View {
     @Binding var main: String
     @Binding var folderRaw: String
     let folders: [NoteFolder]
+    /// Opens the legend (GraphLegendSheet).
+    var showLegend: () -> Void = {}
 
     var body: some View {
-        let custom: Bool = main != GraphStyleChoice.standard || !folderRaw.isEmpty
+        let custom: Bool = main != GraphStyleChoice.auto || !folderRaw.isEmpty
         let ink: Color = custom ? Color.accentColor : Color.secondary
         let glass: Glass = IdeaToolGlass.glass(active: custom)
         Menu {
             Picker("Look", selection: $main) {
-                Label("Star systems", systemImage: "sparkles").tag(GraphStyleChoice.auto)
+                Label("Universe", systemImage: "sparkles").tag(GraphStyleChoice.auto)
                 ForEach(GraphNodeStyle.menuOrder) { style in
                     Label(style.name, systemImage: style.symbol).tag(style.rawValue)
                 }
@@ -234,6 +209,13 @@ struct GraphStyleTool: View {
                     }
                 }
             }
+            if GraphNodeStyle(rawValue: main) == nil {
+                Button {
+                    showLegend()
+                } label: {
+                    Label("What the bodies mean", systemImage: "info.circle")
+                }
+            }
         } label: {
             IdeaToolFace(symbol: "sparkles")
         }
@@ -242,7 +224,7 @@ struct GraphStyleTool: View {
         .popOut(.floating, in: Circle())
         .hoverEffect(.highlight)
         .accessibilityLabel("Look")
-        .accessibilityHint("Choose what notes look like: black holes, suns, planets, pulsars or comets.")
+        .accessibilityHint("Choose how notes look: a universe of folders and notes, or every note as one kind of body.")
     }
 
     private func folderBinding(_ id: UUID) -> Binding<String> {

@@ -25,6 +25,14 @@ enum GraphFilter: Hashable {
     }
 }
 
+/// What a body in the space stands for: a note, a folder (a star or a
+/// black hole in the Universe), or the home star of a vault with no folders.
+nonisolated enum GraphBodyKind: Sendable, Equatable {
+    case note
+    case folder
+    case home
+}
+
 /// Everything the live space needs to know about one note, gathered when the
 /// scene is built.
 struct GraphNodeInfo {
@@ -64,6 +72,31 @@ struct GraphNodeInfo {
     var swell: Float = 0
     var stretchGain: Float = 1
     var glowGain: Float = 1
+    /// The Universe (GraphUniverse): what the body is, the body it moves
+    /// with (-1: none), how it moves relative to it, the orbit ring it
+    /// travels on, and who lights it (a body index; -1 the key light, -2
+    /// the nearest). The graph look leaves them as they are.
+    var body: GraphBodyKind = .note
+    var parent: Int = -1
+    var orbit: GraphOrbit? = nil
+    var shell: Int = -1
+    var light: Int = -1
+}
+
+/// The Universe's own pieces, for GraphSim (built by GraphUniverseScene).
+struct GraphUniverseLooks {
+    /// One orbit ring per shell, a child of the body it circles.
+    let shells: [SCNNode]
+    let shellOwner: [Int]
+    /// Each link's kind and bow centre, by GraphMemory.key: 0 straight
+    /// inside a folder, 1 arched round its galaxy's core (the centre, a
+    /// body index), 2 arched round the origin and fainter, 3 not drawn (a
+    /// moon's link to its own planet).
+    let linkKinds: [String: (Int, Int)]
+    /// The fainter links between galaxies and to comets: their own node
+    /// and material.
+    let farLines: SCNNode
+    let farMaterial: SCNMaterial
 }
 
 /// The pieces of the look GraphSim drives that are shared by every note.
@@ -75,6 +108,10 @@ struct GraphSimLooks {
     let hotDisk: SCNGeometry
     /// Materials whose shader reads the `rpClock` argument.
     let clocked: [SCNMaterial]
+    /// The Universe's per-owner copies (a planet's star's, a comet's own),
+    /// each with the body whose system it belongs to: ticked every other
+    /// frame above 60 a second, and not at all while that body is hidden.
+    var slowClocked: [(SCNMaterial, Int)] = []
     /// Comet-trail emitters (empty with Reduce Motion), each with its system.
     let emitters: [SCNNode]
     let trails: [SCNParticleSystem]
@@ -86,6 +123,8 @@ struct GraphSimLooks {
     /// What the scene before this one showed (GraphMemory), so only what
     /// changed pops, grows or fades.
     var recall: GraphRecall = .everything
+    /// The Universe's rings and far links; nil in the graph look.
+    var universe: GraphUniverseLooks? = nil
 }
 
 /// Keeps the space gently alive, and drives the black holes' motion.
@@ -139,6 +178,18 @@ struct GraphSimLooks {
 /// through the screen. It holds still while a note is dragged, and stays
 /// square with Reduce Motion, or when the pop-out effect is still or off.
 ///
+/// The Universe (GraphUniverse) runs differently: no drift, no link springs,
+/// no layout. Every body has a parent and an orbit; each frame the orbit
+/// clock moves on (easing to a stop while a body is pressed, hovered or
+/// dragged, and back over about a second and a half after), and each body
+/// springs towards its parent's live position plus its orbit's offset,
+/// parents first. Whatever a parent moved this step is carried to its
+/// children (85% while lively, all of it when still), so dragging a star
+/// carries its system and a planet's moons trail a little. Names keep a
+/// constant size on screen, and sit just above their body in any
+/// orientation. A planet the filter hides but whose moon it shows stays as
+/// a faint ghost.
+///
 /// The work each frame is one pass over the notes and one over the links -
 /// there is no every-note-against-every-note step here - so a few hundred
 /// notes stay cheap. With Reduce Motion on there is no drifting, no popping,
@@ -167,7 +218,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let rest: [Float]
     private let lines: SCNNode
     private let lineMaterial: SCNMaterial
-    private let lively: Bool
+    /// False with Reduce Motion or SpaceQuality .still: nothing animates.
+    let lively: Bool
 
     // the black holes
     private let radius: [Float]
@@ -185,11 +237,58 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// Each note's style code (GraphNodeStyle.code), for the links.
     private let codes: [Int]
     private let styler: GraphStyleAnimator?
-    private let ribbons = GraphRibbonWriter()
+    private let ribbons: GraphRibbonWriter
     private var ribbonLinks: [GraphRibbonLink] = []
+
+    // the Universe
+    /// True when the bodies orbit (GraphUniverse) rather than drift.
+    let universe: Bool
+    private let bodyKind: [GraphBodyKind]
+    private let parentOf: [Int]
+    private let orbitOf: [GraphOrbit?]
+    private let shellOf: [Int]
+    /// How far from its centre a body can be picked: its link radius, a
+    /// galaxy core's photon ring.
+    private let pickRadius: [Float]
+    /// Each folder body's notes (its whole subtree); each note's moons.
+    private let members: [[Int]]
+    private let moonsOf: [[Int]]
+    private let shellNodes: [SCNNode]
+    private let shellOwner: [Int]
+    /// Which bodies' shells: each body's rings, for brightening.
+    private let shellsOf: [[Int]]
+    private let linkKind: [Int]
+    private let linkCentre: [Int]
+    private let farLines: SCNNode?
+    private let farMaterial: SCNMaterial?
+    private let farRibbons: GraphRibbonWriter
+    private var farLinks: [GraphRibbonLink] = []
+    /// Each body's orbit offset now, worked out once a frame, and how far it
+    /// moved in the last step (carried to its children).
+    private var offsets: [SIMD3<Float>]
+    private var moved: [SIMD3<Float>]
+    /// A hidden planet kept faintly on screen for its shown moons.
+    private var ghost: [Bool]
+    /// The orbit clock (seconds of orbit), and how fast it runs (0 to 1).
+    private var orbitTime: Double
+    private var orbitRate: Float = 1
+    /// This frame's orbit offsets, while the step uses last frame's too.
+    private var nextOffsets: [SIMD3<Float>] = []
+    /// The view's height in points, for names at a constant size.
+    private var viewHeight: Float = 800
+    /// Above 150 bodies, a rocky planet's or moon's halo is hidden while its
+    /// sphere is under 3 points on screen (shown again from 3.5).
+    private let crowded: Bool
+    private var haloHidden: [Bool]
     private let hotRing: SCNGeometry
     private let hotDisk: SCNGeometry
     private let clocked: [SCNMaterial]
+    /// The per-owner clocked copies and their bodies (GraphSimLooks), which
+    /// of them the filter hides (under the lock), and the frame parity.
+    private let slowClocked: [SCNMaterial]
+    private let slowOwner: [Int]
+    private var slowSkip: [Bool]
+    private var slowParity: Bool = false
     private let emitters: [SCNNode]
     private let trails: [SCNParticleSystem]
     private let sky: SCNNode
@@ -275,6 +374,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// The note a finger, Pencil or click is down on right now; nil once it
     /// lifts.
     private var pressedNote: Int?
+    /// A note whose name shows without pausing the orbits (the design
+    /// preview's chosen note).
+    private var named: Int?
 
     /// Spring towards home: how hard it pulls, and how much of the motion
     /// each second it soaks up. Lively uses a damping ratio of 0.6 for a
@@ -311,6 +413,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.hotRing = looks.hotRing
         self.hotDisk = looks.hotDisk
         self.clocked = looks.clocked
+        self.slowClocked = looks.slowClocked.map { $0.0 }
+        self.slowOwner = looks.slowClocked.map { $0.1 }
+        self.slowSkip = [Bool](repeating: false, count: looks.slowClocked.count)
         self.emitters = looks.emitters
         self.trails = looks.trails
         self.sky = looks.sky
@@ -329,7 +434,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         var phaseList: [Float] = []
         var random = SplitMix64(seed: 0xB0B)
         for (i, info) in infos.enumerated() {
-            lookup[info.id] = i
+            // a folder whose id a note also has (a hand-edited file): the
+            // note keeps the id
+            if info.body == .note || lookup[info.id] == nil { lookup[info.id] = i }
             idList.append(info.id)
             nodeList.append(info.node)
             labelList.append(info.label)
@@ -339,6 +446,62 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             let turn: Float = random.unit() * Float.pi
             phaseList.append(turn)
         }
+        // the Universe: every body where its orbit has it now, parents first
+        let universeLooks: GraphUniverseLooks? = looks.universe
+        let orbiting: Bool = universeLooks != nil
+        let startTime: Double = orbiting && lively ? looks.recall.orbitTime : 0
+        var offsetList: [SIMD3<Float>] = []
+        for (i, info) in infos.enumerated() {
+            let offset: SIMD3<Float> = info.orbit.map { GraphUniverse.offset($0, time: startTime) } ?? info.home
+            offsetList.append(offset)
+            guard orbiting else { continue }
+            let p: Int = info.parent
+            let base: SIMD3<Float> = p >= 0 && p < i ? homeList[p] : SIMD3<Float>(0, 0, 0)
+            homeList[i] = base + offset
+        }
+        universe = orbiting
+        orbitTime = startTime
+        offsets = offsetList
+        nextOffsets = offsetList
+        ribbons = GraphRibbonWriter(halfWidth: orbiting ? 0.10 : GraphShape.linkHalfWidth)
+        farRibbons = GraphRibbonWriter(halfWidth: 0.10)
+        bodyKind = infos.map(\.body)
+        parentOf = infos.map(\.parent)
+        orbitOf = infos.map(\.orbit)
+        shellOf = infos.map(\.shell)
+        var pickList: [Float] = []
+        var memberList = [[Int]](repeating: [], count: infos.count)
+        var moonList = [[Int]](repeating: [], count: infos.count)
+        for (i, info) in infos.enumerated() {
+            let core: Bool = info.body == .folder && info.style == .blackHole
+            pickList.append(info.radius * (core ? 1.3 : 1))
+            guard info.body == .note else { continue }
+            var up: Int = info.parent
+            if up >= 0 && up < infos.count && infos[up].body == .note { moonList[up].append(i) }
+            var steps: Int = 0
+            while up >= 0 && up < infos.count && steps <= infos.count {
+                if infos[up].body != .note { memberList[up].append(i) }
+                up = infos[up].parent
+                steps += 1
+            }
+        }
+        pickRadius = pickList
+        members = memberList
+        moonsOf = moonList
+        shellNodes = universeLooks?.shells ?? []
+        shellOwner = universeLooks?.shellOwner ?? []
+        var ringsOf = [[Int]](repeating: [], count: infos.count)
+        for (k, owner) in shellOwner.enumerated() where owner >= 0 && owner < infos.count {
+            ringsOf[owner].append(k)
+        }
+        shellsOf = ringsOf
+        farLines = universeLooks?.farLines
+        farMaterial = universeLooks?.farMaterial
+        let zero3 = SIMD3<Float>(0, 0, 0)
+        moved = [SIMD3<Float>](repeating: zero3, count: infos.count)
+        ghost = [Bool](repeating: false, count: infos.count)
+        crowded = orbiting && infos.count > 150
+        haloHidden = [Bool](repeating: false, count: infos.count)
         index = lookup
         ids = idList
         nodes = nodeList
@@ -371,6 +534,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         var edgeList: [(Int, Int)] = []
         var restList: [Float] = []
         var degreeList = [Int](repeating: 0, count: infos.count)
+        var linkKindList: [Int] = []
+        var centreList: [Int] = []
         var seen = Set<Int>()
         let count: Int = infos.count
         for (a, b) in pairs {
@@ -380,6 +545,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             let key: Int = low * count + high
             guard seen.insert(key).inserted else { continue }
             edgeList.append((i, j))
+            let found: (Int, Int)? = universeLooks?.linkKinds[GraphMemory.key(a, b)]
+            linkKindList.append(found?.0 ?? 0)
+            centreList.append(found?.1 ?? -1)
             let gap: Float = simd_distance(homeList[i], homeList[j])
             restList.append(gap)
             degreeList[i] += 1
@@ -388,6 +556,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         edges = edgeList
         rest = restList
         degree = degreeList
+        linkKind = linkKindList
+        linkCentre = centreList
 
         // Lively, on first showing: start a little way in from home, so the
         // space blooms outward as it opens. On a rebuild, each known note
@@ -459,6 +629,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             labels[i].opacity = 1
             labels[i].isHidden = true
         }
+        for ring in shellNodes { ring.opacity = 0.5 }
         shownEdges = Array(edges.indices)
         // the first frame builds the links, once it knows where the camera is
         linesDirty = true
@@ -527,6 +698,17 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.unlock()
     }
 
+    /// Shows note `i`'s name (nil: none) without counting as a press, so
+    /// the orbits keep turning. Only noted here.
+    func showName(_ i: Int?) {
+        var note: Int? = i
+        if let i, i < 0 || i >= nodes.count { note = nil }
+        lock.lock()
+        named = note
+        resting = false
+        lock.unlock()
+    }
+
     /// The note being pressed (touch down, held), or nil when the press
     /// ends. Only noted here; the render loop shows its name while held.
     func press(_ i: Int?) {
@@ -537,12 +719,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.unlock()
     }
 
-    /// Whether note `i` is let through by the filter.
+    /// Whether body `i` is let through by the filter and can be picked
+    /// (a ghost cannot).
     func isVisible(_ i: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         guard i >= 0, i < visible.count else { return false }
-        return visible[i]
+        return visible[i] && !ghost[i]
     }
 
     /// Every shown note and where it is now, in the space's own coordinates,
@@ -556,6 +739,43 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             found.append((i, position[i]))
         }
         return found
+    }
+
+    /// Every body that can be picked - shown and not a ghost - with where it
+    /// is now (the space's coordinates), how far from its centre it can be
+    /// picked, and whether it is a folder (a star, black hole or the home
+    /// star). Read under one lock.
+    func pickables() -> [(Int, SIMD3<Float>, Float, Bool)] {
+        lock.lock()
+        defer { lock.unlock() }
+        var found: [(Int, SIMD3<Float>, Float, Bool)] = []
+        found.reserveCapacity(position.count)
+        for i in position.indices where visible[i] && !ghost[i] {
+            let size: Float = pickRadius[i] * max(popScale[i], 0.05)
+            found.append((i, position[i], size, bodyKind[i] != .note))
+        }
+        return found
+    }
+
+    /// What body `i` is.
+    func kind(of i: Int) -> GraphBodyKind {
+        guard i >= 0, i < bodyKind.count else { return .note }
+        return bodyKind[i]
+    }
+
+    /// The orbit clock now (GraphMemory carries it into the next scene).
+    var orbitClock: Double {
+        lock.lock()
+        defer { lock.unlock() }
+        return orbitTime
+    }
+
+    /// The view's height in points, for names at a constant size.
+    func setViewHeight(_ height: Float) {
+        guard height > 1 else { return }
+        lock.lock()
+        viewHeight = height
+        lock.unlock()
     }
 
     /// Gives note `i` the bright ring and disk, and the one that had them
@@ -577,23 +797,55 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             }
         }
         highlighted = i
+        brightenShells(i)
+    }
+
+    /// Orbit rings at half strength; those round the chosen body, and the
+    /// one it travels on, at full.
+    private func brightenShells(_ i: Int?) {
+        guard !shellNodes.isEmpty else { return }
+        var bright = Set<Int>()
+        if let i, i >= 0, i < shellsOf.count {
+            bright.formUnion(shellsOf[i])
+            if shellOf[i] >= 0 { bright.insert(shellOf[i]) }
+        }
+        for (k, ring) in shellNodes.enumerated() {
+            let want: CGFloat = bright.contains(k) ? 1 : 0.5
+            if ring.opacity != want { ring.opacity = want }
+        }
     }
 
     /// The note with the most links among those shown, for the design
-    /// preview's drag.
+    /// preview (ties: the larger body, then the lower index). Folders are
+    /// never chosen.
     func busiestNote() -> Int? {
         lock.lock()
         defer { lock.unlock() }
         var best: Int?
         var most: Int = -1
-        for i in nodes.indices where visible[i] && degree[i] > most {
+        var size: Float = -1
+        for i in nodes.indices where visible[i] && !ghost[i] && bodyKind[i] == .note {
+            let links: Int = degree[i]
+            let bigger: Bool = links == most && radius[i] > size
+            guard links > most || bigger else { continue }
             best = i
-            most = degree[i]
+            most = links
+            size = radius[i]
         }
         return best
     }
 
     // MARK: dragging
+
+    /// Where body `i` rests, in the space's own coordinates: for a folder
+    /// (which never orbits) exactly where it is drawn once settled - not a
+    /// recalled start still gliding in, nor a spot it is being dragged to.
+    func homePosition(_ i: Int) -> SIMD3<Float> {
+        lock.lock()
+        defer { lock.unlock() }
+        guard i >= 0, i < home.count else { return SIMD3<Float>(0, 0, 0) }
+        return home[i]
+    }
 
     /// Where a note is now, in the space's own coordinates.
     func currentPosition(_ i: Int) -> SIMD3<Float> {
@@ -655,24 +907,45 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     @MainActor
     func apply(_ filter: GraphFilter) {
         var changed: [(Int, Bool)] = []
+        var ghostChanged: [(Int, Bool)] = []
+        let wanted: [Bool] = shown(by: filter)
         lock.lock()
         for i in nodes.indices {
-            let shown: Bool = filter.admits(kind: kinds[i], root: roots[i], degree: degree[i])
+            // a hidden planet whose moon is shown stays, faintly
+            var isGhost: Bool = false
+            if universe && !wanted[i] && bodyKind[i] == .note {
+                isGhost = moonsOf[i].contains { wanted[$0] }
+            }
+            let shown: Bool = wanted[i] || isGhost
+            if isGhost != ghost[i] {
+                ghost[i] = isGhost
+                ghostChanged.append((i, isGhost))
+            }
             if shown != visible[i] {
                 visible[i] = shown
                 changed.append((i, shown))
             }
         }
         var kept: [Int] = []
-        for (e, pair) in edges.enumerated() where visible[pair.0] && visible[pair.1] {
+        for (e, pair) in edges.enumerated() where linkShown(e, pair) {
             kept.append(e)
         }
         shownEdges = kept
         linesDirty = true
-        if let chosen = selected, !visible[chosen] { selected = nil }
-        if let pointed = hovered, !visible[pointed] { hovered = nil }
-        if let held = pressedNote, !visible[held] { pressedNote = nil }
+        if let chosen = selected, !visible[chosen] || ghost[chosen] { selected = nil }
+        if let pointed = hovered, !visible[pointed] || ghost[pointed] { hovered = nil }
+        if let held = pressedNote, !visible[held] || ghost[held] { pressedNote = nil }
+        if let shownName = named, !visible[shownName] || ghost[shownName] { named = nil }
         let stillSelected: Int? = selected
+        // every orbit ring's state in one pass over the bodies
+        var ringsShown = [Bool](repeating: false, count: shellOwner.count)
+        for i in shellOf.indices where visible[i] {
+            let k: Int = shellOf[i]
+            if k >= 0 && k < ringsShown.count { ringsShown[k] = true }
+        }
+        for (k, owner) in slowOwner.enumerated() {
+            slowSkip[k] = owner >= 0 && owner < visible.count && !visible[owner]
+        }
         resting = false
         if lively {
             // shrink away, or grow back in with a bloom (stepPops)
@@ -683,12 +956,39 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         }
         lock.unlock()
         if stillSelected == nil { highlight(nil) }
+        for (i, isGhost) in ghostChanged { nodes[i].opacity = isGhost ? 0.3 : 1 }
+        for (k, ring) in shellNodes.enumerated() where k < ringsShown.count {
+            ring.isHidden = !ringsShown[k]
+        }
         if lively { return }
 
         // SceneKit is touched only once the lock is let go
         for (i, shown) in changed {
             nodes[i].isHidden = !shown
         }
+    }
+
+    /// Which bodies the filter lets through. A folder body shows for
+    /// Everything, or while any note inside it is shown.
+    private func shown(by filter: GraphFilter) -> [Bool] {
+        var wanted: [Bool] = []
+        wanted.reserveCapacity(nodes.count)
+        for i in nodes.indices {
+            let admitted: Bool = filter.admits(kind: kinds[i], root: roots[i], degree: degree[i])
+            wanted.append(bodyKind[i] == .note ? admitted : filter == .all)
+        }
+        guard filter != .all else { return wanted }
+        for i in nodes.indices where bodyKind[i] != .note {
+            wanted[i] = members[i].contains { wanted[$0] }
+        }
+        return wanted
+    }
+
+    /// Whether link `e` is drawn: both ends shown and neither a ghost.
+    private func linkShown(_ e: Int, _ pair: (Int, Int)) -> Bool {
+        let a: Int = pair.0
+        let b: Int = pair.1
+        return visible[a] && visible[b] && !ghost[a] && !ghost[b]
     }
 
     // MARK: each frame
@@ -709,9 +1009,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         // rig is touched outside the lock
         lock.lock()
         let held: Bool = grabbed != nil
+        let skip: [Bool] = slowSkip
         lock.unlock()
         tilt(right: right, up: up, held: held)
-        if lively { tickShaders(time) }
+        if lively { tickShaders(time, step: raw, skip: skip) }
         // the sky stays centred on the camera, so it is at infinity
         sky.simdWorldPosition = eye
         lock.lock()
@@ -768,12 +1069,23 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     /// Hands the shaders the time, wrapped so a 32-bit float keeps it fine
-    /// (see GraphShaders).
-    private func tickShaders(_ time: TimeInterval) {
+    /// (see GraphShaders). The shared materials every frame; the Universe's
+    /// per-owner copies every other frame above 60 a second (their shimmer
+    /// and bands are too slow to show it), and not while their body is
+    /// hidden by the filter.
+    private func tickShaders(_ time: TimeInterval, step: TimeInterval, skip: [Bool]) {
         let wrapped: Double = time.truncatingRemainder(dividingBy: GraphShape.clockPeriod)
         let clock = NSNumber(value: Float(wrapped))
         shaderTime = Float(wrapped)
         for material in clocked {
+            material.setValue(clock, forKey: "rpClock")
+        }
+        guard !slowClocked.isEmpty else { return }
+        slowParity.toggle()
+        let fast: Bool = step > 0 && step < 1.0 / 90.0
+        if fast && !slowParity { return }
+        for (k, material) in slowClocked.enumerated() {
+            if k < skip.count && skip[k] { continue }
             material.setValue(clock, forKey: "rpClock")
         }
     }
@@ -796,7 +1108,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         }
         // names pop in and go every frame, even when the notes are still
         let labelStep: Float = min(max(rawStep, 0.001), 0.05)
-        updateLabels(labelStep)
+        updateLabels(labelStep, eye: eye, up: up)
         if resting && grabbed == nil {
             // the ribbons face the camera and the rings are sized for it, so
             // both follow it even when nothing else moves
@@ -812,23 +1124,26 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
         // the dragged note sits exactly under the finger
         if let g = grabbed {
-            let moved: SIMD3<Float> = grabTarget - position[g]
-            let instant: SIMD3<Float> = moved / dt
+            let shift: SIMD3<Float> = grabTarget - position[g]
+            let instant: SIMD3<Float> = shift / dt
             // smooth the finger's speed over about the last 50 ms
             let blend: Float = 1 - exp(-dt / 0.05)
             let change: SIMD3<Float> = (instant - dragVelocity) * blend
             dragVelocity += change
-            position[g] = grabTarget
+            // the Universe moves it in its first step, so its system follows
+            if !universe { position[g] = grabTarget }
             velocity[g] = dragVelocity
         }
+        if universe { advanceOrbits(dt) }
 
         // long frames are split, so the springs stay steady at any frame rate
         let pieces: Int = max(1, Int((dt / maxSubstep).rounded(.up)))
         let h: Float = dt / Float(pieces)
         var fastest: Float = 0
-        for _ in 0..<pieces {
-            fastest = integrate(h)
+        for piece in 0..<pieces {
+            fastest = universe ? integrateOrbits(h, first: piece == 0) : integrate(h)
         }
+        if universe { swap(&offsets, &nextOffsets) }
 
         for i in nodes.indices {
             nodes[i].simdPosition = position[i]
@@ -891,6 +1206,63 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return fastest
     }
 
+    // MARK: the Universe's orbits
+
+    /// Moves the orbit clock on - easing to a stop within about 0.3 s while
+    /// a body is pressed, hovered or dragged, so it never slides from under
+    /// the finger, and back over about 1.5 s after - and works out every
+    /// orbit's offset once for the frame. Still (Reduce Motion, a hot or
+    /// low-power device): the plan's own picture, time 0.
+    private func advanceOrbits(_ dt: Float) {
+        if lively {
+            let busy: Bool = pressedNote != nil || hovered != nil || grabbed != nil
+            let tau: Float = busy ? 0.1 : 0.5
+            let goal: Float = busy ? 0 : 1
+            let ease: Float = 1 - exp(-dt / tau)
+            orbitRate += (goal - orbitRate) * ease
+            orbitTime += Double(dt * orbitRate)
+        } else {
+            orbitTime = 0
+        }
+        for i in nextOffsets.indices {
+            guard let orbit = orbitOf[i] else { continue }
+            nextOffsets[i] = GraphUniverse.offset(orbit, time: orbitTime)
+        }
+    }
+
+    /// One step of `h` seconds for every body, parents first: carried by
+    /// what its parent moved (85% lively, all of it still), moved on by its
+    /// own orbit (first step only), then sprung towards its parent's live
+    /// position plus its offset. The dragged body sits under the finger.
+    /// Returns the largest squared speed.
+    private func integrateOrbits(_ h: Float, first: Bool) -> Float {
+        let keep: Float = lively ? 0.85 : 1
+        let zero = SIMD3<Float>(0, 0, 0)
+        var fastest: Float = 0
+        for i in 0..<nodes.count {
+            if i == grabbed {
+                moved[i] = first ? grabTarget - position[i] : zero
+                if first { position[i] = grabTarget }
+                continue
+            }
+            let p: Int = parentOf[i]
+            let hasParent: Bool = p >= 0 && p < i
+            var carry: SIMD3<Float> = hasParent ? moved[p] * keep : zero
+            if first { carry += nextOffsets[i] - offsets[i] }
+            position[i] += carry
+            let base: SIMD3<Float> = hasParent ? position[p] : zero
+            let target: SIMD3<Float> = base + nextOffsets[i]
+            let pull: SIMD3<Float> = (target - position[i]) * stiffness
+            let brake: SIMD3<Float> = velocity[i] * damping
+            velocity[i] += (pull - brake) * h
+            let travel: SIMD3<Float> = velocity[i] * h
+            position[i] += travel
+            moved[i] = carry + travel
+            fastest = max(fastest, simd_length_squared(velocity[i]))
+        }
+        return fastest
+    }
+
     /// Where note `i` is heading this instant: home, plus its slow loop.
     private func driftTarget(_ i: Int) -> SIMD3<Float> {
         let base: SIMD3<Float> = home[i]
@@ -915,11 +1287,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// swallows).
     private func updateLines(eye: SIMD3<Float>) {
         ribbonLinks.removeAll(keepingCapacity: true)
+        farLinks.removeAll(keepingCapacity: true)
         for (e, pair) in edges.enumerated() {
-            let shown: Bool = visible[pair.0] && visible[pair.1]
+            // a moon's link to its own planet is its orbit
+            if universe && linkKind[e] == 3 { continue }
+            let shown: Bool = linkShown(e, pair)
             let grow: Float = lively ? linkGrow[e] : (shown ? 1 : 0)
             guard grow > 0.001 else { continue }
-            addRibbon(pair.0, pair.1, seed: e, grow: grow)
+            addRibbon(pair.0, pair.1, seed: e, grow: grow, edge: e)
         }
         for (g, pair) in ghostEdges.enumerated() {
             let grow: Float = ghostGrow[g]
@@ -932,14 +1307,35 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                                                    codes: codes, axis: axes, focus: focus, eye: eye)
         geometry?.materials = [lineMaterial]
         lines.geometry = geometry
+        guard let farLines, let farMaterial else { return }
+        let far: SCNGeometry? = farRibbons.write(links: farLinks, position: position, radius: radius,
+                                                 codes: codes, axis: axes, focus: focus, eye: eye)
+        far?.materials = [farMaterial]
+        farLines.geometry = far
     }
 
-    private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float) {
+    /// Adds one link, from its sending end; in the Universe a link between
+    /// folders arches away from its galaxy's core (or, between galaxies and
+    /// to a comet, from the origin, fainter, in the far geometry).
+    private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float, edge: Int? = nil) {
         let eased: Float = grow * grow * (3 - 2 * grow)
         let swap: Bool = codes[j] > codes[i]
         let a: Int = swap ? j : i
         let b: Int = swap ? i : j
-        ribbonLinks.append(GraphRibbonLink(a: a, b: b, seed: seed, grow: eased))
+        var link = GraphRibbonLink(a: a, b: b, seed: seed, grow: eased)
+        if universe, let e = edge, e < linkKind.count {
+            let kind: Int = linkKind[e]
+            if kind == 1 {
+                let c: Int = linkCentre[e]
+                link.bow = 0.10
+                link.centre = c >= 0 && c < position.count ? position[c] : SIMD3<Float>(0, 0, 0)
+            } else if kind == 2 {
+                link.bow = 0.15
+                farLinks.append(link)
+                return
+            }
+        }
+        ribbonLinks.append(link)
     }
 
     /// Grows new links once both their notes have popped in (0.7 s), draws
@@ -947,7 +1343,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// (0.45 s), and fades the links gone since the last scene.
     private func stepLinks(_ dt: Float) {
         for (e, pair) in edges.enumerated() {
-            let want: Bool = visible[pair.0] && visible[pair.1]
+            let want: Bool = linkShown(e, pair)
             if want && linkGrow[e] < 1 && linkWait[e] > 0 {
                 linkWait[e] -= dt
                 continue
@@ -1125,6 +1521,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// goes. Left alone when nothing about it has changed.
     private func shapeRing(_ i: Int, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
         let distance: Float = simd_distance(eye, position[i])
+        if crowded && codes[i] == GraphNodeStyle.rocky.code { thinHalo(i, distance: distance) }
         let fit: Float = ringFit(distance: distance, radius: radius[i])
         let m: Float = level[i]
         let b: Float = bloom[i]
@@ -1159,6 +1556,19 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         ringStretch[i].opacity = CGFloat(glow)
     }
 
+    /// A crowded Universe: a rocky planet's or moon's halo goes while its
+    /// sphere is drawn under 3 points across its radius, and comes back
+    /// from 3.5 (so it does not flicker at the edge).
+    private func thinHalo(_ i: Int, distance: Float) {
+        let halfTan: Float = tan(GraphFraming.fieldOfView * Float.pi / 360)
+        let perUnit: Float = viewHeight / (2 * max(distance, 0.05) * halfTan)
+        let drawn: Float = radius[i] * perUnit
+        let hide: Bool = haloHidden[i] ? drawn < 3.5 : drawn < 3
+        guard hide != haloHidden[i] else { return }
+        haloHidden[i] = hide
+        ringStretch[i].isHidden = hide
+    }
+
     /// How much to shrink a ring lifted towards the camera so it looks the
     /// size of the sphere's silhouette.
     ///
@@ -1183,11 +1593,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// full size over about 0.12 s - at once without Reduce Motion's
     /// liveliness - and goes the instant it is not wanted. Called with the
     /// lock held.
-    private func updateLabels(_ dt: Float) {
+    private func updateLabels(_ dt: Float, eye: SIMD3<Float>, up: SIMD3<Float>) {
         labelsWanted.removeAll(keepingCapacity: true)
         wantLabel(hovered)
         wantLabel(pressedNote)
         wantLabel(grabbed)
+        wantLabel(named)
         for i in labelsUp where !labelsWanted.contains(i) {
             labels[i].isHidden = true
         }
@@ -1203,20 +1614,42 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             }
         }
         swap(&labelsUp, &labelsWanted)
+        guard universe else { return }
+        for i in labelsUp { placeLabel(i, eye: eye, up: up) }
+    }
+
+    /// The Universe's names: always the size of a 15-point font, 10 points
+    /// above the body, above it on screen whichever way the camera is
+    /// turned (the camera's up), whatever the zoom.
+    private func placeLabel(_ i: Int, eye: SIMD3<Float>, up: SIMD3<Float>) {
+        let d: Float = max(simd_distance(eye, position[i]), 0.05)
+        let halfTan: Float = tan(GraphFraming.fieldOfView * Float.pi / 360)
+        let perUnit: Float = viewHeight / (2 * d * halfTan)
+        let nodeScale: Float = max(popScale[i], 0.05)
+        let size: Float = 15 / perUnit / nodeScale * labelGrowth(i)
+        labels[i].simdScale = SIMD3<Float>(size, size, size)
+        let lift: Float = (pickRadius[i] + 10 / perUnit) / nodeScale
+        let upward: SIMD3<Float> = simd_length_squared(up) > 0.000_001 ? simd_normalize(up) : SIMD3<Float>(0, 1, 0)
+        labels[i].simdPosition = upward * lift
     }
 
     private func wantLabel(_ i: Int?) {
-        guard let i, i >= 0, i < nodes.count, visible[i] else { return }
+        guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i] else { return }
         if labelsWanted.contains(i) { return }
         labelsWanted.append(i)
     }
 
     /// Sizes a popping name: 85% to 100%, easing out.
     private func shapeLabel(_ i: Int) {
+        let size: Float = labelGrowth(i)
+        labels[i].simdScale = SIMD3<Float>(size, size, size)
+    }
+
+    /// How far a name has popped in: 0.85 to 1, easing out.
+    private func labelGrowth(_ i: Int) -> Float {
         let t: Float = labelPop[i]
         let left: Float = 1 - t
         let eased: Float = 1 - left * left
-        let size: Float = 0.85 + 0.15 * eased
-        labels[i].simdScale = SIMD3<Float>(size, size, size)
+        return 0.85 + 0.15 * eased
     }
 }

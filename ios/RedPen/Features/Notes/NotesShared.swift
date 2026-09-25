@@ -29,6 +29,14 @@ enum NoteTone {
     static func uiColor(for folderId: UUID?, in store: NoteStore) -> UIColor {
         UIColor(color(for: folderId, in: store))
     }
+
+    /// The palette's colour at `index` (wrapping), for a folder the space
+    /// treats as top level although the store does not (GraphUniverseScene).
+    static func uiColor(at index: Int) -> UIColor {
+        let count: Int = palette.count
+        let k: Int = ((index % count) + count) % count
+        return UIColor(palette[k])
+    }
 }
 
 /// Which way the notes are being looked at.
