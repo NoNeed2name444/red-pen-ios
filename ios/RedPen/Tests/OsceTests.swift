@@ -118,5 +118,29 @@ ok(mixedCards.count == 3, "question and cloze lines both become cards")
 ok(mixedCards.filter { $0.type == .cloze }.count == 2 && mixedCards[1].why == "used to monitor",
    "a cloze line keeps its hidden part, and its reason when it has one")
 
+// MARK: a run through a station goes in order
+
+var run = OsceRun(stepCount: 3)
+ok(run.stepIndex == 0 && !run.complete && run.restarts == 0, "a run starts at step 1")
+run.gotIt()
+ok(run.stepIndex == 1, "I got it moves on to the next step")
+run.startOver()
+ok(run.stepIndex == 0 && run.misses == [1] && !run.complete, "Start over goes back to step 1 and keeps the miss")
+run.gotIt(); run.gotIt(); run.startOver()
+ok(run.misses == [1, 2] && run.restarts == 2, "every start over is kept, at the step it happened")
+run.gotIt(); run.gotIt(); run.startOver()
+ok(run.weakSteps.map(\.step) == [2, 1] && run.weakSteps.first?.times == 2,
+   "the step missed most comes first")
+run.gotIt(); run.gotIt(); run.gotIt()
+ok(run.complete && run.stepIndex == 2, "getting the last step finishes the station")
+run.startOver(); run.gotIt()
+ok(run.complete && run.restarts == 3, "and a finished run is left alone")
+ok(OsceRun(stepCount: 0).complete, "a station with no steps is already done")
+let restored = OsceRun(stepCount: 3, stepIndex: 9, misses: [0, 7])
+ok(restored.stepIndex == 2 && restored.misses == [0], "a saved position is fitted to the station")
+var clean = OsceRun(stepCount: 2)
+clean.gotIt(); clean.gotIt()
+ok(clean.complete && clean.weakSteps.isEmpty, "a clean run has no weak steps")
+
 print(failures == 0 ? "\nALL OSCE TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

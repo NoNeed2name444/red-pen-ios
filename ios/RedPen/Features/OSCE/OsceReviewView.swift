@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// OSCE recall drill — matches `renderOsceStep()` / `renderOsceComplete()` /
-/// `osceGrade()`: work through each checklist's steps in order, one hidden
-/// at a time ("what comes next?"), reveal it, grade yourself Knew it / Missed
-/// it. Missed steps queue up for a second pass once the checklist's first
-/// pass finishes; that second pass is not itself repeated. When a checklist
-/// completes, move on to the next one in the set.
+/// OSCE recall drill: work through each checklist's steps in order, one hidden
+/// at a time ("what comes next?"), reveal it, then either "I got it" (on to
+/// the next step) or "Start over". The steps of a station are done in order,
+/// so a missed step ends the attempt: the station goes back to step 1 and the
+/// clock back to full, and the miss is kept against that step (`OsceRun`) so
+/// the finish can say which steps tripped the student up. When a checklist
+/// is got all the way through, move on to the next one in the set.
 struct OsceReviewView: View {
     let studySet: StudySet
     @Environment(\.dismiss) private var dismiss
@@ -16,12 +17,9 @@ struct OsceReviewView: View {
     @State private var spoken: OsceChecklist?
 
     @State private var checklistIndex: Int
-    @State private var stepIndex = 0
     @State private var revealed = false
-    @State private var missed: [Int] = []
-    @State private var repeatQueue: [Int] = []
-    @State private var repeatPos = 0
-    @State private var complete = false
+    /// Where this station's attempt is, and every start over so far.
+    @State private var run: OsceRun
     /// The station clock: when it runs out while running, nil while stopped.
     @State private var clockEndsAt: Date?
     /// What is left on the clock while it is stopped. A station starts with
@@ -32,19 +30,19 @@ struct OsceReviewView: View {
 
     init(set studySet: StudySet, startChecklistIndex: Int = 0, startRevealed: Bool = false, startComplete: Bool = false, startMissed: [Int] = []) {
         self.studySet = studySet
-        _checklistIndex = State(initialValue: min(startChecklistIndex, max(0, studySet.osceChecklists.count - 1)))
+        let index: Int = min(startChecklistIndex, max(0, studySet.osceChecklists.count - 1))
+        let count: Int = studySet.osceChecklists.indices.contains(index) ? studySet.osceChecklists[index].steps.count : 0
+        _checklistIndex = State(initialValue: index)
         _revealed = State(initialValue: startRevealed)
-        _complete = State(initialValue: startComplete)
-        _missed = State(initialValue: startMissed)
+        _run = State(initialValue: OsceRun(stepCount: count, misses: startMissed, complete: startComplete))
     }
 
     private var checklists: [OsceChecklist] { studySet.osceChecklists }
     private var checklist: OsceChecklist? { checklists.indices.contains(checklistIndex) ? checklists[checklistIndex] : nil }
-    private var inRepeat: Bool { !repeatQueue.isEmpty }
-    private var currentStepIdx: Int { inRepeat ? repeatQueue[repeatPos] : stepIndex }
+    private var complete: Bool { run.complete }
     private var currentStepText: String? {
-        guard let checklist, checklist.steps.indices.contains(currentStepIdx) else { return nil }
-        return checklist.steps[currentStepIdx]
+        guard let checklist, checklist.steps.indices.contains(run.stepIndex) else { return nil }
+        return checklist.steps[run.stepIndex]
     }
 
     var body: some View {
@@ -90,13 +88,11 @@ struct OsceReviewView: View {
         .onAppear(perform: resume)
         // Saved on every change rather than on the way out: a station is
         // usually left by the app being closed or killed, and nothing runs then.
-        .onChange(of: stepIndex) { _, _ in remember() }
-        .onChange(of: checklistIndex) { _, _ in remember() }
-        .onChange(of: repeatPos) { _, _ in remember() }
-        .onChange(of: complete) { _, done in
+        .onChange(of: run) { old, new in
             remember()
-            if done { stopClock() }
+            if new.complete && !old.complete { stopClock() }
         }
+        .onChange(of: checklistIndex) { _, _ in remember() }
         // Two gentle taps from the clock: one with a minute left, one at the
         // end, so it can be felt without looking away from the patient.
         // Keyed by the end time, so pausing (which clears it) cancels both.
@@ -193,15 +189,15 @@ struct OsceReviewView: View {
     private func progressHeader(_ checklist: OsceChecklist) -> some View {
         let totalSteps = checklists.reduce(0) { $0 + $1.steps.count }
         let earlier: Int = checklists.prefix(checklistIndex).reduce(0) { $0 + $1.steps.count }
-        let here: Int = complete || inRepeat ? checklist.steps.count : stepIndex
+        let here: Int = complete ? checklist.steps.count : run.stepIndex
         let fraction: Double = totalSteps > 0 ? min(1.0, Double(earlier + here) / Double(totalSteps)) : 0
         let status: String
         if complete {
             status = "Station done"
-        } else if inRepeat {
-            status = "Once more: \(repeatPos + 1) of \(repeatQueue.count)"
+        } else if run.restarts > 0 {
+            status = "Step \(run.stepIndex + 1) of \(checklist.steps.count) \u{00B7} attempt \(run.restarts + 1)"
         } else {
-            status = "Step \(stepIndex + 1) of \(checklist.steps.count)"
+            status = "Step \(run.stepIndex + 1) of \(checklist.steps.count)"
         }
         return StudyProgressHeader(status, detail: checklist.title, fraction: fraction) {
             if !complete { stationClock }
@@ -228,12 +224,17 @@ struct OsceReviewView: View {
                         .padding(16)
                         .frame(maxWidth: .infinity)
                 }
-                if !revealed && !inRepeat && stepIndex == 0 {
-                    Text("Work through the station out loud, revealing each step to check yourself.")
+                if !revealed && run.stepIndex == 0 {
+                    Text(run.restarts == 0
+                         ? "Work through the station out loud, in order, revealing each step to check yourself."
+                         : "From the top. The steps go in order, so a missed one means starting again.")
                         .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
             }
             .padding(16)
+            // a start over slides the station back in from the top
+            .id(run.restarts)
+            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
             .frame(minHeight: 220)
             .padding(.bottom, 12)
             .readableColumn()
@@ -242,32 +243,34 @@ struct OsceReviewView: View {
     }
 
     private var promptLine: String {
-        if inRepeat {
-            return "You missed this one. What was step \(currentStepIdx + 1)? Say it out loud, then tap Reveal."
-        }
         return "What comes next? Say it out loud, then tap Reveal."
     }
 
-    /// Reveal; then "Missed it" beside the big "Knew it", in the same place -
-    /// on a wide iPad, Missed under the left hand and Knew under the right.
+    /// Reveal; then "Start over" beside the big "I got it", in the same place -
+    /// on a wide iPad, Start over under the left hand and I got it under the
+    /// right. Only these two: the steps go in order, so a missed step cannot
+    /// be carried on from.
     @ViewBuilder
     private var footer: some View {
         if revealed {
             HStack(spacing: 12) {
-                Button { grade(knewIt: false) } label: {
-                    Label("Missed it", systemImage: "xmark")
+                Button(action: startOver) {
+                    Label("Start over", systemImage: "arrow.counterclockwise")
                 }
                 .buttonStyle(.bigSecondary)
-                .keyboardShortcut("m", modifiers: [])
-                .accessibilityHint("It comes round again at the end")
+                .keyboardShortcut("r", modifiers: [])
+                .accessibilityIdentifier("osceStartOver")
+                .accessibilityHint("Back to step 1, with the clock reset")
 
                 if span == .broad { Spacer(minLength: 16) }
 
-                Button { grade(knewIt: true) } label: {
-                    Label("Knew it", systemImage: "checkmark")
+                Button(action: gotIt) {
+                    Label("I got it", systemImage: "checkmark")
                 }
                 .buttonStyle(.bigPrimary)
                 .keyboardShortcut(.return, modifiers: [])
+                .accessibilityIdentifier("osceGotIt")
+                .accessibilityHint("On to the next step")
             }
         } else {
             Button { withAnimation(.snappy) { revealed = true } } label: {
@@ -275,6 +278,7 @@ struct OsceReviewView: View {
             }
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.space, modifiers: [])
+            .accessibilityIdentifier("osceReveal")
         }
     }
 
@@ -285,10 +289,14 @@ struct OsceReviewView: View {
     /// the result, the same station practised aloud with a spoken patient.
     private func completeBody(_ checklist: OsceChecklist) -> some View {
         let hasNext: Bool = checklistIndex < checklists.count - 1
-        let total: Int = checklist.steps.count
-        let missedCount: Int = missed.count
-        let title: String = "\(total - missedCount) of \(total) first time"
-        let message: String = completeMessage(checklist, missedCount: missedCount)
+        let restarts: Int = run.restarts
+        let title: String
+        if restarts == 0 {
+            title = "All \(checklist.steps.count) steps, first time"
+        } else {
+            title = restarts == 1 ? "Done after 1 start over" : "Done after \(restarts) start overs"
+        }
+        let message: String = completeMessage(checklist)
         return ScrollView {
             VStack(spacing: 16) {
                 FinishHero(symbol: "checkmark.seal.fill", title: title, message: message)
@@ -309,12 +317,17 @@ struct OsceReviewView: View {
     }
 
     /// What the result means, and where the student goes from here.
-    private func completeMessage(_ checklist: OsceChecklist, missedCount: Int) -> String {
+    private func completeMessage(_ checklist: OsceChecklist) -> String {
         let recall: String
-        if missedCount == 0 {
-            recall = "You recalled every step of \(checklist.title)."
+        let weak = run.weakSteps
+        if weak.isEmpty {
+            recall = "You recalled every step of \(checklist.title), in order."
         } else {
-            recall = "The \(missedCount) you missed came round again."
+            let named: [String] = weak.prefix(3).map { entry in
+                let times: String = entry.times == 1 ? "" : " (\(entry.times) times)"
+                return "step \(entry.step + 1)\(times)"
+            }
+            recall = "You started over at " + named.joined(separator: ", ") + " - worth another look."
         }
         let nextIndex: Int = checklistIndex + 1
         guard checklists.indices.contains(nextIndex) else {
@@ -345,33 +358,28 @@ struct OsceReviewView: View {
         }
     }
 
-    // MARK: logic — mirrors osceGrade()
+    // MARK: logic - OsceRun
 
-    private func grade(knewIt: Bool) {
-        guard let checklist else { return }
+    private func gotIt() {
         StudyLog.shared.record()
-        if inRepeat {
-            repeatPos += 1
-            if repeatPos >= repeatQueue.count {
-                repeatQueue = []
-                complete = true
-                return
-            }
-        } else {
-            if !knewIt { missed.append(stepIndex) }
-            if stepIndex >= checklist.steps.count - 1 {
-                if !missed.isEmpty {
-                    repeatQueue = missed
-                    repeatPos = 0
-                } else {
-                    complete = true
-                    return
-                }
-            } else {
-                stepIndex += 1
-            }
+        withAnimation(.snappy) {
+            run.gotIt()
+            revealed = false
         }
-        revealed = false
+    }
+
+    /// Back to step 1 with no confirming: the miss is kept against the step,
+    /// and the station clock goes back to full (still running if it was).
+    private func startOver() {
+        StudyLog.shared.record()
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        let wasRunning: Bool = clockEndsAt != nil
+        clockLeft = Self.stationSeconds
+        clockEndsAt = wasRunning ? Date().addingTimeInterval(clockLeft) : nil
+        withAnimation(.spring(duration: 0.35, bounce: 0.15)) {
+            run.startOver()
+            revealed = false
+        }
     }
 
     // MARK: picking the station back up
@@ -382,14 +390,14 @@ struct OsceReviewView: View {
     /// particular checklist meant it, and quietly sending them somewhere else
     /// would be the opposite of resuming.
     private func resume() {
-        guard checklistIndex == 0, stepIndex == 0, !complete, missed.isEmpty,
+        guard checklistIndex == 0, run.stepIndex == 0, !complete, run.misses.isEmpty,
               let saved = store.osceProgress[studySet.id],
               saved.fits(checklists) else { return }
         checklistIndex = saved.checklistIndex
-        stepIndex = saved.stepIndex
-        missed = saved.missed
-        repeatQueue = saved.repeatQueue
-        repeatPos = saved.repeatPos
+        // An older save could be part way through a second pass over missed
+        // steps; that pass no longer exists, so it picks up at the step.
+        run = OsceRun(stepCount: checklists[saved.checklistIndex].steps.count,
+                      stepIndex: saved.stepIndex, misses: saved.missed)
         revealed = false
     }
 
@@ -403,10 +411,8 @@ struct OsceReviewView: View {
         guard let checklist else { return }
         store.saveOsce(OsceProgress(checklistIndex: checklistIndex,
                                     checklistTitle: checklist.title,
-                                    stepIndex: stepIndex,
-                                    missed: missed,
-                                    repeatQueue: repeatQueue,
-                                    repeatPos: repeatPos),
+                                    stepIndex: run.stepIndex,
+                                    missed: run.misses),
                        for: studySet.id)
     }
 
@@ -415,11 +421,8 @@ struct OsceReviewView: View {
         clockEndsAt = nil
         clockLeft = Self.stationSeconds
         checklistIndex += 1
-        stepIndex = 0
         revealed = false
-        missed = []
-        repeatQueue = []
-        repeatPos = 0
-        complete = false
+        let count: Int = checklists.indices.contains(checklistIndex) ? checklists[checklistIndex].steps.count : 0
+        run = OsceRun(stepCount: count)
     }
 }
