@@ -67,6 +67,7 @@ console.log('all passed');
     && limitKind('4006: you have used up your daily free allocation of 10,000 neurons') === 'day'
     && limitKind("429: That's today's 2500 cloud requests used. On-device models still work, and the allowance resets at midnight UTC.") === 'day'
     && limitKind('429: anything', { limit: 'day' }) === 'day'
+    && limitKind("502: Provider 429: Workers AI: this account's share of today's free allowance is used.") === 'day'
     && waitFor('retry 41s') === 41 && waitFor('') === 20
     && Math.round(neuronsFor('workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct', 4000, 1200)) === 48;
   if (!ok2) { console.log('FAIL limit handling'); process.exit(1); }

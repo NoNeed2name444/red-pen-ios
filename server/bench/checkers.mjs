@@ -63,7 +63,7 @@ export const NEURON_RATES = {   // neurons per million tokens: [input, output]
 export function limitKind(message, body = {}) {
   if (body?.limit === 'day') return 'day';
   const m = String(message || '');
-  if (/PerDay|4006|daily free allocation|per day|today's \d+ cloud requests|resets at midnight/i.test(m)) return 'day';
+  if (/PerDay|4006|daily free allocation|per day|today's \d+ cloud requests|resets at midnight|share of today's free allowance/i.test(m)) return 'day';
   if (/PerMinute|per minute|RESOURCE_EXHAUSTED|exceeded your current quota|overloaded|rate limit/i.test(m)) return 'minute';
   return null;
 }
