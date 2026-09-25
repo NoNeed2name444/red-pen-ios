@@ -1,0 +1,266 @@
+getpwuid_r did not find a match for uid 501
+Timestamp               Ty Process[PID:TID]
+2026-09-25 19:01:41.620 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x103af02a0] activating connection: mach=true listener=false peer=false name=com.apple.cfprefsd.daemon
+2026-09-25 19:01:41.639 Df Stethoscore Personal[36823:1abec] [com.apple.BoardServices:XPCErrors] [C:1] Alloc com.apple.frontboard.systemappservices
+2026-09-25 19:01:41.639 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x103af5ac0] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-09-25 19:01:41.651 Df Stethoscore Personal[36823:1abec] (libMobileGestalt.dylib) No persisted cache on this platform.
+2026-09-25 19:01:41.660 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x103af8770] activating connection: mach=true listener=false peer=false name=com.apple.metrickit.xpc
+2026-09-25 19:01:41.660 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x103af8770] failed to do a bootstrap look-up: xpc_error=[3: No such process]
+2026-09-25 19:01:41.660 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x103af8770] invalidated after a failed init
+2026-09-25 19:01:41.719 Df Stethoscore Personal[36823:1abec] [com.apple.UserNotifications:Connections] [com.cramdown.personal] Creating a user notification center
+2026-09-25 19:01:41.739 A  Stethoscore Personal[36823:1abec] (Security) SecItemCopyMatching_ios
+2026-09-25 19:01:41.739 Df Stethoscore Personal[36823:1abec] [com.apple.securityd:secitemratelimit] Not internal release, disabling SIRL
+2026-09-25 19:01:41.741 Df Stethoscore Personal[36823:1abec] [com.apple.securityd:thread-local-client-debug] SecSecurityClientGet new thread!
+2026-09-25 19:01:41.746 Df Stethoscore Personal[36823:1abec] [com.apple.securityd:keychain] System Keychain Always Supported set via feature flag to disabled
+2026-09-25 19:01:41.746 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x104174000] activating connection: mach=true listener=false peer=false name=com.apple.securityd
+2026-09-25 19:01:41.842 A  Stethoscore Personal[36823:1abf7] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-09-25 19:01:41.844 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason added: 10; deactivation reasons: 0 -> 1024; animating application lifecycle event: 0
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abec] [com.apple.runningboard:connection] Initializing connection
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abec] [com.apple.runningboard:process] Removing all cached process handles
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abfd] [com.apple.runningboard:connection] Sending handshake request attempt #1 to server
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abec] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.open
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abfd] [com.apple.runningboard:connection] Creating connection to com.apple.runningboard
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abfd] [com.apple.xpc:connection] [0x104174500] activating connection: mach=true listener=false peer=false name=com.apple.runningboard
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abec] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.workspace-service
+2026-09-25 19:01:41.845 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:Common] FBSWorkspace registering source: com.apple.frontboard.systemappservices
+2026-09-25 19:01:41.846 A  Stethoscore Personal[36823:1abfa] (RunningBoardServices) didChangeInheritances
+2026-09-25 19:01:41.846 Df Stethoscore Personal[36823:1abfd] [com.apple.runningboard:connection] Handshake succeeded
+2026-09-25 19:01:41.846 Df Stethoscore Personal[36823:1abfd] [com.apple.runningboard:connection] Identity resolved as app<com.cramdown.personal((null))>
+2026-09-25 19:01:41.846 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:Common] FBSWorkspace connected to endpoint : <BSServiceConnectionEndpoint: 0x104118a80; target: com.apple.frontboard.systemappservices; service: com.apple.frontboard.workspace-service>
+2026-09-25 19:01:41.846 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x1040f8b40 com.apple.frontboard.systemappservices> attempting immediate handshake from activate
+2026-09-25 19:01:41.847 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x1040f8b40 com.apple.frontboard.systemappservices> sent handshake
+2026-09-25 19:01:41.847 Df Stethoscore Personal[36823:1abec] [com.apple.runningboard:general] Added observer for process assertions expiration warning: <_RBSExpirationWarningClient: 0x104118de0>
+2026-09-25 19:01:41.848 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UIApplicationSceneKeyboardSettings on FBSSceneSettings
+2026-09-25 19:01:41.849 Df Stethoscore Personal[36823:1abf9] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-09-25 19:01:41.849 Df Stethoscore Personal[36823:1abf9] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-09-25 19:01:41.849 Df Stethoscore Personal[36823:1abf9] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x104294500>
+2026-09-25 19:01:41.849 I  Stethoscore Personal[36823:1abf9] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "Shared Background Assertion 0 for com.cramdown.personal" ID:(null) target:36823>
+2026-09-25 19:01:41.849 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneOcclusionSettings> on FBSSceneSettings
+2026-09-25 19:01:41.849 Df Stethoscore Personal[36823:1abf9] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x104294500>
+2026-09-25 19:01:41.850 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneInterfaceProtectionSettings> on FBSSceneSettings
+2026-09-25 19:01:41.850 Df Stethoscore Personal[36823:1abf9] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x1040c2b80>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 2010 (elapsed = 0).
+2026-09-25 19:01:41.850 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneLayoutPreferencesHostSettingsExtension on FBSSceneSettings
+2026-09-25 19:01:41.850 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneSafeAreaSettingsExtension on FBSSceneSettings
+2026-09-25 19:01:41.851 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneLayoutPreferenceClientSettingsExtension on FBSSceneClientSettings
+2026-09-25 19:01:41.851 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UIScreen] Evaluated capturing state as 0 on <UIScreen: 0x104174780> for initial
+2026-09-25 19:01:41.851 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UIHomeAffordanceHostSceneSettings> on FBSSceneSettings
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UIScreen] Evaluated capturing state as 0 on <UIScreen: 0x104174780> for CADisplay KVO
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISystemShellSceneHostingEnvironmentSettings on FBSSceneSettings
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneRenderingEnvironmentSettings on FBSSceneSettings
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneRenderingEnvironmentClientSettings> on FBSSceneClientSettings
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneTransitioningHostSettings> on FBSSceneSettings
+2026-09-25 19:01:41.852 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneFocusSystemSettings> on FBSSceneSettings
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneOrientationSettingsExtension on FBSSceneSettings
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abec] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 1, category name = (null)
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneOrientationClientSettingsExtension on FBSSceneClientSettings
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneWindowingControlClientSettings on FBSSceneClientSettings
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abec] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 0, category name = (null)
+2026-09-25 19:01:41.853 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneSettingsCore on FBSSceneSettings
+2026-09-25 19:01:41.854 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingContentSizePreferenceClientSettings> on FBSSceneClientSettings
+2026-09-25 19:01:41.854 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneHostingTraitCollectionPropagationSettings on FBSSceneSettings
+2026-09-25 19:01:41.855 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneClientSettingsCore on FBSSceneClientSettings
+2026-09-25 19:01:41.855 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationSettings> on FBSSceneSettings
+2026-09-25 19:01:41.856 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationClientSettings> on FBSSceneClientSettings
+2026-09-25 19:01:41.856 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingEventDeferringSettings> on FBSSceneSettings
+2026-09-25 19:01:41.856 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneSettings
+2026-09-25 19:01:41.856 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneClientSettings
+2026-09-25 19:01:41.857 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingViewControllerPreferencePropagationClientSettings> on FBSSceneClientSettings
+2026-09-25 19:01:41.857 Df Stethoscore Personal[36823:1abf9] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneZoomTransitionSettings> on FBSSceneSettings
+2026-09-25 19:01:41.858 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneSettings setting counterpart class: UIApplicationSceneSettings
+2026-09-25 19:01:41.858 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneClientSettings setting counterpart class: UIApplicationSceneClientSettings
+2026-09-25 19:01:41.858 Df Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneTransitionContextCore on FBSSceneTransitionContext
+2026-09-25 19:01:41.859 I  Stethoscore Personal[36823:1abfa] [com.apple.FrontBoard:Common] [FBSScene] [(FBSceneManager):sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB] Created client agent: <UIApplicationSceneClientAgent: 0x1043100e0>
+2026-09-25 19:01:41.860 Df Stethoscore Personal[36823:1abec] [com.apple.dt.xctest:Default] Registering for test daemon availability notify post.
+2026-09-25 19:01:41.860 Df Stethoscore Personal[36823:1abec] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 19:01:41.861 Df Stethoscore Personal[36823:1abec] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 19:01:41.861 Df Stethoscore Personal[36823:1abec] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 19:01:41.862 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason added: 11; deactivation reasons: 1024 -> 3072; animating application lifecycle event: 0
+2026-09-25 19:01:41.863 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason removed: 10; deactivation reasons: 3072 -> 2048; animating application lifecycle event: 0
+2026-09-25 19:01:41.863 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventBus] Event Timing Profile for Touch: not found, path="/System/Library/EventTimingProfiles/Sim.Touch.plist"
+2026-09-25 19:01:41.863 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventBus] Event Timing Profile for Pencil: not found, path="/System/Library/EventTimingProfiles/Sim.Pencil.plist"
+2026-09-25 19:01:41.864 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UpdateScheduler] Selected display: name=LCD (PurpleMain), id=1
+2026-09-25 19:01:41.866 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x104174c80] activating connection: mach=true listener=false peer=false name=com.apple.lsd.mapdb
+2026-09-25 19:01:41.867 I  Stethoscore Personal[36823:1abec] [com.apple.launchservices:db] LaunchServices database schema version: 20971544
+2026-09-25 19:01:41.925 Df Stethoscore Personal[36823:1abec] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/A2011F14-88A1-46AA-999A-FD6FEDCD870B/data/Containers/Data/Application/1BEEDBF9-6F48-4203-BD68-1912EEBDCFA6/Library/Application Support/RedPenBlobs
+2026-09-25 19:01:42.019 E  Stethoscore Personal[36823:1abec] [com.apple.UIKit:MenuBuilder] Replacement elements conflict with existing elements:
+
+Keyboard Shortcut (duplicate modifierFlags: command, input: F):
+- Existing keyboard shortcut: <UIKeyCommand: 0x10429a4c0; title = Find; action: find:; input: f; modifierFlags: Cmd>
+- Conflicting keyboard shortcut: <UIKeyCommand: 0x10429bc60; title = Search Library; action: _performMainMenuShortcutKeyCommand:; input: f; modifierFlags: Cmd>
+Ensure all keyboard shortcuts are unique to avoid undefined behavior.
+
+Make a symbolic breakpoint at _UIMenuBuilderError to catch this in the debugger.
+2026-09-25 19:01:42.021 Df Stethoscore Personal[36823:1abec] [com.apple.BoardServices:XPCErrors] [C:2] Alloc com.apple.backboard.hid-services.xpc
+2026-09-25 19:01:42.021 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x104174f00] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-09-25 19:01:42.022 Df Stethoscore Personal[36823:1abf8] [com.apple.BackBoard:EventDelivery] BKSHIDEventDeliveryManager - connection activation
+2026-09-25 19:01:42.022 I  Stethoscore Personal[36823:1abec] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "app_launch_measurement: pageins recording enabled" ID:(null) target:36823>
+2026-09-25 19:01:42.023 Df Stethoscore Personal[36823:1abec] [com.apple.app_launch_measurement:ApplicationLaunch] alm_acquire_pageins_recording_assertion: acquired pageins recording assertion!
+2026-09-25 19:01:42.027 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason added: 5; deactivation reasons: 2048 -> 2080; animating application lifecycle event: 1
+2026-09-25 19:01:42.027 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Should send trait collection or coordinate space update, interface style 1 -> 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.027 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.027 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:HomeAffordanceObservation] Initializing: <_UIHomeAffordanceSceneNotifier: 0x104348f50>; with scene: <UIWindowScene: 0x103aff110>
+2026-09-25 19:01:42.028 Df Stethoscore Personal[36823:1abec] [com.apple.BacklightServices:scenes] 0x1040467f0 setDelegate:<0x104046850 _UIBacklightEnvironment> hasDelegate:YES for environment:sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:42.028 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.028 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventDeferring] [0x104348fc0] Initialized with scene: <UIWindowScene: 0x103aff110>; behavior: <_UIEventDeferringBehavior_iOS: 0x10ac916c0>; availableForProcess: 1, systemShellManagesKeyboardFocus: 1
+2026-09-25 19:01:42.030 Df Stethoscore Personal[36823:1abf8] [com.apple.BackBoard:EventDelivery] BKSHIDEventObserver - connection activation
+2026-09-25 19:01:42.030 Df Stethoscore Personal[36823:1abec] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x1042f29a0; process scope; status: target> was:none
+2026-09-25 19:01:42.030 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPad to LastOneWins
+2026-09-25 19:01:42.030 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Scene target of keyboard event deferring environment did change: 1; scene: UIWindowScene: 0x103aff110; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:42.030 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UIFocus] Focus system enabled
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UIFocus] Failed to update focus with context <UIFocusUpdateContext: 0x1040f8c80; previouslyFocusedItem: (nil); nextFocusedItem: (nil); focusHeading: None>. No additional info available.
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventDeferring] [0x104348fc0] Scene target of event deferring environments did update: scene: 0x103aff110; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x103aff110; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Stack[KeyWindow] 0x104046430: Taking no further action for migration from LastOneWins -> SystemShellManaged as there are no scenes
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPad to SystemShellManaged
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Key window needs update: 0; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x103aff110; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x0; reason: UIWindowScene: 0x103aff110: Window scene became target of keyboard environment
+2026-09-25 19:01:42.031 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.032 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.033 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.033 I  Stethoscore Personal[36823:1abec] [com.apple.SwiftUI:Scenes] Received scene connection to session: <UISceneSession: 0x1042959a0; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: 275F0BEB-D077-4C25-8195-40C4F316EFFB; scene: (nil); configuration: <UISceneConfiguration: 0x104295950>; userInfo: (nil)>
+2026-09-25 19:01:42.038 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:main] initUAUserActivity:com.apple.SwiftUI.stateRestoration- 3B49F9A6-213A-4474-872F-831D7B82B936 UserActivity
+2026-09-25 19:01:42.038 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] - UAUserActivity	v1.0
+2026-09-25 19:01:42.038 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] 3B49F9A6-213A-4474-872F-831D7B82B936 CREATED com.apple.SwiftUI.stateRestoration/(null)
+2026-09-25 19:01:42.038 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] 3B49F9A6-213A-4474-872F-831D7B82B936 SET-USERINFO	count=1 false
+2026-09-25 19:01:42.038 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] 3B49F9A6-213A-4474-872F-831D7B82B936 SET-DIRTY	wasDirty=false force=false informServer=false informIndex=false
+2026-09-25 19:01:42.071 I  Stethoscore Personal[36823:1abec] [com.apple.SwiftUI:Scenes] Scene session 275F0BEB-D077-4C25-8195-40C4F316EFFB will use item WindowGroup with id: 'type(SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.Group<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<Stethoscore_Personal.GraphPreviewRoot, SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.AnkiReviewView>, SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.MCQQuizView>>, SwiftUI._ConditionalContent<SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.NarrateReviewView>, SwiftUI.NavigationStack<<…>
+2026-09-25 19:01:42.112 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:PointerLockState] preferredPointerLockStatus updated: scene: <UIWindowScene: 0x103aff110; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: 275F0BEB-D077-4C25-8195-40C4F316EFFB; activationState: UISceneActivationStateUnattached>; viewController: <_TtGC7SwiftUI19UIHostingControllerGVS_15ModifiedContentVS_7AnyViewVS_12RootModifier__: 0x1042a4000>; preferredPointerLockStatus: _UIPointerLockStatusUnlocked
+2026-09-25 19:01:42.124 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Key window API is scene-level: YES
+2026-09-25 19:01:42.124 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] UIWindowScene: 0x103aff110: Window became key in scene: UIWindow: 0x104270400; contextId: 0x5AB0F3F7: reason: UIWindowScene: 0x103aff110: Window requested to become key in scene: 0x104270400
+2026-09-25 19:01:42.124 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Key window needs update: 1; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x103aff110; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x104270400; reason: UIWindowScene: 0x103aff110: Window requested to become key in scene: 0x104270400
+2026-09-25 19:01:42.124 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Window did become application key: UIWindow: 0x104270400; contextId: 0x5AB0F3F7; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:42.125 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventDeferring] [0x104348fc0] Begin local event deferring requested for token: 0x1042f2ca0; environments: 1; reason: UIWindowScene: 0x103aff110: Begin event deferring in keyboardFocus for window: 0x104270400
+2026-09-25 19:01:42.127 Df Stethoscore Personal[36823:1abfa] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x1042f29a0; token: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB; status: ancestor> was:target
+2026-09-25 19:01:42.127 I  Stethoscore Personal[36823:1abec] [com.apple.SwiftUI:Scenes] Finished willConnectTo for session 275F0BEB-D077-4C25-8195-40C4F316EFFB with scene <UIWindowScene: 0x103aff110; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: 275F0BEB-D077-4C25-8195-40C4F316EFFB; activationState: UISceneActivationStateUnattached>
+2026-09-25 19:01:42.128 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.131 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB  persistentID: 275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:42.131 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Ignoring already applied deactivation reason: 5; deactivation reasons: 2080
+2026-09-25 19:01:42.131 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason added: 12; deactivation reasons: 2080 -> 6176; animating application lifecycle event: 1
+2026-09-25 19:01:42.132 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason removed: 11; deactivation reasons: 6176 -> 4128; animating application lifecycle event: 1
+2026-09-25 19:01:42.132 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneIntelligenceSupportSettings> on FBSSceneSettings
+2026-09-25 19:01:42.132 Df Stethoscore Personal[36823:1abfa] [com.apple.UIIntelligenceSupport:xpc] establishing connection to agent
+2026-09-25 19:01:42.133 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:42.133 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:session] [0x104295f90] Session created.
+2026-09-25 19:01:42.133 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:session] [0x104295f90] Session created from connection [0x10ad1abc0]
+2026-09-25 19:01:42.133 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:connection] [0x10ad1abc0] activating connection: mach=true listener=false peer=false name=com.apple.uiintelligencesupport.agent
+2026-09-25 19:01:42.134 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:session] [0x104295f90] Session activated
+2026-09-25 19:01:42.139 A  Stethoscore Personal[36823:1abec] (CoreFoundation) Updating Key-Value Observers Of Preferences
+2026-09-25 19:01:42.447 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:connection] [0x10ad18c80] activating connection: mach=true listener=false peer=false name=com.apple.fontservicesd
+2026-09-25 19:01:42.586 I  Stethoscore Personal[36823:1abec] [com.apple.DesignLibrary:defaults] liveTuning=false
+2026-09-25 19:01:42.629 E  Stethoscore Personal[36823:1ac0c] [com.apple.locationd.Core:Core] {"msg":"file does not exist... clearing", "file":/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, "error":Error Domain=NSCocoaErrorDomain Code=260 "The file “com.apple.CoreMotion.plist” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSURL=file:///Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS%2026.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed%20Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSUnderlyingError=0x10af52e80 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}}
+2026-09-25 19:01:42.631 A  Stethoscore Personal[36823:1ac0c] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-09-25 19:01:42.634 Df Stethoscore Personal[36823:1abec] [PrototypeTools:domain] Not observing PTDefaults on customer install.
+2026-09-25 19:01:42.664 Df Stethoscore Personal[36823:1abf8] [com.apple.xpc:connection] [0x104177d40] activating connection: mach=true listener=false peer=false name=com.apple.IOSurface.Remote
+2026-09-25 19:01:42.668 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:SceneClient] [(FBSceneManager):sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB] Sending action(s): BLSInvalidateFrameSpecifiersAction
+2026-09-25 19:01:42.669 Df Stethoscore Personal[36823:1abf9] [com.apple.BoardServices:XPCErrors] [C:3] Alloc com.apple.PointerUI.pointeruid.service
+2026-09-25 19:01:42.669 Df Stethoscore Personal[36823:1abf9] [com.apple.xpc:connection] [0x104177e80] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-09-25 19:01:42.713 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115921040] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-09-25 19:01:42.714 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115921e00] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-09-25 19:01:42.715 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115921f40] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-09-25 19:01:42.742 Df Stethoscore Personal[36823:1abec] [com.apple.renderbox:misc] RBDevice: initialized bg state: false
+2026-09-25 19:01:42.886 Df Stethoscore Personal[36823:1abfa] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 1
+2026-09-25 19:01:42.886 Df Stethoscore Personal[36823:1abfa] [com.apple.UIKit:BackgroundTask] Ending task with identifier 1 and description: <_UIBackgroundTaskInfo: 0x1040c2b80>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 2010 (elapsed = 2), _expireHandler: (null)
+2026-09-25 19:01:42.886 Df Stethoscore Personal[36823:1abfa] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x104294500> (used by background task with identifier 1: <_UIBackgroundTaskInfo: 0x1040c2b80>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 2010 (elapsed = 2))
+2026-09-25 19:01:42.886 Df Stethoscore Personal[36823:1abfa] [com.apple.UIKit:BackgroundTask] Will invalidate assertion: <BKSProcessAssertion: 0x104294500> for task identifier: 1
+2026-09-25 19:01:42.892 A  Stethoscore Personal[36823:1abfa] (RunningBoardServices) didChangeInheritances
+2026-09-25 19:01:42.894 A  Stethoscore Personal[36823:1abf9] (RunningBoardServices) didChangeInheritances
+2026-09-25 19:01:42.910 A  Stethoscore Personal[36823:1abf9] (RunningBoardServices) didChangeInheritances
+2026-09-25 19:01:42.990 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UIFocus] Failed to update focus with context <UIFocusUpdateContext: 0x115960500; previouslyFocusedItem: (nil); nextFocusedItem: (nil); focusHeading: None>. No additional info available.
+2026-09-25 19:01:42.996 E  Stethoscore Personal[36823:1abec] [com.apple.UIKit:MenuBuilder] Replacement elements conflict with existing elements:
+
+Keyboard Shortcut (duplicate modifierFlags: command, input: F):
+- Existing keyboard shortcut: <UIKeyCommand: 0x10429a4c0; title = Find; action: find:; input: f; modifierFlags: Cmd>
+- Conflicting keyboard shortcut: <UIKeyCommand: 0x10ac9c1c0; title = Search Library; action: _performMainMenuShortcutKeyCommand:; input: f; modifierFlags: Cmd>
+Ensure all keyboard shortcuts are unique to avoid undefined behavior.
+
+Make a symbolic breakpoint at _UIMenuBuilderError to catch this in the debugger.
+2026-09-25 19:01:43.004 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:1 [E61F8329-6C85-44CB-880E-EDD25C24EC18] (reporting strategy default)>
+2026-09-25 19:01:43.004 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:2 [002C1AFB-E98B-42C2-B384-5B814BA6FF81] (reporting strategy default)>
+2026-09-25 19:01:43.004 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] Set activity <nw_activity 50:1 [E61F8329-6C85-44CB-880E-EDD25C24EC18] (reporting strategy default)> as the global parent
+2026-09-25 19:01:43.004 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:UpdateScheduler] Target list changed: <CADisplay:LCD PurpleMain>
+2026-09-25 19:01:43.006 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB  persistentID: 275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:43.007 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:43.010 A  Stethoscore Personal[36823:1abf8] (StoreKit) StoreKit/TransactionUpdateStart
+2026-09-25 19:01:43.010 A  Stethoscore Personal[36823:1abf8] (StoreKit) StoreKit/TransactionQuery
+2026-09-25 19:01:43.010 I  Stethoscore Personal[36823:1abf8] [com.apple.storekit:Default] AAFService Starting new XPCConnection 672f0eb7
+2026-09-25 19:01:43.010 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:EventDeferring] [0x104348fc0] Scene target of event deferring environments did update: scene: 0x103aff110; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-09-25 19:01:43.010 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x103aff110; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:43.011 Df Stethoscore Personal[36823:1abf8] [com.apple.xpc:connection] [0x104176bc0] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-09-25 19:01:43.015 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:main] initUAUserActivity:com.apple.SwiftUI.stateRestoration- FA83EC5A-2764-427B-A3EE-FAA43F3365DE UserActivity
+2026-09-25 19:01:43.015 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] FA83EC5A-2764-427B-A3EE-FAA43F3365DE CREATED com.apple.SwiftUI.stateRestoration/(null)
+2026-09-25 19:01:43.017 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] FA83EC5A-2764-427B-A3EE-FAA43F3365DE SET-DIRTY	wasDirty=false force=false informServer=false informIndex=false
+2026-09-25 19:01:43.019 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] FA83EC5A-2764-427B-A3EE-FAA43F3365DE SET-USERINFO	count=1 false
+2026-09-25 19:01:43.020 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] FA83EC5A-2764-427B-A3EE-FAA43F3365DE SET-DIRTY	wasDirty=true force=false informServer=false informIndex=false
+2026-09-25 19:01:43.020 I  Stethoscore Personal[36823:1abec] [com.apple.useractivity:biome-69594900] 3B49F9A6-213A-4474-872F-831D7B82B936 INVALIDATE	wasCurrent=false needsSave=true dirty=true sendToServer=false
+2026-09-25 19:01:43.020 I  Stethoscore Personal[36823:1abf9] [com.apple.useractivity:biome-69594900] 3B49F9A6-213A-4474-872F-831D7B82B936 RELEASED changeCount=1
+2026-09-25 19:01:43.022 Df Stethoscore Personal[36823:1abec] [com.apple.Accessibility:AXCommon] Read Per-App on Init: Smart invert = (null)
+2026-09-25 19:01:43.022 I  Stethoscore Personal[36823:1abec] [com.apple.PointerUI:Common] Activating Connection: <BSXPC(com.apple.PointerUI.pointeruid.service[C:3-1])-as(com.apple.PointerUI.pointeruid.default-service):0x1158a56d0 name=(null)>
+2026-09-25 19:01:43.054 Df Stethoscore Personal[36823:1abf9] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-09-25 19:01:43.054 I  Stethoscore Personal[36823:1abfa] [com.apple.storekit:Default] AAFService Closing XPCConnection 672f0eb7
+2026-09-25 19:01:43.054 Df Stethoscore Personal[36823:1abfa] [com.apple.xpc:connection] [0x104176bc0] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-25 19:01:43.054 A  Stethoscore Personal[36823:1abf8] (StoreKit) StoreKit/TransactionUpdateCheck
+2026-09-25 19:01:43.055 I  Stethoscore Personal[36823:1abf8] [com.apple.storekit:Default] AAFService Starting new XPCConnection 6a0f8927
+2026-09-25 19:01:43.058 Df Stethoscore Personal[36823:1abf8] [com.apple.xpc:connection] [0x104177c00] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-09-25 19:01:43.059 Df Stethoscore Personal[36823:1abf9] [com.apple.storekit:Default] AAFService connection invalidated
+2026-09-25 19:01:43.067 Df Stethoscore Personal[36823:1ac00] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-09-25 19:01:43.089 Df Stethoscore Personal[36823:1abec] [com.apple.FrontBoard:SceneExtension] Realizing settings extension SBUISecureRenderingSettingsExtension on FBSSceneSettings
+2026-09-25 19:01:43.090 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:43.091 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103aff110> (275F0BEB-D077-4C25-8195-40C4F316EFFB)
+2026-09-25 19:01:43.092 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-275F0BEB-D077-4C25-8195-40C4F316EFFB  persistentID: 275F0BEB-D077-4C25-8195-40C4F316EFFB
+2026-09-25 19:01:43.092 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason removed: 12; deactivation reasons: 4128 -> 32; animating application lifecycle event: 1
+2026-09-25 19:01:43.092 Df Stethoscore Personal[36823:1abec] [com.apple.KeyboardArbiter:Client] Send setDeactivating: N (-DeactivationReason:SuspendedEventsOnly)
+2026-09-25 19:01:43.092 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:Application] Deactivation reason removed: 5; deactivation reasons: 32 -> 0; animating application lifecycle event: 0
+2026-09-25 19:01:43.282 Df Stethoscore Personal[36823:1abec] [com.apple.KeyboardArbiter:Client] startConnection
+2026-09-25 19:01:43.283 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115920dc0] activating connection: mach=true listener=false peer=false name=com.apple.UIKit.KeyboardManagement.hosted
+2026-09-25 19:01:43.296 I  Stethoscore Personal[36823:1abf8] [com.apple.storekit:Default] AAFService Closing XPCConnection 6a0f8927
+2026-09-25 19:01:43.296 Df Stethoscore Personal[36823:1abf8] [com.apple.xpc:connection] [0x104177c00] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-25 19:01:43.297 Df Stethoscore Personal[36823:1abf9] [com.apple.xpc:connection] [0x115923200] activating connection: mach=true listener=false peer=false name=com.apple.lsd.advertisingidentifiers
+2026-09-25 19:01:43.304 Df Stethoscore Personal[36823:1abf9] [com.apple.storekit:Default] Registering for 'transactionsupdated' daemon notification
+2026-09-25 19:01:43.313 A  Stethoscore Personal[36823:1abf9] (RunningBoardServices) didChangeInheritances
+2026-09-25 19:01:43.313 Df Stethoscore Personal[36823:1ac00] [com.apple.storekit:Default] AAFService connection invalidated
+2026-09-25 19:01:43.324 Df Stethoscore Personal[36823:1abec] [com.apple.KeyboardArbiter:Client] handleKeyboardChange: set currentKeyboard:N (wasKeyboard:N)
+2026-09-25 19:01:43.345 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyboardSceneDelegate] forceReloadInputViews
+2026-09-25 19:01:43.346 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyboardSceneDelegate] Reloading input views for key-window scene responder: <(null): 0x0; > force:Y
+2026-09-25 19:01:43.347 Df Stethoscore Personal[36823:1abec] [com.apple.UIKit:KeyboardArbiterClientLog] isWritingToolsHandlingKeyboardTracking:Y (WT ready:Y, Arbiter ready:Y)
+2026-09-25 19:01:43.541 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] <nw_activity 50:1 [E61F8329-6C85-44CB-880E-EDD25C24EC18] (global parent) (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 3231ms
+2026-09-25 19:01:43.541 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] <nw_activity 50:2 [002C1AFB-E98B-42C2-B384-5B814BA6FF81] (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 3232ms
+2026-09-25 19:01:43.541 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [E61F8329-6C85-44CB-880E-EDD25C24EC18] (global parent) (reporting strategy default) complete (reason success)>
+2026-09-25 19:01:43.541 Df Stethoscore Personal[36823:1abec] [com.apple.network:activity] Unset the global parent activity
+2026-09-25 19:01:43.542 Df Stethoscore Personal[36823:1abec] [com.apple.app_launch_measurement:ApplicationLaunch] alm_release_pageins_recording_assertion: releasing pageins recording assertion
+2026-09-25 19:01:44.721 Df Stethoscore Personal[36823:1ac00] [com.apple.CoreAnalytics:client] No XPC connection in Simulator
+2026-09-25 19:01:45.268 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115921900] activating connection: mach=false listener=false peer=false name=com.apple.MTLCompilerService
+2026-09-25 19:01:45.455 Df Stethoscore Personal[36823:1abec] [com.apple.xpc:connection] [0x115920c80] activating connection: mach=false listener=false peer=false name=com.apple.MTLCompilerService
+2026-09-25 19:01:45.456 A  Stethoscore Personal[36823:1abfd] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.070 A  Stethoscore Personal[36823:1abfd] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.098 F  Stethoscore Personal[36823:1abec] [com.apple.renderbox:error] building pipeline primitive_gradient-gia2ebcadba7fmba4 took 0.829524 seconds
+2026-09-25 19:01:46.098 A  Stethoscore Personal[36823:1abec] (libsystem_trace.dylib) Activity for state dumps
+2026-09-25 19:01:46.099 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.102 A  Stethoscore Personal[36823:1abf9] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.127 A  Stethoscore Personal[36823:1abf9] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.132 A  Stethoscore Personal[36823:1abf9] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.137 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.143 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.163 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.166 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.175 A  Stethoscore Personal[36823:1abf7] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.181 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.200 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.203 A  Stethoscore Personal[36823:1ac00] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.209 A  Stethoscore Personal[36823:1abf9] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.215 A  Stethoscore Personal[36823:1abf9] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.245 A  Stethoscore Personal[36823:1abf7] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.251 A  Stethoscore Personal[36823:1abf7] (Metal) Metal Compiling Shader
+2026-09-25 19:01:46.258 Sd Stethoscore Personal[36823:0] (21AB2359-DEEC-3444-94FE-B7257E43BE34) IOHIDManager State
+{
+    DispatchQueue = 0;
+    RunLoop = 1;
+    createOptions = 0;
+    isOpen = 0;
+    openOptions = 0;
+}
+2026-09-25 19:01:46.275 Sd Stethoscore Personal[36823:0] (C5DE29B6-3E2C-34DE-AA3C-32346C8FF586) UAUserActivity
+UAUserActivityManager supportsActivityContinuation=YES isEnabled=YES serverPid=0 PROJECT:UserActivity-551
+2026-09-25 19:01:56.436 Df Stethoscore Personal[36823:1abec] [com.apple.renderbox:error] RBLayer: full image queue, 0x104064280
+2026-09-25 19:01:56.465 Df Stethoscore Personal[36823:1abec] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-09-25 19:02:07.885 Df Stethoscore Personal[36823:1abec] [com.apple.renderbox:error] RBLayer: full image queue, 0x104064280
+2026-09-25 19:02:07.886 Df Stethoscore Personal[36823:1abec] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame

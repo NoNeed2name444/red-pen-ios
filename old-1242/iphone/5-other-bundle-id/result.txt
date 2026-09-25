@@ -1,0 +1,4 @@
+bundle=swift-playgrounds-dev-run.launchtest exe=Stethoscore Personal
+keep=0 args=-launchTestSignedIn
+launch_status=0
+pid=21228 alive_after_30s=yes

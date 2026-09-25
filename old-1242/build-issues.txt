@@ -1,0 +1,13 @@
+Assets.xcassets (in target 'Stethoscore Personal' from project 'Stethoscore Personal')
+Features/Analytics/AnalyticsVisuals.swift:115:24: warning: value 'marker' was defined but never used; consider replacing with boolean test
+Shared/CardQuality.swift:119:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it
+Shared/GemmaModel.swift:82:22: warning: left side of nil coalescing operator '??' has non-optional type 'Int64', so the right side is never used
+Shared/Insight/StoreInsight.swift:51:41: warning: main actor-isolated static property 'reasonWindowDays' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+Shared/Insight/StoreInsight.swift:69:61: warning: main actor-isolated static property 'reasonWindowDays' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+Shared/LLM/MedicalModelCatalog.swift:99:22: warning: left side of nil coalescing operator '??' has non-optional type 'Int64', so the right side is never used
+Shared/PreviewLaunch.swift:66:22: warning: 'interfaceOrientation' was deprecated in iOS 26.0: Use effectiveGeometry.interfaceOrientation instead.
+Shared/PreviewLaunch.swift:74:22: warning: 'interfaceOrientation' was deprecated in iOS 26.0: Use effectiveGeometry.interfaceOrientation instead.
+Shared/SocialSignIn.swift:79:72: warning: 'init()' was deprecated in iOS 26.0: Use init(windowScene:) instead.
+Shared/Space/NebulaBaker.swift:173:25: warning: capture of 'gasBase' with non-Sendable type 'UnsafeMutableBufferPointer<UInt8>' in a '@Sendable' closure
+Shared/Space/NebulaBaker.swift:177:25: warning: capture of 'dustBase' with non-Sendable type 'UnsafeMutableBufferPointer<UInt8>' in a '@Sendable' closure
+Shared/Voice/VoiceAccess.swift:95:57: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'

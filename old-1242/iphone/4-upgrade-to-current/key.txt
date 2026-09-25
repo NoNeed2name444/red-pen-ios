@@ -1,0 +1,64 @@
+bundle=com.cramdown.personal exe=Stethoscore Personal
+keep=1 args=
+launch_status=0
+pid=19236 alive_after_30s=yes
+--- stderr.txt (last 25 of 1)
+IOSurfaceClientSetSurfaceNotify failed e00002c7
+--- log-process.txt: 26 matching lines (last 30)
+2026-09-25 18:47:25.178 Df Stethoscore Personal[19236:ebfb] [com.apple.dt.xctest:Default] Registering for test daemon availability notify post.
+2026-09-25 18:47:25.179 Df Stethoscore Personal[19236:ebfb] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 18:47:25.179 Df Stethoscore Personal[19236:ebfb] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 18:47:25.180 Df Stethoscore Personal[19236:ebfb] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-25 18:47:25.297 Df Stethoscore Personal[19236:ebfb] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/BA56CA4E-FC02-4C30-B50D-A34EE9A99882/Library/Application Support/RedPenBlobs
+2026-09-25 18:47:25.426 Df Stethoscore Personal[19236:ebfb] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to LastOneWins
+2026-09-25 18:47:25.426 Df Stethoscore Personal[19236:ebfb] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to SystemShellManaged
+2026-09-25 18:47:26.313 I  Stethoscore Personal[19236:ebfb] [com.apple.DesignLibrary:defaults] liveTuning=false
+2026-09-25 18:47:26.574 Df Stethoscore Personal[19236:ebfb] [PrototypeTools:domain] Not observing PTDefaults on customer install.
+2026-09-25 18:47:26.777 Df Stethoscore Personal[19236:ec7b] [com.apple.calls.callkit:Default] Call host has no calls
+2026-09-25 18:47:26.990 I  Stethoscore Personal[19236:ec78] [com.apple.storekit:Default] AAFService Starting new XPCConnection 5957d159
+2026-09-25 18:47:28.076 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:1 [0EF37670-E2A4-431C-821A-6478462B5A9A] (reporting strategy default)>
+2026-09-25 18:47:28.076 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:2 [1170DE89-435B-478E-85CC-B13C92242B7D] (reporting strategy default)>
+2026-09-25 18:47:28.076 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] Set activity <nw_activity 50:1 [0EF37670-E2A4-431C-821A-6478462B5A9A] (reporting strategy default)> as the global parent
+2026-09-25 18:47:28.641 Df Stethoscore Personal[19236:ec7b] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-09-25 18:47:28.641 Df Stethoscore Personal[19236:ec7b] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-09-25 18:47:28.642 I  Stethoscore Personal[19236:ec6b] [com.apple.storekit:Default] AAFService Closing XPCConnection 5957d159
+2026-09-25 18:47:28.642 Df Stethoscore Personal[19236:ec7b] [com.apple.storekit:Default] AAFService connection invalidated
+2026-09-25 18:47:28.643 I  Stethoscore Personal[19236:eca4] [com.apple.storekit:Default] AAFService Starting new XPCConnection de254563
+2026-09-25 18:47:28.655 Df Stethoscore Personal[19236:ec6b] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-09-25 18:47:28.896 I  Stethoscore Personal[19236:eca4] [com.apple.storekit:Default] AAFService Closing XPCConnection de254563
+2026-09-25 18:47:28.903 Df Stethoscore Personal[19236:eca4] [com.apple.storekit:Default] Registering for 'transactionsupdated' daemon notification
+2026-09-25 18:47:28.907 Df Stethoscore Personal[19236:ec6b] [com.apple.storekit:Default] AAFService connection invalidated
+2026-09-25 18:47:45.708 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] <nw_activity 50:1 [0EF37670-E2A4-431C-821A-6478462B5A9A] (global parent) (reporting strategy default) complete (reason failure)> complete with reason 3 (failure), duration 23553ms
+2026-09-25 18:47:45.708 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] <nw_activity 50:2 [1170DE89-435B-478E-85CC-B13C92242B7D] (reporting strategy default) complete (reason failure)> complete with reason 3 (failure), duration 23553ms
+2026-09-25 18:47:45.708 Df Stethoscore Personal[19236:ebfb] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [0EF37670-E2A4-431C-821A-6478462B5A9A] (global parent) (reporting strategy default) complete (reason failure)>
+--- log-system.txt: 80 matching lines (last 30)
+2026-09-25 18:47:20.944 Df SpringBoard[8635:e922] [com.apple.SplashBoard:Capture] Image generation complete for: <XBLaunchStateRequest: 0x1214d27d0; groupID: com.cramdown.personal - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Light>
+2026-09-25 18:47:20.944 Df SpringBoard[8635:e6cd] [com.apple.SplashBoard:Capture] Asynchronously generating image data for request: <XBLaunchStateRequest: 0x1214d1dc0; groupID: com.cramdown.personal - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Dark>
+2026-09-25 18:47:20.944 Df SpringBoard[8635:eb84] [com.apple.SplashBoard:FileManifest] <XBApplicationSnapshotManifestImpl: 0x1182dad80> [com.cramdown.personal] Snapshot data for <XBApplicationSnapshot: 0x11a7d4700; …B3F4CA5D3052> [com.cramdown.personal] written to file: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/BA56C
+2026-09-25 18:47:20.948 Df splashboardd[10066:830b] [com.apple.SplashBoard:Capture] Updating window to <XBLaunchStateRequest: 0x10124a300; groupID: com.cramdown.personal - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Dark>
+2026-09-25 18:47:20.964 Df SpringBoard[8635:e922] [com.apple.UserNotifications:DataProviderFactory] [com.cramdown.personal] Application installed using default data provider
+2026-09-25 18:47:21.082 Df SpringBoard[8635:eb84] [com.apple.SplashBoard:FileManifest] <XBApplicationSnapshotManifestImpl: 0x1182dad80> [com.cramdown.personal] Snapshot data for <XBApplicationSnapshot: 0x11a7d4000; …8E3EAD51999A> [com.cramdown.personal] written to file: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/BA56C
+2026-09-25 18:47:21.082 Df SpringBoard[8635:e922] [com.apple.SplashBoard:Capture] Image generation complete for: <XBLaunchStateRequest: 0x1214d1dc0; groupID: com.cramdown.personal - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Dark>
+    "terminate_running_process" = 1;
+	retryTimeout: 120.000000 (default write com.apple.CoreSimulatorBridge LaunchRetryTimeout <value>)
+	bootTimeout: 300.000000 (default write com.apple.CoreSimulatorBridge BootRetryTimeout <value>)
+	bootLeeway: 120.000000 (default write com.apple.CoreSimulatorBridge BootLeeway <value>)
+	Note: Use 'xcrun simctl spawn booted defaults write <domain> <key> <value>' to modify defaults in the booted Simulator device.
+2026-09-25 18:47:22.139 Df CoreSimulatorBridge[8666:e916] [com.apple.FrontBoard:Common] FBSSystemAppProxy: Sending request to terminate application com.cramdown.personal
+2026-09-25 18:47:22.139 Df SpringBoard[8635:eb84] [com.apple.FrontBoard:Common] [FBSystemService] Request received from CoreSimulatorBr.8666 to terminate application com.cramdown.personal: "Termination requested by simulator host"
+2026-09-25 18:47:22.141 E  CoreSimulatorBridge[8666:d1ef] [com.apple.FrontBoard:Common] FBSSystemAppProxy: Error reported for termination request: <NSError: 0x101c44e40; domain: NSPOSIXErrorDomain; code: 3 ("No such process"); "The request to terminate "com.cramdown.personal" failed. found nothing to terminate">
+    homeAffordanceDrawingSuppression: Default;
+2026-09-25 18:47:22.332 Df runningboardd[8638:e915] [com.apple.runningboard:assertion] Using default underlying assertion for app: [app<com.cramdown.personal((null))>:19236]
+	<RBSDomainAttribute| domain:"com.apple.underlying" name:"defaultUnderlyingAppAssertion" sourceEnvironment:"(null)">,
+<SBTransitionSwitcherModifierEvent: 0x11bea5500; type: MainTransition; transitionID: 533AEF2C-E419-499F-B10F-8B80101BB881; phase: Prepare; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x118303080; primary: com.cramdown.personal:416929D220B0; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration
+<SBTransitionSwitcherModifierEvent: 0x11bea5500; type: MainTransition; transitionID: 533AEF2C-E419-499F-B10F-8B80101BB881; phase: Animate; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x118303080; primary: com.cramdown.personal:416929D220B0; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration
+<SBTransitionSwitcherModifierEvent: 0x1214d8000; type: MainTransition; transitionID: 533AEF2C-E419-499F-B10F-8B80101BB881; phase: Complete; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x118303080; primary: com.cramdown.personal:416929D220B0; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguratio
+2026-09-25 18:47:24.790 Df storekitd[10060:85f7] [com.apple.storekit:Default] [storekitd.LaunchServicesObserver] Handling installed event for ["com.cramdown.personal"]
+2026-09-25 18:47:25.129 Df backboardd[8657:b827] [com.apple.iohid:default] Connection added: IOHIDEventSystemConnection uuid:C6BABB39-3655-4335-B796-4DD26FD6C2F6 pid:19236 process:Stethoscore Personal type:Passive entitlements:0x0 caller:BackBoardServices: ___getHIDEventSystemClient_block_invoke + 296 attributes:{
+2026-09-25 18:47:25.129 Df backboardd[8657:b827] [com.apple.BackBoard:HID] Adding client connection: <BKHIDClientConnection: 0x10e0d3440; IOHIDEventSystemConnectionRef: 0x105b74a00; vpid: 19236(v9827); taskPort: 0x15AF83; bundleID: com.cramdown.personal> for client: IOHIDEventSystemConnection uuid:C6BABB39-3655-4335-B796-4DD26FD6C2F6 pid:19236 process:Stethoscore Personal type:Passive entitlements
+2026-09-25 18:47:28.630 Df storekitd[10060:ec3d] [com.apple.storekit:Default] [Client] (com.cramdown.personal) Initialized with server Sandbox bundle ID com.cramdown.personal and request bundle ID com.cramdown.personal]
+2026-09-25 18:47:28.634 Df storekitd[10060:ec5c] [com.apple.storekit:Default] [Default] Running task with context: ([Client] com.cramdown.personal (Stethoscore Personal) Sandbox)
+2026-09-25 18:47:28.634 Df storekitd[10060:ec3d] [com.apple.storekit:Default] [Default] Running task with context: ([Client] com.cramdown.personal (Stethoscore Personal) Sandbox)
+2026-09-25 18:47:28.652 Df storekitd[10060:ec5c] [com.apple.storekit:Default] [Default] Running task with context: ([Client] com.cramdown.personal (Stethoscore Personal) Sandbox)
+2026-09-25 18:47:30.084 Df storekitd[10060:ec5c] [com.apple.storekit:Default] [Client] (com.cramdown.personal) Initialized with server Sandbox bundle ID com.cramdown.personal and request bundle ID com.cramdown.personal]
+2026-09-25 18:47:45.819 Df runningboardd[8638:e915] [com.apple.DynamicPrefetching:default] end_scenario: Called with bundleid "com.cramdown.personal" scenario "Launch"
