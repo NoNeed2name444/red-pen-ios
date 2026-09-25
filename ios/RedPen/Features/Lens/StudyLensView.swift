@@ -70,6 +70,7 @@ struct StudyLensView: View {
             prepareCamera()
         }
         .onDisappear { stopLive() }
+        .tipSighting(.lens)
     }
 
     // MARK: live
@@ -214,6 +215,8 @@ struct StudyLensView: View {
                     Label("Scan a photo", systemImage: "photo")
                 }
                 .buttonStyle(.glass)
+                // once Lens is familiar (StudyTips)
+                .studyTip(.lens)
                 Button { choosingFile = true } label: {
                     Label("PDF or file", systemImage: "doc.viewfinder")
                 }

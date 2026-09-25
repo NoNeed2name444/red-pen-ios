@@ -50,13 +50,16 @@ private struct ReviewUndoOverlay: ViewModifier {
         content
             .overlay(alignment: .topTrailing) {
                 if until != nil {
-                    ReviewUndoChip(action: action)
+                    ReviewUndoChip { StudyTips.used(.undo); action() }
+                        // once reviews are familiar (StudyTips)
+                        .studyTip(.undo)
                         .padding(.top, 8)
                         .padding(.trailing, 16)
                         .transition(.opacity)
                 }
             }
             .animation(.snappy(duration: 0.2), value: until)
+            .tipSighting(.review)
             .task(id: until) {
                 guard let shown = until else { return }
                 let wait: Double = shown.timeIntervalSinceNow

@@ -400,8 +400,12 @@ struct LibraryView: View {
     private var page: some View {
         if inIdeas {
             IdeasView(query: $ideasQuery, dockClearance: ideasClearance)
+                // once Ideas is familiar: the map's theme (StudyTips)
+                .tipSighting(.ideas)
+                .ideasThemeTip()
         } else {
             categoryPage
+                .tipSighting(.library)
         }
     }
 
@@ -592,9 +596,12 @@ struct LibraryView: View {
             } header: { sectionHeader(category.setsHeading) }
         }
         if !loose.isEmpty {
+            let firstId: UUID? = loose.first?.id
             Section {
                 ForEach(loose) { set in
                     row(set)
+                        // "hold a set for more", on the first (StudyTips)
+                        .studyTip(.holdSet, when: set.id == firstId)
                 }
                 .onDelete { offsets in delete(offsets.map { loose[$0].id }) }
             } header: { setsHeader(searching ? "Sets" : category.setsHeading) }
@@ -674,12 +681,15 @@ struct LibraryView: View {
     @ViewBuilder
     private func folderSection(_ folder: StudyFolder) -> some View {
         let inside = members(of: folder)
+        // the hold-a-set tip, when every set is in a folder
+        let tipHere: Bool = folder.id == store.folders.first?.id && loose.isEmpty
         // a folder with nothing in this category (or nothing matching the
         // search) is not shown as an empty header
         if !inside.isEmpty {
         Section {
             ForEach(inside) { set in
                 row(set)
+                    .studyTip(.holdSet, when: tipHere && set.id == inside.first?.id)
             }
             .onDelete { offsets in delete(offsets.map { inside[$0].id }) }
         } header: {

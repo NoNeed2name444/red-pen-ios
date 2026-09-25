@@ -816,7 +816,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                             .accessibilityIdentifier("reportProblem")
                         }
                         if turnInto {
-                            Button { turning = set } label: {
+                            Button { turning = set; StudyTips.used(.turnInto) } label: {
                                 Label("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath")
                             }
                             .accessibilityIdentifier("turnInto")
@@ -827,8 +827,11 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                     }
                     .accessibilityIdentifier("studyMore")
                     .accessibilityHint("Other things you can do on this screen")
+                    // once, when study screens are familiar (StudyTips)
+                    .studyTip(.turnInto, when: turnInto)
                 }
             }
+            .tipSighting(.study)
             .turnIntoPicker(for: $turning)
             .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
             .sheet(item: $reporting) { QuestionReportSheet(report: $0) }
