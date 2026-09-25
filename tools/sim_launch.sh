@@ -1,11 +1,14 @@
 #!/bin/bash
-# Usage: sim_launch.sh <path/to/App.app> <simulator udid> <out dir> [seconds]
+# Usage: sim_launch.sh <path/to/App.app> <simulator udid> <out dir> [seconds] [launch arguments...]
 # Installs an app on a simulator, launches it the way a tap on its icon does
-# (no test runner, no launch arguments), waits, and records whether it is
+# (no test runner), waits, and records whether it is
 # still running, its console, the simulator's log for it, any crash report
 # and a screenshot. Exit status 0 only when the app is alive at the end.
 set -u
 APP="$1"; UDID="$2"; OUT="$3"; WAIT="${4:-30}"
+shift 4 2>/dev/null || shift $#
+# KEEP=1: install over what is there (an upgrade, or a second launch with the
+# data the first one left) instead of starting from an empty container
 mkdir -p "$OUT"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")
 EXE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
@@ -15,14 +18,16 @@ codesign -d --entitlements - --xml "$APP" > "$OUT/entitlements.plist" 2>&1 || tr
 
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1 || true
-xcrun simctl uninstall "$UDID" "$BUNDLE" 2>/dev/null || true
+[ "${KEEP:-0}" = 1 ] || xcrun simctl uninstall "$UDID" "$BUNDLE" 2>/dev/null || true
+echo "keep=${KEEP:-0} args=$*" | tee -a "$OUT/result.txt"
 MARK=$(mktemp); sleep 1
+START=$(date "+%Y-%m-%d %H:%M:%S")
 if ! xcrun simctl install "$UDID" "$APP" > "$OUT/install.txt" 2>&1; then
   echo "install=FAILED" | tee -a "$OUT/result.txt"; cat "$OUT/install.txt"
 fi
 xcrun simctl launch --terminate-running-process \
   --stdout="$OUT/stdout.txt" --stderr="$OUT/stderr.txt" \
-  "$UDID" "$BUNDLE" > "$OUT/launch.txt" 2>&1
+  "$UDID" "$BUNDLE" "$@" > "$OUT/launch.txt" 2>&1
 echo "launch_status=$?" | tee -a "$OUT/result.txt"
 cat "$OUT/launch.txt"
 PID=$(grep -oE '[0-9]+$' "$OUT/launch.txt" | tail -1)
@@ -35,9 +40,9 @@ xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -F "UIKitApplicatio
 echo "pid=$PID alive_after_${WAIT}s=$ALIVE" | tee -a "$OUT/result.txt"
 xcrun simctl io "$UDID" screenshot "$OUT/screen.png" > /dev/null 2>&1 || true
 
-xcrun simctl spawn "$UDID" log show --last 3m --style compact --info --debug \
+xcrun simctl spawn "$UDID" log show --start "$START" --style compact --info --debug \
   --predicate "process == \"$EXE\"" > "$OUT/log-process.txt" 2>&1 || true
-xcrun simctl spawn "$UDID" log show --last 3m --style compact \
+xcrun simctl spawn "$UDID" log show --start "$START" --style compact \
   --predicate "eventMessage CONTAINS \"$BUNDLE\" OR eventMessage CONTAINS \"$EXE\"" > "$OUT/log-system.txt" 2>&1 || true
 mkdir -p "$OUT/crashes"
 find "$HOME/Library/Logs/DiagnosticReports" -newer "$MARK" -type f \( -name '*.ips' -o -name '*.crash' \) \

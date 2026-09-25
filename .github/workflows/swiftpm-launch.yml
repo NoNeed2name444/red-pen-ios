@@ -14,7 +14,7 @@ name: Playgrounds launch
 on:
   push:
     branches: [personal, ci/launch]
-    paths: ['ios/**', 'tools/make_swiftpm.py', 'tools/sim_launch.sh', '.github/workflows/swiftpm-launch.yml']
+    paths: ['ios/**', 'tools/make_swiftpm.py', 'tools/sim_launch.sh', 'tools/launch_test_hook.py', '.github/workflows/swiftpm-launch.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -54,16 +54,25 @@ jobs:
           TOOL: ${{ matrix.tool }}
         run: |
           set -euo pipefail
-          cp tools/sim_launch.sh "$RUNNER_TEMP/sim_launch.sh"
+          cp tools/sim_launch.sh tools/launch_test_hook.py "$RUNNER_TEMP/"
+          make() {  # make <tree> <tool> <zip>
+            (cd "$1" && python3 "$2" ios/RedPen "Stethoscore Personal" com.cramdown.personal "$3")
+          }
           if [ -n "$SRC" ]; then
             git worktree add -q "$RUNNER_TEMP/src" "$SRC"
-            git show "$TOOL:tools/make_swiftpm.py" > "$RUNNER_TEMP/make_swiftpm.py"
-            (cd "$RUNNER_TEMP/src" && python3 "$RUNNER_TEMP/make_swiftpm.py" ios/RedPen "Stethoscore Personal" com.cramdown.personal "$GITHUB_WORKSPACE/out/Stethoscore.zip")
+            git show "$TOOL:tools/make_swiftpm.py" > "$RUNNER_TEMP/make_swiftpm_old.py"
+            make "$RUNNER_TEMP/src" "$RUNNER_TEMP/make_swiftpm_old.py" "$GITHUB_WORKSPACE/out/Stethoscore.zip"
+            # the current package too, installed over the old one's data
+            make "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tools/make_swiftpm.py" "$GITHUB_WORKSPACE/out/Current.zip"
+            mkdir -p out/cur && (cd out/cur && unzip -q ../Current.zip)
+            python3 "$RUNNER_TEMP/launch_test_hook.py" "out/cur/Stethoscore Personal.swiftpm"
           else
-            python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "$PWD/out/Stethoscore.zip"
+            make "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tools/make_swiftpm.py" "$GITHUB_WORKSPACE/out/Stethoscore.zip"
           fi
           cd out && rm -rf pkg && mkdir pkg && cd pkg && unzip -q ../Stethoscore.zip && ls
           cat "Stethoscore Personal.swiftpm/Package.swift"
+          # CI only, simulator only: -launchTestSignedIn (see the script)
+          python3 "$RUNNER_TEMP/launch_test_hook.py" "Stethoscore Personal.swiftpm"
       - name: Pick the simulators
         id: sim
         run: |
@@ -91,48 +100,88 @@ jobs:
                   print(key, lst[0][3], file=sys.stderr)
           PY
       - name: Build for the simulator as Playgrounds would
-        working-directory: out/pkg/Stethoscore Personal.swiftpm
         run: |
           set -o pipefail
-          xcodebuild -scheme "Stethoscore Personal" -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
-            -skipMacroValidation -skipPackagePluginValidation ARCHS=arm64 \
-            build 2>&1 | tee "$GITHUB_WORKSPACE/out/build.log" | grep -E "error:|BUILD |\*\* " | head -100 || true
-          { echo "### ${{ matrix.id }}: build"; echo '```'; grep -E "error:|BUILD (SUCCEEDED|FAILED)" "$GITHUB_WORKSPACE/out/build.log" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -40; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          grep -q "BUILD SUCCEEDED" "$GITHUB_WORKSPACE/out/build.log"
+          build() {  # build <package dir> <derived data> <log>
+            (cd "$1" && xcodebuild -scheme "Stethoscore Personal" -configuration Debug \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath "$2" \
+              -skipMacroValidation -skipPackagePluginValidation ARCHS=arm64 \
+              build 2>&1 | tee "$3" | grep -E "error:|BUILD |\*\* " | head -100 || true)
+            { echo "### ${{ matrix.id }}: build $(basename "$3")"; echo '```'; grep -E "error:|BUILD (SUCCEEDED|FAILED)" "$3" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -40; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            grep -q "BUILD SUCCEEDED" "$3"
+          }
+          build "out/pkg/Stethoscore Personal.swiftpm" "$RUNNER_TEMP/dd" "$GITHUB_WORKSPACE/out/build.log"
           APP=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name '*.app' -type d | head -1)
           echo "APP=$APP" >> "$GITHUB_ENV"
           ls -la "$APP"
-      - name: Launch on the iPhone
-        env:
-          UDID: ${{ steps.sim.outputs.iphone_udid }}
-          NAME: ${{ steps.sim.outputs.iphone_name }}
-        run: |
-          D="$GITHUB_WORKSPACE/out/results/${{ matrix.id }}/iphone"
-          mkdir -p "$D"; echo "$NAME" > "$D/device.txt"
-          bash "$RUNNER_TEMP/sim_launch.sh" "$APP" "$UDID" "$D" 30; rc=$?
-          { echo "### ${{ matrix.id }}: iPhone ($NAME) - $([ $rc = 0 ] && echo ALIVE || echo NOT RUNNING)"; echo '```'; head -c 60000 "$D/key.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          xcrun simctl shutdown "$UDID" || true
-          echo "iphone=$rc" >> "$GITHUB_WORKSPACE/out/results/${{ matrix.id }}/status.txt"
-          exit $rc
-      - name: Launch on the iPad
+          if [ -d out/cur ]; then
+            build "out/cur/Stethoscore Personal.swiftpm" "$RUNNER_TEMP/dd-cur" "$GITHUB_WORKSPACE/out/build-current.log"
+            echo "CUR_APP=$(find "$RUNNER_TEMP/dd-cur/Build/Products" -maxdepth 2 -name '*.app' -type d | head -1)" >> "$GITHUB_ENV"
+          fi
+          # the same app under another bundle id, as Swift Playgrounds runs it
+          # (PersonalBuild then finds the marker file, not the id)
+          OTHER="$RUNNER_TEMP/other/$(basename "$APP")"
+          mkdir -p "$RUNNER_TEMP/other" && cp -R "$APP" "$OTHER"
+          codesign -d --entitlements "$RUNNER_TEMP/ent.plist" --xml "$APP" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier swift-playgrounds-dev-run.launchtest" "$OTHER/Info.plist"
+          if [ -s "$RUNNER_TEMP/ent.plist" ]; then
+            sed -i '' 's/com\.cramdown\.personal/swift-playgrounds-dev-run.launchtest/g' "$RUNNER_TEMP/ent.plist"
+            codesign -f -s - --entitlements "$RUNNER_TEMP/ent.plist" "$OTHER" || true
+          else
+            codesign -f -s - "$OTHER" || true
+          fi
+          echo "OTHER_APP=$OTHER" >> "$GITHUB_ENV"
+      - name: Launch
         if: always() && env.APP != ''
         env:
-          UDID: ${{ steps.sim.outputs.ipad_udid }}
-          NAME: ${{ steps.sim.outputs.ipad_name }}
+          IPHONE: ${{ steps.sim.outputs.iphone_udid }}
+          IPHONE_NAME: ${{ steps.sim.outputs.iphone_name }}
+          IPAD: ${{ steps.sim.outputs.ipad_udid }}
+          IPAD_NAME: ${{ steps.sim.outputs.ipad_name }}
         run: |
-          D="$GITHUB_WORKSPACE/out/results/${{ matrix.id }}/ipad"
-          mkdir -p "$D"; echo "$NAME" > "$D/device.txt"
-          bash "$RUNNER_TEMP/sim_launch.sh" "$APP" "$UDID" "$D" 30; rc=$?
-          { echo "### ${{ matrix.id }}: iPad ($NAME) - $([ $rc = 0 ] && echo ALIVE || echo NOT RUNNING)"; echo '```'; head -c 60000 "$D/key.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          xcrun simctl shutdown "$UDID" || true
-          echo "ipad=$rc" >> "$GITHUB_WORKSPACE/out/results/${{ matrix.id }}/status.txt"
-          exit $rc
+          R="$GITHUB_WORKSPACE/out/results/${{ matrix.id }}"
+          mkdir -p "$R"; fails=0
+          run() {  # run <device dir> <udid> <device name> <scenario> <app> <keep> [args]
+            local dev="$1" udid="$2" name="$3" sc="$4" app="$5" keep="$6"; shift 6
+            local D="$R/$dev/$sc"
+            mkdir -p "$D"; echo "$name" > "$D/device.txt"
+            KEEP="$keep" bash "$RUNNER_TEMP/sim_launch.sh" "$app" "$udid" "$D" 30 "$@"; local rc=$?
+            echo "$dev/$sc=$rc" >> "$R/status.txt"
+            { echo "### ${{ matrix.id }}: $name, $sc - $([ $rc = 0 ] && echo ALIVE || echo NOT RUNNING)"; echo '```'; head -c 40000 "$D/key.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            [ $rc = 0 ] || fails=$((fails + 1))
+          }
+          device() {  # device <dir> <udid> <name>
+            local dev="$1" udid="$2" name="$3"
+            [ -n "$udid" ] || { echo "no $dev simulator"; fails=$((fails + 1)); return; }
+            xcrun simctl boot "$udid" 2>/dev/null || true
+            xcrun simctl bootstatus "$udid" -b > /dev/null 2>&1 || true
+            # a tap on the icon, with nothing there yet: the sign-in screen
+            run "$dev" "$udid" "$name" 1-fresh "$APP" 0
+            # signed in on this device only, as the owner is: the library,
+            # and everything it starts at launch
+            run "$dev" "$udid" "$name" 2-signed-in "$APP" 1 -launchTestSignedIn
+            # opened again on the data that launch left
+            run "$dev" "$udid" "$name" 3-relaunch "$APP" 1
+            if [ -n "${CUR_APP:-}" ]; then
+              # the current package installed over this old one's data
+              run "$dev" "$udid" "$name" 4-upgrade-to-current "$CUR_APP" 1
+            fi
+            if [ "$dev" = iphone ]; then
+              # another bundle id, as Swift Playgrounds gives the app
+              run "$dev" "$udid" "$name" 5-other-bundle-id "$OTHER_APP" 0 -launchTestSignedIn
+            fi
+            xcrun simctl shutdown "$udid" || true
+          }
+          device iphone "$IPHONE" "$IPHONE_NAME"
+          device ipad "$IPAD" "$IPAD_NAME"
+          cat "$R/status.txt"
+          [ $fails = 0 ]
       - name: Keep the build log
         if: always()
         run: |
           mkdir -p "out/results/${{ matrix.id }}"
           cp out/build.log "out/results/${{ matrix.id }}/build.log" 2>/dev/null || true
+          cp out/build-current.log "out/results/${{ matrix.id }}/build-current.log" 2>/dev/null && gzip -f "out/results/${{ matrix.id }}/build-current.log" || true
           grep -E "error:|warning:" out/build.log 2>/dev/null | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -200 > "out/results/${{ matrix.id }}/build-issues.txt" || true
           gzip -f "out/results/${{ matrix.id }}/build.log" || true
       - uses: actions/upload-artifact@v4
@@ -162,11 +211,13 @@ jobs:
             for b in */; do
               b="${b%/}"
               echo; echo "## $b"
-              for dev in iphone ipad; do
-                [ -d "$b/$dev" ] || continue
-                echo; echo "### $dev: $(cat "$b/$dev/device.txt" 2>/dev/null)"
-                echo; echo '```'; head -60 "$b/$dev/key.txt" 2>/dev/null; echo '```'
-                [ -f "$b/$dev/screen.png" ] && echo "<img src=\"$b/$dev/screen.png\" width=\"300\">"
+              echo; echo '```'; cat "$b/status.txt" 2>/dev/null; echo '```'
+              for sc in "$b"/*/*/; do
+                sc="${sc%/}"
+                [ -f "$sc/key.txt" ] || continue
+                echo; echo "### ${sc#$b/}: $(cat "$sc/device.txt" 2>/dev/null)"
+                echo; echo '```'; head -40 "$sc/key.txt"; echo '```'
+                [ -f "$sc/screen.png" ] && echo "<img src=\"$sc/screen.png\" width=\"260\">"
               done
             done
           } > README.md
