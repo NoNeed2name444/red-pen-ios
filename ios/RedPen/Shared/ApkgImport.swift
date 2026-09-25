@@ -134,6 +134,10 @@ enum ApkgImport {
             archive = opened
         }
 
+        // Anki 2.1.50+ leaves its collection in WAL mode, which a read-only
+        // open can't read on Apple's SQLite without its -shm file: this is
+        // our own copy, so mark it as a plain rollback-journal database
+        CollectionReader.leaveWALMode(database)
         let reader = try CollectionReader(path: database.path)
         let media = MediaShelf(archive: archive, folder: work)
         var mapper = NoteMapper(reader: reader, media: media, options: options)
@@ -370,6 +374,10 @@ enum ApkgImport {
                 throw Failure.unreadable
             }
             db = handle
+            // Anki's own collation for names (decks, note types, tags):
+            // without it any statement touching those tables fails
+            sqlite3_create_collation_v2(handle, "unicase", SQLITE_UTF8, nil,
+                                        CollectionReader.unicase, nil)
             do {
                 try query("SELECT count(*) FROM notes") { _ in }
                 try readCollection()
@@ -379,6 +387,36 @@ enum ApkgImport {
         }
 
         deinit { sqlite3_close_v2(db) }
+
+        /// Case-insensitive comparison, as Anki's "unicase" collation.
+        static let unicase: @convention(c) (UnsafeMutableRawPointer?, Int32, UnsafeRawPointer?,
+                                             Int32, UnsafeRawPointer?) -> Int32 = { _, count1, bytes1, count2, bytes2 in
+            let first: String = CollectionReader.string(bytes1, count1)
+            let second: String = CollectionReader.string(bytes2, count2)
+            let order: ComparisonResult = first.caseInsensitiveCompare(second)
+            if order == .orderedAscending { return -1 }
+            if order == .orderedDescending { return 1 }
+            return 0
+        }
+
+        private static func string(_ bytes: UnsafeRawPointer?, _ count: Int32) -> String {
+            guard let bytes, count > 0 else { return "" }
+            let buffer = UnsafeRawBufferPointer(start: bytes, count: Int(count))
+            return String(decoding: buffer, as: UTF8.self)
+        }
+
+        /// Sets the header's write and read versions (bytes 18 and 19) to 1,
+        /// rollback journal, so the file opens read-only without WAL files.
+        static func leaveWALMode(_ url: URL) {
+            guard let handle = try? FileHandle(forUpdating: url) else { return }
+            defer { try? handle.close() }
+            guard let head = try? handle.read(upToCount: 20), head.count == 20,
+                  head.starts(with: Array("SQLite format 3".utf8)) else { return }
+            let wal: Bool = head[18] == 2 || head[19] == 2
+            guard wal else { return }
+            try? handle.seek(toOffset: 18)
+            try? handle.write(contentsOf: Data([1, 1]))
+        }
 
         func tableExists(_ name: String) -> Bool {
             var found = false
