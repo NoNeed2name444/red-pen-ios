@@ -298,15 +298,27 @@ nonisolated struct CircuitPlanner: Sendable {
     var boardOfBody: [Int] = []
     var systems: [[SIMD3<Float>]] = []
 
+    /// The link length (UniverseInput.spacing): every gap on a board and
+    /// between boards is planned at this times its size, so the traces
+    /// between parts grow or shrink and the boards with them; the parts
+    /// keep their sizes.
+    let spacing: Double
     // layout measures
-    let colGap: Double = 0.10
-    let rowGap: Double = 0.12
-    let drop: Double = 0.16
-    let railGap: Double = 0.2
-    let margin: Double = 0.22
+    let colGap: Double
+    let rowGap: Double
+    let drop: Double
+    let railGap: Double
+    let margin: Double
 
     init(_ input: UniverseInput) {
         tree = UniversePlanner(input)
+        let space: Double = input.spacing
+        spacing = space
+        colGap = 0.10 * space
+        rowGap = 0.12 * space
+        drop = 0.16 * space
+        railGap = 0.2 * space
+        margin = 0.22 * space
     }
 
     var noteCount: Int { tree.noteList.count }
@@ -548,7 +560,7 @@ nonisolated struct CircuitPlanner: Sendable {
     /// under its own bus.
     func measureBlock(_ c: Int) -> SIMD2<Double> {
         let chip: SIMD2<Double> = cHalf(c)
-        var across: Double = chip.x * 2 + 0.3
+        var across: Double = chip.x * 2 + 0.3 * spacing
         var down: Double = chip.y * 2
         for col in columns[c] {
             let s: SIMD2<Double> = measure(col)
@@ -577,7 +589,8 @@ nonisolated struct CircuitPlanner: Sendable {
         let sizes: [SIMD2<Double>] = columns[t].map { measure($0) }
         var total: Double = 0
         for s in sizes { total += s.x }
-        let wrap: Double = max(2.4, min((total * 1.4).squareRoot() + 0.8, 6.5))
+        let root: Double = (total * 1.4).squareRoot()
+        let wrap: Double = max(2.4 * spacing, min(root + 0.8 * spacing, 6.5 * spacing))
         var tiers: [[Int]] = [[]]
         var width: Double = 0
         for (k, s) in sizes.enumerated() {
@@ -591,9 +604,9 @@ nonisolated struct CircuitPlanner: Sendable {
         }
         var layout = CircuitBoardLayout()
         layout.tiers = tiers
-        let firstLeft: Double = chip.x + 0.34
-        let laterLeft: Double = 0.3
-        var right: Double = firstLeft + 0.3
+        let firstLeft: Double = chip.x + 0.34 * spacing
+        let laterLeft: Double = 0.3 * spacing
+        var right: Double = firstLeft + 0.3 * spacing
         var busY: Double = chip.y * 0.5
         var gnd: [Double] = []
         var buses: [Double] = []
@@ -608,22 +621,24 @@ nonisolated struct CircuitPlanner: Sendable {
             buses.append(busY)
             let g: Double = low - railGap
             gnd.append(g)
-            busY = g - 0.26
+            busY = g - 0.26 * spacing
         }
         layout.buses = buses
         layout.grounds = gnd
         let pads: Int = padsOf[t].count
-        let padsLeft: Double = pads > 0 ? -chip.x - 0.42 : -chip.x - margin
-        var bottom: Double = (gnd.last ?? -chip.y) - 0.16
+        let padsLeft: Double = pads > 0 ? -chip.x - 0.42 * spacing : -chip.x - margin
+        let edge: Double = 0.16 * spacing
+        var bottom: Double = (gnd.last ?? -chip.y) - edge
         if pads > 0 {
             let padRun: Double = Double(pads) * (GraphCircuit.padSphere * 1.8 + rowGap)
-            bottom = min(bottom, -chip.y - 0.2 - padRun - railGap - 0.16)
-            layout.grounds[layout.grounds.count - 1] = min(gnd.last ?? 0, bottom + 0.16)
+            let under: Double = -chip.y - 0.2 * spacing - padRun - railGap - edge
+            bottom = min(bottom, under)
+            layout.grounds[layout.grounds.count - 1] = min(gnd.last ?? 0, bottom + edge)
         }
-        let top: Double = chip.y + railGap + 0.16
+        let top: Double = chip.y + railGap + edge
         layout.vcc = chip.y + railGap
         layout.left = padsLeft
-        layout.rect = CircuitRect.around(low: SIMD2<Double>(padsLeft - 0.08, bottom),
+        layout.rect = CircuitRect.around(low: SIMD2<Double>(padsLeft - 0.08 * spacing, bottom),
                                          high: SIMD2<Double>(right + margin, top))
         return layout
     }
@@ -653,14 +668,14 @@ nonisolated struct CircuitPlanner: Sendable {
                 // the board's top left at (x, y): its chip where that puts it
                 let origin = SIMD2<Double>(x - r.low.x, y - r.high.y)
                 boardAt[t] = origin
-                x += r.h.x * 2 + GraphCircuit.benchGap
+                x += r.h.x * 2 + GraphCircuit.benchGap * spacing
                 let moved: CircuitRect = r.moved(origin)
                 lowX = min(lowX, moved.low.x)
                 highX = max(highX, moved.high.x)
                 lowY = min(lowY, moved.low.y)
                 highY = max(highY, moved.high.y)
             }
-            y -= tallest + GraphCircuit.benchGap
+            y -= tallest + GraphCircuit.benchGap * spacing
             k += across
         }
         let middle = SIMD2<Double>((lowX + highX) * 0.5, (lowY + highY) * 0.5)
@@ -756,13 +771,13 @@ nonisolated struct CircuitPlanner: Sendable {
             anything = true
             // the tier's bus tap: beside the chip for the first, on the
             // chip's spine below it for the others
-            let tapX: Double = n == 0 ? chipHalf.x + 0.17 : 0
+            let tapX: Double = n == 0 ? chipHalf.x + 0.17 * spacing : 0
             let tapSpot: SIMD2<Double> = origin + SIMD2<Double>(tapX, busY)
             let tap: Int = addFixture(.bus, board: t, tag: "bus", k: n, parent: chip, spot: tapSpot)
             // the first tier's bus from the chip; the rest down the spine
             wires.append((n == 0 ? chip : spine, tap))
             if n > 0 { spine = tap }
-            var x: Double = n == 0 ? chipHalf.x + 0.34 : 0.3
+            var x: Double = n == 0 ? chipHalf.x + 0.34 * spacing : 0.3 * spacing
             for k in tier {
                 let col: CircuitColumn = columns[t][k]
                 placeColumn(col, board: t, owner: t, parentBody: chip, left: origin.x + x,
@@ -827,7 +842,7 @@ nonisolated struct CircuitPlanner: Sendable {
             wires.append((tap, m))
             // its sub-board: the whole block
             let blockLow = SIMD2<Double>(left, top - size.y + rowGap * 0.5)
-            let blockHigh = SIMD2<Double>(left + size.x - colGap * 0.5, top + 0.04)
+            let blockHigh = SIMD2<Double>(left + size.x - colGap * 0.5, top + 0.04 * spacing)
             let block: CircuitRect = CircuitRect.around(low: blockLow, high: blockHigh)
             let rel: SIMD2<Double> = block.c - spot
             patches[m] = SIMD4<Float>(Float(rel.x), Float(rel.y), Float(block.h.x), Float(block.h.y))
@@ -844,9 +859,9 @@ nonisolated struct CircuitPlanner: Sendable {
             }
             let busY: Double = spot.y + chip.y * 0.5
             let subTap: Int = addFixture(.bus, board: t, tag: "sub" + String(k), k: 0, parent: m,
-                                         spot: SIMD2<Double>(spot.x + chip.x + 0.15, busY))
+                                         spot: SIMD2<Double>(spot.x + chip.x + 0.15 * spacing, busY))
             wires.append((m, subTap))
-            var x: Double = spot.x + chip.x + 0.3
+            var x: Double = spot.x + chip.x + 0.3 * spacing
             for sub in inner {
                 let s: SIMD2<Double> = measure(sub)
                 placeColumn(sub, board: t, owner: k, parentBody: m, left: x, top: busY - drop, gnd: gnd,
@@ -898,11 +913,11 @@ nonisolated struct CircuitPlanner: Sendable {
     mutating func emitPads(_ t: Int, layout: CircuitBoardLayout, chip: Int, origin: SIMD2<Double>) {
         let pads: [Int] = padsOf[t]
         guard !pads.isEmpty else { return }
-        let x: Double = layout.left + 0.08
+        let x: Double = layout.left + 0.08 * spacing
         let tapSpot: SIMD2<Double> = origin + SIMD2<Double>(x, layout.vcc)
         let tap: Int = addFixture(.vcc, board: t, tag: "padVcc", k: 0, parent: chip, spot: tapSpot)
         let chipHalf: SIMD2<Double> = cHalf(t)
-        var y: Double = -chipHalf.y - 0.2
+        var y: Double = -chipHalf.y - 0.2 * spacing
         let gnd: Double = layout.grounds.last ?? (y - 1)
         for i in pads {
             let h: SIMD2<Double> = half(i)

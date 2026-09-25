@@ -92,17 +92,14 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
     var hint: String {
         switch self {
         case .space:
-            return "Drag to turn, pinch to zoom. Press and hold a body to see its name. "
-                + "Tap a note twice to open it; tap a star or black hole twice to fly in, "
-                + "and twice again to open the folder."
+            return "Tap a body to preview it on a card; tap again, or Open, to read it. "
+                + "Hold a body to move it, or hold it still for its options. Drag to turn, pinch to zoom."
         case .neurons:
-            return "Drag to turn, pinch to zoom. Press and hold a cell to see its name. "
-                + "Tap a neuron twice to open its note; tap a region or relay twice to fly in, "
-                + "and twice again to open the folder."
+            return "Tap a cell to preview it on a card; tap again, or Open, to read it. "
+                + "Hold a cell to move it, or hold it still for its options. Drag to turn, pinch to zoom."
         case .circuit:
-            return "Drag to turn, pinch to zoom. Press and hold a part to see its name. "
-                + "Tap a part twice to open its note; tap a processor or module chip twice to fly in, "
-                + "and twice again to open the folder."
+            return "Tap a part to preview it on a card; tap again, or Open, to read it. "
+                + "Hold a part to move it, or hold it still for its options. Drag to turn, pinch to zoom."
         }
     }
 

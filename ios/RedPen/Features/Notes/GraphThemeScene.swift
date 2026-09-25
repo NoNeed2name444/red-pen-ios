@@ -201,6 +201,8 @@ extension GraphSceneBuilder {
             info.thinnable = made.thinnable
             info.count = body.count
             info.deathKind = Self.deathKind(body, theme: look.theme)
+            info.shine = look.theme == .circuit ? GraphShine.circuit(body.role, lit: body.links > 0)
+                : GraphShine.neurons(body.role)
             infos.append(info)
             parts.append(made)
             if !isNote && body.kind != .fixture {
@@ -255,6 +257,7 @@ extension GraphSceneBuilder {
         var simLooks = GraphSimLooks(linkMaterial: look.linkMaterial, hotRing: look.hotRing, hotDisk: SCNGeometry(),
                                      clocked: look.clocked, emitters: [], trails: [], sky: sky)
         simLooks.universe = universe
+        simLooks.labelBackdrop = GraphShine.backdrop(theme: look.theme.rawValue)
         // no styles: a body whose look changes (another theme) pops in anew
         let styles: [UUID: GraphNodeStyle] = [:]
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles, lively: lively)

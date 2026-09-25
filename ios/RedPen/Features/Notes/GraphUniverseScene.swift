@@ -125,6 +125,7 @@ extension GraphSceneBuilder {
             info.orbit = body.orbit
             info.shell = body.shell
             info.light = body.light
+            info.shine = GraphShine.universe(body.role.rawValue, empty: body.empty, tier: body.tier)
             infos.append(info)
             styles[body.id] = dress.style
             if dress.kind != .note {

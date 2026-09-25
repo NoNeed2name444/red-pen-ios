@@ -252,6 +252,10 @@ enum SpaceSettings {
     /// String (GraphicsChoice.rawValue), default "automatic": "Graphics" -
     /// Automatic, High quality or Smooth (GraphicsQuality.swift).
     static let graphicsKey: String = GraphQuality.key
+    /// Double, default 1: "Link length" - how far apart linked bodies stand
+    /// in the Ideas map, 0.6 (Shorter) to 1.8 (Longer) (GraphLinkLength,
+    /// GraphicsQuality.swift). The map's Look menu sets the same value.
+    static let linkLengthKey: String = GraphLinkLength.key
 
     static var alwaysNight: Bool {
         UserDefaults.standard.object(forKey: alwaysNightKey) as? Bool ?? false
@@ -259,6 +263,10 @@ enum SpaceSettings {
 
     static var sounds: Bool {
         UserDefaults.standard.object(forKey: soundsKey) as? Bool ?? false
+    }
+
+    static var linkLength: Double {
+        GraphLinkLength.stored(UserDefaults.standard.object(forKey: linkLengthKey) as? Double)
     }
 }
 

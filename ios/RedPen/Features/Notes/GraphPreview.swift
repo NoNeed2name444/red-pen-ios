@@ -94,7 +94,26 @@ enum GraphPreview {
     }
 
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
-    static let chooses: Bool = isOn && !drags && fly == nil
+    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil
+
+    /// `-graphPreviewSelect <title or folder>`: a moment after the map
+    /// appears, that body is tapped - chosen, its peek card up. With
+    /// `-graphPreviewOpen` too, the card's Open is pressed a moment later.
+    static let select: String? = argument("-graphPreviewSelect")
+    static let opens: Bool = isOn && ProcessInfo.processInfo.arguments.contains("-graphPreviewOpen")
+    /// `-graphPreviewHold <title or folder>`: that body is held still - its
+    /// options open beside it.
+    static let hold: String? = argument("-graphPreviewHold")
+    /// `-graphPreviewLinkLength <0.6...1.8>`: the map planned at that link
+    /// length (never the owner's stored one).
+    static let linkLength: Double? = argument("-graphPreviewLinkLength").flatMap { Double($0) }
+
+    /// The value after a launch argument, in the design preview.
+    private static func argument(_ flag: String) -> String? {
+        let args: [String] = ProcessInfo.processInfo.arguments
+        guard args.contains("-graphPreview"), let at = args.firstIndex(of: flag), at + 1 < args.count else { return nil }
+        return args[at + 1]
+    }
 
     /// The theme asked for with `-graphPreviewTheme <name>` (space,
     /// neurons, circuit); Space without one.
@@ -224,10 +243,15 @@ enum GraphPreview {
 /// The whole app, for a `-graphPreview` launch: only the space.
 struct GraphPreviewRoot: View {
     @StateObject private var notes: NoteStore = GraphPreview.makeStore()
+    /// The library the note editor reads (its cards), empty and in a
+    /// temporary file, so Open works in the preview.
+    @StateObject private var library: Store = Store(fileURL: FileManager.default.temporaryDirectory
+        .appendingPathComponent("redpen-graph-preview-library-\(UUID().uuidString).json"))
 
     var body: some View {
         Graph3DView(open: { _ in }, openFolder: { _ in })
             .environmentObject(notes)
+            .environmentObject(library)
             .background(Color.black)
             .ignoresSafeArea()
             .environment(\.colorScheme, .dark)

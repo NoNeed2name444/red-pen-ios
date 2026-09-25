@@ -206,6 +206,33 @@ nonisolated struct NeuronPlanner: Sendable {
 
     var noteCount: Int { tree.noteList.count }
 
+    /// The room left between two cells' reaches: GraphNeurons.gap, less
+    /// with shorter links (never none).
+    var gap: Double {
+        GraphNeurons.gap * (0.4 + 0.6 * tree.tight)
+    }
+
+    /// ThemeLayout.slide; with shorter links, then brought back to just
+    /// clear (the slide's steps otherwise leave up to a step of room).
+    func settle(_ group: [ThemeBall], along dir: SIMD3<Double>, start: Double, step: Double,
+                placed: [ThemeBall], gap: Double) -> Double {
+        let s: Double = ThemeLayout.slide(group, along: dir, start: start, step: step, placed: placed, gap: gap)
+        guard tree.tight < 1, s > start else { return s }
+        let whole: ThemeBall = ThemeLayout.enclosing(group)
+        var low: Double = max(start, s - step)
+        var high: Double = s
+        for _ in 0..<8 {
+            let mid: Double = (low + high) * 0.5
+            let shift: SIMD3<Double> = dir * mid
+            if ThemeLayout.fits(group, whole: whole, shift: shift, placed: placed, gap: gap) {
+                high = mid
+            } else {
+                low = mid
+            }
+        }
+        return high
+    }
+
     mutating func run() -> ThemePlan {
         tree.buildTree()
         tree.buildLinks()
@@ -221,7 +248,8 @@ nonisolated struct NeuronPlanner: Sendable {
         worldBalls = [[ThemeBall]](repeating: [], count: tree.cCount)
         let placed: [ThemeBall] = placeTops(tops)
         let looseBalls: [ThemeBall] = placeLoose(placed)
-        return finish(tops, all: placed + looseBalls)
+        let all: [ThemeBall] = spreadOut(placed + looseBalls)
+        return finish(tops, all: all)
     }
 
     // MARK: roles
@@ -359,9 +387,9 @@ nonisolated struct NeuronPlanner: Sendable {
             let dir: SIMD3<Double> = spin.apply(ThemeLayout.fibonacci(k, members.count))
             let f: Double = foot(i)
             let ball = ThemeBall(c: SIMD3<Double>(0, 0, 0), r: f)
-            let start: Double = cFoot(c) + f + GraphNeurons.gap
-            let s: Double = ThemeLayout.slide([ball], along: dir, start: start, step: 0.03, placed: placed,
-                                              gap: GraphNeurons.gap)
+            let start: Double = cFoot(c) + f + gap
+            let s: Double = settle([ball], along: dir, start: start, step: 0.03, placed: placed,
+                                              gap: gap)
             let at: SIMD3<Double> = dir * s
             placed.append(ThemeBall(c: at, r: f))
             out.members.append((i, at))
@@ -375,9 +403,9 @@ nonisolated struct NeuronPlanner: Sendable {
             let turn: UniverseFrame = ThemeLayout.frame(along: dir, twist: random.unit() * 6.2)
             var group: [ThemeBall] = []
             for b in local[k].balls { group.append(ThemeBall(c: turn.apply(b.c), r: b.r)) }
-            let start: Double = cFoot(c) + cFoot(k) + GraphNeurons.gap
-            let s: Double = ThemeLayout.slide(group, along: dir, start: start, step: 0.06, placed: placed,
-                                              gap: GraphNeurons.gap * 3)
+            let start: Double = cFoot(c) + cFoot(k) + gap
+            let s: Double = settle(group, along: dir, start: start, step: 0.06, placed: placed,
+                                              gap: gap * 3)
             let at: SIMD3<Double> = dir * s
             for b in group { placed.append(ThemeBall(c: b.c + at, r: b.r)) }
             out.children.append((k, at, turn))
@@ -414,8 +442,8 @@ nonisolated struct NeuronPlanner: Sendable {
             let turn: UniverseFrame = ThemeLayout.frame(along: dir, twist: random.unit() * 6.2)
             var group: [ThemeBall] = []
             for b in local[t].balls { group.append(ThemeBall(c: turn.apply(b.c), r: b.r)) }
-            let s: Double = ThemeLayout.slide(group, along: dir, start: 0, step: 0.08, placed: placed,
-                                              gap: GraphNeurons.gap * 4)
+            let s: Double = settle(group, along: dir, start: 0, step: 0.08, placed: placed,
+                                              gap: gap * 4)
             let at: SIMD3<Double> = dir * s
             for b in group { placed.append(ThemeBall(c: b.c + at, r: b.r)) }
             place(t, at: at, frame: turn)
@@ -460,8 +488,8 @@ nonisolated struct NeuronPlanner: Sendable {
             }
             let f: Double = foot(i) + Double(looseDrift(i))
             let ball = ThemeBall(c: SIMD3<Double>(0, 0, 0), r: f)
-            let s: Double = ThemeLayout.slide([ball], along: dir, start: edge * 0.85, step: 0.05, placed: all,
-                                              gap: GraphNeurons.gap * 2)
+            let s: Double = settle([ball], along: dir, start: edge * 0.85, step: 0.05, placed: all,
+                                              gap: gap * 2)
             let at: SIMD3<Double> = dir * s
             let placedBall = ThemeBall(c: at, r: f)
             all.append(placedBall)
@@ -492,6 +520,30 @@ nonisolated struct NeuronPlanner: Sendable {
             }
         }
         return best
+    }
+
+    /// Longer links: the whole plan, laid out as at 1, spread out from the
+    /// middle by the link length (UniverseInput.stretch) - every pathway,
+    /// every cluster round its soma, every receptor out at the edge. Cells
+    /// keep their sizes, a glial cell stays on its neuron, and as every
+    /// distance between centres grows by the same factor, nothing that
+    /// was clear can meet.
+    mutating func spreadOut(_ all: [ThemeBall]) -> [ThemeBall] {
+        let k: Double = tree.stretch
+        guard k > 1 else { return all }
+        for c in 0..<tree.cCount {
+            cWorld[c] = cWorld[c] * k
+            var balls: [ThemeBall] = []
+            for b in worldBalls[c] { balls.append(ThemeBall(c: b.c * k, r: b.r)) }
+            worldBalls[c] = balls
+            var members: [(Int, SIMD3<Double>)] = []
+            for (i, at) in local[c].members { members.append((i, at * k)) }
+            local[c].members = members
+        }
+        for i in looseHome.indices { looseHome[i] = looseHome[i] * k }
+        var out: [ThemeBall] = []
+        for b in all { out.append(ThemeBall(c: b.c * k, r: b.r)) }
+        return out
     }
 
     // MARK: the bodies

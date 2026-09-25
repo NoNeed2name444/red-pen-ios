@@ -6,7 +6,9 @@ import XCTest
 /// flown in to one star system, the legend, and each single look on its
 /// own; then the same for the Neurons theme (`-graphPreviewTheme neurons`)
 /// and the Circuit theme (`-graphPreviewTheme circuit`); and bodies dying
-/// as they are deleted (`-graphPreviewRemove`), in each theme.
+/// as they are deleted (`-graphPreviewRemove`), in each theme; touching
+/// the map (a note's and a folder's peek card, Open, a body's options, a
+/// hold-drag), name pills over bright bodies, and the Link length.
 /// Run on its own by the "Design preview" workflow.
 final class GraphPreviewUITests: XCTestCase {
     func testGraphAtRest() {
@@ -302,6 +304,118 @@ final class GraphPreviewUITests: XCTestCase {
             snap(app, "31-\(k + 1)-\(theme)-top-folder-dying")
             usleep(900_000)
             snap(app, "31-\(k + 1)-\(theme)-top-folder-dying-later")
+            app.terminate()
+        }
+    }
+
+    // MARK: touching the map
+
+    /// Tap a note: its peek card slides up (title, what it is in the theme,
+    /// its first lines, its links as chips); tap Open: the note grows out
+    /// of the card. In each theme.
+    func testTapNoteThenOpen() {
+        let themes: [(String, String)] = [("space", "Heart failure"), ("neurons", "Heart failure"),
+                                          ("circuit", "Heart failure")]
+        for (k, pair) in themes.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", pair.0, "-graphPreviewSelect", pair.1]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            let card = app.otherElements["graphPeekCard"]
+            XCTAssertTrue(card.waitForExistence(timeout: 15), "no peek card in \(pair.0)")
+            XCTAssertTrue(app.staticTexts[pair.1].waitForExistence(timeout: 5), "the card doesn't name it")
+            sleep(1)
+            snap(app, "40-\(k + 1)-\(pair.0)-peek-note")
+            let open = app.buttons["graphPeekOpen"]
+            XCTAssertTrue(open.waitForExistence(timeout: 5), "no Open on the card")
+            open.tap()
+            sleep(2)
+            snap(app, "41-\(k + 1)-\(pair.0)-opened-note")
+            app.terminate()
+        }
+    }
+
+    /// Tap a folder: its card - counts, latest notes, Open folder and Fly in.
+    func testTapFolder() {
+        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewSelect", "Inguinal"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            XCTAssertTrue(app.otherElements["graphPeekCard"].waitForExistence(timeout: 15), "no folder card")
+            XCTAssertTrue(app.buttons["Fly in"].waitForExistence(timeout: 5), "no Fly in on a folder's card")
+            sleep(1)
+            snap(app, "42-\(k + 1)-\(theme)-peek-folder")
+            app.terminate()
+        }
+    }
+
+    /// Hold a body still: its options beside it.
+    func testHoldForOptions() {
+        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewHold", "Heart failure"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            XCTAssertTrue(app.otherElements["graphNodeMenu"].waitForExistence(timeout: 15), "no options")
+            XCTAssertTrue(app.buttons["Link to\u{2026}"].exists && app.buttons["Delete"].exists, "an option is missing")
+            snap(app, "43-\(k + 1)-\(theme)-hold-options")
+            app.terminate()
+        }
+    }
+
+    /// Hold and drag a body: picked up after a quarter second, its links
+    /// resting and its system following (the app drags it itself, as in
+    /// testGraphWhileDragging).
+    func testHoldDrag() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewDrag"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            usleep(1_700_000)
+            snap(app, "44-\(k + 1)-\(theme)-hold-drag")
+            app.terminate()
+        }
+    }
+
+    /// Name pills over bright bodies stay readable: flown in to a system
+    /// with a body chosen whose name sits over its star, its region's
+    /// glowing soma or a lit LED.
+    func testLabelsOverBrightBodies() {
+        let cases: [(String, String, String)] = [("space", "Inguinal", "Inguinal canal"),
+                                                 ("neurons", "Cardiology", "Heart failure"),
+                                                 ("circuit", "Cardiology", "BNP")]
+        for (k, entry) in cases.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", entry.0, "-graphPreviewFly", entry.1,
+                                    "-graphPreviewSelect", entry.2]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            XCTAssertTrue(app.otherElements["graphPeekCard"].waitForExistence(timeout: 20), "nothing chosen")
+            sleep(1)
+            snap(app, "45-\(k + 1)-\(entry.0)-label-over-bright")
+            app.terminate()
+        }
+    }
+
+    /// The Look menu's Link length bar, and the map planned longer.
+    func testLinkLength() {
+        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewLinkLength", "1.8"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(3)
+            snap(app, "46-\(k + 1)-\(theme)-links-longer")
+            let look = app.buttons["Look"]
+            XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
+            look.tap()
+            let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Link length")).firstMatch
+            XCTAssertTrue(item.waitForExistence(timeout: 5), "no Link length in the Look menu")
+            item.tap()
+            XCTAssertTrue(app.otherElements["linkLengthBar"].waitForExistence(timeout: 5), "no Link length bar")
+            snap(app, "47-\(k + 1)-\(theme)-link-length-bar")
             app.terminate()
         }
     }

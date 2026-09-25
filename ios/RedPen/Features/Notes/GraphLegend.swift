@@ -343,19 +343,37 @@ extension GraphLegendContent {
 /// at the bottom leading corner, clear of the round tools.
 struct GraphUniverseHint: View {
     var theme: GraphTheme = .space
+    /// The theme's three ways to add (the first time in a theme).
+    var steps: Bool = true
+    /// How to touch the map (GraphPeek.coachLines), once per theme.
+    var touch: Bool = true
     let more: () -> Void
     let done: () -> Void
 
+    private static let touchSymbols: [String] = ["hand.tap", "doc.text", "hand.draw"]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(theme.cardTitle)
+            Text(steps ? theme.cardTitle : "Touching the map")
                 .font(.headline)
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(theme.cardSteps, id: \.self) { step in
-                    Label(step, systemImage: "plus.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            if touch {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(GraphPeek.coachLines.enumerated()), id: \.offset) { k, line in
+                        Label(line, systemImage: Self.touchSymbols[k % Self.touchSymbols.count])
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityIdentifier("touchHint")
+            }
+            if steps {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(theme.cardSteps, id: \.self) { step in
+                        Label(step, systemImage: "plus.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             HStack(spacing: 10) {

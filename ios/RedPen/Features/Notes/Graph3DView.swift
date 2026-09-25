@@ -87,6 +87,31 @@ struct Graph3DView: View {
     /// The empty-bench hint's "Add circuit" (or "Add folder") is naming a
     /// new folder - the same store action as the Ideas bar's + › New folder.
     @State private var addingFolder: Bool = false
+    /// The owner's "Link length" (GraphLinkLength; Settings > Look and
+    /// feel, and the Look menu's bar): a change rebuilds, and every body
+    /// glides to its new place.
+    @AppStorage(SpaceSettings.linkLengthKey) private var linkLength: Double = GraphLinkLength.standard
+    /// The Look menu's Link length bar is up.
+    @State private var tuningLinks: Bool = false
+    /// Which themes' first-run card has shown the touch lines.
+    @AppStorage(GraphMapTouch.seenKey) private var touchSeen: String = ""
+    /// Touching the map (GraphTouchModel): what is chosen, whether its
+    /// links are shown, what is open on top.
+    @State private var selection = GraphSelection()
+    /// Requests for the map from the card (a link chip, Show links, Fly in).
+    @State private var command = GraphMapCommand()
+    /// The note opened from the map, growing out of the peek card.
+    @State private var reading: GraphReading?
+    /// A body's options (held still on it, or the card's More), and what
+    /// they opened.
+    @State private var options: GraphOptionsTarget?
+    @State private var renaming: GraphOptionsTarget?
+    @State private var linkingFrom: GraphReading?
+    @State private var movingNote: GraphReading?
+    @State private var addingInto: GraphOptionsTarget?
+    @State private var deleting: GraphOptionsTarget?
+    @Namespace private var peekZoom
+    @AccessibilityFocusState private var cardFocused: Bool
 
     init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
         self.open = open
@@ -121,11 +146,58 @@ struct Graph3DView: View {
             GraphLegendSheet(theme: built?.theme ?? theme)
                 .presentationDetents([.medium, .large])
         }
+        // Open: the note, grown out of the peek card; closing it comes back
+        // to the map with the same body still chosen
+        .sheet(item: $reading, onDismiss: closedReading) { item in
+            NoteEditorView(noteID: item.id)
+                .navigationTransition(.zoom(sourceID: GraphPeekCardView.zoomID, in: peekZoom))
+        }
+        .sheet(item: $renaming) { target in
+            renameSheet(target)
+        }
+        .sheet(item: $addingInto) { target in
+            NameSheet(title: "New idea", prompt: "Idea", initial: "", confirm: "Add") { name in
+                let folder: UUID? = target.home ? nil : target.id
+                _ = notes.create(title: name, kind: .idea, folderId: folder)
+            }
+        }
+        .sheet(item: $linkingFrom) { item in
+            GraphNotePicker(from: item.id)
+        }
+        .sheet(item: $movingNote) { item in
+            GraphFolderPicker(note: item.id)
+        }
+        .confirmationDialog(deleteTitle, isPresented: deletingShown, titleVisibility: .visible,
+                            presenting: deleting) { target in
+            Button("Delete", role: .destructive) { delete(target) }
+        } message: { target in
+            Text(target.folder ? "The folder goes; its notes and folders move up a level." : "This can't be undone.")
+        }
+        // a chosen body deleted or gone: let it go
+        .onChange(of: notes.notes) { _, _ in forgetGone() }
+        .onChange(of: notes.folders) { _, _ in forgetGone() }
         .task {
             // the design preview's deletions, to catch bodies dying
             guard GraphPreview.removes != nil else { return }
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             GraphPreview.remove(from: notes)
+        }
+        .task {
+            // the design preview's taps: a body chosen (its card up), then
+            // perhaps opened; or a body held (its options)
+            guard GraphPreview.select != nil || GraphPreview.hold != nil else { return }
+            let wait: UInt64 = GraphPreview.fly == nil ? 2_500_000_000 : 4_000_000_000
+            try? await Task.sleep(nanoseconds: wait)
+            if let name = GraphPreview.select, let id = previewID(name) {
+                touched(id)
+                if GraphPreview.opens {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    handle(.openCard)
+                }
+            }
+            if let name = GraphPreview.hold, let id = previewID(name) {
+                command.send(.previewHold(id))
+            }
         }
         .task {
             // the design preview's picture of the legend
@@ -145,12 +217,10 @@ struct Graph3DView: View {
             GeometryReader { geo in
                 let insets: GraphInsets = screenInsets(geo.safeAreaInsets)
                 GraphSCNView(built: built, filter: filter, recenter: recenter,
-                             insets: insets, onTap: open, openFolder: openFolder)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(built.theme.mapLabel)
-                    .accessibilityValue(built.universe ? built.summary : "")
-                    .accessibilityHint(built.universe ? built.theme.hint : Self.graphHint)
-                    .accessibilityIdentifier("graph3D")
+                             insets: insets, onTap: open, openFolder: openFolder,
+                             command: command, chosen: selection.selected,
+                             linksFor: selection.linksShown ? selection.selected : nil,
+                             labels: labelSettings, touch: touchHandlers)
             }
             .ignoresSafeArea()
         }
@@ -171,10 +241,11 @@ struct Graph3DView: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            if built.universe && !cardSeen(built.theme) && !GraphPreview.isOn {
+            if built.universe && hintShown(built.theme) && !GraphPreview.isOn && !selection.cardShown && !tuningLinks {
                 // sized to what the round tools (44 points, 12 from the
                 // card) leave, so it never runs under them on a phone
-                GraphUniverseHint(theme: built.theme, more: {
+                GraphUniverseHint(theme: built.theme, steps: !cardSeen(built.theme),
+                                  touch: !GraphMapTouch.seen(touchSeen, built.theme), more: {
                     markCardSeen(built.theme)
                     showingLegend = true
                 }, done: {
@@ -186,6 +257,12 @@ struct Graph3DView: View {
                 .padding(.bottom, 16)
             }
         }
+        .overlay(alignment: .bottom) {
+            bottomPanels(built)
+        }
+        .overlay {
+            optionsLayer(built)
+        }
         .ideaTools { tools }
         // the space is always night, whatever the phone's setting
         .environment(\.colorScheme, .dark)
@@ -194,8 +271,75 @@ struct Graph3DView: View {
         .coversSky()
     }
 
-    private static let graphHint: String =
-        "Drag to turn, pinch to zoom. Press and hold a note to see its name; tap it twice to open it."
+    /// The peek card for the chosen body, or the Link length bar: over the
+    /// bottom of the map, clear of the round tools, sliding up.
+    @ViewBuilder
+    private func bottomPanels(_ built: GraphScene) -> some View {
+        VStack(spacing: 10) {
+            if tuningLinks {
+                GraphLinkLengthBar(value: linkBinding, done: { tuningLinks = false })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            // it stays while its note is open over the map: the note grows
+            // out of it, and shrinks back into it
+            if let id = selection.selected, let content = peek(id, in: built) {
+                let folder: Bool = isFolder(id, in: built)
+                GraphPeekCardView(content: content, folder: folder, linksShown: selection.linksShown,
+                                  zoom: peekZoom,
+                                  open: { handle(.openCard) },
+                                  showLinks: { handle(.showLinks) },
+                                  flyIn: { command.send(.flyIn(id)) },
+                                  chip: { other in handle(.chip(other)) },
+                                  more: GraphPeek.menu(folder: folder, home: id == GraphUniverse.homeID),
+                                  option: { item in choose(item, for: optionsTarget(id, in: built, at: nil)) })
+                    .id(id)
+                    .accessibilityFocused($cardFocused)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.trailing, 44 + 12)
+        .padding(.bottom, 16)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.selected)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.cardShown)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: tuningLinks)
+    }
+
+    /// A body's options, held still on it: a glass list beside where it
+    /// was held; a tap anywhere else puts it away.
+    @ViewBuilder
+    private func optionsLayer(_ built: GraphScene) -> some View {
+        if let target = options {
+            GeometryReader { geo in
+                let size: CGSize = geo.size
+                let at: CGPoint = target.point ?? CGPoint(x: size.width / 2, y: size.height * 0.6)
+                let items: [String] = GraphPeek.menu(folder: target.folder, home: target.home)
+                let tall: CGFloat = CGFloat(items.count) * 44 + 40
+                let x: CGFloat = min(max(at.x, 131), max(size.width - 131, 131))
+                let below: Bool = at.y + 24 + tall < size.height
+                let half: CGFloat = tall / 2
+                let under: CGFloat = at.y + 24 + half
+                let over: CGFloat = max(at.y - 24 - half, half + 8)
+                let y: CGFloat = below ? under : over
+                ZStack {
+                    Color.black.opacity(0.001)
+                        .contentShape(Rectangle())
+                        .onTapGesture { options = nil }
+                        .accessibilityHidden(true)
+                    GraphNodeMenuView(title: title(target.id), items: items) { item in
+                        choose(item, for: target)
+                    }
+                    .position(x: x, y: y)
+                }
+            }
+            // the same space as the map's own view, where it was held
+            .ignoresSafeArea()
+            .transition(.opacity)
+        }
+    }
+
+    static let graphHint: String =
+        "Drag to turn, pinch to zoom. Tap a note to preview it, tap again to open it; hold it to move it or for options."
 
     /// Whether a theme's first-run card has been seen (the Universe keeps
     /// its own old key).
@@ -205,12 +349,230 @@ struct Graph3DView: View {
     }
 
     private func markCardSeen(_ theme: GraphTheme) {
+        touchSeen = GraphMapTouch.marking(touchSeen, theme)
         if theme == .space {
             hintSeen = true
             return
         }
         guard !cardSeen(theme) else { return }
         themeHintsSeen = themeHintsSeen.isEmpty ? theme.rawValue : themeHintsSeen + "," + theme.rawValue
+    }
+
+    /// The first-run card shows until it is put away: its steps the first
+    /// time in a theme, and the touch lines once per theme (for owners who
+    /// saw the card before they were added).
+    private func hintShown(_ theme: GraphTheme) -> Bool {
+        !cardSeen(theme) || !GraphMapTouch.seen(touchSeen, theme)
+    }
+
+    // MARK: touching the map (GraphTouchModel)
+
+    /// What the map reports back: taps, double taps, holds, VoiceOver.
+    private var touchHandlers: GraphTouchHandlers {
+        var out = GraphTouchHandlers()
+        out.select = { id in touched(id) }
+        out.double = { id in handle(.doubleTap(id)) }
+        out.hold = { id, point in held(id, at: point) }
+        out.voice = { id, action in voiceAction(id, action) }
+        return out
+    }
+
+    /// A tap on the map: on a body (its id) or on empty space (nil).
+    private func touched(_ id: UUID?) {
+        if let id {
+            handle(.tapBody(id))
+        } else {
+            handle(.tapEmpty)
+        }
+    }
+
+    private func handle(_ event: GraphSelectionEvent) {
+        let now: Double = CACurrentMediaTime()
+        perform(selection.handle(event, at: now))
+    }
+
+    /// What the selection asks for. Choosing and Show links reach the map
+    /// through `selection` itself (GraphSCNView's `chosen` and
+    /// `linksFor`); the camera's move and opening happen here.
+    private func perform(_ effects: [GraphSelectionEffect]) {
+        for effect in effects {
+            switch effect {
+            case .select(let id, let glide):
+                command.send(.select(id, glide: glide))
+                if UIAccessibility.isVoiceOverRunning { cardFocused = true }
+            case .clear:
+                options = nil
+            case .open(let id):
+                openBody(id)
+            case .links:
+                break
+            case .menu(let id):
+                if let built { options = optionsTarget(id, in: built, at: options?.point) }
+            }
+        }
+    }
+
+    /// Opens a body: a note grows out of the card; a folder opens in the
+    /// List (the home star: its top level), the app's own destinations.
+    private func openBody(_ id: UUID) {
+        options = nil
+        let isHome: Bool = id == GraphUniverse.homeID
+        if isHome || notes.folder(id) != nil {
+            perform(selection.handle(.closed, at: CACurrentMediaTime()))
+            openFolder(isHome ? nil : id)
+            return
+        }
+        guard notes.note(id) != nil else { return }
+        reading = GraphReading(id: id)
+    }
+
+    private func closedReading() {
+        perform(selection.handle(.closed, at: CACurrentMediaTime()))
+    }
+
+    /// Held still on a body: its options, where it was held.
+    private func held(_ id: UUID, at point: CGPoint) {
+        guard let built else { return }
+        options = optionsTarget(id, in: built, at: point)
+        handle(.hold(id))
+    }
+
+    /// VoiceOver on a body: activate selects it; its custom actions.
+    private func voiceAction(_ id: UUID, _ action: String) {
+        switch action {
+        case "Open", "Open folder":
+            handle(.doubleTap(id))
+        case "Show links":
+            if selection.selected != id { handle(.tapBody(id)) }
+            handle(.showLinks)
+        case "Fly in":
+            if selection.selected != id { handle(.tapBody(id)) }
+            command.send(.flyIn(id))
+        case "Delete":
+            if let built { deleting = optionsTarget(id, in: built, at: nil) }
+        default:
+            if selection.selected != id { handle(.tapBody(id)) }
+        }
+    }
+
+    /// One of a body's options.
+    private func choose(_ item: String, for target: GraphOptionsTarget) {
+        options = nil
+        switch item {
+        case "Open", "Open folder": handle(.doubleTap(target.id))
+        case "Rename": renaming = target
+        case "Link to\u{2026}": linkingFrom = GraphReading(id: target.id)
+        case "Move to folder\u{2026}": movingNote = GraphReading(id: target.id)
+        case "Add note here": addingInto = target
+        case "Delete": deleting = target
+        default: break
+        }
+    }
+
+    @ViewBuilder
+    private func renameSheet(_ target: GraphOptionsTarget) -> some View {
+        let prompt: String = target.folder ? "Folder name" : "Title"
+        NameSheet(title: "Rename", prompt: prompt, initial: title(target.id), confirm: "Rename") { name in
+            if target.folder {
+                notes.renameFolder(target.id, to: name)
+            } else if var note = notes.note(target.id) {
+                note.title = name
+                notes.update(note)
+            }
+        }
+    }
+
+    private var deletingShown: Binding<Bool> {
+        Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })
+    }
+
+    private var deleteTitle: String {
+        guard let target = deleting else { return "Delete?" }
+        return "Delete \u{201C}" + title(target.id) + "\u{201D}?"
+    }
+
+    /// Deletes it; the map plays its death as it rebuilds.
+    private func delete(_ target: GraphOptionsTarget) {
+        if target.folder {
+            notes.deleteFolder(target.id)
+        } else {
+            notes.delete(target.id)
+        }
+        perform(selection.handle(.gone(target.id), at: CACurrentMediaTime()))
+        deleting = nil
+    }
+
+    /// A chosen body deleted elsewhere (or its folder gone): let it go.
+    private func forgetGone() {
+        guard let id = selection.selected, id != GraphUniverse.homeID else { return }
+        if notes.note(id) == nil && notes.folder(id) == nil {
+            perform(selection.handle(.gone(id), at: CACurrentMediaTime()))
+        }
+    }
+
+    private func title(_ id: UUID) -> String {
+        if let note = notes.note(id) { return note.title.isEmpty ? "Untitled" : note.title }
+        if let folder = notes.folder(id) { return folder.name }
+        return "Ideas"
+    }
+
+    private func isFolder(_ id: UUID, in built: GraphScene) -> Bool {
+        id == GraphUniverse.homeID || notes.folder(id) != nil
+    }
+
+    private func optionsTarget(_ id: UUID, in built: GraphScene, at point: CGPoint?) -> GraphOptionsTarget {
+        let home: Bool = id == GraphUniverse.homeID
+        return GraphOptionsTarget(id: id, folder: isFolder(id, in: built), home: home, point: point)
+    }
+
+    /// What the peek card says about body `id`.
+    private func peek(_ id: UUID, in built: GraphScene) -> GraphPeekContent? {
+        let role: String = built.roles[id] ?? ""
+        let themeName: String = built.theme.rawValue
+        if id == GraphUniverse.homeID || notes.folder(id) != nil {
+            let home: Bool = id == GraphUniverse.homeID
+            let folderID: UUID? = home ? nil : id
+            var input = GraphPeekInput(theme: themeName, role: role, folder: true, home: home, title: title(id))
+            input.notes = home ? notes.notes.count : notes.count(in: id)
+            input.subfolders = notes.subfolders(of: folderID).count
+            let inside: [Note] = home ? notes.notes : notes.contents(of: folderID)
+            let newest: [Note] = inside.sorted { $0.createdAt > $1.createdAt }
+            input.recent = newest.prefix(3).map(\.title)
+            return GraphPeek.content(input)
+        }
+        guard let note = notes.note(id) else { return nil }
+        var input = GraphPeekInput(theme: themeName, role: role, folder: false, title: note.title,
+                                   page: note.kind == .page)
+        input.body = note.body
+        var links: [(UUID, String)] = []
+        for other in notes.connections(of: id) {
+            guard let linked = notes.note(other) else { continue }
+            links.append((other, linked.title))
+        }
+        input.links = links
+        return GraphPeek.content(input)
+    }
+
+    /// A note (by title) or folder (by name) in the design preview's store.
+    private func previewID(_ name: String) -> UUID? {
+        if let note = notes.notes.first(where: { $0.title == name }) { return note.id }
+        return notes.folders.first(where: { $0.name == name })?.id
+    }
+
+    /// Increase Contrast always takes the name pills' strongest style,
+    /// Reduce Transparency an opaque pill (GraphLabelContrast.swift).
+    private var labelSettings: GraphLabelSettings {
+        GraphLabelSettings(increaseContrast: highContrast, reduceTransparency: reduceTransparency)
+    }
+
+    /// The link length in force (the design preview can be given one).
+    private var linkValue: Double {
+        if GraphPreview.isOn, let asked = GraphPreview.linkLength { return GraphLinkLength.clamped(asked) }
+        return GraphLinkLength.stored(linkLength)
+    }
+
+    private var linkBinding: Binding<Double> {
+        Binding<Double>(get: { linkValue }, set: { linkLength = GraphLinkLength.clamped($0) })
     }
 
     /// The safe area's insets, left and right as on screen.
@@ -247,11 +609,19 @@ struct Graph3DView: View {
         .accessibilityLabel("Filter")
 
         GraphStyleTool(theme: themeBinding, main: lookBinding, folderRaw: folderBinding, folders: topFolders,
-                       showLegend: { showingLegend = true })
+                       showLegend: { showingLegend = true }, linkLength: linkValue,
+                       tuneLinks: tuneLinksAction)
 
         IdeaToolButton(symbol: "scope", label: "Recentre") {
             recenter += 1
         }
+    }
+
+    /// The Look menu's Link length: only where the map is planned (the
+    /// Universe and the themes), not the single looks.
+    private var tuneLinksAction: (() -> Void)? {
+        guard sizedByLength else { return nil }
+        return { tuningLinks = true }
     }
 
     /// The look in force: the owner's choice, never read or written in the
@@ -370,6 +740,9 @@ struct Graph3DView: View {
         parts.append("g\(graphics.tier.rawValue)")
         parts.append("\(bold)")
         parts.append("\(highContrast)")
+        // the link length plans the Universe and the themes (not the single
+        // looks, which the force layout places)
+        if universe { parts.append(GraphLinkLength.tag(linkValue)) }
         return parts.joined(separator: "\n")
     }
 
@@ -414,9 +787,13 @@ struct Graph3DView: View {
         }.value
         guard !Task.isCancelled else { return }
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
-        built = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
-                                        lively: lively, bold: bold, shaders: worked.1,
-                                        pageRadius: worked.2, contrast: highContrast)
+        var scene: GraphScene = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
+                                                        lively: lively, bold: bold, shaders: worked.1,
+                                                        pageRadius: worked.2, contrast: highContrast)
+        var names: [UUID: String] = [:]
+        for note in notes.notes { names[note.id] = note.title.isEmpty ? "Untitled" : note.title }
+        scene.names = names
+        built = scene
     }
 
     /// The Universe: the plan (GraphUniverse) off the main thread, no force
@@ -434,9 +811,19 @@ struct Graph3DView: View {
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
         // folder looks by the plan's galaxy, not the store's top-level walk
         let looks: [UUID: GraphNodeStyle] = GraphStyleChoice.folders(GraphStyleChoice.folderRaw)
-        built = GraphSceneBuilder.buildUniverse(store: notes, plan: worked.0, edges: edges, lively: lively,
-                                                bold: bold, shaders: worked.1, contrast: highContrast,
-                                                folderLooks: looks)
+        var scene: GraphScene = GraphSceneBuilder.buildUniverse(store: notes, plan: worked.0, edges: edges,
+                                                                lively: lively, bold: bold, shaders: worked.1,
+                                                                contrast: highContrast, folderLooks: looks)
+        var roles: [UUID: String] = [:]
+        var names: [UUID: String] = [:]
+        for body in worked.0.bodies {
+            roles[body.id] = body.role.rawValue
+            names[body.id] = body.label
+        }
+        scene.roles = roles
+        scene.names = names
+        scene.linkScale = linkValue
+        built = scene
     }
 
     /// A theme other than Space (GraphThemes): its plan and its shaders'
@@ -456,8 +843,18 @@ struct Graph3DView: View {
             await rebuildUniverse()
             return
         }
-        built = GraphSceneBuilder.buildTheme(store: notes, plan: plan, look: look, edges: edges, lively: lively,
-                                             contrast: highContrast)
+        var scene: GraphScene = GraphSceneBuilder.buildTheme(store: notes, plan: plan, look: look, edges: edges,
+                                                             lively: lively, contrast: highContrast)
+        var roles: [UUID: String] = [:]
+        var names: [UUID: String] = [:]
+        for body in plan.bodies where body.kind != .fixture {
+            roles[body.id] = String(body.role)
+            names[body.id] = body.label
+        }
+        scene.roles = roles
+        scene.names = names
+        scene.linkScale = linkValue
+        built = scene
     }
 
     /// What the plan reads from the store: notes, folders and links only.
@@ -475,7 +872,8 @@ struct Graph3DView: View {
             UniverseFolder(id: folder.id, name: folder.name, parent: folder.parentId)
         }
         let links: [UniverseEdge] = edges.map { UniverseEdge(a: $0.0, b: $0.1) }
-        return UniverseInput(notes: list, folders: folders, edges: links, seedByName: GraphPreview.isOn)
+        return UniverseInput(notes: list, folders: folders, edges: links, seedByName: GraphPreview.isOn,
+                             linkScale: linkValue)
     }
 }
 
@@ -511,6 +909,14 @@ struct GraphScene {
     /// The theme it was built in (GraphTheme): the words VoiceOver and the
     /// first-run card use.
     var theme: GraphTheme = .space
+    /// Each body's role in its theme's plan (UniverseRole's raw value, or
+    /// NeuronRole's or CircuitRole's as a number), for the peek card's
+    /// words; empty in the single looks.
+    var roles: [UUID: String] = [:]
+    /// The link length it was planned at (GraphLinkLength).
+    var linkScale: Double = 1
+    /// What VoiceOver calls each body (its name pill's words).
+    var names: [UUID: String] = [:]
 }
 
 /// Turns notes and their positions into SceneKit nodes.
@@ -633,6 +1039,7 @@ enum GraphSceneBuilder {
             info.stretchGain = made.stretchGain
             info.glowGain = 0.82 + 0.18 * min(Float(links) / 5, 1)
             info.deathKind = GraphDeath.kind(style: style.rawValue)
+            info.shine = GraphShine.universe(Self.shineRole(style), empty: false, tier: 1)
             infos.append(info)
         }
 
@@ -709,6 +1116,19 @@ enum GraphSceneBuilder {
                            looks: simLooks, lively: lively, labelReach: labelReach)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
         return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
+    }
+
+    /// A single look's style as the Universe body it looks like, for the
+    /// light it throws behind the name pills (GraphShine).
+    static func shineRole(_ style: GraphNodeStyle) -> String {
+        switch style {
+        case .blackHole: return "galaxy"
+        case .sun: return "star"
+        case .gasGiant: return "gasGiant"
+        case .rocky: return "rocky"
+        case .pulsar: return "pulsar"
+        case .comet: return "comet"
+        }
     }
 
     /// A one-by-one square plane; each note scales it to size.
@@ -839,6 +1259,17 @@ enum GraphSceneBuilder {
 /// press, pan, tap or hover until 3 seconds after the last one, and at 60
 /// otherwise - the orbits stay smooth and idle battery use halves. A drag
 /// always runs at 120.
+/// What the map tells SwiftUI about touches (GraphTouchModel): a tap (on a
+/// body, or nil on empty space), a double tap, a body held still (and
+/// where), and VoiceOver's actions on a body ("select", "Open", "Show
+/// links", "Fly in", "Delete").
+struct GraphTouchHandlers {
+    var select: (UUID?) -> Void = { _ in }
+    var double: (UUID) -> Void = { _ in }
+    var hold: (UUID, CGPoint) -> Void = { _, _ in }
+    var voice: (UUID, String) -> Void = { _, _ in }
+}
+
 struct GraphSCNView: UIViewRepresentable {
     let built: GraphScene
     let filter: GraphFilter
@@ -848,6 +1279,14 @@ struct GraphSCNView: UIViewRepresentable {
     let insets: GraphInsets
     let onTap: (UUID) -> Void
     var openFolder: (UUID?) -> Void = { _ in }
+    /// The camera's requests from the card (GraphMapCommand), the chosen
+    /// body, the body whose links alone are shown, and the name pills'
+    /// accessibility settings.
+    var command = GraphMapCommand()
+    var chosen: UUID? = nil
+    var linksFor: UUID? = nil
+    var labels = GraphLabelSettings()
+    var touch = GraphTouchHandlers()
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onTap: onTap, openFolder: openFolder, recenter: recenter, insets: insets)
@@ -884,12 +1323,23 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.doubleTapper = twice
         let hover = UIHoverGestureRecognizer(target: coordinator, action: #selector(Coordinator.hovered(_:)))
         view.addGestureRecognizer(hover)
-        let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.panned(_:)))
-        pan.maximumNumberOfTouches = 1
-        pan.delegate = coordinator
-        view.addGestureRecognizer(pan)
-        coordinator.panner = pan
+        // a body is moved only after it is held a quarter second; a quick
+        // drag anywhere turns the camera (GraphTouchRules)
+        let hold = UILongPressGestureRecognizer(target: coordinator, action: #selector(Coordinator.held(_:)))
+        hold.minimumPressDuration = GraphTouchRules.holdToDrag
+        hold.allowableMovement = CGFloat(GraphTouchRules.slop)
+        hold.delegate = coordinator
+        view.addGestureRecognizer(hold)
+        coordinator.holder = hold
+        // a tap waits only for the hold to fail - at once when the finger
+        // lifts before a quarter second - so a long hold never also taps
+        tap.require(toFail: hold)
 
+        coordinator.touch = touch
+        coordinator.chosenID = chosen
+        coordinator.linksID = linksFor
+        coordinator.labels = labels
+        coordinator.commandSerial = command.serial
         coordinator.attach(built, to: view)
         coordinator.apply(filter)
         return view
@@ -899,10 +1349,21 @@ struct GraphSCNView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.onTap = onTap
         coordinator.openFolder = openFolder
-        if coordinator.sim !== built.sim {
+        coordinator.touch = touch
+        coordinator.labels = labels
+        let rebuilt: Bool = coordinator.sim !== built.sim
+        coordinator.chosenID = chosen
+        coordinator.linksID = linksFor
+        if rebuilt {
             coordinator.attach(built, to: view)
+        } else {
+            coordinator.syncChoice()
         }
         coordinator.apply(filter)
+        if coordinator.commandSerial != command.serial {
+            coordinator.commandSerial = command.serial
+            coordinator.run(command.kind)
+        }
         if coordinator.recenterCount != recenter {
             coordinator.recenterCount = recenter
             coordinator.insets = insets
@@ -942,8 +1403,38 @@ struct GraphSCNView: UIViewRepresentable {
         var insets: GraphInsets
         private(set) var sim: GraphSim?
         weak var view: SCNView?
-        weak var panner: UIPanGestureRecognizer?
+        /// Hold a quarter second on a body, then move: it is picked up
+        /// (held still longer: its options).
+        weak var holder: UILongPressGestureRecognizer?
         weak var tapper: UITapGestureRecognizer?
+        /// What the map tells SwiftUI (GraphTouchHandlers), and what
+        /// SwiftUI has chosen: the chosen body, the body whose links alone
+        /// show, the name pills' settings, the last camera request done.
+        var touch = GraphTouchHandlers()
+        var chosenID: UUID?
+        var linksID: UUID?
+        var labels = GraphLabelSettings()
+        var commandSerial: Int = 0
+        /// What the chosen body and Show links were last set to on the
+        /// scene, so a change is made once.
+        private var shownChoice: UUID?
+        private var shownLinks: UUID?
+        private var shownLinksSet: Bool = false
+        /// A hold in progress: where it went down, and whether it has
+        /// picked the body up or opened its options.
+        private var holdStart: CGPoint = .zero
+        private var holdMoving: Bool = false
+        private var holdMenu: Bool = false
+        /// Which hold the options' wait belongs to (a new hold, a move or a
+        /// lift makes it stale).
+        private var holdGeneration: Int = 0
+        /// The pick-up tick and the light tick when a body is chosen.
+        private let pickup = UIImpactFeedbackGenerator(style: .medium)
+        private let light = UIImpactFeedbackGenerator(style: .light)
+        /// VoiceOver: the map's summary and one element per body.
+        private var voiceElements: [UIAccessibilityElement] = []
+        /// The link length the scene on screen was planned at.
+        private var lastLinkScale: Double = 1
         weak var doubleTapper: UITapGestureRecognizer?
         private var camera: SCNNode?
         /// The notes' homes and how far each reaches, for framing.
@@ -1001,6 +1492,10 @@ struct GraphSCNView: UIViewRepresentable {
 
         /// Shows a newly built scene.
         func attach(_ built: GraphScene, to view: SCNView) {
+            // a new link length on the same map: the camera glides to the
+            // new framing while every body glides to its new place
+            let glide: Bool = sim != nil && lastLinkScale != built.linkScale && built.sim.lively
+            lastLinkScale = built.linkScale
             sim = built.sim
             camera = built.camera
             homes = built.homes
@@ -1025,14 +1520,25 @@ struct GraphSCNView: UIViewRepresentable {
             wireCameraGestures(in: view)
             // still flown in to a folder that is still there: stay on it
             if universe, let id = flownID, let slot = folders[id] {
-                frame(animated: false)
-                fly(to: slot, animated: false)
+                if glide {
+                    framedWide = view.bounds.width > view.bounds.height
+                } else {
+                    frame(animated: false)
+                }
+                fly(to: slot, animated: glide)
             } else {
                 flown = nil
                 flownID = nil
-                frame(animated: false)
+                frame(animated: glide)
             }
             built.sim.appear()
+            built.sim.setLabelSettings(labels)
+            // the chosen body and Show links carry over to the new scene
+            shownChoice = nil
+            shownLinks = nil
+            shownLinksSet = false
+            syncChoice(tick: false)
+            buildVoice(built, in: view)
             wake()
             if GraphPreview.drags && !previewDragged {
                 previewDragged = true
@@ -1113,6 +1619,12 @@ struct GraphSCNView: UIViewRepresentable {
             let before: GraphFilter? = shownFilter
             shownFilter = filter
             sim.apply(filter)
+            refreshVoice()
+            // the chosen body filtered away: let it go (after this update)
+            if let id = chosenID, let i = sim.index[id], !sim.isVisible(i) {
+                let report: (UUID?) -> Void = touch.select
+                DispatchQueue.main.async { report(nil) }
+            }
             // the Universe: a folder filter flies to its galaxy, and
             // Everything frames the whole map again
             guard universe, let before else { return }
@@ -1316,8 +1828,10 @@ struct GraphSCNView: UIViewRepresentable {
             for other in view.gestureRecognizers ?? [] {
                 let key = ObjectIdentifier(other)
                 if wired.contains(key) { continue }
-                if let panner, other !== panner, other is UIPanGestureRecognizer {
-                    other.require(toFail: panner)
+                if let holder, other !== holder, other is UIPanGestureRecognizer {
+                    // a quick drag fails the hold at once (it moved), and
+                    // the camera turns; a hold on a body beats it
+                    other.require(toFail: holder)
                     wired.insert(key)
                 } else if let doubleTapper, other !== doubleTapper,
                           let tap = other as? UITapGestureRecognizer, tap.numberOfTapsRequired == 2 {
@@ -1335,7 +1849,7 @@ struct GraphSCNView: UIViewRepresentable {
                 let point: CGPoint = gesture.location(in: view)
                 return pick(at: point, radius: 28, in: view) != nil
             }
-            guard gesture === panner else { return true }
+            guard gesture === holder else { return true }
             let point: CGPoint = gesture.location(in: view)
             pending = dragPick(at: point, in: view)
             guard pending != nil else { return false }
@@ -1359,7 +1873,12 @@ struct GraphSCNView: UIViewRepresentable {
             return gesture is UITapGestureRecognizer && other is UITapGestureRecognizer
         }
 
-        @objc func panned(_ gesture: UIPanGestureRecognizer) {
+        /// A hold on a body (GraphTouchRules): at a quarter second it is
+        /// picked up with a tick; moved, it follows the finger (its links
+        /// resting, its system dragged along, as before); held still a
+        /// moment longer, it is put back and its options open instead.
+        /// Let go without moving: it is chosen, as a tap would.
+        @objc func held(_ gesture: UILongPressGestureRecognizer) {
             guard let view, let sim else { return }
             let point: CGPoint = gesture.location(in: view)
             wake()
@@ -1375,19 +1894,60 @@ struct GraphSCNView: UIViewRepresentable {
                 dragDepth = projected.z
                 let finger: SIMD3<Float> = fingerPoint(point, in: view, sim: sim)
                 dragOffset = local - finger
+                holdStart = point
+                holdMoving = false
+                holdMenu = false
                 dragging = true
                 sim.grab(i)
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                pickup.impactOccurred()
+                // still after a little longer: its options
+                let wait: Double = GraphTouchRules.holdForMenu - GraphTouchRules.holdToDrag
+                holdGeneration += 1
+                let generation: Int = holdGeneration
+                DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+                    self?.holdStill(i, at: point, generation: generation)
+                }
             case .changed:
-                guard dragging else { return }
+                guard dragging, !holdMenu else { return }
+                let dx: CGFloat = point.x - holdStart.x
+                let dy: CGFloat = point.y - holdStart.y
+                let moved: Double = Double((dx * dx + dy * dy).squareRoot())
+                if !holdMoving && moved > GraphTouchRules.slop {
+                    holdMoving = true
+                    holdGeneration += 1
+                }
+                guard holdMoving else { return }
                 let finger: SIMD3<Float> = fingerPoint(point, in: view, sim: sim)
-                let target: SIMD3<Float> = finger + dragOffset
-                sim.drag(to: target)
+                sim.drag(to: finger + dragOffset)
             default:
+                holdGeneration += 1
+                let picked: Int? = pending
+                let wasStill: Bool = !holdMoving && !holdMenu
+                if dragging { sim.release() }
                 dragging = false
                 pending = nil
-                sim.release()
+                // held and let go without moving: a slow tap
+                if wasStill, gesture.state == .ended, let i = picked, i < sim.ids.count {
+                    touch.select(sim.ids[i])
+                } else if let i = picked, !holdMenu {
+                    // moved: the lit ring goes back to what SwiftUI has chosen
+                    let chosenSlot: Int? = chosenID.flatMap { sim.index[$0] }
+                    if chosenSlot != i {
+                        if let chosenSlot { sim.select(chosenSlot) } else { sim.clearSelection() }
+                    }
+                }
             }
+        }
+
+        /// Held still past GraphTouchRules.holdForMenu: put it back and
+        /// ask for its options, where it is.
+        private func holdStill(_ i: Int, at point: CGPoint, generation: Int) {
+            guard generation == holdGeneration, dragging, !holdMoving, let sim, i < sim.ids.count else { return }
+            holdMenu = true
+            sim.release()
+            dragging = false
+            light.impactOccurred()
+            touch.hold(sim.ids[i], point)
         }
 
         /// Where the finger is, at the dragged note's depth, in the space's
@@ -1399,44 +1959,203 @@ struct GraphSCNView: UIViewRepresentable {
             return sim.world.simdConvertPosition(inScene, from: nil)
         }
 
-        /// One tap: chooses the body under the finger (its ring brightens;
-        /// its name showed only while it was pressed), or, on empty space,
-        /// lets the chosen one go. Never opens, and never moves the camera.
+        /// One tap: on a body, tells SwiftUI (GraphSelection chooses it -
+        /// its ring lights, its card comes up - or, when it is already
+        /// chosen, opens it); on empty space, lets the chosen one go.
         @objc func tapped(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
             wake()
             let point: CGPoint = gesture.location(in: view)
-            guard let i = pick(at: point, radius: 28, in: view) else {
-                sim.clearSelection()
+            guard let i = pick(at: point, radius: 28, in: view), i < sim.ids.count else {
+                touch.select(nil)
                 return
             }
-            // the second tap of a double tap lands here too: already chosen
-            if sim.selectedNote == i { return }
-            sim.select(i)
-            chooser.selectionChanged()
+            touch.select(sim.ids[i])
         }
 
-        /// Two taps on a note: open it. On a star, black hole or the home
-        /// star: fly in to its system; two more while flown in: open the
-        /// folder in the List (the home star: its top level).
+        /// Two taps on a body: open it at once (a shortcut for tap, Open).
         @objc func opened(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
             wake()
             let point: CGPoint = gesture.location(in: view)
-            guard let i = pick(at: point, radius: 28, in: view) else { return }
-            if sim.selectedNote != i { sim.select(i) }
-            let kind: GraphBodyKind = sim.kind(of: i)
-            if kind == .note {
-                onTap(sim.ids[i])
-                return
+            guard let i = pick(at: point, radius: 28, in: view), i < sim.ids.count else { return }
+            touch.double(sim.ids[i])
+        }
+
+        // MARK: the chosen body
+
+        /// Makes the scene show what SwiftUI has chosen: the lit ring (and
+        /// its name pill) on the chosen body, and Show links; `tick`: the
+        /// light tick of a new choice.
+        func syncChoice(tick: Bool = true) {
+            guard let sim else { return }
+            sim.setLabelSettings(labels)
+            if shownChoice != chosenID {
+                shownChoice = chosenID
+                if let id = chosenID, let i = sim.index[id] {
+                    sim.select(i)
+                    if tick { light.impactOccurred() }
+                } else {
+                    sim.clearSelection()
+                }
             }
-            // open only while the camera is still where the fly-in left it;
-            // once pinched, turned or reset, two taps fly in again
-            if flown == i && untouched {
-                openFolder(kind == .home ? nil : sim.ids[i])
-                return
+            if !shownLinksSet || shownLinks != linksID {
+                shownLinksSet = true
+                shownLinks = linksID
+                let slot: Int? = linksID.flatMap { sim.index[$0] }
+                sim.focusLinks(on: slot)
             }
-            fly(to: i, animated: true)
+        }
+
+        /// A request from the card.
+        func run(_ kind: GraphMapCommand.Kind) {
+            guard let sim else { return }
+            switch kind {
+            case .select(let id, let glide):
+                guard let i = sim.index[id] else { return }
+                ease(to: i, glide: glide)
+            case .flyIn(let id):
+                guard let i = sim.index[id] else { return }
+                fly(to: i, animated: true)
+            case .previewHold(let id):
+                guard let i = sim.index[id], let point = screenPoint(i) else { return }
+                touch.hold(id, point)
+            case .none, .clear, .links:
+                break
+            }
+        }
+
+        /// The camera eases a little towards a chosen body - a third of the
+        /// way to the middle of the part of the screen above the card, and
+        /// a tenth closer - or, from a link chip (`glide`), all the way to
+        /// that middle. Never with Reduce Motion (or while the space holds
+        /// still): the body is chosen where it is, and a chip's body is
+        /// brought to the middle at once.
+        private func ease(to i: Int, glide: Bool) {
+            guard let view, let camera, let sim else { return }
+            let size: CGSize = view.bounds.size
+            guard size.width > 1, size.height > 1 else { return }
+            let still: Bool = !sim.lively || UIAccessibility.isReduceMotionEnabled
+            if still && !glide { return }
+            let local: SIMD3<Float> = sim.currentPosition(i)
+            let world: SIMD3<Float> = sim.world.presentation.simdConvertPosition(local, to: nil)
+            let at: SCNVector3 = view.projectPoint(SCNVector3(x: world.x, y: world.y, z: world.z))
+            guard at.z > 0, at.z < 1 else { return }
+            // the middle of what the card (about 40% of the height) leaves
+            let goal = CGPoint(x: size.width / 2, y: size.height * 0.34)
+            let share: CGFloat = glide ? 1 : 0.34
+            let nx: CGFloat = CGFloat(at.x) + (goal.x - CGFloat(at.x)) * share
+            let ny: CGFloat = CGFloat(at.y) + (goal.y - CGFloat(at.y)) * share
+            let from: SCNVector3 = view.unprojectPoint(SCNVector3(x: at.x, y: at.y, z: at.z))
+            let to: SCNVector3 = view.unprojectPoint(SCNVector3(x: Float(nx), y: Float(ny), z: at.z))
+            let shift = SIMD3<Float>(from.x - to.x, from.y - to.y, from.z - to.z)
+            let eye: SIMD3<Float> = camera.simdPosition + shift
+            let toward: SIMD3<Float> = (world + shift) - eye
+            let closer: SIMD3<Float> = glide ? SIMD3<Float>(0, 0, 0) : toward * 0.1
+            let target: SCNVector3 = view.defaultCameraController.target
+            let aim = SIMD3<Float>(target.x, target.y, target.z) + shift + closer
+            view.defaultCameraController.target = SCNVector3(x: aim.x, y: aim.y, z: aim.z)
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = still ? 0 : (glide ? 0.7 : 0.45)
+            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            camera.simdPosition = eye + closer
+            SCNTransaction.commit()
+            wake()
+        }
+
+        // MARK: VoiceOver
+
+        /// Where body `i` is drawn on screen now; nil off screen.
+        func screenPoint(_ i: Int) -> CGPoint? {
+            guard let view, let sim else { return nil }
+            let local: SIMD3<Float> = sim.currentPosition(i)
+            let world: SIMD3<Float> = sim.world.presentation.simdConvertPosition(local, to: nil)
+            let p: SCNVector3 = view.projectPoint(SCNVector3(x: world.x, y: world.y, z: world.z))
+            guard p.z > 0, p.z < 1 else { return nil }
+            return CGPoint(x: CGFloat(p.x), y: CGFloat(p.y))
+        }
+
+        /// A body's frame for VoiceOver: 44 points round where it is drawn.
+        func voiceFrame(_ i: Int) -> CGRect {
+            guard let sim, sim.isVisible(i), let at = screenPoint(i) else { return .zero }
+            return CGRect(x: at.x - 22, y: at.y - 22, width: 44, height: 44)
+        }
+
+        /// VoiceOver activated a body: choose it (its card comes up).
+        func voiceSelect(_ i: Int) {
+            guard let sim, i < sim.ids.count else { return }
+            touch.voice(sim.ids[i], "select")
+        }
+
+        /// The map for VoiceOver: its summary (the map's name, the plan's
+        /// counts, how to use it) and every body shown, each chosen by
+        /// activating it, with Open, Show links (Fly in for a folder) and
+        /// Delete as its actions; and rotors over the notes and the folders.
+        private func buildVoice(_ built: GraphScene, in view: SCNView) {
+            guard let sim else { return }
+            let summary = GraphWholeElement(accessibilityContainer: view)
+            summary.container = view
+            summary.accessibilityIdentifier = "graph3D"
+            summary.accessibilityLabel = built.theme.mapLabel
+            summary.accessibilityValue = built.universe ? built.summary : ""
+            summary.accessibilityHint = built.universe ? built.theme.hint : Graph3DView.graphHint
+            var out: [UIAccessibilityElement] = [summary]
+            for i in sim.ids.indices where sim.kind(of: i) != .fixture {
+                let id: UUID = sim.ids[i]
+                let folder: Bool = sim.kind(of: i) != .note
+                let element = GraphBodyElement(accessibilityContainer: view)
+                element.coordinator = self
+                element.slot = i
+                element.folder = folder
+                element.accessibilityLabel = built.names[id] ?? "Untitled"
+                let role: String = built.roles[id] ?? ""
+                let word: String? = GraphPeek.roleWord(theme: built.theme.rawValue, role: role, folder: folder,
+                                                       home: id == GraphUniverse.homeID)
+                element.accessibilityValue = word ?? (folder ? "Folder" : "Note")
+                element.accessibilityTraits = .button
+                element.accessibilityHint = "Shows its card."
+                var actions: [UIAccessibilityCustomAction] = []
+                for name in GraphPeek.actions(folder: folder) {
+                    let action = UIAccessibilityCustomAction(name: name) { [weak self] _ in
+                        self?.touch.voice(id, name)
+                        return true
+                    }
+                    actions.append(action)
+                }
+                element.accessibilityCustomActions = actions
+                out.append(element)
+            }
+            voiceElements = out
+            refreshVoice()
+            view.accessibilityCustomRotors = [rotor("Notes", folders: false), rotor("Folders", folders: true)]
+        }
+
+        /// Only the bodies the filter shows.
+        private func refreshVoice() {
+            guard let view, let sim else { return }
+            let shown: [UIAccessibilityElement] = voiceElements.filter { element in
+                guard let body = element as? GraphBodyElement else { return true }
+                return sim.isVisible(body.slot)
+            }
+            view.accessibilityElements = shown
+        }
+
+        /// A rotor stepping through the notes (or the folders) shown.
+        private func rotor(_ name: String, folders wanted: Bool) -> UIAccessibilityCustomRotor {
+            UIAccessibilityCustomRotor(name: name) { [weak self] predicate in
+                guard let self, let sim = self.sim else { return nil }
+                let all: [GraphBodyElement] = self.voiceElements.compactMap { $0 as? GraphBodyElement }
+                let list: [GraphBodyElement] = all.filter { $0.folder == wanted && sim.isVisible($0.slot) }
+                guard !list.isEmpty else { return nil }
+                let current: GraphBodyElement? = predicate.currentItem.targetElement as? GraphBodyElement
+                var at: Int = -1
+                if let current, let found = list.firstIndex(where: { $0 === current }) { at = found }
+                let forward: Bool = predicate.searchDirection == .next
+                var next: Int = forward ? at + 1 : at - 1
+                if at < 0 { next = forward ? 0 : list.count - 1 }
+                guard next >= 0, next < list.count else { return nil }
+                return UIAccessibilityCustomRotorItemResult(targetElement: list[next], targetRange: nil)
+            }
         }
 
         /// The pointer over the space: the body under it shows its name.
@@ -1657,5 +2376,34 @@ final class FramingSCNView: SCNView {
         guard size != lastSize else { return }
         lastSize = size
         onResize?(size)
+    }
+}
+
+/// One body for VoiceOver: its frame follows it on screen; activating it
+/// chooses it.
+final class GraphBodyElement: UIAccessibilityElement {
+    weak var coordinator: GraphSCNView.Coordinator?
+    var slot: Int = 0
+    var folder: Bool = false
+
+    override var accessibilityFrameInContainerSpace: CGRect {
+        get { coordinator?.voiceFrame(slot) ?? .zero }
+        set { _ = newValue }
+    }
+
+    override func accessibilityActivate() -> Bool {
+        coordinator?.voiceSelect(slot)
+        return true
+    }
+}
+
+/// The whole map for VoiceOver (its name, the plan's summary, the hint):
+/// the view's whole frame.
+final class GraphWholeElement: UIAccessibilityElement {
+    weak var container: UIView?
+
+    override var accessibilityFrameInContainerSpace: CGRect {
+        get { container?.bounds ?? .zero }
+        set { _ = newValue }
     }
 }

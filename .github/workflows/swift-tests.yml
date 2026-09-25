@@ -27,6 +27,8 @@ on:
       - 'ios/RedPen/Features/Notes/GraphDeath.swift'
       - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
       - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
+      - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -189,6 +191,14 @@ jobs:
           # apoptosis; a short circuit), link buffers never rewritten in flight,
           # and the synapse's terminal arbor
           suite death GraphDeathTests.swift $F/Notes/GraphDeath.swift $F/Notes/GraphFrameSync.swift $F/Notes/GraphSynapse.swift
+          # link length: every theme's guarantees at 0.6-1.8, links grow with
+          # the setting, bodies keep their size
+          suite linklength LinkLengthTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift $F/Notes/GraphNeurons.swift \
+                $F/Notes/GraphCircuit.swift $S/Space/GraphicsQuality.swift
+          # name pills stay readable: contrast maths, style choice, no flicker
+          suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
+          # touching the map: tap, double tap, hold, drag, orbit, the peek card
+          suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
           # the accuracy engine: dose, lab and contradiction rules (the same
           # cases as the server's), the accuracy model's grades, the cache key,
           # the order background checks run in, and one-tap corrections

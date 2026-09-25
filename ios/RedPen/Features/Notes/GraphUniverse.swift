@@ -52,6 +52,41 @@ nonisolated struct UniverseInput: Sendable {
     /// Seeds from names and titles instead of ids (the design preview, whose
     /// ids change every launch).
     let seedByName: Bool
+    /// The owner's "Link length" (Settings > Look and feel, and the map's
+    /// Look menu): 1 as planned, less pulls linked bodies closer, more
+    /// spreads them out. Every planner scales only the room BETWEEN bodies
+    /// by it - orbits, the gaps between systems, pathways, part spacing -
+    /// never a body's own size. Clamped to 0.6...1.8.
+    var linkScale: Double = 1
+}
+
+extension UniverseInput {
+    /// The link length a planner uses: clamped, and 1 for anything unusable.
+    nonisolated var spacing: Double {
+        guard linkScale.isFinite else { return 1 }
+        return min(max(linkScale, 0.6), 1.8)
+    }
+
+    /// Below 1, how much of the planned slack (the room past what the
+    /// bodies need to stay clear) is kept: 1 down to 0.6. Never below
+    /// what keeps them apart.
+    nonisolated var tightness: Double {
+        min(spacing, 1)
+    }
+
+    /// Above 1, how far everything is spread out from where it was
+    /// planned: the plan at 1 scaled about each system's centre, so every
+    /// distance between bodies grows by exactly this and none can meet.
+    nonisolated var stretch: Double {
+        max(spacing, 1)
+    }
+
+    /// The same vault at another link length.
+    nonisolated func scaled(_ scale: Double) -> UniverseInput {
+        var copy: UniverseInput = self
+        copy.linkScale = scale
+        return copy
+    }
 }
 
 nonisolated enum UniverseRole: String, Sendable, Equatable {
@@ -262,6 +297,14 @@ nonisolated enum GraphUniverse {
     static func plan(_ input: UniverseInput) -> UniversePlan {
         if input.notes.isEmpty && input.folders.isEmpty { return .empty }
         var planner = UniversePlanner(input)
+        if input.tightness < 1 {
+            // shorter links: every system and galaxy keeps the side it
+            // stands on at the standard length, only closer in
+            var standard = UniversePlanner(input.scaled(1))
+            _ = standard.run()
+            planner.forcedTurns = standard.chosenTurns
+            planner.forcedGalaxyTurns = standard.chosenGalaxyTurns
+        }
         return planner.run()
     }
 
@@ -432,6 +475,9 @@ nonisolated struct UniversePlanner: Sendable {
     let hasFolders: Bool
     /// The home star's container index, or -1.
     let homeC: Int
+    /// The link length's two halves (UniverseInput.tightness, .stretch).
+    let tight: Double
+    let stretch: Double
     var cCount: Int = 0
     var parent: [Int] = []
     var depth: [Int] = []
@@ -454,6 +500,13 @@ nonisolated struct UniversePlanner: Sendable {
     var places: [[UniversePlace]] = []
     var palette: [Int] = []
     var loose: [Int] = []
+    /// Which of the 72 directions each child system (by container) and
+    /// each galaxy was placed along; a plan at a shorter link length is
+    /// held to the standard plan's, so nothing swaps sides as it tightens.
+    var chosenTurns: [Int: Int] = [:]
+    var chosenGalaxyTurns: [Int: Int] = [:]
+    var forcedTurns: [Int: Int] = [:]
+    var forcedGalaxyTurns: [Int: Int] = [:]
 
     // the output
     var bodies: [UniverseBody] = []
@@ -478,6 +531,8 @@ nonisolated struct UniversePlanner: Sendable {
         folderList = folders
         hasFolders = !folders.isEmpty
         homeC = folders.isEmpty ? folders.count : -1
+        tight = input.tightness
+        stretch = input.stretch
     }
 
     // MARK: names and seeds
@@ -522,8 +577,9 @@ nonisolated struct UniversePlanner: Sendable {
         let tops: [Int] = (0..<cCount).filter { parent[$0] < 0 }
         for t in tops { compose(t) }
         let placed: GalaxyPlacement = placeGalaxies(tops)
+        chosenGalaxyTurns = placed.turns
         emit(placed)
-        let box: SIMD2<Double> = placed.half
+        let box: SIMD2<Double> = placed.half * stretch
         emitComets(box)
         return finish(placed)
     }
@@ -763,10 +819,33 @@ nonisolated struct UniversePlanner: Sendable {
         return k * sphere[i] + 0.03
     }
 
+    /// The room round a container before its first orbit. Shorter links
+    /// keep less of the slack past the body (a black hole's disk, 2.5
+    /// sizes, is never entered).
     func clear(_ c: Int) -> Double {
+        if tight >= 1 { return standardClear(c) }
+        let s: Double = cSphere[c]
+        if isGalaxy(c) {
+            if count[c] > 0 { return 2.5 * s + 0.10 * tight }
+            return (1 + 0.6 * tight) * s
+        }
+        let full: Bool = count[c] > 0 || c == homeC
+        let slack: Double = full ? 0.8 : 0.4
+        return (1 + slack * tight) * s
+    }
+
+    /// clear(c) at the standard link length.
+    func standardClear(_ c: Int) -> Double {
         let s: Double = cSphere[c]
         if isGalaxy(c) { return count[c] > 0 ? 2.5 * s + 0.10 : 1.6 * s }
         return count[c] > 0 || c == homeC ? 1.8 * s : 1.4 * s
+    }
+
+    /// The room between one orbit and the next (0.08 as planned), kept
+    /// wide enough that two planets on neighbouring orbits, each grown by
+    /// half, still clear.
+    var orbitGap: Double {
+        tight >= 1 ? 0.08 : 0.03 + 0.05 * tight
     }
 
     // MARK: orbits
@@ -794,19 +873,27 @@ nonisolated struct UniversePlanner: Sendable {
             pulsars.sort { lessN($0, $1) }
             let groups: [[Int]] = [rock, gas + pulsars].filter { !$0.isEmpty }
             var out: [UniverseOrbitPlan] = []
+            // who shares an orbit is settled at the standard length; a
+            // shorter one only pulls the orbits in, each never tighter than
+            // its members need side by side
             var lastR: Double = -1
+            var lastRS: Double = -1
             var lastF: Double = 0
             for group in groups {
                 var rest: ArraySlice<Int> = group[...]
                 while !rest.isEmpty {
                     let f: Double = rest.map { foot($0) }.max() ?? 0
-                    let r: Double = lastR < 0 ? clear(c) + f + 0.08 : lastR + lastF + f + 0.08
-                    let room: Double = 2 * Double.pi * r / (2 * f + 0.10)
+                    let rs: Double = lastRS < 0 ? standardClear(c) + f + 0.08 : lastRS + lastF + f + 0.08
+                    let room: Double = 2 * Double.pi * rs / (2 * f + 0.10)
                     let cap: Int = max(1, Int(room.rounded(.down)))
                     let take: [Int] = Array(rest.prefix(cap))
                     rest = rest.dropFirst(cap)
+                    let inner: Double = lastR < 0 ? clear(c) + f + orbitGap : lastR + lastF + f + orbitGap
+                    let side: Double = Double(take.count) * (2 * f + 0.10) / (2 * Double.pi)
+                    let r: Double = min(max(inner, side), rs)
                     out.append(UniverseOrbitPlan(radius: r, members: take, foot: f))
                     lastR = r
+                    lastRS = rs
                     lastF = f
                 }
             }
@@ -906,12 +993,14 @@ nonisolated struct UniversePlanner: Sendable {
             var bestReach: Double = 0
             let centred: Bool = GraphUniverse.length(centroid) <= 1e-4
             let facing: Double = atan2(centroid.y, centroid.x)
-            for j in 0..<72 {
+            let tries: [Int] = forcedTurns[k].map { [$0] } ?? Array(0..<72)
+            var bestJ: Int = 0
+            for j in tries {
                 let th: Double = Double(j) * Double.pi / 36
                 let u = SIMD2<Double>(cos(th), sin(th))
                 let a: Double = centred ? 0 : th - facing
                 let turned: [UniverseCircle] = Self.turned(circles, by: a)
-                let d: Double = Self.slide(u, turned, placed, gap: 0.15)
+                let d: Double = Self.slide(u, turned, placed, gap: 0.15 * tight)
                 let shift: SIMD2<Double> = u * d
                 let moved: [UniverseCircle] = turned.map { UniverseCircle(q: $0.q + shift, r: $0.r) }
                 let ext: Double = max(reach, Self.extent(moved))
@@ -919,11 +1008,13 @@ nonisolated struct UniversePlanner: Sendable {
                 let key: (Double, Double, Int) = (GraphUniverse.rounded(ext, 100), GraphUniverse.rounded(dp, 10000), j)
                 if let held = bestKey, !(key < held) { continue }
                 bestKey = key
+                bestJ = j
                 bestPlace = UniversePlace(child: k, offset: shift, turn: a)
                 bestCircles = moved
                 bestReach = ext
             }
             guard let place = bestPlace else { continue }
+            chosenTurns[k] = bestJ
             placed.append(contentsOf: bestCircles)
             reach = bestReach
             out.append(place)
@@ -942,6 +1033,8 @@ nonisolated struct UniversePlanner: Sendable {
         var hi = SIMD2<Double>(0, 0)
         var turn: Bool = false
         var half: SIMD2<Double> = SIMD2<Double>(0, 0)
+        /// The direction each galaxy was placed along.
+        var turns: [Int: Int] = [:]
     }
 
     func projected(_ g: Int, _ m: UniverseFrame) -> [UniverseCircle] {
@@ -1011,10 +1104,12 @@ nonisolated struct UniversePlanner: Sendable {
             var bestKey: (Double, Double, Int)?
             var bestShift = SIMD2<Double>(0, 0)
             var bestCircles: [UniverseCircle] = []
-            for j in 0..<72 {
+            var bestJ: Int = 0
+            let tries: [Int] = forcedGalaxyTurns[g].map { [$0] } ?? Array(0..<72)
+            for j in tries {
                 let th: Double = Double(j) * Double.pi / 36
                 let u = SIMD2<Double>(cos(th), sin(th))
-                let d: Double = Self.slide(u, circles, placed, gap: 0.30)
+                let d: Double = Self.slide(u, circles, placed, gap: 0.30 * tight)
                 let shift: SIMD2<Double> = u * d
                 let moved: [UniverseCircle] = circles.map { UniverseCircle(q: $0.q + shift, r: $0.r) }
                 let (mlo, mhi) = Self.box(moved)
@@ -1025,9 +1120,11 @@ nonisolated struct UniversePlanner: Sendable {
                 let key: (Double, Double, Int) = (GraphUniverse.rounded(fit, 100), GraphUniverse.rounded(apart, 100), j)
                 if let held = bestKey, !(key < held) { continue }
                 bestKey = key
+                bestJ = j
                 bestShift = shift
                 bestCircles = moved
             }
+            result.turns[g] = bestJ
             result.centre[g] = bestShift
             placed.append(contentsOf: bestCircles)
             placedOrder.append(g)
@@ -1054,7 +1151,7 @@ nonisolated struct UniversePlanner: Sendable {
         let middle: SIMD2<Double> = (placed.lo + placed.hi) * 0.5
         let quarter: UniverseFrame = GraphUniverse.rotZ(Double.pi / 2)
         for g in placed.order {
-            let xy: SIMD2<Double> = (placed.centre[g] ?? middle) - middle
+            let xy: SIMD2<Double> = ((placed.centre[g] ?? middle) - middle) * stretch
             var home = SIMD3<Double>(xy.x, xy.y, 0)
             var frame: UniverseFrame = placed.frame[g] ?? .identity
             if placed.turn {
@@ -1100,7 +1197,8 @@ nonisolated struct UniversePlanner: Sendable {
             let axis = SIMD3<Double>(cos(psi), sin(psi), 0)
             let lean: UniverseFrame = GraphUniverse.rotZ(place.turn).times(UniverseFrame.about(axis, beta))
             let childFrame: UniverseFrame = frame.times(lean)
-            let step: SIMD3<Double> = frame.apply(SIMD3<Double>(place.offset.x, place.offset.y, 0))
+            let spread: SIMD2<Double> = place.offset * stretch
+            let step: SIMD3<Double> = frame.apply(SIMD3<Double>(spread.x, spread.y, 0))
             putContainer(k, home: home + step, frame: childFrame, parentC: c)
         }
     }
@@ -1131,8 +1229,10 @@ nonisolated struct UniversePlanner: Sendable {
             let psi: Double = 2 * Double.pi * random.unit()
             let axis = SIMD3<Double>(cos(psi), sin(psi), 0)
             let plane: UniverseFrame = frame.times(UniverseFrame.about(axis, gamma))
-            let r: Double = orbit.radius
-            let scaled: Double = pow(r / 1.5, 1.5) * 90
+            // longer links spread the orbit out; it turns at the planned
+            // rate, so the whole system is the plan scaled up at any time
+            let r: Double = orbit.radius * stretch
+            let scaled: Double = pow(orbit.radius / 1.5, 1.5) * 90
             let period: Double = GraphUniverse.clamp(scaled, 45, 480)
             let rate: Double = 2 * Double.pi / period
             let start: Double = base + Double(k) * GraphUniverse.golden
@@ -1237,7 +1337,7 @@ nonisolated struct UniversePlanner: Sendable {
                 let at: SIMD3<Double> = cHome[target]
                 let xy = SIMD2<Double>(at.x, at.y)
                 let size: Double = GraphUniverse.length(xy)
-                if size > 0.5 {
+                if size > 0.5 * stretch {
                     u = xy / size
                     found = true
                 }
@@ -1279,9 +1379,9 @@ nonisolated struct UniversePlanner: Sendable {
 
     mutating func putOort(_ i: Int, index j: Int, half: SIMD2<Double>) {
         var random = UniverseRandom(nSeed(i))
-        let z: Double = 0.25 * random.signed()
-        let ox: Double = half.x * 1.06 + 0.3
-        let oy: Double = half.y * 1.06 + 0.3
+        let z: Double = 0.25 * random.signed() * stretch
+        let ox: Double = half.x * 1.06 + 0.3 * stretch
+        let oy: Double = half.y * 1.06 + 0.3 * stretch
         let phase: Double = Double(j) * GraphUniverse.golden
         let path: GraphOrbit = .ring(x: Float(ox), y: Float(oy), z: Float(z), phase: Float(phase),
                                      rate: Float(2 * Double.pi / 1200))
@@ -1350,10 +1450,14 @@ nonisolated struct UniversePlanner: Sendable {
         var out: [SIMD3<Float>] = []
         let frame: UniverseFrame = cFrame[c]
         for circle in comp[c] {
+            // spread out, each circle still holds what it held (a moon
+            // keeps its own ring round its planet, well inside)
+            let q: SIMD2<Double> = circle.q * stretch
+            let r: Double = circle.r * stretch
             for k in 0..<8 {
                 let a: Double = Double(k) * Double.pi / 4
-                let x: Double = circle.q.x + circle.r * cos(a)
-                let y: Double = circle.q.y + circle.r * sin(a)
+                let x: Double = q.x + r * cos(a)
+                let y: Double = q.y + r * sin(a)
                 let p: SIMD3<Double> = origin + frame.apply(SIMD3<Double>(x, y, 0))
                 out.append(GraphUniverse.float3(p))
             }

@@ -193,3 +193,76 @@ nonisolated struct GraphFramePacer: Sendable {
         return step
     }
 }
+
+// MARK: - Link length
+//
+// The owner's "Link length" (Settings > Look and feel, and the map's Look
+// menu): how far apart linked bodies stand in the Ideas map, from Shorter
+// (0.6) to Longer (1.8), 1 as planned. Each theme's planner takes it as
+// UniverseInput.linkScale and scales only the room between bodies (orbits
+// and the gaps between systems, pathways, part spacing and the boards) -
+// never a body's own size, so nothing shrinks against the camera. Shorter
+// is limited by what keeps bodies apart: a map planned tight has less to
+// give. Pure Foundation, tested on Linux (Tests/LinkLengthTests.swift).
+
+nonisolated enum GraphLinkLength {
+    /// Where it is stored (SpaceSettings.linkLengthKey): a Double.
+    static let key: String = "vignette.space.linkLength"
+    static let standard: Double = 1.0
+    static let shortest: Double = 0.6
+    static let longest: Double = 1.8
+    /// The slider's step.
+    static let step: Double = 0.1
+
+    /// A stored or dragged value as the planners use it: clamped, snapped
+    /// to the step, and the standard length for anything unusable.
+    static func clamped(_ value: Double) -> Double {
+        guard value.isFinite, value > 0 else { return standard }
+        let inside: Double = min(max(value, shortest), longest)
+        let steps: Double = (inside / step).rounded()
+        let snapped: Double = steps * step
+        return (snapped * 100).rounded() / 100
+    }
+
+    /// The value in UserDefaults (missing: the standard length).
+    static func stored(_ raw: Double?) -> Double {
+        guard let raw else { return standard }
+        return clamped(raw)
+    }
+
+    /// Whether two values plan the same map (the rebuild's signature).
+    static func tag(_ value: Double) -> String {
+        let hundredths: Int = Int((clamped(value) * 100).rounded())
+        return "L" + String(hundredths)
+    }
+
+    /// The word for a value: "Shorter", "Standard" or "Longer".
+    static func word(_ value: Double) -> String {
+        let v: Double = clamped(value)
+        if abs(v - standard) < 0.001 { return "Standard" }
+        return v < standard ? "Shorter" : "Longer"
+    }
+
+    /// "Standard", or "1.4 × longer" / "0.8 × shorter" - VoiceOver and the
+    /// menu's value.
+    static func spoken(_ value: Double) -> String {
+        let v: Double = clamped(value)
+        if abs(v - standard) < 0.001 { return "Standard" }
+        let shown: String = String(format: "%.1f", v)
+        return shown + "\u{00D7} " + (v < standard ? "shorter" : "longer")
+    }
+
+    /// The Settings footer's line for a value, live as the slider moves.
+    static func footer(_ value: Double) -> String {
+        let v: Double = clamped(value)
+        if abs(v - standard) < 0.001 {
+            return "Link length: Standard - the Ideas map as planned."
+        }
+        if v < standard {
+            let pct: Int = Int(((1 - v) * 100).rounded())
+            return "Link length: \(pct)% shorter - linked bodies drawn closer, as far as they can go without touching. Sizes stay the same."
+        }
+        let pct: Int = Int(((v - 1) * 100).rounded())
+        return "Link length: \(pct)% longer - orbits, pathways and traces stretched out; bodies keep their sizes."
+    }
+}

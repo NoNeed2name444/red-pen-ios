@@ -94,6 +94,9 @@ struct GraphNodeInfo {
     /// How it dies when deleted (GraphDeath), and how much it held.
     var deathKind: GraphDeathKind = .plain
     var count: Int = 0
+    /// How bright it and its glow are, for the estimate of what is behind
+    /// a name pill (GraphLabelContrast.swift).
+    var shine: GraphShine = .dark
 }
 
 /// The Universe's own pieces, for GraphSim (built by GraphUniverseScene).
@@ -163,6 +166,10 @@ struct GraphSimLooks {
     var universe: GraphUniverseLooks? = nil
     /// Bodies of the scene before this one dying (GraphDeathStage).
     var dying: GraphDeathStage? = nil
+    /// The theme's ground behind everything, and the accessibility
+    /// settings, for the name pills' styles (GraphLabelContrast.swift).
+    var labelBackdrop: GraphRGB = GraphShine.backdrop(theme: "space")
+    var labelSettings = GraphLabelSettings()
 }
 
 /// Keeps the space gently alive, and drives the black holes' motion.
@@ -450,6 +457,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// A note whose name shows without pausing the orbits (the design
     /// preview's chosen note).
     private var named: Int?
+    /// Show links: the chosen body and its neighbours (every other body
+    /// dimmed, only their links drawn); nil for everything.
+    private var focusSet: Set<Int>?
+
+    // the name pills' styles (GraphLabelContrast.swift)
+    private let shines: [GraphShine]
+    private let labelBack: GraphRGB
+    private var labelSettings: GraphLabelSettings
+    /// Each label's words, pill and rim materials (nil for wiring's empty
+    /// holder), and its pill's half width and height in label units (a
+    /// label unit is 15 points on screen).
+    private let labelParts: [GraphLabelParts?]
+    private var labelTrackers: [Int: GraphLabelTracker] = [:]
+    private var labelClock: Double = 0
 
     /// Spring towards home: how hard it pulls, and how much of the motion
     /// each second it soaks up. Lively uses a damping ratio of 0.6 for a
@@ -493,6 +514,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.trails = looks.trails
         self.sky = looks.sky
         self.labelReach = labelReach
+        self.shines = infos.map(\.shine)
+        self.labelBack = looks.labelBackdrop
+        self.labelSettings = looks.labelSettings
+        self.labelParts = infos.map { GraphLabelParts.find(in: $0.label) }
         // critical damping is 2 * sqrt(stiffness), about 4.9
         let critical: Float = 2 * stiffness.squareRoot()
         self.damping = lively ? critical * 0.6 : critical
@@ -864,6 +889,17 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return orbitTime
     }
 
+    /// Increase Contrast and Reduce Transparency, for the name pills: every
+    /// shown one is styled again at once.
+    func setLabelSettings(_ settings: GraphLabelSettings) {
+        lock.lock()
+        if labelSettings != settings {
+            labelSettings = settings
+            labelTrackers.removeAll()
+        }
+        lock.unlock()
+    }
+
     /// The view's height in points, for names at a constant size.
     func setViewHeight(_ height: Float) {
         guard height > 1 else { return }
@@ -1118,7 +1154,50 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private func linkShown(_ e: Int, _ pair: (Int, Int)) -> Bool {
         let a: Int = pair.0
         let b: Int = pair.1
+        if focusSet != nil, let centre = selected, a != centre && b != centre {
+            // Show links: only the chosen body's own
+            return false
+        }
         return visible[a] && visible[b] && !ghost[a] && !ghost[b]
+    }
+
+    /// Show links: dims every body but `i` and those it links to, and
+    /// draws only `i`'s own links (nil: everything back). Main thread.
+    @MainActor
+    func focusLinks(on i: Int?) {
+        var near = Set<Int>()
+        if let i, i >= 0, i < nodes.count {
+            near.insert(i)
+            for (a, b) in edges where a == i || b == i {
+                near.insert(a == i ? b : a)
+                // a folder's links are its pathway or wiring: its members
+                // count too
+            }
+            for m in members[i] { near.insert(m) }
+            var up: Int = parentOf[i]
+            while up >= 0 && up < nodes.count {
+                near.insert(up)
+                up = parentOf[up]
+            }
+        }
+        lock.lock()
+        focusSet = i == nil ? nil : near
+        if let i { selected = i }
+        var kept: [Int] = []
+        for (e, pair) in edges.enumerated() where linkShown(e, pair) {
+            kept.append(e)
+        }
+        shownEdges = kept
+        linesDirty = true
+        resting = false
+        let ghosts: [Bool] = ghost
+        lock.unlock()
+        for (k, node) in nodes.enumerated() {
+            let base: CGFloat = ghosts[k] ? 0.3 : 1
+            let dim: Bool = i != nil && !near.contains(k)
+            let want: CGFloat = dim ? 0.15 : base
+            if node.opacity != want { node.opacity = want }
+        }
     }
 
     // MARK: each frame
@@ -1758,6 +1837,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         wantLabel(pressedNote)
         wantLabel(grabbed)
         wantLabel(named)
+        // the chosen body keeps its name while its card is up
+        wantLabel(selected)
         for i in labelsUp where !labelsWanted.contains(i) {
             labels[i].isHidden = true
         }
@@ -1773,8 +1854,103 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             }
         }
         swap(&labelsUp, &labelsWanted)
-        guard universe else { return }
-        for i in labelsUp { placeLabel(i, eye: eye, up: up) }
+        if universe {
+            for i in labelsUp { placeLabel(i, eye: eye, up: up) }
+        }
+        styleLabels(dt, eye: eye, up: up)
+    }
+
+    /// Measures what is behind each shown name a few times a second
+    /// (GraphLabelSampler: at most 10, less often on Smooth) and eases its
+    /// words, pill and rim to the style that keeps it readable
+    /// (GraphLabelChooser, GraphLabelTracker). Called with the lock held.
+    private func styleLabels(_ dt: Float, eye: SIMD3<Float>, up: SIMD3<Float>) {
+        let step: Double = Double(dt)
+        labelClock += step
+        let smooth: Bool = budget.tier != .high
+        let due: Bool = labelClock >= GraphLabelSampler.interval(smooth: smooth)
+        if due { labelClock = 0 }
+        if labelTrackers.count > labelsUp.count {
+            let live = Set<Int>(labelsUp)
+            labelTrackers = labelTrackers.filter { live.contains($0.key) }
+        }
+        let shown: [Int] = Array(labelsUp.prefix(GraphLabelSampler.most))
+        guard !shown.isEmpty else { return }
+        var glows: [GraphGlow]?
+        let eyeD = SIMD3<Double>(Double(eye.x), Double(eye.y), Double(eye.z))
+        for i in shown {
+            guard let parts = labelParts[i] else { continue }
+            let fresh: Bool = labelTrackers[i] == nil
+            if due || fresh {
+                if glows == nil { glows = labelGlows(eye: eyeD) }
+                let back: GraphBackdrop = labelBackdrop(i, parts: parts, eye: eye, up: up, glows: glows ?? [])
+                let tint: GraphRGB = shines[i].colour
+                if var tracker = labelTrackers[i] {
+                    let since: Double = GraphLabelSampler.interval(smooth: smooth)
+                    tracker.measure(back, tint: tint, settings: labelSettings, elapsed: since)
+                    labelTrackers[i] = tracker
+                } else {
+                    let look: GraphLabelLook = GraphLabelChooser.choose(back, tint: tint, settings: labelSettings)
+                    labelTrackers[i] = GraphLabelTracker(look)
+                    parts.apply(look)
+                    continue
+                }
+            }
+            guard var tracker = labelTrackers[i] else { continue }
+            if tracker.step(step, instant: !lively) { parts.apply(tracker.shown) }
+            labelTrackers[i] = tracker
+        }
+    }
+
+    /// Every shown body as a light seen from `eye`, and the dying bodies'
+    /// flashes. Called with the lock held.
+    private func labelGlows(eye: SIMD3<Double>) -> [GraphGlow] {
+        var out: [GraphGlow] = []
+        for i in position.indices where visible[i] && !ghost[i] && popScale[i] > 0.05 {
+            let shine: GraphShine = shines[i]
+            let p: SIMD3<Float> = position[i]
+            let at = SIMD3<Double>(Double(p.x), Double(p.y), Double(p.z))
+            let r: Double = Double(radius[i] * popScale[i])
+            let found: GraphGlow? = GraphBackdropEstimate.glow(at: at, radius: r, reach: shine.reach,
+                                                               colour: shine.colour, strength: shine.strength, eye: eye)
+            if let found { out.append(found) }
+        }
+        for flash in dying?.flashes() ?? [] {
+            let p: SIMD3<Float> = flash.0
+            let at = SIMD3<Double>(Double(p.x), Double(p.y), Double(p.z))
+            let white = GraphRGB(1, 0.97, 0.9)
+            let lit: GraphRGB = white.over(.black, alpha: flash.2)
+            let found: GraphGlow? = GraphBackdropEstimate.glow(at: at, radius: Double(flash.1), reach: flash.3,
+                                                               colour: lit, strength: flash.2, eye: eye)
+            if let found { out.append(found) }
+        }
+        return out
+    }
+
+    /// What is behind body `i`'s name pill: five points across it, where
+    /// it sits above the body on screen. Called with the lock held.
+    private func labelBackdrop(_ i: Int, parts: GraphLabelParts, eye: SIMD3<Float>, up: SIMD3<Float>,
+                               glows: [GraphGlow]) -> GraphBackdrop {
+        let p: SIMD3<Float> = position[i]
+        let d: Float = max(simd_distance(eye, p), 0.05)
+        let halfTan: Float = tan(GraphFraming.fieldOfView * Float.pi / 360)
+        let perUnit: Float = viewHeight / (2 * d * halfTan)
+        let unit: Float = 15 / perUnit
+        let upward: SIMD3<Float> = simd_length_squared(up) > 0.000_001 ? simd_normalize(up) : SIMD3<Float>(0, 1, 0)
+        let forward: SIMD3<Float> = simd_normalize(p - eye)
+        let side: SIMD3<Float> = simd_cross(forward, upward)
+        let right: SIMD3<Float> = simd_length_squared(side) > 0.000_001 ? simd_normalize(side) : SIMD3<Float>(1, 0, 0)
+        let lift: Float = pickRadius[i] * popScale[i] + 10 / perUnit + parts.half.y * unit
+        let centre: SIMD3<Float> = p + upward * lift
+        let c = SIMD3<Double>(Double(centre.x), Double(centre.y), Double(centre.z))
+        let r = SIMD3<Double>(Double(right.x), Double(right.y), Double(right.z))
+        let u = SIMD3<Double>(Double(upward.x), Double(upward.y), Double(upward.z))
+        let e = SIMD3<Double>(Double(eye.x), Double(eye.y), Double(eye.z))
+        let halfWidth: Double = Double(parts.half.x * unit)
+        let halfHeight: Double = Double(parts.half.y * unit)
+        let points: [SIMD3<Double>] = GraphBackdropEstimate.pillPoints(centre: c, right: r, up: u, halfWidth: halfWidth,
+                                                                       halfHeight: halfHeight, eye: e)
+        return GraphBackdropEstimate.measure(points: points, glows: glows, backdrop: labelBack)
     }
 
     /// The Universe's names: always the size of a 15-point font, 10 points
@@ -1810,5 +1986,55 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let left: Float = 1 - t
         let eased: Float = 1 - left * left
         return 0.85 + 0.15 * eased
+    }
+}
+
+/// A name pill's pieces (Graph3DView's GraphSceneBuilder.label: the rim,
+/// the pill and the words, in that order), to restyle it as what is behind
+/// it changes (GraphLabelContrast.swift).
+nonisolated final class GraphLabelParts: @unchecked Sendable {
+    let text: SCNMaterial
+    let pill: SCNMaterial
+    let rim: SCNMaterial
+    /// Half the rim's width and height, in label units (15 points).
+    let half: SIMD2<Float>
+
+    init(text: SCNMaterial, pill: SCNMaterial, rim: SCNMaterial, half: SIMD2<Float>) {
+        self.text = text
+        self.pill = pill
+        self.rim = rim
+        self.half = half
+    }
+
+    /// The pieces of `label`, or nil for wiring's empty holder.
+    static func find(in label: SCNNode) -> GraphLabelParts? {
+        let children: [SCNNode] = label.childNodes
+        guard children.count >= 3 else { return nil }
+        guard let rimLook = children[0].geometry?.firstMaterial,
+              let pillLook = children[1].geometry?.firstMaterial,
+              let textLook = children[2].geometry?.firstMaterial else { return nil }
+        var size = SIMD2<Float>(1.5, 0.7)
+        if let plane = children[0].geometry as? SCNPlane {
+            size = SIMD2<Float>(Float(plane.width), Float(plane.height))
+        }
+        return GraphLabelParts(text: textLook, pill: pillLook, rim: rimLook, half: size * 0.5)
+    }
+
+    /// Draws `look`. Render thread, with GraphSim's lock held.
+    func apply(_ look: GraphLabelLook) {
+        text.diffuse.contents = Self.colour(look.text, alpha: 1)
+        let opaque: Bool = look.opacity >= 0.999
+        pill.blendMode = opaque ? .replace : .alpha
+        pill.diffuse.contents = Self.colour(look.pill, alpha: look.opacity)
+        // the rim: a clear outline when the contrast is marginal, else a
+        // soft edge; its darkness stands in for the shadow
+        let rimShade: GraphRGB = look.rim.mixed(look.darkText ? .white : .black, look.shadow * 0.3)
+        let rimAlpha: Double = look.outline ? 1 : max(look.opacity, 0.5)
+        rim.blendMode = rimAlpha >= 0.999 ? .replace : .alpha
+        rim.diffuse.contents = Self.colour(rimShade, alpha: rimAlpha)
+    }
+
+    static func colour(_ c: GraphRGB, alpha: Double) -> UIColor {
+        UIColor(red: CGFloat(c.r), green: CGFloat(c.g), blue: CGFloat(c.b), alpha: CGFloat(alpha))
     }
 }

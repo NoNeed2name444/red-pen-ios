@@ -77,6 +77,23 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
     private var slotCode: [Int] = []
     private var ribbons: [GraphRibbonLink] = []
 
+    /// Each dying body's flash now, for what is behind the name pills
+    /// (GraphLabelContrast.swift): where it is, its radius, how bright the
+    /// flash is (0...1) and how many radii it reaches. Render thread, with
+    /// GraphSim's lock held.
+    func flashes() -> [(SIMD3<Float>, Float, Double, Double)] {
+        guard !finished else { return [] }
+        var out: [(SIMD3<Float>, Float, Double, Double)] = []
+        for (k, d) in dying.enumerated() where k < plans.count {
+            let plan: GraphDeathPlan = plans[k]
+            let flash: (Double, Double) = GraphShine.deathFlash(plan.effect.rawValue, t: elapsed,
+                                                                duration: plan.duration)
+            guard flash.0 > 0.02 else { continue }
+            out.append((d.position, max(d.radius, 0.02), flash.0, flash.1))
+        }
+        return out
+    }
+
     /// The deaths for a new scene whose bodies are `keeping`, or nil when
     /// none of the scene being replaced's bodies has gone.
     @MainActor

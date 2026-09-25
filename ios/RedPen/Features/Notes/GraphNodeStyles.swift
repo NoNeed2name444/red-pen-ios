@@ -186,6 +186,10 @@ struct GraphStyleTool: View {
     let folders: [NoteFolder]
     /// Opens the legend (GraphLegendSheet).
     var showLegend: () -> Void = {}
+    /// The link length in force, and what brings up its bar over the map
+    /// (nil where the map is not planned: the single looks).
+    var linkLength: Double = GraphLinkLength.standard
+    var tuneLinks: (() -> Void)? = nil
 
     private var chosen: GraphTheme { GraphTheme.stored(theme) }
 
@@ -205,6 +209,14 @@ struct GraphStyleTool: View {
             }
             if space {
                 spaceLooks
+            }
+            if let tuneLinks {
+                Button {
+                    tuneLinks()
+                } label: {
+                    Label("Link length: " + GraphLinkLength.spoken(linkLength), systemImage: "arrow.left.and.right")
+                }
+                .accessibilityIdentifier("lookLinkLength")
             }
             if !space || GraphNodeStyle(rawValue: main) == nil {
                 Button {

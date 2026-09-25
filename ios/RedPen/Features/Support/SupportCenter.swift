@@ -151,6 +151,9 @@ struct SettingsPage: View {
     @AppStorage(SpaceSettings.soundsKey) private var sounds = false
     /// "Graphics": Automatic, High quality or Smooth (GraphicsQuality.swift).
     @AppStorage(SpaceSettings.graphicsKey) private var graphicsRaw: String = GraphicsChoice.automatic.rawValue
+    /// "Link length": how far apart linked bodies stand in the Ideas map
+    /// (GraphLinkLength), Shorter 0.6 to Longer 1.8.
+    @AppStorage(SpaceSettings.linkLengthKey) private var linkLength: Double = GraphLinkLength.standard
     @Environment(\.graphics) private var graphics
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
@@ -219,6 +222,24 @@ struct SettingsPage: View {
                 }
             }
             .accessibilityIdentifier("graphicsPicker")
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Link length")
+                    Spacer()
+                    Text(GraphLinkLength.word(linkLength))
+                        .foregroundStyle(.secondary)
+                }
+                Slider(value: linkLengthBinding, in: GraphLinkLength.shortest...GraphLinkLength.longest,
+                       step: GraphLinkLength.step) {
+                    Text("Link length")
+                } minimumValueLabel: {
+                    Text("Shorter").font(.caption)
+                } maximumValueLabel: {
+                    Text("Longer").font(.caption)
+                }
+                .accessibilityValue(GraphLinkLength.spoken(linkLength))
+                .accessibilityIdentifier("linkLengthSlider")
+            }
         } header: {
             Text("Look and feel")
         } footer: {
@@ -242,9 +263,18 @@ struct SettingsPage: View {
         parts.append("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
         parts.append("Always night sky keeps the dark star field, and the app's dark look, even in light mode.")
         parts.append(graphicsFooter)
+        parts.append(GraphLinkLength.footer(linkLength))
         parts.append("Sounds are short, quiet tones for right and wrong answers and a finished session. They follow the Ring/Silent switch and stay quiet while anything is being read aloud.")
         let footer: String = parts.joined(separator: " ")
         return footer
+    }
+
+    /// The stored link length, read clamped and written snapped.
+    private var linkLengthBinding: Binding<Double> {
+        Binding<Double>(
+            get: { GraphLinkLength.stored(linkLength) },
+            set: { linkLength = GraphLinkLength.clamped($0) }
+        )
     }
 
     /// What the Graphics choice is doing on this device, right now.
