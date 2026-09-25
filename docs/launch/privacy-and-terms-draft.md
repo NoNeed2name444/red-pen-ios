@@ -420,13 +420,30 @@ The two buttons have equal weight. The sheet never appears at launch, only when 
 
 > Google's Gemini, with Cloudflare's models taking over when it is busy. Your text is sent to Google or Cloudflare to answer. {{FREE_TIER: On Google's free tier Google may use it to improve its products.}} Vignette keeps nothing except unfinished background jobs, for up to 7 days.
 
-### E3. Terms gate v3: points to add to the existing "Before you start" screen `[G11]`
+### E3. Terms gate v3: the "Read this before you start" screen `[G11]` (in the app: `RecordingTermsView`, `RecordingTerms.version = 3`)
 
-> **For study, not patient care.** Vignette's AI can be wrong. Don't use it to diagnose or treat anyone, and check anything important against current guidelines.
-> **No patient details.** Never enter anything that could identify a real patient.
-> **18 or older.** You must be 18 or older to use Vignette.
+Shown once per account after sign-in; cannot be dismissed; the agree button counts down five seconds.
 
-Keep the five existing points: permission to record; own sources only; you are responsible; not part of any misuse; cloud transcription goes to Google.
+> **Read this before you start**
+>
+> *(red box)*
+> **Vignette is a study aid for students. It is NOT a medical tool.**
+> **Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.**
+> **AI content can be wrong, out of date or dangerous, even after it has been checked.** Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.
+> In an emergency, call your local emergency number.
+>
+> - **No patient information. Ever.** Never enter, record, upload or photograph anything that could identify a real patient: names, dates, record numbers, images or rare details.
+> - **Record people only with their consent.** Recording someone without their permission can be illegal. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and everyone who can be heard have agreed, and your university's rules and the law allow it. You alone are responsible for your recordings and their transcripts.
+> - **Only add sources you have the right to use.** Your own notes, material your university gave you to study from, or content whose licence allows it. Never upload other people's paid courses, question banks or copyrighted books.
+> - **Misuse ends your account.** Using Vignette for patient care, recording people without consent, uploading material you have no right to, or breaking the law can get your account suspended or closed. You are solely responsible for how you use the app; Vignette has no part in, and does not approve of, any misuse.
+> - **No warranty, no liability.** Vignette is provided as is, with no promise that anything in it is accurate or complete. To the extent the law allows, Vignette and its makers accept no liability for any decision, harm or loss that comes from relying on it.
+> - **Cloud transcription.** When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose "This phone only" to keep it on your device.
+>
+> By tapping "I understand and agree" you confirm you have read all of this and accept full responsibility for how you use Vignette.
+>
+> **[I understand and agree]**
+
+Not yet on the screen: the **18 or older** point (C2); add it here and bump the version again when the age rule is final.
 
 ### E4. Privacy choices ask card `[ship-gated: P2.8]`
 

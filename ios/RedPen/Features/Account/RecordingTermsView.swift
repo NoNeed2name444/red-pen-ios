@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// What every account agrees to before it can use the app: recordings are only
-/// transcribed with the permission of the people in them, sources are only
-/// added by someone entitled to use them, and the app has no part in anyone's
-/// misuse of it.
+/// What every account agrees to before it can use the app: it is a study aid
+/// and nothing more - never for patient care - its AI can be wrong, no patient
+/// details go in, recordings only with everyone's consent, sources only by
+/// someone entitled to use them, and whoever misuses it answers for it alone.
 ///
 /// Shown once per account, straight after signing in, and it cannot be skipped:
 /// no close button, no swipe-down, and the accept button counts down for five
 /// seconds before it can be pressed, so it is at least seen before it is agreed
-/// to.
+/// to. Worded to match the terms (docs/launch/privacy-and-terms-draft.md, C3-C7,
+/// C13-C14 and Part D); a change here bumps RecordingTerms.version.
 struct RecordingTermsView: View {
     let onAccept: () -> Void
 
@@ -20,29 +21,38 @@ struct RecordingTermsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Image(systemName: "waveform.badge.exclamationmark")
+                Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(StudySetKind.narrate.tint)
+                    .foregroundStyle(.red)
                     .accessibilityHidden(true)
 
-                Text("Before you start")
+                Text("Read this before you start")
                     .font(.largeTitle.bold())
 
+                warningBox
+
+                point("person.crop.circle.badge.xmark",
+                      "No patient information. Ever.",
+                      "Never enter, record, upload or photograph anything that could identify a real patient: names, dates, record numbers, images or rare details.")
                 point("person.2.wave.2",
-                      "Only record and transcribe with permission",
-                      "A recording holds other people's voices. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and anyone else who can be heard have agreed, and when the rules of your university or country allow it.")
+                      "Record people only with their consent",
+                      "Recording someone without their permission can be illegal. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and everyone who can be heard have agreed, and your university's rules and the law allow it. You alone are responsible for your recordings and their transcripts.")
                 point("doc.badge.ellipsis",
-                      "Only add sources you own",
-                      "Only add lectures, slides, notes, books and recordings that you own or have the right to use - your own notes, material your university gave you to study from, or content whose licence allows it. Do not upload other people's paid courses, question banks or copyrighted books you have no right to copy.")
-                point("hand.raised",
-                      "You are responsible for what you record",
-                      "You are responsible for the recordings you add and what you do with their transcripts, including sharing them.")
+                      "Only add sources you have the right to use",
+                      "Your own notes, material your university gave you to study from, or content whose licence allows it. Never upload other people's paid courses, question banks or copyrighted books.")
+                point("hand.raised.fill",
+                      "Misuse ends your account",
+                      "Using \(Brand.name) for patient care, recording people without consent, uploading material you have no right to, or breaking the law can get your account suspended or closed. You are solely responsible for how you use the app; \(Brand.name) has no part in, and does not approve of, any misuse.")
                 point("building.columns",
-                      "\(Brand.name) is not part of any misuse",
-                      "\(Brand.name) is a study tool. It is not associated with, and does not approve of, recording or transcribing anyone without their consent, or any other misuse of the app.")
+                      "No warranty, no liability",
+                      "\(Brand.name) is provided as is, with no promise that anything in it is accurate or complete. To the extent the law allows, \(Brand.name) and its makers accept no liability for any decision, harm or loss that comes from relying on it.")
                 point("cloud",
                       "Cloud transcription",
                       "When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose \u{201C}This phone only\u{201D} to keep it on your device.")
+
+                Text("By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
@@ -59,6 +69,29 @@ struct RecordingTermsView: View {
                 withAnimation { remaining -= 1 }
             }
         }
+    }
+
+    /// The part nobody may miss: what the app is not for, and that its AI
+    /// can be wrong. Red, boxed, first, and read as one element by VoiceOver.
+    private var warningBox: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("\(Brand.name) is a study aid for students. It is NOT a medical tool.")
+                .font(.headline)
+            Text("Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.")
+                .font(.subheadline.weight(.semibold))
+            Text("AI content can be wrong, out of date or dangerous, even after it has been checked. Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.")
+                .font(.subheadline.weight(.semibold))
+            Text("In an emergency, call your local emergency number.")
+                .font(.subheadline)
+        }
+        .foregroundStyle(.primary)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.red.opacity(0.12), in: shape)
+        .overlay(shape.strokeBorder(Color.red.opacity(0.55), lineWidth: 1.5))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("medicalWarning")
     }
 
     /// The same floating glass slab as every other bottom bar, in the terms'
@@ -104,6 +137,7 @@ struct RecordingTermsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)
                 Text(detail).font(.subheadline).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -131,9 +165,10 @@ final class RecordingTermsStore: ObservableObject {
 ///
 /// Kept per account id, so a second person signing in on the same iPad sees
 /// it too. The version is in the key: changing the terms means bumping it,
-/// and everybody is asked again.
+/// and everybody is asked again. (3: study aid only, no patient details,
+/// misuse, no warranty.)
 enum RecordingTerms {
-    static let version = 2
+    static let version = 3
 
     static func key(for accountId: String) -> String {
         "recordingTerms.v\(version).\(accountId)"

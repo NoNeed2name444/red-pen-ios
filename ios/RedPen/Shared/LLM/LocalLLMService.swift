@@ -373,10 +373,15 @@ struct AppleFoundationBackend: LLMBackend {
         let conversation = turns.filter { $0.role != .system }
             .map { ($0.role == .user ? "" : "Assistant: ") + $0.text }
             .joined(separator: "\n\n")
+        // Apple's model has a 4,096-token window shared by the prompt and the
+        // reply: asking for more than is left fails the whole request
+        // (exceededContextWindowSize), so the reply gets what is left
+        let promptTokens = (system.count + conversation.count) / 3
+        let replyTokens = max(256, min(maxTokens, 4_000 - promptTokens))
         let session = LanguageModelSession(instructions: Instructions { system })
         let response = try await session.respond(
             to: conversation,
-            options: GenerationOptions(temperature: temperature, maximumResponseTokens: maxTokens))
+            options: GenerationOptions(temperature: temperature, maximumResponseTokens: replyTokens))
         let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw LLMError.emptyReply }
         return text

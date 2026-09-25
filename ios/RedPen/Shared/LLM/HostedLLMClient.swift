@@ -39,9 +39,12 @@ struct HostedProvider: Identifiable, Codable, Hashable {
     /// Starting points for the add screen. Every field stays editable: model
     /// names change faster than an app update ships.
     static let presets: [HostedProvider] = [
+        // Featherless is Baichuan-M2's one live host on Hugging Face's router;
+        // without naming it the router refuses ("not supported by any
+        // provider you have enabled") unless the student switched it on
         HostedProvider(name: "Baichuan-M2-32B (Hugging Face)", kind: .openAICompatible,
                        baseURL: "https://router.huggingface.co/v1",
-                       model: "baichuan-inc/Baichuan-M2-32B"),
+                       model: "baichuan-inc/Baichuan-M2-32B:featherless-ai"),
         HostedProvider(name: "Doctor-R1 / MedVAL on my server", kind: .openAICompatible,
                        baseURL: "http://192.168.1.10:8080/v1",
                        model: "doctor-r1", needsKey: false),
@@ -54,7 +57,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
                        baseURL: "https://api.anthropic.com/v1", model: "claude-sonnet-5"),
         HostedProvider(name: "Gemini", kind: .gemini,
                        baseURL: "https://generativelanguage.googleapis.com/v1beta",
-                       model: "gemini-2.5-flash"),
+                       model: "gemini-3.5-flash"),
     ]
 
     /// CramDown Cloud: our own worker, the student's session as the key, and
@@ -181,10 +184,12 @@ struct HostedLLMClient: LLMBackend {
         var object: [String: Any] = [
             "model": provider.model,
             "max_tokens": maxTokens,
-            "temperature": temperature,
             "messages": turns.filter { $0.role != .system }
                 .map { ["role": $0.role.rawValue, "content": $0.text] },
         ]
+        // Claude Sonnet 5, Opus 4.7 and later refuse any temperature (HTTP
+        // 400); only the older models still take one
+        if Self.claudeTakesTemperature(provider.model) { object["temperature"] = temperature }
         if !system.isEmpty { object["system"] = system }
         request.httpBody = try body(object)
         return request
@@ -207,6 +212,14 @@ struct HostedLLMClient: LLMBackend {
         return request
     }
 
+    /// Whether a Claude model still accepts `temperature`: the 3.x, 4.0-4.6
+    /// and Haiku models do; every newer one answers 400 when it is sent.
+    static func claudeTakesTemperature(_ model: String) -> Bool {
+        let name = model.lowercased()
+        let older = ["claude-3", "haiku", "-4-0", "-4-1", "-4-5", "-4-6", "claude-sonnet-4-2", "claude-opus-4-2"]
+        return older.contains { name.contains($0) }
+    }
+
     // MARK: responses
 
     private func parse(_ data: Data) throws -> String {
@@ -221,12 +234,15 @@ struct HostedLLMClient: LLMBackend {
             return content
         case .anthropic:
             guard let blocks = json["content"] as? [[String: Any]] else { throw LLMError.badResponse }
-            return blocks.compactMap { $0["text"] as? String }.joined()
+            return blocks.filter { ($0["type"] as? String ?? "text") == "text" }
+                .compactMap { $0["text"] as? String }.joined()
         case .gemini:
             guard let candidates = json["candidates"] as? [[String: Any]],
                   let content = candidates.first?["content"] as? [String: Any],
                   let parts = content["parts"] as? [[String: Any]] else { throw LLMError.badResponse }
-            return parts.compactMap { $0["text"] as? String }.joined()
+            // a thought summary is not the answer
+            return parts.filter { ($0["thought"] as? Bool) != true }
+                .compactMap { $0["text"] as? String }.joined()
         }
     }
 }

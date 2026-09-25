@@ -23,10 +23,18 @@ import { decodeClaims } from './tokens.js';
 import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages, answerWithEvidence } from './evidence.js';
 
 const DEFAULT_BASE = 'https://router.huggingface.co/v1';
-const DEFAULT_MODEL = 'baichuan-inc/Baichuan-M2-32B';
+// Hugging Face's router has one live host for Baichuan-M2 (Featherless);
+// without naming it, the router answers "not supported by any provider you
+// have enabled" unless that host is switched on in the account's settings
+const DEFAULT_MODEL = 'baichuan-inc/Baichuan-M2-32B:featherless-ai';
 const DEFAULT_DAILY_LIMIT = 400;
 const MAX_PROMPT_CHARS = 60_000;
 const MAX_TOKENS = 2_000;
+/// How long one upstream call may take before the next source is tried: a
+/// provider that accepts the connection and never answers would otherwise
+/// hold the request (and a background job's alarm) until the platform kills it.
+const UPSTREAM_TIMEOUT_MS = 120_000;
+const AUDIO_TIMEOUT_MS = 240_000;
 /// How long a confirmed subscription is trusted before Apple is asked again.
 const RECHECK_SECONDS = 6 * 60 * 60;
 
@@ -205,10 +213,15 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
     if (!await reserve(env, payer, reserved)) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
   }
   // one round only: a nine-megabyte upload is not something to repeat on a timer
-  const result = await generate(env, models, () => ({
+  const result = await generate(env, models, model => ({
     contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'audio/mp4', data: audio } }, { text: prompt }] }],
-    generationConfig: { temperature: 0, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: PHRASES },
-  }), fetcher, { rounds: 1, onUsage: (model, usage) => { actual += costOf(env, model, usage); },
+    generationConfig: {
+      temperature: 0, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: PHRASES,
+      // Gemini 3 thinks by default and the thinking comes out of the same
+      // 16,384 tokens (and is billed): writing down what was said needs little
+      ...(/^gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: 'low' } } : {}),
+    },
+  }), fetcher, { rounds: 1, timeout: AUDIO_TIMEOUT_MS, onUsage: (model, usage) => { actual += costOf(env, model, usage); },
                  allow: await freeShare(env, owner ? 'owner' : accountId, owner) });
   if (reserved) await settle(env, payer, reserved, actual).catch(e => console.error('settle', e));
   if (!result.ok) {
@@ -256,7 +269,11 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     // busy, out of quota, down - or, for Gemini, locked by the Firebase
     // project's App Check: the next source may still answer
     const next = [408, 429, 500, 502, 503, 504].includes(result.status)
-      || (source.kind === 'gemini' && [401, 403].includes(result.status));
+      || (source.kind === 'gemini' && [401, 403].includes(result.status))
+      // the paid host's key refused or expired (Novita answers a bad key
+      // with 403), its credit used up (402) or the model withdrawn (404):
+      // the free sources still answer, rather than every request failing
+      || (source.paid && [401, 402, 403, 404].includes(result.status));
     if (!next) break;
   }
   // every source's reason, not just the last one's
@@ -276,17 +293,40 @@ async function readError(response) {
 
 /// An OpenAI-compatible server (a llama.cpp host, Hugging Face's router).
 async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
-  const upstream = await fetcher(`${route.base.replace(/\/+$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${route.key}` },
-    body: JSON.stringify({ model: route.model, messages, max_tokens: maxTokens, temperature, stream: false }),
-  });
+  let upstream;
+  try {
+    upstream = await fetcher(`${route.base.replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${route.key}` },
+      body: JSON.stringify({ model: route.model, messages, max_tokens: maxTokens, temperature, stream: false }),
+      signal: timeoutSignal(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch (error) {
+    // timed out or unreachable: "down", so the next source is tried
+    return { ok: false, status: 504, detail: `${route.model}: ${String(error?.message || error).slice(0, 200)}` };
+  }
   if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
-  const answer = await upstream.json();
-  const content = answer?.choices?.[0]?.message?.content;
-  return typeof content === 'string' ? { ok: true, content, source: route.model, usage: answer.usage }
-    : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.' };
+  let answer = null;
+  try { answer = await upstream.json(); } catch { /* an HTML error page with a 200 */ }
+  const content = withoutThinking(answer?.choices?.[0]?.message?.content);
+  // billed whether or not the reply is usable
+  return content ? { ok: true, content, source: route.model, usage: answer.usage }
+    : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.', usage: answer?.usage };
 }
+
+/// The answer without a reasoning model's thinking: everything up to the last
+/// `</think>` (QwQ, Doctor-R1 and MedVAL often send no opening tag, because
+/// their chat template already opened it), and nothing at all when the reply
+/// stopped mid-thought.
+export function withoutThinking(raw) {
+  if (typeof raw !== 'string') return '';
+  const end = raw.lastIndexOf('</think>');
+  if (end >= 0) return raw.slice(end + '</think>'.length).trim();
+  if (/<think>/.test(raw)) return '';
+  return raw.trim();
+}
+
+const timeoutSignal = ms => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined);
 
 /// Gemini through Firebase AI Logic, the same project Narrate transcribes with.
 /// OpenAI-style turns become Gemini's: system text is the system instruction,
@@ -347,12 +387,12 @@ export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen, onUsage, route = {}) {
   const models = chosen?.length ? chosen : list(env.CLOUD_MODELS || FREE_MODELS);
   return generate(env, models, model => geminiBody(messages, maxTokens, temperature, model), fetcher,
-    { onUsage, rounds: route.rounds || 2, allow: await freeShare(env, route.account, !!route.owner) });
+    { onUsage, rounds: route.rounds || 2, allow: await freeShare(env, route.account, !!route.owner), timeout: UPSTREAM_TIMEOUT_MS });
 }
 
 /// One Gemini request, trying each model in turn while the answer is "busy",
 /// "out of quota" or "not offered".
-async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rounds = 2, allow = null } = {}) {
+async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rounds = 2, allow = null, timeout = UPSTREAM_TIMEOUT_MS } = {}) {
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
   // the free tier counts requests per minute: when every model says "too
@@ -360,31 +400,52 @@ async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rou
   for (let round = 0; round < rounds; round++) {
     let wait = 0;
     for (const model of models) {
+      // Google already said this model's allowance for the day is gone (3.1
+      // Pro's free input-token limit is zero): asking again only costs the
+      // student a round trip - and its "retry in 59 s" stopped the second
+      // round for the models that were only busy for a minute
+      if (await dayOut(env, model)) {
+        last = { ok: false, status: 429, detail: `${model}: today's allowance is used (Google said so earlier today).` };
+        continue;
+      }
       // this account's share of a scarce free allowance is used up, or the
       // day's ceiling on Gemini calls is reached: the next model, as if busy
       if (allow && !await allow(model)) {
         last = { ok: false, status: 429, detail: `${model}: this account's share of today's free requests is used.` };
         continue;
       }
-      const response = await fetcher(
-        `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
-            ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
-          },
-          body: JSON.stringify(bodyFor(model)),
-        });
+      let response;
+      try {
+        response = await fetcher(
+          `https://firebasevertexai.googleapis.com/v1beta/projects/${env.FIREBASE_PROJECT_ID}/models/${model}:generateContent`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json', 'x-goog-api-key': env.FIREBASE_API_KEY,
+              ...(appCheck ? { 'x-firebase-appcheck': appCheck } : {}),
+            },
+            body: JSON.stringify(bodyFor(model)),
+            signal: timeoutSignal(timeout),
+          });
+      } catch (error) {
+        // timed out or unreachable: like "busy", the next model may answer
+        last = { ok: false, status: 504, detail: `${model}: ${String(error?.message || error).slice(0, 200)}` };
+        continue;
+      }
       if (!response.ok) {
         const raw = await response.text();
         last = { ok: false, status: response.status, detail: `${model}: ${errorMessage(raw)}` };
+        if (response.status === 429 && dailyQuota(raw)) {
+          await markDayOut(env, model);
+          continue;
+        }
         // "overloaded" comes as a 429 with no delay: a few seconds is enough
         if (response.status === 429) wait = Math.max(wait, retryDelay(raw) || 5);
         // out of quota, overloaded or not offered: the next model may answer
         if ([404, 429, 500, 502, 503, 504].includes(response.status)) continue;
         return last;
       }
-      const answer = await response.json();
+      let answer = null;
+      try { answer = await response.json(); } catch { /* garbled: treated as empty below */ }
       // billed whether or not the answer is usable (cut off, blocked, all thought)
       if (answer?.usageMetadata) onUsage(model, answer.usageMetadata);
       const parts = answer?.candidates?.[0]?.content?.parts || [];
@@ -402,6 +463,46 @@ async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rou
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/// True when a 429 names a per-day quota ("...PerDay..." in its violations),
+/// as opposed to a per-minute one that is gone in a minute.
+export function dailyQuota(raw) {
+  try {
+    const details = JSON.parse(raw)?.error?.details;
+    const violations = (Array.isArray(details) ? details : []).flatMap(d => (Array.isArray(d?.violations) ? d.violations : []));
+    return violations.some(v => /PerDay/i.test(`${v?.quotaId || ''} ${v?.quotaMetric || ''}`));
+  } catch { return false; }
+}
+
+/// Models Google has said are out for the day, remembered in ai_usage (so
+/// every isolate knows) until midnight UTC, and in memory per database.
+const dayOutCache = new WeakMap();
+async function dayOut(env, model) {
+  const db = env.DB;
+  if (!db || typeof db !== 'object') return false;
+  const key = `${today()}|${model}`;
+  const known = dayOutCache.get(db) || new Map();
+  dayOutCache.set(db, known);
+  const hit = known.get(key);
+  if (hit && (hit.value || hit.until > Date.now())) return hit.value;
+  let value = false;
+  try {
+    value = !!(await db.prepare('SELECT 1 AS x FROM ai_usage WHERE account_id = ? AND day = ?').bind(`gemini-dayout:${model}`, today()).first());
+  } catch { /* no table */ }
+  known.set(key, { value, until: Date.now() + 60_000 });
+  return value;
+}
+
+async function markDayOut(env, model) {
+  const db = env.DB;
+  if (!db || typeof db !== 'object') return;
+  try {
+    await db.prepare('INSERT OR IGNORE INTO ai_usage (account_id, day, requests) VALUES (?, ?, 1)').bind(`gemini-dayout:${model}`, today()).run();
+  } catch { /* no table: the next call just asks again */ }
+  const known = dayOutCache.get(db) || new Map();
+  known.set(`${today()}|${model}`, { value: true, until: Infinity });
+  dayOutCache.set(db, known);
+}
 
 function errorMessage(raw) {
   try {
@@ -789,20 +890,43 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
     return { ok: false, status: 429, detail: "Workers AI: this account's share of today's free allowance is used." };
   }
   try {
-    const out = await env.AI.run(model, { messages, max_tokens: maxTokens, temperature });
+    const out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature));
     // what was taken assumed the whole max_tokens came back; when the model
     // says what it used, the rest goes back to the pool, or the day's
     // allowance runs out at a fraction of what was really spent
     const spent = usedNeurons(out?.usage, rateIn, rateOut);
     const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
     if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
-    const content = out?.response ?? out?.choices?.[0]?.message?.content;
-    if (typeof content === 'string' && content) return { ok: true, content, source: model };
-    return { ok: false, status: 502, detail: 'Workers AI sent back nothing usable.' };
+    const content = workersText(out);
+    if (content) return { ok: true, content, source: model };
+    const why = out?.choices?.[0]?.finish_reason === 'length' ? ' (it ran out of tokens while thinking)' : '';
+    return { ok: false, status: 502, detail: `Workers AI sent back nothing usable${why}.` };
   } catch (error) {
     await giveNeurons(env, account, neurons, owner).catch(() => {});
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
   }
+}
+
+/// What one Workers AI text model is sent. Gemma 4 thinks before it answers
+/// unless told not to, and on Workers AI the thinking comes out of the same
+/// max_tokens: a 200- or 900-token call came back with the answer empty
+/// (content null, the tokens all in reasoning_content) - "sent back nothing
+/// usable", again and again. Cloudflare's own example turns it off this way.
+export function workersInput(model, messages, maxTokens, temperature) {
+  const input = { messages, max_tokens: maxTokens, temperature };
+  if (/gemma-4/.test(model)) input.chat_template_kwargs = { enable_thinking: false };
+  return input;
+}
+
+/// The reply text, whichever shape the model answers in: `response` (the
+/// older Workers AI models) or OpenAI's `choices[0].message.content` (Gemma 4,
+/// gpt-oss, Nemotron), with any thinking left in the text taken out. Never the
+/// reasoning_content: that is the model thinking aloud, not its answer.
+export function workersText(out) {
+  const raw = typeof out?.response === 'string' && out.response ? out.response
+    : out?.choices?.[0]?.message?.content ?? out?.choices?.[0]?.text;
+  if (raw && typeof raw === 'object') return JSON.stringify(raw);
+  return withoutThinking(raw);
 }
 
 /// The neurons a Workers AI reply says it used, or null when it says nothing.

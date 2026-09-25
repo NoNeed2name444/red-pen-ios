@@ -74,7 +74,7 @@ const a1Token = await accountToken('a1');
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'hello', 'an owner account gets the answer');
   const sent = upstreamCalls.at(-1).body;
-  ok(sent.model === 'baichuan-inc/Baichuan-M2-32B', 'cramdown-writer maps to Baichuan-M2-32B by default');
+  ok(sent.model === 'baichuan-inc/Baichuan-M2-32B:featherless-ai', 'cramdown-writer maps to Baichuan-M2-32B (on its one live Hugging Face host) by default');
   ok(sent.max_tokens === 2000, 'max_tokens is capped');
   ok(!('usage' in body), "the upstream's metadata is not passed back");
 }
@@ -409,6 +409,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const sent = asked[0];
   ok(sent.key === 'fk' && sent.body.contents[0].parts[0].inlineData.data === chunk.audio && sent.body.generationConfig.responseSchema.type === 'ARRAY',
      'the server sends the audio to Gemini with its own key and asks for timed phrases');
+  ok(sent.body.generationConfig.thinkingConfig?.thinkingLevel === 'low',
+     'Gemini 3 is asked to think little, so thinking does not eat the transcript\'s 16,384 tokens');
   ok((await transcribeChunk(pro, 'a1', { audio: '', prompt: 'x' }, google)).status === 400, 'no audio, no call');
 
   const capped = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', TRANSCRIBE_DAILY: '1' });
@@ -535,6 +537,66 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const { usedNeurons } = await import('../ai.js');
   ok(usedNeurons(undefined, 1, 1) === null && usedNeurons({ prompt_tokens: 1e6, completion_tokens: 0 }, 5, 7) === 5
      && usedNeurons({ input_tokens: 0, output_tokens: 2e6 }, 5, 7) === 14, 'usage read from the reply in either naming, or nothing when there is none');
+}
+
+// AI health: Workers AI reply shapes, Gemma 4's thinking, days out, timeouts
+{
+  const { workersInput, workersText, withoutThinking, dailyQuota } = await import('../ai.js');
+  ok(workersInput('@cf/google/gemma-4-26b-a4b-it', [], 10, 0).chat_template_kwargs?.enable_thinking === false
+     && !('chat_template_kwargs' in workersInput('@cf/openai/gpt-oss-120b', [], 10, 0)),
+     'Gemma 4 on Workers AI is asked not to think (only Gemma 4: other models may reject the field)');
+  ok(workersText({ choices: [{ message: { content: 'answer', reasoning_content: 'long thought' } }] }) === 'answer',
+     "an OpenAI-shaped Workers AI reply is read from choices, never from reasoning_content");
+  ok(workersText({ choices: [{ message: { content: null, reasoning_content: 'thought' }, finish_reason: 'length' }] }) === ''
+     && workersText({ response: '' , choices: [{ message: { content: 'x' } }] }) === 'x' && workersText({ response: 'r' }) === 'r',
+     'an answer that is all thought is empty; an empty `response` falls through to choices');
+  ok(withoutThinking('reasoning here</think>\n\nThe answer') === 'The answer' && withoutThinking('<think>cut off') === ''
+     && withoutThinking('<think>a</think>b') === 'b' && withoutThinking(null) === '',
+     "a reasoning model's thinking is taken out, even when the opening tag is missing (QwQ)");
+
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1' };
+  const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
+  let sent = null;
+  const gemmaEnv = freshEnv({ ...firebase, FALLBACK_MODEL: '@cf/google/gemma-4-26b-a4b-it',
+    AI: { run: async (model, input) => { sent = input; return { choices: [{ message: { content: 'gemma says', reasoning_content: 'hmm' } }] }; } } });
+  const g = await chat(gemmaEnv, 'a1', request, busy);
+  ok(g.status === 200 && (await g.json()).choices[0].message.content === 'gemma says' && sent.chat_template_kwargs.enable_thinking === false,
+     'Gemma 4 on Workers AI answers through the fallback');
+
+  // 3.1 Pro's free limit is zero: once Google says "per day", it is not asked again today
+  const perDay = JSON.stringify({ error: { message: 'Quota exceeded', details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateContentInputTokensPerModelPerDay-FreeTier' }] },
+    { retryDelay: '59s' }] } });
+  ok(dailyQuota(perDay) && !dailyQuota(JSON.stringify({ error: { details: [{ violations: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }] }] } })),
+     'a per-day quota is told apart from a per-minute one');
+  const env = freshEnv(firebase);
+  const asked = [];
+  const fetcher = async url => { const m = url.match(/models\/([^:]+):/)[1]; asked.push(m);
+    return m === 'gemini-3.1-pro-preview' ? new Response(perDay, { status: 429 })
+      : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'flash' }] } }] }), { status: 200 }); };
+  const first = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
+  const second = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
+  ok(first.source === 'gemini-3.5-flash' && second.source === 'gemini-3.5-flash', 'the owner still gets an answer from Flash');
+  ok(asked.filter(m => m === 'gemini-3.1-pro-preview').length === 1, 'and 3.1 Pro is not asked again the same day');
+
+  // the paid writer (Novita) refusing its key or out of credit: Gemini answers
+  for (const status of [402, 403]) {
+    const paid = freshEnv({ ...firebase, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5',
+      AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' });
+    const hosts = [];
+    const f = async url => { hosts.push(url.includes('novita') ? 'novita' : 'gemini');
+      return url.includes('novita') ? new Response(JSON.stringify({ code: status, message: 'invalid API key' }), { status })
+        : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'gemini' }] } }] }), { status: 200 }); };
+    const r = await chat(paid, 'a1', request, f, { owner: true });
+    ok(r.status === 200 && (await r.json()).choices[0].message.content === 'gemini' && hosts[0] === 'novita',
+       `the paid writer answering ${status}: the next source answers instead`);
+  }
+
+  // a provider that never answers: the next source is tried instead of hanging
+  const hang = freshEnv({ ...firebase, AI: { run: async () => ({ response: 'fallback' }) } });
+  const throwing = async () => { throw new Error('The operation was aborted due to timeout'); };
+  const t = await chat(hang, 'a1', request, throwing);
+  ok(t.status === 200 && (await t.json()).choices[0].message.content === 'fallback', 'a Gemini timeout falls through to Workers AI');
 }
 
 // a sandbox (test) purchase gets no share of the money Pro brings in

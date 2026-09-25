@@ -47,7 +47,7 @@ GOOGLE_CLIENT_ID = ""
 # (FIREBASE_* secrets), then Workers AI below. Each takes over when the one
 # before is busy or out of quota. Baichuan-M3 has no pay-per-use host outside
 # Baichuan's own China-only platform.
-AI_WRITER_URL = "https://api.novita.ai/v3/openai"
+AI_WRITER_URL = "https://api.novita.ai/openai"
 AI_WRITER_MODEL = "baichuan/baichuan-m2-32b"
 AI_BASE_URL = "https://router.huggingface.co/v1"
 AI_DAILY_LIMIT = "400"
