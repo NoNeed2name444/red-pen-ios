@@ -1,0 +1,3040 @@
+[
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 3915
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 3275
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 44294
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 51829
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 87133
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1973
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1998
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 922
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1247
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 3353
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1681
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 65,
+  "case": "correct",
+  "risk": 3,
+  "ms": 6351
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 946
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1197
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 8575
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 8714
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1813
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 196,
+  "case": "correct",
+  "risk": 1,
+  "ms": 890
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 6123
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1153
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 65,
+  "case": "correct",
+  "risk": 2,
+  "ms": 12270
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1029
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 6566
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1901
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 217,
+  "case": "correct",
+  "risk": 1,
+  "ms": 791
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1155
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 3198
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 217,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 2980
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 9806
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 227,
+  "case": "correct",
+  "risk": 1,
+  "ms": 887
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 10859
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 227,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1156
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 227,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 807
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 7721
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 9592
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 5691
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 4262
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 2935
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 65,
+  "case": "correct",
+  "risk": 1,
+  "ms": 26097
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 5236
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 8272
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 12782
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 5027
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 196,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1680
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 5108
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 21611
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 4752
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 10071
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1808
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 65,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 18608
+ },
+ {
+  "model": "gemini:gemini-3.1-pro-preview",
+  "index": 65,
+  "case": "correct",
+  "risk": null,
+  "error": "quota: Provider 429: gemini-3.1-pro-preview: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/ ["
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 217,
+  "case": "correct",
+  "risk": 1,
+  "ms": 2069
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 45799
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 6480
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 8423
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 7160
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7064
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 7444
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 7543
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 11022
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 151,
+  "case": "correct",
+  "risk": 2,
+  "ms": 9639
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 7172
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 65,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "ms": 25963
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 4890
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7452
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 31066
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 121,
+  "case": "correct",
+  "risk": 1,
+  "ms": 9277
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 196,
+  "case": "correct",
+  "risk": 2,
+  "ms": 12563
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 2,
+  "ms": 11251
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 13178
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 196,
+  "case": "correct",
+  "risk": 2,
+  "ms": 9398
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 12677
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 121,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 14337
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 7080
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 7588
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 243,
+  "case": "correct",
+  "risk": 1,
+  "ms": 84491
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 217,
+  "case": "correct",
+  "risk": 3,
+  "ms": 4411
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 243,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1491
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 243,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 2653
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 15935
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 273,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1069
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 10436
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 273,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1363
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 58270
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7102
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 273,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1356
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1469
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 298,
+  "case": "correct",
+  "risk": 1,
+  "ms": 994
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 298,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1565
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 39576
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 298,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2235
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 217,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 6757
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 313,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1442
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 313,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1147
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 7938
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 217,
+  "case": "correct",
+  "risk": 2,
+  "ms": 10438
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 14952
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 227,
+  "case": "correct",
+  "risk": 3,
+  "ms": 8446
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 313,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 8338
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 7455
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 344,
+  "case": "correct",
+  "risk": 1,
+  "ms": 923
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 121,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 344,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1142
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 9546
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 344,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 892
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 358,
+  "case": "correct",
+  "risk": 1,
+  "ms": 840
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 358,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1254
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 358,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1721
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 385,
+  "case": "correct",
+  "risk": 1,
+  "ms": 758
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 7545
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 385,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1354
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 385,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 958
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 399,
+  "case": "correct",
+  "risk": 1,
+  "ms": 893
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 399,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1103
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 399,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 939
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 464,
+  "case": "correct",
+  "risk": 1,
+  "ms": 999
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 17965
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 464,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1514
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 464,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1716
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 10014
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 217,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 16472
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 15034
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 227,
+  "case": "correct",
+  "risk": 1,
+  "ms": 11597
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 227,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7193
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 196,
+  "case": "correct",
+  "risk": 4,
+  "ms": 22773
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 227,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 15375
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 151,
+  "case": "correct",
+  "risk": 1,
+  "ms": 66160
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 243,
+  "case": "correct",
+  "risk": 2,
+  "ms": 7975
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 243,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 6361
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 243,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 11930
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 151,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 27983
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 273,
+  "case": "correct",
+  "risk": 2,
+  "ms": 9141
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 273,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7374
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 474,
+  "case": "correct",
+  "risk": 1,
+  "ms": 79438
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 474,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1426
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 474,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1459
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 549,
+  "case": "correct",
+  "risk": 1,
+  "ms": 976
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 549,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1586
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 549,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1701
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 550,
+  "case": "correct",
+  "risk": 1,
+  "ms": 920
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 550,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1359
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 550,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 624
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 556,
+  "case": "correct",
+  "risk": 1,
+  "ms": 957
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 151,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 26186
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 273,
+  "case": "wrongEverywhere",
+  "risk": 2,
+  "ms": 12327
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 556,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1167
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 556,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1582
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 562,
+  "case": "correct",
+  "risk": 1,
+  "ms": 821
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 562,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1185
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 196,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 562,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 2366
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "correct",
+  "risk": 1,
+  "ms": 747
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1251
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 3574
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 608,
+  "case": "correct",
+  "risk": 1,
+  "ms": 846
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 608,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1053
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 608,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 3217
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 668,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1044
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 668,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1194
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 668,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1153
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 684,
+  "case": "correct",
+  "risk": 1,
+  "ms": 797
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 684,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1375
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 684,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 3035
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 701,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1279
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 701,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1081
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 196,
+  "case": "correct",
+  "risk": 1,
+  "ms": 60644
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 9149
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 217,
+  "case": "correct",
+  "risk": 1,
+  "ms": 4261
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 14551
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 701,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 81404
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 702,
+  "case": "correct",
+  "risk": 1,
+  "ms": 934
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 702,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1177
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 702,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 779
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 716,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1021
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 716,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 2179
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 716,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1076
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 729,
+  "case": "correct",
+  "risk": 1,
+  "ms": 970
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 729,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1220
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 729,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2438
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 856,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1108
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 856,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1686
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 856,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1186
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 945,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1054
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 945,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1063
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 945,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1237
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1043,
+  "case": "correct",
+  "risk": 1,
+  "ms": 968
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1043,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1109
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1043,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2466
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1079,
+  "case": "correct",
+  "risk": 1,
+  "ms": 702
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1079,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1360
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1079,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 811
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1123,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1041
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 217,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1123,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1342
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1123,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1912
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1129,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1173
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1129,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1955
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1129,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 2768
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 227,
+  "case": "correct",
+  "risk": 1,
+  "ms": 9362
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 227,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 11426
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 196,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 108337
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 196,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 14474
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 227,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 243,
+  "case": "correct",
+  "risk": 1,
+  "ms": 5870
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 217,
+  "case": "correct",
+  "risk": 1,
+  "ms": 29878
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 243,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 11991
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1133,
+  "case": "correct",
+  "risk": 1,
+  "ms": 81688
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1133,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1506
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1133,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2303
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1208,
+  "case": "correct",
+  "risk": 1,
+  "ms": 694
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1208,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1486
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1208,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 2443
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1223,
+  "case": "correct",
+  "risk": 1,
+  "ms": 815
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1223,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 909
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1223,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1435
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1228,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1075
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1228,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 2159
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1228,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2389
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1242,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1060
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1242,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1432
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1242,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 2620
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1256,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1060
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1256,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1568
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1256,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1639
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 243,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 273,
+  "case": "correct",
+  "risk": 1,
+  "ms": 8019
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 217,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 71605
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 273,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 16053
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 273,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 298,
+  "case": "correct",
+  "risk": 1,
+  "ms": 9235
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 217,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 89492
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 227,
+  "case": "correct",
+  "risk": 1,
+  "ms": 24569
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 298,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 227,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 22638
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 227,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 34126
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 298,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 313,
+  "case": "correct",
+  "risk": 1,
+  "ms": 6334
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 243,
+  "case": "correct",
+  "risk": 1,
+  "ms": 28022
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 313,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 8904
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 243,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 24445
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 243,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 16981
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 273,
+  "case": "correct",
+  "risk": 1,
+  "ms": 2897
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 273,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 7887
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 273,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 4957
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 313,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 298,
+  "case": "correct",
+  "risk": 1,
+  "ms": 14326
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 298,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 10262
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 298,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 22503
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 344,
+  "case": "correct",
+  "risk": null,
+  "ms": 46881
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 313,
+  "case": "correct",
+  "risk": 1,
+  "ms": 6389
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 344,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 12263
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 313,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 14295
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 344,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "ms": 10468
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 358,
+  "case": "correct",
+  "risk": 1,
+  "ms": 25266
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 358,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 49669
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 313,
+  "case": "wrongEverywhere",
+  "risk": 3,
+  "ms": 124234
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 358,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 385,
+  "case": "correct",
+  "risk": 1,
+  "ms": 4884
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 385,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 10856
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 344,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33584
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 344,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 32305
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 385,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 399,
+  "case": "correct",
+  "risk": 1,
+  "ms": 9193
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 399,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 11969
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 344,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 40765
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 358,
+  "case": "correct",
+  "risk": 1,
+  "ms": 21379
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 399,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 502: Workers AI sent back nothing usable."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 358,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 22386
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 464,
+  "case": "correct",
+  "risk": 1,
+  "ms": 8137
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 464,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "ms": 12595
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 358,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 31219
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 464,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 385,
+  "case": "correct",
+  "risk": 1,
+  "ms": 23606
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 474,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 474,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 474,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 549,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 385,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 68724
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 549,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 549,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 550,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 550,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 550,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 556,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 556,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 385,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 112498
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 556,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 562,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 562,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 562,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 608,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 608,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 608,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 668,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 399,
+  "case": "correct",
+  "risk": 1,
+  "ms": 157519
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 668,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 668,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 684,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 684,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 684,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 701,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 701,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 701,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 702,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 702,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 702,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 399,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 716,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 716,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 399,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 29001
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 716,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 729,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 464,
+  "case": "correct",
+  "risk": 1,
+  "ms": 31069
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 729,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 729,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 856,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 856,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 856,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 945,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 945,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 945,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1043,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1043,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1043,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1079,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1079,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 464,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 201764
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1079,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1123,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1123,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 464,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 43330
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1123,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1129,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1129,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1129,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 474,
+  "case": "correct",
+  "risk": 1,
+  "ms": 62709
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1133,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1133,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1133,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1208,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1208,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1208,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1223,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1223,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1223,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1228,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1228,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1228,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1242,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1242,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1242,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1256,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1256,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1256,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 474,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 322731
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 474,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 214268
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 549,
+  "case": "correct",
+  "risk": 1,
+  "ms": 60979
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 549,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 54278
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 549,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 24389
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 550,
+  "case": "correct",
+  "risk": 1,
+  "ms": 22408
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 550,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 550,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 21078
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 556,
+  "case": "correct",
+  "risk": 1,
+  "ms": 39097
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 556,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 50675
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 556,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 26233
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 562,
+  "case": "correct",
+  "risk": 1,
+  "ms": 45750
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 562,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 45531
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 562,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 53679
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "correct",
+  "risk": 1,
+  "ms": 61445
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 94329
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 96915
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 608,
+  "case": "correct",
+  "risk": 1,
+  "ms": 41423
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 608,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 171240
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 608,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 51912
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 668,
+  "case": "correct",
+  "risk": 1,
+  "ms": 70240
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 668,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 668,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 44652
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 684,
+  "case": "correct",
+  "risk": 1,
+  "ms": 64095
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 684,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 68896
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 684,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 41981
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 701,
+  "case": "correct",
+  "risk": 1,
+  "ms": 24966
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 701,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 54822
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 701,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 40069
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 702,
+  "case": "correct",
+  "risk": 1,
+  "ms": 28866
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 702,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 66489
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 702,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 39564
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 716,
+  "case": "correct",
+  "risk": 1,
+  "ms": 56605
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 716,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 97039
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 716,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 31894
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 729,
+  "case": "correct",
+  "risk": 1,
+  "ms": 60532
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 729,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 106916
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 729,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 15371
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 856,
+  "case": "correct",
+  "risk": 1,
+  "ms": 28298
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 856,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 15600
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 856,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 21386
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 945,
+  "case": "correct",
+  "risk": 1,
+  "ms": 44120
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 945,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 50222
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 945,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 22404
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1043,
+  "case": "correct",
+  "risk": 1,
+  "ms": 22995
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1043,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 136680
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1043,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 48764
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1079,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33146
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1079,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 29638
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1079,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 37371
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1123,
+  "case": "correct",
+  "risk": 1,
+  "ms": 104278
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1123,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 74141
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1123,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 37858
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1129,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33463
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1129,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 41340
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1129,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 82985
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1133,
+  "case": "correct",
+  "risk": 1,
+  "ms": 94661
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1133,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 37975
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1133,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 66966
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1208,
+  "case": "correct",
+  "risk": 1,
+  "ms": 181485
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1208,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 51094
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1208,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 178671
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1223,
+  "case": "correct",
+  "risk": 1,
+  "ms": 26195
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1223,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 71607
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1223,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 55221
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1228,
+  "case": "correct",
+  "risk": 1,
+  "ms": 28534
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1228,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 69247
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1228,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 71715
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1242,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: gemma-4-31b-it: Gemini Developer API is overloaded. Please try again later."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1242,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 60637
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1242,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 196892
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1256,
+  "case": "correct",
+  "risk": 1,
+  "ms": 42327
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1256,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 28253
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1256,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 35152
+ }
+]

@@ -1,0 +1,52 @@
+39 questions, 9 models, 0 results carried over
+...................................................................................................................................................................................................................................................
+# Accuracy checker comparison: MedXpertQA (Text)
+
+2026-09-25T10:45 UTC · MedXpertQA (Text) test questions, seed 20260924, up to 40 per model · MedVAL's rubric, the app's own checker prompt · evidence lookup off (each model's own judgement).
+
+A good checker **passes** correct answers and **flags** wrong ones (risk 3–4). Percentages with 95% intervals; a wide interval means too few questions yet to be sure - results add up over runs.
+
+| Model | Questions | Passes correct | Catches wrong (lecture right) | Catches wrong (lecture also wrong) | Balanced | Median time | Unreadable / failed |
+|---|---|---|---|---|---|---|---|
+| gemini:gemma-4-31b-it | 39 | 100% (39/39; 91%–100%) | 95% (37/39; 83%–99%) | 15% (6/39; 7%–30%) | 70% | 35.3 s | 0 / 0 |
+| gemini:gemini-3.5-flash-lite | 39 | 100% (39/39; 91%–100%) | 87% (34/39; 73%–94%) | 15% (6/39; 7%–30%) | 68% | 1.5 s | 0 / 0 |
+| gemini:gemini-3.5-flash | 3 | 100% (3/3; 44%–100%) | 67% (2/3; 21%–94%) | 0% (0/3; 0%–56%) | 56% | 12.0 s | 0 / 0 |
+| gemini:gemini-3.1-pro-preview | 0 | — | — | — | 0% | — | 0 / 1 |
+| workers-ai:@cf/nvidia/nemotron-3-120b-a12b | 0 | — | — | — | 0% | — | 0 / 45 |
+| workers-ai:@cf/openai/gpt-oss-120b | 0 | — | — | — | 0% | — | 0 / 45 |
+| workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct | 0 | — | — | — | 0% | — | 0 / 45 |
+| workers-ai:@cf/qwen/qwq-32b | 0 | — | — | — | 0% | — | 0 / 45 |
+| workers-ai:@cf/google/gemma-4-26b-a4b-it | 0 | — | — | — | 0% | — | 0 / 117 |
+
+## Progress (the benchmark runs a part a day until every model has 40 questions)
+
+- gemini:gemini-3.1-pro-preview: 0/40 questions, no progress today (limit reached or failing)
+- gemini:gemini-3.5-flash: 3/40 questions, ~13 more day(s)
+- gemini:gemini-3.5-flash-lite: 39/40 questions, ~1 more day(s)
+- gemini:gemma-4-31b-it: 39/40 questions, ~1 more day(s)
+- workers-ai:@cf/nvidia/nemotron-3-120b-a12b: 0/40 questions, no progress today (limit reached or failing)
+- workers-ai:@cf/openai/gpt-oss-120b: 0/40 questions, no progress today (limit reached or failing)
+- workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct: 0/40 questions, no progress today (limit reached or failing)
+- workers-ai:@cf/qwen/qwq-32b: 0/40 questions, no progress today (limit reached or failing)
+- workers-ai:@cf/google/gemma-4-26b-a4b-it: 0/40 questions, no progress today (limit reached or failing)
+
+**Not finished: the next part runs tomorrow.**
+
+## Free limits met
+
+- gemini:gemini-3.5-flash-lite: [quota GenerateRequestsPerMinutePerProjectPerModel-FreeTier=15; retry 31s]
+- gemini:gemini-3.1-pro-preview: [quota GenerateContentInputTokensPerModelPerDay-FreeTier=?, GenerateContentInputTokensPerModelPerMinute-FreeTier=?; retry 0s]
+
+## Notes
+
+- gemini:gemini-3.1-pro-preview: stopped: today's free limit reached [quota GenerateContentInputTokensPerModelPerDay-FreeTier=?, GenerateContentInputTokensPerModelPerMinute-FreeTier=?; retry 0s]
+- gemini:gemini-3.5-flash: stopped at today's cap of 9 calls
+- workers-ai:@cf/qwen/qwq-32b: stopped at today's cap of 45 calls
+- workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct: stopped at today's cap of 45 calls
+- workers-ai:@cf/openai/gpt-oss-120b: stopped at today's cap of 45 calls
+- workers-ai:@cf/nvidia/nemotron-3-120b-a12b: stopped at today's cap of 45 calls
+- workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct: 502: Provider 429: Workers AI: this account's share of today's free allowance is used.
+- workers-ai:@cf/qwen/qwq-32b: 502: Provider 429: Workers AI: this account's share of today's free allowance is used.
+- workers-ai:@cf/google/gemma-4-26b-a4b-it: 502: Provider 429: Workers AI: this account's share of today's free allowance is used.
+- workers-ai:@cf/nvidia/nemotron-3-120b-a12b: 502: Provider 429: Workers AI: this account's share of today's free allowance is used.
+- workers-ai:@cf/openai/gpt-oss-120b: 502: Provider 429: Workers AI: this account's share of today's free allowance is used.

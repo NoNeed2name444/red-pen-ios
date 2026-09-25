@@ -1,0 +1,3789 @@
+[
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 125,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1548
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1528
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1633
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 233,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1040
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1458
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1277
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 292,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1000
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1620
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 125,
+  "case": "correct",
+  "risk": 1,
+  "ms": 11497
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1954
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 377,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1160
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1524
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1007
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 417,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1170
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1615
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 10357
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2439
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 437,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1223
+ },
+ {
+  "model": "gemini:gemini-3.1-pro-preview",
+  "index": 125,
+  "case": "correct",
+  "risk": null,
+  "error": "quota: Provider 429: gemini-3.1-pro-preview: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/ ["
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 14188
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 233,
+  "case": "correct",
+  "risk": 1,
+  "ms": 23315
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 233,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 233,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 233,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 233,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 233,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 11955
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 9325
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 125,
+  "case": "correct",
+  "risk": 1,
+  "ms": 80918
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": 2,
+  "ms": 61341
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1034
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 468,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1441
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 2052
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 3201
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 292,
+  "case": "correct",
+  "risk": 1,
+  "ms": 11741
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 525,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1070
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 2515
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1038
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 575,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1155
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1506
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 3426
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1240
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1623
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2296
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 663,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1054
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": 1,
+  "ms": 16905
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 292,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 292,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 292,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 292,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 292,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 17775
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 34662
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1032
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 690,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1059
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 2777
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1133
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 742,
+  "case": "correct",
+  "risk": 1,
+  "ms": 996
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1963
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 2772
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 768,
+  "case": "correct",
+  "risk": 1,
+  "ms": 962
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 377,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 377,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 377,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 377,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 377,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1117
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1079
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 893,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1780
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 2278
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1121
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 125,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 83407
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 913,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1014
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 913,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 2472
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 913,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 34609
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 417,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 417,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 417,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 417,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 417,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1057,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1741
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1057,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 2379
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1057,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1770
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1059,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1168
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1059,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1434
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1059,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 1648
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1070,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1233
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1070,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1527
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1070,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2016
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1082,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1507
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1082,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1511
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1082,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2148
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1163,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1452
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1163,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1607
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1163,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2409
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 125,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 79822
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 437,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 437,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 437,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 437,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 437,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1170,
+  "case": "correct",
+  "risk": 1,
+  "ms": 35155
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1170,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1803
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1170,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 2756
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1286,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1066
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1286,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1738
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1286,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1790
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1318,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1260
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 233,
+  "case": "correct",
+  "risk": 1,
+  "ms": 30138
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1318,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1417
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1318,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1044
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1350,
+  "case": "correct",
+  "risk": 1,
+  "ms": 951
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1350,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1410
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1350,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 899
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1351,
+  "case": "correct",
+  "risk": 1,
+  "ms": 3822
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1351,
+  "case": "wrongVsCorrect",
+  "risk": 1,
+  "ms": 2571
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1351,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1199
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1378,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1124
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 468,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 468,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 468,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 468,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 468,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1378,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 35722
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1378,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1385
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1403,
+  "case": "correct",
+  "risk": 1,
+  "ms": 955
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1403,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1444
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1403,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1541
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1648,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1135
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1648,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1260
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1648,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1165
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1820,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1287
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1820,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1228
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 233,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 60795
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 1820,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1014
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2007,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1088
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2007,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1173
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2007,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1032
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2076,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1015
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2076,
+  "case": "wrongVsCorrect",
+  "risk": 2,
+  "ms": 2919
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 525,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 525,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 525,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 525,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 525,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 233,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 21334
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2076,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 39854
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2174,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1080
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2174,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 4150
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 575,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2174,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 2665
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 575,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 575,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 575,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 575,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2181,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1456
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2181,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 2762
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2181,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1377
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2326,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1206
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2326,
+  "case": "wrongVsCorrect",
+  "risk": 1,
+  "ms": 4090
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2326,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1041
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2355,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1075
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2355,
+  "case": "wrongVsCorrect",
+  "risk": 2,
+  "ms": 1583
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2355,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1138
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2364,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1117
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2364,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 1961
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 292,
+  "case": "correct",
+  "risk": 1,
+  "ms": 65649
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 604,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2364,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 33566
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2392,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1672
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2392,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1885
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2392,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 3629
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2418,
+  "case": "correct",
+  "risk": 1,
+  "ms": 1050
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2418,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 1995
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemini-3.5-flash-lite",
+  "index": 2418,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 1565
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 663,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 663,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 663,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 663,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 663,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 292,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 83988
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 690,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 690,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 690,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 690,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 690,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 292,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 49056
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 742,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 742,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 742,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 742,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 742,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 377,
+  "case": "correct",
+  "risk": 1,
+  "ms": 53822
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 768,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 768,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 768,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 768,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 768,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 377,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 46007
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 893,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 893,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 893,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 893,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 893,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/qwen/qwq-32b",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/openai/gpt-oss-120b",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 913,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 913,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 377,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 84286
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 913,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 417,
+  "case": "correct",
+  "risk": 1,
+  "ms": 20373
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1057,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1057,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1057,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1059,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1059,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1059,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1070,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1070,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1070,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 417,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 146109
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1082,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1082,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1082,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1163,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 417,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 58090
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1163,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1163,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 437,
+  "case": "correct",
+  "risk": 1,
+  "ms": 30167
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1170,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1170,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1170,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1286,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 437,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 68776
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1286,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1286,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 437,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 29492
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1318,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1318,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1318,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 468,
+  "case": "correct",
+  "risk": 1,
+  "ms": 36667
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1350,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1350,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1350,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 468,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 58049
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1351,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1351,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 468,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 24780
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1351,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1378,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1378,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1378,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1403,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 525,
+  "case": "correct",
+  "risk": 1,
+  "ms": 80156
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1403,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1403,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 525,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 35588
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1648,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1648,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1648,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 525,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 35724
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1820,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 575,
+  "case": "correct",
+  "risk": 1,
+  "ms": 26917
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1820,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 1820,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2007,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2007,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 575,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 57239
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2007,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2076,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 575,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 23203
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2076,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "correct",
+  "risk": 1,
+  "ms": 25432
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2076,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2174,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 35963
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2174,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2174,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 604,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 29119
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2181,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2181,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2181,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 663,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33882
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2326,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2326,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 663,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 34661
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2326,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2355,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2355,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2355,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 663,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 65389
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2364,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2364,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 690,
+  "case": "correct",
+  "risk": 1,
+  "ms": 38409
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2364,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2392,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 690,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 32441
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2392,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2392,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2418,
+  "case": "correct",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2418,
+  "case": "wrongVsCorrect",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "workers-ai:@cf/google/gemma-4-26b-a4b-it",
+  "index": 2418,
+  "case": "wrongEverywhere",
+  "risk": null,
+  "error": "502: Provider 429: Workers AI: this account's share of today's free allowance is used."
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 690,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 76464
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 742,
+  "case": "correct",
+  "risk": 1,
+  "ms": 29475
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 742,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 29072
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 742,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 54570
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 768,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33523
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 768,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 31192
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 768,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 29259
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 893,
+  "case": "correct",
+  "risk": 1,
+  "ms": 56360
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 893,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 111311
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 893,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 29239
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 913,
+  "case": "correct",
+  "risk": 1,
+  "ms": 27094
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 913,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 41661
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 913,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 68665
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1057,
+  "case": "correct",
+  "risk": 1,
+  "ms": 44694
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1057,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 22193
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1057,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 33189
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1059,
+  "case": "correct",
+  "risk": 1,
+  "ms": 32003
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1059,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 22786
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1059,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 59862
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1070,
+  "case": "correct",
+  "risk": 1,
+  "ms": 20721
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1070,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 30761
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1070,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 28271
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1082,
+  "case": "correct",
+  "risk": 1,
+  "ms": 51400
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1082,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 50968
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1082,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 23131
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1163,
+  "case": "correct",
+  "risk": 1,
+  "ms": 41534
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1163,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 80757
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1163,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 34962
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1170,
+  "case": "correct",
+  "risk": 1,
+  "ms": 26236
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1170,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 29474
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1170,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 22484
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1286,
+  "case": "correct",
+  "risk": 1,
+  "ms": 24943
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1286,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 21755
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1286,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 51970
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1318,
+  "case": "correct",
+  "risk": 1,
+  "ms": 36319
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1318,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 58666
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1318,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 30364
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1350,
+  "case": "correct",
+  "risk": 1,
+  "ms": 37353
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1350,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 25886
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1350,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 28577
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1351,
+  "case": "correct",
+  "risk": 1,
+  "ms": 65366
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1351,
+  "case": "wrongVsCorrect",
+  "risk": 1,
+  "ms": 34345
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1351,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 50682
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1378,
+  "case": "correct",
+  "risk": 1,
+  "ms": 35299
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1378,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 34069
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1378,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 35693
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1403,
+  "case": "correct",
+  "risk": 1,
+  "ms": 112672
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1403,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 70550
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1403,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 25825
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1648,
+  "case": "correct",
+  "risk": 1,
+  "ms": 34536
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1648,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 68009
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1648,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 55063
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1820,
+  "case": "correct",
+  "risk": 1,
+  "ms": 30928
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1820,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 34788
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 1820,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 27029
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2007,
+  "case": "correct",
+  "risk": 1,
+  "ms": 75098
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2007,
+  "case": "wrongVsCorrect",
+  "risk": 3,
+  "ms": 41714
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2007,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 32732
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2076,
+  "case": "correct",
+  "risk": 1,
+  "ms": 33276
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2076,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 73993
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2076,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 104456
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2174,
+  "case": "correct",
+  "risk": 1,
+  "ms": 32891
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2174,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 31089
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2174,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 34853
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2181,
+  "case": "correct",
+  "risk": 1,
+  "ms": 30528
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2181,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 30178
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2181,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 33351
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2326,
+  "case": "correct",
+  "risk": 1,
+  "ms": 137614
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2326,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 58689
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2326,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 130344
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2355,
+  "case": "correct",
+  "risk": 1,
+  "ms": 42982
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2355,
+  "case": "wrongVsCorrect",
+  "risk": 1,
+  "ms": 25348
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2355,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 33992
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2364,
+  "case": "correct",
+  "risk": 1,
+  "ms": 112746
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2364,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 58464
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2364,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 62548
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2392,
+  "case": "correct",
+  "risk": 1,
+  "ms": 62374
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2392,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 66194
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2392,
+  "case": "wrongEverywhere",
+  "risk": 4,
+  "ms": 21064
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2418,
+  "case": "correct",
+  "risk": 1,
+  "ms": 17491
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2418,
+  "case": "wrongVsCorrect",
+  "risk": 4,
+  "ms": 20317
+ },
+ {
+  "model": "gemini:gemma-4-31b-it",
+  "index": 2418,
+  "case": "wrongEverywhere",
+  "risk": 1,
+  "ms": 15508
+ }
+]
