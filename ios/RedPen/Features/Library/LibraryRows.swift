@@ -7,7 +7,7 @@ import SwiftUI
 /// because SwiftUI type-checks a whole view expression at once.
 extension LibraryView {
 
-    /// Days until the exam set in AI models → Your exam, or nil when no date
+    /// Days until the exam set in Settings → Your exam, or nil when no date
     /// has been set.
     var examDays: Int? {
         let stamp = UserDefaults.standard.double(forKey: ExamTrack.dateKey)
@@ -20,12 +20,14 @@ extension LibraryView {
     /// Whether there is anything for the Today card to say. A first launch
     /// with nothing scheduled is not greeted by a card full of zeros.
     var hasTodayCard: Bool {
-        examDays != nil || studyLog.streak > 0
+        examDays != nil || studyLog.streak > 0 || !store.answerLog.isEmpty
             || store.library.contains { $0.kind == .anki } || !store.flaggedQuestions.isEmpty
     }
 
-    /// Today, in one card: the exam, the streak and what is waiting, at most
-    /// three short lines, and one button for the most useful thing to do next.
+    /// Mission Control: today, in one card. "T-42 days · 18 due · on course",
+    /// what the student would remember if the exam were today and what it
+    /// takes to reach 90% on the day, how much is locked in, and one lift-off
+    /// button for the most useful session now (ExamWeekPlanner.mission).
     ///
     /// These used to be four separate strips - countdown, streak, due cards,
     /// flagged questions - stacked above the sets, so the first screen was a
@@ -36,45 +38,133 @@ extension LibraryView {
     /// It stands a little out of the glass as one raised slab - it holds the
     /// page's most useful button - while the rows below lie flat on it.
     var todayCard: some View {
-        let due = reviews.dueAcross(store.library).count
-        let hasDecks = store.library.contains { $0.kind == .anki }
-        let flagged = store.flaggedQuestions
+        let due: Int = reviews.dueAcross(store.library).count
+        let hasDecks: Bool = store.library.contains { $0.kind == .anki }
+        let situation: ExamWeekPlanner.Situation = store.cachedSituation(dueCards: due)
+        let forecast: RetentionForecast.Forecast = reviews.examForecast(store.library,
+                                                                      libraryVersion: store.changeCount)
+        let mission: ExamWeekPlanner.Mission = ExamWeekPlanner.mission(situation)
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Today").font(.headline)
-            if let days = examDays { examLine(days) }
+            missionHeader(situation.phase)
+            missionStatusLine(phase: situation.phase, due: due, hasDecks: hasDecks, forecast: forecast)
+            if hasDecks && forecast.studied > 0 { forecastLine(forecast, phase: situation.phase) }
+            securedLine
             if studyLog.streak > 0 { streakLine }
-            if hasDecks || !flagged.isEmpty {
-                dueLine(due: due, hasDecks: hasDecks, flagged: flagged.count)
-            }
-            todayAction(due: due, flagged: flagged.count)
+            if situation.phase.holdsNewMaterial { phaseLine(situation.phase) }
+            liftOff(mission)
         }
         .padding(16)
         .background(.regularMaterial, in: shape)
         .popOut(.raised, in: shape)
     }
 
-    /// The Today card's one button - due cards first, because the schedule
-    /// only works if they are done today; otherwise the flagged questions -
-    /// and, below it, the quieter extras.
-    @ViewBuilder
-    private func todayAction(due: Int, flagged: Int) -> some View {
-        if due > 0 {
-            let plural: String = due == 1 ? "" : "s"
-            let title: String = "Study \(due) due card\(plural)"
-            todayButton(title, symbol: "play.fill") { showingDue = true }
-        } else if flagged > 0 {
-            todayButton(flaggedTitle(flagged), symbol: "flag.fill") { startFlaggedQuiz() }
-        }
-        // With cards due the flagged quiz is still one tap away, just
-        // quieter than the main button.
-        if due > 0 && flagged > 0 {
-            Button { startFlaggedQuiz() } label: {
-                Text(verbatim: "Or \(flaggedTitle(flagged).lowercased())")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+    /// "Mission Control", and the way into the whole plan.
+    private func missionHeader(_ phase: ExamWeekPlanner.Phase) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("Mission Control").font(.headline)
+            Spacer(minLength: 8)
+            Button { LearnRouter.shared.open(.examPlan) } label: {
+                Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityHint("Opens the exam plan and forecast")
+            .accessibilityIdentifier("missionPlan")
+        }
+    }
+
+    /// "T-42 days · 18 due · on course".
+    private func missionStatusLine(phase: ExamWeekPlanner.Phase, due: Int, hasDecks: Bool,
+                                   forecast: RetentionForecast.Forecast) -> some View {
+        var parts: [String] = []
+        switch phase {
+        case .examDay: parts.append("Exam day \u{2014} good luck")
+        case .after: parts.append("Your exam date has passed")
+        default:
+            if let days = phase.days {
+                let plural: String = days == 1 ? "" : "s"
+                parts.append("T-\(days) day\(plural)")
+            }
+        }
+        if hasDecks { parts.append(due > 0 ? "\(due) due" : "none due") }
+        let flagged: Int = store.flaggedQuestions.count
+        if flagged > 0 { parts.append("\(flagged) flagged") }
+        if phase.days != nil && phase != .examDay && forecast.studied > 0 {
+            parts.append(forecast.onCourse ? "on course" : "\(forecast.perDay) a day to reach 90%")
+        }
+        if parts.isEmpty { parts.append("No exam date set") }
+        let tint: Color = phase.days == nil ? .secondary : .accentColor
+        let symbol: String = phase == .noDate ? "calendar.badge.plus" : "calendar"
+        return todayLine(symbol: symbol, tint: tint, text: parts.joined(separator: " \u{00B7} "))
+    }
+
+    /// "If your exam were today you'd remember ~71%; do 140 reviews over the
+    /// next 10 days to reach 90%."
+    private func forecastLine(_ f: RetentionForecast.Forecast, phase: ExamWeekPlanner.Phase) -> some View {
+        let now: String = RetentionForecast.percent(f.today)
+        var text: String = "If your exam were today you\u{2019}d remember ~\(now) of your cards"
+        if phase.days != nil && phase != .examDay {
+            if f.reviewsNeeded > 0 {
+                let plural: String = f.days == 1 ? "" : "s"
+                text += "; do \(f.reviewsNeeded) reviews over the next \(f.days) day\(plural) to reach 90%"
+            } else {
+                text += "; on course for 90% on the day"
+            }
+        }
+        return todayLine(symbol: "brain.head.profile", tint: StudySetKind.anki.tint, text: text + ".")
+    }
+
+    /// "120 of 400 questions locked in", once anything has been answered.
+    @ViewBuilder
+    private var securedLine: some View {
+        if !store.answerLog.isEmpty {
+            let totals: SecuredRule.Ring = store.securedTotals()
+            if totals.total > 0 {
+                let text: String = "\(totals.secured) of \(totals.total) questions locked in"
+                todayLine(symbol: "lock.fill", tint: StudySetKind.mcq.tint, text: text)
+            }
+        }
+    }
+
+    private func phaseLine(_ phase: ExamWeekPlanner.Phase) -> some View {
+        todayLine(symbol: "moon.stars.fill", tint: .indigo, text: phase.headline)
+    }
+
+    /// The one lift-off button: the most useful session now.
+    @ViewBuilder
+    private func liftOff(_ mission: ExamWeekPlanner.Mission) -> some View {
+        if mission == .nothing {
+            Text("All done for now \u{2014} nothing is waiting.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        } else {
+            todayButton(mission.title, symbol: mission.symbol) { launch(mission) }
+                .accessibilityIdentifier("missionLiftOff")
+        }
+    }
+
+    /// Starts a mission: the due cards and quick quizzes on the library's own
+    /// screens, everything else through LearnRouter.
+    func launch(_ mission: ExamWeekPlanner.Mission) {
+        switch mission {
+        case .examKit: LearnRouter.shared.open(.examKit)
+        case .morningCheck: LearnRouter.shared.open(.morningCheck)
+        case .dueCards: showingDue = true
+        case .mock:
+            // the real paper; marked sat only when a sitting is finished
+            // (ExamStore.mocks, read by LearnMarks.mockDone)
+            LearnRouter.shared.open(.mockPaper)
+        case .confidentErrors: quickQuiz = store.confidentMistakesQuiz()
+        case .mistakes: quickQuiz = store.mistakesQuiz()
+        case .lockIn: quickQuiz = store.lockInQuiz()
+        case .flagged: startFlaggedQuiz()
+        case .weakest(let subject): quickQuiz = store.drill(subject: subject)
+        case .newQuestions: quickQuiz = store.untriedQuiz()
+        case .nothing: break
         }
     }
 
@@ -96,11 +186,6 @@ extension LibraryView {
         }
     }
 
-    private func flaggedTitle(_ count: Int) -> String {
-        let plural: String = count == 1 ? "" : "s"
-        return "Practise \(count) flagged question" + plural
-    }
-
     private func todayButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
@@ -112,28 +197,6 @@ extension LibraryView {
         .padding(.top, 8)
     }
 
-    /// "43 days to PLAB · about 12 questions a day".
-    private func examLine(_ days: Int) -> some View {
-        let questions = store.library.filter { $0.kind == .mcq }.reduce(0) { $0 + $1.questions.count }
-        let exam = ExamTrack.current
-        let examName = exam == .general ? "your exam" : exam.title
-        var text: String
-        if days > 0 {
-            let plural: String = days == 1 ? "" : "s"
-            text = "\(days) day\(plural) to \(examName)"
-            if questions > 0 {
-                let share: Double = Double(questions) / Double(days)
-                let perDay: Int = Int(share.rounded(.up))
-                text += " \u{00B7} about \(perDay) questions a day"
-            }
-        } else if days == 0 {
-            text = "Exam day \u{2014} good luck"
-        } else {
-            text = "Your exam date has passed"
-        }
-        return todayLine(symbol: "calendar", tint: .accentColor, text: text)
-    }
-
     /// "5-day streak · 32 done today", or a nudge while the streak is still
     /// yesterday's and alive until midnight.
     private var streakLine: some View {
@@ -143,19 +206,6 @@ extension LibraryView {
                                      : "\(streak)-day streak \u{2014} answer one to keep it"
         let tint: Color = today > 0 ? .orange : .secondary
         return todayLine(symbol: "flame.fill", tint: tint, text: text)
-    }
-
-    /// "12 cards due · 4 flagged".
-    private func dueLine(due: Int, hasDecks: Bool, flagged: Int) -> some View {
-        var parts: [String] = []
-        if hasDecks {
-            let plural: String = due == 1 ? "" : "s"
-            parts.append(due > 0 ? "\(due) card\(plural) due" : "No cards due")
-        }
-        if flagged > 0 { parts.append("\(flagged) flagged") }
-        let symbol: String = due > 0 ? "tray.full.fill" : "checkmark.circle.fill"
-        let tint: Color = due > 0 ? StudySetKind.anki.tint : .secondary
-        return todayLine(symbol: symbol, tint: tint, text: parts.joined(separator: " \u{00B7} "))
     }
 
     /// One line of the Today card: a symbol and a short sentence.

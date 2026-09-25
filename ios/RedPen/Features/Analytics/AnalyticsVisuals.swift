@@ -2,8 +2,9 @@ import SwiftUI
 import Charts
 
 // The pictures on the Analytics page, kept apart so each can be read (and
-// reused) on its own. All of them are drawn in the accent colour at a few
-// strengths rather than in a spread of colours, so the page stays calm, and
+// reused) on its own. The score and readiness rings are photon rings - the
+// 3D map's black-hole palette, ember to white-gold - and everything else is
+// drawn in the accent colour at a few strengths, so the page stays calm, and
 // each one reads to VoiceOver as a single sentence rather than a pile of
 // shapes.
 
@@ -60,6 +61,9 @@ struct ProgressRing<Centre: View>: View {
         self.centre = centre()
     }
 
+    /// The photon ring is thinner than its track.
+    private var photonWidth: CGFloat { max(2.5, lineWidth * 0.62) }
+
     /// How far round the plain fill goes, 0...1.
     private var fraction: Double {
         guard total > 0 else { return 0 }
@@ -95,11 +99,10 @@ struct ProgressRing<Centre: View>: View {
                     .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
                     .padding(inset)
                 if segments.isEmpty {
-                    Circle()
-                        .trim(from: 0, to: filled)
-                        .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .padding(inset)
+                    // a thin photon ring, ember to white-gold as it fills
+                    // (Space/PhotonRing.swift); the track stays full width
+                    PhotonArc(fraction: filled, lineWidth: photonWidth)
+                        .padding(inset - photonWidth / 2)
                 } else {
                     ForEach(arcs) { arc in
                         Circle()

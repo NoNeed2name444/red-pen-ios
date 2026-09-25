@@ -181,6 +181,10 @@ struct NarrateReviewView: View {
             } message: {
                 Text(importer.notice ?? "")
             }
+            // the first opening: five quick guesses before reading along
+            .guessFirst(studySet)
+            // the lecture is being read aloud: no answer tones over it
+            .spaceSoundsHushed()
     }
 
     // MARK: setting up

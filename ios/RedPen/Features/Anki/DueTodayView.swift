@@ -115,7 +115,10 @@ struct DueTodayView: View {
         let interval: Double = reviews.records[due.card.id]?.intervalMin ?? 0
         let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: interval)
         return AnkiFooter(revealed: revealed, labels: labels,
-                          onReveal: { revealed = true },
+                          onReveal: {
+                              revealed = true
+                              SpaceFeedback.play(.reveal)
+                          },
                           onRate: { rate($0, due) }) {
             listenButton
         }
@@ -138,7 +141,8 @@ struct DueTodayView: View {
     }
 
     private func rate(_ rating: AnkiRating, _ due: ReviewPlan.Due) {
-        UISelectionFeedbackGenerator().selectionChanged()
+        // Again is a miss; Hard, Good and Easy were remembered
+        SpaceFeedback.play(rating == .again ? .wrong : .correct)
         let kept = reviews.rate(rating, card: due.card)
         StudyLog.shared.record()
         reviewedCount += 1

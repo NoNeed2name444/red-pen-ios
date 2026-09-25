@@ -64,6 +64,9 @@ struct BookReaderView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        // the first opening: five quick guesses before any reading
+        // (an onAppear only, so the layout is untouched)
+        .guessFirst(studySet)
     }
 
     /// The page, scrolling under the bar. Keyed by the page, so a new page

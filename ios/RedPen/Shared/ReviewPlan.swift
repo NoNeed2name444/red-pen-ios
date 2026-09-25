@@ -81,10 +81,15 @@ enum ReviewPlan {
     /// What a rating leaves behind. The interval comes from AnkiScheduler, so
     /// the buttons' promised "in N days" and what is actually stored cannot
     /// drift apart.
+    ///
+    /// With an exam date, no interval runs past the exam: a card that would
+    /// next come back after the paper comes back a day or two before it
+    /// instead (ExamCap), so everything is seen once more while it counts.
     static func after(rating: AnkiRating, record kept: ReviewRecord,
-                      now: Date = Date()) -> ReviewRecord {
-        let next = AnkiScheduler.nextInterval(rating: rating,
-                                              currentIntervalMin: kept.intervalMin)
+                      now: Date = Date(), exam: Date? = nil) -> ReviewRecord {
+        let plain = AnkiScheduler.nextInterval(rating: rating,
+                                               currentIntervalMin: kept.intervalMin)
+        let next = ExamCap.capped(plain, now: now, exam: exam)
         return ReviewRecord(due: now.addingTimeInterval(next * 60),
                             intervalMin: next,
                             reviews: kept.reviews + 1,
@@ -157,5 +162,45 @@ enum ReviewPlan {
         var live = Set<UUID>()
         for deck in decks { for card in deck.deckCards { live.insert(card.id) } }
         return records.filter { live.contains($0.key) }
+    }
+}
+
+/// Keeps every interval inside the run-up to the exam.
+///
+/// Spacing is about remembering on the day that matters. An interval that
+/// ends after the exam is a review the student never gets before the paper,
+/// so a card due after it is brought forward to land one to three days
+/// before - close enough to count, far enough to leave the last day calm.
+///
+/// Foundation only, and here beside ReviewPlan so the schedule and the
+/// rating buttons' "in N d" read the same cap.
+enum ExamCap {
+    /// Where the exam date is kept: the same key as ExamTrack.dateKey
+    /// (seconds since 1970, 0 for none). Spelled out so the schedule compiles
+    /// without ExamTrack; a test checks the two stay equal.
+    static let dateKey = "exam.date"
+
+    /// The exam date the student set, or nil.
+    static func storedDate(_ defaults: UserDefaults = .standard) -> Date? {
+        let stamp = defaults.double(forKey: dateKey)
+        return stamp > 0 ? Date(timeIntervalSince1970: stamp) : nil
+    }
+
+    /// Minutes in a day.
+    static let day: Double = 1440
+
+    /// `minutes` unless it would carry the card past the exam; then the
+    /// interval that brings it back before it. Short learning steps (under a
+    /// day) are never touched, and nothing changes once the exam has passed.
+    static func capped(_ minutes: Double, now: Date, exam: Date?) -> Double {
+        guard let exam else { return minutes }
+        let untilExam: Double = exam.timeIntervalSince(now) / 60
+        guard untilExam > 0, minutes >= day else { return minutes }
+        // lands at least a day before the exam already: fine as it is
+        guard minutes > untilExam - day else { return minutes }
+        // back two days before, or halfway there when the exam is closer
+        let lead: Double = min(2 * day, untilExam / 2)
+        let fits: Double = untilExam - lead
+        return max(10, min(minutes, fits))
     }
 }

@@ -73,16 +73,21 @@ extension Store {
     /// `picked` is the option chosen, as its index in the question's own
     /// option list (not the shuffled slot), so a wrong answer can later show
     /// what was chosen.
+    ///
+    /// `hinted` is whether the attending's hint was shown first: kept on the
+    /// dated log so the answer counts as right "with help".
     func recordAnswer(_ questionId: UUID, correct: Bool, confidence: AnswerConfidence? = nil,
-                      picked: Int? = nil, saving: Bool = true) {
+                      picked: Int? = nil, hinted: Bool = false, saving: Bool = true) {
         guard library.contains(where: { set in
             set.kind == .mcq && set.questions.contains { $0.id == questionId }
         }) else { return }
         var past = answerHistory[questionId] ?? []
         past.append(correct)
         answerHistory[questionId] = Array(past.suffix(Self.historyDepth))
-        answerLog.append(AnswerEvent(questionId: questionId, correct: correct, confidence: confidence,
-                                     picked: picked))
+        var event = AnswerEvent(questionId: questionId, correct: correct, confidence: confidence,
+                                picked: picked)
+        if hinted { event.hinted = true }
+        answerLog.append(event)
         if answerLog.count > Self.answerLogDepth {
             answerLog.removeFirst(answerLog.count - Self.answerLogDepth)
         }

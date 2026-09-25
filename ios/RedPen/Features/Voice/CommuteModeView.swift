@@ -38,6 +38,8 @@ struct CommuteModeView: View {
         .onDisappear { session.end() }
         // the microphone is listening: the camera stays off
         .popOutFacePaused()
+        // and speech is playing or being heard: no answer tones over it
+        .spaceSoundsHushed()
     }
 
     // MARK: choosing what is played

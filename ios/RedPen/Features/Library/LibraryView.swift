@@ -450,6 +450,8 @@ struct LibraryView: View {
             }
             .listSectionSpacing(16)
             .scrollContentBackground(.hidden)
+            // the backdrop's stars drift with the scroll (parallax)
+            .skyScroll()
             // Back from a set that Turn into just made: the new set in view,
             // not somewhere below the fold.
             .onChange(of: opened.isEmpty) { _, back in
@@ -530,10 +532,12 @@ struct LibraryView: View {
                 .frame(minHeight: 50)
         }
         .buttonStyle(.glassProminent)
-        .popOut(.hero, in: Capsule(), tint: .accentColor)
-        .keyboardShortcut("n", modifiers: .command)
+        // on the button itself, before the glass and the pop-out wrap it, so
+        // UI tests find the button rather than its raised surface
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
+        .popOut(.hero, in: Capsule(), tint: .accentColor)
+        .keyboardShortcut("n", modifiers: .command)
     }
 
     /// Over the category's loose sets: the heading, "See all" for a category

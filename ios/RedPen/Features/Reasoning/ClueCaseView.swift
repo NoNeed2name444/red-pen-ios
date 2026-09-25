@@ -98,6 +98,9 @@ struct ClueCaseView: View {
     @State private var shown = 1
     @State private var options: [String]
     @State private var result: CasePlay?
+    /// The attending's hint for this play: nil until asked, empty while it
+    /// is being written.
+    @State private var hint: String?
 
     init(clueCase: ClueCase, setId: UUID) {
         self.clueCase = clueCase
@@ -117,6 +120,9 @@ struct ClueCaseView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     clueList
+                    if let hint, result == nil {
+                        AttendingHintCard(text: hint.isEmpty ? nil : hint)
+                    }
                     if let result {
                         outcome(result)
                     }
@@ -150,7 +156,29 @@ struct ClueCaseView: View {
         let detail: String? = result == nil ? "Worth \(worthText) if right" : nil
         let seen: Int = result == nil ? shown : total
         let fraction: Double = Double(seen) / Double(max(1, total))
-        return StudyProgressHeader(status, detail: detail, fraction: fraction)
+        return StudyProgressHeader(status, detail: detail, fraction: fraction) {
+            // the header's one small control: a nudge, never the diagnosis
+            if result == nil {
+                HintChip(used: hint != nil, action: askHint)
+            }
+        }
+    }
+
+    /// The next step in the reasoning from the clues shown so far, without
+    /// naming the diagnosis. Kept per case once written.
+    private func askHint() {
+        guard hint == nil else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
+        withAnimation(.snappy) { hint = "" }
+        let seen: [String] = Array(clueCase.clues.prefix(shown))
+        let stem: String = seen.joined(separator: " ")
+        let item: ClueCase = clueCase
+        let choices: [String] = options
+        Task {
+            let text: String = await HintWriter.hint(id: item.id, stem: stem, options: choices,
+                                                     answer: item.diagnosis, differential: item.differential)
+            withAnimation(.snappy) { hint = text }
+        }
     }
 
     private var clueList: some View {
@@ -210,6 +238,7 @@ struct ClueCaseView: View {
                 shown = 1
                 options = Self.shuffled(clueCase)
                 result = nil
+                hint = nil
             } label: {
                 Label("Play again", systemImage: "arrow.counterclockwise")
             }

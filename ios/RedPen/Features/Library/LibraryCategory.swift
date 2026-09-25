@@ -45,6 +45,7 @@ extension LibraryView {
                             .font(.subheadline.weight(.semibold))
                             .frame(minHeight: 44, alignment: .leading)
                     }
+                    .accessibilityIdentifier("morePractise")
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -89,7 +90,14 @@ extension LibraryView {
         // button rather than the row being one; it stands out of the glass
         // and sinks under the finger
         .buttonStyle(.popTile)
+        // the page this tile opens zooms out of it (featurePageView)
+        .skyZoomSource(Self.zoomID(feature))
         .accessibilityIdentifier("feature-\(feature.rawValue)")
+    }
+
+    /// The shared id of a tile and the page it zooms into.
+    static func zoomID(_ feature: CategoryFeature) -> String {
+        "tile-\(feature.rawValue)"
     }
 
     /// A mode tile says how many sets it holds, or that a tap makes one.
@@ -130,8 +138,15 @@ extension LibraryView {
 
     /// The page a tile pushes. Turn into lists this category's sets, so it is
     /// built here, where the category is known.
-    @ViewBuilder
+    /// It zooms out of the tile that opened it (the system zoom transition;
+    /// a plain push at SpaceQuality.still).
     func featurePageView(_ feature: CategoryFeature) -> some View {
+        featurePageBody(feature)
+            .skyZoomDestination(Self.zoomID(feature))
+    }
+
+    @ViewBuilder
+    private func featurePageBody(_ feature: CategoryFeature) -> some View {
         if feature == .turn {
             TurnIntoListView(kinds: category.kinds)
         } else {
@@ -170,10 +185,17 @@ extension LibraryView {
                 nothingYet = feature
                 return
             }
+            // a session starts: the lift-off streak (WarpEffect)
+            SpaceWarp.liftOff()
             featureQuiz = made
         case .due:
             let due: Int = reviews.dueAcross(store.library).count
-            if due > 0 { showingDue = true } else { nothingYet = feature }
+            if due > 0 {
+                SpaceWarp.liftOff()
+                showingDue = true
+            } else {
+                nothingYet = feature
+            }
         case .page:
             featurePage = feature
         case .newSet(let kind):
@@ -192,6 +214,8 @@ extension LibraryView {
             store.addSet(lecture)
             NarrateReviewView.importOnOpen = lecture.id
             opened = [lecture]
+        case .learn(let route):
+            LearnRouter.shared.open(route)
         }
     }
 

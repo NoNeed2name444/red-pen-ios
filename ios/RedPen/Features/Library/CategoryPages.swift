@@ -5,6 +5,14 @@ struct StudySetScreen: View {
     let set: StudySet
 
     var body: some View {
+        // opening a set is a session starting: the lift-off streak, once
+        // (WarpEffect)
+        screen
+            .liftOffOnAppear()
+    }
+
+    @ViewBuilder
+    private var screen: some View {
         switch set.kind {
         case .mcq: MCQQuizView(set: set)
         case .anki: AnkiReviewView(set: set)
@@ -65,6 +73,7 @@ struct SpokenPatientsView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .skyScroll()
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
@@ -143,6 +152,7 @@ struct DrawPracticeView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .skyScroll()
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)

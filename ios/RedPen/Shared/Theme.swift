@@ -46,23 +46,94 @@ extension StudySetKind {
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
-    /// The chosen one: filled with the mode's colour, symbol in white.
+    /// The chosen one: a small star - the symbol in white over a coronal
+    /// glow in the mode's colour.
     var selected = false
+
+    @Environment(\.colorScheme) private var scheme
 
     // A quiet tile: the mode's symbol in grey on a solid surface. The glossy
     // gradient tiles with coloured shadows put six loud colours on the first
     // screen; the symbol alone tells the modes apart. Solid, not see-through:
     // a translucent fill over the moving backdrop and a tinted row read as
-    // two shapes smudged on top of each other.
+    // two shapes smudged on top of each other. At night the surface is near
+    // black, a hole in the nebula rather than a grey card; only the chosen
+    // tile gets any space character - its corona.
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+        let dark: Bool = scheme == .dark
+        let rest: Color = dark ? Color(white: 0.08) : Color(.secondarySystemBackground)
+        let surface: Color = selected && !dark ? kind.tint.darkened(0.25) : rest
         Image(systemName: kind.symbol)
             .font(.system(size: size * 0.42, weight: .medium))
             .foregroundStyle(selected ? Color.white : Color.secondary)
             .frame(width: size, height: size)
-            .background(selected ? AnyShapeStyle(kind.tint) : AnyShapeStyle(Color(.secondarySystemBackground)), in: shape)
+            .background {
+                ZStack {
+                    shape.fill(surface)
+                    if selected {
+                        CoronaGlow(tint: kind.tint)
+                            .clipShape(shape)
+                    }
+                }
+            }
             .overlay(shape.strokeBorder(Color.primary.opacity(selected ? 0 : 0.08), lineWidth: 0.5))
+            .overlay {
+                if selected {
+                    shape.strokeBorder(PhotonRim.style, lineWidth: 1)
+                }
+            }
             .animation(.snappy(duration: 0.25), value: selected)
+    }
+}
+
+/// A soft coronal glow in `tint`: strongest in the middle, gone at `reach`
+/// of the size. At SpaceQuality.full it breathes, 6% either way over 4 s.
+struct CoronaGlow: View {
+    let tint: Color
+    /// Where the glow has faded out, as a fraction of the shorter side.
+    var reach: CGFloat = 0.9
+    /// The middle's opacity.
+    var strength: Double = 0.75
+    @Environment(\.spaceQuality) private var quality
+
+    var body: some View {
+        GeometryReader { geo in
+            let side: CGFloat = min(geo.size.width, geo.size.height)
+            let colours: [Color] = [tint.opacity(strength), tint.opacity(strength * 0.45), tint.opacity(0)]
+            let glow = RadialGradient(colors: colours, center: .center,
+                                      startRadius: 0, endRadius: side * reach)
+            Rectangle()
+                .fill(glow)
+                .modifier(CoronaBreath(breathes: quality.isFull))
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct CoronaBreath: ViewModifier {
+    let breathes: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if breathes {
+            content.phaseAnimator([false, true]) { view, out in
+                view.scaleEffect(out ? 1.06 : 0.94)
+            } animation: { _ in
+                .easeInOut(duration: 2)
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// A one-pixel photon-ring edge (the map's orange into white-gold).
+enum PhotonRim {
+    static var style: AngularGradient {
+        let stops: [Gradient.Stop] = PhotonPalette.stops(dark: true)
+        return AngularGradient(stops: stops, center: .center, angle: .degrees(-90))
     }
 }
 
@@ -164,23 +235,22 @@ struct ThinProgress: View {
     }
 }
 
-/// The animated score ring on the MCQ results screen.
+/// The animated score ring on the MCQ results screen: a thin photon ring
+/// (PhotonArc), ember to white-gold as the score rises. It reports its
+/// score upwards (FinishScoreKey) so a finish around it can celebrate.
 struct ScoreRing: View {
     let fraction: Double
     let label: String
     let sublabel: String
     @State private var shown: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            Circle().stroke(Color.primary.opacity(0.08), lineWidth: 14)
             Circle()
-                .trim(from: 0, to: shown)
-                // `.tint` rather than the app accent: the ring belongs to the
-                // screen it is on, and the accent is whatever mode happens to
-                // be the app's default.
-                .stroke(.tint, style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+                .stroke(Color.primary.opacity(0.08), lineWidth: 6)
+                .padding(3)
+            PhotonArc(fraction: shown, lineWidth: 6)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
@@ -191,7 +261,14 @@ struct ScoreRing: View {
             }
         }
         .frame(width: 168, height: 168)
-        .onAppear { withAnimation(.spring(response: 1.1, dampingFraction: 0.72)) { shown = fraction } }
+        .preference(key: FinishScoreKey.self, value: fraction)
+        .onAppear {
+            if reduceMotion {
+                shown = fraction
+            } else {
+                withAnimation(.spring(response: 1.1, dampingFraction: 0.72)) { shown = fraction }
+            }
+        }
     }
 }
 
@@ -560,15 +637,37 @@ struct OptionalTag: View {
 ///
 /// The screen puts its one main button under this in a `StudyActionBar`, and
 /// anything else it offers as smaller buttons below the result.
+///
+/// A finished session (a score, from `score:` or from a ScoreRing inside the
+/// graphic, or the "done" seal) plays the session-complete cue once; a strong
+/// one (80% or more) raises a short aurora across the top. Neither ever
+/// delays the button under it.
 struct FinishHero<Graphic: View>: View {
     let title: String
     let message: String
+    /// 0...1 when the session had a score.
+    let score: Double?
+    /// Whether this finish is a session completed (rather than an empty
+    /// state), when there is no score to say so.
+    let completes: Bool
     private let graphic: Graphic
 
-    init(title: String, message: String, @ViewBuilder graphic: () -> Graphic) {
+    @State private var celebrated = false
+
+    init(title: String, message: String, score: Double? = nil, @ViewBuilder graphic: () -> Graphic) {
         self.title = title
         self.message = message
+        self.score = score
+        self.completes = score != nil
         self.graphic = graphic()
+    }
+
+    fileprivate init(title: String, message: String, score: Double?, completes: Bool, graphic: Graphic) {
+        self.title = title
+        self.message = message
+        self.score = score
+        self.completes = completes || score != nil
+        self.graphic = graphic
     }
 
     var body: some View {
@@ -590,13 +689,55 @@ struct FinishHero<Graphic: View>: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
         .padding(.horizontal, 16)
+        // a ScoreRing inside reports its score upwards (FinishScoreKey)
+        .backgroundPreferenceValue(FinishScoreKey.self, alignment: .top) { reported in
+            let result: Double? = score ?? reported
+            let strong: Bool = (result ?? 0) >= 0.8
+            let done: Bool = completes || result != nil
+            FinishCelebration(strong: strong, completes: done, celebrated: $celebrated)
+        }
+    }
+}
+
+/// Behind a finish: the aurora when it was strong, and the session-complete
+/// cue, once.
+private struct FinishCelebration: View {
+    let strong: Bool
+    let completes: Bool
+    @Binding var celebrated: Bool
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            if strong {
+                AuroraCurtain()
+                    .frame(height: 190)
+                    .padding(.horizontal, -18)
+                    .offset(y: -18)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .allowsHitTesting(false)
+        .onAppear { if completes { celebrate() } }
+        .onChange(of: completes) { _, now in
+            if now { celebrate() }
+        }
+    }
+
+    private func celebrate() {
+        guard !celebrated else { return }
+        celebrated = true
+        SpaceFeedback.play(.complete)
     }
 }
 
 extension FinishHero where Graphic == FinishSymbol {
-    /// A finish with a big symbol rather than a score ring.
-    init(symbol: String, title: String, message: String) {
-        self.init(title: title, message: message) { FinishSymbol(name: symbol) }
+    /// A finish with a big symbol rather than a score ring. The "done" seal
+    /// counts as a completed session.
+    init(symbol: String, title: String, message: String, score: Double? = nil) {
+        let done: Bool = symbol == "checkmark.seal.fill"
+        self.init(title: title, message: message, score: score, completes: done,
+                  graphic: FinishSymbol(name: symbol))
     }
 }
 

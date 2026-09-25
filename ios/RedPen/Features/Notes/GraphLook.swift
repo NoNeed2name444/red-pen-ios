@@ -613,8 +613,9 @@ nonisolated enum GraphArt {
 /// turns and never moves by itself (so Reduce Motion needs nothing).
 @MainActor
 enum GraphSpace {
-    /// The Milky Way's plane, tilted across the sky.
-    nonisolated static let bandNormal: SIMD3<Float> = simd_normalize(SIMD3<Float>(0.35, 0.9, 0.25))
+    /// The Milky Way's plane, tilted across the sky - shared with the flat
+    /// screens' backdrop (SkyChart), so both show one sky.
+    nonisolated static let bandNormal: SIMD3<Float> = SkyChart.bandNormal
 
     /// A new node holding the three layers (the geometry is shared).
     static func makeSky() -> SCNNode {
@@ -704,22 +705,10 @@ enum GraphSpace {
     }
 
     /// Nebula clouds along the band: direction, reach and colour (with
-    /// strength).
+    /// strength) - made by SkyChart from the shared seed, so the backdrop's
+    /// clouds are these same clouds.
     private static func nebulaBlobs() -> [(SIMD3<Float>, Float, SIMD3<Float>)] {
-        let hues: [SIMD3<Float>] = [
-            SIMD3<Float>(0.20, 0.30, 0.78),
-            SIMD3<Float>(0.36, 0.22, 0.66),
-            SIMD3<Float>(0.12, 0.36, 0.58)
-        ]
-        var random = SplitMix64(seed: 0x0B1A)
-        var blobs: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
-        for k in 0..<30 {
-            let near: SIMD3<Float> = onBand(&random, spread: 0.12)
-            let reach: Float = 0.18 + (random.unit() * 0.5 + 0.5) * 0.3
-            let strength: Float = 0.07 + (random.unit() * 0.5 + 0.5) * 0.09
-            blobs.append((near, reach, hues[k % hues.count] * strength))
-        }
-        return blobs
+        SkyChart.clouds.map { ($0.centre, $0.reach, $0.colour) }
     }
 
     // MARK: the stars
@@ -727,24 +716,19 @@ enum GraphSpace {
     private static let stars: SCNGeometry = makeStars()
 
     private static func makeStars() -> SCNGeometry {
-        var random = SplitMix64(seed: 0x57A3)
-        let tints: [SIMD3<Float>] = [
-            SIMD3<Float>(1, 1, 1),
-            SIMD3<Float>(0.76, 0.85, 1),
-            SIMD3<Float>(1, 0.9, 0.76)
-        ]
+        // the shared catalogue (SkyChart): the backdrop draws these same stars
+        let tints: [SIMD3<Float>] = SkyChart.starTints
         var positions: [SCNVector3] = []
         var colours: [Float] = []
         // three sizes, one element each
         var small: [Int32] = []
         var medium: [Int32] = []
         var large: [Int32] = []
-        for k in 0..<14000 {
-            let dir: SIMD3<Float> = k % 5 < 2 ? onBand(&random, spread: 0.18) : anywhere(&random)
-            let roll: Float = random.unit() * 0.5 + 0.5
-            let shine: Float = roll * roll * roll * roll
+        for star in SkyChart.stars {
+            let dir: SIMD3<Float> = star.dir
+            let shine: Float = star.shine
             let brightness: Float = 0.42 + shine * 0.95
-            let c: SIMD3<Float> = linear(tints[k % tints.count] * brightness)
+            let c: SIMD3<Float> = linear(tints[star.tint] * brightness)
             let index = Int32(positions.count)
             positions.append(SCNVector3(x: dir.x, y: dir.y, z: dir.z))
             colours.append(c.x)
@@ -787,19 +771,18 @@ enum GraphSpace {
     /// Small square cards facing the sphere's centre - where the camera
     /// always is - each with a soft glow; dim, and none large.
     private static func makeGlowStars() -> SCNGeometry {
-        var random = SplitMix64(seed: 0x6105)
         var positions: [SCNVector3] = []
         var uvs: [Float] = []
         var colours: [Float] = []
         var indices: [Int32] = []
         let tint: SIMD3<Float> = linear(SIMD3<Float>(0.78, 0.85, 1.0))
-        for _ in 0..<36 {
-            let dir: SIMD3<Float> = anywhere(&random)
+        for glow in SkyChart.glowStars {
+            let dir: SIMD3<Float> = glow.dir
             let helper: SIMD3<Float> = abs(dir.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
             let side: SIMD3<Float> = simd_normalize(simd_cross(dir, helper))
             let up: SIMD3<Float> = simd_cross(side, dir)
             // about 7 pixels from the middle to the card's edge on a phone
-            let size: Float = 0.0032 + (random.unit() * 0.5 + 0.5) * 0.0022
+            let size: Float = glow.size
             let across: SIMD3<Float> = side * size
             let along: SIMD3<Float> = up * size
             let base = Int32(positions.count)
@@ -853,24 +836,6 @@ enum GraphSpace {
     /// are taken as linear.
     private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
         SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
-    }
-
-    /// A random direction, even over the sphere.
-    private static func anywhere(_ random: inout SplitMix64) -> SIMD3<Float> {
-        let y: Float = random.unit()
-        let turn: Float = random.unit() * Float.pi
-        let flat: Float = max(1 - y * y, 0).squareRoot()
-        return SIMD3<Float>(flat * cos(turn), y, flat * sin(turn))
-    }
-
-    /// A random direction near the band's plane.
-    private static func onBand(_ random: inout SplitMix64, spread: Float) -> SIMD3<Float> {
-        let dir: SIMD3<Float> = anywhere(&random)
-        let off: Float = simd_dot(dir, bandNormal)
-        let scatter: Float = random.unit() * random.unit() * spread
-        let flat: SIMD3<Float> = dir - bandNormal * off
-        let lifted: SIMD3<Float> = flat + bandNormal * scatter
-        return simd_normalize(lifted)
     }
 }
 

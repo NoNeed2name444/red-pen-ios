@@ -67,9 +67,13 @@ struct AnswerEvent: Codable, Hashable {
     /// option list (not the shuffled slot on screen). Nil for answers
     /// recorded before this was kept, and when nothing was chosen.
     var picked: Int?
+    /// True when the attending's hint was shown before this answer was
+    /// checked: right "with help", which does not count towards locking the
+    /// question in. Nil for every unaided answer (and older ones).
+    var hinted: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case questionId, correct, date, confidence, isExample, picked
+        case questionId, correct, date, confidence, isExample, picked, hinted
     }
 }
 
@@ -86,6 +90,7 @@ extension AnswerEvent {
         confidence = (try? c.decodeIfPresent(AnswerConfidence.self, forKey: .confidence)) ?? nil
         isExample = (try? c.decodeIfPresent(Bool.self, forKey: .isExample)) ?? nil
         picked = (try? c.decodeIfPresent(Int.self, forKey: .picked)) ?? nil
+        hinted = (try? c.decodeIfPresent(Bool.self, forKey: .hinted)) ?? nil
     }
 }
 

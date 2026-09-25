@@ -84,7 +84,8 @@ final class ReviewStore: ObservableObject {
     @discardableResult
     func rate(_ rating: AnkiRating, card: AnkiCard, now: Date = Date()) -> ReviewRecord {
         let kept = ReviewPlan.record(for: card, in: records, now: now)
-        let next = ReviewPlan.after(rating: rating, record: kept, now: now)
+        let next = ReviewPlan.after(rating: rating, record: kept, now: now,
+                                    exam: ExamCap.storedDate())
         records[card.id] = next
         save()
         return next

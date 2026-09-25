@@ -204,6 +204,9 @@ final class PopOutMotion {
         let thermal = ProcessInfo.processInfo.thermalState
         if thermal == .serious || thermal == .critical { return true }
         if keyboardUp { return true }
+        // the sky's one switch (SpaceQuality): tilt only runs at .full, so
+        // Reduce Transparency, Increase Contrast and a warm device hold still
+        if SpaceQuality.current() != .full { return true }
         return !freezeTokens.isEmpty
     }
 
@@ -388,6 +391,8 @@ final class PopOutMotion {
             UIAccessibility.voiceOverStatusDidChangeNotification,
             Notification.Name.NSProcessInfoPowerStateDidChange,
             ProcessInfo.thermalStateDidChangeNotification,
+            UIAccessibility.reduceTransparencyStatusDidChangeNotification,
+            UIAccessibility.darkerSystemColorsStatusDidChangeNotification,
             UserDefaults.didChangeNotification,
         ]
         for name in refreshing {

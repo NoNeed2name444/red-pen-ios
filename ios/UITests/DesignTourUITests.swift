@@ -4,8 +4,9 @@ import XCTest
 /// installing it: the library on each of the dock's categories, a category
 /// scrolled down to its tiles, New set, a quiz and a card, Ideas in each of
 /// its views with the floating switcher open and folded, the account and
-/// settings menu, Settings and Progress - and on an iPad the library and
-/// Ideas turned on their side as well.
+/// settings menu, Settings and Progress; Mission Control, the mock paper,
+/// the exam plan, symptom blocks and Settings' Look and feel - and on an iPad
+/// the library and Ideas turned on their side as well.
 ///
 /// Run by the "Design preview" workflow on an iPhone and on an iPad; the
 /// pictures land on the design-preview branch, named after the step.
@@ -18,10 +19,16 @@ import XCTest
 ///
 /// Everything is found by the accessibility identifiers in the app's sources:
 /// localSignIn, acceptRecordingTerms, dockCategory-<category>,
-/// dockCategory-ideas, feature-mixed, more-analytics, newSetButton,
+/// dockCategory-ideas, feature-mixed, feature-mock, feature-examPlan,
+/// feature-symptomBlocks, morePractise, more-analytics, newSetButton,
 /// newSetNext, setRow-mcq, setRow-anki, ideasMode-list/board/space,
-/// ideasSwitcherToggle, graph3D, examplesBanner, example-ideas and
+/// ideasSwitcherToggle, graph3D, examplesBanner, example-ideas,
+/// missionPlan, mockStart, learnDone, alwaysNightToggle, soundsToggle and
 /// libraryMenu.
+///
+/// Some of the app's buttons stand in interactive glass that is raised and
+/// tilted (the pop-out): XCUITest can find them yet call them not hittable.
+/// `press` taps those at their centre instead of giving up on them.
 final class DesignTourUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -68,6 +75,16 @@ final class DesignTourUITests: XCTestCase {
         check("menu and settings")
         progress()
         check("progress")
+        missionControl()
+        check("mission control")
+        mockPaper()
+        check("mock paper")
+        examPlan()
+        check("exam plan")
+        symptomBlocks()
+        check("symptom blocks")
+        lookAndFeel()
+        check("look and feel")
         if isWide {
             landscape()
             check("landscape")
@@ -107,12 +124,11 @@ final class DesignTourUITests: XCTestCase {
     private func newSet() {
         goHome()
         guard chooseFresh("questions") else { return }
-        let button = element("newSetButton")
-        guard button.waitForExistence(timeout: 5), button.isHittable else {
+        guard let button = newSetControl() else {
             missing("newSetButton")
             return
         }
-        button.tap()
+        press(button)
         let bar = app.navigationBars["New set"]
         let next = element("newSetNext")
         let opened: Bool = bar.waitForExistence(timeout: 8) || next.exists
@@ -130,6 +146,18 @@ final class DesignTourUITests: XCTestCase {
         }
         closeSheet(bar)
         goHome()
+    }
+
+    /// New set: the floating button over the dock, or - with nothing in the
+    /// library, when that one stays away - the big one in the empty state
+    /// card. Found by its identifier, else by its title.
+    private func newSetControl() -> XCUIElement? {
+        let byId = element("newSetButton")
+        if byId.waitForExistence(timeout: 5) { return byId }
+        let byTitle = app.buttons.matching(NSPredicate(format: "label == %@", "New set")).firstMatch
+        if byTitle.waitForExistence(timeout: 3) { return byTitle }
+        if reveal(byId, swipes: 4) { return byId }
+        return nil
     }
 
     /// Cancel on a sheet, or a pull down from its top when there is none.
@@ -288,6 +316,108 @@ final class DesignTourUITests: XCTestCase {
         goHome()
     }
 
+    /// 28: Mission Control, the Today card at the top of Questions.
+    private func missionControl() {
+        goHome()
+        guard chooseFresh("questions") else { return }
+        let plan = element("missionPlan")
+        if plan.waitForExistence(timeout: 5) {
+            _ = reveal(plan, swipes: 3)
+            sleep(1)
+            snap("28-mission-control")
+        } else {
+            missing("missionPlan")
+        }
+    }
+
+    /// 29-30: the mock paper's start page, from Questions' "More ways to
+    /// practise"; then with the paper chosen and ready to start.
+    private func mockPaper() {
+        goHome()
+        guard chooseFresh("questions") else { return }
+        guard openTile("mock") else { return }
+        let bar = app.navigationBars["Mock paper"]
+        if bar.waitForExistence(timeout: 8) || element("mockStart").exists {
+            sleep(1)
+            snap("29-mock-paper-start")
+            app.swipeUp(velocity: .slow)
+            sleep(1)
+            snap("30-mock-paper-more")
+        } else {
+            missing("mock-paper")
+        }
+        goHome()
+    }
+
+    /// 31: the exam plan - from Mission Control's Plan, or the Tools tile.
+    private func examPlan() {
+        goHome()
+        guard chooseFresh("questions") else { return }
+        let plan = element("missionPlan")
+        if plan.waitForExistence(timeout: 4) && reveal(plan, swipes: 3) {
+            press(plan)
+        } else if !openTile("examPlan") {
+            return
+        }
+        if app.navigationBars["Exam plan"].waitForExistence(timeout: 8) {
+            sleep(2)
+            snap("31-exam-plan")
+            app.swipeUp(velocity: .slow)
+            sleep(1)
+            snap("32-exam-plan-more")
+        } else {
+            missing("exam-plan")
+        }
+        goHome()
+    }
+
+    /// 33: symptom blocks, from Questions' "More ways to practise".
+    private func symptomBlocks() {
+        goHome()
+        guard chooseFresh("questions") else { return }
+        guard openTile("symptomBlocks") else { return }
+        if app.navigationBars["Symptom blocks"].waitForExistence(timeout: 8) {
+            sleep(2)
+            snap("33-symptom-blocks")
+        } else {
+            missing("symptom-blocks")
+        }
+        goHome()
+    }
+
+    /// 34-35: Settings' Look and feel, with Always night sky and Sounds;
+    /// then with Always night sky on, turned back off afterwards.
+    private func lookAndFeel() {
+        goHome()
+        guard openMenu() else { return }
+        let settings = menuItem("Settings")
+        guard settings.exists else {
+            missing("menu-settings")
+            dismissMenu()
+            return
+        }
+        press(settings)
+        sleep(2)
+        let night = element("alwaysNightToggle")
+        guard night.waitForExistence(timeout: 6), reveal(night, swipes: 4) else {
+            missing("alwaysNightToggle")
+            goHome()
+            return
+        }
+        if !element("soundsToggle").exists { missing("soundsToggle") }
+        snap("34-settings-look-and-feel")
+        let wasOn: Bool = (night.value as? String) == "1"
+        if !wasOn {
+            // the switch itself, at the trailing end of the row
+            night.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            sleep(2)
+            snap("35-settings-always-night-sky")
+            night.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            sleep(1)
+        }
+        goHome()
+    }
+
     /// 26-27: an iPad on its side - the library with the rail, and Ideas.
     private func landscape() {
         goHome()
@@ -344,11 +474,10 @@ final class DesignTourUITests: XCTestCase {
     @discardableResult
     private func choose(_ place: String) -> Bool {
         let item = element("dockCategory-\(place)")
-        guard item.waitForExistence(timeout: 5), item.isHittable else {
+        guard item.waitForExistence(timeout: 5), press(item) else {
             missing("dockCategory-\(place)")
             return false
         }
-        item.tap()
         sleep(2)
         return true
     }
@@ -363,6 +492,34 @@ final class DesignTourUITests: XCTestCase {
             sleep(1)
         }
         return choose(category)
+    }
+
+    /// Opens a feature tile on the category on show, opening "More ways to
+    /// practise" first when the tile is folded away under it.
+    private func openTile(_ feature: String) -> Bool {
+        let tile = element("feature-\(feature)")
+        if !tile.waitForExistence(timeout: 3) {
+            let more = element("morePractise")
+            let titled = app.buttons.matching(NSPredicate(format: "label == %@", "More ways to practise")).firstMatch
+            let fold: XCUIElement = more.exists ? more : titled
+            // already open (it stays so), with its tiles only loaded once
+            // scrolled near: open it only if the tile is still not there
+            if reveal(fold, swipes: 12) && !tile.exists {
+                press(fold)
+                sleep(1)
+            }
+        }
+        guard reveal(tile, swipes: 12) else {
+            missing("feature-\(feature)")
+            return false
+        }
+        press(tile)
+        sleep(2)
+        if atLibrary() && !app.buttons["learnDone"].exists {
+            missing("\(feature)-screen")
+            return false
+        }
+        return true
     }
 
     /// Opens the first set of a kind from the category on show.
@@ -387,9 +544,13 @@ final class DesignTourUITests: XCTestCase {
         for _ in 0..<6 {
             if atLibrary() { return }
             let cancel = app.buttons["Cancel"].firstMatch
+            let done = app.buttons["learnDone"].firstMatch
             let back = app.navigationBars.buttons.element(boundBy: 0)
             if cancel.exists && cancel.isHittable {
                 cancel.tap()
+            } else if done.exists && done.isHittable {
+                // the learning screens' sheet (exam plan, mock paper...)
+                done.tap()
             } else if back.exists && back.isHittable {
                 back.tap()
             } else {
@@ -405,6 +566,7 @@ final class DesignTourUITests: XCTestCase {
     /// Whether the library - with its dock or rail - is what is on screen.
     private func atLibrary() -> Bool {
         let dock = element("dockCategory-questions")
+        if app.buttons["learnDone"].exists { return false }
         return dock.exists && dock.isHittable
     }
 
@@ -412,11 +574,10 @@ final class DesignTourUITests: XCTestCase {
 
     private func showIdeas(_ mode: String, as name: String?) {
         let segment = element("ideasMode-\(mode)")
-        guard segment.waitForExistence(timeout: 4), segment.isHittable else {
+        guard segment.waitForExistence(timeout: 4), press(segment) else {
             missing("ideasMode-\(mode)")
             return
         }
-        segment.tap()
         if mode == "space" {
             if !element("graph3D").waitForExistence(timeout: 12) {
                 missing("graph3D")
@@ -438,11 +599,10 @@ final class DesignTourUITests: XCTestCase {
         let list = element("ideasMode-list")
         if list.exists { return true }
         let toggle = element("ideasSwitcherToggle")
-        guard toggle.waitForExistence(timeout: 4), toggle.isHittable else {
+        guard toggle.waitForExistence(timeout: 4), press(toggle) else {
             missing("ideasSwitcherToggle")
             return false
         }
-        toggle.tap()
         if list.waitForExistence(timeout: 4) {
             sleep(1)
             return true
@@ -456,11 +616,10 @@ final class DesignTourUITests: XCTestCase {
         let list = element("ideasMode-list")
         if !list.exists { return true }
         let toggle = element("ideasSwitcherToggle")
-        guard toggle.exists, toggle.isHittable else {
+        guard toggle.exists, press(toggle) else {
             missing("switcher-collapse-button")
             return false
         }
-        toggle.tap()
         sleep(1)
         if list.exists {
             missing("switcher-collapsed")
@@ -552,6 +711,23 @@ final class DesignTourUITests: XCTestCase {
     }
 
     // MARK: - Finding and pictures
+
+    /// Taps an element: normally, or - when it is on screen but XCUITest
+    /// calls it not hittable, as it can a button in raised interactive glass
+    /// - at its centre. False when it is not on screen at all.
+    @discardableResult
+    private func press(_ target: XCUIElement) -> Bool {
+        guard target.exists else { return false }
+        if target.isHittable {
+            target.tap()
+            return true
+        }
+        let frame: CGRect = target.frame
+        let window: CGRect = app.windows.firstMatch.frame
+        guard !frame.isEmpty, window.contains(CGPoint(x: frame.midX, y: frame.midY)) else { return false }
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        return true
+    }
 
     /// The first element of any type with this accessibility identifier.
     private func element(_ id: String) -> XCUIElement {

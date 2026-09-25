@@ -43,10 +43,16 @@ enum AnkiScheduler {
 
     /// Matches `updateAnkiRateLabels()` — the four "in N min/hr/d" previews
     /// shown on the rating buttons before the user picks one.
-    static func previewLabels(currentIntervalMin: Double) -> [AnkiRating: String] {
+    ///
+    /// Read through the same exam cap the schedule stores (ExamCap), so a
+    /// button never promises "in 30 d" for a card that will be back before
+    /// an exam in twelve.
+    static func previewLabels(currentIntervalMin: Double, now: Date = Date(),
+                              exam: Date? = ExamCap.storedDate()) -> [AnkiRating: String] {
         var out: [AnkiRating: String] = [:]
         for rating in AnkiRating.allCases {
-            out[rating] = "in " + formatInterval(nextInterval(rating: rating, currentIntervalMin: currentIntervalMin))
+            let plain: Double = nextInterval(rating: rating, currentIntervalMin: currentIntervalMin)
+            out[rating] = "in " + formatInterval(ExamCap.capped(plain, now: now, exam: exam))
         }
         return out
     }

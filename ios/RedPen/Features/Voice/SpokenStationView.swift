@@ -38,6 +38,8 @@ struct SpokenStationView: View {
         .onDisappear { session?.end() }
         // the microphone is listening: the camera stays off
         .popOutFacePaused()
+        // and speech is playing or being heard: no answer tones over it
+        .spaceSoundsHushed()
     }
 
     /// No model yet: say how to get one, and still show past marks.

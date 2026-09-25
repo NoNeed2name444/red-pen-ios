@@ -31,6 +31,25 @@ struct MCQQuizView: View {
     @State private var reasons: [UUID: MistakeReason] = [:]
     /// True while the slow reading drill is still holding the answer back.
     @State private var holding = false
+    /// The sitting's questions once a re-test has been slotted in after a
+    /// miss; nil while they are the set's own, in its own order.
+    @State private var reordered: [MCQQuestion]?
+    /// Questions already given their one immediate re-test this sitting.
+    @State private var retested: Set<UUID> = []
+    /// Options crossed out, by position in the sitting, as the option's own
+    /// index (not the shuffled slot) - dimmed, and never chosen by a stray tap.
+    @State private var struck: [Int: Set<Int>] = [:]
+    /// Pieces of each stem the highlighter marked, by position in the sitting.
+    @State private var highlights: [Int: Set<Int>] = [:]
+    /// Whether a tap on the stem highlights rather than reads.
+    @State private var highlighting = false
+    @State private var toolSheet: ExamToolSheet?
+    /// The attending's hints shown this sitting; an empty string while one is
+    /// being written.
+    @State private var hints: [UUID: String] = [:]
+    /// What came of asking for a twin, by the missed question's id.
+    @State private var twinNotes: [UUID: String] = [:]
+    @State private var writingTwin: Set<UUID> = []
     /// Seconds each question must be on screen before it can be answered -
     /// the slow reading drill. 0 for every other quiz.
     private let minReadSeconds: Int
@@ -81,31 +100,34 @@ struct MCQQuizView: View {
         }
     }
 
-    private var q: MCQQuestion { studySet.questions[current] }
+    /// The questions as they are being sat: the set's own, with any re-test
+    /// slotted in.
+    private var questions: [MCQQuestion] { reordered ?? studySet.questions }
+    private var q: MCQQuestion { questions[current] }
     private var a: MCQAnswer { answers[current] }
     /// Question `qi`'s option order, checked against its options: a stale
     /// order (the question edited while the quiz was open) falls back to the
     /// written order rather than pointing past the end or at the wrong option.
     private func order(_ qi: Int) -> [Int] {
-        let count: Int = studySet.questions[qi].options.count
+        let count: Int = questions[qi].options.count
         let saved: [Int]? = orders.indices.contains(qi) ? orders[qi] : nil
         return OptionOrder.valid(saved, count: count)
     }
     /// The displayed slot that holds the correct option for `question`, or
     /// -1 when its key is missing (so no slot is painted right).
     private func correctSlot(_ qi: Int) -> Int {
-        OptionOrder.slot(of: studySet.questions[qi].correctIndex, in: order(qi)) ?? -1
+        OptionOrder.slot(of: questions[qi].correctIndex, in: order(qi)) ?? -1
     }
     /// Whether the answer to question `qi` is right. `selected` is a slot;
     /// it is turned back into the option's own index before it is compared
     /// with `correctIndex`, the one comparison every mark goes through.
     private func isRight(_ qi: Int) -> Bool {
         guard answers.indices.contains(qi) else { return false }
-        let correctIndex: Int = studySet.questions[qi].correctIndex
+        let correctIndex: Int = questions[qi].correctIndex
         return OptionOrder.isCorrect(slot: answers[qi].selected, correctIndex: correctIndex, order: order(qi))
     }
     private func optionText(_ qi: Int, slot: Int) -> String {
-        let opts = studySet.questions[qi].options
+        let opts = questions[qi].options
         guard let orig = OptionOrder.original(ofSlot: slot, in: order(qi)) else { return "" }
         return opts.indices.contains(orig) ? opts[orig] : ""
     }
@@ -114,7 +136,7 @@ struct MCQQuizView: View {
     private var originalAnswers: [MCQAnswer] {
         answers.enumerated().map { qi, ans in
             var out = ans
-            if qi < studySet.questions.count {
+            if qi < questions.count {
                 out.selected = OptionOrder.original(ofSlot: ans.selected, in: order(qi))
             }
             return out
@@ -152,7 +174,9 @@ struct MCQQuizView: View {
         // of a timed paper.
         .studyMoreMenu(for: studySet, turnInto: !isUnsaved && examEndsAt == nil, check: accuracyAsk) {
             if canStartExam { examMenuItem }
+            ExamToolMenuItems(sheet: $toolSheet, highlighting: $highlighting)
         }
+        .examToolSheets($toolSheet)
         .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -182,7 +206,7 @@ struct MCQQuizView: View {
             timeUp()
         }
         .navigationDestination(isPresented: $showSummary) {
-            MCQSummaryView(set: studySet, answers: originalAnswers, onRetake: { retake() },
+            MCQSummaryView(set: sittingSet, answers: originalAnswers, onRetake: { retake() },
                            isUnsaved: isUnsaved, saved: saved, onSave: onSave)
         }
         // the slow reading drill: the answer waits until the question has
@@ -195,6 +219,11 @@ struct MCQQuizView: View {
             holding = true
             try? await Task.sleep(for: .seconds(minReadSeconds))
             if !Task.isCancelled { holding = false }
+        }
+        // twins asked for while offline are written now, quietly
+        .task {
+            guard shuffle, !ExamStore.shared.pending.isEmpty else { return }
+            await TwinWriter.retryPending(store: store)
         }
         .onAppear {
             checkForResume()
@@ -272,7 +301,15 @@ struct MCQQuizView: View {
     /// never for a quiz with no place in the library - and never in exam
     /// mode: a timed paper is sat in one go, and resumed later it would carry
     /// on without its clock, with the answers it had been hiding.
-    private var keepsPosition: Bool { shuffle && keepsProgress && !examMode }
+    private var keepsPosition: Bool { shuffle && keepsProgress && !examMode && reordered == nil }
+
+    /// The set as sat, re-tests and all, for the results.
+    private var sittingSet: StudySet {
+        guard let reordered else { return studySet }
+        var out: StudySet = studySet
+        out.questions = reordered
+        return out
+    }
 
     private func persist() {
         guard keepsPosition else { return }
@@ -289,6 +326,11 @@ struct MCQQuizView: View {
         examEndsAt = nil
         confidences = [:]
         reasons = [:]
+        reordered = nil
+        retested = []
+        struck = [:]
+        highlights = [:]
+        hints = [:]
         store.clearProgress(for: studySet.id)
     }
 
@@ -324,9 +366,9 @@ struct MCQQuizView: View {
     /// has been answered, because the check shows the answer.
     private var accuracyAsk: AccuracyAsk {
         AccuracyAsk(instruction: "Write a single-best-answer medical exam question, with its answer and explanation, from the source.") {
-            guard !examMode, studySet.questions.indices.contains(current),
+            guard !examMode, questions.indices.contains(current),
                   answers.indices.contains(current), answers[current].checked else { return nil }
-            let question = studySet.questions[current]
+            let question = questions[current]
             let letters: [String] = ["A", "B", "C", "D", "E", "F"]
             let options: [String] = question.options.enumerated()
                 .map { "\(letters[min($0.offset, 5)]). \($0.element)" }
@@ -451,7 +493,7 @@ struct MCQQuizView: View {
     /// mode, only how many are answered, since the score is what it holds back.
     private var header: some View {
         let s = scoreSoFar
-        let total = studySet.questions.count
+        let total = questions.count
         let detail: String
         if examMode {
             detail = "\(s.checked) answered"
@@ -472,14 +514,14 @@ struct MCQQuizView: View {
     /// The question itself, with its picture if it has one.
     private var questionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                Text("Pick the one best answer")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.tint)
+            HStack(alignment: .center, spacing: 8) {
+                cardTitle
                 Spacer(minLength: 8)
+                if canHint { HintChip(used: hints[q.id] != nil, action: askHint) }
                 if inLibrary(q.id) { flagButton }
             }
-            Text(minReadSeconds > 0 ? Self.highlighted(q.stem) : AttributedString(q.stem))
+            HighlightableStem(stem: q.stem, plain: stemText, marked: highlightBinding,
+                              highlighting: highlighting)
                 .font(.title3.weight(.semibold))
                 .lineSpacing(3)
             if minReadSeconds > 0 && !a.checked {
@@ -500,13 +542,76 @@ struct MCQQuizView: View {
         .id("stem-\(current)")
     }
 
+    /// "Pick the one best answer", shortened when the chips beside it need
+    /// the room - or, on a re-test, saying so.
+    private var cardTitle: some View {
+        let again: Bool = isRetest(current)
+        let full: String = again ? "Second try \u{00B7} pick the best answer" : "Pick the one best answer"
+        let short: String = again ? "Second try" : "Best answer"
+        return ViewThatFits(in: .horizontal) {
+            Text(full)
+            Text(short)
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.tint)
+        .lineLimit(1)
+    }
+
+    private var stemText: AttributedString {
+        minReadSeconds > 0 ? Self.highlighted(q.stem) : AttributedString(q.stem)
+    }
+
+    private var highlightBinding: Binding<Set<Int>> {
+        let at: Int = current
+        return Binding(get: { highlights[at] ?? [] }, set: { highlights[at] = $0 })
+    }
+
+    /// Whether the question at `index` is a re-test: the same question
+    /// came earlier in this sitting.
+    private func isRetest(_ index: Int) -> Bool {
+        guard reordered != nil, questions.indices.contains(index) else { return false }
+        let id: UUID = questions[index].id
+        return questions[..<index].contains { $0.id == id }
+    }
+
+    // MARK: the attending's hint
+
+    /// Before the answer, outside a timed paper.
+    private var canHint: Bool { !a.checked && !examMode && pendingResume == nil }
+
+    private func askHint() {
+        let question: MCQQuestion = q
+        guard hints[question.id] == nil else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
+        withAnimation(.snappy) { hints[question.id] = "" }
+        let answer: String = question.options.indices.contains(question.correctIndex)
+            ? question.options[question.correctIndex] : ""
+        Task {
+            let text: String = await HintWriter.hint(id: question.id, stem: question.stem, options: question.options,
+                                                     answer: answer, differential: question.differential)
+            withAnimation(.snappy) { hints[question.id] = text }
+        }
+    }
+
+    @ViewBuilder
+    private var hintCard: some View {
+        if let text = hints[q.id], !examMode {
+            AttendingHintCard(text: text.isEmpty ? nil : text)
+        }
+    }
+
     private func optionRow(_ idx: Int) -> some View {
         let state = optionState(idx)
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         // the chosen answer stands a little out of the glass; the rest lie on it
         let plane: PopOutPlane = idx == a.selected ? .raised : .screen
+        let out: Bool = isStruck(idx)
+        // a crossed-out option is dimmed; after checking the right one shows
+        // at full strength whatever was done to it
+        let dim: Double = out && (!a.checked || idx != correctSlot(current)) ? 0.45 : 1
         return Button {
-            guard !a.checked else { return }
+            // a crossed-out option is never chosen by a stray tap: restore it first
+            guard !a.checked, !out else { return }
             withAnimation(.snappy(duration: 0.2)) { answers[current].selected = idx }
         } label: {
             HStack(spacing: 12) {
@@ -519,6 +624,7 @@ struct MCQQuizView: View {
                 Text(optionText(current, slot: idx))
                     .font(.body)
                     .foregroundStyle(.primary)
+                    .strikethrough(out, color: .secondary)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
                 if let mark = state.mark {
@@ -530,16 +636,42 @@ struct MCQQuizView: View {
             .frame(minHeight: 56)
             .background(state.fill, in: shape)
             .overlay(shape.strokeBorder(state.border, lineWidth: 1.5))
+            .opacity(dim)
         }
         // the chosen answer is lifted by the style, so it sinks under the finger
         .buttonStyle(PopPressStyle(plane: plane, shape: shape))
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)
         .numberKey(idx + 1)
-        .accessibilityLabel("Answer \(letter(idx)): \(optionText(current, slot: idx))")
+        .strikeOutGestures(struck: out, enabled: !a.checked) { toggleStrike(idx) }
+        .accessibilityLabel("Answer \(letter(idx)): \(optionText(current, slot: idx))" + (out ? ", crossed out" : ""))
         .accessibilityAddTraits(idx == a.selected ? .isSelected : [])
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
+    }
+
+    /// Whether the option in `slot` is crossed out.
+    private func isStruck(_ slot: Int) -> Bool {
+        guard let original = OptionOrder.original(ofSlot: slot, in: order(current)) else { return false }
+        return struck[current]?.contains(original) ?? false
+    }
+
+    /// Crosses an option out, or brings it back. Crossing out the chosen
+    /// option un-chooses it.
+    private func toggleStrike(_ slot: Int) {
+        guard !a.checked, let original = OptionOrder.original(ofSlot: slot, in: order(current)) else { return }
+        var set: Set<Int> = struck[current] ?? []
+        let on: Bool = set.contains(original)
+        if on { set.remove(original) } else { set.insert(original) }
+        withAnimation(.snappy(duration: 0.2)) {
+            struck[current] = set
+            if !on && answers[current].selected == slot { answers[current].selected = nil }
+        }
+    }
+
+    /// Whether the right answer was crossed out before checking - worth saying.
+    private var struckTheAnswer: Bool {
+        struck[current]?.contains(q.correctIndex) ?? false
     }
 
     private struct OptionState {
@@ -573,6 +705,12 @@ struct MCQQuizView: View {
             Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
                 .foregroundStyle(correct ? Color.green : Color.red)
+            if struckTheAnswer {
+                Label("You crossed out the right answer. What made you rule it out?",
+                      systemImage: "line.diagonal")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+            }
             Text(q.explanation).font(.body).lineSpacing(3)
             if let tiers = q.differential, !tiers.isEmpty {
                 HowToReachCard(differential: tiers, lecture: q.source)
@@ -604,7 +742,7 @@ struct MCQQuizView: View {
                 }
             }
         }
-        .padding(.top, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// "Why?" under a wrong answer: one tap files the mistake under a reason
@@ -635,6 +773,113 @@ struct MCQQuizView: View {
             .scrollClipDisabled()
         }
         .transition(.opacity)
+    }
+
+    // MARK: fixing a miss: a re-test now, a twin later
+
+    /// Under a wrong answer: one re-test of this question a few questions on,
+    /// and a twin - the same point in a different patient - for a day or two
+    /// from now. A confident mistake says why it matters most.
+    private var twinOffer: some View {
+        let id: UUID = q.id
+        let wasSure: Bool = confidences[id] == .sure
+        let canRetest: Bool = !retested.contains(id) && !isRetest(current)
+        let writing: Bool = writingTwin.contains(id)
+        let note: String? = twinNotes[id]
+        let lead: String = wasSure
+            ? "You were sure, so this is the kind of mistake that comes back. Fix it now:"
+            : "Fix it while it\u{2019}s fresh:"
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(lead)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                OptionalTag()
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if canRetest {
+                        chip("Re-test me soon", symbol: "arrow.uturn.forward", on: false) { insertRetest() }
+                            .accessibilityHint("Asks this question again, re-shuffled, a few questions from now")
+                    }
+                    if note == nil && !writing {
+                        chip("Write a twin", symbol: "square.on.square.badge.person.crop", on: false) { writeTwin() }
+                            .accessibilityHint("A new question on the same point, in a different patient, for a day or two from now")
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .scrollClipDisabled()
+            if retested.contains(id) && !isRetest(current) {
+                Label("It comes back, re-shuffled, a few questions from now.", systemImage: "arrow.uturn.forward")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if writing {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(.secondary)
+                }
+            } else if let note {
+                Text(note).font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .transition(.opacity)
+    }
+
+    /// Slots this question in again a few questions on, options re-shuffled.
+    private func insertRetest() {
+        let question: MCQQuestion = q
+        guard !retested.contains(question.id) else { return }
+        var list: [MCQQuestion] = questions
+        let slot: Int = TwinRetest.slot(after: current, count: list.count)
+        list.insert(question, at: slot)
+        let fresh: [Int] = OptionOrder.make(count: question.options.count, shuffle: true)
+        reordered = list
+        answers.insert(MCQAnswer(), at: slot)
+        orders.insert(fresh, at: slot)
+        struck = Self.shifted(struck, from: slot)
+        highlights = Self.shifted(highlights, from: slot)
+        retested.insert(question.id)
+        confidences[question.id] = nil
+    }
+
+    /// Keys at or past `slot` moved one along, for a question slotted in.
+    private static func shifted(_ marks: [Int: Set<Int>], from slot: Int) -> [Int: Set<Int>] {
+        var out: [Int: Set<Int>] = [:]
+        for (key, value) in marks {
+            let moved: Int = key >= slot ? key + 1 : key
+            out[moved] = value
+        }
+        return out
+    }
+
+    /// Asks the writer for a twin; offline it waits and is written later.
+    private func writeTwin() {
+        let question: MCQQuestion = q
+        let id: UUID = question.id
+        guard !writingTwin.contains(id) else { return }
+        let picked: Int? = OptionOrder.original(ofSlot: a.selected, in: order(current))
+        let confident: Bool = store.confidentMistakeIds.contains(id)
+        let guessed: Bool = confidences[id] == .guess
+        let request = PendingTwin(parentId: id, picked: picked, reason: reasons[id]?.title,
+                                  confident: confident, guessed: guessed)
+        writingTwin.insert(id)
+        Task {
+            let outcome: TwinOutcome = await TwinWriter.write(request, store: store)
+            let days: Int = TwinQueue.delayDays(confident: confident, guessed: guessed)
+            let when: String = days == 1 ? "tomorrow" : "in \(days) days"
+            let said: String
+            switch outcome {
+            case .made: said = "Twin written. It comes back \(when), under Questions \u{2192} Twins."
+            case .unavailable(let why): said = why
+            case .later(let why): said = why
+            }
+            withAnimation(.snappy) {
+                writingTwin.remove(id)
+                twinNotes[id] = said
+            }
+        }
     }
 
     /// One small choice in the confidence and "why" rows: 44 points tall, so
@@ -683,6 +928,7 @@ struct MCQQuizView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if let p = pendingResume { resumeBanner(p) }
                 questionCard
+                hintCard
 
                 VStack(spacing: 12) {
                     ForEach(q.options.indices, id: \.self) { idx in
@@ -692,8 +938,6 @@ struct MCQQuizView: View {
                     }
                 }
 
-                if !a.checked && shuffle { confidencePicker }
-
                 // in exam mode the explanation waits for the results,
                 // as it would in the real paper
                 if a.checked && !examMode { explanationBox }
@@ -701,6 +945,7 @@ struct MCQQuizView: View {
                 if a.checked && !examMode && !isRight(current)
                     && shuffle && inLibrary(q.id) {
                     whyChooser
+                    twinOffer
                 }
             }
             .padding(.horizontal, 16)
@@ -719,6 +964,9 @@ struct MCQQuizView: View {
         if let p = pendingResume {
             resumeButtons(p)
         } else {
+            // inside the bar, above the buttons, so it is never hidden under
+            // the bar and is where the thumb already is
+            if !a.checked && shuffle { confidencePicker }
             answerButtons
         }
     }
@@ -750,7 +998,7 @@ struct MCQQuizView: View {
     }
 
     private var checkButtonTitle: String {
-        let last = current == studySet.questions.count - 1
+        let last = current == questions.count - 1
         if holding && !a.checked { return "Keep reading" }
         // says what to do, rather than sitting there grey with no reason
         if !a.checked && a.selected == nil { return "Pick an answer" }
@@ -769,8 +1017,9 @@ struct MCQQuizView: View {
                 advance()
                 return
             }
-            // felt as well as seen: right and wrong answers buzz differently
-            UINotificationFeedbackGenerator().notificationOccurred(right ? .success : .error)
+            // felt as well as seen (and, with Sounds on, heard): right and
+            // wrong answers buzz differently
+            SpaceFeedback.play(right ? .correct : .wrong)
             persist()
             return
         }
@@ -788,17 +1037,21 @@ struct MCQQuizView: View {
         StudyLog.shared.record()
         // the save that follows writes the history too, when there is one
         if shuffle {
-            let question: MCQQuestion = studySet.questions[qi]
+            let question: MCQQuestion = questions[qi]
             let picked: Int? = OptionOrder.original(ofSlot: answers[qi].selected, in: order(qi))
             let sure: AnswerConfidence? = confidences[question.id]
+            // the hint was shown first: right "with help"
+            let helped: Bool = hints[question.id] != nil
             store.recordAnswer(question.id, correct: right, confidence: sure,
-                               picked: picked, saving: !keepsPosition)
+                               picked: picked, hinted: helped, saving: !keepsPosition)
+            // a twin answered moves along its own queue
+            ExamStore.shared.twinAnswered(question.id, correct: right)
         }
         return right
     }
 
     private func advance() {
-        if current < studySet.questions.count - 1 {
+        if current < questions.count - 1 {
             current += 1
             persist()
         } else {
@@ -829,7 +1082,7 @@ struct MCQQuizView: View {
 /// finger, the way BigButtonStyle and PopTileStyle do: the chosen answer, the
 /// confidence and why chips, Flag and Timed. A disabled one sits flat too
 /// (popOut reads isEnabled).
-private struct PopPressStyle<S: InsettableShape>: ButtonStyle {
+struct PopPressStyle<S: InsettableShape>: ButtonStyle {
     let plane: PopOutPlane
     let shape: S
 

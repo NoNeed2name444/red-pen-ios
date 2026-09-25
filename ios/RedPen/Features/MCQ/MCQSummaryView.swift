@@ -32,8 +32,11 @@ struct MCQSummaryView: View {
     @State private var practising: StudySet?
 
     /// The questions answered wrongly, for a set of their own.
+    /// A question re-tested in the same sitting is listed once.
     private var mistakes: [MCQQuestion] {
-        studySet.questions.indices.filter { !isRight($0) }.map { studySet.questions[$0] }
+        let wrong: [MCQQuestion] = studySet.questions.indices.filter { !isRight($0) }.map { studySet.questions[$0] }
+        var seen: Set<UUID> = []
+        return wrong.filter { seen.insert($0.id).inserted }
     }
 
     /// The questions answered and checked wrongly - not the ones skipped,
@@ -42,6 +45,9 @@ struct MCQSummaryView: View {
         studySet.questions.indices.filter {
             answers.indices.contains($0) && answers[$0].checked && !isRight($0)
         }.map { studySet.questions[$0] }
+        .reduce(into: [MCQQuestion]()) { out, q in
+            if !out.contains(where: { $0.id == q.id }) { out.append(q) }
+        }
     }
 
     /// "Add 3 rules", then a way to the sheet. Short on screen, so it sits

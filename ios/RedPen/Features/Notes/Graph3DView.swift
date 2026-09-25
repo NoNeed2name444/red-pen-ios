@@ -34,6 +34,9 @@ struct Graph3DView: View {
     @EnvironmentObject private var notes: NoteStore
     let open: (UUID) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The sky's shared switch (SpaceQuality): at .still - Low Power Mode,
+    /// a hot device - the map holds still too.
+    @Environment(\.spaceQuality) private var quality
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.layoutDirection) private var direction
@@ -185,6 +188,7 @@ struct Graph3DView: View {
             parts.append("\(folder.id.uuidString)|\(folder.name)|\(parent)")
         }
         parts.append("\(reduceMotion)")
+        parts.append("\(quality.rawValue)")
         parts.append("\(bold)")
         parts.append("\(highContrast)")
         return parts.joined(separator: "\n")
@@ -221,8 +225,9 @@ struct Graph3DView: View {
             return (positions, support, radius)
         }.value
         guard !Task.isCancelled else { return }
+        let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
         built = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
-                                        lively: !reduceMotion, bold: bold, shaders: worked.1,
+                                        lively: lively, bold: bold, shaders: worked.1,
                                         pageRadius: worked.2, contrast: highContrast)
     }
 }

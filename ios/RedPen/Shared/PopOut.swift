@@ -189,7 +189,7 @@ extension View {
     }
 
     /// The deep plane: behind the glass, moving WITH the eye. AppBackdrop's
-    /// mesh only.
+    /// sky only (mesh, nebula and stars).
     func deepParallax() -> some View {
         modifier(DeepParallax())
     }
@@ -681,7 +681,9 @@ private struct PopOutLifecycle: ViewModifier {
     private static let debug: Bool = ProcessInfo.processInfo.arguments.contains("-popOutDebug")
 
     func body(content: Content) -> some View {
-        content
+        // the sky's root: SpaceQuality, the tiles' zoom namespace and
+        // "Always night sky" (Space/SpaceQuality.swift)
+        SkyRoot(content: content)
             .overlay(alignment: .topLeading) {
                 if PopOutLifecycle.debug {
                     PopOutDebugLabel()

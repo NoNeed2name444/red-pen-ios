@@ -42,6 +42,9 @@ struct RedPenApp: App {
         // example answers, mistakes and rules, so Progress has something to show
         if !seeded { InsightExamples.seed(into: store) }
         _store = StateObject(wrappedValue: store)
+        // answers from the question-of-the-day notification, and taps that
+        // open a learning screen (LearnNotifications)
+        if !seeded { LearnNotifications.install(store: store) }
         // and on throwaway files, so a screenshot run never writes into the
         // student's own pronunciations, schedule or subscription record
         let scratch = FileManager.default.temporaryDirectory
@@ -107,6 +110,8 @@ struct RedPenApp: App {
                         // made by the app's own pipeline - only once the library
                         // is on screen, never under the sign-in screen
                         .task { await SampleLectures.seed(into: store) }
+                        // exam plan, exam-day kit, bedtime, morning check...
+                        .learnRoutes()
                         // sets the cloud finished while the app was closed
                         .task { await CloudJobCollector.collect(into: store) }
                         // An edit reaches the other device in seconds, not at
@@ -152,6 +157,7 @@ struct RedPenApp: App {
                             // schedule each time the student leaves
                             if new == .background {
                                 AppNotifications.scheduleReviews(sets: store.library, reviews: reviews)
+                                LearnNotifications.reschedule(store: store)
                                 CloudJobCollector.appLeft()
                             }
                             if new == .active {

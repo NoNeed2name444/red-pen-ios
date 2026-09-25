@@ -75,6 +75,8 @@ struct AnalyticsView: View {
         }
         // pushed bare from the examples hub too, so it brings its own backdrop
         .scrollContentBackground(.hidden)
+        // the backdrop's stars drift with the scroll
+        .skyScroll()
         .background(LibraryBackdrop())
         // the best next step, under the thumb; nothing there until there is one
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -128,6 +130,8 @@ struct AnalyticsView: View {
     /// Opens a quiz, if it has any questions.
     private func startQuiz(_ set: StudySet, minReadSeconds: Int = 0, timed: Bool = false) {
         guard !set.questions.isEmpty else { return }
+        // a session starts: the lift-off streak (WarpEffect)
+        SpaceWarp.liftOff()
         quiz = InsightQuiz(set: set, minReadSeconds: minReadSeconds, timed: timed)
     }
 

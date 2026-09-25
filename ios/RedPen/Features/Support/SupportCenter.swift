@@ -140,15 +140,21 @@ struct SupportMenuItems: View {
 /// models are chosen.
 struct SettingsPage: View {
     @EnvironmentObject private var reviews: ReviewStore
+    /// Handed on to the study reminders, which read the library to pick
+    /// the question of the day and tonight's misses.
+    @EnvironmentObject private var store: Store
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
     @AppStorage(PopOutSettings.enabledKey) private var popOut = true
     @AppStorage(PopOutSettings.faceKey) private var face = false
+    @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
+    @AppStorage(SpaceSettings.soundsKey) private var sounds = false
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.spaceQuality) private var quality
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     /// The camera was refused when face tracking was turned on.
     @State private var denied = false
@@ -157,17 +163,24 @@ struct SettingsPage: View {
         Form {
             lookSection
             examSection
+            StudyReminderSettings()
+                .environmentObject(store)
             studySection
             reviewSection
             modelsSection
             versionSection
         }
         .scrollContentBackground(.hidden)
+        .skyScroll()
         .background(LibraryBackdrop())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
         .onChange(of: face) { _, on in faceChanged(on) }
+        .onChange(of: sounds) { _, on in
+            // made ready now, so the first cue after turning them on plays
+            if on { SpaceSounds.shared.prepare() }
+        }
         .onReceive(NotificationCenter.default
             .publisher(for: Notification.Name.NSProcessInfoPowerStateDidChange)
             .receive(on: RunLoop.main)) { _ in
@@ -188,6 +201,10 @@ struct SettingsPage: View {
             Toggle("Pop-out with face tracking", isOn: $face)
                 .disabled(faceLocked)
                 .accessibilityIdentifier("popOutFaceToggle")
+            Toggle("Always night sky", isOn: $alwaysNight)
+                .accessibilityIdentifier("alwaysNightToggle")
+            Toggle("Sounds", isOn: $sounds)
+                .accessibilityIdentifier("soundsToggle")
         } header: {
             Text("Look and feel")
         } footer: {
@@ -205,8 +222,12 @@ struct SettingsPage: View {
         }
         if reduceMotion || lowPower {
             parts.append("Reduce Motion (or Low Power Mode) is on, so everything stands out without moving.")
+        } else if quality != .full {
+            parts.append("Reduce Transparency, Increase Contrast or a warm device has turned the tilt off; the sky still drifts slowly.")
         }
         parts.append("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
+        parts.append("Always night sky keeps the dark star field, and the app's dark look, even in light mode.")
+        parts.append("Sounds are short, quiet tones for right and wrong answers and a finished session. They follow the Ring/Silent switch and stay quiet while anything is being read aloud.")
         let footer: String = parts.joined(separator: " ")
         return footer
     }

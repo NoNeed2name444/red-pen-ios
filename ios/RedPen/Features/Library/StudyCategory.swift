@@ -112,7 +112,8 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     private var practiseTiles: [CategoryFeature] {
         switch self {
         case .questions:
-            return [.mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one]
+            return [.mixed, .mistakes, .flagged, .timed, .mock, .twins, .symptomBlocks, .weakest, .confident, .slow,
+                    .one, .bedtime]
         case .cards: return [.due, .draw]
         case .cases: return [.clues, .duels, .scripts]
         case .osce: return [.patient]
@@ -124,7 +125,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     /// about how the studying is going.
     private var toolTiles: [CategoryFeature] {
         switch self {
-        case .questions: return [.rules, .coverage, .subjects, .add, .turn]
+        case .questions: return [.examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
         case .cards: return [.add, .turn]
         case .cases: return [.reasoning, .add, .turn]
         case .osce: return [.add, .turn]
@@ -157,7 +158,9 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     // The modes: one per kind of set (and the picture cards among the decks)
     case multipleChoice, flashcards, textbooks, pictures, qaCases, stations, lectures
     // Questions
-    case mixed, mistakes, flagged, timed, weakest, confident, slow, one, rules, coverage, subjects
+    case mixed, mistakes, flagged, timed, weakest, confident, slow, one, rules, coverage, subjects, mock, twins
+    // Questions: the learning screens LearnRouter shows in a sheet of its own
+    case symptomBlocks, examPlan, examKit, bedtime
     // Cards
     case due, draw
     // Cases
@@ -190,6 +193,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case addMaterial
         /// A new lecture, opened on its audio file picker.
         case audioLecture
+        /// One of the learning screens, in LearnRouter's sheet.
+        case learn(LearnRoute)
     }
 
     var action: Action {
@@ -200,13 +205,17 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .qaCases: return .shelf(.qa)
         case .stations: return .shelf(.osce)
         case .lectures: return .shelf(.narrate)
-        case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one: return .quiz
+        case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one, .twins: return .quiz
         case .due: return .due
         case .record: return .audioLecture
         case .subjects: return .support(.progress)
         case .add: return .addMaterial
+        case .symptomBlocks: return .learn(.symptomBlocks)
+        case .examPlan: return .learn(.examPlan)
+        case .examKit: return .learn(.examKit)
+        case .bedtime: return .learn(.bedtime)
         case .rules, .coverage, .draw, .clues, .duels, .scripts, .reasoning,
-             .patient, .commute, .explain, .turn: return .page
+             .patient, .commute, .explain, .turn, .mock: return .page
         }
     }
 
@@ -229,6 +238,12 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .mistakes: return "My mistakes"
         case .flagged: return "Flagged"
         case .timed: return "Timed exam"
+        case .mock: return "Mock paper"
+        case .twins: return "Twins"
+        case .symptomBlocks: return "Symptom blocks"
+        case .examPlan: return "Exam plan"
+        case .examKit: return "Exam-day kit"
+        case .bedtime: return "Bedtime re-read"
         case .weakest: return "Weakest topic"
         case .confident: return "Sure but wrong"
         case .slow: return "Slow reading"
@@ -264,6 +279,12 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .mistakes: return "Last got wrong"
         case .flagged: return "The ones you flagged"
         case .timed: return "10 against the clock"
+        case .mock: return "Your exam\u{2019}s real paper"
+        case .twins: return "Missed points, new patients"
+        case .symptomBlocks: return "One complaint, every cause, mixed"
+        case .examPlan: return "Forecast, due days, locked in"
+        case .examKit: return "What to bring and do on the day"
+        case .bedtime: return "Today\u{2019}s misses, calmly, before sleep"
         case .weakest: return "Your lowest subject"
         case .confident: return "Fix the misconceptions"
         case .slow: return "Key words marked, 15 s each"
@@ -299,6 +320,12 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .mistakes: return "xmark.circle.fill"
         case .flagged: return "flag.fill"
         case .timed: return "timer"
+        case .mock: return "doc.text.fill"
+        case .twins: return "square.on.square"
+        case .symptomBlocks: return "stethoscope"
+        case .examPlan: return "calendar"
+        case .examKit: return "checklist"
+        case .bedtime: return "moon.zzz.fill"
         case .weakest: return "target"
         case .confident: return "exclamationmark.triangle.fill"
         case .slow: return "eye.fill"
@@ -327,6 +354,10 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .due: return "No cards are due right now. Come back later."
         case .flagged: return "Flag a question while you answer it and it will wait here."
         case .mistakes, .confident: return "Answer a few questions first. Anything you get wrong comes back here."
+        case .twins: return "When you miss a question, tap \u{201C}Write a twin\u{201D} under it. The twin - the same point in a different patient - waits here for a day or two."
+        case .bedtime: return "Nothing missed today. Anything you get wrong comes back here tonight, to re-read before sleep."
+        case .symptomBlocks: return "Make a question set first. Blocks gather questions that start from the same complaint."
+        case .examPlan, .examKit: return "Set your exam date in Settings \u{2192} Your exam, and the plan fills in."
         case .slow: return "When you get one wrong, tap \u{201C}Misread the question\u{201D} under it and it comes back here, to read slowly."
         default: return "Make a question set first."
         }
@@ -348,6 +379,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .patient: SpokenPatientsView()
         case .commute: CommuteModeView()
         case .explain: ExplainBackView()
+        case .mock: MockPaperView()
         default: EmptyView()
         }
     }
@@ -380,6 +412,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
             return InsightQuiz(set: Store.temporaryQuiz(named: "Flagged questions", subject: "Flagged", from: picks))
         case .timed:
             return InsightQuiz(set: store.timedDrill(), timed: true)
+        case .twins:
+            return InsightQuiz(set: store.twinsQuiz())
         case .weakest:
             return Self.weakestQuiz(store)
         case .confident:
@@ -562,13 +596,15 @@ struct CategoryDock: View {
                 .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.tint(wash).interactive(), in: shape)
-        .popOut(.floating, in: shape)
-        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
+        // on the button itself, before the interactive glass and the
+        // pop-out wrap it, so UI tests find (and can tap) the button
         .accessibilityLabel(IdeasPlace.title)
         .accessibilityHint("Your idea dump, board and 3D map")
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
+        .glassEffect(.regular.tint(wash).interactive(), in: shape)
+        .popOut(.floating, in: shape)
+        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
     }
 
     // MARK: on end, the wide iPad's rail
@@ -629,7 +665,8 @@ struct CategoryDock: View {
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
         let ink: Color = chosen ? IdeasPlace.tint : Color.secondary
-        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink)
+        let glow: Color? = chosen ? IdeasPlace.tint : nil
+        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink, glow: glow)
     }
 
     private func item(_ category: StudyCategory) -> some View {
@@ -640,7 +677,8 @@ struct CategoryDock: View {
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
+            DockItemFace(symbol: category.symbol, title: category.title, ink: ink,
+                         glow: chosen ? category.tint : nil)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
@@ -680,17 +718,26 @@ struct CategoryDock: View {
     }
 }
 
-/// One dock item's face: a symbol over its name.
+/// One dock item's face: a symbol over its name. The chosen one's symbol
+/// sits in a soft coronal glow in its own colour - a small star.
 private struct DockItemFace: View {
     let symbol: String
     let title: String
     let ink: Color
+    var glow: Color? = nil
 
     var body: some View {
         VStack(spacing: 3) {
             Image(systemName: symbol)
                 .font(.system(size: 19, weight: .semibold))
                 .frame(height: 24)
+                .background {
+                    if let glow {
+                        CoronaGlow(tint: glow, reach: 0.5, strength: 0.45)
+                            .frame(width: 44, height: 44)
+                            .transition(.opacity)
+                    }
+                }
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)

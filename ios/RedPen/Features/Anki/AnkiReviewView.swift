@@ -196,7 +196,10 @@ struct AnkiReviewView: View {
     private func footer(_ item: AnkiQueueItem) -> some View {
         let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
         return AnkiFooter(revealed: revealed, labels: labels,
-                          onReveal: { revealed = true },
+                          onReveal: {
+                              revealed = true
+                              SpaceFeedback.play(.reveal)
+                          },
                           onRate: { rate($0) })
     }
 
@@ -224,7 +227,8 @@ struct AnkiReviewView: View {
 
     private func rate(_ rating: AnkiRating) {
         guard let item = current else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        // Again is a miss; Hard, Good and Easy were remembered
+        SpaceFeedback.play(rating == .again ? .wrong : .correct)
         let kept = reviews.rate(rating, card: item.card)
         StudyLog.shared.record()
         reviewedCount += 1

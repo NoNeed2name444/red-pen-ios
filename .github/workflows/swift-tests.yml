@@ -58,6 +58,17 @@ jobs:
             } > out/$name.log 2>&1
             cat out/$name.log
           }
+          # the exam-day forecast and exam cap, lock it in, exam week, symptom
+          # blocks, guess first and the daily rhythm
+          suite learn LearnTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+                $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/ExamTrack.swift \
+                $S/Insight/InsightModels.swift $S/Learn/RetentionForecast.swift $S/Learn/SecuredRule.swift \
+                $S/Learn/ExamWeekPlanner.swift $S/Learn/SymptomBlocks.swift $S/Learn/Pretest.swift \
+                $S/Learn/StudyRhythm.swift
+          # exam tools: mock paper assembly and marking, the twin queue, the
+          # attending's hint that never names the answer, calculator, lab ranges
+          suite examtools ExamToolsTests.swift $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift \
+                $S/Exam/MockPaper.swift $S/Exam/TwinQueue.swift $S/Exam/AttendingHint.swift $S/Exam/ExamTools.swift
           suite quality CardQualityTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
                 $S/CardQuality.swift $S/QuizFromCards.swift
           suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
