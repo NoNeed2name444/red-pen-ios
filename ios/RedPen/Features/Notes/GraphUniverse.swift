@@ -71,6 +71,9 @@ nonisolated enum GraphOrbit: Sendable, Equatable {
     case kepler(a: Float, e: Float, u: SIMD3<Float>, v: SIMD3<Float>, phase: Float, rate: Float)
     /// The Oort cloud: an ellipse of semi-axes x and y at height z.
     case ring(x: Float, y: Float, z: Float, phase: Float, rate: Float)
+    /// Floating in place (the Neurons theme's cells in their fluid): `base`
+    /// plus a slow three-axis wobble of up to `amp`, at phase + rate * t.
+    case drift(base: SIMD3<Float>, amp: Float, phase: Float, rate: Float)
 }
 
 nonisolated struct UniverseBody: Sendable, Equatable {
@@ -206,7 +209,27 @@ nonisolated enum GraphUniverse {
             let px: Float = x * cos(angle)
             let py: Float = y * sin(angle)
             return SIMD3<Float>(px, py, z)
+        case .drift(let base, let amp, let phase, let rate):
+            return base + wobble(amp: amp, phase: phase, rate: rate, time: time)
         }
+    }
+
+    /// A drifting body's wobble: three slow sines at unrelated rates, so it
+    /// never retraces a simple loop. Each argument is wrapped first, so a
+    /// long session keeps a 32-bit float fine.
+    static func wobble(amp: Float, phase: Float, rate: Float, time: Double) -> SIMD3<Float> {
+        guard amp > 0 else { return SIMD3<Float>(0, 0, 0) }
+        let full: Double = 2 * Double.pi
+        let t: Double = Double(rate) * time
+        let a: Float = phase + Float(t.truncatingRemainder(dividingBy: full))
+        let t2: Double = t * 1.31
+        let b: Float = phase * 1.7 + Float(t2.truncatingRemainder(dividingBy: full))
+        let t3: Double = t * 0.77
+        let c: Float = phase * 0.6 + Float(t3.truncatingRemainder(dividingBy: full))
+        let x: Float = sin(a) * amp
+        let y: Float = sin(b + 1.1) * amp * 0.8
+        let z: Float = cos(c) * amp * 0.9
+        return SIMD3<Float>(x, y, z)
     }
 
     /// Kepler's equation, four Newton steps.

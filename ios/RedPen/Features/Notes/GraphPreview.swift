@@ -30,6 +30,23 @@ import SwiftUI
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
+/// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
+///   Cardiology and Examples as two brain regions, Inguinal and Femoral
+///   relays out along Examples' pathway with Anatomy one step further,
+///   pages as large neurons, ideas as interneurons, the six short one-link
+///   ideas as glia on their neurons, the bridging idea as a commissural
+///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
+///   `-graphPreviewLegend` work with it too.
+/// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
+///   the motherboard, Cardiology and Examples as two processors in their
+///   zones, Inguinal and Femoral as module chips on sub-boards beside
+///   Examples' with Anatomy beside Inguinal's, pages as capacitors (Heart
+///   failure, the long read, an inductor coil), ideas as resistors and LEDs,
+///   Spermatic cord coverings (wired only up into Inguinal) a diode, the six
+///   short one-link ideas as surface-mount parts, the bridging idea as a
+///   bus header and the two loose notes as edge fingers on the board's
+///   bottom edge. `-graphPreviewFly`, `-graphPreviewDrag` and
+///   `-graphPreviewLegend` work with it too.
 ///
 /// The Universe seeds by names here, as the store's ids change every
 /// launch. The owner's own look setting is never read or written. The space
@@ -47,6 +64,14 @@ enum GraphPreview {
     }()
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
     static let chooses: Bool = isOn && !drags && fly == nil
+
+    /// The theme asked for with `-graphPreviewTheme <name>` (space,
+    /// neurons, circuit); Space without one.
+    static let theme: GraphTheme = {
+        let args: [String] = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "-graphPreviewTheme"), at + 1 < args.count else { return .space }
+        return GraphTheme.stored(args[at + 1])
+    }()
 
     /// The one style asked for with `-graphPreviewStyle`, if any.
     static let style: GraphNodeStyle? = {

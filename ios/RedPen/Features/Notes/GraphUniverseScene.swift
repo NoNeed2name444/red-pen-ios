@@ -55,7 +55,8 @@ extension GraphSceneBuilder {
         farLines.categoryBitMask = 2
         world.addChildNode(farLines)
 
-        let detail: Float = SpaceQuality.current() == .full ? 1 : 0
+        // the style shaders' noise loops: only at full liveliness and High
+        let detail: Float = SpaceQuality.current() == .full ? GraphQuality.current.shaderDetail : 0
         let kit = GraphStyleKit(store: store, shaders: shaders, support: styled, lively: lively, detail: detail)
         // every folder's tone from its planned galaxy, which for a folder
         // with a missing parent or in a cycle is not the store's top level
@@ -325,7 +326,7 @@ extension GraphSceneBuilder {
     }
 
     /// A name pill's rim in a galaxy: the usual rim mixed half with its tone.
-    private static func rim(tone colour: UIColor) -> UIColor {
+    static func rim(tone colour: UIColor) -> UIColor {
         let tone: SIMD3<Float> = GraphStyleArt.components(colour)
         let base: SIMD3<Float> = GraphStyleArt.components(rimFill)
         let mixed: SIMD3<Float> = (tone + base) * 0.5

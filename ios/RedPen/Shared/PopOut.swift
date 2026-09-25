@@ -634,6 +634,8 @@ private struct DeepParallax: ViewModifier {
     private static func shift(span: WindowSpan, onScreen: Bool) -> CGSize {
         let motion = PopOutMotion.shared
         guard motion.style == .live, onScreen else { return .zero }
+        // covered by the 3D map: nothing to move, and nothing read live
+        if SpaceQualityCenter.shared.skyCovered { return .zero }
         let eye: CGPoint = motion.eye
         let rest: CGPoint = PopOutTuning.restEye
         let reach: CGFloat = PopOutTuning.deepShift * PopOutTuning.spanScale(span)

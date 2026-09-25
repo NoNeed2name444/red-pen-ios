@@ -37,6 +37,17 @@ import simd
 /// with no force layout, and orbiting on GraphSim. Two taps on a star or
 /// black hole fly in to its system; two more open the folder in the List.
 ///
+/// The map has themes (GraphTheme, chosen at the top of the Look menu):
+/// Space - the Universe and the single looks - Neurons, the same
+/// hierarchy as a nervous system (GraphNeurons: regions, relays down the
+/// pathway, neurons, glia and receptors joined by axons carrying impulses),
+/// and Circuit, as a printed circuit board (GraphCircuit: processors,
+/// modules on sub-boards, capacitors, resistors, LEDs and headers joined by
+/// routed copper traces carrying current), each planned the same way and
+/// built by the shared theme scene
+/// (GraphThemeScene), so it moves, picks, filters and flies in exactly as
+/// the Universe does. The Graphics setting applies to every theme.
+///
 /// Where each note belongs in the single looks is worked out by
 /// ForceLayout3D, off the main thread, and again only when notes or links
 /// change.
@@ -50,6 +61,9 @@ struct Graph3DView: View {
     /// The sky's shared switch (SpaceQuality): at .still - Low Power Mode,
     /// a hot device - the map holds still too.
     @Environment(\.spaceQuality) private var quality
+    /// The Graphics setting (GraphicsQuality.swift): a change rebuilds, so
+    /// the scene is made to the new budget.
+    @Environment(\.graphics) private var graphics
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.layoutDirection) private var direction
@@ -65,6 +79,11 @@ struct Graph3DView: View {
     @AppStorage(GraphStyleChoice.foldersKey) private var folderStyles: String = ""
     /// The Universe's first-run card has been seen.
     @AppStorage("vignette.space.universeHintSeen") private var hintSeen: Bool = false
+    /// The map's theme (GraphTheme: Space, Neurons, Circuit), remembered; a
+    /// change rebuilds.
+    @AppStorage(GraphTheme.key) private var themeRaw: String = GraphTheme.standard.rawValue
+    /// The other themes whose first-run card has been seen ("neurons,...").
+    @AppStorage(GraphTheme.hintsKey) private var themeHintsSeen: String = ""
 
     init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
         self.open = open
@@ -91,7 +110,7 @@ struct Graph3DView: View {
             if case .folder(let id) = filter, notes.folder(id) == nil { filter = .all }
         }
         .sheet(isPresented: $showingLegend) {
-            GraphLegendSheet()
+            GraphLegendSheet(theme: built?.theme ?? theme)
                 .presentationDetents([.medium, .large])
         }
         .task {
@@ -114,9 +133,9 @@ struct Graph3DView: View {
                 GraphSCNView(built: built, filter: filter, recenter: recenter,
                              insets: insets, onTap: open, openFolder: openFolder)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Space of ideas")
+                    .accessibilityLabel(built.theme.mapLabel)
                     .accessibilityValue(built.universe ? built.summary : "")
-                    .accessibilityHint(built.universe ? Self.universeHint : Self.graphHint)
+                    .accessibilityHint(built.universe ? built.theme.hint : Self.graphHint)
                     .accessibilityIdentifier("graph3D")
             }
             .ignoresSafeArea()
@@ -130,14 +149,14 @@ struct Graph3DView: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            if built.universe && !hintSeen && !GraphPreview.isOn {
+            if built.universe && !cardSeen(built.theme) && !GraphPreview.isOn {
                 // sized to what the round tools (44 points, 12 from the
                 // card) leave, so it never runs under them on a phone
-                GraphUniverseHint(more: {
-                    hintSeen = true
+                GraphUniverseHint(theme: built.theme, more: {
+                    markCardSeen(built.theme)
                     showingLegend = true
                 }, done: {
-                    hintSeen = true
+                    markCardSeen(built.theme)
                 })
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 16)
@@ -148,12 +167,29 @@ struct Graph3DView: View {
         .ideaTools { tools }
         // the space is always night, whatever the phone's setting
         .environment(\.colorScheme, .dark)
+        // the map is opaque and fills the screen: the backdrop under it
+        // stops drawing (its clocks, twinkle and tilt) while it is up
+        .coversSky()
     }
 
     private static let graphHint: String =
         "Drag to turn, pinch to zoom. Press and hold a note to see its name; tap it twice to open it."
-    private static let universeHint: String = "Drag to turn, pinch to zoom. Press and hold a body to see its name. "
-        + "Tap a note twice to open it; tap a star or black hole twice to fly in, and twice again to open the folder."
+
+    /// Whether a theme's first-run card has been seen (the Universe keeps
+    /// its own old key).
+    private func cardSeen(_ theme: GraphTheme) -> Bool {
+        if theme == .space { return hintSeen }
+        return themeHintsSeen.split(separator: ",").contains { String($0) == theme.rawValue }
+    }
+
+    private func markCardSeen(_ theme: GraphTheme) {
+        if theme == .space {
+            hintSeen = true
+            return
+        }
+        guard !cardSeen(theme) else { return }
+        themeHintsSeen = themeHintsSeen.isEmpty ? theme.rawValue : themeHintsSeen + "," + theme.rawValue
+    }
 
     /// The safe area's insets, left and right as on screen.
     private func screenInsets(_ edges: EdgeInsets) -> GraphInsets {
@@ -188,7 +224,7 @@ struct Graph3DView: View {
         .hoverEffect(.highlight)
         .accessibilityLabel("Filter")
 
-        GraphStyleTool(main: lookBinding, folderRaw: folderBinding, folders: topFolders,
+        GraphStyleTool(theme: themeBinding, main: lookBinding, folderRaw: folderBinding, folders: topFolders,
                        showLegend: { showingLegend = true })
 
         IdeaToolButton(symbol: "scope", label: "Recentre") {
@@ -204,6 +240,16 @@ struct Graph3DView: View {
 
     private var folderBinding: Binding<String> {
         GraphPreview.isOn ? .constant("") : $folderStyles
+    }
+
+    /// The theme in force: the owner's choice, or in the design preview the
+    /// one asked for (never read or written there).
+    private var themeBinding: Binding<String> {
+        GraphPreview.isOn ? .constant(GraphPreview.theme.rawValue) : $themeRaw
+    }
+
+    private var theme: GraphTheme {
+        GraphPreview.isOn ? GraphPreview.theme : GraphTheme.stored(themeRaw)
     }
 
     @ViewBuilder
@@ -260,10 +306,16 @@ struct Graph3DView: View {
         GraphPreview.isOn ? GraphStyleChoice.main : nodeStyle
     }
 
-    /// Whether the notes are drawn as the Universe (GraphUniverse): any main
-    /// look that is not one single style.
+    /// Whether the notes are drawn as the Universe (GraphUniverse): the
+    /// Space theme with any main look that is not one single style.
     private var isUniverse: Bool {
-        GraphNodeStyle(rawValue: mainLook) == nil
+        theme == .space && GraphNodeStyle(rawValue: mainLook) == nil
+    }
+
+    /// Whether sizes come from the notes' lengths: the Universe and every
+    /// other theme.
+    private var sizedByLength: Bool {
+        isUniverse || theme != .space
     }
 
     /// Everything the picture depends on. When this changes the layout is
@@ -271,7 +323,7 @@ struct Graph3DView: View {
     /// the Universe each note's size step counts too (GraphUniverse.level),
     /// so typing rebuilds only when a note crosses one.
     private var signature: String {
-        let universe: Bool = isUniverse
+        let universe: Bool = sizedByLength
         var parts: [String] = []
         for note in notes.notes {
             let folder: String = note.folderId?.uuidString ?? ""
@@ -291,7 +343,9 @@ struct Graph3DView: View {
         }
         parts.append("\(reduceMotion)")
         parts.append(nodeStyle + "|" + folderStyles)
+        parts.append("t" + theme.rawValue)
         parts.append("\(quality.rawValue)")
+        parts.append("g\(graphics.tier.rawValue)")
         parts.append("\(bold)")
         parts.append("\(highContrast)")
         return parts.joined(separator: "\n")
@@ -308,6 +362,10 @@ struct Graph3DView: View {
     }
 
     private func rebuild() async {
+        if theme != .space {
+            await rebuildTheme(theme)
+            return
+        }
         if isUniverse {
             await rebuildUniverse()
             return
@@ -359,6 +417,27 @@ struct Graph3DView: View {
                                                 folderLooks: looks)
     }
 
+    /// A theme other than Space (GraphThemes): its plan and its shaders'
+    /// check off the main thread, then the shared theme scene with its
+    /// look. A theme not built yet shows the Universe.
+    private func rebuildTheme(_ chosen: GraphTheme) async {
+        let edges = notes.allEdges()
+        let input: UniverseInput = universeInput(edges: edges)
+        let worked = await Task.detached(priority: .userInitiated) { () -> ThemePlan? in
+            let plan: ThemePlan? = GraphThemes.plan(chosen, input)
+            GraphThemes.prepare(chosen)
+            return plan
+        }.value
+        guard !Task.isCancelled else { return }
+        let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
+        guard let plan = worked, let look = GraphThemes.look(chosen, lively: lively, bold: bold) else {
+            await rebuildUniverse()
+            return
+        }
+        built = GraphSceneBuilder.buildTheme(store: notes, plan: plan, look: look, edges: edges, lively: lively,
+                                             contrast: highContrast)
+    }
+
     /// What the plan reads from the store: notes, folders and links only.
     /// The design preview seeds by name, as its ids change every launch.
     private func universeInput(edges: [(UUID, UUID)]) -> UniverseInput {
@@ -407,6 +486,9 @@ struct GraphScene {
     /// note's galaxy - what the filter and folder looks go by.
     var galaxies: [UUID] = []
     var galaxyOf: [UUID: UUID] = [:]
+    /// The theme it was built in (GraphTheme): the words VoiceOver and the
+    /// first-run card use.
+    var theme: GraphTheme = .space
 }
 
 /// Turns notes and their positions into SceneKit nodes.
@@ -473,7 +555,8 @@ enum GraphSceneBuilder {
         // shared geometry and materials; a bright pair for a chosen black
         // hole in the plain space
         let styles: [UUID: GraphNodeStyle] = GraphStyleChoice.resolve(store: store)
-        let detail: Float = SpaceQuality.current() == .full ? 1 : 0
+        // the style shaders' noise loops: only at full liveliness and High
+        let detail: Float = SpaceQuality.current() == .full ? GraphQuality.current.shaderDetail : 0
         let kit = GraphStyleKit(store: store, shaders: shaders, support: styled, lively: lively, detail: detail)
         var clocked: [SCNMaterial] = []
         if shaders.link || styled.has("link") { clocked.append(linkMaterial) }
@@ -748,10 +831,10 @@ struct GraphSCNView: UIViewRepresentable {
         view.backgroundColor = .black
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
-        view.antialiasingMode = .multisampling4X
-        // step and draw every frame the screen shows: 120 a second on
-        // ProMotion, 60 elsewhere (SceneKit caps it at what the screen can do)
-        view.preferredFramesPerSecond = 120
+        // High: 4x multisampling, and every frame the screen shows (120 a
+        // second on ProMotion); Smooth: 2x, and 60 (GraphQuality)
+        view.antialiasingMode = Self.antialiasing()
+        view.preferredFramesPerSecond = GraphQuality.frameRate
         view.rendersContinuously = true
         view.isJitteringEnabled = false
         view.defaultCameraController.interactionMode = .orbitTurntable
@@ -803,6 +886,11 @@ struct GraphSCNView: UIViewRepresentable {
 
     static func dismantleUIView(_ view: FramingSCNView, coordinator: Coordinator) {
         coordinator.stop()
+    }
+
+    /// The multisampling the Graphics budget allows.
+    static func antialiasing() -> SCNAntialiasingMode {
+        GraphQuality.current.msaa >= 4 ? .multisampling4X : .multisampling2X
     }
 
     /// One body as a pick sees it: its index, where its centre is on screen,
@@ -903,7 +991,8 @@ struct GraphSCNView: UIViewRepresentable {
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
             view.isPlaying = true
-            view.preferredFramesPerSecond = 120
+            view.antialiasingMode = GraphSCNView.antialiasing()
+            view.preferredFramesPerSecond = GraphQuality.frameRate
             built.sim.setViewHeight(Float(view.bounds.height))
             wireCameraGestures(in: view)
             // still flown in to a folder that is still there: stay on it
@@ -1157,7 +1246,9 @@ struct GraphSCNView: UIViewRepresentable {
                 return
             }
             lastWake = CACurrentMediaTime()
-            if view.preferredFramesPerSecond != 120 { view.preferredFramesPerSecond = 120 }
+            // Smooth: 60 throughout, so the rate never changes under the eye
+            let fast: Int = GraphQuality.frameRate
+            if view.preferredFramesPerSecond != fast { view.preferredFramesPerSecond = fast }
             guard universe, !settling else { return }
             settling = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.05) { [weak self] in

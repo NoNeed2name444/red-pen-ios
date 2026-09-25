@@ -18,6 +18,12 @@ on:
       - 'ios/RedPen/Models/**'
       - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
       - 'ios/RedPen/Features/Notes/GraphUniverse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLinkCurve.swift'
+      - 'ios/RedPen/Features/Notes/GraphThemePlan.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeurons.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronImpulses.swift'
+      - 'ios/RedPen/Features/Notes/GraphTheme.swift'
+      - 'ios/RedPen/Features/Notes/GraphCircuit.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -161,6 +167,21 @@ jobs:
           # the Universe look: folders as black holes and stars, notes as planets,
           # moons, pulsars and comets - the size ladder, no overlaps, determinism
           suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
+          # the Graphics setting (Automatic / High quality / Smooth), even
+          # frame steps, and every link one smooth curve
+          suite graphics GraphicsTests.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
+          # the Neurons theme: folders as brain regions and relays down the
+          # pathway, notes as neurons, glia and receptors - the ladder, no
+          # overlaps, pathways running outward, impulses at random times
+          suite neurons NeuronHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
+                $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift
+          # the Circuit theme: folders as processors and module chips on their
+          # sub-boards, notes as capacitors, resistors, LEDs, diodes, headers
+          # and edge fingers - the ladder, no overlapping footprints, flat on
+          # the board, and every trace routed square with rounded 45° corners
+          suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
+                $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
+                $F/Notes/GraphTheme.swift
           # the accuracy engine: dose, lab and contradiction rules (the same
           # cases as the server's), the accuracy model's grades, the cache key,
           # the order background checks run in, and one-tap corrections

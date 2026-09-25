@@ -4,7 +4,9 @@ import XCTest
 /// app: the Universe at rest (the whole map), a moment later (the orbits
 /// moving on), in landscape, while a star is being dragged with its system,
 /// flown in to one star system, the legend, and each single look on its
-/// own. Run on its own by the "Design preview" workflow.
+/// own; then the same for the Neurons theme (`-graphPreviewTheme neurons`)
+/// and the Circuit theme (`-graphPreviewTheme circuit`).
+/// Run on its own by the "Design preview" workflow.
 final class GraphPreviewUITests: XCTestCase {
     func testGraphAtRest() {
         let app = XCUIApplication()
@@ -96,6 +98,165 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["What the bodies mean"].waitForExistence(timeout: 10), "the legend didn't open")
         sleep(1)
         snap(app, "10-look-menu-legend")
+    }
+
+    // MARK: the Neurons theme
+
+    /// The whole map as a nervous system: Cardiology and Examples as two
+    /// regions, Examples' pathway running out through Inguinal (Anatomy one
+    /// relay further) and Femoral, impulses running along the axons at
+    /// their own random times - so the second picture differs from the
+    /// first - and in landscape.
+    func testNeuronsAtRest() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
+        app.launch()
+        let space = app.otherElements["graph3D"]
+        XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
+        sleep(3)
+        let summary: String = (space.value as? String) ?? ""
+        XCTAssertTrue(summary.contains("regions") && summary.contains("glia"), "no Neurons summary: \(summary)")
+        snap(app, "11-neurons-at-rest")
+        sleep(2)
+        snap(app, "12-neurons-two-seconds-later")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        sleep(3)
+        snap(app, "13-neurons-landscape")
+        XCUIDevice.shared.orientation = .portrait
+    }
+
+    /// Double-tapped Examples, as the app does it itself: flown in to the
+    /// region and its whole pathway, close enough to see the cells' gel,
+    /// nuclei and dendrites and the impulses along the axons.
+    func testNeuronsFlyIn() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewFly", "Examples"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        sleep(3)
+        snap(app, "14-neurons-fly-examples")
+        sleep(1)
+        snap(app, "15-neurons-fly-examples-later")
+    }
+
+    /// The busiest relay (Inguinal) picked up and carried: its cells and
+    /// Anatomy, the relay beyond it, follow.
+    func testNeuronsWhileDragging() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewDrag"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        usleep(1_600_000)
+        snap(app, "16-neurons-dragging")
+        sleep(3)
+        snap(app, "17-neurons-after-release")
+    }
+
+    /// "What the cells mean", opened by the app a second after the map.
+    func testNeuronsLegend() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewLegend"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        XCTAssertTrue(app.staticTexts["What the cells mean"].waitForExistence(timeout: 10), "the legend didn't open")
+        sleep(1)
+        snap(app, "18-neurons-legend")
+    }
+
+    /// The Look menu offers the themes, and in Neurons its legend.
+    func testNeuronsLookMenu() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        let look = app.buttons["Look"]
+        XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
+        look.tap()
+        XCTAssertTrue(app.buttons["Space"].waitForExistence(timeout: 5), "no Space theme in the Look menu")
+        XCTAssertTrue(app.buttons["Neurons"].exists, "no Neurons theme in the Look menu")
+        let legend = app.buttons["What the cells mean"]
+        XCTAssertTrue(legend.waitForExistence(timeout: 5), "no Neurons legend in the Look menu")
+        snap(app, "19-neurons-look-menu")
+    }
+
+    // MARK: the Circuit theme
+
+    /// The whole board: Cardiology and Examples as two processors in their
+    /// zones, Examples' modules (Inguinal with Anatomy beside it, Femoral)
+    /// on their sub-boards, the parts round each chip, copper traces routed
+    /// square with rounded 45° corners, current running along them - so the
+    /// second picture differs from the first - and in landscape.
+    func testCircuitAtRest() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit"]
+        app.launch()
+        let space = app.otherElements["graph3D"]
+        XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
+        sleep(3)
+        let summary: String = (space.value as? String) ?? ""
+        XCTAssertTrue(summary.contains("processors") && summary.contains("capacitors"), "no Circuit summary: \(summary)")
+        snap(app, "21-circuit-board")
+        sleep(2)
+        snap(app, "22-circuit-two-seconds-later")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        sleep(3)
+        snap(app, "23-circuit-landscape")
+        XCUIDevice.shared.orientation = .portrait
+    }
+
+    /// Double-tapped Examples, as the app does it itself: flown in to the
+    /// processor's zone and its modules, close enough to read the names on
+    /// the chips and see the cans, bands, LEDs and packets on the traces.
+    func testCircuitFlyIn() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewFly", "Examples"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        sleep(3)
+        snap(app, "24-circuit-fly-examples")
+        sleep(1)
+        snap(app, "25-circuit-fly-examples-later")
+    }
+
+    /// The busiest module (Inguinal) picked up and carried: its parts and
+    /// sub-board come with it, Anatomy beside it follows, and every trace
+    /// to them re-routes as it goes.
+    func testCircuitWhileDragging() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewDrag"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        usleep(1_600_000)
+        snap(app, "26-circuit-dragging")
+        sleep(3)
+        snap(app, "27-circuit-after-release")
+    }
+
+    /// "What the parts mean", opened by the app a second after the map.
+    func testCircuitLegend() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewLegend"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        XCTAssertTrue(app.staticTexts["What the parts mean"].waitForExistence(timeout: 10), "the legend didn't open")
+        sleep(1)
+        snap(app, "28-circuit-legend")
+    }
+
+    /// The Look menu offers all three themes, and in Circuit its legend.
+    func testCircuitLookMenu() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        let look = app.buttons["Look"]
+        XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
+        look.tap()
+        XCTAssertTrue(app.buttons["Circuit"].waitForExistence(timeout: 5), "no Circuit theme in the Look menu")
+        XCTAssertTrue(app.buttons["Neurons"].exists && app.buttons["Space"].exists, "a theme is missing")
+        let legend = app.buttons["What the parts mean"]
+        XCTAssertTrue(legend.waitForExistence(timeout: 5), "no Circuit legend in the Look menu")
+        snap(app, "29-circuit-look-menu")
     }
 
     private func snap(_ app: XCUIApplication, _ name: String) {

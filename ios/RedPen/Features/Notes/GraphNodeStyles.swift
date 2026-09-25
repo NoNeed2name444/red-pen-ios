@@ -175,56 +175,87 @@ enum GraphStyleChoice {
 
 /// The look tool, in the Space's cluster of round tools (under the thumb
 /// on a phone, at the trailing edge on a wide iPad - IdeaTools' placement):
-/// the Universe or one look for every note, a submenu with a look per
-/// top-level folder, and, in the Universe, what the bodies mean.
+/// the map's theme (GraphTheme: Space, Neurons, Circuit); in Space, the
+/// Universe or one look for every note and a submenu with a look per
+/// top-level folder; and, in the Universe or any other theme, what its
+/// bodies mean.
 struct GraphStyleTool: View {
+    @Binding var theme: String
     @Binding var main: String
     @Binding var folderRaw: String
     let folders: [NoteFolder]
     /// Opens the legend (GraphLegendSheet).
     var showLegend: () -> Void = {}
 
+    private var chosen: GraphTheme { GraphTheme.stored(theme) }
+
     var body: some View {
-        let custom: Bool = main != GraphStyleChoice.auto || !folderRaw.isEmpty
+        let space: Bool = chosen == .space
+        let custom: Bool = !space || main != GraphStyleChoice.auto || !folderRaw.isEmpty
         let ink: Color = custom ? Color.accentColor : Color.secondary
         let glass: Glass = IdeaToolGlass.glass(active: custom)
         Menu {
-            Picker("Look", selection: $main) {
-                Label("Universe", systemImage: "sparkles").tag(GraphStyleChoice.auto)
-                ForEach(GraphNodeStyle.menuOrder) { style in
-                    Label(style.name, systemImage: style.symbol).tag(style.rawValue)
-                }
-            }
-            .pickerStyle(.inline)
-            if !folders.isEmpty {
-                Menu("Folder looks") {
-                    ForEach(folders) { folder in
-                        Picker(folder.name, selection: folderBinding(folder.id)) {
-                            Text("Same as all").tag("")
-                            ForEach(GraphNodeStyle.menuOrder) { style in
-                                Label(style.name, systemImage: style.symbol).tag(style.rawValue)
-                            }
-                        }
-                        .pickerStyle(.menu)
+            if GraphTheme.offered.count > 1 {
+                Picker("Theme", selection: themeBinding) {
+                    ForEach(GraphTheme.offered) { option in
+                        Label(option.title, systemImage: option.symbol).tag(option.rawValue)
                     }
                 }
+                .pickerStyle(.inline)
             }
-            if GraphNodeStyle(rawValue: main) == nil {
+            if space {
+                spaceLooks
+            }
+            if !space || GraphNodeStyle(rawValue: main) == nil {
                 Button {
                     showLegend()
                 } label: {
-                    Label("What the bodies mean", systemImage: "info.circle")
+                    Label(chosen.legendTitle, systemImage: "info.circle")
                 }
             }
         } label: {
-            IdeaToolFace(symbol: "sparkles")
+            IdeaToolFace(symbol: space ? "sparkles" : chosen.symbol)
         }
         .foregroundStyle(ink)
         .glassEffect(glass, in: .circle)
         .popOut(.floating, in: Circle())
         .hoverEffect(.highlight)
         .accessibilityLabel("Look")
-        .accessibilityHint("Choose how notes look: a universe of folders and notes, or every note as one kind of body.")
+        .accessibilityHint("Choose the map's theme - space, neurons or circuit - and in space how notes look.")
+    }
+
+    /// The Space theme's own choices: the Universe or one style for all,
+    /// and a style per top-level folder.
+    @ViewBuilder
+    private var spaceLooks: some View {
+        Picker("Look", selection: $main) {
+            Label("Universe", systemImage: "sparkles").tag(GraphStyleChoice.auto)
+            ForEach(GraphNodeStyle.menuOrder) { style in
+                Label(style.name, systemImage: style.symbol).tag(style.rawValue)
+            }
+        }
+        .pickerStyle(.inline)
+        if !folders.isEmpty {
+            Menu("Folder looks") {
+                ForEach(folders) { folder in
+                    Picker(folder.name, selection: folderBinding(folder.id)) {
+                        Text("Same as all").tag("")
+                        ForEach(GraphNodeStyle.menuOrder) { style in
+                            Label(style.name, systemImage: style.symbol).tag(style.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+        }
+    }
+
+    /// The stored theme, read back as one the menu offers.
+    private var themeBinding: Binding<String> {
+        Binding<String>(
+            get: { GraphTheme.stored(theme).rawValue },
+            set: { theme = $0 }
+        )
     }
 
     private func folderBinding(_ id: UUID) -> Binding<String> {

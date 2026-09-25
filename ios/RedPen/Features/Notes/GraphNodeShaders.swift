@@ -1206,19 +1206,32 @@ nonisolated enum GraphStyleProbe {
     }
 
     private static func passes(_ source: String, device: MTLDevice) -> Bool {
+        renders([.surface: source], on: SCNPlane(width: 4, height: 4), device: device) { _ in }
+    }
+
+    /// Whether `modifiers` compile and draw on this device, on `geometry`
+    /// (centred, 4 units across at most), with `setup` giving the material
+    /// its arguments; `rpProbe` is set to 1 after it, so a working modifier
+    /// paints the centre white. The themes check their shaders with it
+    /// (GraphNeuronLook).
+    static func renders(_ modifiers: [SCNShaderModifierEntryPoint: String], on geometry: SCNGeometry,
+                        device: MTLDevice, setup: (SCNMaterial) -> Void) -> Bool {
         let scene = SCNScene()
         scene.background.contents = UIColor.black
         let material = SCNMaterial()
         material.lightingModel = .constant
-        guard let black = blackTexture() else { return false }
+        // the same tiny texture the real materials carry (blackImage): SceneKit
+        // hands texture coordinates only to a property holding a texture, so
+        // a `setup` that puts other contents on the diffuse is tested as is
+        guard let black = blackImage else { return false }
         material.diffuse.contents = black
         material.isDoubleSided = true
-        material.shaderModifiers = [.surface: source]
+        material.shaderModifiers = modifiers
         GraphStyleUniforms.defaults(material)
+        setup(material)
         material.setValue(NSNumber(value: 1.0), forKey: "rpProbe")
-        let plane = SCNPlane(width: 4, height: 4)
-        plane.materials = [material]
-        scene.rootNode.addChildNode(SCNNode(geometry: plane))
+        geometry.materials = [material]
+        scene.rootNode.addChildNode(SCNNode(geometry: geometry))
         let camera = SCNCamera()
         camera.fieldOfView = 40
         let eye = SCNNode()
@@ -1231,6 +1244,18 @@ nonisolated enum GraphStyleProbe {
         let size = CGSize(width: 8, height: 8)
         let shot: UIImage = renderer.snapshot(atTime: 0, with: size, antialiasingMode: .none)
         return centreBrightness(shot) > 0.5
+    }
+
+    /// A 4x4 black texture for the diffuse of every material whose shader
+    /// modifier reads `_surface.diffuseTexcoord` but paints its own colour:
+    /// with a plain colour there, SceneKit passes no texture coordinates and
+    /// they read as 0 on a device. Made once, safe off the main thread.
+    static let blackImage: CGImage? = blackTexture()
+
+    /// blackImage as material contents (plain black if it could not be made).
+    static var blackContents: Any {
+        if let image = blackImage { return image }
+        return UIColor.black
     }
 
     private static func blackTexture() -> CGImage? {

@@ -15,7 +15,11 @@ import simd
 //
 // Each layer is one Canvas drawn once per size (a few hundred dots), and
 // only its offset changes afterwards. The ~40 twinkling stars have their own
-// small Canvas on a 20 fps clock, only at SpaceQuality.full.
+// small Canvas on a 20 fps clock, only at SpaceQuality.full and the High
+// quality Graphics setting. Smooth draws every other faint star and no soft
+// halos, and nothing twinkles. While the 3D map covers the sky
+// (SpaceQualityCenter.skyCovered) nothing here reads the scroll or the
+// tilt, so no layer is moved under it for nobody to see.
 //
 // Tilt comes from PopOutMotion - the app's one motion source - never a
 // second CMMotionManager.
@@ -146,13 +150,18 @@ extension View {
 struct SkyStars: View {
     let night: Bool
     let quality: SpaceQuality
+    var budget: GraphicsBudget = .high
+    var covered: Bool = false
 
     var body: some View {
+        let twinkles: Bool = quality.isFull && budget.twinkle && !covered
+        let stride: Int = budget.starStride
+        let haze: Bool = budget.haze
         ZStack {
             ForEach(StarDepth.allCases, id: \.rawValue) { depth in
                 ZStack {
-                    StarLayerCanvas(depth: depth, night: night)
-                    if depth == .near && quality.isFull {
+                    StarLayerCanvas(depth: depth, night: night, stride: stride, haze: haze)
+                    if depth == .near && twinkles {
                         TwinkleCanvas(night: night)
                     }
                 }
@@ -184,6 +193,8 @@ private struct StarShift: ViewModifier {
     private func shift() -> CGSize {
         var x: CGFloat = 0
         var y: CGFloat = 0
+        // covered by the 3D map: read nothing live, so nothing updates
+        if SpaceQualityCenter.shared.skyCovered { return .zero }
         if quality.drifts {
             let raw: CGFloat = SkyScroll.shared.offset * depth.scrollFactor
             let cap: CGFloat = StarShift.scrollCap
@@ -209,6 +220,10 @@ private struct StarShift: ViewModifier {
 private struct StarLayerCanvas: View {
     let depth: StarDepth
     let night: Bool
+    /// Every Nth faint (far and mid) star: 1 draws all of them.
+    var stride: Int = 1
+    /// The near stars' soft halos and the bright stars' glow.
+    var haze: Bool = true
 
     /// Past each edge, so a sliding layer never shows a bare strip.
     static let overscan: CGFloat = 56
@@ -216,13 +231,16 @@ private struct StarLayerCanvas: View {
     var body: some View {
         let depth: StarDepth = self.depth
         let night: Bool = self.night
+        let stride: Int = self.stride
+        let haze: Bool = self.haze
         Canvas { context, size in
-            StarLayerCanvas.draw(depth, night: night, in: &context, size: size)
+            StarLayerCanvas.draw(depth, night: night, stride: stride, haze: haze, in: &context, size: size)
         }
         .padding(-StarLayerCanvas.overscan)
     }
 
-    static func draw(_ depth: StarDepth, night: Bool, in context: inout GraphicsContext, size: CGSize) {
+    static func draw(_ depth: StarDepth, night: Bool, stride: Int = 1, haze: Bool = true,
+                     in context: inout GraphicsContext, size: CGSize) {
         let height: CGFloat = max(1, size.height - 2 * overscan)
         let scale: CGFloat = CGFloat(SkyChart.scale(height: Float(height)))
         let cx: CGFloat = size.width / 2
@@ -232,7 +250,9 @@ private struct StarLayerCanvas: View {
             drawClouds(in: &context, size: size, scale: scale, night: night)
         }
         let dim: Double = night ? 1 : 0.85
-        for star in FlatSky.stars(depth) {
+        // Smooth thins the faint layers; the near, bright ones all stay
+        let every: Int = depth == .near ? 1 : max(stride, 1)
+        for (index, star) in FlatSky.stars(depth).enumerated() where index % every == 0 {
             let x: CGFloat = cx + CGFloat(star.at.x) * scale
             let y: CGFloat = cy + CGFloat(star.at.y) * scale
             guard x > -4 && y > -4 && x < size.width + 4 && y < size.height + 4 else { continue }
@@ -240,13 +260,13 @@ private struct StarLayerCanvas: View {
             let rect = CGRect(x: x - r, y: y - r, width: 2 * r, height: 2 * r)
             let colour: Color = night ? FlatSky.colour(star.tint) : Color.white
             context.fill(Path(ellipseIn: rect), with: .color(colour.opacity(star.alpha * dim)))
-            if depth == .near && night {
+            if depth == .near && night && haze {
                 let g: CGFloat = r * 3.2
                 let halo = CGRect(x: x - g, y: y - g, width: 2 * g, height: 2 * g)
                 context.fill(Path(ellipseIn: halo), with: .color(colour.opacity(0.08)))
             }
         }
-        if depth == .near {
+        if depth == .near && haze {
             drawGlowStars(in: &context, size: size, scale: scale, night: night)
         }
     }

@@ -149,6 +149,9 @@ struct SettingsPage: View {
     @AppStorage(PopOutSettings.faceKey) private var face = false
     @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
     @AppStorage(SpaceSettings.soundsKey) private var sounds = false
+    /// "Graphics": Automatic, High quality or Smooth (GraphicsQuality.swift).
+    @AppStorage(SpaceSettings.graphicsKey) private var graphicsRaw: String = GraphicsChoice.automatic.rawValue
+    @Environment(\.graphics) private var graphics
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
@@ -177,6 +180,7 @@ struct SettingsPage: View {
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
         .onChange(of: face) { _, on in faceChanged(on) }
+        .onChange(of: graphicsRaw) { _, _ in SpaceQualityCenter.shared.recompute() }
         .onChange(of: sounds) { _, on in
             // made ready now, so the first cue after turning them on plays
             if on { SpaceSounds.shared.prepare() }
@@ -205,6 +209,12 @@ struct SettingsPage: View {
                 .accessibilityIdentifier("alwaysNightToggle")
             Toggle("Sounds", isOn: $sounds)
                 .accessibilityIdentifier("soundsToggle")
+            Picker("Graphics", selection: $graphicsRaw) {
+                ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
+                    Text(choice.title).tag(choice.rawValue)
+                }
+            }
+            .accessibilityIdentifier("graphicsPicker")
         } header: {
             Text("Look and feel")
         } footer: {
@@ -227,9 +237,25 @@ struct SettingsPage: View {
         }
         parts.append("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
         parts.append("Always night sky keeps the dark star field, and the app's dark look, even in light mode.")
+        parts.append(graphicsFooter)
         parts.append("Sounds are short, quiet tones for right and wrong answers and a finished session. They follow the Ring/Silent switch and stay quiet while anything is being read aloud.")
         let footer: String = parts.joined(separator: " ")
         return footer
+    }
+
+    /// What the Graphics choice is doing on this device, right now.
+    private var graphicsFooter: String {
+        let choice: GraphicsChoice = GraphicsChoice.stored(graphicsRaw)
+        let smooth: Bool = graphics.tier == .smooth
+        switch choice {
+        case .high:
+            return "Graphics: High quality draws every star, link and glow in full, at up to 120 frames a second."
+        case .smooth:
+            return "Graphics: Smooth uses lighter stars, links and glows and 60 frames a second in every look, for older phones that stutter."
+        case .automatic:
+            let now: String = smooth ? "Smooth" : "High quality"
+            return "Graphics: Automatic picks Smooth on older phones, when the phone is warm or in Low Power Mode, and High quality otherwise - \(now) right now."
+        }
     }
 
     /// Turning face tracking on asks for the camera; a refusal turns the

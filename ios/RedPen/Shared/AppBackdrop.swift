@@ -43,7 +43,16 @@ import UIKit
 ///
 /// How alive it is comes from SpaceQuality: drift at .full and .reduced,
 /// twinkle and tilt at .full only, one still frame at .still (Reduce Motion,
-/// Low Power Mode, a hot device).
+/// Low Power Mode, a hot device). How much it costs comes from the Graphics
+/// setting (GraphicsBudget): Smooth holds the nebula still, thins the faint
+/// stars and drops the twinkle and the soft halos.
+///
+/// The moving sky (mesh and nebula) is flattened into one Metal-drawn layer
+/// (drawingGroup) each tick, instead of the compositor blending a mesh, two
+/// masked pictures and their screen and multiply modes separately every
+/// frame the glass above re-samples it. While the 3D map covers the whole
+/// screen (SpaceQualityCenter.skyCovered) its clock, twinkle and tilt all
+/// stop: nothing of the sky can be seen then, and the map needs the frames.
 struct AppBackdrop: View {
     /// The mode colour laid over the mesh, or nil for the mesh alone.
     let tint: Color?
@@ -58,6 +67,7 @@ struct AppBackdrop: View {
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.spaceQuality) private var quality
+    @Environment(\.graphics) private var graphics
     @Environment(\.colorSchemeContrast) private var contrast
     /// Where the current fade started from, and when.
     @State private var fadeFrom: BackdropTone?
@@ -69,7 +79,7 @@ struct AppBackdrop: View {
         _fadeStart = State(initialValue: Date())
     }
 
-    private var still: Bool { !quality.drifts }
+    private var still: Bool { !quality.drifts || !graphics.nebulaDrifts }
 
     /// Night palette. "Always night sky" holds the whole app dark at the
     /// root (SkyRoot), so the scheme alone decides - text stays readable.
@@ -80,15 +90,18 @@ struct AppBackdrop: View {
     var body: some View {
         let night: Bool = self.night
         let quality: SpaceQuality = self.quality
+        let covered: Bool = SpaceQualityCenter.shared.skyCovered
+        let paused: Bool = still || covered
         ZStack {
             // The deepest plane: behind the glass, so it moves WITH the eye
             // while everything raised moves against it. The vignette and the
             // ink column stay put, as the edge of the device's glass.
             ZStack {
-                TimelineView(.animation(minimumInterval: 1.0 / 15, paused: still)) { context in
+                TimelineView(.animation(minimumInterval: 1.0 / 15, paused: paused)) { context in
                     sky(at: context.date)
+                        .drawingGroup(opaque: true)
                 }
-                SkyStars(night: night, quality: quality)
+                SkyStars(night: night, quality: quality, budget: graphics, covered: covered)
             }
             .deepParallax()
             inkColumn

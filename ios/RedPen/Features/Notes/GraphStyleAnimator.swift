@@ -108,6 +108,9 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     private var orbitNote: Int?
     private var orbitGrow: Float = 0
     private var litOnce: Bool = false
+    /// The suns' places last handed to the lit materials, so an unchanged
+    /// frame writes nothing (each write is a KVC call per material).
+    private var sunsShown: [SIMD4<Float>] = []
     /// The Universe's lights: each owner and the materials it lights, where
     /// it was last written, and each comet's own materials.
     private let owners: [Int]
@@ -433,16 +436,31 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     private func light(_ f: GraphStyleFrame, position: [SIMD3<Float>], visible: [Bool]) {
         guard !lit.isEmpty else { return }
         if suns.isEmpty && litOnce { return }
-        litOnce = true
-        var values: [NSValue] = []
+        var places: [SIMD4<Float>] = []
         for k in 0..<4 {
-            var v = SCNVector4(x: 0, y: 0, z: 0, w: 0)
+            var v = SIMD4<Float>(0, 0, 0, 0)
             if k < suns.count, visible[suns[k]] {
                 let local: SIMD3<Float> = position[suns[k]]
                 let world: SIMD4<Float> = f.toScene * SIMD4<Float>(local.x, local.y, local.z, 1)
-                v = SCNVector4(x: world.x, y: world.y, z: world.z, w: 1)
+                v = SIMD4<Float>(world.x, world.y, world.z, 1)
             }
-            values.append(NSValue(scnVector4: v))
+            places.append(v)
+        }
+        if litOnce && places.count == sunsShown.count {
+            var same: Bool = true
+            for k in places.indices {
+                let gap: SIMD4<Float> = places[k] - sunsShown[k]
+                let squared: Float = (gap * gap).sum()
+                if squared > 0.000_004 { same = false }
+            }
+            if same { return }
+        }
+        litOnce = true
+        sunsShown = places
+        var values: [NSValue] = []
+        for v in places {
+            let vector = SCNVector4(x: v.x, y: v.y, z: v.z, w: v.w)
+            values.append(NSValue(scnVector4: vector))
         }
         for material in lit {
             for k in 0..<4 { material.setValue(values[k], forKey: "rpSun\(k)") }

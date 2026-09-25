@@ -1,5 +1,6 @@
 import SceneKit
 import UIKit
+import Metal
 import simd
 
 /// Which notes the space is showing.
@@ -81,6 +82,12 @@ struct GraphNodeInfo {
     var orbit: GraphOrbit? = nil
     var shell: Int = -1
     var light: Int = -1
+    /// A theme's send rank for the links (ThemeBody.rank), in place of the
+    /// style's code: the higher end sends.
+    var linkCode: Int? = nil
+    /// Whether GraphSim may hide its halo when it is tiny on screen in a
+    /// crowded map; nil: the Universe's rule (rocky planets only).
+    var thinnable: Bool? = nil
 }
 
 /// The Universe's own pieces, for GraphSim (built by GraphUniverseScene).
@@ -91,12 +98,31 @@ struct GraphUniverseLooks {
     /// Each link's kind and bow centre, by GraphMemory.key: 0 straight
     /// inside a folder, 1 arched round its galaxy's core (the centre, a
     /// body index), 2 arched round the origin and fainter, 3 not drawn (a
-    /// moon's link to its own planet).
+    /// moon's link to its own planet), 4 a theme's pathway (straight, in
+    /// the far geometry).
     let linkKinds: [String: (Int, Int)]
     /// The fainter links between galaxies and to comets: their own node
     /// and material.
     let farLines: SCNNode
     let farMaterial: SCNMaterial
+    /// A theme's own link widths (the Universe's are both 0.10), and its
+    /// coding of the links' seeds (GraphRibbonWriter).
+    var halfWidth: Float = 0.10
+    var farHalfWidth: Float = 0.10
+    var seeded: Bool = false
+    /// A board the links are routed on, flat (the Circuit theme); nil
+    /// draws them as camera-facing beams.
+    var board: GraphLinkBoard? = nil
+    /// A theme's work each frame after the links are written (the Neurons'
+    /// impulses lighting the cells they reach). Render thread.
+    var ticker: GraphThemeTicker? = nil
+}
+
+/// What a theme runs once a frame on the render thread, after the links
+/// are written: the shaders' clock (`time`, already wrapped), the step,
+/// and the links drawn this frame (near, and in the far geometry).
+nonisolated protocol GraphThemeTicker: AnyObject {
+    func tick(time: Float, step: Float, links: [GraphRibbonLink], far: [GraphRibbonLink])
 }
 
 /// The pieces of the look GraphSim drives that are shared by every note.
@@ -162,9 +188,17 @@ struct GraphSimLooks {
 /// (GraphMemory).
 ///
 /// Links are one geometry of camera-facing ribbons (GraphRibbonWriter),
-/// rebuilt from the notes' positions each frame they move, bent into black
-/// holes' disks; their look, and what each end's style does to it, is in
-/// the link shader.
+/// each one smooth curve, rewritten in place (Metal buffers, no new
+/// geometry) from the notes' positions each frame they move, bent into
+/// black holes' disks; their look, and what each end's style does to it,
+/// is in the link shader.
+///
+/// Frame steps are evened out (GraphFramePacer) before anything moves by
+/// them, the shaders' clock included, so the orbits glide at the display's
+/// own rhythm instead of wobbling with the render loop's timing. How much
+/// each piece may cost - samples along a link, sparks, halos - is the
+/// Graphics budget's (GraphQuality.current), read once when the scene is
+/// built.
 ///
 /// Names: a note's name shows only for the note under the pointer, the
 /// note being pressed (held down) and the note being dragged. It pops in - from 85%
@@ -234,8 +268,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let swell: [Float]
     private let stretchGain: [Float]
     private let glowGain: [Float]
-    /// Each note's style code (GraphNodeStyle.code), for the links.
+    /// Each note's style code (GraphNodeStyle.code), for the links' shading
+    /// and bends.
     private let codes: [Int]
+    /// Each note's send rank for its links: the style code in the Universe,
+    /// a theme's ThemeBody.rank in the others (the higher end sends).
+    private let linkCodes: [Int]
+    /// Whose halos may be hidden when tiny on screen in a crowded map.
+    private let thinnable: [Bool]
     private let styler: GraphStyleAnimator?
     private let ribbons: GraphRibbonWriter
     private var ribbonLinks: [GraphRibbonLink] = []
@@ -263,6 +303,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let farMaterial: SCNMaterial?
     private let farRibbons: GraphRibbonWriter
     private var farLinks: [GraphRibbonLink] = []
+    /// A theme's own work each frame (GraphUniverseLooks.ticker).
+    private let ticker: GraphThemeTicker?
     /// Each body's orbit offset now, worked out once a frame, and how far it
     /// moved in the last step (carried to its children).
     private var offsets: [SIMD3<Float>]
@@ -356,6 +398,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var clock: Float = 0
     private var frame: Int = 0
     private var lastTime: TimeInterval = 0
+    /// Evens out the frame steps, and keeps the clock they add up to (the
+    /// shaders' time). Render thread only.
+    private var pacer = GraphFramePacer()
+    /// The renderer's Metal device, for the links' buffers. Render thread.
+    private var device: MTLDevice?
+    /// The Graphics budget the scene was built with.
+    private let budget: GraphicsBudget
     /// True while nothing is moving and nothing needs to; the frame's work is
     /// skipped then.
     private var resting: Bool = false
@@ -463,8 +512,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         orbitTime = startTime
         offsets = offsetList
         nextOffsets = offsetList
-        ribbons = GraphRibbonWriter(halfWidth: orbiting ? 0.10 : GraphShape.linkHalfWidth)
-        farRibbons = GraphRibbonWriter(halfWidth: 0.10)
+        let budgetNow: GraphicsBudget = GraphQuality.current
+        budget = budgetNow
+        let linkCount: Int = pairs.count
+        let nearWidth: Float = universeLooks?.halfWidth ?? GraphShape.linkHalfWidth
+        let seeded: Bool = universeLooks?.seeded ?? false
+        let board: GraphLinkBoard? = universeLooks?.board
+        ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
+                                    samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
+                                    board: board)
+        let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
+        let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
+        farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
+                                       seeded: seeded, board: board)
+        ticker = universeLooks?.ticker
         bodyKind = infos.map(\.body)
         parentOf = infos.map(\.parent)
         orbitOf = infos.map(\.orbit)
@@ -500,7 +561,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let zero3 = SIMD3<Float>(0, 0, 0)
         moved = [SIMD3<Float>](repeating: zero3, count: infos.count)
         ghost = [Bool](repeating: false, count: infos.count)
-        crowded = orbiting && infos.count > 150
+        crowded = orbiting && infos.count > budgetNow.crowdedAbove
         haloHidden = [Bool](repeating: false, count: infos.count)
         index = lookup
         ids = idList
@@ -523,6 +584,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         stretchGain = infos.map(\.stretchGain)
         glowGain = infos.map(\.glowGain)
         codes = infos.map { $0.style.code }
+        linkCodes = infos.map { $0.linkCode ?? $0.style.code }
+        let rocky: Int = GraphNodeStyle.rocky.code
+        thinnable = infos.map { $0.thinnable ?? ($0.style.code == rocky) }
         styler = looks.styler
         spin = infos.map(\.spin)
         level = [Float](repeating: 0, count: infos.count)
@@ -996,8 +1060,11 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// SceneKit calls this on its render thread once before every frame it
     /// draws.
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        let raw: TimeInterval = lastTime == 0 ? 1.0 / 60.0 : time - lastTime
         lastTime = time
+        // even steps on the display's own grid, and the clock they add up to
+        let raw: TimeInterval = pacer.step(at: time)
+        let pacedTime: TimeInterval = pacer.stamp
+        if device == nil { device = renderer.device }
         let pov: SCNNode? = renderer.pointOfView
         let eye: SIMD3<Float> = pov?.simdWorldPosition ?? SIMD3<Float>(0, 0, 10)
         let pose: simd_float4x4 = pov?.simdWorldTransform ?? matrix_identity_float4x4
@@ -1012,7 +1079,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let skip: [Bool] = slowSkip
         lock.unlock()
         tilt(right: right, up: up, held: held)
-        if lively { tickShaders(time, step: raw, skip: skip) }
+        if lively { tickShaders(pacedTime, step: raw, skip: skip) }
         // the sky stays centred on the camera, so it is at infinity
         sky.simdWorldPosition = eye
         lock.lock()
@@ -1153,6 +1220,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             stepLinks(dt)
         }
         updateLines(eye: eye)
+        if lively, let ticker {
+            ticker.tick(time: shaderTime, step: dt, links: ribbonLinks, far: farLinks)
+        }
         if lively {
             animateLooks(dt, eye: eye, right: right, up: up)
         } else {
@@ -1304,14 +1374,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let focus: Int = grabbed ?? selected ?? -1
         let axes: [SIMD3<Float>]? = styler?.axis
         let geometry: SCNGeometry? = ribbons.write(links: ribbonLinks, position: position, radius: radius,
-                                                   codes: codes, axis: axes, focus: focus, eye: eye)
-        geometry?.materials = [lineMaterial]
-        lines.geometry = geometry
-        guard let farLines, let farMaterial else { return }
+                                                   codes: codes, axis: axes, focus: focus, eye: eye,
+                                                   device: device)
+        if lines.geometry !== geometry { lines.geometry = geometry }
+        guard let farLines, farMaterial != nil else { return }
         let far: SCNGeometry? = farRibbons.write(links: farLinks, position: position, radius: radius,
-                                                 codes: codes, axis: axes, focus: focus, eye: eye)
-        far?.materials = [farMaterial]
-        farLines.geometry = far
+                                                 codes: codes, axis: axes, focus: focus, eye: eye,
+                                                 device: device)
+        if farLines.geometry !== far { farLines.geometry = far }
     }
 
     /// Adds one link, from its sending end; in the Universe a link between
@@ -1319,7 +1389,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// to a comet, from the origin, fainter, in the far geometry).
     private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float, edge: Int? = nil) {
         let eased: Float = grow * grow * (3 - 2 * grow)
-        let swap: Bool = codes[j] > codes[i]
+        let swap: Bool = linkCodes[j] > linkCodes[i]
         let a: Int = swap ? j : i
         let b: Int = swap ? i : j
         var link = GraphRibbonLink(a: a, b: b, seed: seed, grow: eased)
@@ -1331,6 +1401,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 link.centre = c >= 0 && c < position.count ? position[c] : SIMD3<Float>(0, 0, 0)
             } else if kind == 2 {
                 link.bow = 0.15
+                farLinks.append(link)
+                return
+            } else if kind == 4 {
+                // a theme's pathway: straight, in the far geometry
                 farLinks.append(link)
                 return
             }
@@ -1488,7 +1562,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 continue
             }
             emitters[slot].simdPosition = position[note]
-            let rate: Float = 160 * level[note]
+            let rate: Float = 160 * level[note] * budget.particleScale
             system.birthRate = CGFloat(rate)
         }
     }
@@ -1521,7 +1595,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// goes. Left alone when nothing about it has changed.
     private func shapeRing(_ i: Int, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
         let distance: Float = simd_distance(eye, position[i])
-        if crowded && codes[i] == GraphNodeStyle.rocky.code { thinHalo(i, distance: distance) }
+        if crowded && thinnable[i] { thinHalo(i, distance: distance) }
         let fit: Float = ringFit(distance: distance, radius: radius[i])
         let m: Float = level[i]
         let b: Float = bloom[i]

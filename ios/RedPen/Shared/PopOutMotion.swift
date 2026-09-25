@@ -145,6 +145,8 @@ final class PopOutMotion {
             return
         }
         startEngine(face: wantsFace)
+        // the Graphics setting may have changed the tilt's top rate
+        if !idle { link?.preferredFrameRateRange = PopOutMotion.fullRate() }
         if style != .live {
             smooth = .zero
             withAnimation(.smooth(duration: 0.5)) {
@@ -237,7 +239,7 @@ final class PopOutMotion {
         }
         if link == nil {
             let made = CADisplayLink(target: target, selector: #selector(PopOutTickTarget.tick(_:)))
-            made.preferredFrameRateRange = PopOutMotion.fullRate
+            made.preferredFrameRateRange = PopOutMotion.fullRate()
             made.add(to: .main, forMode: .common)
             link = made
             lastTime = 0
@@ -270,12 +272,17 @@ final class PopOutMotion {
         #endif
     }
 
-    private static let fullRate = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+    /// Up to 120 a second at High quality; Smooth holds the tilt to 60, so
+    /// the pop-out never asks the screen for more than the rest runs at.
+    private static func fullRate() -> CAFrameRateRange {
+        let top: Float = GraphQuality.current.maxFPS >= 120 ? 120 : 60
+        return CAFrameRateRange(minimum: 60, maximum: top, preferred: top)
+    }
     private static let idleRate = CAFrameRateRange(minimum: 10, maximum: 15, preferred: 15)
 
     private func setIdle(_ on: Bool) {
         idle = on
-        link?.preferredFrameRateRange = on ? PopOutMotion.idleRate : PopOutMotion.fullRate
+        link?.preferredFrameRateRange = on ? PopOutMotion.idleRate : PopOutMotion.fullRate()
         let interval: Double = on ? 1.0 / 15 : 1.0 / 60
         manager.deviceMotionUpdateInterval = interval
     }
