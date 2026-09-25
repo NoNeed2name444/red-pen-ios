@@ -16,12 +16,27 @@ import SwiftUI
 ///   (1.5 s) after the space appears, as one tap would, so the picture at
 ///   rest shows one name on its solid pill.
 ///
+/// - The notes take the "Star systems" look (GraphStyleChoice): the
+///   most-linked note a black hole, each folder's hub a sun, pages gas
+///   giants, ideas rocky planets, the newest note a pulsar and the two
+///   unlinked notes comets - so one picture shows every style. The owner's
+///   own look setting is never read or written.
+/// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
+///   comet) shows every note in that one style instead.
+///
 /// The space is exposed to UI tests as the element "graph3D".
 enum GraphPreview {
     static let isOn: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreview")
     static let drags: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreviewDrag")
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
     static let chooses: Bool = isOn && !drags
+
+    /// The one style asked for with `-graphPreviewStyle`, if any.
+    static let style: GraphNodeStyle? = {
+        let args: [String] = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "-graphPreviewStyle"), at + 1 < args.count else { return nil }
+        return GraphNodeStyle(rawValue: args[at + 1])
+    }()
 
     /// The groin hernia examples (13 notes: Examples, Inguinal, Femoral) and
     /// a Cardiology folder of 12 more, on a file in the temporary folder.
@@ -59,6 +74,9 @@ enum GraphPreview {
         """)
         _ = add("CHA2DS2-VASc", .idea, "Stroke risk in [[Atrial fibrillation]].")
         let murmurs = add("Murmurs", .page, "Aortic stenosis, mitral regurgitation - and [[Heart failure]] as the end point.")
+        // two notes with no links yet: they wander as comets
+        _ = add("Heart sounds", .idea, "S1 and S2; listen at the apex for S3.")
+        _ = add("Syncope", .idea, "Cardiac or not? Exertional syncope needs an echo.")
         store.link(acs.id, heartFailure.id)
         store.link(af.id, heartFailure.id)
         store.link(murmurs.id, af.id)

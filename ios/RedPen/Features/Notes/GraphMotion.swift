@@ -46,11 +46,24 @@ struct GraphNodeInfo {
     /// The accretion disk's plane, spun about its own axis inside a tilted
     /// holder.
     let diskLeaf: SCNNode
-    let diskGeometry: SCNGeometry
+    /// Nil for a style with no disk (GraphStyleKit).
+    let diskGeometry: SCNGeometry?
     /// Where the disk starts in its turn, and how fast it turns at rest
     /// (radians a second).
     let spin: Float
     let spinRate: Float
+    /// The note's look (GraphNodeStyles), and its brighter ring and disk
+    /// while chosen (nil: it keeps its own; the orbit ring shows instead).
+    var style: GraphNodeStyle = .blackHole
+    var hotRing: SCNGeometry? = nil
+    var hotDisk: SCNGeometry? = nil
+    /// How much the ring's glow swells when the note moves (a sun's
+    /// corona), how far it stretches along the motion (1 for a black
+    /// hole's ring), and how bright it is at rest (from how linked the note
+    /// is).
+    var swell: Float = 0
+    var stretchGain: Float = 1
+    var glowGain: Float = 1
 }
 
 /// The pieces of the look GraphSim drives that are shared by every note.
@@ -67,6 +80,12 @@ struct GraphSimLooks {
     let trails: [SCNParticleSystem]
     /// The sky (GraphSpace), kept centred on the camera.
     let sky: SCNNode
+    /// Moves each style's own pieces (GraphStyleAnimator); nil draws every
+    /// note as the plain black hole it always was.
+    var styler: GraphStyleAnimator? = nil
+    /// What the scene before this one showed (GraphMemory), so only what
+    /// changed pops, grows or fades.
+    var recall: GraphRecall = .everything
 }
 
 /// Keeps the space gently alive, and drives the black holes' motion.
@@ -89,16 +108,24 @@ struct GraphSimLooks {
 /// two meet under a lock that is never held while calling into SceneKit from
 /// the main thread.
 ///
-/// Each note is a small black hole (see GraphLook). At rest its disk turns
-/// slowly, each at its own speed, and its ring shimmers (in the shader).
-/// Moving - dragged, flung, or springing home - its disk spins faster with
-/// its speed, its ring brightens and stretches a little along the way it is
-/// going, and the few fastest notes trail orange sparks; let go, all of it
-/// eases back.
+/// Each note wears its style (GraphNodeStyles: black hole, sun, planet,
+/// gas giant, pulsar or comet). At rest its disk turns slowly, each at its
+/// own speed, and its glow shimmers (in the shaders). Moving - dragged,
+/// flung, or springing home - its disk spins faster with its speed, its
+/// glow brightens and stretches a little along the way it is going (a
+/// sun's corona swells), and the few fastest notes trail sparks in their
+/// style's colour; let go, all of it eases back. Everything else a style
+/// does is GraphStyleAnimator's, called from here each frame.
 ///
-/// Links are one geometry of camera-facing ribbons, rebuilt from the notes'
-/// positions each frame they move; their electric look is entirely in the
-/// link shader.
+/// Notes pop in, out and bounce on a size spring (stepPops) with a bloom of
+/// light; links grow in from their sending end and draw back into it
+/// (stepLinks); after a rebuild only what changed does either
+/// (GraphMemory).
+///
+/// Links are one geometry of camera-facing ribbons (GraphRibbonWriter),
+/// rebuilt from the notes' positions each frame they move, bent into black
+/// holes' disks; their look, and what each end's style does to it, is in
+/// the link shader.
 ///
 /// Names: a note's name shows only for the note under the pointer, the
 /// note being pressed (held down) and the note being dragged. It pops in - from 85%
@@ -148,8 +175,18 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let ringLeaf: [SCNNode]
     private let ringGeometry: [SCNGeometry]
     private let diskLeaf: [SCNNode]
-    private let diskGeometry: [SCNGeometry]
+    private let diskGeometry: [SCNGeometry?]
     private let spinRate: [Float]
+    private let hotRingOf: [SCNGeometry?]
+    private let hotDiskOf: [SCNGeometry?]
+    private let swell: [Float]
+    private let stretchGain: [Float]
+    private let glowGain: [Float]
+    /// Each note's style code (GraphNodeStyle.code), for the links.
+    private let codes: [Int]
+    private let styler: GraphStyleAnimator?
+    private let ribbons = GraphRibbonWriter()
+    private var ribbonLinks: [GraphRibbonLink] = []
     private let hotRing: SCNGeometry
     private let hotDisk: SCNGeometry
     private let clocked: [SCNMaterial]
@@ -180,11 +217,29 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var labelsUp: [Int] = []
     private var labelsWanted: [Int] = []
     private var shownEdges: [Int] = []
-    private var lineElement: SCNGeometryElement?
-    /// Set when the shown links change; the render loop rebuilds them.
+    /// Set when the shown links change; the render loop redraws them.
     private var linesDirty: Bool = true
-    private var vertexBuffer: [SCNVector3] = []
-    private var uvBuffer: [Float] = []
+    /// Each note's size while it pops in, out or bounces (a spring towards
+    /// `popGoal`, after `popWait` seconds), and the glow that blooms as it
+    /// appears. Render thread, under the lock.
+    private var popScale: [Float]
+    private var popVelocity: [Float]
+    private var popGoal: [Float]
+    private var popWait: [Float]
+    private var popHidden: [Bool]
+    private var bloom: [Float]
+    private var shownBloom: [Float]
+    private var shownTurn: [Float]
+    /// How far each link has grown (0 to 1), and how long a new one waits
+    /// for its notes before it grows; links gone since the last scene,
+    /// fading back into their sending note.
+    private var linkGrow: [Float]
+    private var linkWait: [Float]
+    private var ghostEdges: [(Int, Int)]
+    private var ghostGrow: [Float]
+    /// The shaders' own time (wrapped clock, times rpMotion), for the
+    /// styles that must keep in step with them.
+    private var shaderTime: Float = 0
     /// The camera, in the space's own coordinates, when last seen.
     private var lastEye = SIMD3<Float>(0, 0, 0)
     /// How far through its turn each disk is.
@@ -222,9 +277,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var pressedNote: Int?
 
     /// Spring towards home: how hard it pulls, and how much of the motion
-    /// each second it soaks up. Lively uses a damping ratio of about 0.5 for
-    /// a visible, soft bounce; Reduce Motion uses critical damping, so
-    /// nothing overshoots.
+    /// each second it soaks up. Lively uses a damping ratio of 0.6 for a
+    /// soft bounce that settles smoothly; Reduce Motion uses critical
+    /// damping, so nothing overshoots.
     private let stiffness: Float = 6
     private let damping: Float
     /// How hard each link holds its two ends at their resting distance.
@@ -262,7 +317,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.labelReach = labelReach
         // critical damping is 2 * sqrt(stiffness), about 4.9
         let critical: Float = 2 * stiffness.squareRoot()
-        self.damping = lively ? critical * 0.5 : critical
+        self.damping = lively ? critical * 0.6 : critical
 
         var lookup: [UUID: Int] = [:]
         var idList: [UUID] = []
@@ -299,6 +354,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         diskLeaf = infos.map(\.diskLeaf)
         diskGeometry = infos.map(\.diskGeometry)
         spinRate = infos.map(\.spinRate)
+        hotRingOf = infos.map(\.hotRing)
+        hotDiskOf = infos.map(\.hotDisk)
+        swell = infos.map(\.swell)
+        stretchGain = infos.map(\.stretchGain)
+        glowGain = infos.map(\.glowGain)
+        codes = infos.map { $0.style.code }
+        styler = looks.styler
         spin = infos.map(\.spin)
         level = [Float](repeating: 0, count: infos.count)
         // impossible values, so every ring is shaped on the first frame
@@ -327,14 +389,59 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         rest = restList
         degree = degreeList
 
-        // Lively: start a little way in from home, so the space blooms outward
-        // as it opens. Still: start at home and stay there.
+        // Lively, on first showing: start a little way in from home, so the
+        // space blooms outward as it opens. On a rebuild, each known note
+        // starts where it was and glides to its new home; a new one pops in
+        // at home. Still: start at home and stay there.
+        let recall: GraphRecall = looks.recall
         var start: [SIMD3<Float>] = []
         start.reserveCapacity(homeList.count)
-        for p in homeList {
-            let from: SIMD3<Float> = lively ? p * Float(0.7) : p
+        var scales: [Float] = []
+        var waits: [Float] = []
+        for (k, p) in homeList.enumerated() {
+            let id: UUID = idList[k]
+            var from: SIMD3<Float> = p
+            if lively, let known = recall.starts[id] {
+                from = known
+            } else if lively && recall.fresh == nil {
+                from = p * Float(0.7)
+            }
             start.append(from)
+            let isFresh: Bool = recall.fresh?.contains(id) ?? true
+            let wait: Float = recall.fresh == nil ? min(Float(k) * 0.004, 0.6) : 0.05
+            scales.append(lively && isFresh ? 0 : 1)
+            waits.append(lively && isFresh ? wait : 0)
         }
+        popScale = scales
+        popWait = waits
+        popVelocity = [Float](repeating: 0, count: infos.count)
+        popGoal = [Float](repeating: 1, count: infos.count)
+        popHidden = [Bool](repeating: false, count: infos.count)
+        bloom = [Float](repeating: 0, count: infos.count)
+        shownBloom = [Float](repeating: 1, count: infos.count)
+        shownTurn = [Float](repeating: 9, count: infos.count)
+
+        // links: new ones grow once both their notes are in; links gone
+        // since the last scene fade back into their sending note
+        var grows: [Float] = []
+        var linkWaits: [Float] = []
+        for (i, j) in edgeList {
+            let key: String = GraphMemory.key(idList[i], idList[j])
+            let isFresh: Bool = recall.freshLinks?.contains(key) ?? true
+            grows.append(lively && isFresh ? 0 : 1)
+            linkWaits.append(max(waits[i], waits[j]) + 0.25)
+        }
+        linkGrow = grows
+        linkWait = linkWaits
+        var ghostList: [(Int, Int)] = []
+        if lively {
+            for (a, b) in recall.ghosts {
+                guard let i = lookup[a], let j = lookup[b] else { continue }
+                ghostList.append((i, j))
+            }
+        }
+        ghostEdges = ghostList
+        ghostGrow = [Float](repeating: 1, count: ghostList.count)
         let zero = SIMD3<Float>(0, 0, 0)
         position = start
         velocity = [SIMD3<Float>](repeating: zero, count: infos.count)
@@ -346,6 +453,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
         for (i, node) in nodes.enumerated() {
             node.simdPosition = position[i]
+            let size: Float = max(popScale[i], 0.001)
+            node.simdScale = SIMD3<Float>(size, size, size)
             // names are either fully there or not there at all
             labels[i].opacity = 1
             labels[i].isHidden = true
@@ -357,38 +466,27 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     // MARK: appearing and popping
 
-    /// Every note grows in with a small bounce, a few at a time.
+    /// Every new note grows in with a small bounce and a bloom of light, a
+    /// few at a time (the render loop runs the springs; see stepPops). The
+    /// sizes were set up in init; this only wakes the loop.
     func appear() {
         guard lively else { return }
-        for (i, node) in nodes.enumerated() {
-            node.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
-            let wait: Double = min(Double(i) * 0.004, 0.6)
-            pop(i, delay: wait)
-        }
+        lock.lock()
+        resting = false
+        lock.unlock()
     }
 
-    /// A springy pop: a little too big, a little too small, then settled.
-    /// Called without the lock held.
+    /// A springy pop: a kick to the note's size spring, so it swells a
+    /// little, dips and settles, with a small bloom. Called without the
+    /// lock held.
     func pop(_ i: Int, delay: TimeInterval = 0) {
-        guard i >= 0, i < nodes.count else { return }
-        let node = nodes[i]
-        node.removeAction(forKey: "pop")
-        guard lively else {
-            node.scale = SCNVector3(x: 1, y: 1, z: 1)
-            return
-        }
-        let up = SCNAction.scale(to: 1.18, duration: 0.14)
-        up.timingMode = .easeOut
-        let down = SCNAction.scale(to: 0.96, duration: 0.12)
-        down.timingMode = .easeInEaseOut
-        let settle = SCNAction.scale(to: 1.0, duration: 0.16)
-        settle.timingMode = .easeOut
-        var steps: [SCNAction] = []
-        if delay > 0 { steps.append(SCNAction.wait(duration: delay)) }
-        steps.append(up)
-        steps.append(down)
-        steps.append(settle)
-        node.runAction(SCNAction.sequence(steps), forKey: "pop")
+        guard i >= 0, i < nodes.count, lively else { return }
+        lock.lock()
+        popWait[i] = max(popWait[i], Float(delay))
+        popVelocity[i] += 3.2
+        bloom[i] = max(bloom[i], 0.45)
+        resting = false
+        lock.unlock()
     }
 
     /// Marks a note as the one being looked at: its ring stays bright.
@@ -468,8 +566,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             diskLeaf[old].geometry = diskGeometry[old]
         }
         if let i {
-            ringLeaf[i].geometry = hotRing
-            diskLeaf[i].geometry = hotDisk
+            // a styled note brings its own bright pair, or none (the orbit
+            // ring marks it); the plain space keeps the shared pair
+            if styler == nil {
+                ringLeaf[i].geometry = hotRing
+                diskLeaf[i].geometry = hotDisk
+            } else {
+                if let hot = hotRingOf[i] { ringLeaf[i].geometry = hot }
+                if let hot = hotDiskOf[i] { diskLeaf[i].geometry = hot }
+            }
         }
         highlighted = i
     }
@@ -569,13 +674,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         if let held = pressedNote, !visible[held] { pressedNote = nil }
         let stillSelected: Int? = selected
         resting = false
+        if lively {
+            // shrink away, or grow back in with a bloom (stepPops)
+            for (i, shown) in changed {
+                popGoal[i] = shown ? 1 : 0
+                if shown { popWait[i] = 0 }
+            }
+        }
         lock.unlock()
         if stillSelected == nil { highlight(nil) }
+        if lively { return }
 
         // SceneKit is touched only once the lock is let go
         for (i, shown) in changed {
             nodes[i].isHidden = !shown
-            if shown { pop(i) }
         }
     }
 
@@ -660,6 +772,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private func tickShaders(_ time: TimeInterval) {
         let wrapped: Double = time.truncatingRemainder(dividingBy: GraphShape.clockPeriod)
         let clock = NSNumber(value: Float(wrapped))
+        shaderTime = Float(wrapped)
         for material in clocked {
             material.setValue(clock, forKey: "rpClock")
         }
@@ -679,7 +792,6 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         var linksStale: Bool = turned
         if linesDirty {
             linesDirty = false
-            rebuildLineElement()
             linksStale = true
         }
         // names pop in and go every frame, even when the notes are still
@@ -689,7 +801,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             // the ribbons face the camera and the rings are sized for it, so
             // both follow it even when nothing else moves
             if linksStale { updateLines(eye: eye) }
-            if turned { fitRings(eye: eye) }
+            if turned {
+                poseStyles(0, eye: eye, right: right, up: up)
+                fitRings(eye: eye)
+            }
             return
         }
 
@@ -718,10 +833,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         for i in nodes.indices {
             nodes[i].simdPosition = position[i]
         }
+        if lively {
+            stepPops(dt)
+            stepLinks(dt)
+        }
         updateLines(eye: eye)
         if lively {
             animateLooks(dt, eye: eye, right: right, up: up)
         } else {
+            poseStyles(0, eye: eye, right: right, up: up)
             fitRings(eye: eye)
         }
 
@@ -785,111 +905,118 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     // MARK: links
 
-    /// Two triangles per shown link, all in one element.
-    private func rebuildLineElement() {
-        var indices: [Int32] = []
-        indices.reserveCapacity(shownEdges.count * 6)
-        var base: Int32 = 0
-        for _ in shownEdges {
-            indices.append(base)
-            indices.append(base + 1)
-            indices.append(base + 2)
-            indices.append(base + 2)
-            indices.append(base + 1)
-            indices.append(base + 3)
-            base += 4
+    /// Redraws every shown link as a ribbon between the rings of its two
+    /// notes, turned to face the camera, bending into a black hole's disk
+    /// or towards a gas giant's ring, grown as far as it has grown (see
+    /// GraphRibbonWriter, which also packs what the link shader reads into
+    /// the texture coordinates). All the links are one geometry, so this is
+    /// one draw however many there are. Each link runs from the end with
+    /// the higher style code (a sun, a pulsar) to the lower (a black hole
+    /// swallows).
+    private func updateLines(eye: SIMD3<Float>) {
+        ribbonLinks.removeAll(keepingCapacity: true)
+        for (e, pair) in edges.enumerated() {
+            let shown: Bool = visible[pair.0] && visible[pair.1]
+            let grow: Float = lively ? linkGrow[e] : (shown ? 1 : 0)
+            guard grow > 0.001 else { continue }
+            addRibbon(pair.0, pair.1, seed: e, grow: grow)
         }
-        lineElement = indices.isEmpty ? nil : SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        for (g, pair) in ghostEdges.enumerated() {
+            let grow: Float = ghostGrow[g]
+            guard grow > 0.001, visible[pair.0], visible[pair.1] else { continue }
+            addRibbon(pair.0, pair.1, seed: g + 7, grow: grow)
+        }
+        let focus: Int = grabbed ?? selected ?? -1
+        let axes: [SIMD3<Float>]? = styler?.axis
+        let geometry: SCNGeometry? = ribbons.write(links: ribbonLinks, position: position, radius: radius,
+                                                   codes: codes, axis: axes, focus: focus, eye: eye)
+        geometry?.materials = [lineMaterial]
+        lines.geometry = geometry
     }
 
-    /// Redraws every shown link as a flat ribbon between the rings of its two
-    /// notes, turned to face the camera. All the links are one geometry, so
-    /// this is one draw however many there are.
-    ///
-    /// Each ribbon starts under its notes' rings (GraphShape.linkTrim) and
-    /// the shader fades it in from there, so the rings read in front of it.
-    ///
-    /// The texture coordinates carry what the link shader needs (see
-    /// GraphShaders.link): u is the link's seed times 64, plus 1, plus the
-    /// distance along the ribbon in the space's units; v is a whole number -
-    /// the ribbon's length in sixteenths, doubled, plus one if it touches the
-    /// selected or dragged note - plus the position across the ribbon. From
-    /// these the shader knows how far each point is from both ends.
-    private func updateLines(eye: SIMD3<Float>) {
-        guard let element = lineElement, !shownEdges.isEmpty else {
-            lines.geometry = nil
-            return
-        }
-        vertexBuffer.removeAll(keepingCapacity: true)
-        uvBuffer.removeAll(keepingCapacity: true)
-        let focus: Int = grabbed ?? selected ?? -1
-        let halfWidth: Float = GraphShape.linkHalfWidth
-        for e in shownEdges {
-            let i: Int = edges[e].0
-            let j: Int = edges[e].1
-            let pa: SIMD3<Float> = position[i]
-            let pb: SIMD3<Float> = position[j]
-            let delta: SIMD3<Float> = pb - pa
-            let length: Float = simd_length(delta)
-            let dir: SIMD3<Float> = length > 0.0001 ? delta / length : SIMD3<Float>(1, 0, 0)
-            let trimA: Float = min(radius[i] * GraphShape.linkTrim, length * 0.45)
-            let trimB: Float = min(radius[j] * GraphShape.linkTrim, length * 0.45)
-            let a: SIMD3<Float> = pa + dir * trimA
-            let b: SIMD3<Float> = pb - dir * trimB
-            let span: Float = max(length - trimA - trimB, 0)
+    private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float) {
+        let eased: Float = grow * grow * (3 - 2 * grow)
+        let swap: Bool = codes[j] > codes[i]
+        let a: Int = swap ? j : i
+        let b: Int = swap ? i : j
+        ribbonLinks.append(GraphRibbonLink(a: a, b: b, seed: seed, grow: eased))
+    }
 
-            // across the ribbon: square to both the link and the line of sight
-            let middle: SIMD3<Float> = (a + b) * 0.5
-            let toEye: SIMD3<Float> = eye - middle
-            var side: SIMD3<Float> = simd_cross(dir, toEye)
-            let sideLength: Float = simd_length(side)
-            if sideLength > 0.0001 {
-                side /= sideLength
-            } else {
-                side = Self.perpendicular(to: dir)
+    /// Grows new links once both their notes have popped in (0.7 s), draws
+    /// links whose notes are filtered away back into their sending end
+    /// (0.45 s), and fades the links gone since the last scene.
+    private func stepLinks(_ dt: Float) {
+        for (e, pair) in edges.enumerated() {
+            let want: Bool = visible[pair.0] && visible[pair.1]
+            if want && linkGrow[e] < 1 && linkWait[e] > 0 {
+                linkWait[e] -= dt
+                continue
             }
-            let offset: SIMD3<Float> = side * halfWidth
-            let a0: SIMD3<Float> = a - offset
-            let a1: SIMD3<Float> = a + offset
-            let b0: SIMD3<Float> = b - offset
-            let b1: SIMD3<Float> = b + offset
-            vertexBuffer.append(SCNVector3(x: a0.x, y: a0.y, z: a0.z))
-            vertexBuffer.append(SCNVector3(x: a1.x, y: a1.y, z: a1.z))
-            vertexBuffer.append(SCNVector3(x: b0.x, y: b0.y, z: b0.z))
-            vertexBuffer.append(SCNVector3(x: b1.x, y: b1.y, z: b1.z))
-
-            // what the shader needs, packed in the texture coordinates:
-            // u = seed * 64 + 1 + distance along; v = k + across, where k
-            // holds the length in sixteenths (doubled) and the lit bit.
-            // Lengths are capped at 60 so u never crosses into the next
-            // seed's range.
-            let seed: Int = e % 61
-            let lit: Int = (i == focus || j == focus) ? 1 : 0
-            let coded: Float = min(span, 60)
-            let sixteenths: Int = Int((coded * 16).rounded(.down))
-            let band: Float = Float(sixteenths * 2 + lit)
-            let low: Float = band + 0.002
-            let high: Float = band + 0.998
-            let u0: Float = Float(seed * 64 + 1)
-            let u1: Float = u0 + coded
-            uvBuffer.append(u0)
-            uvBuffer.append(low)
-            uvBuffer.append(u0)
-            uvBuffer.append(high)
-            uvBuffer.append(u1)
-            uvBuffer.append(low)
-            uvBuffer.append(u1)
-            uvBuffer.append(high)
+            let change: Float = want ? dt / 0.7 : -dt / 0.45
+            linkGrow[e] = min(max(linkGrow[e] + change, 0), 1)
         }
-        let source = SCNGeometrySource(vertices: vertexBuffer)
-        let uvData: Data = uvBuffer.withUnsafeBufferPointer { Data(buffer: $0) }
-        let uvs = SCNGeometrySource(data: uvData, semantic: .texcoord,
-                                    vectorCount: vertexBuffer.count, usesFloatComponents: true,
-                                    componentsPerVector: 2, bytesPerComponent: 4,
-                                    dataOffset: 0, dataStride: 8)
-        let geometry = SCNGeometry(sources: [source, uvs], elements: [element])
-        geometry.materials = [lineMaterial]
-        lines.geometry = geometry
+        guard !ghostEdges.isEmpty else { return }
+        for g in ghostGrow.indices { ghostGrow[g] -= dt / 0.6 }
+        if ghostGrow.allSatisfy({ $0 <= 0 }) {
+            ghostEdges.removeAll()
+            ghostGrow.removeAll()
+        }
+    }
+
+    /// Each note's size spring: a new note waits its turn, then grows from
+    /// nothing with a small overshoot and a bloom of light; a note the
+    /// filter hides shrinks away (without overshoot) and is then hidden; a
+    /// pop is a kick to the spring.
+    private func stepPops(_ dt: Float) {
+        let omega: Float = 15
+        let fade: Float = exp(-dt / 0.35)
+        for i in nodes.indices {
+            if bloom[i] > 0.0005 { bloom[i] *= fade } else { bloom[i] = 0 }
+            if popWait[i] > 0 {
+                popWait[i] -= dt
+                if popWait[i] > 0 { continue }
+                if popScale[i] < 0.01 { bloom[i] = 1 }
+            }
+            let goal: Float = popGoal[i]
+            var s: Float = popScale[i]
+            var v: Float = popVelocity[i]
+            if goal > 0.5 && popHidden[i] {
+                nodes[i].isHidden = false
+                popHidden[i] = false
+                s = 0
+                bloom[i] = 1
+            }
+            if abs(goal - s) < 0.0005 && abs(v) < 0.0005 {
+                if s != goal {
+                    popScale[i] = goal
+                    let size: Float = max(goal, 0.001)
+                    nodes[i].simdScale = SIMD3<Float>(size, size, size)
+                }
+                continue
+            }
+            let zeta: Float = goal > 0.5 ? 0.42 : 1
+            let pieces: Int = max(1, Int((dt * 240).rounded(.up)))
+            let h: Float = dt / Float(pieces)
+            for _ in 0..<pieces {
+                let pull: Float = (goal - s) * omega * omega
+                let brake: Float = v * 2 * zeta * omega
+                v += (pull - brake) * h
+                s += v * h
+            }
+            if goal < 0.5 && s <= 0.02 {
+                s = 0
+                v = 0
+                if !popHidden[i] {
+                    nodes[i].isHidden = true
+                    popHidden[i] = true
+                }
+            }
+            s = max(s, 0)
+            popScale[i] = s
+            popVelocity[i] = v
+            let size: Float = max(s, 0.001)
+            nodes[i].simdScale = SIMD3<Float>(size, size, size)
+        }
     }
 
     /// Any direction square to `dir`, for a link seen exactly end on.
@@ -905,6 +1032,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// moves), shapes each ring, and sends the trail emitters after the
     /// fastest notes.
     private func animateLooks(_ dt: Float, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
+        poseStyles(dt, eye: eye, right: right, up: up)
         let ease: Float = 1 - exp(-dt / 0.15)
         let fullTurn: Float = 2 * Float.pi
         picks.removeAll(keepingCapacity: true)
@@ -952,7 +1080,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             if let note = owner[slot], !wanted.contains(note) { owner[slot] = nil }
         }
         for note in wanted where !owner.contains(where: { $0 == note }) {
-            if let free = owner.firstIndex(where: { $0 == nil }) { owner[free] = note }
+            guard let free = owner.firstIndex(where: { $0 == nil }) else { continue }
+            owner[free] = note
+            // sparks in the note's own colour: embers, sunfire, dust, ice
+            if let styler { trails[free].particleColor = styler.sparkColor(note) }
         }
         for slot in emitters.indices {
             let system: SCNParticleSystem = trails[slot]
@@ -964,6 +1095,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             let rate: Float = 160 * level[note]
             system.birthRate = CGFloat(rate)
         }
+    }
+
+    /// Hands the frame to the style animator (GraphStyleAnimator): with
+    /// `dt` 0 and Reduce Motion it only poses (beams, tails and rings
+    /// turned to the camera), nothing runs.
+    private func poseStyles(_ dt: Float, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
+        guard let styler else { return }
+        let keyWorld: SIMD3<Float> = simd_normalize(GraphStyleUniforms.key)
+        let key: SIMD3<Float> = world.simdConvertVector(keyWorld, from: nil)
+        let frame = GraphStyleFrame(dt: dt, time: lively ? shaderTime : 0, eye: eye, right: right, up: up,
+                                    key: key, toScene: world.simdWorldTransform, grabbed: grabbed,
+                                    selected: selected, lively: lively)
+        styler.step(frame, position: position, velocity: velocity, level: level, visible: visible,
+                    pop: popScale)
     }
 
     /// Sizes every shown ring for the camera, with no motion.
@@ -982,26 +1127,35 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let distance: Float = simd_distance(eye, position[i])
         let fit: Float = ringFit(distance: distance, radius: radius[i])
         let m: Float = level[i]
-        let still: Bool = m < 0.002 && shownLevel[i] < 0.002
-        if still && abs(fit - shownFit[i]) < 0.002 { return }
+        let b: Float = bloom[i]
+        let turn: Float = styler?.leafTurn[i] ?? 0
+        let quiet: Bool = m < 0.002 && shownLevel[i] < 0.002 && b < 0.002 && shownBloom[i] < 0.002
+        let same: Bool = abs(fit - shownFit[i]) < 0.002 && abs(turn - shownTurn[i]) < 0.001
+        if quiet && same { return }
         shownFit[i] = fit
         shownLevel[i] = m
+        shownBloom[i] = b
+        shownTurn[i] = turn
 
         var angle: Float = 0
-        if !still {
+        if m >= 0.002 {
             let v: SIMD3<Float> = velocity[i]
             let vx: Float = simd_dot(v, right)
             let vy: Float = simd_dot(v, up)
             if vx * vx + vy * vy > 0.000_001 { angle = atan2(vy, vx) }
         }
-        let stretch: Float = 1 + 0.22 * m
-        let along: Float = fit * stretch
-        let across: Float = fit / stretch.squareRoot()
+        let stretch: Float = 1 + 0.22 * m * stretchGain[i]
+        // a sun's corona swells as it moves; every glow blooms as it appears
+        let swellBy: Float = 1 + swell[i] * m + 0.6 * b
+        let along: Float = fit * stretch * swellBy
+        let across: Float = fit / stretch.squareRoot() * swellBy
         let axis = SIMD3<Float>(0, 0, 1)
         ringStretch[i].simdOrientation = simd_quatf(angle: angle, axis: axis)
         ringStretch[i].simdScale = SIMD3<Float>(along, across, 1)
-        ringLeaf[i].simdOrientation = simd_quatf(angle: -angle, axis: axis)
-        let glow: Float = 0.85 + 0.15 * m
+        // turned back, then on to where the style wants its bright side
+        ringLeaf[i].simdOrientation = simd_quatf(angle: turn - angle, axis: axis)
+        let base: Float = 0.85 + 0.15 * m + 0.35 * b
+        let glow: Float = min(base * glowGain[i], 1)
         ringStretch[i].opacity = CGFloat(glow)
     }
 

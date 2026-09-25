@@ -12,16 +12,17 @@ import simd
 /// hair (see GraphSim's tilt rig), so it reads as being BEHIND the glass
 /// while the controls stand out in front of it. Every note is a small black
 /// hole - a black sphere, a thin photon ring hugging its rim and a tilted,
-/// streaky accretion disk, tinted a little by its folder - and every link a
-/// stream of plasma with an electric aura (see GraphLook). Pages are a little
-/// larger than ideas.
+/// streaky accretion disk, tinted a little by its folder - or, by the look
+/// tool, a sun, planet, gas giant, pulsar or comet (GraphNodeStyles); every
+/// link a stream of plasma (see GraphLook, GraphStyleShaders). Pages are a
+/// little larger than ideas, and well-linked notes larger and brighter.
 ///
 /// Names stay out of the way: a note's name shows, on a solid dark pill just
 /// the size of the words, only while the pointer hovers over it (iPad
 /// trackpad, mouse or Pencil) or while it is pressed or dragged; it goes
 /// when the finger lifts. Tapping it twice opens it. The only other controls
-/// are two round tools: one to filter, one to bring the view back to the
-/// middle.
+/// are three round tools: one to filter, one to choose the notes' look, one
+/// to bring the view back to the middle.
 ///
 /// It is alive rather than frozen: the notes drift gently, pop in with a small
 /// bounce, and a note dragged with a finger pulls its neighbours along and
@@ -44,6 +45,9 @@ struct Graph3DView: View {
     @State private var filter: GraphFilter = .all
     /// Bumped by the recentre button; the view notices the change.
     @State private var recenter: Int = 0
+    /// The notes' look (GraphStyleChoice), remembered; a change rebuilds.
+    @AppStorage(GraphStyleChoice.key) private var nodeStyle: String = GraphStyleChoice.standard
+    @AppStorage(GraphStyleChoice.foldersKey) private var folderStyles: String = ""
 
     var body: some View {
         Group {
@@ -112,7 +116,8 @@ struct Graph3DView: View {
         filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill"
     }
 
-    /// The only controls on screen: filter, and back to the middle.
+    /// The only controls on screen: filter, the notes' look, and back to
+    /// the middle.
     @ViewBuilder
     private var tools: some View {
         let filtering: Bool = filter != .all
@@ -128,6 +133,8 @@ struct Graph3DView: View {
         .popOut(.floating, in: Circle())
         .hoverEffect(.highlight)
         .accessibilityLabel("Filter")
+
+        GraphStyleTool(main: $nodeStyle, folderRaw: $folderStyles, folders: notes.subfolders(of: nil))
 
         IdeaToolButton(symbol: "scope", label: "Recentre") {
             recenter += 1
@@ -188,6 +195,7 @@ struct Graph3DView: View {
             parts.append("\(folder.id.uuidString)|\(folder.name)|\(parent)")
         }
         parts.append("\(reduceMotion)")
+        parts.append(nodeStyle + "|" + folderStyles)
         parts.append("\(quality.rawValue)")
         parts.append("\(bold)")
         parts.append("\(highContrast)")
@@ -222,6 +230,7 @@ struct Graph3DView: View {
             let reach: Float = radius * GraphShape.diskRadius
             let positions = GraphFraming.arrange(laid, edges: edges, pad: reach)
             let support: GraphShaderSupport = GraphShaderProbe.support
+            _ = GraphStyleProbe.support
             return (positions, support, radius)
         }.value
         guard !Task.isCancelled else { return }
@@ -292,97 +301,54 @@ enum GraphSceneBuilder {
         let textColor = UIColor(red: 1, green: 0.95, blue: 0.88, alpha: 1)
 
         // connections: camera-facing ribbons, all in one geometry that
-        // GraphSim rebuilds as the notes move; the look is in the shader
-        let linkMaterial = GraphLook.link(bold: bold, shader: shaders.link, lively: lively)
+        // GraphSim rebuilds as the notes move; the look is in the shader,
+        // which also reads each end's style (GraphStyleShaders.link)
+        let styled: GraphStyleSupport = GraphStyleProbe.support
+        let linkMaterial: SCNMaterial = GraphStyleKit.link(bold: bold, old: shaders.link,
+                                                           styled: styled.has("link"),
+                                                           lively: lively, reach: pageRadius * 2.5)
         let lines = SCNNode()
         lines.name = "links"
         lines.renderingOrder = 5
         lines.categoryBitMask = 2
         world.addChildNode(lines)
 
-        // shared by every note: two spheres (page, idea) and one black
-        // material; a ring and a disk per folder; a bright pair for the
-        // selected note
-        let hole: SCNMaterial = GraphLook.hole()
-        let pageSphere = SCNSphere(radius: CGFloat(pageRadius))
-        let ideaSphere = SCNSphere(radius: CGFloat(ideaRadius))
-        for sphere in [pageSphere, ideaSphere] {
-            sphere.segmentCount = 28
-            sphere.materials = [hole]
-        }
+        // every note in its style (GraphNodeStyles), built by the kit from
+        // shared geometry and materials; a bright pair for a chosen black
+        // hole in the plain space
+        let styles: [UUID: GraphNodeStyle] = GraphStyleChoice.resolve(store: store)
+        let detail: Float = SpaceQuality.current() == .full ? 1 : 0
+        let kit = GraphStyleKit(store: store, shaders: shaders, support: styled, lively: lively, detail: detail)
         var clocked: [SCNMaterial] = []
-        if shaders.link { clocked.append(linkMaterial) }
-        var looks: [UUID?: (ring: SCNGeometry, disk: SCNGeometry)] = [:]
-        func look(for folder: UUID?) -> (ring: SCNGeometry, disk: SCNGeometry) {
-            if let made = looks[folder] { return made }
-            let tint: UIColor = GraphLook.tint(NoteTone.uiColor(for: folder, in: store))
-            let ringMaterial = GraphLook.ring(tint: tint, hot: false, shader: shaders.ring, lively: lively)
-            let diskMaterial = GraphLook.disk(tint: tint, hot: false, shader: shaders.disk)
-            if shaders.ring { clocked.append(ringMaterial) }
-            let made = (ring: plane(ringMaterial), disk: plane(diskMaterial))
-            looks[folder] = made
-            return made
-        }
+        if shaders.link || styled.has("link") { clocked.append(linkMaterial) }
         let hotRingMaterial = GraphLook.ring(tint: .white, hot: true, shader: shaders.ring, lively: lively)
         if shaders.ring { clocked.append(hotRingMaterial) }
         let hotRing: SCNGeometry = plane(hotRingMaterial)
         let hotDisk: SCNGeometry = plane(GraphLook.disk(tint: .white, hot: true, shader: shaders.disk))
+        var degree: [UUID: Int] = [:]
+        for edge in edges {
+            degree[edge.0, default: 0] += 1
+            degree[edge.1, default: 0] += 1
+        }
 
         var random = SplitMix64(seed: 0x6A26)
         var infos: [GraphNodeInfo] = []
         var extent: Float = 1
         var homes: [SIMD3<Float>] = []
+        var suns: [(Int, Int)] = []
         for note in store.notes {
             guard let p = positions[note.id] else { continue }
             extent = max(extent, simd_length(p))
             homes.append(p)
-            let isPage: Bool = note.kind == .page
-            let radius: Float = isPage ? pageRadius : ideaRadius
-            let node = SCNNode(geometry: isPage ? pageSphere : ideaSphere)
-            node.name = "note:\(note.id.uuidString)"
+            // a note with more links is a little bigger and brighter
+            let links: Int = degree[note.id] ?? 0
+            let base: Float = note.kind == .page ? pageRadius : ideaRadius
+            let grown: Float = min(1 + 0.12 * log2(1 + Float(links)), 1.45)
+            let radius: Float = base * grown
+            let style: GraphNodeStyle = styles[note.id] ?? .blackHole
+            let made: GraphStyledParts = kit.make(note: note, style: style, radius: radius, random: &random)
+            let node: SCNNode = made.node
             node.simdPosition = p
-            let pair = look(for: note.folderId)
-
-            // the disk: flat, tilted so it is seen a little from above, each
-            // note a little differently
-            let tilt = SCNNode()
-            let lean: Float = 0.26 + random.unit() * 0.14
-            let roll: Float = random.unit() * 0.3
-            let yaw: Float = random.unit() * Float.pi
-            let flat = simd_quatf(angle: lean - Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-            let rolled = simd_quatf(angle: roll, axis: SIMD3<Float>(0, 0, 1))
-            let turned = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
-            tilt.simdOrientation = turned * rolled * flat
-            let disk = SCNNode(geometry: pair.disk)
-            let diskSide: Float = radius * GraphShape.diskRadius * 2
-            disk.simdScale = SIMD3<Float>(diskSide, diskSide, 1)
-            let startSpin: Float = random.unit() * Float.pi
-            disk.simdEulerAngles = SIMD3<Float>(0, 0, startSpin)
-            disk.renderingOrder = 4
-            disk.categoryBitMask = 2
-            tilt.addChildNode(disk)
-            node.addChildNode(tilt)
-
-            // the photon ring: always facing the camera, in front of its
-            // own sphere
-            let holder = SCNNode()
-            let billboard = SCNBillboardConstraint()
-            billboard.freeAxes = .all
-            holder.constraints = [billboard]
-            let stretch = SCNNode()
-            let lift: Float = radius * GraphShape.ringLift
-            stretch.simdPosition = SIMD3<Float>(0, 0, lift)
-            stretch.opacity = 0.85
-            let ring = SCNNode(geometry: pair.ring)
-            let ringSide: Float = radius * GraphShape.ringPlane
-            ring.simdScale = SIMD3<Float>(ringSide, ringSide, 1)
-            // after the links (5), so the ring's glow reads on top of the
-            // line where they meet
-            ring.renderingOrder = 6
-            ring.categoryBitMask = 2
-            stretch.addChildNode(ring)
-            holder.addChildNode(stretch)
-            node.addChildNode(holder)
 
             let title: String = note.title.isEmpty ? "Untitled" : note.title
             let labelHeight: Float = max(radius * 1.05, 0.17)
@@ -392,16 +358,33 @@ enum GraphSceneBuilder {
             node.addChildNode(label)
             world.addChildNode(node)
 
-            // each disk turns once every 10 to 20 seconds at rest
-            let pace: Float = 0.5 + random.unit() * 0.5
-            let spinRate: Float = 0.31 + pace * 0.31
-            let info = GraphNodeInfo(id: note.id, node: node, label: label, kind: note.kind,
+            if style == .sun { suns.append((infos.count, links)) }
+            var info = GraphNodeInfo(id: note.id, node: node, label: label, kind: note.kind,
                                      root: store.rootFolder(of: note.folderId), home: p,
-                                     radius: radius, ringStretch: stretch, ringLeaf: ring,
-                                     ringGeometry: pair.ring, diskLeaf: disk,
-                                     diskGeometry: pair.disk, spin: startSpin, spinRate: spinRate)
+                                     radius: made.radius, ringStretch: made.ringStretch,
+                                     ringLeaf: made.ringLeaf, ringGeometry: made.ringGeometry,
+                                     diskLeaf: made.diskLeaf, diskGeometry: made.diskGeometry,
+                                     spin: made.spin, spinRate: made.spinRate)
+            info.style = style
+            info.hotRing = made.hotRing
+            info.hotDisk = made.hotDisk
+            info.swell = made.swell
+            info.stretchGain = made.stretchGain
+            info.glowGain = 0.82 + 0.18 * min(Float(links) / 5, 1)
             infos.append(info)
         }
+
+        // the chosen note's orbit ring, and a faint gravity well round each
+        // folder's notes
+        let orbit: SCNNode = kit.makeOrbit()
+        world.addChildNode(orbit)
+        for well in kit.makeWells(homes: positions, radius: pageRadius) {
+            world.addChildNode(well)
+        }
+        clocked.append(contentsOf: kit.clocked)
+        suns.sort { $0.1 > $1.1 }
+        let styler = GraphStyleAnimator(rigs: kit.rigs, suns: suns.map { $0.0 }, lit: kit.lit,
+                                        orbit: orbit, extent: extent)
 
         // comet trails: a few emitters shared by whichever notes are moving
         // fastest; none at all with Reduce Motion
@@ -449,10 +432,15 @@ enum GraphSceneBuilder {
         // pressed or chosen, not by distance
         let scaledReach: Float = distance * 0.55
         let labelReach: Float = max(scaledReach, 5.5)
-        let simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
+        var simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
                                      clocked: clocked, emitters: emitters, trails: trails, sky: sky)
+        simLooks.styler = styler
+        // only what changed since the scene on screen pops, grows or fades
+        simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles,
+                                             lively: lively)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
+        GraphMemory.remember(sim, edges: edges, styles: styles)
         return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
     }
 
