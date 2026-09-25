@@ -222,10 +222,11 @@ targets:
         # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
         # doesn't propagate to a plain .xcodeproj app target automatically.
         OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
-  # Widgets, the Control and the exam-day Live Activity. Xcode build only:
-  # the Playgrounds package copies ios/RedPen and nothing else, so it never
-  # sees this target. The few app files it shares are Foundation or
-  # AppIntents only; WIDGET_EXTENSION compiles out their app-side halves.
+  # Widgets, the Control and the exam-day and ward round Live Activities.
+  # Xcode build only: the Playgrounds package copies ios/RedPen and nothing
+  # else, so it never sees this target. The few app files it shares are
+  # Foundation or AppIntents only; WIDGET_EXTENSION compiles out their
+  # app-side halves.
   StethoscoreWidgets:
     type: app-extension
     platform: iOS
@@ -237,6 +238,7 @@ targets:
       - path: RedPen/Shared/Platform/GlanceDigest.swift
       - path: RedPen/Shared/Platform/AppLink.swift
       - path: RedPen/Shared/Platform/ExamDayAttributes.swift
+      - path: RedPen/Shared/Platform/WardRoundAttributes.swift
       - path: RedPen/Shared/Platform/ReviewDueIntent.swift
     entitlements:
       path: StethoscoreWidgets/StethoscoreWidgets.entitlements

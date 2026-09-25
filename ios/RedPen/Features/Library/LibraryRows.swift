@@ -197,15 +197,18 @@ extension LibraryView {
         .padding(.top, 8)
     }
 
-    /// "5-day streak · 32 done today", or a nudge while the streak is still
-    /// yesterday's and alive until midnight.
+    /// "5-day streak", or a nudge while the streak is still yesterday's and
+    /// alive until midnight - with the goal ring beside it, "32 / 50 today".
     private var streakLine: some View {
         let streak = studyLog.streak
         let today = studyLog.today
-        let text: String = today > 0 ? "\(streak)-day streak \u{00B7} \(today) done today"
+        let text: String = today > 0 ? "\(streak)-day streak"
                                      : "\(streak)-day streak \u{2014} answer one to keep it"
         let tint: Color = today > 0 ? .orange : .secondary
-        return todayLine(symbol: "flame.fill", tint: tint, text: text)
+        return HStack(spacing: 8) {
+            todayLine(symbol: "flame.fill", tint: tint, text: text)
+            DailyGoalRing(progress: studyLog.goalProgress)
+        }
     }
 
     /// One line of the Today card: a symbol and a short sentence.

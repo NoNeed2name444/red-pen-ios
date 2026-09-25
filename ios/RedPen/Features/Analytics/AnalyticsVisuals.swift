@@ -359,10 +359,13 @@ struct CalibrationChart: View {
 }
 
 /// Twelve weeks of study as a calendar grid, a column a week, shaded by how
-/// much was done each day, with today outlined.
+/// much was done each day, with today outlined and a small moon on each
+/// rest day that kept the streak.
 struct StudyHeatmap: View {
     /// Amount studied per day, keyed like StudyLog (`yyyy-MM-dd`).
     var counts: [String: Int]
+    /// Missed days covered as the week's free rest day (StudyLog.restDaysUsed).
+    var restDays: Set<String> = []
     var weeks: Int = 12
 
     private struct Cell: Identifiable {
@@ -429,6 +432,9 @@ struct StudyHeatmap: View {
                                             .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.5)
                                     }
                                 }
+                                .overlay {
+                                    if restDays.contains(cell.key) { RestDayMoon() }
+                                }
                                 .aspectRatio(1, contentMode: .fit)
                         }
                     }
@@ -446,6 +452,23 @@ struct StudyHeatmap: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Study calendar, last \(weeks) weeks: something studied on \(studied) day\(studied == 1 ? "" : "s"), at most \(busiest) in a day.")
+        .accessibilityLabel("Study calendar, last \(weeks) weeks: something studied on \(studied) day\(studied == 1 ? "" : "s"), at most \(busiest) in a day." + restWords(cells))
+    }
+
+    private func restWords(_ cells: [Cell]) -> String {
+        let rested: Int = cells.filter { restDays.contains($0.key) }.count
+        guard rested > 0 else { return "" }
+        let plural: String = rested == 1 ? "" : "s"
+        return " \(rested) rest day\(plural) kept the streak."
+    }
+}
+
+/// The rest day's mark on the study calendar.
+private struct RestDayMoon: View {
+    var body: some View {
+        Image(systemName: "moon.fill")
+            .font(.system(size: 7, weight: .bold))
+            .foregroundStyle(Color.indigo)
+            .accessibilityHidden(true)
     }
 }

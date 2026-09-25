@@ -118,6 +118,8 @@ enum AppNotifications {
         content.title = "Time to review"
         content.body = body
         content.sound = .default
+        // let through by the study Focus filter (StudyFocusFilter)
+        content.filterCriteria = StudyFocus.criteria
         let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: when)
         center.add(UNNotificationRequest(identifier: "review-due", content: content,
                                          trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)))

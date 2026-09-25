@@ -90,6 +90,7 @@ enum LearnNotifications {
         content.body = StudyRhythm.questionBody(stem: q.stem, options: q.options)
         content.sound = .default
         content.categoryIdentifier = questionCategory
+        content.filterCriteria = StudyFocus.criteria
         content.userInfo = ["kind": "qotd", "qid": q.id.uuidString]
         let request = UNNotificationRequest(identifier: questionID, content: content, trigger: trigger(at: when))
         return (request, category)
@@ -109,6 +110,7 @@ enum LearnNotifications {
         // no sound at night
         content.categoryIdentifier = openCategory
         content.userInfo = ["kind": "bedtime"]
+        content.filterCriteria = StudyFocus.criteria
         return UNNotificationRequest(identifier: bedtimeID, content: content, trigger: trigger(at: when))
     }
 
@@ -126,6 +128,7 @@ enum LearnNotifications {
         content.sound = .default
         content.categoryIdentifier = openCategory
         content.userInfo = ["kind": "morning"]
+        content.filterCriteria = StudyFocus.criteria
         return UNNotificationRequest(identifier: morningID, content: content, trigger: trigger(at: when))
     }
 
@@ -170,6 +173,7 @@ enum LearnNotifications {
         content.body = verdict.body
         content.categoryIdentifier = openCategory
         content.userInfo = ["kind": "verdict", "qid": id.uuidString]
+        content.filterCriteria = StudyFocus.criteria
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: verdictPrefix + id.uuidString, content: content, trigger: nil))
     }

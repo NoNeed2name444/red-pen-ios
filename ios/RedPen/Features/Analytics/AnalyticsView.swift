@@ -859,12 +859,12 @@ struct AnalyticsView: View {
                        symbol: "chart.bar.fill", color: .green)
             }
             .padding(.vertical, 4)
-            StudyHeatmap(counts: s.dayCounts)
+            StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed)
                 .padding(.vertical, 6)
         } header: {
             Text("Time")
         } footer: {
-            Text("The average is over the days in the last 30 you studied at all. The calendar is the last 12 weeks, a column a week, today outlined.")
+            Text("The average is over the days in the last 30 you studied at all. The calendar is the last 12 weeks, a column a week, today outlined; a moon marks a rest day that kept your streak.")
         }
     }
 

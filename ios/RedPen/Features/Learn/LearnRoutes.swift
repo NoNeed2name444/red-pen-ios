@@ -16,6 +16,8 @@ private struct LearnRoutes: ViewModifier {
         content.sheet(item: $router.route) { route in
             LearnSheet(route: route)
         }
+        // a ward round left running when the app was closed
+        .task { WardRoundClock.shared.restore() }
     }
 }
 

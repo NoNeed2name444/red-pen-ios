@@ -145,6 +145,7 @@ struct SettingsPage: View {
     @EnvironmentObject private var store: Store
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
+    @AppStorage(DailyGoal.key) private var dailyGoal: Int = 50
     @AppStorage(PopOutSettings.enabledKey) private var popOut = true
     @AppStorage(PopOutSettings.faceKey) private var face = false
     @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
@@ -324,6 +325,8 @@ struct SettingsPage: View {
         Section {
             Toggle("Ask before deleting a set", isOn: $confirmDelete)
             Toggle("Open the last set on launch", isOn: $openLastSet)
+            Stepper("Daily goal: \(dailyGoal) a day", value: $dailyGoal, in: DailyGoal.range, step: 10)
+                .accessibilityIdentifier("dailyGoalStepper")
         } header: {
             Text("Study")
         } footer: {
