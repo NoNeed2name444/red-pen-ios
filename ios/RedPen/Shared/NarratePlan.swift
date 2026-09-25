@@ -165,6 +165,30 @@ enum NarratePlan {
         words.first { $0.line >= line }?.start ?? 0
     }
 
+    // MARK: the phone standing in
+
+    /// Where the phone hands a line back to the cloud: the end of the clip
+    /// the line is in. The phone reads what the cloud could not - a line too
+    /// long for one request, a clip that failed to come or to play - and only
+    /// that; the next clip is the cloud's again, rather than the rest of an
+    /// hour-long lecture in the phone's voice. Nil when no clip holds it.
+    static func standInEnd(forLine line: Int, in chunks: [NarrateChunk]) -> Int? {
+        chunkIndex(containing: line, in: chunks).map { chunks[$0].lines.upperBound }
+    }
+
+    // MARK: the clip cache
+
+    /// Which cached clips to delete: the least recently written or heard
+    /// beyond `keep`, and never one in `protected` - a clip the lecture on
+    /// screen holds or has queued, which deleted would play as silence.
+    static func pruneList(_ files: [(name: String, used: Date)], keep: Int,
+                          protected: Set<String>) -> [String] {
+        guard files.count > keep else { return [] }
+        let excess: Int = files.count - keep
+        let candidates = files.filter { !protected.contains($0.name) }.sorted { $0.used < $1.used }
+        return candidates.prefix(excess).map(\.name)
+    }
+
     // MARK: fetching ahead
 
     /// The clips to fetch now: the one playing and the next `ahead`, less any

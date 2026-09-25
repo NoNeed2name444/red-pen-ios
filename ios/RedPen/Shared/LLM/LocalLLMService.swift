@@ -117,6 +117,26 @@ final class LocalLLMService: ObservableObject {
         return Self.ownerKey
     }
 
+    /// Whose background jobs a bearer reaches: "owner" for the owner key, or
+    /// the signed-in account's id. The server keeps jobs per identity, so a
+    /// job is only ever asked about with the one it was made under.
+    func cloudIdentity(for bearer: String) -> String? {
+        if let key = Self.ownerKey, bearer == key { return "owner" }
+        if let token = account?.token, bearer == token { return account?.account?.id }
+        return nil
+    }
+
+    /// The bearer that reaches jobs made under `identity`, if this device can
+    /// still reach them: nil when that account is no longer signed in here.
+    /// A job from before identities were recorded is asked about as before.
+    func cloudBearer(for identity: String?) -> String? {
+        guard let identity else { return cloudToken }
+        if identity == "owner" { return Self.ownerKey }
+        guard let token = account?.token, token != Session.localToken,
+              account?.account?.id == identity else { return nil }
+        return token
+    }
+
     /// The owner key, present only in the owner's personal build: CramDown
     /// Cloud without an Apple or Google account.
     private static let ownerKey: String? = {
@@ -232,12 +252,21 @@ final class LocalLLMService: ObservableObject {
     // MARK: hosted providers
 
     func upsert(_ provider: HostedProvider, key: String?) {
+        let before = providers.first { $0.id == provider.id }
         if let index = providers.firstIndex(where: { $0.id == provider.id }) {
             providers[index] = provider
         } else {
             providers.append(provider)
         }
-        if let key { Keychain.set(Data(key.utf8), for: provider.keychainAccount) }
+        if let key {
+            Keychain.set(Data(key.utf8), for: provider.keychainAccount)
+        } else if !provider.needsKey || (before.map { $0.baseURL != provider.baseURL } ?? false) {
+            // A key is only ever for the address it was typed for. No key
+            // needed any more, or a new address with no new key: the old one
+            // is deleted, so it can never be sent to somewhere it was not
+            // meant for.
+            Keychain.remove(provider.keychainAccount)
+        }
         HostedProvider.saveAll(providers)
     }
 

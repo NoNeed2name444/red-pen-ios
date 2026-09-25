@@ -57,10 +57,24 @@ final class CloudVoice: NSObject {
 
     /// Whether it is worth asking the server at all right now.
     var available: Bool {
-        guard CloudVoiceSetting.isOn, Date() >= Self.restUntil else { return false }
+        eligible && Date() >= Self.restUntil
+    }
+
+    /// Whether the cloud voice can be used at all - switched on, signed in,
+    /// Pro - leaving aside a rest after a refusal. Narrate reads on with the
+    /// phone through a rest and hands back to the cloud once it is over.
+    var eligible: Bool {
+        guard CloudVoiceSetting.isOn else { return false }
         let service = LocalLLMService.shared
         guard service.cloudToken != nil else { return false }
         return service.isPro || PersonalBuild.isOn
+    }
+
+    /// A refusal heard by another speaker (Narrate makes its own requests)
+    /// rests every speaker in the app, for as long as the server asked.
+    static func rest(_ seconds: TimeInterval) {
+        guard seconds > 0 else { return }
+        restUntil = max(restUntil, Date().addingTimeInterval(seconds))
     }
 
     // MARK: fetching
@@ -96,9 +110,7 @@ final class CloudVoice: NSObject {
 
     private static func settle(key: String, answer: CloudFetch) {
         pending[key] = nil
-        if answer.rest > 0 {
-            restUntil = Date().addingTimeInterval(answer.rest)
-        }
+        rest(answer.rest)
         guard let clip = answer.clip else { return }
         clips[key] = clip
         order.append(key)

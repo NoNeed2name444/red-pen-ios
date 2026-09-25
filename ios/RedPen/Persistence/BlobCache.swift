@@ -25,18 +25,31 @@ final class BlobCache {
         }
         try? FileManager.default.createDirectory(at: self.directory,
                                                  withIntermediateDirectories: true)
+        // Not in the phone's backup: every picture here is also inside the
+        // library's own file and on the server, so backing it up again only
+        // fills the student's iCloud with a second copy.
+        var folder = self.directory
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? folder.setResourceValues(values)
     }
 
-    private func url(_ name: String) -> URL {
-        directory.appendingPathComponent(name)
+    /// Where a blob lives - only for a real blob name. A name is used as a
+    /// file name, so one that is not a hash (`../../Documents/...`, from a
+    /// crafted file) must never get as far as the file system.
+    private func url(_ name: String) -> URL? {
+        guard BlobRefs.isName(name) else { return nil }
+        return directory.appendingPathComponent(name)
     }
 
     func has(_ name: String) -> Bool {
-        FileManager.default.fileExists(atPath: url(name).path)
+        guard let file = url(name) else { return false }
+        return FileManager.default.fileExists(atPath: file.path)
     }
 
     func data(_ name: String) -> Data? {
-        try? Data(contentsOf: url(name))
+        guard let file = url(name) else { return nil }
+        return try? Data(contentsOf: file)
     }
 
     /// Writes a blob under its own hash.
@@ -48,15 +61,15 @@ final class BlobCache {
     @discardableResult
     func store(_ data: Data) -> String {
         let name = BlobRefs.name(for: data)
-        guard !has(name) else { return name }
-        try? data.write(to: url(name), options: .atomic)
+        guard !has(name), let file = url(name) else { return name }
+        try? data.write(to: file, options: .atomic)
         return name
     }
 
     /// Everything on hand, so a sync can ask only for what is genuinely new.
     func names() -> Set<String> {
         let found = try? FileManager.default.contentsOfDirectory(atPath: directory.path)
-        return Set(found ?? [])
+        return Set((found ?? []).filter(BlobRefs.isName))
     }
 
     /// Fills in the images of a set from the cache, leaving any that have not
@@ -79,7 +92,8 @@ final class BlobCache {
     /// stale file, a missing one is visible on a card.
     func sweep(keeping live: Set<String>) {
         for name in names() where !live.contains(name) {
-            try? FileManager.default.removeItem(at: url(name))
+            guard let file = url(name) else { continue }
+            try? FileManager.default.removeItem(at: file)
         }
     }
 }

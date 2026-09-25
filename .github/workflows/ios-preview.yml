@@ -22,6 +22,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        # no token left in .git/config for the build: the packages it
+        # compiles (and their macros and plugins) run in later steps, and
+        # the push step brings its own token
+        with:
+          persist-credentials: false
 
       - name: Toolchain
         run: |

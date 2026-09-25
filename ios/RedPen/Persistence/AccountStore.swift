@@ -22,7 +22,12 @@ final class AccountStore: ObservableObject {
     init(session: Session? = nil) {
         if let session {
             state = .signedIn(session)
-        } else if let stored = Keychain.session(), stored.isValid() {
+        } else if let stored = Keychain.session(), stored.canResume() {
+            // An expired session is kept when it carries its refresh token:
+            // it is renewed the first time the app asks (refreshIfNeeded).
+            // Dropping it here instead signed out everybody who had not opened
+            // the app for a month - and a linked device, whose account has no
+            // Apple or Google sign-in behind it, could never get back in.
             state = .signedIn(stored)
         }
     }
@@ -153,21 +158,51 @@ final class AccountStore: ObservableObject {
 
     // MARK: staying signed in
 
+    /// The refresh in flight, so the several moments that ask for one at once
+    /// (opening the app, a sync, coming back to it) share a single request.
+    private var refreshing: Task<Void, Never>?
+
     /// Renews the session before it dies rather than after, so nothing fails
-    /// halfway through. A refresh that cannot reach the server is left alone:
-    /// the session is still valid for now, and signing somebody out because
-    /// their train went into a tunnel would be absurd.
-    func refreshIfNeeded() async {
-        guard let session = state.session, session.needsRefresh(),
-              let refreshToken = session.refreshToken else { return }
-        do {
-            adopt(try await AuthAPI.refresh(refreshToken))
-        } catch AuthAPI.Failure.offline {
+    /// halfway through. `force` renews it now whatever its date says - for a
+    /// call the server has just refused as signed out.
+    ///
+    /// Only the server refusing the refresh token itself ends the session. No
+    /// signal, a server having a bad minute or too many requests leaves it
+    /// exactly as it is, to be asked about again next time: signing somebody
+    /// out because their train went into a tunnel would be absurd, and for a
+    /// linked device it would be for good.
+    func refreshIfNeeded(force: Bool = false) async {
+        if let refreshing {
+            await refreshing.value
             return
-        } catch {
+        }
+        guard let session = state.session, !session.isLocalOnly,
+              force || session.needsRefresh(),
+              let refreshToken = session.refreshToken, !refreshToken.isEmpty else { return }
+        let task = Task { await self.renew(session, with: refreshToken) }
+        refreshing = task
+        await task.value
+        refreshing = nil
+    }
+
+    private func renew(_ session: Session, with refreshToken: String) async {
+        do {
+            var fresh = try await AuthAPI.refresh(refreshToken)
+            // Somebody signed out or linked another account while the request
+            // was out: the session it was for is gone, and must not come back.
+            guard state.session == session else { return }
+            // The server never knew a linked device's name - it was chosen on
+            // this phone - so it is carried over rather than lost.
+            if (fresh.account.displayName ?? "").isEmpty {
+                fresh.account.displayName = session.account.displayName
+            }
+            adopt(fresh)
+        } catch AuthAPI.Failure.signedOut {
             // the server refused the refresh token: that session is genuinely
             // over, and pretending otherwise only delays the sign-in screen
-            if !session.isValid() { signOut() }
+            if state.session == session { signOut() }
+        } catch {
+            // offline, or the server could not answer: try again later
         }
     }
 

@@ -83,6 +83,18 @@ jobs:
           suite narrate NarrateTests.swift $S/NarratePlan.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
+          # hostile archives built byte by byte: size fields that lie, one
+          # stream under ten thousand names, a stream that never ends; and
+          # Word's tracked changes, field codes and doubled text boxes
+          suite zip ZipTests.swift $S/Zip.swift $S/DocxText.swift $S/PptxText.swift
+          # pasted text with Windows line endings, answer letters, a set
+          # shared from another phone, Anki's fields and the .apkg's zip
+          suite imports ImportTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+                $M/QACard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
+                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/PlainTextImport.swift $S/SetImport.swift $S/BookFigures.swift $S/BookPages.swift \
+                $S/AnkiFields.swift $S/MiniZip.swift $S/Zip.swift
           suite coverage CoverageTests.swift $S/MCQCoverage.swift
           suite schedule ScheduleTests.swift $M/AnkiCard.swift \
                 $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift
@@ -91,7 +103,10 @@ jobs:
                 $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
           suite account AccountTests.swift $M/Account.swift $S/AuthRules.swift \
                 $S/Entitlement.swift
-          suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift
+          # the merge, picture references, what the server will take, a
+          # newer version's document, and what becomes of a cloud job
+          suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift \
+                $S/SyncRules.swift $S/CloudJobRules.swift
           suite sources SourceTests.swift $M/SourceDoc.swift $S/SourceSearch.swift
           # NarrateSegment carries a helper that builds segments from a
           # transcript, so the parsers drag the transcriber in with them.

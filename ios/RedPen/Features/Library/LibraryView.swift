@@ -30,6 +30,11 @@ struct LibraryView: View {
     @State var addingKind: StudySetKind?
     @State var exportURL: URL?
     @State var exportFailedSetName: String?
+    /// An Anki export waiting on "export without them?": picture cards whose
+    /// pictures are not on this phone.
+    @State var pendingDeckExport: PendingDeckExport?
+    /// Whether an Anki deck is being built, so a second tap waits for it.
+    @State var buildingDeck = false
 
     // selection mode - the "Combine" / folder toggles
     @State var selecting = false
@@ -122,7 +127,13 @@ struct LibraryView: View {
     var canCombine: Bool {
         selectedSets.count >= 2 && Set(selectedSets.map(\.kind)).count == 1
     }
-    var loose: [StudySet] { shown.filter { $0.folderId == nil } }
+    /// Sets in no folder - or in one that is not here (deleted on another
+    /// device, or a shared set that came with somebody else's folder), which
+    /// would otherwise be a set shown nowhere at all.
+    var loose: [StudySet] {
+        let filed = Set(store.folders.map(\.id))
+        return shown.filter { set in set.folderId.map { !filed.contains($0) } ?? true }
+    }
     func members(of folder: StudyFolder) -> [StudySet] {
         shown.filter { $0.folderId == folder.id }
     }
@@ -661,10 +672,17 @@ struct LibraryView: View {
     }
 
     func performDelete(_ ids: [UUID]) {
+        // the deleted sets' own cards, found before they go (see below)
+        let doomed = Set(ids)
+        let cards: [UUID] = store.library.filter { doomed.contains($0.id) }.flatMap { $0.cards.map(\.id) }
         ids.forEach { store.deleteSet($0) }
+        // and its lecture recording with it: the file lives outside the
+        // library, where the student cannot see or reach it once the set is gone
+        ids.forEach { LectureAudio.remove(for: $0) }
         // a deleted set's cards would otherwise keep their place in the
-        // schedule for ever
-        reviews.prune(keeping: store.library)
+        // schedule for ever - its own cards only: a blanket prune against the
+        // library also dropped the schedules of decks a sync had not brought yet
+        reviews.forget(cards)
         selected.subtract(ids)
         if selecting && selected.isEmpty {
             withAnimation(.snappy) { selecting = false }
@@ -680,12 +698,37 @@ struct LibraryView: View {
     /// the student already uses.
     func export(_ set: StudySet) {
         if set.kind == .anki {
-            if let url = try? ApkgExporter.export(set) { exportURL = url }
-            else { exportFailedSetName = set.name }
+            exportDeck(set)
             return
         }
         if let url = DeckPDF.export(set) { exportURL = url }
         else { exportFailedSetName = set.name }
+    }
+
+    /// An Anki deck, built off the main thread: its pictures are drawn one
+    /// by one, and a big deck of diagrams froze the library while they were.
+    ///
+    /// Pictures a sync has fetched but not yet put back into the set are
+    /// filled in from the cache first. Picture cards whose pictures are not on
+    /// this phone at all cannot be drawn, and are asked about rather than
+    /// silently missing from the deck the student imports.
+    func exportDeck(_ set: StudySet, withoutMissing: Bool = false) {
+        guard !buildingDeck else { return }
+        let restored = BlobCache().restore(set)
+        let missing = ApkgExporter.missingPictures(in: restored)
+        if missing > 0 && !withoutMissing {
+            pendingDeckExport = PendingDeckExport(set: restored, missing: missing)
+            return
+        }
+        buildingDeck = true
+        Task {
+            defer { buildingDeck = false }
+            do {
+                exportURL = try await ApkgExporter.exportInBackground(restored)
+            } catch {
+                exportFailedSetName = set.name
+            }
+        }
     }
 
     private func destination(for set: StudySet) -> some View {

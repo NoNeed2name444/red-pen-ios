@@ -232,6 +232,12 @@ struct MCQGenerateForm: View {
             generationStatus = "Cancelled."
         }
         generationTask = Task {
+            // A cloud job's replies stay kept - on this device and on the
+            // server - until this generation is done with them, however it
+            // ends: an app closed while they are checked or saved finds them
+            // again on its next launch (CloudJobs.Delivery).
+            let delivery = CloudJobs.Delivery()
+            defer { CloudJobs.finish(delivery) }
             do {
                 let progress: (Int, Int) -> Void = { done, total in
                     GenerationCenter.shared.update(job, done: done, total: total)
@@ -252,7 +258,7 @@ struct MCQGenerateForm: View {
                     questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
-                    })) {
+                    }, delivery: delivery)) {
                         try await MedicalGenerate.mcq(
                             sourceText: text, count: count, subject: subj,
                             highYield: hy, using: writer, onProgress: progress)
@@ -279,7 +285,10 @@ struct MCQGenerateForm: View {
                                 generationStatus = "Checking \(done) of \(total) with \(checker.label)\u{2026}"
                             }
                         })
+                    let screenedTotal: Int = questions.count
                     questions = screened.kept
+                    // a question the checker never graded is not a checked one
+                    checkNote += MedVAL.uncheckedNote(screened.unchecked, of: screenedTotal)
                     if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
                     if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk \u{2014} check them." }
                 }

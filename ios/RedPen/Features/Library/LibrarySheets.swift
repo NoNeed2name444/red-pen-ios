@@ -64,6 +64,28 @@ extension LibraryView {
             } message: {
                 Text("Something went wrong building the file for \(exportFailedSetName ?? "this set").")
             }
+            // picture cards whose pictures are not on this phone: asked
+            // about, never quietly left out of the deck
+            .confirmationDialog(missingPicturesTitle, isPresented: deckExportAsked,
+                                titleVisibility: .visible, presenting: pendingDeckExport) { pending in
+                Button("Export without them") { exportDeck(pending.set, withoutMissing: true) }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Their pictures have not reached this phone yet \u{2014} they may still be downloading. Export again once sync has finished to include them.")
+            }
+    }
+
+    /// Whether "export without them?" is showing.
+    var deckExportAsked: Binding<Bool> {
+        Binding(get: { pendingDeckExport != nil },
+                set: { if !$0 { pendingDeckExport = nil } })
+    }
+
+    /// "3 picture cards can't be included".
+    var missingPicturesTitle: String {
+        let count: Int = pendingDeckExport?.missing ?? 0
+        let plural: String = count == 1 ? "" : "s"
+        return "\(count) picture card\(plural) can\u{2019}t be included"
     }
 
     /// The naming sheet for a new folder or a combined set.
@@ -92,4 +114,13 @@ extension LibraryView {
     var deleteAsked: Binding<Bool> {
         Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
     }
+}
+
+/// An Anki export held back to ask about the picture cards it cannot draw.
+struct PendingDeckExport: Identifiable {
+    let id = UUID()
+    /// The set with every picture this phone has filled in.
+    let set: StudySet
+    /// Picture cards whose picture is not on this phone.
+    let missing: Int
 }

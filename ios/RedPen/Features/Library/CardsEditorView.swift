@@ -172,10 +172,15 @@ struct CardsEditorView: View {
 
     /// Edits are held until Save, so backing out of the sheet changes nothing.
     private func save() {
+        // only the cards deleted here lose their places: a blanket prune
+        // against the library also dropped the schedules of decks a sync had
+        // not brought yet
         let kept = Set(working.cards.map(\.id))
-        for card in set.cards where !kept.contains(card.id) { reviews.forget(card.id) }
-        store.update(working)
-        reviews.prune(keeping: store.library)
+        reviews.forget(set.cards.map(\.id).filter { !kept.contains($0) })
+        // `set` is the deck as this editor opened it: if a sync brought the
+        // other device's edit meanwhile, that version is kept as a copy
+        // rather than silently replaced by this one
+        store.update(working, base: set)
         dismiss()
     }
 }

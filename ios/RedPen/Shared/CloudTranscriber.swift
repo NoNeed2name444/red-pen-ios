@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import CryptoKit
 
 /// Transcribing a lecture with Gemini, for Pro.
 ///
@@ -45,18 +46,95 @@ enum CloudTranscriber {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
 
+        // Every chunk Gemini has already answered is kept until the whole
+        // recording is done. A failure on part six of six used to throw away
+        // parts one to five, which had each used the day's allowance, and a
+        // retry paid for all of them again - enough, for a long lecture, to
+        // never finish in the cloud at all.
+        let done = ChunkCache(recording: url)
         var lines: [LectureTranscriber.Line] = []
         for (i, start) in starts.enumerated() {
             try Task.checkCancellation()
             onProgress(i + 1, starts.count)
             let end = i + 1 < starts.count ? starts[i + 1] : duration
-            let piece = folder.appendingPathComponent("\(i).m4a")
-            try await exportChunk(of: asset, start: start, length: end - start, to: piece)
-            let audio = try Data(contentsOf: piece)
-            let phrases = try await ask(audio: audio, prompt: prompt, token: token)
+            let phrases: [CloudTranscript.Phrase]
+            if let kept = done?.phrases(start: start, length: end - start) {
+                phrases = kept
+            } else {
+                let piece = folder.appendingPathComponent("\(i).m4a")
+                try await exportChunk(of: asset, start: start, length: end - start, to: piece)
+                let audio = try Data(contentsOf: piece)
+                phrases = try await ask(audio: audio, prompt: prompt, token: token)
+                done?.keep(phrases, start: start, length: end - start)
+            }
             lines += CloudTranscript.lines(from: phrases, offset: start, length: end - start)
         }
+        done?.clear()
         return lines
+    }
+
+    /// The chunks of one recording already transcribed, on disk in Caches,
+    /// filed under the hash of the recording's own bytes - so the same lecture
+    /// attached again, or retried tomorrow, finds them, and a different one
+    /// never does. Kept a week at most: the system may clear Caches sooner,
+    /// which only costs a chunk sent twice.
+    struct ChunkCache {
+        let folder: URL
+
+        static let keptFor: TimeInterval = 7 * 24 * 3600
+
+        /// Nil when the recording cannot be read to hash it: then nothing is
+        /// cached, as before.
+        init?(recording url: URL) {
+            guard let key = Self.fingerprint(of: url) else { return nil }
+            let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("transcribed-chunks", isDirectory: true)
+            Self.forgetOld(in: root)
+            folder = root.appendingPathComponent(key, isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+
+        private func file(start: Double, length: Double) -> URL {
+            folder.appendingPathComponent("\(Int((start * 1000).rounded()))-\(Int((length * 1000).rounded())).json")
+        }
+
+        func phrases(start: Double, length: Double) -> [CloudTranscript.Phrase]? {
+            guard let data = try? Data(contentsOf: file(start: start, length: length)) else { return nil }
+            return try? JSONDecoder().decode([CloudTranscript.Phrase].self, from: data)
+        }
+
+        func keep(_ phrases: [CloudTranscript.Phrase], start: Double, length: Double) {
+            guard let data = try? JSONEncoder().encode(phrases) else { return }
+            try? data.write(to: file(start: start, length: length), options: .atomic)
+        }
+
+        /// The whole recording is transcribed: its pieces are not needed again.
+        func clear() {
+            try? FileManager.default.removeItem(at: folder)
+        }
+
+        /// SHA-256 of the file, read a megabyte at a time: a lecture is tens
+        /// of megabytes and is never loaded whole to be hashed.
+        static func fingerprint(of url: URL) -> String? {
+            guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+            defer { try? handle.close() }
+            var hasher = SHA256()
+            while let piece = try? handle.read(upToCount: 1 << 20), !piece.isEmpty {
+                hasher.update(data: piece)
+            }
+            return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        }
+
+        /// Transcripts of lectures abandoned a week ago are not kept for ever.
+        private static func forgetOld(in root: URL) {
+            let keys: [URLResourceKey] = [.contentModificationDateKey]
+            let found = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: keys)) ?? []
+            let cutoff = Date().addingTimeInterval(-keptFor)
+            for folder in found {
+                let changed = (try? folder.resourceValues(forKeys: Set(keys)))?.contentModificationDate
+                if let changed, changed < cutoff { try? FileManager.default.removeItem(at: folder) }
+            }
+        }
     }
 
     // MARK: the server

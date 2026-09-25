@@ -60,6 +60,9 @@ struct NewSetView: View {
     @State private var bodyText: String = ""
     @State private var showImporter = false
     @State private var importError: String?
+    /// Said once a shared set is in, when some of its pictures never came
+    /// with it; New set closes when it is read.
+    @State private var importNotice: String?
     @State private var showFormat = false
     /// Which of the three steps is showing.
     @State private var step: NewSetStep = .kind
@@ -154,6 +157,9 @@ struct NewSetView: View {
                     // closing New set stops what it started, so nothing keeps
                     // running unseen or turns up as a stray card next time
                     GenerationCenter.shared.cancel()
+                    // and the same for a lecture file still being read or
+                    // scanned for diagrams
+                    FileReads.cancelAll()
                 }
                 .interactiveDismissDisabled(generation.job != nil)
                 .background(ModeBackdrop(kind: kind))
@@ -180,6 +186,11 @@ struct NewSetView: View {
                 }
                 .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
                     handleImport(result)
+                }
+                .alert("Set imported", isPresented: importNoticeShown) {
+                    Button("OK") { dismiss() }
+                } message: {
+                    Text(importNotice ?? "")
                 }
                 .fullScreenCover(item: $generatedSet) { set in
                     NavigationStack {
@@ -680,6 +691,12 @@ struct NewSetView: View {
         dismiss()
     }
 
+    /// Whether the note about a shared set's missing pictures is showing.
+    private var importNoticeShown: Binding<Bool> {
+        Binding(get: { importNotice != nil },
+                set: { if !$0 { importNotice = nil } })
+    }
+
     private func handleImport(_ result: Result<URL, Error>) {
         do {
             let url = try result.get()
@@ -687,10 +704,21 @@ struct NewSetView: View {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             let data = try Data(contentsOf: url)
-            var imported = try JSONDecoder.redPen.decode(StudySet.self, from: data)
-            imported.id = UUID() // never collide with an existing id
-            store.addSet(imported)
-            dismiss()
+            let decoded = try JSONDecoder.redPen.decode(StudySet.self, from: data)
+            // a new id, no folder this library lacks, and no picture that
+            // only exists in the sender's account (SetImport) - and new ids
+            // for its cards: a set shared back to the phone it came from kept
+            // the original's, and the two decks shared one schedule
+            let received = SetImport.received(decoded.withNewItemIDs(), folders: Set(store.folders.map(\.id)),
+                                              isMissing: BlobRefs.isRef)
+            store.addSet(received.set)
+            if received.missingPictures > 0 {
+                let count: Int = received.missingPictures
+                let plural: String = count == 1 ? "" : "s"
+                importNotice = "\(count) picture\(plural) had not finished downloading on the phone this came from, so the picture cards that needed them were left out. Ask for the set again once that phone has synced to get them."
+            } else {
+                dismiss()
+            }
         } catch {
             importError = "Couldn't read that file: \(error.localizedDescription)"
         }

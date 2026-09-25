@@ -125,7 +125,25 @@ enum SyncAPI {
         case 401, 403: throw AuthAPI.Failure.signedOut
         case 429: throw AuthAPI.Failure.tooManyTries
         case 402: throw AuthAPI.Failure.needsPro("Syncing between devices is part of Pro.")
-        default: throw AuthAPI.Failure.server("The server refused that (\(http.statusCode)).")
+        default: throw PictureRefused(status: http.statusCode)
+        }
+    }
+
+    /// One picture the server would not take or give. About that picture
+    /// only: the sync carries on without it (SyncPush), rather than one
+    /// missing or oversized picture stopping every document behind it.
+    struct PictureRefused: LocalizedError {
+        let status: Int
+        /// The account's picture allowance is used up (server: BLOB_BUDGET).
+        var storageFull: Bool { status == 507 }
+
+        var errorDescription: String? {
+            switch status {
+            case 507: return "This account's picture storage is full."
+            case 413: return "That picture is too large to sync."
+            case 404: return "That picture is not on the server."
+            default: return "The server refused a picture (\(status))."
+            }
         }
     }
 }

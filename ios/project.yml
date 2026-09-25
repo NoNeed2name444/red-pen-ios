@@ -11,9 +11,14 @@ settings:
 packages:
   # Gemma-4-E2B fallback path for devices that can't run Apple's on-device
   # model (older hardware, Apple Intelligence off) - see GemmaModel.swift.
+  # Pinned to one reviewed commit (main as of 26 Aug 2026), not "branch:
+  # main": every build runs this package's code, macros and plugins
+  # (xcodebuild is given -skipMacroValidation), so whatever landed on its
+  # main branch would otherwise run in the next CI build and ship in the next
+  # .ipa unseen. Move the pin on purpose, after reading what changed.
   LocalLLMClient:
     url: https://github.com/tattn/LocalLLMClient.git
-    branch: main
+    revision: b68f71244baf308469a190cce4f54edf2fde4887
 targets:
   RedPen:
     type: application

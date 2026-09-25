@@ -223,11 +223,55 @@ enum CardQuality {
 
     /// Token-level overlap, which is enough to spot a reworded duplicate and
     /// cheap enough to run over a whole deck on the phone.
+    ///
+    /// Read through `similarityTokens`: case, hyphens and a plural "s" do not
+    /// make two answers different ("Beta blockers", "beta-blocker"), and a
+    /// number does ("140 mmol/L", "3.5 mmol/L" are two different answers, not
+    /// one unit written twice).
     static func similarity(_ a: String, _ b: String) -> Double {
-        let x = Set(a.split { !$0.isLetter }.map(String.init))
-        let y = Set(b.split { !$0.isLetter }.map(String.init))
+        let x = similarityTokens(a)
+        let y = similarityTokens(b)
         if x.isEmpty || y.isEmpty { return 0 }
         return Double(x.intersection(y).count) / Double(max(x.count, y.count))
+    }
+
+    /// Lower-cased words and numbers ("3.5" is one number), with a plural
+    /// "s" taken off a longer word ("inhibitors" is "inhibitor"; "sepsis",
+    /// "mellitus" and "loss" are left alone).
+    static func similarityTokens(_ text: String) -> Set<String> {
+        var out = Set<String>()
+        var word = ""
+        var number = ""
+        func flush() {
+            if !word.isEmpty { out.insert(singular(word)); word = "" }
+            if !number.isEmpty {
+                // a trailing point is punctuation, not a decimal
+                while number.hasSuffix(".") { number.removeLast() }
+                if !number.isEmpty { out.insert(number) }
+                number = ""
+            }
+        }
+        for ch in text.lowercased() {
+            if ch.isNumber {
+                if !word.isEmpty { flush() }
+                number.append(ch)
+            } else if ch == ".", !number.isEmpty, !number.contains(".") {
+                number.append(ch)
+            } else if ch.isLetter {
+                if !number.isEmpty { flush() }
+                word.append(ch)
+            } else {
+                flush()
+            }
+        }
+        flush()
+        return out
+    }
+
+    private static func singular(_ word: String) -> String {
+        guard word.count > 3, word.hasSuffix("s") else { return word }
+        for kept in ["ss", "us", "is"] where word.hasSuffix(kept) { return word }
+        return String(word.dropLast())
     }
 
     static func review(questions: [MCQQuestion] = [], cards: [AnkiCard] = []) -> [Problem] {

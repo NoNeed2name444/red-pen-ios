@@ -210,7 +210,8 @@ enum SpokenAnswer {
         // "SGLT2" and "SGLT 2" are the same thing said two ways: letters and
         // digits are separate words (the digits are checked as numbers)
         var pieces: [String] = []
-        for token in tokens(Highlight.plain(text)) {
+        // "Type II" is said, and written by the recogniser, as "type 2"
+        for token in arabic(tokens(Highlight.plain(text))) {
             var run = ""
             for ch in token {
                 if let last = run.last, last.isNumber != ch.isNumber {
@@ -232,9 +233,42 @@ enum SpokenAnswer {
         word.replacingOccurrences(of: "ae", with: "e").replacingOccurrences(of: "oe", with: "e")
     }
 
+    private static let romans: [String: String] = [
+        "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6",
+        "vii": "7", "viii": "8", "ix": "9", "x": "10", "xi": "11", "xii": "12",
+    ]
+    /// Numerals that are also a letter or a word - "I", "X-linked", "V/Q",
+    /// "IV fluids" - and so are read as numbers only after a word that takes
+    /// a numeral.
+    private static let ambiguousRomans: Set<String> = ["i", "v", "x", "iv"]
+    private static let takesNumeral: Set<String> = [
+        "type", "class", "grade", "stage", "factor", "cn", "nerve", "cranial", "phase", "mobitz",
+        "degree", "collagen", "level", "zone", "schedule", "part", "complex", "group", "category",
+        "tier", "lead", "fort", "harris",
+    ]
+
+    /// Roman numerals as digits, the way the recogniser writes them: "Type
+    /// II hypersensitivity" is heard as "type 2", "Factor VIII" as "factor
+    /// 8". A numeral of two or more letters always; I, V, X and IV only after
+    /// a word that takes a numeral ("type I", "factor V", "CN X").
+    static func arabic(_ words: [String]) -> [String] {
+        var out = words
+        for (i, word) in words.enumerated() {
+            guard let digits = romans[word] else { continue }
+            if ambiguousRomans.contains(word) {
+                guard i > 0, takesNumeral.contains(words[i - 1]) else { continue }
+            }
+            out[i] = digits
+        }
+        return out
+    }
+
     /// The same word, allowing for how it ends: plurals, -ic/-ia, -al, -ed,
-    /// -ing. "Hypertension" is not "hyperthyroidism", and "carcinoma" is not
-    /// "carcinoid", because only endings are forgiven.
+    /// -ing, and the endings one condition is said with - "infarct" and
+    /// "infarction", "embolus" and "embolism", "hypertensive" and
+    /// "hypertension", "thrombosis" and "thrombotic". "Hypertension" is not
+    /// "hyperthyroidism", and "carcinoma" is not "carcinoid", because only
+    /// endings are forgiven.
     static func close(_ said: String, _ wanted: String) -> Bool {
         if said == wanted { return true }
         guard said.count >= 4, wanted.count >= 4 else { return false }
@@ -242,7 +276,9 @@ enum SpokenAnswer {
     }
 
     static func stem(_ word: String) -> String {
-        let endings: [String] = ["ies", "es", "us", "um", "s", "ic", "ia", "al", "ed", "ing", "y", "a", "e", "i"]
+        // the longer endings first, so "necrotic" loses "-otic", not "-ic"
+        let endings: [String] = ["osis", "otic", "ism", "ion", "ive",
+                                 "ies", "es", "us", "um", "s", "ic", "ia", "al", "ed", "ing", "y", "a", "e", "i"]
         var out = word
         var changed = true
         // ending by ending, so "kidneys" and "kidney" come to the same stem
@@ -319,8 +355,13 @@ enum SpokenAnswer {
         var out = Set(text.split { !$0.isNumber && $0 != "." }.map(String.init)
             .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: ".")) }
             .filter { !$0.isEmpty && $0.contains(where: \.isNumber) })
-        for word in tokens(text) {
+        let said: [String] = tokens(text)
+        for word in said {
             if let digit = words[word] { out.insert(digit) }
+        }
+        // "Type II", "CN VII": a numeral is a number too
+        for (word, converted) in zip(said, arabic(said)) where converted != word {
+            out.insert(converted)
         }
         return out
     }

@@ -85,6 +85,18 @@ final class Store: ObservableObject {
     /// The flagged questions as last worked out, and the changeCount they were
     /// worked out at: the library's rows ask on every redraw.
     var flaggedMemo: (at: Int, picks: [QuestionPick])?
+    /// Sets this version of the app could not read, exactly as they were
+    /// written (JSON text). Written back with the library every time, so
+    /// saving never drops them; a version that can read them takes them back
+    /// in (load). Without this, the first save after opening a library with
+    /// one set from a newer version deleted that set from the file.
+    private(set) var unreadSets: [String] = []
+    /// Whether every set in the library file is accounted for - read, or
+    /// kept as the text it was written in. False after a file that could not
+    /// be read at all: the library is then empty only because it was not
+    /// read, and a sweep of the files and pictures "nothing refers to" would
+    /// delete every one of them (SourceFiles.sweepUnused, SyncEngine).
+    private(set) var readWhole = true
     /// The debounced write waiting to run, if any.
     private var pendingWrite: Task<Void, Never>?
     private var lifecycleObservers: [NSObjectProtocol] = []
@@ -120,20 +132,46 @@ final class Store: ObservableObject {
 
     func load() {
         var libraryData: Data?
+        var rewrite = false
         if let data = try? Data(contentsOf: fileURL) {
             libraryData = data
             if let file = try? JSONDecoder.redPen.decode(LibraryFile.self, from: data) {
-                library = file.library
+                var sets = file.library
+                var unread: [String] = []
+                // held from before: tried again, since this may be the
+                // version that can read them
+                for text in file.unread ?? [] {
+                    if let set = try? JSONDecoder.redPen.decode(StudySet.self, from: Data(text.utf8)),
+                       !sets.contains(where: { $0.id == set.id }) {
+                        sets.append(set)
+                        rewrite = true
+                    } else {
+                        unread.append(text)
+                    }
+                }
+                // A set this version cannot read is left out rather than
+                // taking the whole library with it - kept as it was written,
+                // so the next save carries it along instead of dropping it.
+                if file.skipped > 0 {
+                    let kept = Self.entries(of: data, at: file.skippedAt)
+                    unread += kept
+                    // Rewritten straight away, so the file stops being "partly
+                    // unreadable" and is not copied aside again every launch -
+                    // but only when every one of them was kept; otherwise the
+                    // copy put aside below is where they survive.
+                    rewrite = rewrite || kept.count == file.skippedAt.count
+                    if kept.count != file.skippedAt.count { readWhole = false }
+                    setAside(fileURL, as: "library-partly-unreadable", once: true)
+                }
+                library = sets
                 folders = file.folders
                 tombstones = file.tombstones ?? [:]
-                // a set this version cannot read is left out rather than
-                // taking the whole library with it - and the file as it was
-                // is kept, so nothing is lost for good
-                if file.skipped > 0 { setAside(fileURL, as: "library-partly-unreadable") }
+                unreadSets = unread
             } else {
                 // never overwritten unread: the file is put aside first, so a
                 // library this version cannot read is still there to recover
-                setAside(fileURL, as: "library-unreadable")
+                setAside(fileURL, as: "library-unreadable", once: true)
+                readWhole = false
             }
         }
         var migrated = false
@@ -141,7 +179,7 @@ final class Store: ObservableObject {
             if let study = try? JSONDecoder.redPen.decode(StudyFile.self, from: data) {
                 apply(study)
             } else {
-                setAside(studyURL, as: "progress-unreadable")
+                setAside(studyURL, as: "progress-unreadable", once: true)
             }
         } else if let libraryData,
                   let legacy = try? JSONDecoder.redPen.decode(StudyFile.self, from: libraryData) {
@@ -150,9 +188,28 @@ final class Store: ObservableObject {
             apply(legacy)
             migrated = true
         }
-        libraryDirty = false
+        libraryDirty = rewrite
         studyDirty = migrated
-        if migrated { scheduleWrite() }
+        if migrated || rewrite { scheduleWrite() }
+    }
+
+    /// Entries of the library file's `library` list, as JSON text - the ones
+    /// this version could not read, to be kept as they are.
+    private static func entries(of data: Data, at indices: [Int]) -> [String] {
+        guard !indices.isEmpty,
+              let top = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let list = top["library"] as? [Any] else { return [] }
+        return indices.compactMap { index -> String? in
+            guard list.indices.contains(index), JSONSerialization.isValidJSONObject(list[index]),
+                  let one = try? JSONSerialization.data(withJSONObject: list[index]) else { return nil }
+            return String(data: one, encoding: .utf8)
+        }
+    }
+
+    /// Pictures named by sets this version could not read, so a sweep of the
+    /// picture cache keeps them.
+    var heldPictureNames: Set<String> {
+        unreadSets.reduce(into: Set<String>()) { $0.formUnion(BlobRefs.names(mentionedIn: $1)) }
     }
 
     private func apply(_ study: StudyFile) {
@@ -166,10 +223,26 @@ final class Store: ObservableObject {
         ruleSheet = study.ruleSheet
     }
 
-    private func setAside(_ url: URL, as name: String) {
-        let aside = url.deletingLastPathComponent()
-            .appendingPathComponent("\(name)-\(Int(Date().timeIntervalSince1970)).json")
+    /// A copy of a file put beside it before anything can write over it.
+    ///
+    /// `once`: not again for a file that has already been put aside - a
+    /// library of hundreds of megabytes copied on every launch fills the
+    /// phone. The same size under the same name is taken as the same file.
+    private func setAside(_ url: URL, as name: String, once: Bool = false) {
+        let folder = url.deletingLastPathComponent()
+        if once, let size = Self.size(of: url) {
+            let earlier = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+            let same = earlier.contains { file in
+                file.hasPrefix(name + "-") && Self.size(of: folder.appendingPathComponent(file)) == size
+            }
+            if same { return }
+        }
+        let aside = folder.appendingPathComponent("\(name)-\(Int(Date().timeIntervalSince1970)).json")
         try? FileManager.default.copyItem(at: url, to: aside)
+    }
+
+    private static func size(of url: URL) -> Int? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int
     }
 
     /// Asks for whatever changed to be written, shortly and off the main
@@ -219,7 +292,8 @@ final class Store: ObservableObject {
         var libraryFile: LibraryFile?
         var studyFile: StudyFile?
         if libraryDirty {
-            libraryFile = LibraryFile(library: library, folders: folders, tombstones: tombstones)
+            libraryFile = LibraryFile(library: library, folders: folders, tombstones: tombstones,
+                                      unread: unreadSets.isEmpty ? nil : unreadSets)
         }
         if studyDirty {
             var study = StudyFile()
@@ -272,12 +346,17 @@ final class Store: ObservableObject {
     }
 
     func deleteSet(_ id: UUID) {
+        let left = library.first { $0.id == id }?.folderId
         library.removeAll { $0.id == id }
         quizProgress[id] = nil
         osceProgress[id] = nil
         readingProgress[id] = nil
         tombstones[id] = Date()
-        pruneEmptyFolders()
+        pruneEmptyFolders(left: [left])
+        // and its lecture recording: a file outside the library, tens of
+        // megabytes and often of other people's voices, that nothing could
+        // reach or remove once the set is gone
+        LectureAudio.remove(for: id)
         save()
     }
 
@@ -294,14 +373,35 @@ final class Store: ObservableObject {
     /// Narrate saves the whole set after every corrected word, and the review
     /// screens save after every rating. Treating those as edits would have the
     /// library churning against every other device all day.
-    func update(_ set: StudySet) {
+    ///
+    /// `base` is the set as an editor had it when it started (CardsEditorView,
+    /// Narrate's transcript). An editor's save is a whole set written over
+    /// whatever is there; if a sync brought the other device's edit to it in
+    /// the meantime, that version is kept as a copy beside this one rather
+    /// than overwritten - with nothing to tell the sync that anything was
+    /// lost, it would be gone on every device.
+    func update(_ set: StudySet, base: StudySet? = nil) {
         guard let idx = library.firstIndex(where: { $0.id == set.id }) else { return }
         var incoming = set
         incoming.updatedAt = library[idx].updatedAt
         guard incoming != library[idx] else { return }
+        if let base, Self.movedOn(library[idx], since: base) {
+            keepConflictCopy(of: library[idx], from: "another device", beside: incoming)
+        }
+        guard let at = library.firstIndex(where: { $0.id == set.id }) else { return }
         incoming.updatedAt = Date()
-        library[idx] = incoming
+        library[at] = incoming
         save()
+    }
+
+    /// Whether the library's copy of a set holds something `base` did not -
+    /// its stamp aside, and pictures merely filled in by a sync.
+    nonisolated static func movedOn(_ current: StudySet, since base: StudySet) -> Bool {
+        var now = current
+        now.updatedAt = base.updatedAt
+        now.images = base.images
+        if now != base { return true }
+        return !BlobRefs.samePictures(current.images, base.images)
     }
 
     func addFolder(name: String) {
@@ -327,11 +427,13 @@ final class Store: ObservableObject {
     func group(_ ids: Set<UUID>, into name: String) -> StudyFolder {
         let folder = StudyFolder(name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "Folder" : name)
         folders.append(folder)
+        var left: [UUID?] = []
         for idx in library.indices where ids.contains(library[idx].id) {
+            left.append(library[idx].folderId)
             library[idx].folderId = folder.id
             library[idx].updatedAt = Date()
         }
-        pruneEmptyFolders()
+        pruneEmptyFolders(left: left)
         save()
         return folder
     }
@@ -340,9 +442,10 @@ final class Store: ObservableObject {
     func move(_ id: UUID, to folderId: UUID?) {
         guard let idx = library.firstIndex(where: { $0.id == id }),
               library[idx].folderId != folderId else { return }
+        let left = library[idx].folderId
         library[idx].folderId = folderId
         library[idx].updatedAt = Date()
-        pruneEmptyFolders()
+        pruneEmptyFolders(left: [left])
         save()
     }
 
@@ -366,9 +469,20 @@ final class Store: ObservableObject {
         save()
     }
 
-    private func pruneEmptyFolders() {
+    /// Removes the folders sets just left, if that left them empty - with a
+    /// tombstone, like any other deletion, or the other devices keep the
+    /// folder for good and an edit to it there brings it back here.
+    ///
+    /// Only the folders just left, never every empty one: a folder a sync has
+    /// brought before its sets (a first sync, part way through) is empty for
+    /// a moment and must not be deleted on every device for it.
+    private func pruneEmptyFolders(left: [UUID?]) {
         let used = Set(library.compactMap(\.folderId))
-        folders.removeAll { !used.contains($0.id) }
+        let emptied = Set(left.compactMap { $0 }).subtracting(used)
+        guard !emptied.isEmpty else { return }
+        let now = Date()
+        for id in emptied where folders.contains(where: { $0.id == id }) { tombstones[id] = now }
+        folders.removeAll { emptied.contains($0.id) }
     }
 
     // MARK: combine — mirrors the library's "Combine N selected" flow
@@ -474,17 +588,23 @@ private struct LibraryFile: Codable {
     var library: [StudySet]
     var folders: [StudyFolder]
     var tombstones: [UUID: Date]?
+    /// Sets an earlier run could not read, kept as the JSON they were written
+    /// in (Store.unreadSets).
+    var unread: [String]?
     /// Sets left out on reading because they could not be decoded.
     var skipped = 0
+    /// Where in `library` they were, so they can be kept as written.
+    var skippedAt: [Int] = []
 
     enum CodingKeys: String, CodingKey {
-        case library, folders, tombstones
+        case library, folders, tombstones, unread
     }
 
-    init(library: [StudySet], folders: [StudyFolder], tombstones: [UUID: Date]?) {
+    init(library: [StudySet], folders: [StudyFolder], tombstones: [UUID: Date]?, unread: [String]?) {
         self.library = library
         self.folders = folders
         self.tombstones = tombstones
+        self.unread = unread
     }
 
     init(from decoder: Decoder) throws {
@@ -492,6 +612,8 @@ private struct LibraryFile: Codable {
         let sets = try c.decode([Lossy<StudySet>].self, forKey: .library)
         library = sets.compactMap { $0.value }
         skipped = sets.count - library.count
+        skippedAt = sets.indices.filter { sets[$0].value == nil }
+        unread = (try? c.decodeIfPresent([String].self, forKey: .unread)) ?? nil
         let kept = (try? c.decodeIfPresent([Lossy<StudyFolder>].self, forKey: .folders)) ?? nil
         folders = (kept ?? []).compactMap { $0.value }
         tombstones = (try? c.decodeIfPresent([UUID: Date].self, forKey: .tombstones)) ?? nil

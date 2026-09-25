@@ -56,6 +56,10 @@ struct LecturePDFSection: View {
     @State private var images: [String] = []
     @State private var diagramTask: Task<Void, Never>?
     @State private var diagramProgress: String?
+    /// Which diagram scan is current. A scan that has been replaced by a
+    /// newer file's may still report a page or finish before it notices it
+    /// was cancelled, and must not write over the newer one's progress.
+    @State private var diagramRun = 0
     /// Asking first: the picture cards are saved as their own set, and New
     /// set closes.
     @State private var confirmingPictures = false
@@ -88,7 +92,8 @@ struct LecturePDFSection: View {
             if visible { fileSection }
         }
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes) { result in
-            Task { await read(result) }
+            // held by FileReads, so closing New set stops the reading
+            FileReads.run { await read(result) }
         }
     }
 
@@ -163,6 +168,9 @@ struct LecturePDFSection: View {
             status = nil
             cards = []
             images = []
+            // the previous file's diagram scan is over whether or not this
+            // file reads: its cards would belong to a different lecture
+            stopDiagrams()
             do {
                 let isPDF = url.pathExtension.lowercased() == "pdf"
                 // the text first, which is almost instant; the diagrams are
@@ -182,7 +190,7 @@ struct LecturePDFSection: View {
                 // SourceFiles - so the text above is what travels.
                 let kind = Self.kind(of: url)
                 readSource = ReadSource(name: fileName, document: document, kind: kind,
-                                        fileBlob: SourceFiles.keep(url, kind: kind))
+                                        fileBlob: await SourceFiles.keeping(url, kind: kind))
                 findDiagrams(in: url, pdf: isPDF)
 
                 // proposed, not imposed: the stepper still moves, and a student
@@ -192,6 +200,8 @@ struct LecturePDFSection: View {
 
                 status = summary(pages: document.pages.count,
                                  ocr: document.recognisedPages)
+            } catch is CancellationError {
+                // New set closed: nobody is waiting for this file any more
             } catch {
                 status = (error as? LocalizedError)?.errorDescription
                     ?? error.localizedDescription
@@ -202,23 +212,43 @@ struct LecturePDFSection: View {
 
     /// Labelled diagrams, looked for while the student carries on: several
     /// slides at a time, off the main thread, with the count shown.
+    ///
+    /// The scan is awaited inside a task FileReads holds rather than run
+    /// detached. A detached task does not hear its parent being cancelled, so
+    /// picking another file or closing New set used to leave the old scan
+    /// rendering and OCRing every page beside the new one.
     private func findDiagrams(in url: URL, pdf: Bool) {
-        diagramTask?.cancel()
+        stopDiagrams()
+        let run = diagramRun
         diagramProgress = "Finding diagrams\u{2026}"
-        diagramTask = Task {
-            let read = await Task.detached(priority: .userInitiated) { () -> SourceIngest.Result? in
-                if pdf {
-                    return try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
-                                                        onPage: { done, total in
-                        Task { @MainActor in diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}" }
-                    })
-                }
-                return try? await OfficeIngest.read(url, findingFigures: true)
-            }.value
-            guard !Task.isCancelled else { return }
-            if let read { keepFigures(read) }
+        diagramTask = FileReads.run {
+            let read: SourceIngest.Result?
+            if pdf {
+                read = try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
+                                                    onPage: { done, total in
+                    Task { @MainActor in
+                        guard diagramRun == run else { return }
+                        diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}"
+                    }
+                })
+            } else {
+                read = try? await OfficeIngest.read(url, findingFigures: true)
+            }
+            // a scan that was replaced leaves the label to the one that
+            // replaced it; one that was only cancelled clears its own
+            guard diagramRun == run else { return }
             diagramProgress = nil
+            guard !Task.isCancelled, let read else { return }
+            keepFigures(read)
         }
+    }
+
+    /// Cancels the diagram scan running, if any, and takes its label down.
+    private func stopDiagrams() {
+        diagramTask?.cancel()
+        diagramTask = nil
+        diagramRun += 1
+        diagramProgress = nil
     }
 
     private func summary(pages: Int, ocr: Int) -> String {

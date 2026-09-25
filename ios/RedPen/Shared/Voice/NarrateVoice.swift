@@ -65,6 +65,9 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var failed: Set<String> = []
     private var queue: AVQueuePlayer?
     private var queuedChunk: [ObjectIdentifier: Int] = [:]
+    /// Each queued item's status, watched: an item that fails to load posts
+    /// no notification at all, and would stay in queuedChunk for good.
+    private var itemWatches: [ObjectIdentifier: NSKeyValueObservation] = [:]
     private var queuedWords: [Int: [ClipWord]] = [:]
     private var nextToQueue = 0
     private var seekChunk: Int?
@@ -82,6 +85,10 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var utterances: [ObjectIdentifier: PhoneLine] = [:]
     private var nextPhoneLine = 0
     private var phoneNeedsRestart = false
+    /// Where the phone stops and hands back to the cloud: the end of the clip
+    /// it is standing in for. Nil when the cloud cannot be used at all (not
+    /// Pro, Arabic, switched off) and the phone reads to the end.
+    private var phoneLimit: Int?
     private lazy var arabicVoice: AVSpeechSynthesisVoice? = AVSpeechSynthesisVoice(language: "ar-SA")
 
     override init() {
@@ -106,7 +113,15 @@ final class NarrateVoice: NSObject, ObservableObject {
             let id = ObjectIdentifier(item)
             MainActor.assumeIsolated { self?.itemEnded(id) }
         }
-        observers = [interrupted, ended]
+        // a clip that cannot play never posts "played to the end": without
+        // this its chunk stays queued for good and the lecture falls silent
+        let broke: NSObjectProtocol = center.addObserver(
+            forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] note in
+            guard let item = note.object as? AVPlayerItem else { return }
+            let id = ObjectIdentifier(item)
+            MainActor.assumeIsolated { self?.itemFailed(id) }
+        }
+        observers = [interrupted, ended, broke]
     }
 
     private func unlisten() {
@@ -144,13 +159,18 @@ final class NarrateVoice: NSObject, ObservableObject {
         paused = false
         playing = true
         spot = NarrateSpot(line: start, word: nil)
+        // a Play is a fresh try: a clip that failed in a network drop is
+        // asked for again rather than left to the phone for good
+        failed = []
         NowPlaying.activate()
         listen()
         attachRemote()
         if cloudUsable {
             startCloud(at: start)
         } else {
-            startPhone(at: start, word: 0)
+            // resting after a refusal: the phone reads clip by clip, and the
+            // cloud takes over again at a clip's edge once the rest is over
+            startPhone(at: start, word: 0, until: cloudEligible ? standInEnd(forLine: start) : nil)
         }
         showNowPlaying()
     }
@@ -176,7 +196,7 @@ final class NarrateVoice: NSObject, ObservableObject {
                 queue.play()
             }
         } else if phoneNeedsRestart || !synthesizer.continueSpeaking() {
-            startPhone(at: spot.line, word: spot.word ?? 0)
+            startPhone(at: spot.line, word: spot.word ?? 0, until: phoneLimit)
         }
         showNowPlaying()
     }
@@ -222,7 +242,7 @@ final class NarrateVoice: NSObject, ObservableObject {
             queue?.defaultRate = Float(newSpeed)
             if playing, queue?.currentItem != nil { queue?.rate = Float(newSpeed) }
         } else if playing {
-            startPhone(at: spot.line, word: spot.word ?? 0)
+            startPhone(at: spot.line, word: spot.word ?? 0, until: phoneLimit)
         } else if paused {
             phoneNeedsRestart = true
         }
@@ -259,6 +279,7 @@ final class NarrateVoice: NSObject, ObservableObject {
         queue?.pause()
         queue?.removeAllItems()
         queuedChunk = [:]
+        itemWatches = [:]
         queuedWords = [:]
         seekChunk = nil
         onCloud = false
@@ -266,6 +287,7 @@ final class NarrateVoice: NSObject, ObservableObject {
         utterances = [:]
         silencePhone()
         phoneNeedsRestart = false
+        phoneLimit = nil
     }
 
     // MARK: the cloud voice
@@ -275,6 +297,44 @@ final class NarrateVoice: NSObject, ObservableObject {
         // Aura-2 speaks English; an Arabic line is the phone's
         guard !langs.contains("ar") else { return false }
         return cloud.available
+    }
+
+    /// The cloud could read this lecture, if not necessarily right now.
+    private var cloudEligible: Bool {
+        !chunks.isEmpty && !langs.contains("ar") && cloud.eligible
+    }
+
+    private func standInEnd(forLine line: Int) -> Int? {
+        NarratePlan.standInEnd(forLine: line, in: chunks)
+    }
+
+    /// The phone reads chunk `k` - from `line`, or its start - and only that;
+    /// the clips after it are fetched meanwhile, so the cloud can take the
+    /// next one straight back.
+    private func standIn(for k: Int, from line: Int? = nil, word: Int = 0) {
+        let first: Int = line ?? chunks[k].lines.lowerBound
+        startPhone(at: first, word: word, until: chunks[k].lines.upperBound)
+        prefetch(after: k)
+    }
+
+    /// Fetches the clips after chunk `k`, retrying any that failed before -
+    /// the cloud is usable again, so a clip lost in a network drop is worth
+    /// another request.
+    private func prefetch(after k: Int) {
+        guard cloudUsable else { return }
+        let upper: Int = min(chunks.count, k + 1 + Self.ahead)
+        guard k + 1 < upper else { return }
+        for next in (k + 1)..<upper {
+            failed.remove(chunks[next].text)
+            fetch(next)
+        }
+    }
+
+    /// Whether the cloud can read from `line` straight away: usable, and the
+    /// clip it starts is already here.
+    private func cloudReady(at line: Int) -> Bool {
+        guard cloudUsable, let c = NarratePlan.chunkIndex(containing: line, in: chunks) else { return false }
+        return clips[chunks[c].text] != nil
     }
 
     private func startCloud(at line: Int) {
@@ -301,7 +361,8 @@ final class NarrateVoice: NSObject, ObservableObject {
     private func giveUpIfSilent(_ mine: Int, line: Int) {
         guard session == mine, onCloud, playing, waiting, queuedChunk.isEmpty else { return }
         Self.cloudRestUntil = Date().addingTimeInterval(90)
-        startPhone(at: spot.line, word: 0)
+        // the phone reads on clip by clip, and hands back once the rest is over
+        startPhone(at: spot.line, word: 0, until: standInEnd(forLine: spot.line))
     }
 
     private func ensureQueue() -> AVQueuePlayer {
@@ -335,6 +396,13 @@ final class NarrateVoice: NSObject, ObservableObject {
         while nextToQueue < chunks.count, nextToQueue <= playingChunk + Self.ahead {
             let text: String = chunks[nextToQueue].text
             guard let clip = clips[text] else { break }
+            // the cache may have lost it since it arrived: fetch it again
+            // rather than queue an item that can only fail
+            guard FileManager.default.fileExists(atPath: clip.url.path) else {
+                clips[text] = nil
+                fetch(nextToQueue)
+                break
+            }
             enqueue(nextToQueue, clip, in: queue)
             nextToQueue += 1
             added = true
@@ -345,10 +413,12 @@ final class NarrateVoice: NSObject, ObservableObject {
             queue.play()
         }
         // the next clip will never come: once what is queued has played,
-        // the phone reads on from there
+        // the phone reads that clip, and the cloud takes the one after it
         if queuedChunk.isEmpty, nextToQueue < chunks.count,
            failed.contains(chunks[nextToQueue].text), playing {
-            startPhone(at: chunks[nextToQueue].lines.lowerBound, word: 0)
+            // from the tapped line when the reading started inside this clip
+            let from: Int? = seekChunk == nextToQueue ? seekLine : nil
+            standIn(for: nextToQueue, from: from)
         }
     }
 
@@ -358,8 +428,13 @@ final class NarrateVoice: NSObject, ObservableObject {
         item.audioTimePitchAlgorithm = .timeDomain
         let words: [ClipWord] = NarratePlan.wordTimes(lines: lines, range: chunks[k].lines,
                                                       duration: clip.duration)
-        queuedChunk[ObjectIdentifier(item)] = k
+        let id = ObjectIdentifier(item)
+        queuedChunk[id] = k
         queuedWords[k] = words
+        itemWatches[id] = item.observe(\.status, options: [.new]) { [weak self] watched, _ in
+            guard watched.status == .failed else { return }
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.itemFailed(id) } }
+        }
         queue.insert(item, after: nil)
         if seekChunk == k {
             seekChunk = nil
@@ -380,16 +455,18 @@ final class NarrateVoice: NSObject, ObservableObject {
             return
         }
         let token: String = LocalLLMService.shared.cloudToken ?? ""
+        // the clips this lecture holds are never pruned to make room
+        let keep: Set<String> = Set(clips.values.map { $0.url.lastPathComponent })
         let task = Task { [weak self] in
             // runs off the main thread: the request, the file, the duration
-            let clip: NarrateClip? = await NarrateVoice.download(text, token: token)
+            let got: (clip: NarrateClip?, rest: TimeInterval) = await NarrateVoice.download(text, token: token, keep: keep)
             if Task.isCancelled { return }
-            self?.arrived(text, clip)
+            self?.arrived(text, got.clip, rest: got.rest)
         }
         fetching[text] = task
     }
 
-    private func arrived(_ text: String, _ clip: NarrateClip?) {
+    private func arrived(_ text: String, _ clip: NarrateClip?, rest: TimeInterval) {
         fetching[text] = nil
         if let clip {
             clips[text] = clip
@@ -405,13 +482,21 @@ final class NarrateVoice: NSObject, ObservableObject {
             }
         } else {
             failed.insert(text)
-            Self.cloudRestUntil = Date().addingTimeInterval(60)
+            // the server's own word for how long to leave it - an hour after
+            // the day's allowance is used, not a minute - and every speaker
+            // in the app hears it. Zero is "only this clip": no rest.
+            if rest > 0 {
+                let until: Date = Date().addingTimeInterval(max(rest, 60))
+                Self.cloudRestUntil = max(Self.cloudRestUntil, until)
+                CloudVoice.rest(rest)
+            }
         }
         fillQueue()
     }
 
     private func itemEnded(_ id: ObjectIdentifier) {
         guard let k = queuedChunk.removeValue(forKey: id) else { return }
+        itemWatches[id] = nil
         queuedWords[k] = nil
         if k >= chunks.count - 1 {
             finish()
@@ -423,6 +508,46 @@ final class NarrateVoice: NSObject, ObservableObject {
             waiting = true
             let first: Int = chunks[k + 1].lines.lowerBound
             spot = NarrateSpot(line: first, word: nil)
+        }
+    }
+
+    /// A clip that could not play (it failed to load, or part way through).
+    ///
+    /// It comes off the queue with every clip queued after it, and the queue
+    /// is refilled from it: as `failed`, it is the phone's to read. The clip
+    /// that was playing is read by the phone at once, from where the voice
+    /// had got to; a later one, once the clips before it have played
+    /// (fillQueue) - never by jumping ahead over them. Either way the cloud
+    /// takes the next clip back.
+    private func itemFailed(_ id: ObjectIdentifier) {
+        guard let k = queuedChunk[id] else { return }
+        let current: Int = queuedChunk.values.min() ?? k
+        let text: String = chunks[k].text
+        clips[text] = nil
+        failed.insert(text)
+        if let queue {
+            for item in queue.items() {
+                guard let j = queuedChunk[ObjectIdentifier(item)], j >= k else { continue }
+                queue.remove(item)
+            }
+        }
+        for (other, j) in queuedChunk where j >= k {
+            queuedChunk[other] = nil
+            itemWatches[other] = nil
+            queuedWords[j] = nil
+        }
+        nextToQueue = k
+        guard onCloud, k == current else { return }
+        let from: Int = chunks[k].lines.contains(spot.line) ? spot.line : chunks[k].lines.lowerBound
+        if playing {
+            standIn(for: k, from: from, word: from == spot.line ? (spot.word ?? 0) : 0)
+        } else if paused {
+            // Play carries on with the phone reading this clip
+            onCloud = false
+            waiting = false
+            phoneNeedsRestart = true
+            phoneLimit = chunks[k].lines.upperBound
+            if from != spot.line { spot = NarrateSpot(line: from, word: nil) }
         }
     }
 
@@ -453,22 +578,28 @@ final class NarrateVoice: NSObject, ObservableObject {
 
     /// One clip: from the disk if it was heard before, otherwise from the
     /// server. Never on the main thread.
-    nonisolated static func download(_ text: String, token: String) async -> NarrateClip? {
+    ///
+    /// With no clip, how long the server asked to be left alone (CloudFetch's
+    /// rest; zero when only this clip failed).
+    nonisolated static func download(_ text: String, token: String,
+                                     keep: Set<String>) async -> (clip: NarrateClip?, rest: TimeInterval) {
         let file: URL = cacheFile(for: text)
         if FileManager.default.fileExists(atPath: file.path),
            let seconds = await duration(of: file) {
-            return NarrateClip(url: file, duration: seconds)
+            // heard again: the newest in the cache, not the oldest
+            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: file.path)
+            return (NarrateClip(url: file, duration: seconds), 0)
         }
         let answer: CloudFetch = await CloudVoice.fetch(text, patient: false, token: token)
-        guard let clip = answer.clip else { return nil }
+        guard let clip = answer.clip else { return (nil, answer.rest) }
         do {
             try clip.data.write(to: file, options: .atomic)
         } catch {
-            return nil
+            return (nil, 0)
         }
-        prune()
-        guard let seconds = await duration(of: file) else { return nil }
-        return NarrateClip(url: file, duration: seconds)
+        prune(keeping: keep.union([file.lastPathComponent]))
+        guard let seconds = await duration(of: file) else { return (nil, 0) }
+        return (NarrateClip(url: file, duration: seconds), 0)
     }
 
     /// The clip's real length - the word timing is laid over this, so it is
@@ -481,21 +612,22 @@ final class NarrateVoice: NSObject, ObservableObject {
         return seconds.isFinite && seconds > 0.2 ? seconds : nil
     }
 
-    /// A few lectures' worth is kept; the oldest go first.
-    nonisolated private static func prune() {
+    /// A few lectures' worth is kept; the least recently heard go first, and
+    /// never a clip the lecture being played holds (`keeping`, file names).
+    nonisolated private static func prune(keeping: Set<String>) {
         let keys: [URLResourceKey] = [.contentModificationDateKey]
+        let folder: URL = cacheFolder
         let found: [URL] = (try? FileManager.default.contentsOfDirectory(
-            at: cacheFolder, includingPropertiesForKeys: keys)) ?? []
+            at: folder, includingPropertiesForKeys: keys)) ?? []
         let keep = 400
         guard found.count > keep else { return }
-        let dated: [(URL, Date)] = found.map { url in
+        let dated: [(name: String, used: Date)] = found.map { url in
             let date: Date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                 .contentModificationDate ?? .distantPast
-            return (url, date)
+            return (name: url.lastPathComponent, used: date)
         }
-        let oldestFirst = dated.sorted { $0.1 < $1.1 }
-        for (url, _) in oldestFirst.prefix(found.count - keep) {
-            try? FileManager.default.removeItem(at: url)
+        for name in NarratePlan.pruneList(dated, keep: keep, protected: keeping) {
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
         }
     }
 
@@ -510,25 +642,57 @@ final class NarrateVoice: NSObject, ObservableObject {
 
     /// One synthesizer for the whole lecture, three lines queued ahead, so
     /// one line runs into the next without a pause while a new one is set up.
-    private func startPhone(at line: Int, word: Int) {
+    ///
+    /// `until` is where the phone hands back to the cloud (phoneLimit): the
+    /// end of the clip it is standing in for. Nil reads to the end.
+    private func startPhone(at line: Int, word: Int, until: Int? = nil) {
         queue?.pause()
         queue?.removeAllItems()
         queuedChunk = [:]
+        itemWatches = [:]
         queuedWords = [:]
         onCloud = false
         waiting = false
         utterances = [:]
         silencePhone()
         phoneNeedsRestart = false
+        phoneLimit = until
         guard line < lines.count else {
             finish()
             return
         }
         speakLine(line, from: word)
+        queuePhoneLines()
+        if utterances.isEmpty { phoneRanOut() }
+    }
+
+    /// Lines queued three ahead - up to phoneLimit. At that clip's edge the
+    /// cloud takes back over if its clip is here; if not (still resting, or
+    /// still on its way) the phone reads on through the next clip too, with
+    /// no pause, and asks again at that clip's end.
+    private func queuePhoneLines() {
         while utterances.count < 3 && nextPhoneLine < lines.count {
+            if let limit = phoneLimit, nextPhoneLine >= limit {
+                if cloudReady(at: nextPhoneLine) { break }
+                guard let c = NarratePlan.chunkIndex(containing: nextPhoneLine, in: chunks) else {
+                    phoneLimit = nil
+                    continue
+                }
+                phoneLimit = chunks[c].lines.upperBound
+                prefetch(after: c)
+            }
             speakLine(nextPhoneLine, from: 0)
         }
-        if utterances.isEmpty { finish() }
+    }
+
+    /// Nothing left queued on the phone: the lecture is over, or the phone
+    /// has reached the clip the cloud reads.
+    private func phoneRanOut() {
+        if nextPhoneLine < lines.count, let limit = phoneLimit, nextPhoneLine >= limit, playing {
+            startCloud(at: nextPhoneLine)
+        } else if nextPhoneLine >= lines.count {
+            finish()
+        }
     }
 
     private func speakLine(_ line: Int, from word: Int) {
@@ -562,10 +726,8 @@ final class NarrateVoice: NSObject, ObservableObject {
 
     fileprivate func phoneFinished(_ id: ObjectIdentifier) {
         guard utterances.removeValue(forKey: id) != nil else { return }
-        while utterances.count < 3 && nextPhoneLine < lines.count {
-            speakLine(nextPhoneLine, from: 0)
-        }
-        if utterances.isEmpty && nextPhoneLine >= lines.count { finish() }
+        queuePhoneLines()
+        if utterances.isEmpty { phoneRanOut() }
     }
 
     fileprivate func phoneCancelled(_ id: ObjectIdentifier) {

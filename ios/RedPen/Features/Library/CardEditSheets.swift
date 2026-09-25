@@ -127,7 +127,11 @@ struct QuestionEditSheet: View {
                 } header: {
                     Text("Options")
                 } footer: {
-                    Text("Tap the circle beside the right answer.")
+                    // the keyed option emptied or deleted: nothing is marked,
+                    // and Done waits for the right answer to be picked
+                    Text(MCQEdit.hasKey(working)
+                         ? "Tap the circle beside the right answer."
+                         : "No answer is marked correct \u{2014} tap the circle beside the right one.")
                 }
                 Section("Explanation") {
                     TextEditor(text: $working.explanation).frame(minHeight: 90)
@@ -147,10 +151,12 @@ struct QuestionEditSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        onSave(MCQEdit.tidied(working))
+                        guard let saved = MCQEdit.tidied(working) else { return }
+                        onSave(saved)
                         dismiss()
                     }
-                    .disabled(working.options.count < 2)
+                    // two options with words, one of them marked correct
+                    .disabled(MCQEdit.tidied(working) == nil)
                 }
             }
         }

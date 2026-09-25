@@ -371,8 +371,7 @@ extension LibraryView {
         }
         if set.kind == .anki {
             Button("Export deck (.apkg)", systemImage: "square.and.arrow.up") {
-                if let url = try? ApkgExporter.export(set) { exportURL = url }
-                else { exportFailedSetName = set.name }
+                exportDeck(set)
             }
         }
         Button("Share as JSON", systemImage: "doc.text") {

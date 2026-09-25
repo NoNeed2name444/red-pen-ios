@@ -54,7 +54,8 @@ struct OsceGenerateSection: View {
                         enabled: canGenerate, inputs: [subject, String(sourceText.count)], run: start)
         .fileImporter(isPresented: $picking, allowedContentTypes: readableTypes,
                       allowsMultipleSelection: false) { result in
-            Task { await read(result) }
+            // held by FileReads, so closing New set stops the reading
+            FileReads.run { await read(result) }
         }
         .onAppear {
             guard sourceName.isEmpty, !presetText.isEmpty else { return }
@@ -157,7 +158,7 @@ struct OsceGenerateSection: View {
             // No figures: a station comes out of the words, and rendering every
             // page to hunt for diagrams is the slow half of reading a file.
             let read = isPDF ? try await SourceIngest.read(pdf: url, findingFigures: false)
-                             : try await OfficeIngest.read(url)
+                             : try await OfficeIngest.read(url, findingFigures: false)
             sourceText = read.document.text
             sourceName = url.deletingPathExtension().lastPathComponent
             let pages: Int = read.document.pages.count
@@ -165,6 +166,8 @@ struct OsceGenerateSection: View {
             if !canGenerate {
                 trouble = "There is not much text in that file to work from."
             }
+        } catch is CancellationError {
+            // New set closed: nobody is waiting for this file any more
         } catch {
             status = nil
             trouble = error.localizedDescription
@@ -188,6 +191,12 @@ struct OsceGenerateSection: View {
             status = "Cancelled."
         }
         task = Task {
+            // A cloud job's replies stay kept - on this device and on the
+            // server - until this generation is done with them, however it
+            // ends: an app closed while they are checked or saved finds them
+            // again on its next launch (CloudJobs.Delivery).
+            let delivery = CloudJobs.Delivery()
+            defer { CloudJobs.finish(delivery) }
             do {
                 let progress: (Int, Int) -> Void = { done, total in
                     GenerationCenter.shared.update(job, done: done, total: total)
@@ -202,7 +211,7 @@ struct OsceGenerateSection: View {
                     stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
-                    })) {
+                    }, delivery: delivery)) {
                         try await MedicalGenerate.osce(
                             sourceText: text, count: wanted, subject: subj,
                             using: writer, onProgress: progress)
@@ -220,7 +229,10 @@ struct OsceGenerateSection: View {
                             GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking with \(checker.label)")
                             Task { @MainActor in status = "Checking \(done) of \(total) with \(checker.label)\u{2026}" }
                         })
+                    let screenedTotal: Int = stations.count
                     stations = screened.kept
+                    // a station the checker never graded is not a checked one
+                    checkNote += MedVAL.uncheckedNote(screened.unchecked, of: screenedTotal)
                     if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
                     if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk." }
                 }

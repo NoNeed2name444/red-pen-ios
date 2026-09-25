@@ -35,6 +35,9 @@ jobs:
           git checkout -B personal
           git commit -qam "Personal build: this-device-only sign-in, everything unlocked"
           git push -f origin personal
+          # the push was the last thing that needed the token: take it out of
+          # .git/config before the build runs third-party packages' code
+          git config --local --unset-all http.https://github.com/.extraheader || true
       - name: Tools
         run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - name: Generate the project

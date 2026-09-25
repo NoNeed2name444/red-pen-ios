@@ -38,6 +38,9 @@ struct LectureWriterSection: View {
     /// The background look for diagrams, and how far it has got.
     @State private var figureTask: Task<Void, Never>?
     @State private var diagramProgress: String?
+    /// Which diagram scan is current, so one that was replaced by a newer
+    /// file cannot write over the newer one's progress or results.
+    @State private var diagramRun = 0
     @State private var status: String?
     @State private var trouble: String?
     @State private var task: Task<Void, Never>?
@@ -65,7 +68,8 @@ struct LectureWriterSection: View {
         }
         .fileImporter(isPresented: $picking, allowedContentTypes: Self.readableTypes,
                       allowsMultipleSelection: false) { result in
-            Task { await read(result) }
+            // held by FileReads, so closing New set stops the reading
+            FileReads.run { await read(result) }
         }
         .onAppear {
             guard pastedNotes.isEmpty, !presetNotes.isEmpty else { return }
@@ -236,7 +240,9 @@ struct LectureWriterSection: View {
             // The text first - it is almost instant - so writing can start
             // straight away; the diagrams are looked for afterwards, in the
             // background (findDiagrams).
-            figureTask?.cancel()
+            // the previous file's diagram scan ends here, label and all,
+            // whatever kind this file turns out to be
+            stopDiagrams()
             bookFigures = []
             diagrams = DiagramCards()
             let read = ext == "pdf" ? try await SourceIngest.read(pdf: url, findingFigures: false)
@@ -261,6 +267,9 @@ struct LectureWriterSection: View {
             // a textbook places the lecture's diagrams; Cards makes image
             // occlusion cards from them
             if kind == .book || kind == .anki { findDiagrams(in: url, pdf: ext == "pdf") }
+        } catch is CancellationError {
+            // New set closed: nobody is waiting for this file any more
+            status = nil
         } catch {
             status = nil
             trouble = error.localizedDescription
@@ -271,10 +280,8 @@ struct LectureWriterSection: View {
     /// labels and page text so it can find the page about its topic.
     nonisolated static func figures(from read: SourceIngest.Result) -> [BookFigure] {
         read.figures.enumerated().compactMap { i, image in
-            let scale = min(1, 1400 / max(image.size.width, image.size.height, 1))
-            let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-            let small = UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
-            guard let jpeg = small.jpegData(compressionQuality: 0.7) else { return nil }
+            // 1,400 PIXELS: a renderer at the screen's scale made this 4,200
+            guard let jpeg = SourceIngest.downsized(image, maxDimension: 1400, quality: 0.7) else { return nil }
             let note = read.figureNotes.indices.contains(i) ? read.figureNotes[i] : (page: nil, labels: [])
             let pageText = note.page.flatMap { number in read.document.pages.first { $0.number == number }?.text } ?? ""
             return BookFigure(imageBase64: jpeg.base64EncodedString(), page: note.page,
@@ -331,20 +338,32 @@ struct LectureWriterSection: View {
 
     /// Looks for labelled diagrams while the student carries on: several
     /// slides at a time, off the main thread, the count shown as it goes.
+    ///
+    /// Awaited inside a task FileReads holds, not detached: a detached scan
+    /// never heard it had been cancelled, so picking another file left the
+    /// old one OCRing every page and writing its count into the label.
     private func findDiagrams(in url: URL, pdf: Bool) {
+        stopDiagrams()
         let mode = kind
         let name = url.deletingPathExtension().lastPathComponent
+        let run = diagramRun
         diagramProgress = "Finding diagrams\u{2026}"
-        figureTask = Task {
-            let read = await Task.detached(priority: .userInitiated) { () -> SourceIngest.Result? in
-                if pdf {
-                    return try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
-                                                        onPage: { done, total in
-                        Task { @MainActor in diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}" }
-                    })
-                }
-                return try? await OfficeIngest.read(url, findingFigures: true)
-            }.value
+        figureTask = FileReads.run {
+            let read: SourceIngest.Result?
+            if pdf {
+                read = try? await SourceIngest.read(pdf: url, findingFigures: true, readingText: false,
+                                                    onPage: { done, total in
+                    Task { @MainActor in
+                        guard diagramRun == run else { return }
+                        diagramProgress = "Finding diagrams \(done) of \(total)\u{2026}"
+                    }
+                })
+            } else {
+                read = try? await OfficeIngest.read(url, findingFigures: true)
+            }
+            // a scan that was replaced leaves everything to its successor
+            guard diagramRun == run else { return }
+            diagramProgress = nil
             guard !Task.isCancelled else { return }
             var figures: [BookFigure] = []
             var cards = DiagramCards()
@@ -354,8 +373,15 @@ struct LectureWriterSection: View {
             diagrams = cards
             // found after the text cards were written: still in the set
             diagrams.included = diagramsWanted(style)
-            diagramProgress = nil
         }
+    }
+
+    /// Cancels the diagram scan running, if any, and takes its label down.
+    private func stopDiagrams() {
+        figureTask?.cancel()
+        figureTask = nil
+        diagramRun += 1
+        diagramProgress = nil
     }
 
     // MARK: writing
@@ -390,6 +416,12 @@ struct LectureWriterSection: View {
             status = "Cancelled."
         }
         task = Task {
+            // A cloud job's replies stay kept - on this device and on the
+            // server - until this generation is done with them, however it
+            // ends: an app closed while they are checked or saved finds them
+            // again on its next launch (CloudJobs.Delivery).
+            let delivery = CloudJobs.Delivery()
+            defer { CloudJobs.finish(delivery) }
             do {
                 // a textbook places the lecture's diagrams, so it waits for the
                 // look for them to finish; cards never wait
@@ -414,7 +446,7 @@ struct LectureWriterSection: View {
                 let written = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
-                    })) {
+                    }, delivery: delivery)) {
                     try await LectureWriter.write(
                         kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
                         onProgress: { done, total in

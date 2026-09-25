@@ -14,10 +14,12 @@ import UIKit
 enum PDFOcclusion {
 
     /// The images a set carries are base64 in its JSON, which is what keeps a
-    /// set portable; they become pictures only here and on screen.
+    /// set portable; they become pictures only here and on screen. A set that
+    /// came from the web app keeps them as `data:image/jpeg;base64,...`, so
+    /// the prefix is allowed for, as every other reader of them does.
     static func image(at index: Int, in set: StudySet) -> UIImage? {
         guard set.images.indices.contains(index),
-              let data = Data(base64Encoded: set.images[index]) else { return nil }
+              let data = BlobRefs.data(fromStored: set.images[index]) else { return nil }
         return UIImage(data: data)
     }
 

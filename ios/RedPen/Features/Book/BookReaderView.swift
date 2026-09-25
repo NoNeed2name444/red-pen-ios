@@ -174,8 +174,9 @@ struct BookReaderView: View {
     }
 
     private func picture(_ index: Int) -> UIImage? {
+        // with or without the web app's data: prefix
         guard studySet.images.indices.contains(index),
-              let data = Data(base64Encoded: studySet.images[index]) else { return nil }
+              let data = BlobRefs.data(fromStored: studySet.images[index]) else { return nil }
         return UIImage(data: data)
     }
 

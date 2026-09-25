@@ -83,6 +83,17 @@ struct RedPenApp: App {
                 .appendingPathComponent("redpen-preview-\(UUID().uuidString).json")) : nil))
     }
 
+    /// Shown while the sync waits for an answer about this device's library.
+    private var libraryQuestion: Binding<Bool> {
+        Binding(get: { sync.status == .needsLibraryChoice }, set: { _ in })
+    }
+
+    private var libraryQuestionText: String {
+        let count: Int = store.library.count
+        let sets: String = count == 1 ? "1 set" : "\(count) sets"
+        return "This device has \(sets) from another account. Added, they sync to this account and every device on it. Kept here, they stay only on this device; anything new still syncs."
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -142,6 +153,32 @@ struct RedPenApp: App {
                             subscriptions.accountId = account.account?.id
                             await subscriptions.report(token: account.token)
                             await sync.syncNow()
+                            // lecture files no set refers to any more, with the
+                            // whole library loaded (see SourceFiles.sweep)
+                            SourceFiles.sweepUnused(in: store)
+                        }
+                        // The account can change while the library stays on
+                        // screen - a device linked by code, a this-device-only
+                        // library given a server account. A purchase must be
+                        // tagged with the account it is for, and that account
+                        // told about it; set once at launch, both went to the
+                        // old one.
+                        .onChange(of: account.account?.id) { _, id in
+                            subscriptions.accountId = id
+                            Task { await subscriptions.report(token: account.token) }
+                        }
+                        // Somebody else's library is on this device: asked
+                        // before any of it goes into their account.
+                        .alert("Add this device's library to your account?",
+                               isPresented: libraryQuestion) {
+                            Button("Add to my account") {
+                                Task { await sync.chooseLibrary(addToAccount: true) }
+                            }
+                            Button("Keep on this device only") {
+                                Task { await sync.chooseLibrary(addToAccount: false) }
+                            }
+                        } message: {
+                            Text(libraryQuestionText)
                         }
                         // Coming back to the app is the moment somebody expects
                         // to see what they did on the other device.
@@ -151,7 +188,13 @@ struct RedPenApp: App {
                             // last chance to send this device's before the phone
                             // goes in a pocket for the rest of the day.
                             if new == .active || new == .background {
-                                Task { await sync.syncNow() }
+                                Task {
+                                    // a session near its end is renewed on the
+                                    // way back in, sync or no sync: the cloud
+                                    // models use it too
+                                    if new == .active { await account.refreshIfNeeded() }
+                                    await sync.syncNow()
+                                }
                             }
                             // the review reminder, rescheduled from the latest
                             // schedule each time the student leaves

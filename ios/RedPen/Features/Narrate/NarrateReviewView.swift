@@ -59,6 +59,9 @@ struct NarrateReviewView: View {
     @State private var band = NarrateScrollBand()
 
     @State var segments: [NarrateSegment] = []
+    /// The transcript as this screen last read or saved it - so a save can
+    /// tell when a sync changed it underneath (Store.update's `base`).
+    @State var savedSegments: [NarrateSegment] = []
     @State var texts: [String] = []
     @State private var fixing: FixTarget?
     @State private var report: String?
@@ -196,6 +199,7 @@ struct NarrateReviewView: View {
         }
         guard segments.isEmpty else { return }
         segments = studySet.narrateSegments
+        savedSegments = segments
         texts = segments.map(\.text)
         _ = learned.applyLearned(to: &texts)
         relayout()
@@ -224,9 +228,11 @@ struct NarrateReviewView: View {
         index = 0
         // the set as it is now, not as it was when this screen opened: a
         // rename or a synced edit since then is kept
-        var updated = store.library.first { $0.id == studySet.id } ?? studySet
+        let current = store.library.first { $0.id == studySet.id } ?? studySet
+        var updated = current
         updated.narrateSegments = made
-        store.update(updated)
+        store.update(updated, base: transcriptBase(current))
+        savedSegments = made
         voice.stop()
         if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording, title: title) }
         relayout()
@@ -261,9 +267,21 @@ struct NarrateReviewView: View {
         for i in segments.indices { segments[i].text = texts[i] }
         // the set as it is now, not as it was when this screen opened: a
         // rename or a synced edit since then is kept
-        var updated = store.library.first { $0.id == studySet.id } ?? studySet
+        let current = store.library.first { $0.id == studySet.id } ?? studySet
+        var updated = current
         updated.narrateSegments = segments
-        store.update(updated)
+        // the lines are this screen's, read when it opened: if a sync has
+        // changed the transcript since, that version is kept as a copy rather
+        // than overwritten with these
+        store.update(updated, base: transcriptBase(current))
+        savedSegments = segments
+    }
+
+    /// The set as it is now, with the transcript as this screen last had it.
+    private func transcriptBase(_ current: StudySet) -> StudySet {
+        var base = current
+        base.narrateSegments = savedSegments
+        return base
     }
 
     // MARK: the two pieces of chrome

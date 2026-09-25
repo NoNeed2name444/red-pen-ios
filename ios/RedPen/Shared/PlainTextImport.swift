@@ -7,19 +7,38 @@ import Foundation
 /// or, for Anki QA cards:
 ///   Front | bullet1; bullet2 | why (optional)
 enum PlainTextImport {
+
+    /// The text's lines, whichever line endings it was written with.
+    ///
+    /// In Swift "\r\n" is ONE character, so splitting on "\n" does not split
+    /// a Windows file at all: a pasted list became one question whose
+    /// explanation held the rest of the file, and everything else was lost.
+    static func lines(_ text: String, keepingEmpty: Bool = false) -> [Substring] {
+        let unix = text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        return unix.split(separator: "\n", omittingEmptySubsequences: !keepingEmpty)
+    }
+
+    /// The option a letter names: A is 0, B is 1. Nil for anything that is
+    /// not a letter from A to Z, rather than quietly A - a blank or a
+    /// full-width letter keyed as A marks the student wrong for the right answer.
+    static func optionIndex(_ field: String) -> Int? {
+        guard let first = field.trimmingCharacters(in: .whitespaces).first,
+              first.isLetter, let ascii = first.asciiValue else { return nil }
+        // lower-cased by its bit, so "b" and "B" are both 1
+        return Int(ascii | 0x20) - 97
+    }
+
     static func parseMCQ(_ text: String) -> [MCQQuestion] {
-        text.split(separator: "\n").compactMap { rawLine -> MCQQuestion? in
+        lines(text).compactMap { rawLine -> MCQQuestion? in
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { return nil }
             let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
             guard parts.count >= 3 else { return nil }
             let options = parts[1].components(separatedBy: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-            let letter = parts[2].uppercased().first
-            let correctIndex = letter.flatMap { l in
-                l.asciiValue.map { Int($0) - Int(Character("A").asciiValue!) }
-            } ?? 0
+            guard let correctIndex = optionIndex(parts[2]) else { return nil }
             let explanation = parts.count >= 4 ? parts[3] : ""
-            guard !options.isEmpty, correctIndex >= 0, correctIndex < options.count else { return nil }
+            guard !options.isEmpty, correctIndex < options.count else { return nil }
             return MCQQuestion(stem: parts[0], options: options, correctIndex: correctIndex, explanation: explanation)
         }
     }
@@ -28,7 +47,7 @@ enum PlainTextImport {
     /// and, for a clinical case, an optional fifth field: its differential,
     /// `Most likely: X (for: ...; against: ...; test: ...) / Expanded: ... / Can't miss: ...`
     static func parseQA(_ text: String) -> [QACard] {
-        text.split(separator: "\n").compactMap { rawLine -> QACard? in
+        lines(text).compactMap { rawLine -> QACard? in
             let parts = rawLine.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
             guard parts.count >= 4 else { return nil }
             let answers = parts[3].components(separatedBy: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
@@ -51,7 +70,7 @@ enum PlainTextImport {
             if !t.isEmpty, !s.isEmpty { checklists.append(OsceChecklist(title: t, steps: s)) }
             steps = []
         }
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+        for rawLine in lines(text, keepingEmpty: true) {
             let line = String(rawLine)
             if line.trimmingCharacters(in: .whitespaces).hasPrefix("##") {
                 flush()
@@ -67,7 +86,7 @@ enum PlainTextImport {
     /// Narrate: one line per segment — "en|Text" or "ar|النص"; the language
     /// tag is optional and defaults to "en".
     static func parseNarrate(_ text: String) -> [NarrateSegment] {
-        text.split(separator: "\n").compactMap { rawLine -> NarrateSegment? in
+        lines(text).compactMap { rawLine -> NarrateSegment? in
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { return nil }
             let parts = line.components(separatedBy: "|")
@@ -81,7 +100,7 @@ enum PlainTextImport {
     }
 
     static func parseAnkiQA(_ text: String) -> [AnkiCard] {
-        text.split(separator: "\n").compactMap { rawLine -> AnkiCard? in
+        lines(text).compactMap { rawLine -> AnkiCard? in
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { return nil }
             let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }

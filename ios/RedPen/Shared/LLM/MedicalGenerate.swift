@@ -184,40 +184,33 @@ enum MedicalGenerate {
 
     // MARK: parsing
 
-    private struct RawQuestionSet: Decodable { var questions: [RawQuestion] }
-    private struct RawQuestion: Decodable {
-        var stem: String
-        var options: [String]
-        var correctIndex: Int
-        var explanation: String
-    }
-
+    /// Every usable question in a reply, each read on its own
+    /// (LLMText.jsonItems): one item with a null explanation, a key written
+    /// "C" or "2", or cut off by the length limit costs only itself. Decoding
+    /// the reply as one strict whole threw away ten good questions for one
+    /// bad one - on a cloud job, questions already written and paid for.
     static func parseQuestions(_ raw: String) -> [MCQQuestion] {
-        guard let data = LLMText.jsonObject(in: raw),
-              let decoded = try? JSONDecoder().decode(RawQuestionSet.self, from: data) else { return [] }
-        let tiers: [DifferentialTiers?] = differentials(in: data)
         var out: [MCQQuestion] = []
-        for (i, r) in decoded.questions.enumerated() {
-            guard MCQGenerator.isValidQuestion(stem: r.stem, options: r.options, correctIndex: r.correctIndex) else { continue }
-            var q = MCQQuestion(stem: r.stem, options: r.options, correctIndex: r.correctIndex, explanation: r.explanation)
-            q.differential = i < tiers.count ? tiers[i] : nil
+        for item in LLMText.jsonItems(in: raw, list: "questions") {
+            guard let stem = item["stem"] as? String,
+                  let options = item["options"] as? [String],
+                  let key = LLMText.keyIndex(item["correctIndex"], options: options),
+                  MCQGenerator.isValidQuestion(stem: stem, options: options, correctIndex: key) else { continue }
+            let explanation: String = item["explanation"] as? String ?? ""
+            var q = MCQQuestion(stem: stem, options: options, correctIndex: key, explanation: explanation)
+            // read tolerantly on its own, so a malformed one costs only itself
+            // and never the question
+            q.differential = item["differential"].flatMap { DifferentialTiers.parse(json: $0) }
             out.append(q)
         }
         return out
     }
 
-    /// Each question's differential, by position, read tolerantly on its own
-    /// so a malformed one costs only itself and never the question.
-    static func differentials(in data: Data) -> [DifferentialTiers?] {
-        DifferentialTiers.perItem(in: data, list: "questions")
-    }
-
-    private struct RawStations: Decodable { var stations: [RawStation] }
-    private struct RawStation: Decodable { var title: String; var steps: [String] }
-
+    /// Stations the same way: a malformed one costs only itself.
     static func parseStations(_ raw: String) -> [OsceChecklist] {
-        guard let data = LLMText.jsonObject(in: raw),
-              let decoded = try? JSONDecoder().decode(RawStations.self, from: data) else { return [] }
-        return decoded.stations.map { OsceChecklist(title: $0.title, steps: $0.steps) }
+        LLMText.jsonItems(in: raw, list: "stations").compactMap { item -> OsceChecklist? in
+            guard let title = item["title"] as? String, let steps = item["steps"] as? [String] else { return nil }
+            return OsceChecklist(title: title, steps: steps)
+        }
     }
 }

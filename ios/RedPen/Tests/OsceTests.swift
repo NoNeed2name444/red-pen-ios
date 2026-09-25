@@ -19,6 +19,18 @@ ok(OsceStations.stripLeadingMarker("Step 3: Expose the chest") == "Expose the ch
    "and neither is 'Step 3:'")
 ok(OsceStations.stripLeadingMarker("10 mL of saline") == "10 mL of saline",
    "but a step that simply starts with a number keeps it")
+// real clinical numbers are not list numbering
+for kept in ["12-lead ECG interpretation", "0.9% saline flush", "5-10 mL lidocaine to the skin",
+             "3.5 mmol/L is the lower limit", "2.5 cm incision"] {
+    ok(OsceStations.stripLeadingMarker(kept) == kept, "\"\(kept)\" keeps its number")
+}
+ok(OsceStations.stripLeadingMarker("3.Palpate the abdomen") == "Palpate the abdomen", "\"3.Palpate\" is numbering")
+ok(OsceStations.stripLeadingMarker("4: Auscultate the heart") == "Auscultate the heart", "\"4: \" is numbering")
+ok(OsceStations.stripLeadingMarker("1. 12-lead ECG") == "12-lead ECG", "numbering before a clinical number goes, the number stays")
+ok(OsceStations.tidy([OsceChecklist(title: "12-lead ECG interpretation",
+                                    steps: ["Introduce yourself", "12-lead ECG to look for ischaemia", "Check rate and rhythm"])])
+    .first.map { $0.title == "12-lead ECG interpretation" && $0.steps[1] == "12-lead ECG to look for ischaemia" } == true,
+   "a station about a 12-lead ECG keeps its title and steps whole")
 
 // MARK: cleaning
 

@@ -98,6 +98,21 @@ final class ReviewStore: ObservableObject {
         save()
     }
 
+    /// Several cards at once - a deck deleted here or on another device -
+    /// with one write.
+    ///
+    /// By card rather than by what the library holds: a schedule for a deck
+    /// this device has not received yet (a first sync is part way through) or
+    /// cannot read is still somebody's schedule, and must not be taken for
+    /// one whose deck is gone.
+    func forget(_ cardIDs: [UUID]) {
+        var kept = records
+        for id in cardIDs { kept[id] = nil }
+        guard kept.count != records.count else { return }
+        records = kept
+        save()
+    }
+
     /// Takes in a schedule from another device, card by card.
     ///
     /// Merged, never replaced. A phone that reviewed twenty cards this morning
@@ -112,8 +127,12 @@ final class ReviewStore: ObservableObject {
         save()
     }
 
-    /// Drops records for cards that no longer exist in any set. Otherwise every
-    /// card ever deleted keeps its schedule for good.
+    /// Drops records for cards that no longer exist in any set.
+    ///
+    /// Only safe with every deck in hand - not during a sync, which may not
+    /// have brought a deck yet, and not when the library left out a set it
+    /// could not read. Deleting a deck forgets its own cards instead
+    /// (`forget(_:)` with the deck's cards), which never needs this.
     func prune(keeping sets: [StudySet]) {
         let kept = ReviewPlan.pruned(records, keeping: sets)
         guard kept.count != records.count else { return }

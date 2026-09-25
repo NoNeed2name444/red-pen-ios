@@ -53,11 +53,20 @@ enum QuizFromCards {
 
     static func stem(of card: AnkiCard) -> String {
         if card.type == .cloze {
-            guard let first = CardQuality.clozeHoles(card.clozeText).first else { return "" }
-            // the sentence with the answer blanked, which reads as a question
-            var text = card.clozeText
-            text.replaceSubrange(first.range, with: "______")
-            return CardQuality.clozeBare(text).trimmingCharacters(in: .whitespaces)
+            let holes = CardQuality.clozeHoles(card.clozeText)
+            guard let first = holes.first else { return "" }
+            // The sentence with the answer blanked, which reads as a question.
+            // Every hole with the first one's number is blanked, as Anki hides
+            // a repeated c1 together: "{{c1::Warfarin}} ... {{c1::warfarin}}
+            // dosing" left the second one showing, and the answer with it.
+            let text = NSMutableString(string: card.clozeText)
+            let same: [NSRange] = holes.filter { $0.number == first.number }
+                .map { NSRange($0.range, in: card.clozeText) }
+            // last first, so the earlier ranges still point where they did
+            for range in same.reversed() {
+                text.replaceCharacters(in: range, with: "______")
+            }
+            return CardQuality.clozeBare(text as String).trimmingCharacters(in: .whitespaces)
         }
         return card.front.trimmingCharacters(in: .whitespaces)
     }
@@ -74,8 +83,30 @@ enum QuizFromCards {
         if !CardQuality.terms(answer).isDisjoint(with: CardQuality.terms(why)) {
             return why                       // it already names the answer
         }
-        let first = why.first.map { $0.isUppercase ? $0.lowercased() : String($0) } ?? ""
-        return answer + " \u{2014} " + first + String(why.dropFirst())
+        return answer + " \u{2014} " + lowercasingFirstWord(why)
+    }
+
+    /// "Lowers flares" reads "lowers flares" after a dash; "ACE inhibitors",
+    /// "CT", "HIV" and "Addison disease" keep their capitals. Only an
+    /// ordinary capitalised word - more than one letter, the second one lower
+    /// case - is lower-cased, and not one that names something: followed by
+    /// "'s" or by "disease", "syndrome", "sign" and the like, it is an eponym.
+    static func lowercasingFirstWord(_ text: String) -> String {
+        guard let first = text.first, first.isUppercase else { return text }
+        let firstWord = text.prefix { $0.isLetter }
+        // "A diuretic..." reads "a diuretic"; "I" stays as it is
+        if firstWord == "A" { return "a" + String(text.dropFirst()) }
+        guard firstWord.count > 1 else { return text }
+        let second: Character = firstWord[firstWord.index(after: firstWord.startIndex)]
+        guard second.isLowercase else { return text }
+        let rest = text.dropFirst(firstWord.count)
+        if rest.hasPrefix("'s") || rest.hasPrefix("\u{2019}s") { return text }
+        let next: String = rest.drop { $0 == " " || $0 == "-" }.prefix { $0.isLetter }.lowercased()
+        let named: Set<String> = ["disease", "syndrome", "sign", "triad", "test", "reflex", "phenomenon",
+                                  "criteria", "score", "classification", "law", "node", "palsy", "ulcer",
+                                  "fracture", "tumour", "tumor", "manoeuvre", "maneuver", "lesion"]
+        if named.contains(next) { return text }
+        return first.lowercased() + String(text.dropFirst())
     }
 
     /// Other cards' answers, nearest first, minus any that could also be right.
@@ -88,24 +119,30 @@ enum QuizFromCards {
                             pool: [String], want: Int) -> [String] {
         let stemWords = CardQuality.terms(stem)
         let answerWords = CardQuality.terms(answer)
+        let value: Bool = isValue(answer)
+        // Same shape first: a value is answered among values, a term among
+        // terms. "140 mmol/L" among four disease names is answered by its
+        // format, not by knowing the sodium.
         let ranked = pool
             .filter { !$0.isEmpty && $0.lowercased() != answer.lowercased() }
             .filter { CardQuality.similarity(answer, $0) < tooAlike }
-            .map { other -> (Int, Int, Double, String) in
-                (answerWords.intersection(CardQuality.terms(other)).count,
+            .map { other -> (shape: Bool, Int, Int, Double, String) in
+                (isValue(other) == value,
+                 answerWords.intersection(CardQuality.terms(other)).count,
                  stemWords.intersection(CardQuality.terms(other)).count,
                  CardQuality.similarity(answer, other), other)
             }
             .sorted { a, b in
-                if a.0 != b.0 { return a.0 > b.0 }
+                if a.shape != b.shape { return a.shape }
                 if a.1 != b.1 { return a.1 > b.1 }
-                return a.2 > b.2
+                if a.2 != b.2 { return a.2 > b.2 }
+                return a.3 > b.3
             }
 
         var chosen: [String] = []
         var seen = Set<String>()
         for candidate in ranked {
-            let other = candidate.3
+            let other = candidate.4
             if seen.contains(other.lowercased()) { continue }
             // never two distractors that are near-twins of each other either
             if chosen.contains(where: { CardQuality.similarity(other, $0) >= tooAlike }) {
@@ -116,6 +153,21 @@ enum QuizFromCards {
             if chosen.count == want { break }
         }
         return chosen
+    }
+
+    /// An answer that is a value - "140 mmol/L", "3.5", "> 10 points" - as
+    /// against a term that merely has a digit in its name ("Complement C3
+    /// and C4", "Type 1 diabetes").
+    static func isValue(_ text: String) -> Bool {
+        let lead = text.drop { $0.isWhitespace || "<>\u{2264}\u{2265}~\u{2248}".contains($0) }
+        return lead.first?.isNumber == true
+    }
+
+    /// The key is the one value among terms, or the one term among values:
+    /// answerable from the format alone.
+    static func keyStandsOut(answer: String, distractors: [String]) -> Bool {
+        let value: Bool = isValue(answer)
+        return !distractors.isEmpty && distractors.allSatisfy { isValue($0) != value }
     }
 
     /// Build the quiz. `skipped` says WHY, so a thin deck explains itself
@@ -144,6 +196,13 @@ enum QuizFromCards {
                 // Padding with invented text is exactly the failure this avoids.
                 skipped.append(Skipped(cardID: card.id,
                                        why: "only \(wrong.count) usable distractors in this deck"))
+                continue
+            }
+            guard !keyStandsOut(answer: answerText, distractors: wrong) else {
+                skipped.append(Skipped(cardID: card.id,
+                                       why: isValue(answerText)
+                                           ? "the only answer that is a number"
+                                           : "the only answer that is not a number"))
                 continue
             }
             var choices = wrong + [answerText]

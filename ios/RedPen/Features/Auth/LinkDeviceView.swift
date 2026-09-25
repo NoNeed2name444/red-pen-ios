@@ -197,8 +197,10 @@ struct LinkDeviceView: View {
     }
 
     /// A new account under this library: everything is sent and fetched afresh.
+    /// Linking is how the student said this library belongs with that account,
+    /// so it goes up without being asked about again.
     private func syncFresh() async {
-        sync.forgetEverythingSynced()
+        sync.forgetEverythingSynced(libraryNowBelongsTo: account.account?.id)
         await sync.syncNow()
     }
 }

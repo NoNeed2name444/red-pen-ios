@@ -128,9 +128,34 @@ struct AccountView: View {
                 Text(copiesNote)
                     .font(.caption).foregroundStyle(.orange)
             }
+            if sync.status == .needsLibraryChoice {
+                // somebody else's library is on this device: nothing of it
+                // goes into this account until the student says so
+                Text("The library on this device was synced with another account. Nothing syncs until you choose.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Button("Add it to this account") {
+                    Task { await sync.chooseLibrary(addToAccount: true) }
+                }
+                Button("Keep it on this device only") {
+                    Task { await sync.chooseLibrary(addToAccount: false) }
+                }
+            } else if sync.setsKeptHere > 0 {
+                Text(keptNote)
+                    .font(.footnote).foregroundStyle(.secondary)
+                Button("Add them to this account") {
+                    Task { await sync.addKeptSets() }
+                }
+            }
         } footer: {
             Text("Your decks, folders and review schedule follow you between your devices. Recordings and learned pronunciations stay on the phone that made them.")
         }
+    }
+
+    /// Sets kept off this account when it signed in, said as a sentence.
+    private var keptNote: String {
+        let count: Int = sync.setsKeptHere
+        let sets: String = count == 1 ? "1 set stays" : "\(count) sets stay"
+        return sets + " on this device only, from before this account signed in."
     }
 
     /// How many decks were edited in two places, said as a sentence.
@@ -201,6 +226,7 @@ struct AccountView: View {
         case .offline: return "Waiting for a connection"
         case .failed(let why): return why
         case .needsPro: return "Part of Pro"
+        case .needsLibraryChoice: return "Waiting for your choice"
         case .idle:
             guard let when = sync.lastSyncedAt else { return "Not synced yet" }
             let formatter = RelativeDateTimeFormatter()

@@ -84,6 +84,48 @@ struct StudySet: Identifiable, Codable, Hashable {
     }
 }
 
+extension StudySet {
+    /// The same set with a new id for every card, question and item in it.
+    ///
+    /// For a set that becomes a SECOND copy of itself - a sync conflict copy,
+    /// a shared file imported into the library it came from. The schedule
+    /// (ReviewRecord) is kept by card id alone, so a copy that kept its cards'
+    /// ids shared one schedule with the original: a card rated in the copy
+    /// moved in the original, and the day's queue listed each card twice.
+    /// The set's own id is left to the caller, which gives it one anyway.
+    ///
+    /// `sharedWith`: only the ids that set also holds are renewed. A conflict
+    /// copy is the losing version of a deck, beside the winning one; the cards
+    /// both hold keep their schedule on the winner, and a card only the copy
+    /// has keeps its own - renewing it too would throw that schedule away.
+    /// Nil renews every one.
+    func withNewItemIDs(sharedWith other: StudySet? = nil) -> StudySet {
+        let taken: Set<UUID>? = other?.itemIDs
+        func fresh(_ id: UUID) -> UUID {
+            guard let taken else { return UUID() }
+            return taken.contains(id) ? UUID() : id
+        }
+        var out = self
+        out.questions = questions.map { var q = $0; q.id = fresh(q.id); return q }
+        out.cards = cards.map { var c = $0; c.id = fresh(c.id); return c }
+        out.qaCards = qaCards.map { var c = $0; c.id = fresh(c.id); return c }
+        out.osceChecklists = osceChecklists.map { var c = $0; c.id = fresh(c.id); return c }
+        out.narrateSegments = narrateSegments.map { var s = $0; s.id = fresh(s.id); return s }
+        return out
+    }
+
+    /// Every card, question and item id in the set.
+    var itemIDs: Set<UUID> {
+        var ids = Set<UUID>()
+        ids.formUnion(questions.map(\.id))
+        ids.formUnion(cards.map(\.id))
+        ids.formUnion(qaCards.map(\.id))
+        ids.formUnion(osceChecklists.map(\.id))
+        ids.formUnion(narrateSegments.map(\.id))
+        return ids
+    }
+}
+
 /// A library folder — mirrors `state.folders` / `folderId` grouping in the
 /// web app's library view. Only a flat one-level grouping, same as there.
 struct StudyFolder: Identifiable, Codable, Hashable {

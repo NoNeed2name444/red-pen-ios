@@ -108,7 +108,11 @@ struct HostedLLMClient: LLMBackend {
     var promptBudgetChars: Int { 40_000 }
 
     func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
-        let key = bearer ?? provider.apiKey ?? ""
+        // A stored key only for a provider that still needs one: turned off,
+        // it is not sent - least of all to an address changed since, which
+        // the key was never meant for.
+        let stored: String? = provider.needsKey ? provider.apiKey : nil
+        let key = bearer ?? stored ?? ""
         if bearer == nil && provider.needsKey && key.isEmpty { throw LLMError.missingKey(provider.name) }
         var request: URLRequest
         switch provider.kind {

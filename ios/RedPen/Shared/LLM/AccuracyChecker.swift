@@ -45,10 +45,11 @@ enum AccuracyChecker {
     }
 
     /// What the checker is shown for a question - here and on the server alike.
+    /// Lettered A, B, C ... for any number of options (CheckedQuestion), so a
+    /// sixth option is not a second "E" and a key of -1 cannot crash it.
     static func checkText(_ q: MCQQuestion) -> String {
-        let letters = ["A", "B", "C", "D", "E"]
-        let options = q.options.enumerated().map { "\(letters[min($0.offset, 4)]). \($0.element)" }
-        let base: String = "\(q.stem)\n\(options.joined(separator: "\n"))\nAnswer: \(letters[min(q.correctIndex, 4)])\nExplanation: \(q.explanation)"
+        let base: String = CheckedQuestion.text(stem: q.stem, options: q.options,
+                                                correctIndex: q.correctIndex, explanation: q.explanation)
         return base + differentialBlock(q.differential)
     }
 
@@ -85,23 +86,17 @@ enum AccuracyChecker {
     /// up to `limit` characters. A check against the right page is a real
     /// check; a check against the first 8,000 characters of a 300-page
     /// lecture is a coin toss.
+    ///
+    /// A page bigger than what is left of `limit` - a whole Word lecture is
+    /// one page - is cut to its own nearest paragraphs (TextSlicing.nearestPages)
+    /// rather than skipped, so a Word source is still checked against.
     static func reference(for text: String, in set: StudySet, limit: Int) -> String? {
-        let pages = set.sources.flatMap { doc in doc.pages.map { (doc.name, $0) } }
-        guard !pages.isEmpty else { return nil }
-        let wanted = words(text)
-        let ranked = pages.map { pair -> (String, Int) in
-            let (name, page) = pair
-            return ("\(name), \(page.number):\n\(page.text)", words(page.text).intersection(wanted).count)
-        }.sorted { $0.1 > $1.1 }
-        var out = ""
-        for (pageText, score) in ranked where score > 0 {
-            if out.count + pageText.count > limit { break }
-            out += pageText + "\n\n"
+        let pages: [(heading: String, text: String)] = set.sources.flatMap { doc in
+            doc.pages.map { page in (heading: "\(doc.name), \(page.number):\n", text: page.text) }
         }
-        return out.isEmpty ? nil : out
+        guard !pages.isEmpty else { return nil }
+        return TextSlicing.nearestPages(pages, to: text, limit: limit)
     }
-
-    private static func words(_ text: String) -> Set<String> { TextSlicing.words(text) }
 
     // MARK: screening generated sets
 
@@ -109,40 +104,55 @@ enum AccuracyChecker {
     /// drops the ones MedVAL grades level 4. Level 3 is kept - the student
     /// reviews every generated set, and dropping on "could plausibly confuse"
     /// empties short sets - but counted, so the status line can say so.
+    ///
+    /// An item the checker could not grade (offline, the day's allowance
+    /// used, no model loaded) is kept but counted as `unchecked`, never as a
+    /// pass: the note (MedVAL.screenNote) must not say a set was checked when it was
+    /// not. Once the task is cancelled nothing more is sent to the checker;
+    /// the rest is kept unchecked and the caller's own cancellation check ends
+    /// the job.
     static func screen(_ questions: [MCQQuestion], source: String, using backend: LLMBackend,
-                       onProgress: @escaping (Int, Int) -> Void) async -> (kept: [MCQQuestion], removed: Int, flagged: Int) {
+                       onProgress: @escaping (Int, Int) -> Void) async
+        -> (kept: [MCQQuestion], removed: Int, flagged: Int, unchecked: Int) {
         var kept: [MCQQuestion] = []
-        var removed = 0, flagged = 0
+        var removed = 0, flagged = 0, unchecked = 0
         for (i, q) in questions.enumerated() {
             onProgress(i, questions.count)
+            if Task.isCancelled {
+                kept.append(q); unchecked += 1; continue
+            }
             let output = checkText(q)
             guard let verdict = try? await check(
                 instruction: mcqInstruction,
                 input: nearest(source, to: output, limit: backend.promptBudgetChars),
-                output: output, using: backend) else { kept.append(q); continue }
+                output: output, using: backend) else { kept.append(q); unchecked += 1; continue }
             if verdict.riskLevel >= 4 { removed += 1; continue }
             if verdict.riskLevel == 3 { flagged += 1 }
             kept.append(q)
         }
-        return (kept, removed, flagged)
+        return (kept, removed, flagged, unchecked)
     }
 
     static func screen(_ stations: [OsceChecklist], source: String, using backend: LLMBackend,
-                       onProgress: @escaping (Int, Int) -> Void) async -> (kept: [OsceChecklist], removed: Int, flagged: Int) {
+                       onProgress: @escaping (Int, Int) -> Void) async
+        -> (kept: [OsceChecklist], removed: Int, flagged: Int, unchecked: Int) {
         var kept: [OsceChecklist] = []
-        var removed = 0, flagged = 0
+        var removed = 0, flagged = 0, unchecked = 0
         for (i, station) in stations.enumerated() {
             onProgress(i, stations.count)
+            if Task.isCancelled {
+                kept.append(station); unchecked += 1; continue
+            }
             let output = checkText(station)
             guard let verdict = try? await check(
                 instruction: osceInstruction,
                 input: nearest(source, to: output, limit: backend.promptBudgetChars),
-                output: output, using: backend) else { kept.append(station); continue }
+                output: output, using: backend) else { kept.append(station); unchecked += 1; continue }
             if verdict.riskLevel >= 4 { removed += 1; continue }
             if verdict.riskLevel == 3 { flagged += 1 }
             kept.append(station)
         }
-        return (kept, removed, flagged)
+        return (kept, removed, flagged, unchecked)
     }
 
     static func nearest(_ source: String, to text: String, limit: Int) -> String {

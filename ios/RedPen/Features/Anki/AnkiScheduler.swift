@@ -22,23 +22,34 @@ enum AnkiScheduler {
         .easy: 4 * 24 * 60,
     ]
 
+    /// The longest any card is put away: a hundred years. Without a ceiling
+    /// repeated Easy ratings multiply an interval past the year 9999, which
+    /// a stored date cannot round-trip, and past what an Int can hold, which
+    /// traps the rating buttons' label.
+    static let maxIntervalMin: Double = 36_500 * 1440
+
     /// Matches `formatInterval()`: minutes -> "N min" / "N hr" / "N d".
     static func formatInterval(_ minutes: Double) -> String {
-        let min = max(1, minutes)
-        if min < 60 { return "\(Int(min.rounded())) min" }
-        if min < 1440 { return "\(Int((min / 60).rounded())) hr" }
-        return "\(Int((min / 1440).rounded())) d"
+        // clamped before any Int conversion: a runaway interval (or a stored
+        // infinity) must not crash the label
+        let m: Double = minutes.isFinite ? min(maxIntervalMin, max(1, minutes)) : maxIntervalMin
+        if m < 60 { return "\(Int(m.rounded())) min" }
+        if m < 1440 { return "\(Int((m / 60).rounded())) hr" }
+        return "\(Int((m / 1440).rounded())) d"
     }
 
-    /// Matches the `el.ankiRateGrid` click handler's `next` computation.
+    /// Matches the `el.ankiRateGrid` click handler's `next` computation, and
+    /// never longer than maxIntervalMin.
     static func nextInterval(rating: AnkiRating, currentIntervalMin: Double) -> Double {
-        let cur = currentIntervalMin
+        let cur: Double = currentIntervalMin.isFinite ? currentIntervalMin : maxIntervalMin
+        let next: Double
         switch rating {
-        case .again: return baseMinutes[.again]!
-        case .hard: return max(baseMinutes[.hard]!, cur * 1.2)
-        case .good: return max(baseMinutes[.good]!, cur * 2.5)
-        case .easy: return max(baseMinutes[.easy]!, cur * 4)
+        case .again: next = baseMinutes[.again]!
+        case .hard: next = max(baseMinutes[.hard]!, cur * 1.2)
+        case .good: next = max(baseMinutes[.good]!, cur * 2.5)
+        case .easy: next = max(baseMinutes[.easy]!, cur * 4)
         }
+        return min(maxIntervalMin, next)
     }
 
     /// Matches `updateAnkiRateLabels()` — the four "in N min/hr/d" previews

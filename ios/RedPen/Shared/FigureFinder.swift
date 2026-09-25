@@ -23,6 +23,21 @@ enum FigureFinder {
     /// few million.
     static let gridWidth = 80
 
+    /// The most one side of a picture may outrun the other. A slide is 16:9
+    /// and a portrait page about 1.4:1; a picture forty times taller than it
+    /// is wide is a divider line or a scroll capture, not a labelled diagram,
+    /// and its grid alone would be millions of rows.
+    static let maximumAspect = 8
+
+    /// Below this many pixels on its short side there is nothing to label.
+    static let minimumSide = 32
+
+    /// Whether a picture is a shape a diagram could be.
+    static func plausible(width: Int, height: Int) -> Bool {
+        let short = min(width, height), long = max(width, height)
+        return short >= minimumSide && long <= short * maximumAspect
+    }
+
     /// A page reduced to "is there ink here", with the text taken out.
     ///
     /// Text has to be removed before the blobs are found, or the body of the
@@ -31,10 +46,13 @@ enum FigureFinder {
     static func inkGrid(_ image: CGImage,
                         ignoring textBoxes: [CGRect] = [],
                         width: Int = gridWidth) -> [[Bool]] {
-        let height = max(1, Int((Double(image.height) / Double(image.width)
-                                * Double(width)).rounded()))
-        guard width > 0,
-              let space = CGColorSpace(name: CGColorSpace.linearGray),
+        guard width > 0, image.width > 0, image.height > 0 else { return [] }
+        // bounded in both directions, whatever the picture's shape: the
+        // grid's rows are the picture's height scaled to `width` columns
+        let rows: Double = (Double(image.height) / Double(image.width) * Double(width)).rounded()
+        let most: Double = Double(width * maximumAspect)
+        let height = max(1, Int(min(rows, most)))
+        guard let space = CGColorSpace(name: CGColorSpace.linearGray),
               let context = CGContext(data: nil, width: width, height: height,
                                       bitsPerComponent: 8, bytesPerRow: width,
                                       space: space,
@@ -229,6 +247,8 @@ enum FigureFinder {
     static func read(_ image: CGImage, imageIndex: Int,
                      question: String = "What is labelled here?",
                      pageBands: Bool = true) -> Found? {
+        // refused before OCR, which is the expensive half
+        guard plausible(width: image.width, height: image.height) else { return nil }
         let lines = (try? RedPenOCR.read(image)) ?? []
         let grid = inkGrid(image, ignoring: lines.map(\.box))
         guard let width = grid.first?.count,

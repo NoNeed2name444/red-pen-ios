@@ -160,25 +160,28 @@ enum MedVAL {
     static func parse(_ reply: String, checkedBy: String) -> AccuracyVerdict {
         let reasoning = section("reasoning", in: reply) ?? ""
         let errorsText = section("errors", in: reply) ?? ""
-        // without the field, the text after the last "level" is the best guess;
-        // without that either there is no grade to read
-        let riskText = section("risk_level", in: reply)
-            ?? reply.range(of: "level", options: [.caseInsensitive, .backwards])
-                .map { String(reply[$0.upperBound...].prefix(12)) }
-            ?? ""
 
         var findings: [AccuracyVerdict.Finding] = []
         for line in errorsText.components(separatedBy: .newlines) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty, trimmed.lowercased() != "none",
-                  !trimmed.hasPrefix("#") else { continue }
+            let trimmed: String = line.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-*\u{2022}")))
+            // "None.", "`None'", "Error 1: None" - the prompt's own quoting
+            // and a full stop are still nothing to report
+            let bare: String = trimmed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ".`' "))
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"),
+                  !saysNone(bare), !labelSaysNone(bare) else { continue }
             findings.append(.init(category: category(of: trimmed), text: trimmed))
         }
 
         // The first digit 1-4 in the risk field; "Level 3 (Moderate Risk)" and
-        // a bare "3" both read as 3. Nothing readable is treated as moderate:
-        // an unreadable grade is not a pass.
-        var risk = riskText.first { "1234".contains($0) }.flatMap { Int(String($0)) } ?? 3
+        // a bare "3" both read as 3. Without the field, the grade written after
+        // "risk level" in the prose (looseRisk). Nothing readable is treated as
+        // moderate: an unreadable grade is not a pass.
+        var risk: Int
+        if let riskText = section("risk_level", in: reply) {
+            risk = riskText.first { "1234".contains($0) }.flatMap { Int(String($0)) } ?? 3
+        } else {
+            risk = looseRisk(in: reply) ?? 3
+        }
         // the clinical-reasoning checks: each issue is a finding too, and the
         // serious kinds hold the grade up whatever number was written
         let issues: [ReasoningIssue] = reasoningIssues(in: reply)
@@ -229,7 +232,9 @@ enum MedVAL {
         for line in body.components(separatedBy: .newlines) {
             let trimmed: String = line.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-*\u{2022}")))
             let bare: String = trimmed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ".`' "))
-            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), !saysNone(bare) else { continue }
+            // "Contradicting finding: None" fills in the kind and reports nothing
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), !saysNone(bare),
+                  !labelSaysNone(bare) else { continue }
             out.append(ReasoningIssue(kind: issueKind(of: bare), text: trimmed))
         }
         return out
@@ -238,10 +243,63 @@ enum MedVAL {
     /// "None", "None found", "No issues.", "N/A": a line that says there is
     /// nothing to report is not an issue.
     static func saysNone(_ lowered: String) -> Bool {
-        let empty: [String] = ["none", "n/a", "na", "nil", "nothing", "no issues", "no issue", "no reasoning issues"]
-        if empty.contains(lowered) { return true }
-        let openers: [String] = ["none ", "none,", "no issues ", "no issue ", "no reasoning issues ", "nothing to report"]
+        if onlyNone(lowered) { return true }
+        let openers: [String] = ["none ", "none,", "no issues ", "no issue ", "no reasoning issues ", "nothing to report",
+                                 "no errors ", "no error "]
         return openers.contains { lowered.hasPrefix($0) }
+    }
+
+    /// The whole of the text is a way of writing "none".
+    static func onlyNone(_ lowered: String) -> Bool {
+        let empty: [String] = ["none", "n/a", "na", "nil", "nothing", "no issues", "no issue", "no reasoning issues",
+                               "no errors", "no error", "not applicable", "none found", "none identified",
+                               "none noted", "none detected", "no errors found", "no issues found"]
+        return empty.contains(lowered)
+    }
+
+    /// A line that names a kind and then nothing: "Contradicting finding:
+    /// None", "Can't miss: n/a", "Error 1: None." The label is short - a
+    /// sentence with a colon in it is not a label - and what follows it has
+    /// to be nothing but "none": "Missing claim: none of the doses is
+    /// given" is a finding.
+    static func labelSaysNone(_ lowered: String) -> Bool {
+        guard let colon = lowered.firstIndex(of: ":") else { return false }
+        let label: String = String(lowered[..<colon]).trimmingCharacters(in: .whitespaces)
+        guard !label.isEmpty, label.count <= 30 else { return false }
+        let rest: String = String(lowered[lowered.index(after: colon)...])
+            .trimmingCharacters(in: CharacterSet(charactersIn: ".`' ").union(.whitespaces))
+        return onlyNone(rest)
+    }
+
+    /// The grade in a reply that did not keep the `[[ ## risk_level ## ]]`
+    /// header, as a hosted checker often does not.
+    ///
+    /// The number written just after "risk level" is the grade; the reply's
+    /// prose can go on to mention other levels ("...clearly not a Level 1
+    /// output"), so the LAST "level" is the wrong place to look. With no
+    /// "risk level" at all, the highest "level N" mentioned: a reply that
+    /// names Level 4 and Level 1 is not read as a pass.
+    static func looseRisk(in reply: String) -> Int? {
+        let labelled: [Int] = grades(after: ["risk_level", "risk level", "risk-level"], in: reply)
+        if let first = labelled.first { return first }
+        return grades(after: ["level"], in: reply).max()
+    }
+
+    /// The grade (1-4) written within a few characters after each place one
+    /// of `labels` appears, in reading order.
+    static func grades(after labels: [String], in reply: String) -> [Int] {
+        var found: [(at: String.Index, grade: Int)] = []
+        for label in labels {
+            var from: String.Index = reply.startIndex
+            while let hit = reply.range(of: label, options: .caseInsensitive, range: from..<reply.endIndex) {
+                let near: Substring = reply[hit.upperBound...].prefix(12)
+                if let digit = near.first(where: { "1234".contains($0) }), let grade = Int(String(digit)) {
+                    found.append((at: hit.lowerBound, grade: grade))
+                }
+                from = hit.upperBound
+            }
+        }
+        return found.sorted { $0.at < $1.at }.map(\.grade)
     }
 
     static func issueKind(of lowered: String) -> ReasoningIssue.Kind {
@@ -261,6 +319,30 @@ enum MedVAL {
         let rest = reply[start.upperBound...]
         let end = rest.range(of: "[[ ##")?.lowerBound ?? rest.endIndex
         return String(rest[..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: saying what a screen did
+
+    /// The status line after a generated set was screened item by item.
+    /// "Accuracy checked." only when every item actually got a grade: an item
+    /// the checker could not reach (offline, the day's allowance used, no
+    /// model loaded) was kept without a check, and saying otherwise tells the
+    /// student a Level 4 item was looked at when nothing looked at it.
+    static func screenNote(total: Int, removed: Int, flagged: Int, unchecked: Int) -> String {
+        var note: String = unchecked == 0 ? " Accuracy checked." : uncheckedNote(unchecked, of: total)
+        if removed > 0 { note += " \(removed) removed as high risk." }
+        if flagged > 0 { note += " \(flagged) flagged moderate risk." }
+        return note
+    }
+
+    /// " 3 of 10 could not be checked.", " Not checked for accuracy - the
+    /// checker could not be reached." when none were, or "" when all were.
+    static func uncheckedNote(_ unchecked: Int, of total: Int) -> String {
+        guard unchecked > 0 else { return "" }
+        if unchecked >= total {
+            return " Not checked for accuracy \u{2014} the checker could not be reached."
+        }
+        return " \(unchecked) of \(total) could not be checked for accuracy."
     }
 
     /// MedVAL's eleven categories folded into the three the app reports.
@@ -311,6 +393,79 @@ enum LLMText {
               start < end else { return nil }
         return String(raw[start...end]).data(using: .utf8)
     }
+
+    /// Each object in the `list` array of a JSON reply, read one at a time,
+    /// so one malformed item costs only itself rather than the whole reply.
+    /// A reply cut off mid-array (the length limit hit) still gives back
+    /// every item that was complete.
+    static func jsonItems(in raw: String, list key: String) -> [[String: Any]] {
+        if let data = jsonObject(in: raw),
+           let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+           let list = object[key] as? [Any] {
+            return list.compactMap { $0 as? [String: Any] }
+        }
+        return completeItems(in: raw, list: key)
+    }
+
+    /// The complete `{...}` objects inside a `"list": [` array that may
+    /// never close. Braces inside strings are not counted.
+    static func completeItems(in raw: String, list key: String) -> [[String: Any]] {
+        guard let named = raw.range(of: "\"" + key + "\""),
+              let open = raw[named.upperBound...].firstIndex(of: "[") else { return [] }
+        var out: [[String: Any]] = []
+        var depth = 0
+        var inString = false
+        var escaped = false
+        var start: String.Index? = nil
+        var i: String.Index = raw.index(after: open)
+        while i < raw.endIndex {
+            let c: Character = raw[i]
+            if inString {
+                if escaped { escaped = false } else if c == "\\" { escaped = true } else if c == "\"" { inString = false }
+            } else if c == "\"" {
+                inString = true
+            } else if c == "{" {
+                if depth == 0 { start = i }
+                depth += 1
+            } else if c == "}" {
+                depth -= 1
+                if depth < 0 { break }
+                if depth == 0, let from = start {
+                    let piece: String = String(raw[from...i])
+                    if let data = piece.data(using: .utf8),
+                       let item = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+                        out.append(item)
+                    }
+                    start = nil
+                }
+            } else if c == "]" && depth == 0 {
+                break
+            }
+            i = raw.index(after: i)
+        }
+        return out
+    }
+
+    /// The keyed option however a model wrote it - 2, "2", "C", or the
+    /// option's own text. Nil when it names no option.
+    static func keyIndex(_ value: Any?, options: [String]) -> Int? {
+        var index: Int? = nil
+        if let number = value as? Int {
+            index = number
+        } else if let text = value as? String {
+            let t: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let upper: [Unicode.Scalar] = Array(t.uppercased().unicodeScalars)
+            if let number = Int(t) {
+                index = number
+            } else if upper.count == 1, let only = upper.first, (65...90).contains(only.value) {
+                index = Int(only.value) - 65
+            } else {
+                index = options.firstIndex { $0.compare(t, options: .caseInsensitive) == .orderedSame }
+            }
+        }
+        guard let index, options.indices.contains(index) else { return nil }
+        return index
+    }
 }
 
 /// Choosing text by overlap, and cutting it into pieces.
@@ -325,14 +480,25 @@ enum TextSlicing {
     static func nearest(_ source: String, to text: String, limit: Int) -> String {
         guard source.count > limit else { return source }
         let wanted = words(text)
-        let paragraphs = source.components(separatedBy: "\n\n")
+        // A paragraph too long to fit is taken line by line instead: a Word
+        // file's text is one page with a line per paragraph and no blank
+        // lines, so as one paragraph it could never be chosen at all.
+        var paragraphs: [String] = []
+        for paragraph in source.components(separatedBy: "\n\n") {
+            if paragraph.count > limit {
+                paragraphs.append(contentsOf: paragraph.components(separatedBy: "\n"))
+            } else {
+                paragraphs.append(paragraph)
+            }
+        }
         let ranked = paragraphs.enumerated()
             .map { ($0.offset, words($0.element).intersection(wanted).count) }
             .sorted { $0.1 > $1.1 }
         var chosen: [Int] = []
         var size = 0
         for (index, score) in ranked where score > 0 {
-            let length = paragraphs[index].count
+            // the blank line each one is joined with counts too
+            let length: Int = paragraphs[index].count + (chosen.isEmpty ? 0 : 2)
             if size + length > limit { continue }
             chosen.append(index)
             size += length
@@ -340,6 +506,31 @@ enum TextSlicing {
         guard !chosen.isEmpty else { return String(source.prefix(limit)) }
         // back in reading order, so the check reads the source as written
         return chosen.sorted().map { paragraphs[$0] }.joined(separator: "\n\n")
+    }
+
+    /// The pages that share the most words with `text`, best first, up to
+    /// `limit` characters; nil when no page shares a word with it.
+    ///
+    /// A page bigger than the room left is cut down to its own nearest
+    /// paragraphs rather than ending the search: a Word file is kept as ONE
+    /// page, so stopping at the first page that does not fit meant a Word
+    /// lecture was never used at all, and the check fell back to "no source".
+    static func nearestPages(_ pages: [(heading: String, text: String)], to text: String,
+                             limit: Int) -> String? {
+        let wanted = words(text)
+        let ranked = pages.map { page -> (heading: String, text: String, score: Int) in
+            (page.heading, page.text, words(page.text).intersection(wanted).count)
+        }.sorted { $0.score > $1.score }
+        // less than this left is not worth a page
+        let smallest: Int = min(200, max(1, limit / 4))
+        var out = ""
+        for page in ranked where page.score > 0 {
+            let room: Int = limit - out.count - page.heading.count - 2
+            guard room >= smallest else { break }
+            let body: String = page.text.count <= room ? page.text : nearest(page.text, to: text, limit: room)
+            out += page.heading + body + "\n\n"
+        }
+        return out.isEmpty ? nil : out
     }
 
     /// Paragraph-aligned slices of roughly equal length.
@@ -372,5 +563,26 @@ enum TextSlicing {
             merged.append(String(slices[from..<to].joined(separator: "\n\n").prefix(maxChars)))
         }
         return merged
+    }
+}
+
+// MARK: - what the checker is shown for a question
+
+enum CheckedQuestion {
+    /// "A", "B" ... "Z" for any number of options, the same lettering the
+    /// deck and the quiz show; past Z, the option's number.
+    static func letter(_ index: Int) -> String {
+        guard index >= 0, index < 26, let scalar = UnicodeScalar(65 + index) else { return "\(index + 1)" }
+        return String(Character(scalar))
+    }
+
+    /// A question as the checker reads it. A sixth option is F, not a second
+    /// E, and the key names the option that is actually keyed; a key that
+    /// points at no option (a hand-written or imported file's -1) is said to
+    /// be missing rather than read out of range.
+    static func text(stem: String, options: [String], correctIndex: Int, explanation: String) -> String {
+        let lines: [String] = options.enumerated().map { letter($0.offset) + ". " + $0.element }
+        let key: String = options.indices.contains(correctIndex) ? letter(correctIndex) : "none keyed"
+        return stem + "\n" + lines.joined(separator: "\n") + "\nAnswer: " + key + "\nExplanation: " + explanation
     }
 }

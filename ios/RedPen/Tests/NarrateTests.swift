@@ -105,6 +105,38 @@ let arabic = "\u{627}\u{644}\u{62d}\u{645}\u{636} pH"
 check("Arabic counts words the same way",
       NarratePlan.wordIndex(atUTF16: 6, in: arabic) == 1)
 
+// MARK: the phone standing in for one clip
+
+// a line too long for the server is read by the phone - that clip, and no
+// more: the cloud takes the next one back
+check("the phone hands the too-long line back at its own clip's end",
+      NarratePlan.standInEnd(forLine: 1, in: odd) == 2, "\(String(describing: NarratePlan.standInEnd(forLine: 1, in: odd)))")
+check("not at the end of the lecture",
+      NarratePlan.standInEnd(forLine: 1, in: odd) != odd.last?.lines.upperBound)
+check("a line in a longer clip hands back where that clip ends",
+      NarratePlan.standInEnd(forLine: 17, in: chunks)
+        == NarratePlan.chunkIndex(containing: 17, in: chunks).map { chunks[$0].lines.upperBound })
+check("a line in no clip has nowhere to hand back", NarratePlan.standInEnd(forLine: 99, in: chunks) == nil)
+
+// MARK: the clip cache
+
+let day: TimeInterval = 86_400
+let cached: [(name: String, used: Date)] = (0..<6).map {
+    (name: "clip\($0).mp3", used: Date(timeIntervalSince1970: Double($0) * day))
+}
+check("nothing is pruned under the limit",
+      NarratePlan.pruneList(cached, keep: 10, protected: []).isEmpty)
+check("the least recently used go first",
+      NarratePlan.pruneList(cached, keep: 4, protected: []) == ["clip0.mp3", "clip1.mp3"],
+      "\(NarratePlan.pruneList(cached, keep: 4, protected: []))")
+// replaying an old lecture: its clips are the oldest files, and deleting one
+// that is about to play leaves the lecture silent
+check("a clip the lecture holds is never pruned, however old",
+      NarratePlan.pruneList(cached, keep: 4, protected: ["clip0.mp3"]) == ["clip1.mp3", "clip2.mp3"],
+      "\(NarratePlan.pruneList(cached, keep: 4, protected: ["clip0.mp3"]))")
+check("with everything protected, nothing is deleted",
+      NarratePlan.pruneList(cached, keep: 2, protected: Set(cached.map(\.name))).isEmpty)
+
 print(failures.isEmpty ? "\nALL NARRATE TESTS PASS"
                        : "\n\(failures.count) NARRATE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

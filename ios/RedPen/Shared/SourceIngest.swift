@@ -51,6 +51,11 @@ enum SourceIngest {
         // read on its own, so a 45-slide deck takes the time of a dozen.
         let workers = requested.map { max(1, $0) } ?? max(1, min(4, ProcessInfo.processInfo.activeProcessorCount - 1))
         let done = PageCounter()
+        // Figures found so far, across the workers. The limit is applied as
+        // the pages are read, not after: a scanned textbook of eight hundred
+        // pages would otherwise hold every figure it found before keeping
+        // sixty, and take as long as scanning every page to do it.
+        let found = PageCounter()
         let pages: [PageRead] = await withTaskGroup(of: [PageRead].self) { group in
             for worker in 0..<workers {
                 group.addTask {
@@ -58,10 +63,16 @@ enum SourceIngest {
                     var out: [PageRead] = []
                     for index in stride(from: worker, to: count, by: workers) {
                         if Task.isCancelled { break }
+                        let looking = findingFigures && found.value < figureLimit
+                        // a diagram scan with its figures found has nothing
+                        // left to do on the pages still to come
+                        if !readingText && !looking { break }
                         autoreleasepool {
                             if let page = document.page(at: index) {
-                                out.append(readPage(page, number: index + 1, name: name,
-                                                    findingFigures: findingFigures, readingText: readingText))
+                                let read = readPage(page, number: index + 1, name: name,
+                                                    findingFigures: looking, readingText: readingText)
+                                if read.figure != nil { _ = found.next() }
+                                out.append(read)
                             }
                         }
                         onPage?(done.next(), count)
@@ -131,46 +142,85 @@ enum SourceIngest {
         var cards: [AnkiCard] = []
     }
 
-    /// Pages finished so far, across the workers.
+    /// A count shared by the workers: pages finished, or figures found.
     private final class PageCounter: @unchecked Sendable {
-        private var value = 0
+        private var count = 0
         private let lock = NSLock()
-        func next() -> Int { lock.lock(); defer { lock.unlock() }; value += 1; return value }
+        func next() -> Int { lock.lock(); defer { lock.unlock() }; count += 1; return count }
+        var value: Int { lock.lock(); defer { lock.unlock() }; return count }
     }
 
     /// A page as an image, at a size Vision can read without the memory cost of
     /// rendering a poster. A forty-page deck at full resolution is enough to
     /// have the app killed for memory on an older phone.
+    ///
+    /// `maxDimension` is in PIXELS. A renderer left to its default format
+    /// draws at the screen's scale, which on a 3x phone made a 2,000-pixel
+    /// render 6,000 pixels across - nine times the memory per page, with four
+    /// pages rendering at once.
+    ///
+    /// The page is drawn the way it is shown: turned by its /Rotate, and
+    /// cut to its crop box. A landscape scan saved as a portrait page turned
+    /// 90 degrees is the ordinary output of a scanning app, and drawing it
+    /// into an unturned canvas cut a strip off every page before OCR saw it.
     static func image(of page: PDFPage, maxDimension: CGFloat = 2000) -> UIImage? {
-        let box = page.bounds(for: .mediaBox)
+        let box = page.bounds(for: .cropBox)
         guard box.width > 0, box.height > 0 else { return nil }
-        let scale = min(maxDimension / max(box.width, box.height), 4)
-        let size = CGSize(width: box.width * scale, height: box.height * scale)
-        return UIGraphicsImageRenderer(size: size).image { ctx in
+        let turned = abs(page.rotation) % 180 == 90
+        let shown = turned ? CGSize(width: box.height, height: box.width) : box.size
+        let scale = min(maxDimension / max(shown.width, shown.height), 4)
+        let size = CGSize(width: (shown.width * scale).rounded(), height: (shown.height * scale).rounded())
+        guard size.width >= 1, size.height >= 1 else { return nil }
+        return pixelRenderer(size: size, opaque: true).image { ctx in
             // white behind the page: a PDF page is transparent, and OCR on a
             // transparent-over-black render reads almost nothing
             UIColor.white.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
             ctx.cgContext.translateBy(x: 0, y: size.height)
             ctx.cgContext.scaleBy(x: scale, y: -scale)
-            page.draw(with: .mediaBox, to: ctx.cgContext)
+            // draws with the page's rotation and the box's origin applied
+            page.draw(with: .cropBox, to: ctx.cgContext)
         }
+    }
+
+    /// A renderer whose points are pixels, so a size asked for is the size
+    /// made, on every device.
+    static func pixelRenderer(size: CGSize, opaque: Bool = false) -> UIGraphicsImageRenderer {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = opaque
+        return UIGraphicsImageRenderer(size: size, format: format)
     }
 
     /// An image small enough to keep inside a set without bloating the library
     /// file. Sets are stored as JSON with images base64'd inside them, so a
     /// full-resolution photo of a slide costs several megabytes of text.
+    ///
+    /// `maxDimension` is in pixels, measured on the image's pixels rather than
+    /// its points: a render at 3x scale is three times the size its points
+    /// say, and measuring points is how "1,400 pixels" came out 4,200.
     static func downsized(_ image: UIImage, maxDimension: CGFloat = 1400,
                           quality: CGFloat = 0.8) -> Data? {
-        let longest = max(image.size.width, image.size.height)
+        let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        let longest = max(pixels.width, pixels.height)
         guard longest > 0 else { return nil }
         let scale = min(1, maxDimension / longest)
-        if scale >= 1 { return image.jpegData(compressionQuality: quality) }
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let smaller = UIGraphicsImageRenderer(size: size).image { _ in
+        if scale >= 1 && !hasAlpha(image) { return image.jpegData(compressionQuality: quality) }
+        let size = CGSize(width: max(1, (pixels.width * scale).rounded()),
+                          height: max(1, (pixels.height * scale).rounded()))
+        let smaller = pixelRenderer(size: size, opaque: true).image { ctx in
+            // on white: a JPEG has no transparency, and a diagram pasted as
+            // a transparent PNG otherwise comes out black on black
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
             image.draw(in: CGRect(origin: .zero, size: size))
         }
         return smaller.jpegData(compressionQuality: quality)
+    }
+
+    private static func hasAlpha(_ image: UIImage) -> Bool {
+        guard let info = image.cgImage?.alphaInfo else { return true }
+        return !(info == .none || info == .noneSkipFirst || info == .noneSkipLast)
     }
 
     enum Trouble: LocalizedError {

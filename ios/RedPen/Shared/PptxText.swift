@@ -16,8 +16,27 @@ enum PptxText {
     /// Slide XML paths in the order they are shown, which is numeric order -
     /// slide10 comes after slide9, not after slide1.
     static func slidePaths(in names: [String]) -> [String] {
-        names.filter { $0.hasPrefix(slidePrefix) && $0.hasSuffix(".xml") }
-            .sorted { number(in: $0) < number(in: $1) }
+        names.filter(isSlide).sorted { number(in: $0) < number(in: $1) }
+    }
+
+    /// ppt/slides/slide7.xml - not its relationships file, which lives in
+    /// ppt/slides/_rels/ and ends in .rels.
+    static func isSlide(_ path: String) -> Bool {
+        path.hasPrefix(slidePrefix) && path.hasSuffix(".xml")
+    }
+
+    /// The parts of a Word or PowerPoint file worth inflating: its text, and
+    /// its pictures when diagrams are being looked for. A deck's embedded
+    /// videos, audio, fonts, thumbnails and themes are never read at all.
+    static func isNeeded(_ path: String, pictures: Bool) -> Bool {
+        if isSlide(path) || path == DocxText.documentPath { return true }
+        return pictures && isPicture(path)
+    }
+
+    /// A picture in either format's media folder.
+    static func isPicture(_ path: String) -> Bool {
+        let inMedia = path.hasPrefix(mediaPrefix) || path.hasPrefix(DocxText.mediaPrefix)
+        return inMedia && DocxText.isPicture(path)
     }
 
     static func number(in path: String) -> Int {
@@ -46,18 +65,26 @@ enum PptxText {
                     contentStart = rest.index(after: open.upperBound)
                 } else if next == " " || next == "\n" || next == "\r" || next == "\t" {
                     // <a:t dirty="0"> - attributes are allowed on the run
-                    if let gt = rest[open.upperBound...].firstIndex(of: ">") {
-                        contentStart = rest.index(after: gt)
+                    guard let gt = rest[open.upperBound...].firstIndex(of: ">") else { break }
+                    // <a:t lang="en"/> is an empty run, not the start of one
+                    // that would swallow everything up to the next run's end
+                    if rest[rest.index(before: gt)] == "/" {
+                        rest = rest[rest.index(after: gt)...]
+                        continue
                     }
+                    contentStart = rest.index(after: gt)
                 }
             }
-            guard let start = contentStart,
-                  let close = rest.range(of: "</a:t>", range: start..<rest.endIndex) else {
-                // <a:tbl>, <a:tc>, or a run with no closing tag: step over the
-                // tag name and carry on rather than swallowing the rest
+            guard let start = contentStart else {
+                // <a:tbl>, <a:tc>: step over the tag name and carry on
+                // rather than swallowing the rest
                 rest = rest[open.upperBound...]
                 continue
             }
+            // A run with no closing tag ends the slide: no later run can have
+            // one either, and searching to the end again for every run of a
+            // malformed slide is what made reading one hang.
+            guard let close = rest.range(of: "</a:t>", range: start..<rest.endIndex) else { break }
             let text = DocxText.decodeEntities(String(rest[start..<close.lowerBound]))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !text.isEmpty { out.append(text) }
@@ -67,8 +94,13 @@ enum PptxText {
     }
 
     /// The deck as pages, one per slide, numbered the way the student sees them.
-    static func pages(_ archive: [String: Data]) -> [(number: Int, text: String, recognised: Bool)] {
-        slidePaths(in: Array(archive.keys)).enumerated().map { index, path in
+    ///
+    /// `slides` is every slide the archive lists, when some of them may not
+    /// have been read: a slide missing from `archive` is a blank page rather
+    /// than a gap that renumbers every slide after it.
+    static func pages(_ archive: [String: Data],
+                      slides: [String]? = nil) -> [(number: Int, text: String, recognised: Bool)] {
+        (slides ?? slidePaths(in: Array(archive.keys))).enumerated().map { index, path in
             let xml = archive[path].map { String(decoding: $0, as: UTF8.self) } ?? ""
             return (index + 1, text(fromSlideXML: xml), false)
         }

@@ -194,7 +194,10 @@ struct AnkiReviewView: View {
 
     /// Reveal, then the four ratings, always in the same place.
     private func footer(_ item: AnkiQueueItem) -> some View {
-        let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
+        // from the card's stored standing, so studying ahead promises what
+        // an early rating will actually store
+        let kept: ReviewRecord = ReviewPlan.record(for: item.card, in: reviews.records)
+        let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept)
         return AnkiFooter(revealed: revealed, labels: labels,
                           onReveal: {
                               revealed = true

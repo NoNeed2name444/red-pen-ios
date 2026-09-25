@@ -79,7 +79,7 @@ struct ExportDeckIntent: AppIntent {
         guard let studySet = Store().library.first(where: { $0.id == set.id }) else {
             throw DeckExportError.gone(set.name)
         }
-        return .result(value: try DeckExport.file(for: studySet))
+        return .result(value: try await DeckExport.file(for: studySet))
     }
 }
 
@@ -109,7 +109,10 @@ struct ExportEveryDeckIntent: AppIntent {
         // One failure does not lose the rest: a single set that cannot be built
         // - an empty one, say - should not cost a weekly automation every other
         // deck it was asked for.
-        let files = sets.compactMap { try? DeckExport.file(for: $0) }
+        var files: [IntentFile] = []
+        for set in sets {
+            if let file = try? await DeckExport.file(for: set) { files.append(file) }
+        }
         guard !files.isEmpty else { throw DeckExportError.nothingToBuild }
         return .result(value: files)
     }
@@ -119,11 +122,16 @@ struct ExportEveryDeckIntent: AppIntent {
 
 enum DeckExport {
     /// Whichever form keeps the most of the set, as the library screen decides it.
+    ///
+    /// A deck is built off the main thread, with the pictures a sync has
+    /// already fetched filled in. There is nobody to ask about picture cards
+    /// whose pictures are not on this phone, so those are left out, as the
+    /// library's own export does once the student has said so.
     @MainActor
-    static func file(for set: StudySet) throws -> IntentFile {
+    static func file(for set: StudySet) async throws -> IntentFile {
         let url: URL?
         if set.kind == .anki {
-            url = try? ApkgExporter.export(set)
+            url = try? await ApkgExporter.exportInBackground(BlobCache().restore(set))
         } else {
             url = DeckPDF.export(set)
         }

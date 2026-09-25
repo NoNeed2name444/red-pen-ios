@@ -57,10 +57,20 @@ struct Session: Codable, Equatable {
 
     func isValid(now: Date = Date()) -> Bool { expiresAt > now }
 
-    /// Refreshed before it actually expires, so a session never dies in the
-    /// middle of something.
-    func needsRefresh(now: Date = Date(), margin: TimeInterval = 300) -> Bool {
+    /// Refreshed a day before it actually expires, so a session never dies in
+    /// the middle of something. A day rather than minutes: the app only asks
+    /// when it is opened, brought back or syncs, and a margin of five minutes
+    /// is one those moments almost never land in.
+    func needsRefresh(now: Date = Date(), margin: TimeInterval = 86_400) -> Bool {
         expiresAt.timeIntervalSince(now) < margin
+    }
+
+    /// Worth keeping at launch: still valid, or expired but carrying the
+    /// refresh token that renews it. Throwing an expired session away unread
+    /// signs out a student whose refresh token still works - and a linked
+    /// device's account has no other way back in at all.
+    func canResume(now: Date = Date()) -> Bool {
+        isValid(now: now) || !(refreshToken ?? "").isEmpty
     }
 }
 

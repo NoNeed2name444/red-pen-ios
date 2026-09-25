@@ -309,6 +309,24 @@ check("a drug with its ending dropped is fine", hears("amiodaron", ["Amiodarone"
 check("haemorrhagic stroke said the American way is right", hears("hemorrhagic stroke", ["Haemorrhagic stroke"]))
 check("a different drug with the same start is wrong", !hears("carbimazole", ["Carbamazepine"]))
 check("\"I don't know\" is not an answer", !hears("I don't know", ["Bisoprolol"]))
+// one condition said with another of its endings is the same answer
+check("\"infarct\" for infarction is right", hears("myocardial infarct", ["Myocardial infarction"]))
+check("\"embolus\" for embolism is right", hears("pulmonary embolus", ["Pulmonary embolism"]))
+check("\"hypertensive\" for hypertension is right", hears("hypertensive crisis", ["Hypertension crisis"]))
+check("\"thrombotic\" for thrombosis is right", hears("thrombotic stroke", ["Thrombosis stroke"]))
+check("carcinoid is still not carcinoma", !hears("carcinoid", ["Carcinoma"]))
+check("hypertension is still not hypotension", !hears("hypotension", ["Hypertension"]))
+// the recogniser writes digits for numerals
+check("type 2 for Type II is right", hears("type 2 hypersensitivity", ["Type II hypersensitivity"]))
+check("type two for Type II is right", hears("type two hypersensitivity", ["Type II hypersensitivity"]))
+check("type 3 for Type II is wrong", !hears("type 3 hypersensitivity", ["Type II hypersensitivity"]))
+check("CN 7 for CN VII is right", hears("CN 7", ["CN VII"]))
+check("factor 8 for Factor VIII is right", hears("factor eight deficiency", ["Factor VIII deficiency"]))
+check("Mobitz 2 for Mobitz II is right", hears("mobitz 2", ["Mobitz II"]))
+check("factor 5 for Factor V Leiden is right", hears("factor 5 leiden", ["Factor V Leiden"]))
+check("X-linked is a letter, not ten", hears("x linked recessive", ["X-linked recessive"]))
+check("IV on its own is intravenous, not four", hears("iv fluids", ["IV fluids"]))
+check("\"I\" said in passing is not Type I", !hears("I think type 2 diabetes", ["Type I diabetes"]))
 
 // MARK: - numbers in a marker's reply
 

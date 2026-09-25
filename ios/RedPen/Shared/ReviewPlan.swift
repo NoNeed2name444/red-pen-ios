@@ -80,21 +80,55 @@ enum ReviewPlan {
 
     /// What a rating leaves behind. The interval comes from AnkiScheduler, so
     /// the buttons' promised "in N days" and what is actually stored cannot
-    /// drift apart.
+    /// drift apart (previewLabels reads the same `earned`).
     ///
     /// With an exam date, no interval runs past the exam: a card that would
     /// next come back after the paper comes back a day or two before it
     /// instead (ExamCap), so everything is seen once more while it counts.
     static func after(rating: AnkiRating, record kept: ReviewRecord,
                       now: Date = Date(), exam: Date? = nil) -> ReviewRecord {
-        let plain = AnkiScheduler.nextInterval(rating: rating,
-                                               currentIntervalMin: kept.intervalMin)
+        let plain = earned(rating: rating, record: kept, now: now)
         let next = ExamCap.capped(plain, now: now, exam: exam)
         return ReviewRecord(due: now.addingTimeInterval(next * 60),
                             intervalMin: next,
                             reviews: kept.reviews + 1,
                             lapses: kept.lapses + (rating == .again ? 1 : 0),
                             ratedAt: now)
+    }
+
+    /// The interval a rating earns, before any exam cap.
+    ///
+    /// On time, AnkiScheduler's growth on the interval the card had. Early -
+    /// studying ahead, a card rated before it was due - the growth is on the
+    /// time that has ACTUALLY passed, as Anki does for early reviews. Grown on
+    /// the whole interval instead, a card rated Easy on Monday (4 days) and
+    /// again each day it was studied ahead came back in 16 days, then 64,
+    /// then 256: seen on Thursday before the exam, gone for eight months.
+    /// Good and Easy never shorten what the card had earned; Hard can, by
+    /// at most 40%, as Anki's early Hard does. Again is a lapse whenever it
+    /// comes. Learning steps (under a day) are left as they are, so a sitting
+    /// still moves a card on when it is shown again before its minutes are up.
+    static func earned(rating: AnkiRating, record kept: ReviewRecord, now: Date) -> Double {
+        let plain: Double = AnkiScheduler.nextInterval(rating: rating, currentIntervalMin: kept.intervalMin)
+        let remaining: Double = kept.due.timeIntervalSince(now) / 60
+        guard rating != .again, remaining > 0, kept.intervalMin >= ExamCap.day else { return plain }
+        let elapsed: Double = max(0, kept.intervalMin - remaining)
+        let grown: Double = AnkiScheduler.nextInterval(rating: rating, currentIntervalMin: elapsed)
+        let floor: Double = rating == .hard ? kept.intervalMin * 0.6 : kept.intervalMin
+        return min(AnkiScheduler.maxIntervalMin, max(grown, floor))
+    }
+
+    /// The four buttons' "in N min / hr / d" for a card as it stands - the
+    /// same `earned` and exam cap `after` stores, so an early review's
+    /// buttons promise what it will actually get.
+    static func previewLabels(for kept: ReviewRecord, now: Date = Date(),
+                              exam: Date? = ExamCap.storedDate()) -> [AnkiRating: String] {
+        var out: [AnkiRating: String] = [:]
+        for rating in AnkiRating.allCases {
+            let plain: Double = earned(rating: rating, record: kept, now: now)
+            out[rating] = "in " + AnkiScheduler.formatInterval(ExamCap.capped(plain, now: now, exam: exam))
+        }
+        return out
     }
 
     /// When the next card in a deck comes back.
@@ -105,12 +139,17 @@ enum ReviewPlan {
     // MARK: across the whole library
 
     /// One due card, and the deck it belongs to.
+    ///
+    /// Identified by deck AND card: a set copied with its cards' ids (a sync
+    /// conflict copy, a re-imported file) puts the same card id in two decks,
+    /// and an id of the card alone gave a list two rows with one identity and
+    /// made removing one remove both.
     struct Due: Identifiable {
         var setID: UUID
         var setName: String
         var card: AnkiCard
         var due: Date
-        var id: UUID { card.id }
+        var id: String { setID.uuidString + "/" + card.id.uuidString }
     }
 
     /// Everything due right now, from every deck, soonest first.

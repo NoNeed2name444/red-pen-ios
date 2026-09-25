@@ -112,8 +112,8 @@ struct DueTodayView: View {
 
     /// Listen and Reveal, then the four ratings, always in the same place.
     private func footer(_ due: ReviewPlan.Due) -> some View {
-        let interval: Double = reviews.records[due.card.id]?.intervalMin ?? 0
-        let labels: [AnkiRating: String] = AnkiScheduler.previewLabels(currentIntervalMin: interval)
+        let kept: ReviewRecord = ReviewPlan.record(for: due.card, in: reviews.records)
+        let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept)
         return AnkiFooter(revealed: revealed, labels: labels,
                           onReveal: {
                               revealed = true
