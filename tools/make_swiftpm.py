@@ -1,3 +1,6 @@
+# Usage: make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip [lectures...]
+# The name is the package's and the app's (Playgrounds shows it); the bundle id
+# is never renamed with it - a new id would be a new app with an empty library.
 import os, re, shutil, sys, subprocess
 src, name, bundle, out = sys.argv[1:5]
 samples = sys.argv[5:]  # lectures for this build only (never in the repository)
@@ -81,9 +84,9 @@ let package = Package(
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
             ],
             capabilities: [
-                .microphone(purposeString: "Vignette uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice."),
-                .speechRecognition(purposeString: "Vignette turns lecture recordings and your spoken answers into text, on this device where it can."),
-                .camera(purposeString: "Vignette can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.")
+                .microphone(purposeString: "Stethoscore uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice."),
+                .speechRecognition(purposeString: "Stethoscore turns lecture recordings and your spoken answers into text, on this device where it can."),
+                .camera(purposeString: "Stethoscore can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.")
             ]
         )
     ],

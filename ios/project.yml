@@ -48,8 +48,14 @@ targets:
     info:
       path: RedPen/Info.plist
       properties:
-        CFBundleDisplayName: Vignette
-        UILaunchScreen: {}
+        CFBundleDisplayName: Stethoscore
+        # The first frame, before any Swift runs: the Midnight Enamel mark and
+        # the wordmark on Midnight navy. LaunchSplash draws the same picture
+        # for its first frame, so the hand-over is invisible.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
         # The phone stays upright - a card deck held one-handed has no reason
         # to rotate - but an iPad is used on a desk, in a stand, on a keyboard
         # case, and refusing to turn there is simply broken.
@@ -70,14 +76,14 @@ targets:
         # They also say the honest thing: the recognition happens here, because
         # LectureTranscriber forces requiresOnDeviceRecognition and refuses
         # rather than falling back to a server.
-        NSSpeechRecognitionUsageDescription: Vignette turns lecture recordings and your spoken answers into text, on this device where it can.
+        NSSpeechRecognitionUsageDescription: Stethoscore turns lecture recordings and your spoken answers into text, on this device where it can.
         CADisableMinimumFrameDurationOnPhone: true
-        NSMicrophoneUsageDescription: Vignette uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice.
+        NSMicrophoneUsageDescription: Stethoscore uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice.
         # Only for Settings > "Pop-out with face tracking" (off by default):
         # ARKit face tracking follows where the head is so the pop-out lines
         # up with the eyes. PopOutMotion.faceTrackingAvailable is false
         # without this string, so a build missing it never reaches the camera.
-        NSCameraUsageDescription: Vignette can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.
+        NSCameraUsageDescription: Stethoscore can use the front camera to follow where your head is, so the pop-out effect lines up with your eyes. Nothing is recorded or sent.
         # A lecture should keep playing with the screen off.
         UIBackgroundModes:
           - audio

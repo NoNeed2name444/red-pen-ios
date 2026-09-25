@@ -230,6 +230,10 @@ struct RedPenApp: App {
             // the one motion source for the pop-out: started while the app
             // is active, stopped in the background (see PopOut.swift)
             .popOutLifecycle()
+            // the launch screen's picture, dissolving over the app that is
+            // already running beneath it (and the only launch screen the
+            // Playgrounds build has) - see LaunchSplash
+            .launchSplash()
         }
     }
 }

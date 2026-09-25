@@ -1,4 +1,4 @@
-# Vignette: privacy policy and terms of use (DRAFT for legal review)
+# Stethoscore: privacy policy and terms of use (DRAFT for legal review)
 
 Written 2026-09-24 against `preview/graph` at `effa18d` plus the working tree of that date. **This is a draft, not legal advice.** A lawyer who knows the seller's home country and the storefronts at launch must review it before it is published. Nothing here has been checked by a lawyer.
 
@@ -20,7 +20,7 @@ Written 2026-09-24 against `preview/graph` at `effa18d` plus the working tree of
 | # | Question | What the draft assumes | Why it matters |
 |---|---|---|---|
 | L1 | Who is the seller (individual or company), and where are they? | `{{SELLER}}`, `{{SELLER_COUNTRY}}` | It decides the governing law (C15), who the "controller" is under GDPR, UK GDPR and Egypt's PDPL, and what the EU Digital Services Act trader declaration shows. Guideline 5.1.1(ix) says apps in healthcare "should be submitted by a legal entity". This app is education, not healthcare, but if App Review disagrees, the fix is a company account (design F §5). |
-| L2 | Minimum age | **18+** for the whole app | Google's Gemini API terms say "You must be 18 years of age or older to use the APIs". Vignette Cloud runs on Gemini, and the listing plan already overrides the age rating to 18+ (`app-store-listing.md` §1). One age for the whole app is simpler than "16+, but 18+ for cloud AI". |
+| L2 | Minimum age | **18+** for the whole app | Google's Gemini API terms say "You must be 18 years of age or older to use the APIs". Stethoscore Cloud runs on Gemini, and the listing plan already overrides the age rating to 18+ (`app-store-listing.md` §1). One age for the whole app is simpler than "16+, but 18+ for cloud AI". |
 | L3 | Is Egypt's PDPL (Law 151/2020) licensing needed? | Not addressed | The Executive Regulations were issued in November 2025, and the one-year grace period ends around **October 2026**, which is about launch time. They add licensing, a Data Protection Officer, and rules on cross-border transfers. Egypt is a main market (`pricing.md`). |
 | L4 | Legal basis wording for the EEA and UK | Contract (account, sync, Pro), consent (cloud AI, telemetry, leaderboards, face tracking), legitimate interests (security, abuse limits) | Standard GDPR mapping. In the EEA, UK and Switzerland, only paid Gemini may serve users (see L5). |
 | L5 | EEA, UK and Switzerland at launch | The app is available there, but Pro and the Exam Pass are **not** sold there until `PRO_PAYS=on` (`pricing.md` §6) | The Gemini API terms say: "You may use only Paid Services when making API Clients available to users in the European Economic Area, Switzerland, or the United Kingdom." The free tier of the app sends nothing to Gemini. |
@@ -41,7 +41,7 @@ Each gap names the file to change. Other jobs own those files, so this list is f
 | G5 | **The paywall links to `https://redpen.app/terms` and `/privacy`,** which nobody is known to own. That breaks Schedule 2 §3.8(b) and guideline 3.1.2. | `ios/RedPen/Features/Paywall/PaywallView.swift` | Link to `{{BASE}}/terms` and `{{BASE}}/privacy`. Already P0.2. |
 | G6 | **The app has no contact route.** 5.1.1(i) needs a way to reach you and 1.5 needs a working Support URL. | — | The `/support` form and `/support/message` (P1.8). |
 | G7 | **No consent is asked before content goes to third-party AI** (guideline 5.1.2(i)). The recording gate names Google only for transcription. | `RecordingTermsView.swift`, `CloudGate` | `CloudAIConsentView` (P2.9), using the text in E1. |
-| G8 | **The Settings text says "Vignette does not keep it"** about cloud requests. That is true for chat and transcription. It is not quite true for background jobs, which keep their results until the app collects them, for up to 7 days, and it hides that Google's free tier may keep content. | `ios/RedPen/Features/Support/ModelSettingsView.swift` line ~140 | Use E2. |
+| G8 | **The Settings text says "Stethoscore does not keep it"** about cloud requests. That is true for chat and transcription. It is not quite true for background jobs, which keep their results until the app collects them, for up to 7 days, and it hides that Google's free tier may keep content. | `ios/RedPen/Features/Support/ModelSettingsView.swift` line ~140 | Use E2. |
 | G9 | **AI usage counters outlive the account.** `ai_usage` and `ai_cost` rows are keyed by the deleted account's id and kept on purpose, so a new account cannot restart the month. They hold no content, but they are pseudonymous. | `server/worker.js` `deleteAccount` | Keep them, but prune `ai_usage` after 35 days and `ai_cost` after 13 months in the maintenance cron. B8 says so. |
 | G10 | **No `PrivacyInfo.xcprivacy` file.** The app uses `UserDefaults`, which is a required-reason API (reason `CA92.1`). | `ios/` | P3.1 (design F build step F7). |
 | G11 | **Terms gate v2 has no education-only or patient-data point.** | `RecordingTermsView.swift` | Gate v3 (P2.9), using the text in E3. |
@@ -75,21 +75,21 @@ These are the only manual steps this document causes. They are the same as plan 
 
 ## Part B. Privacy Policy (published at `/privacy`)
 
-> **Vignette Privacy Policy**
+> **Stethoscore Privacy Policy**
 > Version {{PRIVACY_VERSION}} · Effective {{EFFECTIVE_DATE}}
 
 ### B1. The short version
 
-- **Most of Vignette works entirely on your iPhone or iPad.** Starting without an account sends nothing to us.
+- **Most of Stethoscore works entirely on your iPhone or iPad.** Starting without an account sends nothing to us.
 - **We keep only what a feature needs.** If you sign in, that is an account id and, if Apple or Google gives it to us, your name and email. With Pro sync, it is your study library. For cloud features, it is what you send, and only for as long as it takes to answer.
-- **Cloud AI is optional and named.** When you use Vignette Cloud, your text or audio goes to **Google (Gemini)** or **Cloudflare (Workers AI)** to be processed. We ask before the first time `[needs G7]`, and you can say no and stay on the device.
+- **Cloud AI is optional and named.** When you use Stethoscore Cloud, your text or audio goes to **Google (Gemini)** or **Cloudflare (Workers AI)** to be processed. We ask before the first time `[needs G7]`, and you can say no and stay on the device.
 - **No ads, no tracking, no selling data.** There are no third-party analytics or advertising kits in the app.
 - **Delete everything from inside the app:** Account → Delete account.
-- **Vignette is for study, not for patient care. Never enter information that could identify a real patient.**
+- **Stethoscore is for study, not for patient care. Never enter information that could identify a real patient.**
 
 ### B2. Who we are
 
-Vignette is made by **{{SELLER}}** ("we", "us"). {{SELLER}} is the controller of the personal data described here. To reach us, use {{BASE}}/support or, in the app, Settings → Help → Contact `[needs G6]`. `{{SELLER_ADDRESS}}` *(required if you are a trader under EU law, and in some other countries)*.
+Stethoscore is made by **{{SELLER}}** ("we", "us"). {{SELLER}} is the controller of the personal data described here. To reach us, use {{BASE}}/support or, in the app, Settings → Help → Contact `[needs G6]`. `{{SELLER_ADDRESS}}` *(required if you are a trader under EU law, and in some other countries)*.
 
 ### B3. What stays on your device and never reaches us
 
@@ -147,7 +147,7 @@ With Pro, your library is kept on our server so it can follow you between your o
 
 Nobody else can see your library. We do not read it for any other purpose, and we do not use it to train AI. Pictures are stored under your account, named by a fingerprint of their bytes. They are not shared between accounts. When Pro ends, the synced copy stays on the server, and syncing resumes if Pro comes back. Delete the account to remove it (B9).
 
-#### B4.5 Vignette Cloud (Pro): writing, checking, transcription and natural voice
+#### B4.5 Stethoscore Cloud (Pro): writing, checking, transcription and natural voice
 
 When **you choose** a cloud feature, what you send goes through our server to an AI provider (B5), and the answer comes back to you.
 
@@ -199,16 +199,16 @@ We share data only with the service providers below, only to run the feature you
 | Provider | What for | What it receives | Notes |
 |---|---|---|---|
 | **Cloudflare, Inc.** | Hosts our server, database (D1), file storage (R2), background jobs (Durable Objects) and **Workers AI**. Workers AI runs the backup text models and the natural voice: Deepgram Aura-2 and MeloTTS, **hosted by Cloudflare**. | Everything our server handles | Cloudflare states that it does not use customer content to train AI models or improve its services. |
-| **Google LLC: Gemini, through Firebase AI Logic** | Vignette Cloud writing and checking, and cloud transcription | The text or audio of that request | **{{GEMINI_TIER_PARAGRAPH}}** (see below) |
+| **Google LLC: Gemini, through Firebase AI Logic** | Stethoscore Cloud writing and checking, and cloud transcription | The text or audio of that request | **{{GEMINI_TIER_PARAGRAPH}}** (see below) |
 | **Apple Inc.** | Sign in with Apple, App Store payments, subscription checks, crash reports (MetricKit, if you opt in); speech recognition for spoken answers on devices that cannot do it on the device | Your sign-in; the transaction; iOS audio for spoken answers when on-device recognition is unavailable | Governed by Apple's privacy policy |
 | **Google LLC: Google Sign-In** | Only if you choose "Sign in with Google" | Your Google sign-in | Governed by Google's privacy policy |
 | **Europe PMC (EMBL-EBI), US National Library of Medicine, US FDA (openFDA)** | Evidence for the accuracy checker | Short search terms only, sent from our server | Public services, no account |
 | **Hugging Face, Inc.** | Downloading the optional on-device models (Gemma, Doctor-R1, MedVAL) | A normal download request from your device (network address, device type). **No study content.** | |
-| **Novita AI** *(listed only if enabled)* | A medical writing model (Baichuan-M2) that goes first for Vignette Cloud | The text of that request | Novita states that it does not train on API content and does not keep it after answering. |
+| **Novita AI** *(listed only if enabled)* | A medical writing model (Baichuan-M2) that goes first for Stethoscore Cloud | The text of that request | Novita states that it does not train on API content and does not keep it after answering. |
 
 **`{{GEMINI_TIER_PARAGRAPH}}`, choose one at deploy time from `GEMINI_BILLING`/`PRO_PAYS`:**
 
-- *While we use Google's free tier:* "Google provides this on its free tier. **On the free tier, Google may use what you send, and the answers, to improve its products, and human reviewers may read them.** That is why we ask you not to send personal or sensitive information, and never patient information. To avoid this, don't use Vignette Cloud: everything else works on your device."
+- *While we use Google's free tier:* "Google provides this on its free tier. **On the free tier, Google may use what you send, and the answers, to improve its products, and human reviewers may read them.** That is why we ask you not to send personal or sensitive information, and never patient information. To avoid this, don't use Stethoscore Cloud: everything else works on your device."
 - *Once we pay for Gemini:* "We pay Google for this service. Google does not use what you send to improve its products. It keeps it only briefly, to detect abuse."
 
 ### B6. Face tracking (optional, off by default)
@@ -220,14 +220,14 @@ We share data only with the service providers below, only to run the feature you
 - The camera is off whenever the effect isn't showing, and whenever a voice, recording or drawing screen is open.
 - Face data is **never** used to identify you, or for marketing, advertising or data mining.
 
-You can turn it off in the app, or remove camera access in iOS Settings → Vignette.
+You can turn it off in the app, or remove camera access in iOS Settings → Stethoscore.
 
 ### B7. Health information and patients
 
-Vignette is a study tool for medical students. **It is not for patient care, and it is not a medical record.**
+Stethoscore is a study tool for medical students. **It is not for patient care, and it is not a medical record.**
 
 - **Do not enter anything that could identify a real patient**, such as names, dates, record numbers, photos or rare details, in notes, recordings, questions or reports.
-- Vignette does not ask for or use your own health information.
+- Stethoscore does not ask for or use your own health information.
 - Recordings should include only people who agreed (C6).
 
 ### B8. How long we keep things
@@ -259,13 +259,13 @@ We may keep something longer only if the law requires it, for example tax record
 - **Stop cloud AI:** choose "This phone only" or "On this device" in Settings → Models, or withdraw cloud AI consent in Settings `[ship-gated: P2.9]`.
 - **Stop sharing, leave a group, or "Hide me" on a leaderboard** `[ship-gated]`.
 - **Turn crash reports and usage counts off** in Settings → Privacy choices `[ship-gated]`.
-- **Camera, microphone and speech recognition:** iOS Settings → Vignette.
+- **Camera, microphone and speech recognition:** iOS Settings → Stethoscore.
 
 Depending on where you live, including under the EU and UK GDPR, Egypt's Personal Data Protection Law (No. 151 of 2020), Saudi Arabia's PDPL and US state privacy laws, you may have the right to **access, correct, delete or export** your data, to **object** to or **restrict** some processing, and to **withdraw consent** at any time without affecting what was done before. To use these rights, contact us (B2). We reply within **30 days**. You can also complain to your data protection authority.
 
 ### B10. Age
 
-Vignette is for university students and graduates. **You must be 18 or older to use it.** Some of the AI services it relies on require that. We do not knowingly collect data from anyone under 18. If you believe a child has given us data, contact us and we will delete it.
+Stethoscore is for university students and graduates. **You must be 18 or older to use it.** Some of the AI services it relies on require that. We do not knowingly collect data from anyone under 18. If you believe a child has given us data, contact us and we will delete it.
 
 ### B11. Where your data is processed
 
@@ -295,25 +295,25 @@ When this policy changes, we update the version and date above. If a change matt
 
 ## Part C. Terms of Use (published at `/terms`)
 
-> **Vignette Terms of Use**
+> **Stethoscore Terms of Use**
 > Version {{TERMS_VERSION}} · Effective {{EFFECTIVE_DATE}}
 
 ### C1. These terms and Apple's licence
 
-These terms are between you and **{{SELLER}}**. They **add to** Apple's Licensed Application End User License Agreement (the "Standard EULA"), which licenses the app to you. If the two conflict about the licence itself, Apple's Standard EULA wins. Apple is not responsible for Vignette or for supporting it. By using Vignette, you agree to these terms and to our Privacy Policy.
+These terms are between you and **{{SELLER}}**. They **add to** Apple's Licensed Application End User License Agreement (the "Standard EULA"), which licenses the app to you. If the two conflict about the licence itself, Apple's Standard EULA wins. Apple is not responsible for Stethoscore or for supporting it. By using Stethoscore, you agree to these terms and to our Privacy Policy.
 
-### C2. Who can use Vignette
+### C2. Who can use Stethoscore
 
-You must be **18 or older**. Vignette is meant for medical students and others studying medicine.
+You must be **18 or older**. Stethoscore is meant for medical students and others studying medicine.
 
 ### C3. Education only: not medical advice
 
-**Vignette is a study tool. It does not give medical advice, and it must not be used to diagnose, treat or manage any patient or to make clinical decisions.** See the full Education-Only Notice (Part D). In short:
+**Stethoscore is a study tool. It does not give medical advice, and it must not be used to diagnose, treat or manage any patient or to make clinical decisions.** See the full Education-Only Notice (Part D). In short:
 
 - Questions, cards, cases, explanations, "patient" replies, OSCE marking, transcripts and accuracy checks are **generated by AI** from the material you provide. They **can be wrong, incomplete or out of date, even after they have been checked.**
 - The accuracy figures we publish (`{{BASE}}/accuracy`) are **measurements on exam-style questions, not a guarantee** about any single answer.
 - Always check against current guidelines, your university's teaching and qualified clinicians. In real clinical situations, follow your supervisors and local protocols.
-- Vignette is not affiliated with or endorsed by any exam body (USMLE/NBME/FSMB, PLAB/UKMLA/GMC, MRCP, MRCS or others). Exam names describe the style of practice only.
+- Stethoscore is not affiliated with or endorsed by any exam body (USMLE/NBME/FSMB, PLAB/UKMLA/GMC, MRCP, MRCS or others). Exam names describe the style of practice only.
 
 ### C4. No patient information
 
@@ -327,16 +327,16 @@ Do not enter, record, upload or share anything that could identify a real patien
 
 ### C6. Recordings
 
-Only record, upload or transcribe a lecture, talk or conversation when **everyone who can be heard has agreed**, and when your university's rules and your country's law allow it. You are responsible for your recordings and for what you do with their transcripts. Vignette has no part in, and does not approve of, recording anyone without consent.
+Only record, upload or transcribe a lecture, talk or conversation when **everyone who can be heard has agreed**, and when your university's rules and your country's law allow it. You are responsible for your recordings and for what you do with their transcripts. Stethoscore has no part in, and does not approve of, recording anyone without consent.
 
 ### C7. Acceptable use
 
 Do not:
 
-- use Vignette for patient care, or present its output as professional medical advice;
+- use Stethoscore for patient care, or present its output as professional medical advice;
 - break the law, or infringe anyone's copyright, privacy or other rights;
 - `[ship-gated]` share content that is offensive, harassing or sexual, that contains personal data about other people, or that infringes copyright; or use display names or group names that impersonate someone or are offensive;
-- try to get around limits, payments or security; send automated requests to our server outside the app; reverse-engineer our server; or use Vignette Cloud to run requests that are not for your own study;
+- try to get around limits, payments or security; send automated requests to our server outside the app; reverse-engineer our server; or use Stethoscore Cloud to run requests that are not for your own study;
 - resell or give access to your account or Pro to others, except through features we provide, such as `[ship-gated]` class access.
 
 We may remove content and suspend or close accounts that break these rules. `[ship-gated: P1.1]` Shared content can be reported from the share page or the app. Content reported by several people may be hidden automatically until we review it, which we aim to do within 24 hours.
@@ -348,32 +348,32 @@ If you believe shared content infringes your copyright, report it at {{BASE}}/su
 ### C9. Pro, the Exam Pass and payments
 
 - **Free features** run on your device and stay free.
-- **Pro** (monthly or yearly subscription) adds Vignette Cloud, cloud transcription, the natural voice, sync between your devices, and the premium on-device models. The yearly plan may start with a free trial. The **Exam Pass** is a one-time purchase that gives Pro for **92 days**, does **not** renew, and adds to any time you already have. Prices are shown in the app before you buy.
+- **Pro** (monthly or yearly subscription) adds Stethoscore Cloud, cloud transcription, the natural voice, sync between your devices, and the premium on-device models. The yearly plan may start with a free trial. The **Exam Pass** is a one-time purchase that gives Pro for **92 days**, does **not** renew, and adds to any time you already have. Prices are shown in the app before you buy.
 - **Apple handles billing.** Payment is charged to your Apple Account when you confirm the purchase. **Subscriptions renew automatically unless you turn off auto-renew at least 24 hours before the end of the current period.** Your account is charged for renewal within 24 hours before the period ends. Manage or cancel in iOS Settings → Apple Account → Subscriptions. **Refunds are handled by Apple** under its policies. If a free trial is offered, any unused part of it ends when you buy a subscription.
 - **Fair-use limits.** Cloud features have daily limits per account, shown in the app. Examples today: about 400 cloud requests, 6 hours of cloud transcription and 300 natural-voice lines a day. They also have a monthly budget. When a limit is reached, the feature pauses until it resets, and the on-device features keep working. The limits protect the service for everyone. They may change, but not in a way that removes what you paid for.
-- **The models behind Vignette Cloud may change.** We choose the providers and may switch between them, for example when one is busy, to keep the service running. The Privacy Policy always lists them.
+- **The models behind Stethoscore Cloud may change.** We choose the providers and may switch between them, for example when one is busy, to keep the service running. The Privacy Policy always lists them.
 - **Deleting your account does not cancel your subscription** (Privacy Policy B9).
 - `[ship-gated: P1.4]` **Class access and referral rewards** follow the rules shown where you get them. Class access is given by the school or lecturer and ends when you leave the class or its access ends. Rewards have no cash value.
 
 ### C10. Third-party services
 
-Vignette relies on Apple, Cloudflare, Google and the other services named in the Privacy Policy. If you connect your own AI provider (B4.6), your use of it is between you and that provider, under their terms.
+Stethoscore relies on Apple, Cloudflare, Google and the other services named in the Privacy Policy. If you connect your own AI provider (B4.6), your use of it is between you and that provider, under their terms.
 
 ### C11. Availability and changes
 
-We work to keep Vignette running, but we do not promise it will always be available or error-free. We may change or stop features. If we stop a paid feature for good, we will tell you in the app and point you to Apple for refunds where they apply.
+We work to keep Stethoscore running, but we do not promise it will always be available or error-free. We may change or stop features. If we stop a paid feature for good, we will tell you in the app and point you to Apple for refunds where they apply.
 
 ### C12. Ending
 
-You can stop using Vignette and delete your account at any time. We may suspend or end your access if you seriously or repeatedly break these terms. Where it is reasonable, we tell you first.
+You can stop using Stethoscore and delete your account at any time. We may suspend or end your access if you seriously or repeatedly break these terms. Where it is reasonable, we tell you first.
 
 ### C13. Warranty
 
-Vignette is provided **"as is" and "as available"**. To the extent the law allows, we make no warranty that it is accurate, complete, fit for a particular purpose or uninterrupted. This matters especially for AI-generated medical content (C3). Nothing in these terms limits rights you have as a consumer that cannot legally be limited.
+Stethoscore is provided **"as is" and "as available"**. To the extent the law allows, we make no warranty that it is accurate, complete, fit for a particular purpose or uninterrupted. This matters especially for AI-generated medical content (C3). Nothing in these terms limits rights you have as a consumer that cannot legally be limited.
 
 ### C14. Limitation of liability
 
-To the extent the law allows, we are not liable for indirect or consequential losses, for lost data you did not keep elsewhere, or for **any decision about a patient's care or your own health based on Vignette**. Our total liability to you is limited to **{{LIABILITY_CAP — e.g. the amount you paid us in the 12 months before the claim}}**. We do not limit liability for death or personal injury caused by our negligence, for fraud, or for anything else the law does not allow us to limit.
+To the extent the law allows, we are not liable for indirect or consequential losses, for lost data you did not keep elsewhere, or for **any decision about a patient's care or your own health based on Stethoscore**. Our total liability to you is limited to **{{LIABILITY_CAP — e.g. the amount you paid us in the 12 months before the claim}}**. We do not limit liability for death or personal injury caused by our negligence, for fraud, or for anything else the law does not allow us to limit.
 
 ### C15. Governing law
 
@@ -381,7 +381,7 @@ To the extent the law allows, we are not liable for indirect or consequential lo
 
 ### C16. Changes to these terms
 
-We may update these terms. The app shows you the new version, and important changes are asked again before you continue. If you do not agree, stop using Vignette and delete your account.
+We may update these terms. The app shows you the new version, and important changes are asked again before you continue. If you do not agree, stop using Stethoscore and delete your account.
 
 ### C17. Contact
 
@@ -391,14 +391,14 @@ We may update these terms. The app shows you the new version, and important chan
 
 ## Part D. Education-Only Notice (published at `/medical`, linked from the app)
 
-> **Vignette is for learning medicine, not for practising it.**
+> **Stethoscore is for learning medicine, not for practising it.**
 
-1. **What Vignette is.** Vignette helps medical students revise. It turns your own lectures and notes into practice questions, flashcards, cases and OSCE practice, and it helps you test yourself.
+1. **What Stethoscore is.** Stethoscore helps medical students revise. It turns your own lectures and notes into practice questions, flashcards, cases and OSCE practice, and it helps you test yourself.
 2. **What it is not.** It is not a medical device. It is not a source of medical advice. It is not a tool for diagnosing, treating or managing patients, or for deciding doses or other care. It is not a substitute for a doctor, a pharmacist, current guidelines or your university's teaching.
 3. **AI makes mistakes.** Content is written by AI models from the material you provide. It can be wrong, and it can repeat mistakes or outdated content from your source. The accuracy checker compares items with your lecture and with public sources such as Europe PMC, MedlinePlus and FDA drug labels. It reduces errors but does not remove them. Our published accuracy figures are measurements on exam-style questions, not a promise about any single answer.
 4. **Check before you rely on it.** Confirm anything important against current national guidelines (for example NICE, BNF or your country's equivalent), your teaching and qualified clinicians. Before making any medical decision, including about your own health, talk to a doctor.
 5. **Keep patients anonymous.** Never enter information that could identify a real patient.
-6. **In an emergency,** call your local emergency number. Vignette cannot help in an emergency.
+6. **In an emergency,** call your local emergency number. Stethoscore cannot help in an emergency.
 7. **Found an error?** Use "Report an error" in the More menu of any question or card `[ship-gated: P2.9]`, or contact us at {{BASE}}/support.
 
 ---
@@ -407,8 +407,8 @@ We may update these terms. The app shows you the new version, and important chan
 
 ### E1. Cloud AI consent sheet (before the first cloud request; guideline 5.1.2(i)) `[G7]`
 
-> **Use Vignette Cloud?**
-> To write, check, transcribe or read aloud in the cloud, what you send (lecture text, your answers, or lecture audio) goes through Vignette's server to **Google (Gemini)** or **Cloudflare (Workers AI)**{{, or Novita}}. {{FREE_TIER: On Google's free tier, Google may use it to improve its products, and human reviewers may read it.}} Vignette doesn't keep it after answering, except background jobs, which are kept until collected (up to 7 days).
+> **Use Stethoscore Cloud?**
+> To write, check, transcribe or read aloud in the cloud, what you send (lecture text, your answers, or lecture audio) goes through Stethoscore's server to **Google (Gemini)** or **Cloudflare (Workers AI)**{{, or Novita}}. {{FREE_TIER: On Google's free tier, Google may use it to improve its products, and human reviewers may read it.}} Stethoscore doesn't keep it after answering, except background jobs, which are kept until collected (up to 7 days).
 > • You must be 18 or older.
 > • Never include information that identifies a real patient.
 > **[Allow cloud AI]** **[Keep everything on this device]**
@@ -416,9 +416,9 @@ We may update these terms. The app shows you the new version, and important chan
 
 The two buttons have equal weight. The sheet never appears at launch, only when a cloud feature is first used.
 
-### E2. Settings → Models, Vignette Cloud row (replaces the current text) `[G8]`
+### E2. Settings → Models, Stethoscore Cloud row (replaces the current text) `[G8]`
 
-> Google's Gemini, with Cloudflare's models taking over when it is busy. Your text is sent to Google or Cloudflare to answer. {{FREE_TIER: On Google's free tier Google may use it to improve its products.}} Vignette keeps nothing except unfinished background jobs, for up to 7 days.
+> Google's Gemini, with Cloudflare's models taking over when it is busy. Your text is sent to Google or Cloudflare to answer. {{FREE_TIER: On Google's free tier Google may use it to improve its products.}} Stethoscore keeps nothing except unfinished background jobs, for up to 7 days.
 
 ### E3. Terms gate v3: the "Read this before you start" screen `[G11]` (in the app: `RecordingTermsView`, `RecordingTerms.version = 3`)
 
@@ -427,7 +427,7 @@ Shown once per account after sign-in; cannot be dismissed; the agree button coun
 > **Read this before you start**
 >
 > *(red box)*
-> **Vignette is a study aid for students. It is NOT a medical tool.**
+> **Stethoscore is a study aid for students. It is NOT a medical tool.**
 > **Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.**
 > **AI content can be wrong, out of date or dangerous, even after it has been checked.** Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.
 > In an emergency, call your local emergency number.
@@ -435,11 +435,11 @@ Shown once per account after sign-in; cannot be dismissed; the agree button coun
 > - **No patient information. Ever.** Never enter, record, upload or photograph anything that could identify a real patient: names, dates, record numbers, images or rare details.
 > - **Record people only with their consent.** Recording someone without their permission can be illegal. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and everyone who can be heard have agreed, and your university's rules and the law allow it. You alone are responsible for your recordings and their transcripts.
 > - **Only add sources you have the right to use.** Your own notes, material your university gave you to study from, or content whose licence allows it. Never upload other people's paid courses, question banks or copyrighted books.
-> - **Misuse ends your account.** Using Vignette for patient care, recording people without consent, uploading material you have no right to, or breaking the law can get your account suspended or closed. You are solely responsible for how you use the app; Vignette has no part in, and does not approve of, any misuse.
-> - **No warranty, no liability.** Vignette is provided as is, with no promise that anything in it is accurate or complete. To the extent the law allows, Vignette and its makers accept no liability for any decision, harm or loss that comes from relying on it.
+> - **Misuse ends your account.** Using Stethoscore for patient care, recording people without consent, uploading material you have no right to, or breaking the law can get your account suspended or closed. You are solely responsible for how you use the app; Stethoscore has no part in, and does not approve of, any misuse.
+> - **No warranty, no liability.** Stethoscore is provided as is, with no promise that anything in it is accurate or complete. To the extent the law allows, Stethoscore and its makers accept no liability for any decision, harm or loss that comes from relying on it.
 > - **Cloud transcription.** When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose "This phone only" to keep it on your device.
 >
-> By tapping "I understand and agree" you confirm you have read all of this and accept full responsibility for how you use Vignette.
+> By tapping "I understand and agree" you confirm you have read all of this and accept full responsibility for how you use Stethoscore.
 >
 > **[I understand and agree]**
 
@@ -447,7 +447,7 @@ Not yet on the screen: the **18 or older** point (C2); add it here and bump the 
 
 ### E4. Privacy choices ask card `[ship-gated: P2.8]`
 
-> **Help make Vignette better?** Send anonymous crash reports and usage counts. They are not linked to you or your account. Pro never depends on this. **[Send anonymously]** **[No thanks]** · See exactly what is sent
+> **Help make Stethoscore better?** Send anonymous crash reports and usage counts. They are not linked to you or your account. Pro never depends on this. **[Send anonymously]** **[No thanks]** · See exactly what is sent
 
 ### E5. Leaderboard opt-in `[ship-gated: P2.2]`
 

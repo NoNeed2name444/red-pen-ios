@@ -547,7 +547,7 @@ struct NewSetView: View {
     /// A shared set: what it can be, or why the chosen file could not be
     /// read. The button that picks it is at the bottom, under the thumb.
     private var importSection: some View {
-        let plain: String = "A .json set exported from \(Brand.name) (formerly CramDown) or the Red Pen web app. Choose it below \u{2014} it goes straight into your library."
+        let plain: String = "A .json set exported from \(Brand.name) (formerly Vignette or CramDown) or the Red Pen web app. Choose it below \u{2014} it goes straight into your library."
         let message: String = importError ?? plain
         let ink: Color = importError == nil ? Color.secondary : Color.red
         let symbol: String = importError == nil ? "square.and.arrow.down" : "exclamationmark.triangle"

@@ -1,4 +1,4 @@
-# Vignette: launch reels (TikTok, Instagram Reels, YouTube Shorts)
+# Stethoscore: launch reels (TikTok, Instagram Reels, YouTube Shorts)
 
 Written 2026-09-24 against `preview/graph`. This is one of the group G launch documents listed in `implementation-plan.md`. Two packages consume it:
 
@@ -43,16 +43,16 @@ These were checked against current sources (listed at the end). Several reels do
 
 | | EN | AR (Egyptian) |
 |---|---|---|
-| Line 1 (large) | **Vignette** | **Vignette** |
+| Line 1 (large) | **Stethoscore** | **Stethoscore** |
 | Line 2 | Study app for medical students, on iPhone and iPad | تطبيق مذاكرة لطلبة الطب، على iPhone و iPad |
-| Line 3 (small), only on Pro reels | Some features need Vignette Pro (subscription). | بعض المميزات محتاجة Vignette Pro (اشتراك). |
-| Line 3 (small), on free reels | Free to download. Vignette Pro is an optional subscription. | التحميل ببلاش. Vignette Pro اشتراك اختياري. |
+| Line 3 (small), only on Pro reels | Some features need Stethoscore Pro (subscription). | بعض المميزات محتاجة Stethoscore Pro (اشتراك). |
+| Line 3 (small), on free reels | Free to download. Stethoscore Pro is an optional subscription. | التحميل ببلاش. Stethoscore Pro اشتراك اختياري. |
 | Line 4 (small) | For study, not clinical decisions. | للمذاكرة بس، مش للقرارات الطبية. |
 | Badge, last 2 s, after launch only | Apple's black "Download on the App Store" badge | Apple's Arabic "Download on the App Store" badge (Apple's artwork, never one we make) |
 | Before launch | Coming soon to iPhone and iPad | قريب على iPhone و iPad |
 | Credit (tiny, bottom) | iPhone, iPad and Apple Pencil are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. | Same text, in English (Apple's credit lines are not translated) |
 
-The brand name stays **Vignette** in Latin script in Arabic too, matching `CFBundleDisplayName`. If P5.7 decides on an Arabic display name, use that one here.
+The brand name stays **Stethoscore** in Latin script in Arabic too, matching `CFBundleDisplayName`. If P5.7 decides on an Arabic display name, use that one here.
 
 ### A.3 The reel demo lecture (needed by reels 1, 4, 6, 9 and 10)
 
@@ -60,7 +60,7 @@ The brand name stays **Vignette** in Latin script in Arabic too, matching `CFBun
 - Aim for about **12,800–13,000 characters of text**. `MCQCoverage.suggestedCount` proposes `characters / 320` questions, so this length makes the app itself propose **40**. The "40 questions" number is then the app's own suggestion, not something forced for the video.
 - Include **3 labelled diagrams**, drawn in code the same way `OcclusionExample` draws the heart: the heart's chambers, the Frank–Starling curve and the RAAS pathway. The occlusion reel then shows real diagram-finding on real labels.
 - Include **2 slides saved as images**, so the "Read 20 pages, 2 by OCR" status is real.
-- P3.2 generates it with a small script into `docs/launch/reel-assets/demo-lecture.pdf`, and CI copies it into the simulator. On a phone, the owner downloads it from the `reels` release and opens it with "Open in Vignette". No typing is needed.
+- P3.2 generates it with a small script into `docs/launch/reel-assets/demo-lecture.pdf`, and CI copies it into the simulator. On a phone, the owner downloads it from the `reels` release and opens it with "Open in Stethoscore". No typing is needed.
 
 ### A.4 Honest editing
 
@@ -72,7 +72,7 @@ The brand name stays **Vignette** in Latin script in Arabic too, matching `CFBun
 
 ## Part B. The ten reels
 
-Legend: **Free** means the reel shows features anyone can use. **Pro** means it shows Vignette Pro features, so the end card uses the Pro line. **Footage** says where the best take comes from:
+Legend: **Free** means the reel shows features anyone can use. **Pro** means it shows Stethoscore Pro features, so the end card uses the Pro line. **Footage** says where the best take comes from:
 
 - **CI**: fully automatic, silent video plus optional voice-over.
 - **iPhone**: the owner's own screen recording, needed when real device audio, the microphone or tilt is the point.
@@ -83,7 +83,7 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 
 ### Reel 1: Lecture PDF → 40 checked questions (hero reel, App Store preview #1)
 
-- **Plan:** Pro (PDF reading, Vignette Cloud writing and checking)
+- **Plan:** Pro (PDF reading, Stethoscore Cloud writing and checking)
 - **Length:** 28 s
 - **Footage:** CI (sped-up generation segment)
 - **Keyword:** EN "lecture PDF to MCQs" / AR «أسئلة MCQ من المحاضرة»
@@ -108,8 +108,8 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 | 25.0-28.0 | End card (Pro) | (A.2) | (A.2) |
 
 - **Voice-over (optional, EN, Aura "pandora" via `/tts`):** "Lecture PDF to MCQs. Twenty slides in, forty exam questions out, and every one is checked against the slides it came from. Tap the source and you're on the slide."
-- **Caption EN:** "Lecture PDF to MCQs in one go: Vignette reads the slides (OCR too), suggests how many questions the lecture needs, writes them, and checks each against your own lecture. Every question links back to its slide. Save this for exam week."
-- **Caption AR:** «حوّل أي محاضرة PDF لأسئلة MCQ: Vignette بيقرا السلايدز (حتى المتصوّرة)، بيقترح عدد الأسئلة، بيكتبها، وبيراجع كل سؤال على المحاضرة بتاعتك. وكل سؤال بيوديك للسلايد اللي جه منها. احفظ الفيديو ده لأسبوع الامتحانات.»
+- **Caption EN:** "Lecture PDF to MCQs in one go: Stethoscore reads the slides (OCR too), suggests how many questions the lecture needs, writes them, and checks each against your own lecture. Every question links back to its slide. Save this for exam week."
+- **Caption AR:** «حوّل أي محاضرة PDF لأسئلة MCQ: Stethoscore بيقرا السلايدز (حتى المتصوّرة)، بيقترح عدد الأسئلة، بيكتبها، وبيراجع كل سؤال على المحاضرة بتاعتك. وكل سؤال بيوديك للسلايد اللي جه منها. احفظ الفيديو ده لأسبوع الامتحانات.»
 - **Hashtags (5):** `#medstudent #mcq #lecturenotes #studytok #طالب_طب`
 - **App Store preview version:** the same master without the voice-over. Keep the text lines. The end card has no badge.
 
@@ -140,8 +140,8 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 | 17.0-20.0 | End card (free) | (A.2) | (A.2) |
 
 - **Sound:** none from the app. Add an ambient track from the platform's commercial library at post time (optional).
-- **Caption EN:** "A mind map for med school notes: dump ideas as they come, sort them into folders later, then open Space: every note becomes a black hole and every link a stream of plasma. Free in Vignette."
-- **Caption AR:** «ماب للنوتس: اكتب الفكرة أول ما تيجي، رتّبها في فولدرات بعدين، وافتح الـ Space: كل نوتة ثقب أسود وكل ربط خيط بلازما. ببلاش في Vignette.»
+- **Caption EN:** "A mind map for med school notes: dump ideas as they come, sort them into folders later, then open Space: every note becomes a black hole and every link a stream of plasma. Free in Stethoscore."
+- **Caption AR:** «ماب للنوتس: اكتب الفكرة أول ما تيجي، رتّبها في فولدرات بعدين، وافتح الـ Space: كل نوتة ثقب أسود وكل ربط خيط بلازما. ببلاش في Stethoscore.»
 - **Hashtags (5):** `#medstudent #anatomy #mindmap #studyaesthetic #كلية_الطب`
 - **Note:** use the example folders (Inguinal, Femoral) that `NoteExamples.swift` seeds from the example material, **not** the owner's own notes.
 
@@ -149,7 +149,7 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 
 ### Reel 3: Commute mode, revising without touching the phone
 
-- **Plan:** Free with the phone's voice. The "Natural cloud voice" needs Vignette Cloud, so if the reel uses it, the end card uses the Pro line.
+- **Plan:** Free with the phone's voice. The "Natural cloud voice" needs Stethoscore Cloud, so if the reel uses it, the end card uses the Pro line.
 - **Length:** 25 s
 - **Footage:** **iPhone strongly preferred**, because the point is real audio (the app reading and the student answering). CI version: silent video plus voice-over (Part C.4).
 - **Keyword:** EN "hands-free flashcards" / AR «مراجعة في المواصلات»
@@ -203,8 +203,8 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 | 11.5-14.5 | Reveal: "Right atrium" | Hide all, guess one | بيخبّي الكل.. وإنت تخمّن واحدة |
 | 14.5-18.0 | End card (Pro) | (A.2) | (A.2) |
 
-- **Caption EN:** "Image occlusion without the scissors: Vignette finds the labelled diagrams in your lecture, reads the labels and makes one card per label, even the two-line ones. Try it on the built-in heart diagram."
-- **Caption AR:** «image occlusion من غير قص ولزق: Vignette بيلاقي الرسومات اللي عليها labels في المحاضرة، ويعمل كارت لكل label حتى لو سطرين. جرّبها على رسمة القلب اللي جوه الأبلكيشن.»
+- **Caption EN:** "Image occlusion without the scissors: Stethoscore finds the labelled diagrams in your lecture, reads the labels and makes one card per label, even the two-line ones. Try it on the built-in heart diagram."
+- **Caption AR:** «image occlusion من غير قص ولزق: Stethoscore بيلاقي الرسومات اللي عليها labels في المحاضرة، ويعمل كارت لكل label حتى لو سطرين. جرّبها على رسمة القلب اللي جوه الأبلكيشن.»
 - **Hashtags (5):** `#medstudent #anatomy #imageocclusion #anki #طالب_طب`
 - **Note:** diagram labels stay left-to-right in the Arabic UI (plan P5.7 checks this). Only the captions are right-to-left.
 
@@ -243,7 +243,7 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 
 ### Reel 6: Explain it back, out loud
 
-- **Plan:** Pro when the marking runs on Vignette Cloud (a writer model on the device also works).
+- **Plan:** Pro when the marking runs on Stethoscore Cloud (a writer model on the device also works).
 - **Length:** 26 s
 - **Footage:** iPhone with the microphone on (real speech). The CI version feeds a typed explanation through the same marking path (Part C.3).
 - **Keyword:** EN "Feynman technique for med school" / AR «اشرحها كأنك بتدرّسها»
@@ -265,15 +265,15 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 | 20.0-23.0 | Tap "turn the gaps into cards" → 3 new cards | Gaps → cards, in one tap | اللي نسيته يبقى كروت بدوسة |
 | 23.0-26.0 | End card (Pro) | (A.2) | (A.2) |
 
-- **Caption EN:** "The Feynman technique, marked: explain a topic out loud and Vignette marks it against your lecture: covered, missed, wrong. The gaps become flashcards in one tap."
-- **Caption AR:** «اشرح الموضوع بصوتك وVignette يصحّحه على المحاضرة بتاعتك: غطّيت إيه، نسيت إيه، وغلطت في إيه. واللي نسيته يتحوّل كروت بدوسة واحدة.»
+- **Caption EN:** "The Feynman technique, marked: explain a topic out loud and Stethoscore marks it against your lecture: covered, missed, wrong. The gaps become flashcards in one tap."
+- **Caption AR:** «اشرح الموضوع بصوتك وStethoscore يصحّحه على المحاضرة بتاعتك: غطّيت إيه، نسيت إيه، وغلطت في إيه. واللي نسيته يتحوّل كروت بدوسة واحدة.»
 - **Hashtags (5):** `#medstudent #feynmantechnique #studytips #activerecall #طالب_طب`
 
 ---
 
 ### Reel 7: An OSCE patient who talks back
 
-- **Plan:** Pro when the patient runs on Vignette Cloud (a writer model on the device also works).
+- **Plan:** Pro when the patient runs on Stethoscore Cloud (a writer model on the device also works).
 - **Length:** 30 s
 - **Footage:** iPhone with the microphone and app audio on. The app gives examiner and patient different voices (Aura "pandora" and "draco" in `tts.js`), so the audio carries the reel. CI version: typed questions plus voice-over.
 - **Keyword:** EN "OSCE practice" / AR «تدريب OSCE»
@@ -363,7 +363,7 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 
 ### Reel 10: What the exam covers that your library doesn't
 
-- **Plan:** Free for the keyword check (instant and offline). The AI check and "questions on the gaps" use a writer model, which is Pro on Vignette Cloud.
+- **Plan:** Free for the keyword check (instant and offline). The AI check and "questions on the gaps" use a writer model, which is Pro on Stethoscore Cloud.
 - **Length:** 22 s
 - **Footage:** CI
 - **Keyword:** EN "USMLE Step 1 study plan" (or "PLAB 1") / AR «الـ gaps في مذاكرتك»
@@ -384,8 +384,8 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 | 15.0-18.0 | Small line under the list | A rough map of likely gaps, not what the exam will ask | ده تقريب للـ gaps المحتملة.. مش اللي هييجي في الامتحان |
 | 18.0-22.0 | End card (Pro) plus "Not affiliated with any exam body." | (A.2) | (A.2) + «مالناش علاقة بأي جهة امتحانات.» |
 
-- **Caption EN:** "USMLE Step 1 or PLAB study plan: Vignette checks your library against a condensed version of the exam's public outline and shows every topic as covered, thin or not covered, then writes questions on the gaps. It's a rough guide, not a prediction of what the exam will ask. Not affiliated with any exam body."
-- **Caption AR:** «Vignette بيقارن مذاكرتك بملخص للـ outline الرسمي للامتحان (USMLE أو PLAB أو MRCP أو MRCS)، ويوريك كل topic متغطّي ولا خفيف ولا مش متغطّي، ويكتب أسئلة على الـ gaps. ده دليل تقريبي مش توقّع للامتحان. مالناش علاقة بأي جهة امتحانات.»
+- **Caption EN:** "USMLE Step 1 or PLAB study plan: Stethoscore checks your library against a condensed version of the exam's public outline and shows every topic as covered, thin or not covered, then writes questions on the gaps. It's a rough guide, not a prediction of what the exam will ask. Not affiliated with any exam body."
+- **Caption AR:** «Stethoscore بيقارن مذاكرتك بملخص للـ outline الرسمي للامتحان (USMLE أو PLAB أو MRCP أو MRCS)، ويوريك كل topic متغطّي ولا خفيف ولا مش متغطّي، ويكتب أسئلة على الـ gaps. ده دليل تقريبي مش توقّع للامتحان. مالناش علاقة بأي جهة امتحانات.»
 - **Hashtags (5):** `#usmle #plab #medstudent #step1 #طالب_طب`
 - **Fact to keep straight:** Step 1 has been pass/fail since January 2022, so never say "boost your Step 1 score". Say "pass Step 1" or "cover Step 1".
 
@@ -497,8 +497,8 @@ Use this only when the owner *wants* their own device audio, voice or the tilt e
    - Turn on **Do Not Disturb** (Control Center), so no banner appears mid-take. The recording indicator itself cannot be hidden. The "fill" cut crops the status bar away.
    - Charge to 100 % and use Wi-Fi, so the status bar is clean if the "fit" cut is used.
    - Set Settings → Display & Brightness → Dark (reel 2), keep the default text size, and turn off Bold Text.
-   - **Arabic takes (after W5):** Settings → Apps → Vignette → Language → العربية. This switches only this app, not the phone.
-   - Content: only the demo lecture (open `demo-lecture.pdf` from the `reels` release with "Open in Vignette"), the built-in examples, and the fictional OSCE station. Never real notes, and never a real lecture or recording.
+   - **Arabic takes (after W5):** Settings → Apps → Stethoscore → Language → العربية. This switches only this app, not the phone.
+   - Content: only the demo lecture (open `demo-lecture.pdf` from the `reels` release with "Open in Stethoscore"), the built-in examples, and the fictional OSCE station. Never real notes, and never a real lecture or recording.
 3. **Sound:** in Control Center, **touch and hold** the Screen Recording button, turn **Microphone** on for reels 3, 6 and 7 (your answers), and make sure the app's own audio is recorded (on recent iOS versions this menu shows the audio sources). Test once: if the app's speech recognition and the recorder compete for the microphone, your voice may be missing from the file. In that case, record with the microphone off and let CI add the voice-over.
 4. **Record:** tap Record, wait for the 3-second countdown, and close Control Center. Play the beats in order, holding each for about its table duration; extra length is fine, because CI trims. To stop, tap the red indicator at the top and then Stop. The file goes to Photos.
 5. **Hand it to CI without editing:**

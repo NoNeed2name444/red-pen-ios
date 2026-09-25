@@ -175,7 +175,7 @@ extension DeckPDF {
             .foregroundColor: UIColor.white.withAlphaComponent(0.85),
             .kern: 2,
         ])
-        let name = (set.name.isEmpty ? "Red Pen deck" : set.name) as NSString
+        let name = (set.name.isEmpty ? "\(Brand.name) deck" : set.name) as NSString
         name.draw(with: CGRect(x: margin, y: 76, width: pageSize.width - margin * 2, height: 96),
                   options: [.usesLineFragmentOrigin],
                   attributes: [.font: round(27, weight: .bold),

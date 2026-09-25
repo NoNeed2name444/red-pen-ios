@@ -1,5 +1,5 @@
 # The Swift Playgrounds package itself, built the way Playgrounds builds it:
-# tools/make_swiftpm.py turns ios/RedPen into "Vignette Personal.swiftpm"
+# tools/make_swiftpm.py turns ios/RedPen into "Stethoscore Personal.swiftpm"
 # (the same script that makes the zip sent to the phone), then Xcode builds
 # that package - not the Xcode project App build uses, whose settings
 # (language mode, packages, plist) can hide what only the package gets wrong.
@@ -24,17 +24,17 @@ jobs:
           persist-credentials: false
       - name: Make the package
         run: |
-          python3 tools/make_swiftpm.py ios/RedPen "Vignette Personal" com.cramdown.personal "$PWD/out/Vignette.zip"
-          cd out && unzip -q Vignette.zip && ls
+          python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "$PWD/out/Stethoscore.zip"
+          cd out && unzip -q Stethoscore.zip && ls
       - name: Build it as Playgrounds would
-        working-directory: out/Vignette Personal.swiftpm
+        working-directory: out/Stethoscore Personal.swiftpm
         run: |
           set -o pipefail
           xcodebuild -list 2>&1 | tail -20 || true
-          xcodebuild -scheme "Vignette Personal" -destination 'generic/platform=iOS' \
+          xcodebuild -scheme "Stethoscore Personal" -destination 'generic/platform=iOS' \
             -skipMacroValidation -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning: .*(deprecated|Swift 6)|BUILD " | head -150 || true
-          { echo '### Playgrounds package errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/Vignette Personal.swiftpm/##' | sort -u | head -80 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Playgrounds package errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -80 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
       - uses: actions/upload-artifact@v4
         if: always()

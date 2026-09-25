@@ -1,4 +1,4 @@
-# Vignette: App Store listing (English and Arabic)
+# Stethoscore: App Store listing (English and Arabic)
 
 Written 2026-09-24 for the App Store (Xcode) build of `com.cramdown.app`. The Swift Playgrounds build has no listing.
 
@@ -13,7 +13,7 @@ Written 2026-09-24 for the App Store (Xcode) build of `com.cramdown.app`. The Sw
 | Item | Decision | Why |
 |---|---|---|
 | Localisations | **en-US** (primary), **en-GB**, **ar-SA** | Egypt, Saudi Arabia, the UAE, Jordan and Kuwait default to **English (U.K.)** and also support Arabic. Without an en-GB localisation, UK and Egyptian users see the en-US text. Adding one also gives a second 100-byte keyword field for the PLAB and MRCP audience. The US storefront indexes Arabic as well. |
-| Name | `Vignette: Medical MCQs & OSCE` | 29 characters. The name carries the most search weight, and "Vignette" alone is probably taken. |
+| Name | `Stethoscore: Med MCQs & OSCE` | 28 characters. The name carries the most search weight. `Stethoscore: Medical MCQs & OSCE` would be 32 characters, over the limit, so "Medical" is shortened to "Med". |
 | Primary category | Education | Choosing Medical adds scrutiny and the medical-device questions (design F §9). |
 | Secondary category | Reference | |
 | Prices in metadata | Never | Guideline 2.3.7. Prices appear only on the paywall, which gets them from StoreKit. |
@@ -30,29 +30,29 @@ Limit: 30 characters (guideline 2.3.7). Apple requires names to be unique.
 
 | # | English (en-US and en-GB) | Chars | Notes |
 |---|---|---|---|
-| **A (recommended)** | Vignette: Medical MCQs & OSCE | 29 | Adds `medical`, `mcq` and `osce` to the ranked words, and says what the app is. |
-| B | Vignette: Med School Qbank | 26 | "Qbank" is a word students search. Use it if A is refused as taken. |
-| C | Vignette: Lectures to MCQs | 26 | Describes the core loop best, but ranks for fewer useful terms. |
+| **A (recommended)** | Stethoscore: Med MCQs & OSCE | 28 | Adds `med`, `mcq` and `osce` to the ranked words, and says what the app is. (`Stethoscore: Medical MCQs & OSCE` is 32, over the limit; put `medical` in the keywords instead if it is not there.) |
+| B | Stethoscore: Med School Qbank | 29 | "Qbank" is a word students search. Use it if A is refused as taken. |
+| C | Stethoscore: Lectures to MCQs | 29 | Describes the core loop best, but ranks for fewer useful terms. |
 
 | # | Arabic (ar-SA) | Chars | Notes |
 |---|---|---|---|
-| **A (recommended)** | Vignette: بنك أسئلة الطب | 24 | "بنك أسئلة" (question bank) is the phrase Arabic medical platforms use. "Vignette" stays in Latin letters, as the glossary requires (design F §4). |
-| B | Vignette: أسئلة طب من محاضراتك | 30 | Says the lecture-to-questions idea. |
-| C | Vignette: أسئلة طب و OSCE | 25 | Only if OSCE should be in the Arabic name. |
+| **A (recommended)** | Stethoscore: بنك أسئلة الطب | 27 | "بنك أسئلة" (question bank) is the phrase Arabic medical platforms use. "Stethoscore" stays in Latin letters, as the glossary requires (design F §4). |
+| B | Stethoscore: أسئلة من محاضراتك | 30 | Says the lecture-to-questions idea. ("طب" is dropped: with the longer name the old wording is 33.) |
+| C | Stethoscore: أسئلة طب و OSCE | 28 | Only if OSCE should be in the Arabic name. |
 
 <!-- field: en-US/name.txt -->
 ```text
-Vignette: Medical MCQs & OSCE
+Stethoscore: Med MCQs & OSCE
 ```
 
 <!-- field: en-GB/name.txt -->
 ```text
-Vignette: Medical MCQs & OSCE
+Stethoscore: Med MCQs & OSCE
 ```
 
 <!-- field: ar-SA/name.txt -->
 ```text
-Vignette: بنك أسئلة الطب
+Stethoscore: بنك أسئلة الطب
 ```
 
 ---
@@ -167,7 +167,7 @@ The en-GB description uses the en-US text unchanged. P6.1 must add a `metadata/e
 
 <!-- field: en-US/description.txt -->
 ```text
-Vignette turns your own lectures into exam questions.
+Stethoscore turns your own lectures into exam questions.
 
 Drop in a lecture and get single-best-answer questions with an explanation for every option, spaced-repetition cards, OSCE stations and patient cases you can interview. Everything comes from your material, not someone else's question bank, so you revise exactly what you were taught.
 
@@ -206,7 +206,7 @@ The free version writes questions on your iPhone or iPad with Apple's on-device 
 VIGNETTE PRO
 • Read PDF, Word and PowerPoint handouts.
 • Medical models on the device (Doctor-R1 and MedVAL) where your device has the memory.
-• Vignette Cloud: Google's Gemini writes and checks questions, stations and cases on any device, even after you close the app.
+• Stethoscore Cloud: Google's Gemini writes and checks questions, stations and cases on any device, even after you close the app.
 • Turn labelled diagrams into occlusion cards.
 • Cloud transcription of recorded lectures, in Arabic or English, and a natural reading voice.
 • Your library synced between your iPhone and iPad.
@@ -215,9 +215,9 @@ Pro is an auto-renewable subscription, monthly or yearly. Payment is charged to 
 [ship-gated: P2.3] An Exam Pass gives three months of Pro for one payment and never renews.
 
 FOR EDUCATION ONLY
-Vignette is a study tool for medical education. It is not medical advice and must not be used for diagnosis, treatment or patient care. Do not enter information that could identify a patient.
+Stethoscore is a study tool for medical education. It is not medical advice and must not be used for diagnosis, treatment or patient care. Do not enter information that could identify a patient.
 
-USMLE is a program of the FSMB and NBME. PLAB is run by the GMC. MRCP(UK) and MRCS are run by the Royal Colleges. Vignette is not affiliated with or endorsed by any of them.
+USMLE is a program of the FSMB and NBME. PLAB is run by the GMC. MRCP(UK) and MRCS are run by the Royal Colleges. Stethoscore is not affiliated with or endorsed by any of them.
 
 Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 Privacy Policy: https://redpen-auth.vv7sh4rnnw.workers.dev/privacy
@@ -226,7 +226,7 @@ Support: https://redpen-auth.vv7sh4rnnw.workers.dev/support
 
 <!-- field: ar-SA/description.txt -->
 ```text
-Vignette يحوّل محاضراتك أنت إلى أسئلة امتحان.
+Stethoscore يحوّل محاضراتك أنت إلى أسئلة امتحان.
 
 أضف محاضرتك واحصل على أسئلة MCQ بأسلوب الامتحان مع شرح لكل اختيار، وكروت مراجعة بالتكرار المتباعد، ومحطات OSCE، وحالات مرضية تسأل فيها المريض فيجيبك. كل شيء مكتوب من محاضراتك، لا من بنك أسئلة لشخص آخر، فتراجع بالضبط ما درسته.
 
@@ -262,10 +262,10 @@ Vignette يحوّل محاضراتك أنت إلى أسئلة امتحان.
 خصوصيتك أولًا
 النسخة المجانية تكتب الأسئلة على جهازك بنموذج Apple الموجود على الجهاز، ولا يغادر شيء هاتفك. لا إعلانات ولا تتبع. الميزات السحابية تطلب إذنك أولًا وتذكر الجهات التي تستخدمها (Google Gemini وCloudflare Workers AI).
 
-Vignette Pro
+Stethoscore Pro
 • قراءة ملفات PDF وWord وPowerPoint.
 • نماذج طبية على الجهاز (Doctor-R1 وMedVAL) إذا كانت ذاكرة جهازك تكفي.
-• Vignette Cloud: نموذج Gemini من Google يكتب ويفحص الأسئلة والمحطات والحالات على أي جهاز، ويستمر في الكتابة بعد إغلاق التطبيق.
+• Stethoscore Cloud: نموذج Gemini من Google يكتب ويفحص الأسئلة والمحطات والحالات على أي جهاز، ويستمر في الكتابة بعد إغلاق التطبيق.
 • تحويل الرسومات المعنونة إلى كروت إخفاء أجزاء الصور.
 • تفريغ المحاضرات المسجلة سحابيًا بالعربية أو الإنجليزية، وصوت قراءة طبيعي.
 • مزامنة مكتبتك بين iPhone وiPad.
@@ -274,9 +274,9 @@ Pro اشتراك يتجدد تلقائيًا، شهريًا أو سنويًا. �
 [ship-gated: P2.3] تذكرة الامتحان (Exam Pass): ثلاثة أشهر من Pro بدفعة واحدة، ولا تتجدد أبدًا.
 
 للتعليم فقط
-Vignette أداة مذاكرة للتعليم الطبي. ليس نصيحة طبية ولا يُستخدم للتشخيص أو العلاج أو رعاية المرضى. لا تُدخل أي معلومات قد تكشف هوية مريض.
+Stethoscore أداة مذاكرة للتعليم الطبي. ليس نصيحة طبية ولا يُستخدم للتشخيص أو العلاج أو رعاية المرضى. لا تُدخل أي معلومات قد تكشف هوية مريض.
 
-USMLE برنامج تابع لـ FSMB وNBME، وPLAB يديره GMC، وMRCP(UK) وMRCS تديرهما الكليات الملكية. Vignette غير تابع لأي منها ولا معتمد منها.
+USMLE برنامج تابع لـ FSMB وNBME، وPLAB يديره GMC، وMRCP(UK) وMRCS تديرهما الكليات الملكية. Stethoscore غير تابع لأي منها ولا معتمد منها.
 
 شروط الاستخدام: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 سياسة الخصوصية: https://redpen-auth.vv7sh4rnnw.workers.dev/privacy?lang=ar
@@ -297,12 +297,12 @@ First release:
 
 <!-- field: en-US/release_notes.txt -->
 ```text
-Welcome to Vignette. Turn your lectures into exam-style questions, spaced-repetition cards, OSCE stations and patient cases, on your iPhone and iPad. Tell us what to build next from Settings > Support.
+Welcome to Stethoscore. Turn your lectures into exam-style questions, spaced-repetition cards, OSCE stations and patient cases, on your iPhone and iPad. Tell us what to build next from Settings > Support.
 ```
 
 <!-- field: ar-SA/release_notes.txt -->
 ```text
-أهلًا بك في Vignette. حوّل محاضراتك إلى أسئلة بأسلوب الامتحان وكروت بالتكرار المتباعد ومحطات OSCE وحالات مرضية، على iPhone وiPad. قل لنا ماذا نبني بعد ذلك من الإعدادات > الدعم.
+أهلًا بك في Stethoscore. حوّل محاضراتك إلى أسئلة بأسلوب الامتحان وكروت بالتكرار المتباعد ومحطات OSCE وحالات مرضية، على iPhone وiPad. قل لنا ماذا نبني بعد ذلك من الإعدادات > الدعم.
 ```
 
 Template for later versions. Keep the order: what students can now do, then what got better, then fixes. Never use "bug fixes" alone when a feature changed.
@@ -384,7 +384,7 @@ These are the answers to the questionnaire as it stands after Apple's 2025 updat
 | | Contests | None | The planned leaderboards have no prizes and no "win" wording (plan §7, rule 5.3). |
 
 **Computed rating: 16+.** Then choose **Override to Higher Age Rating → 18+**, for two reasons:
-1. The Gemini API terms say you "will not use the Services as part of a[n] ... application ... that is directed towards or is likely to be accessed by individuals under the age of 18". Vignette Cloud uses Gemini through Firebase AI Logic.
+1. The Gemini API terms say you "will not use the Services as part of a[n] ... application ... that is directed towards or is likely to be accessed by individuals under the age of 18". Stethoscore Cloud uses Gemini through Firebase AI Logic.
 2. The cloud-AI consent in plan P2.9 already asks the user to confirm they are 18 or older.
 
 The cost is that a few 17-year-old first-year students in Egypt cannot download the app. The alternative is to keep 16+ and rely on the in-app 18+ gate before any cloud feature. That is defensible but weaker against the Gemini terms, so it is the owner's call; the plan's default is 18+.
@@ -434,7 +434,7 @@ Other User Content comes from these paths:
   - `LectureTranscriber` forces on-device recognition.
   - `VoiceListener` uses on-device recognition where the device supports it.
   - Neither is developer collection.
-- **Hosted models the student adds with their own API key** (OpenAI, Anthropic, OpenRouter, Groq, Gemini, their own server). Requests go straight from the device to the provider the student chose and never reach Vignette's servers, so they are not Vignette's collection. The privacy policy should still mention them.
+- **Hosted models the student adds with their own API key** (OpenAI, Anthropic, OpenRouter, Groq, Gemini, their own server). Requests go straight from the device to the provider the student chose and never reach Stethoscore's servers, so they are not Stethoscore's collection. The privacy policy should still mention them.
 - **Model downloads from Hugging Face** are downloads only.
 - **IP addresses.** `pair_attempts` stores the IP per hour to rate-limit device accounts and pairing codes. Apple has no IP category and this is security use, so the label does not include it. The privacy policy must mention it.
 
@@ -459,13 +459,13 @@ Other User Content comes from these paths:
 
 | Field | en-US | en-GB | ar-SA | Limit |
 |---|---|---|---|---|
-| Name | 29 | 29 | 24 | 30 characters |
+| Name | 28 | 28 | 27 | 30 characters |
 | Subtitle | 29 | 30 | 26 | 30 characters |
 | Keywords | 98 B | 100 B | 98 B (53 characters) | 100 bytes |
 | Promotional text (default) | 164 | 154 | 122 | 170 characters |
 | Seasonal promotional texts (§4) | 111–149 | same as en-US | 84–117 | 170 characters |
-| Description | 3,953 (3,861 without the ship-gated line) | same as en-US | 3,438 (3,343) | 4,000 characters |
-| What's New (first release) | 201 | same as en-US | 176 | 4,000 characters |
+| Description | 3,965 (3,873 without the ship-gated line) | same as en-US | 3,453 (3,358) | 4,000 characters |
+| What's New (first release) | 204 | same as en-US | 179 | 4,000 characters |
 
 P6.1's `test_metadata.py` should run the same checks: characters for every field, UTF-8 bytes for keywords, no "Anki" in the name, subtitle or keywords, no prices, and no `[ship-gated` marker left in an uploaded file.
 
@@ -484,7 +484,7 @@ These come from design B §8, adjusted by plan P2.3. Pick the nearest of Apple's
 
 Other notes:
 - The Small Business Program cuts Apple's commission to 15%.
-- The owner pays for no AI credits. `PRO_PAYS` stays `off`, and Vignette Cloud runs on free allowances until revenue exists (`wrangler.toml`). The listing therefore promises no usage amounts.
+- The owner pays for no AI credits. `PRO_PAYS` stays `off`, and Stethoscore Cloud runs on free allowances until revenue exists (`wrangler.toml`). The listing therefore promises no usage amounts.
 - Never raise list prices in exam season. Use the trial and offer codes instead.
 
 ---
@@ -495,7 +495,7 @@ Agents upload everything else through the App Store Connect API (P3.2): name, su
 
 1. **Create the app record** (the API cannot do this).
    - Where: Apps → + → New App.
-   - Platform: iOS. Name: `Vignette: Medical MCQs & OSCE` (if it is refused as taken, use option B from §2).
+   - Platform: iOS. Name: `Stethoscore: Med MCQs & OSCE` (if it is refused as taken, use option B from §2).
    - Primary language: English (U.S.). Bundle ID: `com.cramdown.app`. SKU: `vignette-ios`.
 2. **App Privacy** (web only). Answer "Yes, we collect data" and "No tracking", then enter the rows in §10.1 exactly.
    - Privacy Policy URL: `https://redpen-auth.vv7sh4rnnw.workers.dev/privacy`.
