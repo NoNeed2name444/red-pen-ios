@@ -15,6 +15,10 @@
 # Costs nothing: an Ubuntu runner for a minute, GITHUB_TOKEN for the issues.
 name: Diagnostics triage
 on:
+  # a push to triage/run starts it too: only the default branch's workflows
+  # can be started by hand or on a schedule, and this one is not there yet
+  push:
+    branches: ['triage/run']
   schedule:
     - cron: '37 5 * * *'
   workflow_dispatch:
