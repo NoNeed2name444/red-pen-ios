@@ -6,7 +6,7 @@
 name: Playgrounds package
 on:
   push:
-    branches: [personal]
+    branches: [personal, ci/launch]
     paths: ['ios/**', 'tools/make_swiftpm.py', '.github/workflows/swiftpm-check.yml']
   workflow_dispatch:
 permissions:
