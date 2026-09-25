@@ -257,6 +257,9 @@ jobs:
           # window and the age signal
           suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceDigest.swift \
                 $S/Platform/AgeSignal.swift
+          # the ward round: rounds, breaks, pausing, a locked phone coming
+          # back, stopping early; the daily goal; the streak's free rest day
+          suite wardround WardRoundTests.swift $S/StudySession.swift $S/StudyStreak.swift $S/DailyGoal.swift
           # Study Lens: questions found in camera text (typed, numbered,
           # two-column, cases, T/F, calculations, OCR noise), one chip per
           # question as the camera moves, each type's answer read, and a
