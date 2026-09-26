@@ -38,6 +38,9 @@ struct Note: Identifiable, Codable, Hashable {
     var boardY: Double = 0
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
+    /// The question, card, case, station or lecture the note was saved from
+    /// with Save to Ideas (SaveToIdeas.swift); nil for a note written here.
+    var source: NoteSource? = nil
 }
 
 /// A folder of notes. Folders nest: a folder with a parent sits inside it.
@@ -53,7 +56,7 @@ struct NoteFolder: Identifiable, Codable, Hashable {
 /// default rather than lose every note in the file.
 extension Note {
     private enum Keys: String, CodingKey {
-        case id, title, body, folderId, kind, links, tags, boardX, boardY, createdAt, updatedAt
+        case id, title, body, folderId, kind, links, tags, boardX, boardY, createdAt, updatedAt, source
     }
 
     init(from decoder: Decoder) throws {
@@ -71,6 +74,9 @@ extension Note {
         boardY = try c.decodeIfPresent(Double.self, forKey: .boardY) ?? 0
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? createdAt
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        // a source this version cannot read (a kind from a newer one) is
+        // dropped, never the note
+        source = try? c.decodeIfPresent(NoteSource.self, forKey: .source)
     }
 }
 
@@ -162,6 +168,14 @@ final class NoteStore: ObservableObject {
         .sorted { $0.updatedAt > $1.updatedAt }
     }
 
+    /// The note already saved from this item (SaveToIdeas: one per
+    /// question, card, case, station or lecture), the first if there are two.
+    func note(savedFrom source: NoteSource) -> Note? {
+        let key: String = source.dedupeKey
+        let saved: [Note] = notes.filter { $0.source?.dedupeKey == key }
+        return saved.min { $0.createdAt < $1.createdAt }
+    }
+
     /// The notes directly in a folder (nil: the ones in no folder), newest first.
     func contents(of folderId: UUID?) -> [Note] {
         notes.filter { $0.folderId == folderId }.sorted { $0.updatedAt > $1.updatedAt }
@@ -174,9 +188,11 @@ final class NoteStore: ObservableObject {
     /// land in one pile.
     @discardableResult
     func create(title: String, body: String = "", kind: NoteKind = .idea,
-                folderId: UUID? = nil, at point: (x: Double, y: Double)? = nil) -> Note {
+                folderId: UUID? = nil, at point: (x: Double, y: Double)? = nil,
+                source: NoteSource? = nil) -> Note {
         var note = Note(title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                         body: body, folderId: folderId, kind: kind)
+        note.source = source
         let spot = point ?? nextBoardSpot()
         note.boardX = spot.x
         note.boardY = spot.y

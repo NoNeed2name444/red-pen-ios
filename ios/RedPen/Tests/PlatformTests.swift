@@ -32,9 +32,14 @@ check("unknown host is ignored", link("redpen://somewhere") == nil)
 check("search link", link("redpen://search?q=murmur") == .search("murmur"))
 check("new set link", link("redpen://new") == .newSet)
 check("exam link", link("redpen://exam") == .examPlan)
+let savedFrom = NoteSource(kind: .question, setID: someID, itemID: UUID(), setName: "Cardiology")
+check("item link", link(savedFrom.url.absoluteString) == .openItem(savedFrom))
+check("item link on the old scheme",
+      link("redpen://item/card/\(someID.uuidString)/-") == .openItem(NoteSource(kind: .card, setID: someID)))
+check("item link without a set is not routed", link("redpen://item/card") == nil)
 
 let roundTrip: [AppLink] = [.reviewDue, .openSet(someID), .quiz(subject: "Renal medicine"),
-                            .search("a b"), .newSet, .examPlan]
+                            .search("a b"), .newSet, .examPlan, .openItem(savedFrom)]
 for one in roundTrip {
     check("round trip \(one)", AppLink.parse(one.url) == one, one.url.absoluteString)
 }

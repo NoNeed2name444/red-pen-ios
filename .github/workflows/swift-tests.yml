@@ -252,11 +252,15 @@ jobs:
           # and drawn, and the cards they make
           suite photoocclusion PhotoOcclusionTests.swift $M/AnkiCard.swift $S/OcclusionFilter.swift \
                 $S/OcclusionPhrases.swift $S/PhotoOcclusion.swift
+          # Save to Ideas: the title a note gets from a question or a card, one
+          # note per item, the subject's folder, what a save writes and adds,
+          # and the backlink to the item, stored and as a link
+          suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift
           # the platform lane: links and where they go, "quiz me on cardio",
           # what kind of file arrived, the widgets' digest, the exam-day
           # window and the age signal
           suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceDigest.swift \
-                $S/Platform/AgeSignal.swift
+                $S/Platform/AgeSignal.swift $S/Ideas/SaveToIdeas.swift
           # Study Lens: questions found in camera text (typed, numbered,
           # two-column, cases, T/F, calculations, OCR noise), one chip per
           # question as the camera moves, each type's answer read, and a
