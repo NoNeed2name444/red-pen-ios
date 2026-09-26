@@ -1,0 +1,79 @@
+== iphone-graph-testCircuitAtRest.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testCircuitFlyIn.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testCircuitLegend.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testCircuitLookMenu.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testCircuitWhileDragging.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testEachStyle.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testGraphAtRest.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testGraphWhileDragging.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testHoldDrag.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testHoldForOptions.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testLabelsOverBrightBodies.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testLinkLength.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testLookMenu.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testNeuronsAtRest.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testNeuronsFlyIn.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testNeuronsLegend.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testNeuronsLookMenu.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testNeuronsWhileDragging.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testRemovalInEachTheme.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testRemovingATopFolder.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testTapFolder.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testTapNoteThenOpen.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testUniverseFlyIn.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-graph-testUniverseLegend.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== iphone-tour.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+== ipad.log
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
+** TEST FAILED **
+RedPen/Shared/LibraryBackupRunner.swift:300:92: error: cannot convert value of type '[Any]' to expected argument type 'PropertyListSerialization.ReadOptions' (aka 'Int')
