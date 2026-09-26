@@ -202,12 +202,16 @@ enum NarratePlan {
 
     // MARK: the phone's own voice
 
-    /// A playback speed (0.75x, 1x, 1.5x...) as AVSpeechUtterance's rate,
-    /// where 0.5 is the phone's normal pace and the scale is far from linear:
-    /// doubling the number is much more than twice as fast.
+    /// A playback speed (0.75x, 1x, 1.5x... 2.5x) as AVSpeechUtterance's
+    /// rate, where 0.5 is the phone's normal pace and the scale is far from
+    /// linear: doubling the number is much more than twice as fast. Past 2x
+    /// the steps are smaller still, so every step on the speed menu is a
+    /// little faster than the last and 2.5x is still words.
     static func phoneRate(_ speed: Double) -> Float {
-        let rate: Double = 0.5 + (speed - 1) * 0.18
-        return Float(min(0.68, max(0.32, rate)))
+        let upTo2: Double = min(speed, 2)
+        let past2: Double = max(0, speed - 2)
+        let rate: Double = 0.5 + (upTo2 - 1) * 0.18 + past2 * 0.12
+        return Float(min(0.74, max(0.32, rate)))
     }
 
     /// The word a synthesiser range starts in. `offset` counts UTF-16 units,

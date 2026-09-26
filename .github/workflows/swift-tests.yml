@@ -91,6 +91,9 @@ jobs:
                 $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
           suite narrate NarrateTests.swift $S/NarratePlan.swift
+          # the lecture player's speeds and the one remembered, the sleep
+          # timer's countdown and fade, and a lecture cut into sections
+          suite audiocontrols AudioControlsTests.swift $S/AudioControls.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one
