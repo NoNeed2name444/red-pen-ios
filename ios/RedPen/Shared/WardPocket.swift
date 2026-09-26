@@ -136,14 +136,16 @@ enum WardFormula {
     }
 
     /// The gap corrected for a low albumin: + 0.25 for each g/L of albumin
-    /// below 40 (2.5 per g/dL below 4.0). Figge J et al. Crit Care Med
-    /// 1998;26:1807; 40 g/L is the usual reference albumin.
+    /// below 40 (2.5 per g/dL below 4.0). The factor is Figge's (Figge J et
+    /// al. Crit Care Med 1998;26:1807); Figge measured from a normal albumin
+    /// of 44 g/L, while 40 g/L is the reference MDCalc and most teaching use.
     static func albuminCorrectedGap(_ gap: Double, albuminGL: Double) -> Double {
         gap + 0.25 * (40 - albuminGL)
     }
 
     /// Adjusted calcium, mmol/L: Ca + 0.02 \u{00D7} (40 - albumin g/L), the same as
-    /// Ca + 0.8 \u{00D7} (4.0 - albumin g/dL) in mg/dL. Payne RB et al. BMJ 1973;4:643.
+    /// Ca + 0.8 \u{00D7} (4.0 - albumin g/dL) in mg/dL - the simplified form of
+    /// Payne's regression (Payne RB et al. BMJ 1973;4:643) that is taught.
     static func correctedCalcium(calciumMmol: Double, albuminGL: Double) -> Double {
         calciumMmol + 0.02 * (40 - albuminGL)
     }
@@ -465,11 +467,11 @@ enum WardCalc: String, CaseIterable, Identifiable {
     var note: String {
         switch self {
         case .bodySize: return "WHO adult classes. NICE lowers the thresholds for people of South Asian, Chinese, other Asian, Middle Eastern, Black African or African-Caribbean family background: overweight from 23, obesity from 27.5."
-        case .anionGap: return "Laboratories differ: the classic range without potassium is 8\u{2013}12 mmol/L, and many modern analysers read lower. Each 10 g/L fall in albumin lowers the gap by about 2.5."
+        case .anionGap: return "Laboratories differ: the classic range without potassium is 8\u{2013}12 mmol/L, and many modern analysers read lower. Each 10 g/L fall in albumin lowers the gap by about 2.5 (Figge); this uses 40 g/L as normal albumin, as MDCalc does, where Figge used 44."
         case .calcium: return "An estimate: ionised calcium is the measurement when it matters. Many laboratories now report an adjusted calcium with their own formula."
         case .sodium: return "Katz\u{2019}s 1.6 is the classic teaching; Hillier found 2.4 a better overall factor: sodium falls more steeply once glucose is above about 400 mg/dL (22 mmol/L)."
         case .osmolality: return "An osmolar gap above about 10 mOsm/kg suggests an unmeasured osmole: methanol, ethylene glycol, ethanol, mannitol."
-        case .aaGradient: return "Assumes sea level, 37 \u{00B0}C and a respiratory quotient of 0.8. Enter FiO\u{2082} as a percentage (21 on air)."
+        case .aaGradient: return "Assumes sea level, 37 \u{00B0}C and a respiratory quotient of 0.8. Enter FiO\u{2082} as a percentage (21 on air) or a fraction (0.21)."
         case .crcl: return "Uses actual body weight, as the original did; many drug references prefer ideal or adjusted weight in obesity. Drug doses are often still labelled by Cockcroft\u{2013}Gault."
         case .egfr: return "For adults (18 and over) with a stable creatinine. Race-free: the 2021 equation dropped the race coefficient. Categories are KDIGO 2012."
         case .map: return "The Surviving Sepsis Campaign (2021) targets a MAP of at least 65 mmHg in septic shock."
@@ -485,7 +487,7 @@ enum WardCalc: String, CaseIterable, Identifiable {
         switch self {
         case .bodySize: return "WHO Technical Report Series 894 (2000); NICE obesity guidance (ethnicity thresholds, 2022); Mosteller RD. N Engl J Med 1987;317:1098."
         case .anionGap: return "Emmett M, Narins RG. Medicine 1977;56:38; Figge J et al. Crit Care Med 1998;26:1807."
-        case .calcium: return "Payne RB et al. BMJ 1973;4:643."
+        case .calcium: return "Payne RB et al. BMJ 1973;4:643 (the simplified formula in common use)."
         case .sodium: return "Katz MA. N Engl J Med 1973;289:843; Hillier TA et al. Am J Med 1999;106:399."
         case .osmolality: return "Dorwart WV, Chalmers L. Clin Chem 1975;21:190."
         case .aaGradient: return "The alveolar gas equation (West, Respiratory Physiology); age estimate as used by MDCalc."
@@ -611,8 +613,11 @@ enum WardCalc: String, CaseIterable, Identifiable {
     }
 
     private static func aaGradient(_ v: [String: Double], us: Bool) -> WardOutcome? {
-        guard let fio2 = positive(v, "fio2"), fio2 <= 100,
-              let pao2 = positive(v, "pao2"), let paco2 = positive(v, "paco2") else { return nil }
+        guard let typedFiO2 = positive(v, "fio2"), let pao2 = positive(v, "pao2"),
+              let paco2 = positive(v, "paco2") else { return nil }
+        // 0.21 typed as a fraction means 21%
+        let fio2: Double = typedFiO2 <= 1 ? typedFiO2 * 100 : typedFiO2
+        guard fio2 <= 100 else { return nil }
         let gas: WardUnit = .gas
         let pao2mm: Double = gas.fromSI(pao2, us: true)
         let paco2mm: Double = gas.fromSI(paco2, us: true)
@@ -635,6 +640,8 @@ enum WardCalc: String, CaseIterable, Identifiable {
                     : "Normal for age: hypoxaemia, if any, is from hypoventilation or low inspired oxygen"
             }
         }
+        // a PaO2 above the alveolar value cannot happen: a typing slip
+        if gradient < -1 { verdict = "PaO\u{2082} is above the alveolar value, which is impossible: check the FiO\u{2082} and the units" }
         return WardOutcome(lines: lines, verdict: verdict)
     }
 

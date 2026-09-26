@@ -104,6 +104,12 @@ let aaSI: WardOutcome? = WardCalc.aaGradient.compute(["fio2": 21, "pao2": 8, "pa
 // 0.21 x 713 - 39.75/0.8 = 100.04; minus 60.0 = 40.0 mmHg = 5.3 kPa
 check("A-a in kPa: PaO2 8, PaCO2 5.3 -> 5.3 kPa, raised", aaSI?.lines[1].value == "5.3 kPa"
       && aaSI?.verdict?.hasPrefix("Raised") == true, "\(String(describing: aaSI))")
+let aaFraction: WardOutcome? = WardCalc.aaGradient.compute(["fio2": 0.21, "pao2": WardUnit.gas.toSI(90, us: true),
+                                                            "paco2": WardUnit.gas.toSI(40, us: true), "age": 40], us: true)
+check("FiO2 typed as 0.21 reads as 21%", aaFraction == aaUS, "\(String(describing: aaFraction))")
+let aaSlip: WardOutcome? = WardCalc.aaGradient.compute(["fio2": 21, "pao2": 20, "paco2": 5.3], us: false)
+check("a PaO2 above the alveolar value is flagged as a slip", aaSlip?.verdict?.hasPrefix("PaO\u{2082} is above") == true,
+      "\(String(describing: aaSlip))")
 check("an FiO2 over 100% is refused", WardCalc.aaGradient.compute(["fio2": 150, "pao2": 8, "paco2": 5], us: false) == nil)
 
 // MARK: - kidney function
@@ -281,6 +287,8 @@ check("Wells PE 3 + 1.5 + 1.5 + 1.5 = 7.5", pe.total(picks(pe, yes: ["likely", "
 // PERC: eight criteria; 0 negative, 1 positive
 let perc: WardScore = WardScores.perc
 check("PERC has eight criteria", perc.items.count == 8 && perc.highest == 8)
+check("PERC surgery or trauma: within 4 weeks, needing general anaesthesia (Kline 2004)",
+      perc.items[5].label.contains("4 weeks") && perc.items[5].label.contains("general anaesthetic"))
 check("PERC 0 negative, 1 positive", verdict(perc, [:]) == "PERC negative" && verdict(perc, picks(perc, yes: ["hormones"])) == "PERC positive")
 
 // CURB-65 (Lim 2003): 0-1, 2, 3-5
@@ -389,6 +397,10 @@ check("NEWS2 0 low, 4 low, 5 medium, 6 medium, 7 high",
       && verdict(news, ["rr": 2, "air": 1, "pulse": 1]) == "Medium"
       && verdict(news, ["rr": 2, "air": 1, "pulse": 3]) == "Medium"
       && verdict(news, ["rr": 2, "air": 1, "pulse": 3, "temp": 1]) == "High")
+check("NEWS2 minimum observation frequency 12-hourly, 4-6-hourly, hourly, continuous",
+      news.bands[0].detail.contains("12-hourly") && news.bands[1].detail.contains("4\u{2013}6-hourly")
+      && news.bands[2].detail.contains("hourly") && news.bands[3].detail.contains("continuous")
+      && news.redFlag?.band.detail.contains("hourly") == true)
 check("NEWS2 a single 3 with a total of 3 is low-medium", verdict(news, ["acvpu": 1]) == "Low\u{2013}medium")
 check("NEWS2 a single 3 with a total of 5 stays medium", verdict(news, ["acvpu": 1, "air": 1]) == "Medium")
 check("NEWS2 a total of 3 without any single 3 stays low", verdict(news, ["air": 1, "temp": 1]) == "Low")

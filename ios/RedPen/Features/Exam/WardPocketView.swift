@@ -225,6 +225,8 @@ struct WardCalcView: View {
     @State private var typed: [String: String] = [:]
     @State private var toggles: [String: Bool] = [:]
     @State private var choices: [String: Int] = [:]
+    /// The number field being typed in; the decimal pad has no return key.
+    @FocusState private var focused: String?
 
     private var hasUnits: Bool {
         calc.fields.contains { field in
@@ -259,6 +261,12 @@ struct WardCalcView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: conventional) { was, now in
             retype(from: was, to: now)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focused = nil }
+            }
         }
         .wardDisclaimer()
     }
@@ -307,6 +315,7 @@ struct WardCalcView: View {
     private func numberRow(_ field: WardField, unit: WardUnit) -> some View {
         let unitName: String = unit.name(us: conventional)
         let prompt: String = field.optional ? "optional" : ""
+        let spoken: String = unitName.isEmpty ? field.label : field.label + ", " + unitName
         return HStack(spacing: 8) {
             Text(field.label)
             Spacer(minLength: 8)
@@ -315,12 +324,14 @@ struct WardCalcView: View {
                 .multilineTextAlignment(.trailing)
                 .font(.body.monospacedDigit())
                 .frame(maxWidth: 110)
-                .accessibilityLabel(field.label)
+                .focused($focused, equals: field.id)
+                .accessibilityLabel(spoken)
             if !unitName.isEmpty {
                 Text(unitName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 44, alignment: .leading)
+                    .accessibilityHidden(true)
             }
         }
     }

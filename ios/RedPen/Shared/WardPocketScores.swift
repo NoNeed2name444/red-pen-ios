@@ -277,7 +277,7 @@ enum WardScores {
             yes("sat", "SaO\u{2082} below 95% on air"),
             yes("leg", "Unilateral leg swelling"),
             yes("haemoptysis", "Haemoptysis"),
-            yes("surgery", "Surgery or trauma within 4 weeks (needing a general anaesthetic or admission)"),
+            yes("surgery", "Surgery or trauma within 4 weeks that needed a general anaesthetic"),
             yes("previous", "Previous PE or DVT"),
             yes("hormones", "Hormone use (oral contraceptive, HRT or oestrogen)")
         ],
@@ -541,7 +541,7 @@ enum WardScores {
         ],
         bands: [
             band(0, 0, "Low", "Routine monitoring, at least 12-hourly"),
-            band(1, 4, "Low", "Inform the nurse in charge; at least 4\u{2013}6-hourly"),
+            band(1, 4, "Low", "A registered nurse assesses and decides whether to monitor more often or escalate; at least 4\u{2013}6-hourly"),
             band(5, 6, "Medium", "Key threshold: urgent review by a clinician competent in acute illness; at least hourly"),
             band(7, 20, "High", "Emergency response by a critical-care team; continuous monitoring")
         ],
