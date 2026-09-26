@@ -32,6 +32,15 @@ jobs:
           - id: current
             src: ''
             tool: ''
+          # the owner's kind of zip: a lecture PDF bundled in Samples, which
+          # the app reads into examples a few seconds after the library shows
+          - id: current-lecture
+            src: ''
+            tool: ''
+            lecture: true
+          - id: personal-d1b0d69
+            src: d1b0d69
+            tool: d1b0d69
           # personal at 09:30 UTC on 25 Sep (4fced95), made with the first
           # committed make_swiftpm.py (da8b1bd, 11:11)
           - id: old-0930
@@ -48,15 +57,42 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: A stand-in lecture
+        if: matrix.lecture
+        run: |
+          python3 -m pip install -q pillow
+          python3 - <<'PY'
+          # 45 slides, each with a heading, bullet text and a labelled diagram
+          from PIL import Image, ImageDraw, ImageFont
+          import os
+          os.makedirs("out/lecture", exist_ok=True)
+          pages = []
+          for i in range(45):
+              im = Image.new("RGB", (1600, 900), "white")
+              d = ImageDraw.Draw(im)
+              f = ImageFont.load_default(size=44)
+              s = ImageFont.load_default(size=28)
+              d.text((60, 40), f"Groin hernia - slide {i + 1}", fill="black", font=f)
+              for j in range(8):
+                  d.text((60, 140 + j * 50), f"- The inguinal canal, point {j + 1}: deep ring, superficial ring, conjoint tendon", fill="black", font=s)
+              d.ellipse((1050, 250, 1450, 650), outline="red", width=8)
+              d.rectangle((1150, 350, 1350, 550), fill=(40, 90, 200))
+              d.text((1080, 670), "Hesselbach's triangle", fill="black", font=s)
+              pages.append(im)
+          pages[0].save("out/lecture/Groin_Hernia.pdf", save_all=True, append_images=pages[1:], resolution=150)
+          print(os.path.getsize("out/lecture/Groin_Hernia.pdf"), "bytes")
+          PY
       - name: Make the package
         env:
           SRC: ${{ matrix.src }}
           TOOL: ${{ matrix.tool }}
         run: |
           set -euo pipefail
+          LECTURES=""
+          [ -f out/lecture/Groin_Hernia.pdf ] && LECTURES="$GITHUB_WORKSPACE/out/lecture/Groin_Hernia.pdf"
           cp tools/sim_launch.sh tools/launch_test_hook.py "$RUNNER_TEMP/"
           make() {  # make <tree> <tool> <zip>
-            (cd "$1" && python3 "$2" ios/RedPen "Stethoscore Personal" com.cramdown.personal "$3")
+            (cd "$1" && python3 "$2" ios/RedPen "Stethoscore Personal" com.cramdown.personal "$3" $LECTURES)
           }
           if [ -n "$SRC" ]; then
             git worktree add -q "$RUNNER_TEMP/src" "$SRC"

@@ -33,7 +33,15 @@ cat "$OUT/launch.txt"
 PID=$(grep -oE '[0-9]+$' "$OUT/launch.txt" | tail -1)
 xcrun simctl io "$UDID" screenshot "$OUT/screen-3s.png" > /dev/null 2>&1 &
 sleep 3; wait
-sleep "$WAIT"
+# the app's memory while it runs (a phone ends an app that grows too big;
+# the simulator never does, so the number is the only warning)
+PEAK=0; waited=0
+while [ "$waited" -lt "$WAIT" ]; do
+  kb=$(ps -o rss= -p "$PID" 2>/dev/null | tr -d ' ')
+  [ -n "$kb" ] && [ "$kb" -gt "$PEAK" ] && PEAK=$kb
+  sleep 2; waited=$((waited + 2))
+done
+echo "peak_rss_mb=$((PEAK / 1024))" | tee -a "$OUT/result.txt"
 ALIVE=no
 if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then ALIVE=yes; fi
 xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -F "UIKitApplication:$BUNDLE" > "$OUT/launchctl.txt" || true
