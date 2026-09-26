@@ -76,7 +76,9 @@ struct NewSetDock: View {
 
     private var backButton: some View {
         Button(action: back) {
-            Label("Back", systemImage: "chevron.left")
+            // backward and forward, not left and right: they turn round
+            // in a right-to-left language
+            Label("Back", systemImage: "chevron.backward")
         }
         .buttonStyle(.bigCompanion)
         // leaving the step while it is writing would lose sight of the work,
@@ -98,7 +100,7 @@ private struct NewSetDockPrimaryButton: View {
         switch primary {
         case .next(let ready):
             Button(action: next) {
-                Label("Next", systemImage: "arrow.right")
+                Label("Next", systemImage: "arrow.forward")
             }
             .buttonStyle(.bigPrimary)
             .disabled(!ready)

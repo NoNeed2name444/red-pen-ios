@@ -128,7 +128,7 @@ private struct GenerationRing: View {
     var body: some View {
         let scaled: Double = (fraction * 100).rounded()
         let percent: Int = Int(scaled)
-        let shown: String = "\(percent)%"
+        let shown: String = L10nFormat.percent(fraction, locale: L10n.locale)
         let spoken: String = "\(percent) percent done"
         let line = StrokeStyle(lineWidth: 6, lineCap: .round)
         ZStack {
@@ -137,6 +137,8 @@ private struct GenerationRing: View {
                 .trim(from: 0, to: fraction)
                 .stroke(Color.accentColor, style: line)
                 .rotationEffect(.degrees(-90))
+                // clockwise from the top, anticlockwise right to left
+                .fillsFromLeading()
                 .animation(.easeOut(duration: 0.4), value: fraction)
             Text(shown)
                 .font(.caption.weight(.semibold).monospacedDigit())

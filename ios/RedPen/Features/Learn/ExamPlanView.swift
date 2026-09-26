@@ -258,12 +258,15 @@ private struct SubjectRing: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle().stroke(Color.primary.opacity(0.08), lineWidth: 7)
+                // both arcs clockwise from the top, anticlockwise right to left
                 Circle().trim(from: 0, to: building)
                     .stroke(tint.opacity(0.3), style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .fillsFromLeading()
                 Circle().trim(from: 0, to: secured)
                     .stroke(tint, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .fillsFromLeading()
                 Text(RetentionForecast.percent(secured))
                     .font(.caption.weight(.bold).monospacedDigit())
             }

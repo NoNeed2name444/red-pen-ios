@@ -83,10 +83,9 @@ enum LectureAudio {
         }
     }
 
-    /// Minutes and seconds, for a transport bar.
+    /// Minutes and seconds, for a transport bar, in the reader's digits
+    /// (hours too, past the hour).
     static func clock(_ seconds: Double) -> String {
-        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
+        L10nFormat.clock(seconds: seconds, locale: L10n.locale)
     }
 }
