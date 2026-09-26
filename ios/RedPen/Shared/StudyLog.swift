@@ -96,8 +96,12 @@ final class StudyLog: ObservableObject {
     /// Whether a day off now would be covered.
     var restDayReady: Bool { summary.restReady }
 
-    /// Today against the daily goal, for the goal ring.
-    var goalProgress: GoalProgress { GoalProgress(done: today, goal: DailyGoal.current) }
+    /// Whether today already counts for the streak: something studied, or a
+    /// ward round's minutes.
+    var studiedToday: Bool {
+        let key: String = Self.key(for: Date())
+        return (days[key] ?? 0) > 0 || (minutes[key] ?? 0) > 0
+    }
 
     private var summary: StudyStreak.Summary {
         let now = Date()

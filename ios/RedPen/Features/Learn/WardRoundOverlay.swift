@@ -57,20 +57,31 @@ final class WardRoundOverlay {
 
     private func attach() {
         guard let scene = Self.frontScene() else { return }
-        if let window, window.windowScene === scene { return }
+        if let window, window.windowScene === scene {
+            Self.matchStyle(window, in: scene)
+            return
+        }
         window?.isHidden = true
         let fresh = WardRoundWindow(windowScene: scene)
         fresh.model = model
         fresh.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.normal.rawValue + 1)
         fresh.backgroundColor = .clear
-        // the app's own light or dark ("Always night sky" holds it dark)
-        let beneath: UIWindow? = scene.windows.first { $0.isKeyWindow } ?? scene.windows.first
-        fresh.overrideUserInterfaceStyle = beneath?.traitCollection.userInterfaceStyle ?? .unspecified
+        Self.matchStyle(fresh, in: scene)
         let host = WardRoundHost(rootView: WardRoundFloat(model: model))
         host.view.backgroundColor = .clear
         fresh.rootViewController = host
         fresh.isHidden = false
         window = fresh
+    }
+
+    /// The app's own light or dark ("Always night sky" holds it dark),
+    /// looked at again on every change of the round (a pause, a phase
+    /// ending, the panel opened from the tile), so a switch made while a
+    /// round runs does not leave the chip in the other look for long.
+    private static func matchStyle(_ own: UIWindow, in scene: UIWindowScene) {
+        let others: [UIWindow] = scene.windows.filter { $0 !== own && !$0.isHidden }
+        let beneath: UIWindow? = others.first { $0.isKeyWindow } ?? others.first
+        own.overrideUserInterfaceStyle = beneath?.traitCollection.userInterfaceStyle ?? .unspecified
     }
 
     private static func frontScene() -> UIWindowScene? {
@@ -90,6 +101,13 @@ final class WardRoundOverlayModel: ObservableObject {
 /// Catches touches only on the chip, or everywhere while the panel is open.
 final class WardRoundWindow: UIWindow {
     weak var model: WardRoundOverlayModel?
+
+    /// Never the key window: a tap on the chip must not take the keyboard
+    /// from a field beneath, and screens that present from the key window's
+    /// root (sign in, the age check, Reasoning's share) must keep finding
+    /// the app's own window rather than this one, where nothing but the
+    /// chip takes a touch.
+    override var canBecomeKey: Bool { false }
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let model else { return nil }
@@ -145,6 +163,10 @@ struct WardRoundFloat: View {
                         .accessibilityHidden(true)
                     WardRoundPanel(round: round, notice: clock.notice) { setExpanded(false) }
                         .frame(maxWidth: 440)
+                        // VoiceOver stays in the open panel; the escape
+                        // gesture (two fingers, a Z) folds it away
+                        .accessibilityAddTraits(.isModal)
+                        .accessibilityAction(.escape) { setExpanded(false) }
                         .padding(16)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .transition(.move(edge: .bottom).combined(with: .opacity))

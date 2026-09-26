@@ -859,7 +859,7 @@ struct AnalyticsView: View {
                        symbol: "chart.bar.fill", color: .green)
             }
             .padding(.vertical, 4)
-            StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed)
+            StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed, focusDays: Set(log.minutes.keys))
                 .padding(.vertical, 6)
         } header: {
             Text("Time")

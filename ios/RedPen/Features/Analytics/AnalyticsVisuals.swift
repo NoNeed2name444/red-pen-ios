@@ -366,6 +366,9 @@ struct StudyHeatmap: View {
     var counts: [String: Int]
     /// Missed days covered as the week's free rest day (StudyLog.restDaysUsed).
     var restDays: Set<String> = []
+    /// Days with a ward round's minutes (StudyLog.minutes): they keep the
+    /// streak, so they are never drawn as empty, even with no card on them.
+    var focusDays: Set<String> = []
     var weeks: Int = 12
 
     private struct Cell: Identifiable {
@@ -390,7 +393,9 @@ struct StudyHeatmap: View {
             for row in 0..<7 {
                 guard let date = calendar.date(byAdding: .day, value: column * 7 + row, to: first) else { continue }
                 let key = StudyLog.key(for: date)
-                cells.append(Cell(date: date, key: key, count: counts[key] ?? 0,
+                let count: Int = counts[key] ?? 0
+                let held: Int = (count == 0 && focusDays.contains(key)) ? 1 : count
+                cells.append(Cell(date: date, key: key, count: held,
                                   isToday: calendar.isDate(date, inSameDayAs: today),
                                   isFuture: date > today))
             }
@@ -452,7 +457,12 @@ struct StudyHeatmap: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Study calendar, last \(weeks) weeks: something studied on \(studied) day\(studied == 1 ? "" : "s"), at most \(busiest) in a day." + restWords(cells))
+        .accessibilityLabel(calendarWords(studied: studied, busiest: busiest) + restWords(cells))
+    }
+
+    private func calendarWords(studied: Int, busiest: Int) -> String {
+        let plural: String = studied == 1 ? "" : "s"
+        return "Study calendar, last \(weeks) weeks: something studied on \(studied) day\(plural), at most \(busiest) in a day."
     }
 
     private func restWords(_ cells: [Cell]) -> String {

@@ -71,6 +71,9 @@ check("focus minutes add up", round.focusMinutes == 50)
 round.startNext(at: at(100))
 round.pause(at: at(110))
 check("paused holds the clock", round.isPaused && round.remaining(at: at(200)) == 15 * 60)
+let itemsBeforePause: Int = round.items
+round.noteStudied(4)
+check("items while paused are not the round's", round.items == itemsBeforePause, "\(round.items)")
 check("nothing ends while paused", round.advance(to: at(1000)).isEmpty && round.phase == .focus)
 check("no alarms while paused", round.alarms(at: at(200)).isEmpty)
 round.resume(at: at(200))
@@ -137,6 +140,9 @@ check("goal fraction", abs(GoalProgress(done: 32, goal: 50).fraction - 0.64) < 0
 check("goal ring stops at full", GoalProgress(done: 80, goal: 50).fraction == 1)
 check("goal met", GoalProgress(done: 50, goal: 50).met && !GoalProgress(done: 49, goal: 50).met)
 check("no goal, no ring", GoalProgress(done: 5, goal: 0).fraction == 0 && !GoalProgress(done: 5, goal: 0).met)
+check("stored goal: nothing stored reads 50", GoalProgress.goal(stored: 0) == 50)
+check("stored goal: held to the range", GoalProgress.goal(stored: 3) == 10 && GoalProgress.goal(stored: 5000) == 300)
+check("stored goal: a chosen goal is kept", GoalProgress.goal(stored: 120) == 120)
 let goalDefaults = UserDefaults.standard
 goalDefaults.removeObject(forKey: DailyGoal.key)
 check("goal defaults to 50", DailyGoal.current == 50)
@@ -146,6 +152,8 @@ DailyGoal.current = 1000
 check("goal held to the top of the range", DailyGoal.current == 300, "\(DailyGoal.current)")
 DailyGoal.current = 70
 check("goal kept", DailyGoal.current == 70)
+check("the ring reads what Settings stored the way DailyGoal does",
+      GoalProgress.goal(stored: goalDefaults.integer(forKey: DailyGoal.key)) == DailyGoal.current)
 goalDefaults.removeObject(forKey: DailyGoal.key)
 
 // MARK: the streak on day numbers

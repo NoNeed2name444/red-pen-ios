@@ -201,13 +201,14 @@ extension LibraryView {
     /// alive until midnight - with the goal ring beside it, "32 / 50 today".
     private var streakLine: some View {
         let streak = studyLog.streak
-        let today = studyLog.today
-        let text: String = today > 0 ? "\(streak)-day streak"
-                                     : "\(streak)-day streak \u{2014} answer one to keep it"
-        let tint: Color = today > 0 ? .orange : .secondary
+        // a ward round's minutes count for the day as much as a card does
+        let kept: Bool = studyLog.studiedToday
+        let text: String = kept ? "\(streak)-day streak"
+                                : "\(streak)-day streak \u{2014} answer one to keep it"
+        let tint: Color = kept ? .orange : .secondary
         return HStack(spacing: 8) {
             todayLine(symbol: "flame.fill", tint: tint, text: text)
-            DailyGoalRing(progress: studyLog.goalProgress)
+            DailyGoalRing(done: studyLog.today)
         }
     }
 

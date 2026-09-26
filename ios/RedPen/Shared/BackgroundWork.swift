@@ -86,6 +86,7 @@ enum AppNotifications {
         content.title = title
         content.body = body
         content.sound = .default
+        content.filterCriteria = StudyFocus.other
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: "generation-\(UUID().uuidString)", content: content, trigger: nil))
     }

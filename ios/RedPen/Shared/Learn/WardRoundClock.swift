@@ -55,7 +55,7 @@ final class WardRoundClock: ObservableObject {
             .sink { [weak self] count in self?.studied(count) }
             .store(in: &bag)
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
-            .sink { [weak self] _ in self?.tick() }
+            .sink { [weak self] _ in self?.returned() }
             .store(in: &bag)
     }
 
@@ -151,8 +151,16 @@ final class WardRoundClock: ObservableObject {
         changed()
     }
 
+    /// Back in front: whatever ended while away, and the round's banners
+    /// that were shown meanwhile cleared away - the chip says it now.
+    private func returned() {
+        guard round != nil else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: WardRound.alarmIDs)
+        tick()
+    }
+
     private func studied(_ count: Int) {
-        guard var now = round, now.phase == .focus else { return }
+        guard var now = round, now.phase == .focus, !now.isPaused else { return }
         now.noteStudied(count)
         round = now
         save()
@@ -265,6 +273,10 @@ final class WardRoundClock: ObservableObject {
 /// and quiet the rest.
 enum StudyFocus {
     static let criteria = "study"
+    /// Everything else (a cloud set ready, a generation done) says so
+    /// outright rather than leaving the criteria empty, so the filter's
+    /// predicate quiets it whatever the system does with an empty one.
+    static let other = "other"
 }
 
 // MARK: - The Live Activity
@@ -276,18 +288,25 @@ enum StudyFocus {
 enum WardRoundActivity {
     private static var pending: Task<Void, Never>?
 
-    /// `soon`: only a count changed, so it waits a little and goes with the
-    /// next one - a card a second must not be an update a second.
+    /// `soon`: only a count changed, so it goes at most once every ten
+    /// seconds, with the count as it is by then - a card a second must not
+    /// be an update a second. It is a throttle, not a debounce: a count that
+    /// keeps changing still reaches the Lock Screen every ten seconds rather
+    /// than waiting for the student to stop.
     static func sync(_ round: WardRound, soon: Bool) {
         #if canImport(ActivityKit) && !SWIFT_PACKAGE
-        pending?.cancel()
         guard soon else {
+            pending?.cancel()
+            pending = nil
             send(round)
             return
         }
+        guard pending == nil else { return }
         pending = Task { @MainActor in
             try? await Task.sleep(for: .seconds(10))
-            guard !Task.isCancelled, let now = WardRoundClock.shared.round else { return }
+            guard !Task.isCancelled else { return }
+            pending = nil
+            guard let now = WardRoundClock.shared.round else { return }
             send(now)
         }
         #endif
@@ -296,6 +315,7 @@ enum WardRoundActivity {
     static func end() {
         #if canImport(ActivityKit) && !SWIFT_PACKAGE
         pending?.cancel()
+        pending = nil
         for activity in Activity<WardRoundAttributes>.activities {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }

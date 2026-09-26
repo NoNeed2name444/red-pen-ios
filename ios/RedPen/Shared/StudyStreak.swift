@@ -121,4 +121,13 @@ struct GoalProgress: Equatable {
     var met: Bool { goal > 0 && done >= goal }
 
     var label: String { "\(done) / \(goal) today" }
+
+    /// The goal from what Settings stored under DailyGoal.key, read the way
+    /// DailyGoal.current reads it (50 until one is chosen, held to its
+    /// range), for a view that watches the key with @AppStorage so a new
+    /// goal redraws its ring at once.
+    static func goal(stored: Int) -> Int {
+        guard stored > 0 else { return 50 }
+        return min(max(stored, DailyGoal.range.lowerBound), DailyGoal.range.upperBound)
+    }
 }

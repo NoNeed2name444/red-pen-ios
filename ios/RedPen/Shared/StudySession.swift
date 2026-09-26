@@ -174,9 +174,10 @@ struct WardRound: Codable, Equatable {
         return events
     }
 
-    /// Something studied: counted only while a round's clock is on.
+    /// Something studied: counted only while a round's clock is on - not
+    /// in a break, and not while the round is paused.
     mutating func noteStudied(_ count: Int) {
-        guard phase == .focus, count > 0 else { return }
+        guard phase == .focus, !isPaused, count > 0 else { return }
         items += count
     }
 

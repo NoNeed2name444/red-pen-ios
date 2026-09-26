@@ -404,9 +404,13 @@ struct StillStarField: View {
 
 /// A thin ring of today against the daily goal, and "32 / 50 today".
 struct DailyGoalRing: View {
-    let progress: GoalProgress
+    /// Cards, questions and steps done today (StudyLog.today).
+    let done: Int
+    /// Watched, so a new goal set in Settings redraws the ring at once.
+    @AppStorage(DailyGoal.key) private var stored: Int = 50
 
     var body: some View {
+        let progress = GoalProgress(done: done, goal: GoalProgress.goal(stored: stored))
         let tint: Color = progress.met ? .green : .orange
         HStack(spacing: 6) {
             ZStack {
@@ -448,7 +452,7 @@ struct TodayGoalRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            DailyGoalRing(progress: log.goalProgress)
+            DailyGoalRing(done: log.today)
         }
         .padding(.vertical, 2)
     }

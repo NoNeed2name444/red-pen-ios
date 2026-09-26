@@ -25,11 +25,16 @@ struct ExamPlanView: View {
             // the streak, the goal ring and a ward round (WardRoundView.swift)
             Section {
                 TodayGoalRow()
-                WardRoundTile()
             } header: {
                 Text("Today")
             } footer: {
                 Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
+            }
+            // the tile is its own glass, so no list row behind it
+            Section {
+                WardRoundTile()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             }
             // the chosen exam: countdown, blueprint coverage, readiness, study next
             Section {

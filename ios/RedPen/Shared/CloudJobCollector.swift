@@ -310,6 +310,7 @@ enum CloudJobCollector {
             content.title = job.what + " should be ready"
             content.body = "Open \(Brand.name) to add them to your library."
             content.sound = .default
+            content.filterCriteria = StudyFocus.other
             UNUserNotificationCenter.current().add(UNNotificationRequest(
                 identifier: "job-" + job.id, content: content,
                 trigger: UNTimeIntervalNotificationTrigger(timeInterval: max(60, left), repeats: false)))
@@ -352,6 +353,7 @@ enum CloudJobCollector {
                 : "Could not finish: \(job.title.lowercased())"
             content.body = status.status == "done" ? "Open \(Brand.name) to see them." : (status.error ?? "Open the app to try again.")
             content.sound = .default
+            content.filterCriteria = StudyFocus.other
             try? await UNUserNotificationCenter.current().add(
                 UNNotificationRequest(identifier: "job-done-" + job.id, content: content, trigger: nil))
         }
