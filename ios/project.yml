@@ -33,6 +33,19 @@ targets:
         # suite landed in this folder.
         excludes:
           - "Tests/**"
+          # listed on its own below, as a resource
+          - "Resources/**"
+      # The app's strings: English, and Arabic. Xcode compiles the String
+      # Catalog into en.lproj/ar.lproj in the app; the Playgrounds package is
+      # given .lproj tables made from the same file (tools/make_swiftpm.py).
+      # Views read it through L10n (Shared/L10n.swift) in both builds.
+      - path: RedPen/Resources/Localizable.xcstrings
+        buildPhase: resources
+      # Arabic for what iOS itself shows about the app: the permission
+      # prompts. Outside RedPen/, since Playgrounds has no Info.plist to
+      # localise.
+      - path: AppResources/Localized
+        buildPhase: resources
       # The privacy manifest (required-reason APIs; no tracking). Outside
       # RedPen/ so the Playgrounds package, which copies RedPen/, never sees it.
       - path: AppResources/PrivacyInfo.xcprivacy
@@ -65,6 +78,11 @@ targets:
       path: RedPen/Info.plist
       properties:
         CFBundleDisplayName: Stethoscore
+        # The languages the app speaks, so iOS offers Arabic, lays the app
+        # out right to left in it, and lets it be chosen per app in Settings.
+        CFBundleLocalizations:
+          - en
+          - ar
         # The first frame, before any Swift runs: the Midnight Enamel mark and
         # the wordmark on Midnight navy. LaunchSplash draws the same picture
         # for its first frame, so the hand-over is invisible.

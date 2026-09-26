@@ -8,7 +8,10 @@ pkg = f"{name}.swiftpm"
 work = os.path.join(os.path.dirname(out) or ".", "swiftpm_build")
 shutil.rmtree(work, ignore_errors=True)
 root = os.path.join(work, pkg)
-shutil.copytree(src, root, ignore=shutil.ignore_patterns("Tests", "Info.plist", "*.storekit", "*.entitlements"))
+# the String Catalog is not copied as it is: the package gets the .lproj
+# tables made from it below
+shutil.copytree(src, root, ignore=shutil.ignore_patterns("Tests", "Info.plist", "*.storekit", "*.entitlements",
+                                                         "*.xcstrings"))
 # always a Samples folder (Bundle.module needs a declared resource), with
 # this build's lectures in it when there are any
 os.makedirs(os.path.join(root, "Samples"), exist_ok=True)
@@ -56,7 +59,23 @@ extension GemmaModel {
 s = "#if canImport(LocalLLMClientLlama)\n" + head + "extension GemmaModel {" + body + stub
 open(p, "w").write(s)
 assert "LlamaClient" not in re.sub(r"#if canImport\(LocalLLMClientLlama\).*?#else", "", open(p).read(), flags=re.S).split("#else")[0] or True
+# The app's strings: Swift Playgrounds cannot be counted on to compile a
+# .xcstrings, so the catalog becomes Localization/<lang>.lproj/Localizable.strings
+# (and .stringsdict for plurals), which every toolchain reads. They land in
+# the package's resource bundle, not the app's, which is why the app reads
+# them through L10n (Shared/L10n.swift) rather than Bundle.main.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import l10n_catalog
+catalog_path = os.path.join(src, "Resources", "Localizable.xcstrings")
 resources = ', resources: [.copy("Samples")]'
+if os.path.exists(catalog_path):
+    catalog = l10n_catalog.load(catalog_path)
+    l10n_catalog.write_lproj(catalog, os.path.join(root, "Localization"))
+    resources = ', resources: [.copy("Samples"), .process("Localization")]'
+# (the catalog's folder, empty once the catalog is left out)
+leftover = os.path.join(root, "Resources")
+if os.path.isdir(leftover) and not os.listdir(leftover):
+    os.rmdir(leftover)
 # the owner's build: examples in every mode and the bundled lecture (PersonalBuild.swift)
 if bundle.endswith(".personal"):
     open(os.path.join(root, "Samples", "personal-build.txt"), "w").write("The owner's personal build.\n")
@@ -66,6 +85,7 @@ import AppleProductTypes
 
 let package = Package(
     name: "{name}",
+    defaultLocalization: "en",
     platforms: [.iOS("26.0")],
     products: [
         .iOSApplication(

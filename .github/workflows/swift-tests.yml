@@ -28,6 +28,8 @@ on:
       - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
       - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
       - 'ios/RedPen/Tests/**'
+      - 'ios/RedPen/Resources/**'
+      - 'tools/l10n_*.py'
       - '.github/workflows/swift-tests.yml'
 permissions:
   contents: write
@@ -257,6 +259,10 @@ jobs:
           # window and the age signal
           suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceDigest.swift \
                 $S/Platform/AgeSignal.swift
+          # localisation: the reader's language and its direction, where the
+          # catalog is found in either build, and numbers, clocks,
+          # percentages and dates in the app's own digits
+          suite l10n L10nTests.swift $S/L10nRules.swift
           # Study Lens: questions found in camera text (typed, numbered,
           # two-column, cases, T/F, calculations, OCR noise), one chip per
           # question as the camera moves, each type's answer read, and a
@@ -270,6 +276,21 @@ jobs:
                 $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift \
                 $S/Lens/QuestionDetector.swift $S/Lens/LensTracking.swift $S/Lens/LensAnswer.swift \
                 $S/Lens/LensConversion.swift
+
+      # Localisation: whether the String Catalog is sound (every key
+      # translated, its format specifiers kept, Arabic's six plural forms),
+      # and the report of what the full string sweep still has to do -
+      # English glued into Text, hard-coded plurals, left/right symbols and
+      # offsets, literals not yet in the catalog. A report for now: it never
+      # fails the job (the sweep comes after the audit fixes land). The
+      # report is pushed with the logs as l10n-report.md.
+      - name: Localisation report
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          python3 tools/l10n_catalog.py check ios/RedPen/Resources/Localizable.xcstrings > out/l10n-catalog.txt 2>&1 || true
+          python3 tools/l10n_lint.py ios/RedPen --out out/l10n-report.md > out/l10n-lint.txt 2>&1 || true
+          { echo '### Localisation'; echo '```'; cat out/l10n-catalog.txt out/l10n-lint.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail the job if anything failed
         run: |
