@@ -215,7 +215,11 @@ private struct PairingCodeSlab: View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(spacing: 10) {
             Text(PairingCodeSlab.spaced(code))
-                .scaledFont(40, relativeTo: .largeTitle, weight: .bold, design: .monospaced)
+                .scaledFont(40, relativeTo: .largeTitle, weight: .bold, design: .monospaced, maxSize: 64)
+                // one line at any text size: a code broken over two lines
+                // reads as two codes
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .textSelection(.enabled)
                 .accessibilityLabel(PairingCodeSlab.spoken(code))
             TimelineView(.periodic(from: .now, by: 1)) { context in

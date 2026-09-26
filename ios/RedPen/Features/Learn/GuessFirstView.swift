@@ -74,6 +74,16 @@ struct GuessFirstView: View {
         }
     }
 
+    /// "Correct." or "Incorrect. The answer is B: ..." for VoiceOver, as the
+    /// marks appear.
+    private func announce(_ q: MCQQuestion, rightPick: Bool) {
+        let slot: Int = q.correctIndex
+        let known: Bool = q.options.indices.contains(slot)
+        let key: String = known ? StudyRhythm.letter(slot) : ""
+        let answer: String = known ? q.options[slot] : ""
+        Announce.say(SpokenText.answerResult(correct: rightPick, letter: key, answer: answer))
+    }
+
     private func optionButton(_ q: MCQQuestion, _ i: Int, _ text: String) -> some View {
         let answered: Bool = picked != nil
         let isRight: Bool = i == q.correctIndex
@@ -86,6 +96,7 @@ struct GuessFirstView: View {
             guard picked == nil else { return }
             picked = i
             if isRight { right += 1 }
+            announce(q, rightPick: isRight)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: symbol).foregroundStyle(tint).font(.title3).accessibilityHidden(true)

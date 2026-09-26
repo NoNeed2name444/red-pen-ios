@@ -51,7 +51,7 @@ Nothing here has run on a device or a simulator yet. The Linux toolchain can onl
 
 Before ticking the labels in App Store Connect, both of these must be done:
 
-1. **The UI test run.** `AccessibilityUITests` runs with the rest of the UI tests in the "App build" workflow. Both tests must pass. If the audit reports an issue, fix it rather than adding it to the ignore list.
+1. **The UI test run.** `AccessibilityUITests` runs in the "App build" workflow as its own step, "Accessibility at the largest text size", after the other UI tests. That step does not turn the build red, so read its result in the run summary: both tests must pass there. If the audit reports an issue, fix it rather than adding it to the ignore list.
 2. **A VoiceOver pass on the iPhone.** Turn it on with Settings → Accessibility → VoiceOver, or triple-click the side button if the Accessibility Shortcut is set. Then:
    - open a set;
    - answer one question and listen for "Correct." or "Incorrect…";

@@ -18,12 +18,14 @@ struct ReviewUndoChip: View {
                 .font(.footnote.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                // the capsule is drawn small; the finger's target is not
+                .accessibleGlass(.regular.interactive(), in: Capsule())
+                .popOut(.floating, in: Capsule())
+                // the capsule is drawn as small as ever; the finger's target
+                // (and VoiceOver's frame) around it is 44 points tall
                 .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibleGlass(.regular.interactive(), in: Capsule())
-        .popOut(.floating, in: Capsule())
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
         .accessibilityLabel("Undo last rating")
@@ -103,8 +105,8 @@ private struct ReviewCardActionsModifier: ViewModifier {
                 Button("Cancel", role: .cancel) {}
             }
             // the swipe and the hold, for VoiceOver: both in the actions rotor
-            .accessibilityAction(named: "Bury until tomorrow", bury)
-            .accessibilityAction(named: "Suspend card", suspend)
+            .accessibilityAction(named: "Bury until tomorrow") { bury() }
+            .accessibilityAction(named: "Suspend card") { suspend() }
     }
 
     private func bury() {
@@ -118,13 +120,13 @@ private struct ReviewCardActionsModifier: ViewModifier {
     }
 
     private var buryButton: some View {
-        Button(action: bury) {
+        Button { bury() } label: {
             Label("Bury until tomorrow", systemImage: "moon.zzz")
         }
     }
 
     private var suspendButton: some View {
-        Button(role: .destructive, action: suspend) {
+        Button(role: .destructive) { suspend() } label: {
             Label("Suspend card", systemImage: "pause.circle")
         }
     }

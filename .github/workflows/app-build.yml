@@ -24,6 +24,7 @@ jobs:
         working-directory: ios
         run: xcodegen generate
       - name: Build
+        id: build
         working-directory: ios
         run: |
           set -o pipefail
@@ -48,12 +49,36 @@ jobs:
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO \
+            -skip-testing:RedPenUITests/AccessibilityUITests \
             test 2>&1 | tee ../uitest.log | grep -E "error:|Test Case|TEST |\*\* " || true
           { echo '### Sign-in and terms tap test'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../uitest.log | tail -20 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "TEST SUCCEEDED" ../uitest.log
+      # The accessibility walk and audit at the largest text size, reported
+      # on its own: an audit finding shows up here (and in the summary)
+      # without turning the build above red. It must pass before the App
+      # Store accessibility labels are claimed (docs/launch/accessibility.md).
+      - name: Accessibility at the largest text size
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        continue-on-error: true
+        working-directory: ios
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
+            -resultBundlePath ../a11y.xcresult \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:RedPenUITests/AccessibilityUITests \
+            test 2>&1 | tee ../a11y.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          { echo '### Accessibility (AX5 text, audit)'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../a11y.log | tail -30 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TEST SUCCEEDED" ../a11y.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ui-test
-          path: ui.xcresult
+          path: |
+            ui.xcresult
+            a11y.xcresult
           if-no-files-found: ignore

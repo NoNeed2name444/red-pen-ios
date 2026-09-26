@@ -14,6 +14,8 @@ struct MCQQuizView: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
     /// The option's letter disc, growing with the text size.
     @ScaledMetric(relativeTo: .body) private var letterSide: CGFloat = 32
+    /// At the accessibility text sizes the one-line headings wrap instead.
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     @State private var current: Int = 0
     @State private var answers: [MCQAnswer]
@@ -265,7 +267,7 @@ struct MCQQuizView: View {
         return Label(line, systemImage: "clock.arrow.circlepath")
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.secondary)
-            .lineLimit(1)
+            .lineLimit(oneLine)
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
             .transition(.slideFade(.top))
@@ -574,8 +576,11 @@ struct MCQQuizView: View {
         }
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(.tint)
-        .lineLimit(1)
+        .lineLimit(oneLine)
     }
+
+    /// One line, or as many as the words need at the accessibility sizes.
+    private var oneLine: Int? { typeSize.isAccessibilitySize ? nil : 1 }
 
     private var stemText: AttributedString {
         minReadSeconds > 0 ? Self.highlighted(q.stem) : AttributedString(q.stem)
@@ -629,6 +634,9 @@ struct MCQQuizView: View {
         // a crossed-out option is dimmed; after checking the right one shows
         // at full strength whatever was done to it
         let dim: Double = out && (!a.checked || idx != correctSlot(current)) ? 0.45 : 1
+        // the chosen option's edge is thicker with Differentiate Without Colour
+        let picked: Bool = idx == a.selected
+        let edge: CGFloat = noColour && picked ? 3 : 1.5
         return Button {
             // a crossed-out option is never chosen by a stray tap: restore it first
             guard !a.checked, !out else { return }
@@ -655,7 +663,7 @@ struct MCQQuizView: View {
             .padding(.vertical, 12)
             .frame(minHeight: 56)
             .background(state.fill, in: shape)
-            .overlay(shape.strokeBorder(state.border, lineWidth: noColour && idx == a.selected ? 3 : 1.5))
+            .overlay(shape.strokeBorder(state.border, lineWidth: edge))
             .opacity(dim)
         }
         // the chosen answer is lifted by the style, so it sinks under the finger
