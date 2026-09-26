@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - The canvas tools
 //
-// The Board (Recentre, Connect) and the Space (Filter, Recentre) each have a
+// The Board (Recentre, Connect, Look) and the Space (Filter, Recentre) each have a
 // couple of small tools. They share one shape and one place: a vertical
 // cluster of 44-point glass circles, each standing on the floating plane, at the
 // bottom-trailing corner just above Ideas' bottom container - under the right
@@ -70,6 +70,68 @@ struct IdeaToolButton: View {
         .hoverEffect(.highlight)
         .accessibilityLabel(label)
         .accessibilityAddTraits(traits)
+    }
+}
+
+/// "Lines: Curved / Straight", as a section of a Look menu - the 3D map's
+/// (GraphStyleTool) and the board's (IdeaBoardLookTool). It is the same
+/// stored choice as Settings > Look and feel (GraphLineStyle); the map
+/// redraws its links on the next frame, the board at once.
+struct IdeaLinesPicker: View {
+    @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+
+    var body: some View {
+        Section("Lines") {
+            Picker("Lines", selection: straightBinding) {
+                ForEach(GraphLineStyle.allCases) { style in
+                    Label(style.title, systemImage: Self.symbol(style))
+                        .tag(style.isStraight)
+                        .accessibilityIdentifier("lookLines-" + style.rawValue)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        }
+    }
+
+    /// The style in force (a design-preview run's `-ideasLines` included),
+    /// written back as the stored choice.
+    private var straightBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { GraphLineStyle.inForce(straightLines).isStraight },
+            set: { straightLines = $0 }
+        )
+    }
+
+    static func symbol(_ style: GraphLineStyle) -> String {
+        switch style {
+        case .curved: return "point.topleft.down.to.point.bottomright.curvepath"
+        case .straight: return "line.diagonal"
+        }
+    }
+}
+
+/// The board's Look tool: how its connectors are drawn (IdeaLinesPicker).
+/// Tinted while it is off the standard (Straight).
+struct IdeaBoardLookTool: View {
+    @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+
+    var body: some View {
+        let straight: Bool = GraphLineStyle.inForce(straightLines).isStraight
+        let ink: Color = straight ? Color.accentColor : Color.secondary
+        let glass: Glass = IdeaToolGlass.glass(active: straight)
+        Menu {
+            IdeaLinesPicker()
+        } label: {
+            IdeaToolFace(symbol: "paintpalette")
+        }
+        .foregroundStyle(ink)
+        .glassEffect(glass, in: .circle)
+        .popOut(.floating, in: Circle())
+        .hoverEffect(.highlight)
+        .accessibilityLabel("Look")
+        .accessibilityValue(straight ? "Straight lines" : "Curved lines")
+        .accessibilityHint("Choose whether the lines between cards are curved or straight.")
     }
 }
 

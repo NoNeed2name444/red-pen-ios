@@ -439,6 +439,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// True while nothing is moving and nothing needs to; the frame's work is
     /// skipped then.
     private var resting: Bool = false
+    /// The Lines choice the links were last written with.
+    private var lastStraight: Bool = GraphLineStyleLive.shared.isStraight
 
     /// The note being dragged, where the finger wants it, and how fast the
     /// finger has lately been moving it (smoothed, so a jittery last touch
@@ -1316,6 +1318,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let turned: Bool = simd_distance_squared(eye, lastEye) > 1e-8
         lastEye = eye
         var linksStale: Bool = turned
+        // Lines: Curved / Straight was flipped - redraw even when at rest
+        let straight: Bool = GraphLineStyleLive.shared.isStraight
+        if straight != lastStraight {
+            lastStraight = straight
+            linksStale = true
+        }
         if linesDirty {
             linesDirty = false
             linksStale = true

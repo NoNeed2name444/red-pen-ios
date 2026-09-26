@@ -154,6 +154,9 @@ struct SettingsPage: View {
     /// "Link length": how far apart linked bodies stand in the Ideas map
     /// (GraphLinkLength), Shorter 0.6 to Longer 1.8.
     @AppStorage(SpaceSettings.linkLengthKey) private var linkLength: Double = GraphLinkLength.standard
+    /// "Lines": Curved (false) or Straight (true) links in the Ideas map and
+    /// on the board (GraphLineStyle).
+    @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
     @Environment(\.graphics) private var graphics
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
@@ -240,6 +243,19 @@ struct SettingsPage: View {
                 .accessibilityValue(GraphLinkLength.spoken(linkLength))
                 .accessibilityIdentifier("linkLengthSlider")
             }
+            HStack {
+                Text("Lines")
+                Spacer()
+                Picker("Lines", selection: $straightLines) {
+                    ForEach(GraphLineStyle.allCases) { style in
+                        Text(style.title).tag(style.isStraight)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .accessibilityIdentifier("lineStylePicker")
+            }
         } header: {
             Text("Look and feel")
         } footer: {
@@ -264,9 +280,18 @@ struct SettingsPage: View {
         parts.append("Always night sky keeps the dark star field, and the app's dark look, even in light mode.")
         parts.append(graphicsFooter)
         parts.append(GraphLinkLength.footer(linkLength))
+        parts.append(lineFooter)
         parts.append("Sounds are short, quiet tones for right and wrong answers and a finished session. They follow the Ring/Silent switch and stay quiet while anything is being read aloud.")
         let footer: String = parts.joined(separator: " ")
         return footer
+    }
+
+    /// What the Lines choice does.
+    private var lineFooter: String {
+        if straightLines {
+            return "Lines: Straight draws every link as a direct line, in the 3D map and on the board."
+        }
+        return "Lines: Curved keeps each map theme's own arches, axons and traces, and bows the board's lines gently."
     }
 
     /// The stored link length, read clamped and written snapped.
