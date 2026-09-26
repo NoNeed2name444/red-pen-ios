@@ -46,12 +46,27 @@ enum FirstRun {
     ///   to an account that has finished them, since a simulator that has
     ///   run the test before keeps its account (FirstRunStore stops them
     ///   coming back within the run).
+    /// - returning: the account agreed to an earlier version of the recording
+    ///   terms on this device. It is agreeing again only because the terms
+    ///   changed, and it has been studying here all along.
     static func isDue(accountId: String, justAgreed: Bool, examAsked: Bool, forced: Bool,
-                      defaults: UserDefaults = .standard) -> Bool {
+                      returning: Bool = false, defaults: UserDefaults = .standard) -> Bool {
         if forced { return true }
         if defaults.bool(forKey: doneKey(for: accountId)) { return false }
-        if justAgreed || !examAsked { return true }
-        return defaults.bool(forKey: startedKey(for: accountId))
+        if defaults.bool(forKey: startedKey(for: accountId)) { return true }
+        if returning { return false }
+        return justAgreed || !examAsked
+    }
+
+    /// Whether any version of the recording terms before `current` was agreed
+    /// to. `key` gives the stored key for a version (RecordingTerms.key).
+    static func agreedEarlier(current: Int, defaults: UserDefaults = .standard,
+                              key: (Int) -> String) -> Bool {
+        guard current > 1 else { return false }
+        for version in 1..<current where defaults.bool(forKey: key(version)) {
+            return true
+        }
+        return false
     }
 
     static func start(accountId: String, defaults: UserDefaults = .standard) {

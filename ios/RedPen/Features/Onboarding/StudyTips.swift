@@ -56,9 +56,11 @@ enum StudyTips {
         return TipSightings.ready(tip.screen)
     }
 
-    /// The tip is done with: its button was used, so it need not be taught.
+    /// The tip is done with: its button was used, so it need not be taught -
+    /// even when that happens before the tip was ever due to show.
     static func used(_ tip: StudyTip) {
-        guard allowed, configured else { return }
+        guard allowed else { return }
+        configure()
         #if canImport(TipKit)
         tip.tip.invalidate(reason: .actionPerformed)
         #endif
@@ -79,8 +81,11 @@ extension View {
 
     /// The Ideas map's theme tip, as a small glass card along the top: the
     /// Look button it is about is drawn by the map itself, deep in Ideas.
-    func ideasThemeTip() -> some View {
-        modifier(IdeasThemeTipModifier())
+    /// Only over the 3D map (not List or Board, nor search results) and only
+    /// once the map is past its own "how to start" card, which sits in the
+    /// same place.
+    func ideasThemeTip(when: Bool = true) -> some View {
+        modifier(IdeasThemeTipModifier(when: when))
     }
 }
 
@@ -106,7 +111,8 @@ private struct StudyTipModifier: ViewModifier {
         let shown: (any Tip)? = ready ? tip.tip : nil
         return content
             .popoverTip(shown)
-            .task { ready = when && StudyTips.ready(tip) }
+            // again when `when` changes: a list row that becomes the first
+            .task(id: when) { ready = when && StudyTips.ready(tip) }
         #else
         return content
         #endif
@@ -114,22 +120,37 @@ private struct StudyTipModifier: ViewModifier {
 }
 
 private struct IdeasThemeTipModifier: ViewModifier {
+    let when: Bool
+    @EnvironmentObject private var notes: NoteStore
+    /// IdeasView's own switcher (List, Board, Space), read only.
+    @AppStorage("vignette.ideas.mode") private var modeRaw: String = IdeasMode.list.rawValue
     @State private var ready = false
+
+    /// The map, and a map past its first-steps card (Graph3DView shows that
+    /// card while there are no folders and fewer than 25 notes).
+    private var onMap: Bool {
+        let space: Bool = modeRaw == IdeasMode.space.rawValue
+        let settled: Bool = !notes.folders.isEmpty || notes.notes.count >= 25
+        return when && space && settled
+    }
 
     func body(content: Content) -> some View {
         #if canImport(TipKit)
-        content
+        let shown: Bool = ready && onMap
+        return content
             .overlay(alignment: .top) {
-                if ready {
+                if shown {
                     TipView(IdeasThemeTip())
                         .frame(maxWidth: 520)
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
             }
-            .task { ready = StudyTips.ready(.ideasTheme) }
+            .task(id: onMap) {
+                if onMap { ready = StudyTips.ready(.ideasTheme) }
+            }
         #else
-        content
+        return content
         #endif
     }
 }

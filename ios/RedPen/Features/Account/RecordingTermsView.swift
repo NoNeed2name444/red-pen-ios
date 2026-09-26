@@ -185,6 +185,12 @@ enum RecordingTerms {
     static let version = 3
 
     static func key(for accountId: String) -> String {
+        key(for: accountId, version: version)
+    }
+
+    /// Any version's key: an earlier one tells FirstRun that the account was
+    /// here before the terms changed.
+    static func key(for accountId: String, version: Int) -> String {
         "recordingTerms.v\(version).\(accountId)"
     }
 

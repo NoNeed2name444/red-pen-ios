@@ -402,7 +402,7 @@ struct LibraryView: View {
             IdeasView(query: $ideasQuery, dockClearance: ideasClearance)
                 // once Ideas is familiar: the map's theme (StudyTips)
                 .tipSighting(.ideas)
-                .ideasThemeTip()
+                .ideasThemeTip(when: ideasQuery.isEmpty)
         } else {
             categoryPage
                 .tipSighting(.library)

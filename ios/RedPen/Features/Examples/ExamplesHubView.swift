@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// The personal build's tour: every feature, each opening straight onto its
-/// worked example, so all of it can be tried without making anything first.
+/// The tour, for everyone ("Try every feature" in the account menu): every
+/// feature, each opening straight onto its worked example, so all of it can
+/// be tried without making anything first. The personal build comes with
+/// example notes and answers too; everyone else sees their own there, and
+/// can add the example sets from here.
 ///
 /// A list on a phone. On a wide iPad the same links are tiles, a few across,
 /// standing a little out of the glass - with the same identifiers, so the
@@ -9,6 +12,10 @@ import SwiftUI
 struct ExamplesHubView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.windowSpan) private var span
+
+    /// The personal build seeds example notes and ten days of answers
+    /// (NoteExamples, InsightExamples); everyone else has their own.
+    private var seeded: Bool { PersonalBuild.isOn }
 
     private var exampleSets: Int { store.library.filter { $0.name.hasPrefix("Example") }.count }
 
@@ -95,9 +102,10 @@ struct ExamplesHubView: View {
 
     @ViewBuilder
     private var thinkingRows: some View {
+        let ideas: String = seeded ? "13 linked groin hernia notes" : "Your own ideas"
+        let ideasDetail: String = ideas + " \u{2014} switch List / Board / Space with the switcher at the bottom"
         row("Ideas: dump, board and 3D map", "point.3.connected.trianglepath.dotted",
-            "13 linked groin hernia notes \u{2014} switch List / Board / Space with the switcher at the bottom",
-            id: "ideas") { IdeasView() }
+            ideasDetail, id: "ideas") { IdeasView() }
         row("Clue-by-clue cases, lookalike duels, disease scripts", "brain.head.profile",
             "Open \u{201C}Examples\u{201D} under your sets", id: "reasoning") { ReasoningView() }
         row("How to reach it \u{2014} a groin lump", "signpost.right",
@@ -108,8 +116,9 @@ struct ExamplesHubView: View {
 
     @ViewBuilder
     private var standingRows: some View {
+        let progress: String = seeded ? "Ten days of example answers" : "Your own answers, filling in as you study"
         row("Progress: readiness, confidence, why you lose marks", "chart.bar.xaxis",
-            "Ten days of example answers", id: "progress") { StatsView() }
+            progress, id: "progress") { StatsView() }
         row("Analytics: what to focus on next, trends, mistakes", "chart.xyaxis.line",
             "Ranked next steps, weekly accuracy, recent wrong answers", id: "analytics") { AnalyticsView() }
         row("Rule sheet", "list.bullet.rectangle",
@@ -154,8 +163,19 @@ struct ExamplesHubView: View {
 
     @ViewBuilder
     private var libraryNotes: some View {
-        let sets: String = "\(exampleSets) example sets are in your library\u{2019}s Examples folder \u{2014} one in every mode."
-        Label(sets, systemImage: "square.stack.3d.up")
+        if exampleSets > 0 {
+            let sets: String = "\(exampleSets) example sets are in your library\u{2019}s Examples folder \u{2014} one in every mode."
+            Label(sets, systemImage: "square.stack.3d.up")
+        } else {
+            // none yet (skipped at the first run, or deleted): one tap adds them
+            Button {
+                SampleData.addExamples(to: store)
+            } label: {
+                Label("Add the example sets \u{2014} one in every mode, in an Examples folder",
+                      systemImage: "plus.square.on.square")
+            }
+            .accessibilityIdentifier("examplesAddSets")
+        }
         Label("Hold any set and choose \u{201C}Turn into\u{2026}\u{201D} to make it another mode.",
               systemImage: "arrow.triangle.2.circlepath")
         Label("Hold any set and choose \u{201C}Reasoning practice\u{2026}\u{201D} for its cases, duels and scripts.",

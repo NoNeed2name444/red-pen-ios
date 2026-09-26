@@ -28,8 +28,13 @@ final class OnboardingUITests: XCTestCase {
 
         // 3 - the daily goal: a preset, then Set
         tap(app.buttons["firstRunGoal-100"], "the 100-a-day preset")
+        let setGoal = app.buttons["firstRun-goal-next"]
+        // the preset took: the main button now sets 100
+        let hundred = NSPredicate(format: "label CONTAINS '100'")
+        expectation(for: hundred, evaluatedWith: setGoal)
+        waitForExpectations(timeout: 5)
         snap(app, "3-goal")
-        tap(app.buttons["firstRun-goal-next"], "the goal page's Set")
+        tap(setGoal, "the goal page's Set")
 
         // 4 - reminders: left off (turning one on asks for notifications)
         let remindersNext = app.buttons["firstRun-reminders-next"]

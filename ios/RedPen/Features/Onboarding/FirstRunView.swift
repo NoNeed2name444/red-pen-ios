@@ -74,11 +74,13 @@ private struct FirstRunDatePage: View {
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
     @State private var chosen: Date = FirstRunDatePage.start
 
-    /// The date already set, or three months from now.
+    /// The date already set (on the exam page, or before), or three months
+    /// from now. A date already past would sit outside the calendar's range.
     private static var start: Date {
         let stamp: Double = UserDefaults.standard.double(forKey: ExamTrack.dateKey)
-        if stamp > 0 { return Date(timeIntervalSince1970: stamp) }
-        return Date().addingTimeInterval(90 * 86_400)
+        let now: Date = Date()
+        if stamp > now.timeIntervalSince1970 { return Date(timeIntervalSince1970: stamp) }
+        return now.addingTimeInterval(90 * 86_400)
     }
 
     var body: some View {
@@ -320,17 +322,22 @@ private extension View {
 extension SampleData {
     static let examplesFolderName: String = "Examples - try every mode"
 
-    /// The example sets, one in every mode, in a folder of their own - once:
-    /// a personal build (seedPersonalBuild) may already have them.
+    /// The example sets, one in every mode, in a folder of their own. Only
+    /// the ones missing are added: a personal build (seedPersonalBuild) may
+    /// already have them, and the Examples hub offers them again to somebody
+    /// who skipped them or deleted some.
     @MainActor
     static func addExamples(to store: Store) {
-        if store.folders.contains(where: { $0.name == examplesFolderName }) { return }
-        let folder = StudyFolder(name: examplesFolderName)
-        store.folders.append(folder)
+        let kept: StudyFolder? = store.folders.first { $0.name == examplesFolderName }
+        let folder: StudyFolder = kept ?? StudyFolder(name: examplesFolderName)
+        if kept == nil { store.folders.append(folder) }
+        let have: Set<String> = Set(store.library.map { $0.name })
         for sample in sets {
+            let name: String = "Example: " + sample.name
+            if have.contains(name) { continue }
             var copy: StudySet = sample
             copy.id = UUID()
-            copy.name = "Example: " + sample.name
+            copy.name = name
             copy.folderId = folder.id
             store.addSet(copy)
         }
@@ -370,8 +377,12 @@ final class FirstRunStore: ObservableObject {
         guard FirstRunStore.allowed, !finished.contains(accountId) else { return false }
         let forced: Bool = FirstRunStore.arguments.contains(FirstRun.showArgument)
         let justAgreed: Bool = terms.agreed.contains(accountId)
+        let returning: Bool = FirstRun.agreedEarlier(current: RecordingTerms.version) { version in
+            RecordingTerms.key(for: accountId, version: version)
+        }
         return FirstRun.isDue(accountId: accountId, justAgreed: justAgreed,
-                              examAsked: ExamChoice.hasAsked(), forced: forced)
+                              examAsked: ExamChoice.hasAsked(), forced: forced,
+                              returning: returning)
     }
 
     func finish(_ accountId: String) {

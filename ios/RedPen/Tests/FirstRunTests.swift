@@ -49,6 +49,28 @@ check("per account: a second account on the device is still due",
       FirstRun.isDue(accountId: "b", justAgreed: true, examAsked: true, forced: false, defaults: d1))
 check("forced (the UI test) shows them to an account that has not finished",
       FirstRun.isDue(accountId: "c", justAgreed: false, examAsked: true, forced: true, defaults: d1))
+
+// new recording terms: everybody agrees again, but only the new are new
+let d3: UserDefaults = freshDefaults()
+check("agreeing to changed terms is not being new",
+      !FirstRun.isDue(accountId: "r", justAgreed: true, examAsked: true, forced: false,
+                      returning: true, defaults: d3))
+check("nor on a device that never answered the exam question (that page still asks)",
+      !FirstRun.isDue(accountId: "r", justAgreed: true, examAsked: false, forced: false,
+                      returning: true, defaults: d3))
+FirstRun.start(accountId: "r", defaults: d3)
+check("pages left half way still come back to a returning account",
+      FirstRun.isDue(accountId: "r", justAgreed: false, examAsked: true, forced: false,
+                     returning: true, defaults: d3))
+d3.set(true, forKey: "terms.v1.old")
+d3.set(true, forKey: "terms.v3.new")
+check("an earlier version agreed to counts",
+      FirstRun.agreedEarlier(current: 3, defaults: d3) { "terms.v\($0).old" })
+check("the current version alone does not",
+      !FirstRun.agreedEarlier(current: 3, defaults: d3) { "terms.v\($0).new" })
+check("with only one version there is nothing earlier",
+      !FirstRun.agreedEarlier(current: 1, defaults: d3) { "terms.v\($0).old" })
+
 check("the keys carry the account and the version",
       FirstRun.doneKey(for: "xyz") == "firstRun.v\(FirstRun.version).done.xyz")
 
