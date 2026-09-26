@@ -179,6 +179,7 @@ struct MCQQuizView: View {
             ExamToolMenuItems(sheet: $toolSheet, highlighting: $highlighting)
         }
         .examToolSheets($toolSheet)
+        .saveToIdeasHost()
         .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
         .diagnosticsScreen("screen:mcq_quiz")
         .navigationBarTitleDisplayMode(.inline)
@@ -726,13 +727,21 @@ struct MCQQuizView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.orange)
             }
-            Text(q.explanation).font(.body).lineSpacing(3)
+            // a passage selected here is saved on its own (Save to Ideas)
+            let idea: IdeaClip = ideaClip
+            SaveableText(text: q.explanation, lineSpacing: 3) { SaveToIdeas.excerpt($0, of: idea) }
             if let tiers = q.differential, !tiers.isEmpty {
                 HowToReachCard(differential: tiers, lecture: q.source)
             }
+            SaveToIdeasButton(clip: idea)
         }
         .contentCard()
         .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+    }
+
+    /// The question on screen as a note in Ideas.
+    private var ideaClip: IdeaClip {
+        SaveToIdeas.clip(question: q, in: studySet, library: store.library)
     }
 
     // MARK: confidence and why a mark was lost

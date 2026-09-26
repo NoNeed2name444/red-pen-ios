@@ -43,7 +43,8 @@ struct QACardsView: View {
         }
         .navigationTitle(studySet.subject.isEmpty ? "Cases" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $simulating) { CaseChatView(card: $0, subject: studySet.subject) }
+        .sheet(item: $simulating) { CaseChatView(card: $0, subject: studySet.subject, idea: ideaClip($0)) }
+        .saveToIdeasHost()
     }
 
     private var headerStatus: String {
@@ -120,8 +121,17 @@ struct QACardsView: View {
                 HowToReachCard(differential: tiers, lecture: lectureLabel(card))
                     .transition(.opacity)
             }
+            if revealed {
+                SaveToIdeasButton(clip: ideaClip(card))
+                    .transition(.opacity)
+            }
         }
         .contentCard()
+    }
+
+    /// The case as a note in Ideas; the pretend patient's debrief adds to it.
+    private func ideaClip(_ card: QACard) -> IdeaClip {
+        SaveToIdeas.clip(caseCard: card, in: studySet, library: store.library)
     }
 
     /// The lecture page the card matches, for "How to reach it".

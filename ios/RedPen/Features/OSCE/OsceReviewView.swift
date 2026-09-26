@@ -59,6 +59,7 @@ struct OsceReviewView: View {
             }
         }
         .modeScreen(.osce)
+        .saveToIdeasHost()
         // The spoken patient, Check accuracy and Turn into, all in the one
         // More menu
         .studyMoreMenu(for: studySet, check: accuracyAsk) {
@@ -302,6 +303,9 @@ struct OsceReviewView: View {
                 FinishHero(symbol: "checkmark.seal.fill", title: title, message: message)
                 // the station worked through: its accuracy, and why
                 AccuracyBadge(set: studySet, itemID: checklist.id.uuidString)
+                // the steps kept in Ideas, the ones started over at marked
+                SaveToIdeasButton(clip: SaveToIdeas.clip(station: checklist, weak: Set(run.misses),
+                                                         in: studySet, library: store.library))
                 Button { spoken = checklist } label: {
                     Label("Practise it with a spoken patient", systemImage: "person.wave.2")
                 }

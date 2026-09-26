@@ -54,9 +54,7 @@ struct SourcePageReader: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text(current.text)
-                    .font(.body)
-                    .textSelection(.enabled)
+                LecturePassageText(text: current.text, page: page)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -100,8 +98,9 @@ struct SourcePDFPage: UIViewRepresentable {
     let url: URL
     let page: Int
 
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+    func makeUIView(context: Context) -> IdeaPDFView {
+        let view = IdeaPDFView()
+        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
         view.displayMode = .singlePage
         view.displaysPageBreaks = false
@@ -111,7 +110,8 @@ struct SourcePDFPage: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: PDFView, context: Context) {
+    func updateUIView(_ view: IdeaPDFView, context: Context) {
+        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         if view.document == nil { view.document = PDFDocument(url: url) }
         go(view)
     }

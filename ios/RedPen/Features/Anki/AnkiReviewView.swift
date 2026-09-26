@@ -52,6 +52,7 @@ struct AnkiReviewView: View {
             }
         }
         .modeScreen(.anki)
+        .saveToIdeasHost()
         // Quiz me, Check accuracy and Turn into, all in the one More menu
         .studyMoreMenu(for: studySet, check: accuracyAsk) {
             Button(action: buildQuiz) {
@@ -130,11 +131,14 @@ struct AnkiReviewView: View {
                 .padding(.top, 8)
                 .padding(.bottom, revealed ? 8 : 24)
                 .readableColumn()
-            // turned over: the card's accuracy, and why
+            // turned over: the card's accuracy, and why; and the back kept
+            // as a note in Ideas
             if revealed {
                 HStack {
                     AccuracyBadge(set: studySet, itemID: item.card.id.uuidString)
                     Spacer()
+                    SaveToIdeasButton(clip: SaveToIdeas.clip(card: item.card, in: studySet,
+                                                             library: store.library))
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)

@@ -90,11 +90,23 @@ struct DueTodayView: View {
             .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, 24)
+            .padding(.bottom, revealed ? 8 : 24)
             .readableColumn()
+            // turned over: the back kept as a note in Ideas
+            if revealed, let set = store.library.first(where: { $0.id == due.setID }) {
+                HStack {
+                    Spacer()
+                    SaveToIdeasButton(clip: SaveToIdeas.clip(card: due.card, in: set,
+                                                             library: store.library))
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+                .readableColumn()
+            }
         }
         .reviewUndoChip(until: $undoUntil, action: undo)
         .studyBar { footer(due) }
+        .saveToIdeasHost()
     }
 
     private var emptyScroll: some View {

@@ -125,12 +125,15 @@ final class IdeaSaver: ObservableObject {
     }
 
     // MARK: which set
+    //
+    // Plain look-ups over the library, off the actor: the clips the study
+    // screens make (SaveToIdeas.clip) call them from anywhere.
 
     /// The library's set an item lives in: the one it was opened from when
     /// that is in the library; otherwise the first that holds it (a quiz or
     /// a session put together on the spot is nowhere to go back to); the set
     /// as given when none does.
-    static func home(of itemID: UUID, in set: StudySet, library: [StudySet]) -> StudySet {
+    nonisolated static func home(of itemID: UUID, in set: StudySet, library: [StudySet]) -> StudySet {
         if let same = library.first(where: { $0.id == set.id }) { return same }
         let holder: StudySet? = library.first { holds($0, itemID) }
         return holder ?? set
@@ -139,14 +142,14 @@ final class IdeaSaver: ObservableObject {
     /// The set a saved note's chip goes back to: the one it was saved from
     /// when that still holds the item, else any set that does (it may have
     /// been copied, or its first set deleted); nil when it has gone.
-    static func set(for source: NoteSource, in library: [StudySet]) -> StudySet? {
+    nonisolated static func set(for source: NoteSource, in library: [StudySet]) -> StudySet? {
         let saved: StudySet? = library.first { $0.id == source.setID }
         guard let item = source.itemID else { return saved }
         if let saved, holds(saved, item) { return saved }
         return library.first { holds($0, item) } ?? saved
     }
 
-    private static func holds(_ set: StudySet, _ id: UUID) -> Bool {
+    private nonisolated static func holds(_ set: StudySet, _ id: UUID) -> Bool {
         if set.questions.contains(where: { $0.id == id }) { return true }
         if set.cards.contains(where: { $0.id == id }) { return true }
         if set.qaCards.contains(where: { $0.id == id }) { return true }
@@ -482,6 +485,13 @@ struct IdeaSelectableText: UIViewRepresentable {
 final class IdeaPDFView: PDFView {
     var onSaveSelection: ((String, Int) -> Void)?
 
+    /// The reader's passage saver as the menu's action; nil (no menu item)
+    /// without one, or before there is anywhere to save.
+    static func saver(_ passage: IdeaPassageSaver?) -> ((String, Int) -> Void)? {
+        guard let passage, IdeaSaver.shared.isReady else { return nil }
+        return passage.save
+    }
+
     override func buildMenu(with builder: UIMenuBuilder) {
         super.buildMenu(with: builder)
         guard builder.system == .context, onSaveSelection != nil else { return }
@@ -546,6 +556,103 @@ private struct NoteSourceInset: ViewModifier {
                 NoteSourceChip(source: source)
                     .padding(.vertical, 8)
             }
+        }
+    }
+}
+
+// MARK: - What each screen saves
+
+/// The clips the study screens save, made from the app's own items. The
+/// source names the library's set the item lives in (IdeaSaver.home), so a
+/// question saved from a quiz put together on the spot still goes back to a
+/// set that is there.
+extension SaveToIdeas {
+    private static func origin(_ kind: NoteSource.Kind, item: UUID, in set: StudySet,
+                               library: [StudySet]) -> (source: NoteSource, subject: String) {
+        let home: StudySet = IdeaSaver.home(of: item, in: set, library: library)
+        let source = NoteSource(kind: kind, setID: home.id, itemID: item, setName: home.name)
+        return (source, home.subject)
+    }
+
+    /// A question: its stem, the right answer and the explanation.
+    static func clip(question item: MCQQuestion, in set: StudySet, library: [StudySet]) -> IdeaClip {
+        let at = origin(.question, item: item.id, in: set, library: library)
+        let key: Int = item.correctIndex
+        let answer: String? = item.options.indices.contains(key) ? item.options[key] : nil
+        return question(stem: item.stem, answer: answer, explanation: item.explanation,
+                        source: at.source, subject: at.subject)
+    }
+
+    /// A card's back. A picture card with no words on its front is named
+    /// after the label it hides.
+    static func clip(card item: AnkiCard, in set: StudySet, library: [StudySet]) -> IdeaClip {
+        let at = origin(.card, item: item.id, in: set, library: library)
+        let blank: Bool = item.front.trimmingCharacters(in: .whitespaces).isEmpty
+        let hidden: String = item.type == .occlusion && blank ? (item.bullets.first ?? "") : ""
+        let front: String = item.type == .cloze ? "" : (hidden.isEmpty ? item.displayFront : hidden)
+        return card(front: front, cloze: item.clozeText, bullets: item.bullets, why: item.why,
+                    source: at.source, subject: at.subject)
+    }
+
+    /// A Cases card: its topic or stem, and the answer points.
+    static func clip(caseCard item: QACard, in set: StudySet, library: [StudySet]) -> IdeaClip {
+        let at = origin(.caseCard, item: item.id, in: set, library: library)
+        return caseCard(topic: item.topic, stem: item.stem, answer: item.answer,
+                        source: at.source, subject: at.subject)
+    }
+
+    /// An OSCE station worked through, the steps started over at marked.
+    static func clip(station item: OsceChecklist, weak: Set<Int>, in set: StudySet,
+                     library: [StudySet]) -> IdeaClip {
+        let at = origin(.osce, item: item.id, in: set, library: library)
+        return osce(title: item.title, steps: item.steps, weak: weak,
+                    source: at.source, subject: at.subject)
+    }
+
+    /// A passage of a lecture, at its page.
+    static func clip(passage text: String, page: Int, of lecture: SourceDoc, in set: StudySet) -> IdeaClip {
+        let source = NoteSource(kind: .lecture, setID: set.id, itemID: lecture.id,
+                                page: max(1, page), setName: set.name)
+        return passage(text, lecture: lecture.name, source: source, subject: set.subject)
+    }
+}
+
+// MARK: - Passages of a lecture
+
+/// What the lecture reader does with a passage chosen on one of its pages:
+/// set by the reader (SourcePreviewView) when the lecture's set is known,
+/// read by the PDF pages and the text pages under it.
+struct IdeaPassageSaver {
+    let save: (String, Int) -> Void
+}
+
+private struct IdeaPassageKey: EnvironmentKey {
+    static let defaultValue: IdeaPassageSaver? = nil
+}
+
+extension EnvironmentValues {
+    var ideaPassage: IdeaPassageSaver? {
+        get { self[IdeaPassageKey.self] }
+        set { self[IdeaPassageKey.self] = newValue }
+    }
+}
+
+/// A lecture page's words: selectable with "Save to Ideas" in the menu when
+/// the reader can save a passage, plain selectable text otherwise.
+struct LecturePassageText: View {
+    let text: String
+    let page: Int
+    @Environment(\.ideaPassage) private var passage
+    @ObservedObject private var saver = IdeaSaver.shared
+
+    var body: some View {
+        if let passage, saver.isReady {
+            let at: Int = page
+            IdeaSelectableText(text: text) { picked in passage.save(picked, at) }
+        } else {
+            Text(text)
+                .font(.body)
+                .textSelection(.enabled)
         }
     }
 }

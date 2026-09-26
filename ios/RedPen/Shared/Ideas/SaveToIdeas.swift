@@ -282,10 +282,20 @@ enum SaveToIdeas {
     // MARK: bodies
 
     /// The body of a new note: a line saying where it came from, then the
-    /// text - a passage as a quote, so it reads as something kept.
+    /// text - a passage as a quote, so it reads as something kept. The line
+    /// is a link to the item too, so a note read as Markdown can go back to
+    /// it wherever the note is opened, not only where the chip is shown.
     static func body(for clip: IdeaClip) -> String {
-        let from: String = "_From " + fromPhrase(clip.source) + "_"
+        let from: String = "_From " + fromLink(clip.source) + "_"
         return from + "\n\n" + entry(for: clip)
+    }
+
+    /// "[a question in Cardiology](stethoscore://item/question/...)": the
+    /// link without the set's name, which the words already say.
+    static func fromLink(_ source: NoteSource) -> String {
+        var bare: NoteSource = source
+        bare.setName = ""
+        return "[" + fromPhrase(source) + "](" + bare.url.absoluteString + ")"
     }
 
     /// What one save adds: the text, or the passage quoted with its page.
@@ -390,6 +400,24 @@ enum SaveToIdeas {
                         source: NoteSource, subject: String) -> IdeaClip {
         let title: String = Self.title(from: lecture, fallback: "Lecture notes")
         return IdeaClip(title: title, text: text, source: source, subject: subject, isExcerpt: true)
+    }
+
+    /// A pretend patient's debrief for a case: the diagnosis and the
+    /// checklist points missed, added under the case's own note (the same
+    /// title and source as saving the case card itself).
+    static func caseDebrief(diagnosis: String, missed: [String], covered: Int, total: Int,
+                            of clip: IdeaClip) -> IdeaClip {
+        var lines: [String] = ["**Pretend patient:** \(covered) of \(total) checklist points covered"]
+        let named: String = oneLine(diagnosis)
+        if !named.isEmpty { lines.append("**Diagnosis:** " + named) }
+        let gaps: [String] = missed.map { oneLine($0) }.filter { !$0.isEmpty }
+        if !gaps.isEmpty {
+            lines.append("Missed:\n" + gaps.map { "- " + $0 }.joined(separator: "\n"))
+        }
+        var out: IdeaClip = clip
+        out.text = lines.joined(separator: "\n\n")
+        out.isExcerpt = false
+        return out
     }
 
     /// A passage chosen from an explanation or a card: the same note as the

@@ -75,7 +75,12 @@ let clip = SaveToIdeas.question(stem: stem, answer: "Right coronary artery",
 check("question clip title from stem", clip.title.hasPrefix("A 54-year-old man"))
 check("question clip has the answer", clip.text.contains("**Answer:** Right coronary artery"))
 let body = SaveToIdeas.body(for: clip)
-check("body says where it came from", body.hasPrefix("_From a question in Cardiology_"), body)
+check("body says where it came from", body.hasPrefix("_From [a question in Cardiology]("), body)
+check("the from line links back to the question",
+      body.contains("(stethoscore://item/question/\(setA.uuidString)/\(item.uuidString))_"), body)
+let linkText: String = String(body.split(separator: "(")[1].split(separator: ")")[0])
+check("the from link routes to the same item",
+      NoteSource(url: URL(string: linkText)!)?.dedupeKey == q1.dedupeKey, linkText)
 check("body holds the explanation", body.hasSuffix("Inferior leads mean the RCA."))
 check("saving the same again adds nothing", SaveToIdeas.appending(clip, to: body) == nil)
 
@@ -93,7 +98,7 @@ let page = SaveToIdeas.passage("Nephrotic: proteinuria > 3.5 g/day", lecture: "G
                                source: lectureP9, subject: "Renal")
 check("a passage names the lecture", page.title == "Glomerular disease")
 check("a passage carries its page", SaveToIdeas.entry(for: page).hasSuffix("\u{2014} p. 9"))
-check("a lecture is from a lecture", SaveToIdeas.body(for: page).hasPrefix("_From a lecture_"))
+check("a lecture is from a lecture", SaveToIdeas.body(for: page).hasPrefix("_From [a lecture]("))
 let samePage = SaveToIdeas.appending(page, to: SaveToIdeas.body(for: page))
 check("the same passage again adds nothing", samePage == nil)
 
@@ -115,6 +120,16 @@ let theCase = SaveToIdeas.caseCard(topic: "Pneumothorax", stem: "A tall man, sud
                                    answer: ["Chest drain"], source: whole, subject: "Resp")
 check("case titled from its topic", theCase.title == "Pneumothorax")
 check("case body has the stem and answer", theCase.text.contains("sudden breathlessness") && theCase.text.contains("- Chest drain"))
+
+let debrief = SaveToIdeas.caseDebrief(diagnosis: "Tension pneumothorax", missed: ["Ask about trauma", " "],
+                                      covered: 7, total: 9, of: theCase)
+check("a debrief goes in the case's note", debrief.title == theCase.title && debrief.source == theCase.source)
+check("a debrief says the score", debrief.text.hasPrefix("**Pretend patient:** 7 of 9"), debrief.text)
+check("a debrief lists what was missed", debrief.text.hasSuffix("Missed:\n- Ask about trauma"), debrief.text)
+let caseNote = SaveToIdeas.body(for: theCase)
+let withDebrief = SaveToIdeas.appending(debrief, to: caseNote)
+check("a debrief adds to the case note", withDebrief?.hasPrefix(caseNote) == true)
+check("the same debrief twice adds nothing", withDebrief.flatMap { SaveToIdeas.appending(debrief, to: $0) } == nil)
 
 // MARK: the backlink
 
