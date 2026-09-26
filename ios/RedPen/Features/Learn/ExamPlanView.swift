@@ -123,7 +123,8 @@ private struct PhaseHero: View {
         let big: String = phase.days.map { $0 == 0 ? "Today" : "T-\($0)" } ?? "\u{2014}"
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(big)
-                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .scaledFont(40, relativeTo: .largeTitle, weight: .bold, design: .rounded)
+                .monospacedDigit()
             VStack(alignment: .leading, spacing: 2) {
                 Text(phase.headline).font(.headline)
                 if phase == .noDate {
@@ -159,7 +160,8 @@ private struct ForecastCard: View {
         let today: String = RetentionForecast.percent(forecast.today)
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("~" + today)
-                .font(.system(size: 36, weight: .bold, design: .rounded).monospacedDigit())
+                .scaledFont(36, relativeTo: .largeTitle, weight: .bold, design: .rounded)
+                .monospacedDigit()
             Text("if your exam were today").font(.subheadline).foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)

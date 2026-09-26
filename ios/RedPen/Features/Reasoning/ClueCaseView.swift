@@ -186,7 +186,7 @@ struct ClueCaseView: View {
             ForEach(Array(clueCase.clues.enumerated()), id: \.offset) { index, clue in
                 if index < shown || result != nil {
                     clueRow(index: index, clue: clue)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.slideFade(.bottom))
                 }
             }
         }

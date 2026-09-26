@@ -9,6 +9,11 @@ struct MCQQuizView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.windowSpan) private var span
+    /// Differentiate Without Colour: right and wrong are said in words beside
+    /// their marks, not only in green and red.
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
+    /// The option's letter disc, growing with the text size.
+    @ScaledMetric(relativeTo: .body) private var letterSide: CGFloat = 32
 
     @State private var current: Int = 0
     @State private var answers: [MCQAnswer]
@@ -263,7 +268,7 @@ struct MCQQuizView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .transition(.slideFade(.top))
     }
 
     /// The bar while a saved place is waiting: Start again beside the big
@@ -401,7 +406,7 @@ struct MCQQuizView: View {
                 .labelStyle(.titleAndIcon)
                 .font(.subheadline.weight(.semibold).monospacedDigit())
                 .foregroundStyle(ink)
-                .accessibilityLabel("\(left / 60) minutes \(left % 60) seconds left")
+                .accessibilityLabel(SpokenText.duration(seconds: left) + " left")
         }
         .padding(.horizontal, 12)
         .frame(minHeight: 36)
@@ -633,24 +638,24 @@ struct MCQQuizView: View {
                 Text(letter(idx))
                     .font(.body.weight(.bold).monospaced())
                     .foregroundStyle(state.badgeFg)
-                    .frame(width: 32, height: 32)
+                    .frame(width: letterSide, height: letterSide)
                     .background(state.badgeBg, in: Circle())
                     .accessibilityHidden(true)
+                // wraps, at any text size, rather than cutting an option off
                 Text(optionText(current, slot: idx))
                     .font(.body)
                     .foregroundStyle(.primary)
                     .strikethrough(out, color: .secondary)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
-                if let mark = state.mark {
-                    Image(systemName: mark).foregroundStyle(state.badgeBg).font(.body.weight(.semibold))
-                }
+                optionMark(state)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(minHeight: 56)
             .background(state.fill, in: shape)
-            .overlay(shape.strokeBorder(state.border, lineWidth: 1.5))
+            .overlay(shape.strokeBorder(state.border, lineWidth: noColour && idx == a.selected ? 3 : 1.5))
             .opacity(dim)
         }
         // the chosen answer is lifted by the style, so it sinks under the finger
@@ -660,9 +665,35 @@ struct MCQQuizView: View {
         .numberKey(idx + 1)
         .strikeOutGestures(struck: out, enabled: !a.checked) { toggleStrike(idx) }
         .accessibilityLabel("Answer \(letter(idx)): \(optionText(current, slot: idx))" + (out ? ", crossed out" : ""))
+        .accessibilityValue(optionSpoken(idx))
         .accessibilityAddTraits(idx == a.selected ? .isSelected : [])
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
+    }
+
+    /// The mark after an option once it is checked; with Differentiate
+    /// Without Colour, its word too.
+    @ViewBuilder
+    private func optionMark(_ state: OptionState) -> some View {
+        if let mark = state.mark {
+            HStack(spacing: 4) {
+                if noColour, let word = state.word {
+                    Text(word).font(.caption.weight(.semibold))
+                }
+                Image(systemName: mark).font(.body.weight(.semibold))
+            }
+            .foregroundStyle(state.badgeBg)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// What VoiceOver says after the option's text: chosen, or - once
+    /// checked, outside a paper - right or wrong.
+    private func optionSpoken(_ slot: Int) -> String {
+        let revealed: Bool = a.checked && !examMode
+        let chosen: Bool = slot == a.selected
+        let right: Bool = slot == correctSlot(current)
+        return SpokenText.optionState(checked: revealed, isCorrect: right, isChosen: chosen)
     }
 
     /// Whether the option in `slot` is crossed out.
@@ -691,6 +722,8 @@ struct MCQQuizView: View {
 
     private struct OptionState {
         var fill: Color, border: Color, badgeBg: Color, badgeFg: Color, mark: String?
+        /// The mark in a word, shown beside it with Differentiate Without Colour.
+        var word: String? = nil
     }
 
     private func optionState(_ idx: Int) -> OptionState {
@@ -706,10 +739,12 @@ struct MCQQuizView: View {
                                badgeFg: on ? .white : .primary, mark: nil)
         }
         if idx == correctSlot(current) {
-            return OptionState(fill: .green.opacity(0.12), border: .green, badgeBg: .green, badgeFg: .white, mark: "checkmark.circle.fill")
+            return OptionState(fill: .green.opacity(0.12), border: .green, badgeBg: .green, badgeFg: .white,
+                               mark: "checkmark.circle.fill", word: "Right")
         }
         if idx == a.selected {
-            return OptionState(fill: .red.opacity(0.10), border: .red, badgeBg: .red, badgeFg: .white, mark: "xmark.circle.fill")
+            return OptionState(fill: .red.opacity(0.10), border: .red, badgeBg: .red, badgeFg: .white,
+                               mark: "xmark.circle.fill", word: "Your pick")
         }
         return OptionState(fill: card.opacity(0.7), border: .clear, badgeBg: Color.primary.opacity(0.06), badgeFg: .secondary, mark: nil)
     }
@@ -720,6 +755,7 @@ struct MCQQuizView: View {
             Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
                 .foregroundStyle(correct ? Color.green : Color.red)
+                .accessibilityAddTraits(.isHeader)
             if struckTheAnswer {
                 Label("You crossed out the right answer. What made you rule it out?",
                       systemImage: "line.diagonal")
@@ -1033,8 +1069,9 @@ struct MCQQuizView: View {
                 return
             }
             // felt as well as seen (and, with Sounds on, heard): right and
-            // wrong answers buzz differently
+            // wrong answers buzz differently - and said, with VoiceOver
             SpaceFeedback.play(right ? .correct : .wrong)
+            announceResult(right)
             persist()
             return
         }
@@ -1063,6 +1100,15 @@ struct MCQQuizView: View {
             ExamStore.shared.twinAnswered(question.id, correct: right)
         }
         return right
+    }
+
+    /// "Correct." or "Incorrect. The answer is C: ..." for VoiceOver, the
+    /// moment the colours change.
+    private func announceResult(_ right: Bool) {
+        let slot: Int = correctSlot(current)
+        let key: String = slot >= 0 ? letter(slot) : ""
+        let answer: String = slot >= 0 ? optionText(current, slot: slot) : ""
+        Announce.say(SpokenText.answerResult(correct: right, letter: key, answer: answer))
     }
 
     private func advance() {

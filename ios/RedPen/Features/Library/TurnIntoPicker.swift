@@ -17,6 +17,7 @@ struct TurnIntoPicker: View {
 
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// Every instant conversion, made once when the sheet opens, so each tile
     /// can say how many cards or questions it will give and tapping it has
@@ -49,7 +50,7 @@ struct TurnIntoPicker: View {
                     Text("\u{201C}\(source.name)\u{201D} stays as it is. The new set is added beside it, with the same subject and folder.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+                    LazyVGrid(columns: GridItem.tiles(minimum: 150, accessibilitySize: typeSize.isAccessibilitySize), spacing: 12) {
                         ForEach(kinds) { kind in
                             tile(kind)
                         }

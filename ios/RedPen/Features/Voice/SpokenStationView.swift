@@ -495,7 +495,8 @@ struct StationReportView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.mark.done.count)")
-                        .font(.system(size: 54, weight: .bold, design: .rounded).monospacedDigit())
+                        .scaledFont(54, relativeTo: .largeTitle, weight: .bold, design: .rounded)
+                        .monospacedDigit()
                     Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(.secondary)
                     Spacer()
                     if attempt.isExample { VoiceExampleTag() }

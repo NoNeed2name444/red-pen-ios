@@ -278,7 +278,7 @@ private struct AccountHeaderCard<Action: View>: View {
     private func identity(_ person: Account) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 44))
+                .scaledFont(44, relativeTo: .largeTitle, maxSize: 64)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {

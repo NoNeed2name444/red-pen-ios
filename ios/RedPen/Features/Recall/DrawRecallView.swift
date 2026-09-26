@@ -162,7 +162,7 @@ struct DrawRecallView: View {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
                 .frame(width: 40, height: 40)
-                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibleGlass(.regular.interactive(), in: Circle())
                 .popOut(.raised, in: Circle())
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())

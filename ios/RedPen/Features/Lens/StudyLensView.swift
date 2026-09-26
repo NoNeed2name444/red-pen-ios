@@ -110,7 +110,7 @@ struct StudyLensView: View {
     private var noCamera: some View {
         VStack(spacing: 14) {
             Image(systemName: "camera.metering.unknown")
-                .font(.system(size: 44))
+                .scaledFont(44, relativeTo: .largeTitle, maxSize: 64)
                 .foregroundStyle(.white.opacity(0.8))
                 .accessibilityHidden(true)
             Text(access == .denied || access == .restricted
@@ -191,7 +191,7 @@ struct StudyLensView: View {
             .font(.footnote.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .glassEffect(.regular.tint(.black.opacity(0.25)), in: .capsule)
+            .accessibleGlass(.regular.tint(.black.opacity(0.25)), in: Capsule(), base: Color.black.opacity(0.85))
             .padding(.top, 8)
             .padding(.horizontal, 16)
     }
@@ -436,8 +436,11 @@ struct LensChip: View {
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
             .fixedSize()
-            .glassEffect(.regular.tint(tint.opacity(0.55)).interactive(), in: .capsule)
-            .contentShape(Capsule())
+            .accessibleGlass(.regular.tint(tint.opacity(0.55)).interactive(), in: Capsule(),
+                             base: tint.darkened(0.35))
+            // the chip is drawn small so it covers little of the page; the
+            // finger's target reaches past it to 44 points tall
+            .contentShape(Capsule().inset(by: -6))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(question.type.spokenName + ": " + question.preview)

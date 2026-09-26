@@ -140,7 +140,7 @@ struct AttendingHintCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentCard()
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .transition(.slideFade(.top))
         .accessibilityElement(children: .combine)
     }
 }
@@ -239,7 +239,8 @@ struct CalculatorSheet: View {
         NavigationStack {
             VStack(spacing: 14) {
                 Text(calc.display)
-                    .font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit())
+                    .scaledFont(44, relativeTo: .largeTitle, weight: .semibold, design: .rounded)
+                    .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
                     .frame(maxWidth: .infinity, alignment: .trailing)

@@ -54,7 +54,7 @@ struct PaywallView: View {
     private var header: some View {
         VStack(spacing: 10) {
             Image(systemName: "pencil.and.scribble")
-                .font(.system(size: 42))
+                .scaledFont(42, relativeTo: .largeTitle, maxSize: 64)
                 .foregroundStyle(StudySetKind.mcq.tint)
                 .accessibilityHidden(true)
             Text("Everything, from any lecture")

@@ -97,7 +97,7 @@ struct MorningCheckView: View {
         VStack(spacing: 20) {
             Spacer(minLength: 0)
             Image(systemName: "sunrise.fill")
-                .font(.system(size: 52))
+                .scaledFont(52, relativeTo: .largeTitle, maxSize: 80)
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             Text("Morning check").font(.largeTitle.weight(.bold))

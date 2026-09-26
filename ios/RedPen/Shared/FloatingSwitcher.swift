@@ -11,6 +11,10 @@ import SwiftUI
 //
 // The caller decides where each state sits: the expanded strip usually on
 // its own row above a bar, the circle at the leading end of that bar.
+//
+// At the accessibility text sizes the strip's names would shrink past
+// reading, so it stays the circle, and a tap opens every choice as a list in
+// a sheet, one to a row, with room for the whole name.
 
 struct SwitcherItem<Value: Hashable>: Identifiable {
     let value: Value
@@ -37,7 +41,10 @@ struct FloatingSwitcher<Value: Hashable>: View {
     var tint: Color = .accentColor
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Namespace private var liftSpace
+    /// The list of choices, open at the accessibility text sizes.
+    @State private var listing = false
 
     init(items: [SwitcherItem<Value>], selection: Binding<Value>, collapsed: Binding<Bool>,
          toggleIdentifier: String, tint: Color = .accentColor) {
@@ -63,22 +70,81 @@ struct FloatingSwitcher<Value: Hashable>: View {
     }
 
     var body: some View {
+        let large: Bool = typeSize.isAccessibilitySize
         Group {
-            if collapsed {
+            if collapsed || large {
                 SwitcherBubble(items: items, chosen: chosen, tint: tint,
                                identifier: toggleIdentifier,
-                               expand: { setCollapsed(false) },
+                               expand: { if large { listing = true } else { setCollapsed(false) } },
                                choose: choose)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.growFade(0.6))
             } else {
                 SwitcherStrip(items: items, selection: selection, tint: tint,
                               identifier: toggleIdentifier, liftSpace: liftSpace,
                               collapse: { setCollapsed(true) },
                               choose: choose)
-                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+                    .transition(.growFade(0.9))
             }
         }
         .sensoryFeedback(.selection, trigger: selection)
+        .sheet(isPresented: $listing) {
+            SwitcherListSheet(items: items, selection: selection, tint: tint, choose: choose)
+        }
+    }
+}
+
+/// Every choice as a list, one to a row - the switcher at the accessibility
+/// text sizes.
+private struct SwitcherListSheet<Value: Hashable>: View {
+    let items: [SwitcherItem<Value>]
+    let selection: Value
+    let tint: Color
+    let choose: (Value) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(items) { item in
+                row(item)
+            }
+            .navigationTitle("Show")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func row(_ item: SwitcherItem<Value>) -> some View {
+        let chosen: Bool = item.value == selection
+        return Button {
+            choose(item.value)
+            dismiss()
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: item.symbol)
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 8)
+                if chosen {
+                    Image(systemName: "checkmark")
+                        .font(.headline)
+                        .foregroundStyle(tint)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(chosen ? [.isSelected] : [])
+        .accessibilityIdentifier(item.identifier)
     }
 }
 
@@ -125,7 +191,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
-                    .font(.system(size: 17, weight: .semibold))
+                    .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 28)
                 Text(item.title)
                     .font(.caption2.weight(.bold))
                     .lineLimit(1)
@@ -171,7 +237,7 @@ private struct SwitcherCollapseButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.down")
-                .font(.system(size: 14, weight: .bold))
+                .scaledFont(14, relativeTo: .body, weight: .bold, maxSize: 24)
                 .foregroundStyle(.secondary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
@@ -198,14 +264,14 @@ private struct SwitcherBubble<Value: Hashable>: View {
         let label: String = "Show the switcher, now \(title)"
         Button(action: expand) {
             Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
+                .scaledFont(18, relativeTo: .body, weight: .semibold, maxSize: 28)
                 .foregroundStyle(tint)
                 .frame(width: 48, height: 48)
                 .overlay(alignment: .topTrailing) { SwitcherBadge() }
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibleGlass(.regular.interactive(), in: Circle())
         .contextMenu {
             ForEach(items) { item in
                 Button {
@@ -225,7 +291,7 @@ private struct SwitcherBubble<Value: Hashable>: View {
 private struct SwitcherBadge: View {
     var body: some View {
         Image(systemName: "chevron.up")
-            .font(.system(size: 7, weight: .heavy))
+            .scaledFont(7, relativeTo: .caption2, weight: .heavy, maxSize: 11)
             .foregroundStyle(.secondary)
             .padding(3)
             .background(.thinMaterial, in: Circle())

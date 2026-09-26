@@ -234,7 +234,7 @@ struct OsceReviewView: View {
             .padding(16)
             // a start over slides the station back in from the top
             .id(run.restarts)
-            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+            .transition(.asymmetric(insertion: .slideFade(.top), removal: .opacity))
             .frame(minHeight: 220)
             .padding(.bottom, 12)
             .readableColumn()

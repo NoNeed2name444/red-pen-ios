@@ -71,7 +71,7 @@ struct ReaderBar: View {
             Spacer(minLength: 0)
             if !whole {
                 ReaderPager(page: $page, count: pageCount, noun: pageNoun)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .transition(.slideFade(.trailing))
             }
         }
     }
@@ -86,13 +86,13 @@ private struct ReaderPagesButton: View {
         let label: String = "All \(noun.lowercased())s"
         Button(action: action) {
             Image(systemName: "sidebar.squares.left")
-                .font(.system(size: 17, weight: .semibold))
+                .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 26)
                 .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
+        .accessibleGlass(.regular.interactive(), in: Circle())
         .popOut(.floating, in: Circle())
         .hoverEffect(.lift)
         .accessibilityLabel(label)
@@ -126,7 +126,7 @@ private struct ReaderPager: View {
                              enabled: !atEnd) { turn(1) }
         }
         .padding(.horizontal, 2)
-        .glassEffect(.regular, in: .capsule)
+        .accessibleGlass(.regular, in: Capsule())
         .popOut(.floating, in: Capsule())
     }
 
@@ -148,7 +148,7 @@ private struct ReaderPagerArrow: View {
         let ink: Color = enabled ? Color.primary : Color.secondary.opacity(0.5)
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .semibold))
+                .scaledFont(16, relativeTo: .body, weight: .semibold, maxSize: 26)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }

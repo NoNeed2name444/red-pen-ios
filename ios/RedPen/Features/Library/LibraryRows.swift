@@ -569,7 +569,7 @@ extension LibraryView {
             .font(.body.weight(.semibold))
             .foregroundStyle(.primary)
             .frame(width: 34, height: 34)
-            .glassEffect(.regular.interactive(), in: disc)
+            .accessibleGlass(.regular.interactive(), in: disc)
             .popOut(.raised, in: disc)
             .frame(width: 44, height: 44)
             .contentShape(disc)

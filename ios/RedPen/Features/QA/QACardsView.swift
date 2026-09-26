@@ -114,7 +114,7 @@ struct QACardsView: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.slideFade(.bottom))
             }
             if revealed, let tiers = card.differential, !tiers.isEmpty {
                 HowToReachCard(differential: tiers, lecture: lectureLabel(card))

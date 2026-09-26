@@ -270,6 +270,10 @@ jobs:
                 $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift \
                 $S/Lens/QuestionDetector.swift $S/Lens/LensTracking.swift $S/Lens/LensAnswer.swift \
                 $S/Lens/LensConversion.swift
+          # what VoiceOver says on the study screens: rating intervals in
+          # words, answers announced when checked, options' state, clocks,
+          # cloze blanks and the study calendar's five steps
+          suite accessibility AccessibilityTextTests.swift $S/AccessibilityText.swift
 
       - name: Fail the job if anything failed
         run: |

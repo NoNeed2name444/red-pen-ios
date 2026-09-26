@@ -25,7 +25,7 @@ struct RecordingTermsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 44, weight: .semibold))
+                    .scaledFont(44, relativeTo: .largeTitle, weight: .semibold, maxSize: 64)
                     .foregroundStyle(.red)
                     .accessibilityHidden(true)
 

@@ -16,6 +16,7 @@ import UniformTypeIdentifiers
 /// only (DocumentScanning).
 struct PictureFromPhotoView: View {
     @EnvironmentObject private var store: Store
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// The most pictures read at once: each is a few seconds of reading.
     static let pageLimit: Int = 10
@@ -129,7 +130,7 @@ struct PictureFromPhotoView: View {
     }
 
     private var sourceTiles: some View {
-        let columns: [GridItem] = [GridItem(.adaptive(minimum: 150), spacing: 12)]
+        let columns: [GridItem] = GridItem.tiles(minimum: 150, accessibilitySize: typeSize.isAccessibilitySize)
         return LazyVGrid(columns: columns, spacing: 12) {
             sourceTile("Photos", detail: "A photo or screenshot", symbol: "photo.on.rectangle",
                        id: "photoSourcePhotos") { choosingPhotos = true }
@@ -160,7 +161,7 @@ struct PictureFromPhotoView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-            .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+            .accessibleGlass(.regular.tint(tint.opacity(0.14)), in: shape, wash: tint.opacity(0.14))
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }

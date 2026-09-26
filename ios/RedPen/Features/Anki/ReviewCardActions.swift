@@ -4,18 +4,25 @@ import SwiftUI
 /// material as the floating switcher, at the top corner of the card. It is
 /// shown by a timestamp rather than an animation, so nothing runs while it
 /// waits; it simply goes when the time is up or the next card is rated.
+/// With VoiceOver on it stays until the next rating: five seconds is not
+/// long enough to find it by swiping.
 struct ReviewUndoChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+            Announce.say("Rating undone. The card is back.")
+        } label: {
             Label("Undo", systemImage: "arrow.uturn.backward")
                 .font(.footnote.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
+                // the capsule is drawn small; the finger's target is not
+                .frame(minHeight: 44)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibleGlass(.regular.interactive(), in: Capsule())
         .popOut(.floating, in: Capsule())
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
@@ -42,6 +49,7 @@ extension View {
 private struct ReviewUndoOverlay: ViewModifier {
     @Binding var until: Date?
     let action: () -> Void
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     /// How long Undo stays in reach.
     static let seconds: Double = 5
@@ -56,9 +64,9 @@ private struct ReviewUndoOverlay: ViewModifier {
                         .transition(.opacity)
                 }
             }
-            .animation(.snappy(duration: 0.2), value: until)
+            .animation(Motion.gentle(.snappy(duration: 0.2)), value: until)
             .task(id: until) {
-                guard let shown = until else { return }
+                guard let shown = until, !voiceOver else { return }
                 let wait: Double = shown.timeIntervalSinceNow
                 if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
                 guard !Task.isCancelled, until == shown else { return }
@@ -94,18 +102,29 @@ private struct ReviewCardActionsModifier: ViewModifier {
                 suspendButton
                 Button("Cancel", role: .cancel) {}
             }
-            .accessibilityAction(named: "Bury until tomorrow", onBury)
-            .accessibilityAction(named: "Suspend card", onSuspend)
+            // the swipe and the hold, for VoiceOver: both in the actions rotor
+            .accessibilityAction(named: "Bury until tomorrow", bury)
+            .accessibilityAction(named: "Suspend card", suspend)
+    }
+
+    private func bury() {
+        onBury()
+        Announce.say("Buried until tomorrow.")
+    }
+
+    private func suspend() {
+        onSuspend()
+        Announce.say("Card suspended.")
     }
 
     private var buryButton: some View {
-        Button(action: onBury) {
+        Button(action: bury) {
             Label("Bury until tomorrow", systemImage: "moon.zzz")
         }
     }
 
     private var suspendButton: some View {
-        Button(role: .destructive, action: onSuspend) {
+        Button(role: .destructive, action: suspend) {
             Label("Suspend card", systemImage: "pause.circle")
         }
     }

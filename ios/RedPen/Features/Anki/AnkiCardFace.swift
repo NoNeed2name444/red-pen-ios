@@ -30,6 +30,8 @@ struct AnkiCardFace: View {
 
             Text(front)
                 .font(.title3.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(SpokenText.clozeFront(front))
 
             if revealed {
                 back
@@ -40,6 +42,24 @@ struct AnkiCardFace: View {
 
             citation
         }
+        // turned over: the answer is read out, so VoiceOver need not go and
+        // find it after the Reveal button has gone
+        .onChange(of: revealed) { _, now in
+            if now { Announce.say(spokenBack) }
+        }
+    }
+
+    /// The back of the card as one sentence for VoiceOver.
+    private var spokenBack: String {
+        let plain: String
+        switch card.type {
+        case .qa: plain = card.bullets.joined(separator: ". ")
+        case .cloze: plain = card.clozeText.replacingOccurrences(
+            of: #"\{\{c\d+::([^}:]+)(::[^}]*)?\}\}"#, with: "$1", options: .regularExpression)
+        case .occlusion: plain = card.bullets.first ?? ""
+        }
+        let text: String = plain.replacingOccurrences(of: "**", with: "")
+        return text.isEmpty ? "Answer shown." : "Answer: " + text
     }
 
     /// Where this card came from.
@@ -85,6 +105,10 @@ struct AnkiCardFace: View {
             }
             .aspectRatio(uiImage.size, contentMode: .fit)
             .frame(maxHeight: 280)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(revealed ? "Picture, with the hidden label now outlined"
+                                         : "Picture, with one label hidden under a question mark")
+            .accessibilityAddTraits(.isImage)
         }
     }
 
@@ -334,6 +358,7 @@ struct AnkiRatingBar: View {
     @AppStorage("anki.ratingHintsShown") private var hintsShown = 0
     private static let hintCards = 5
     @Environment(\.windowSpan) private var span
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let hints: Bool = hintsShown < Self.hintCards
@@ -344,7 +369,13 @@ struct AnkiRatingBar: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            if oneRow {
+            if typeSize.isAccessibilitySize {
+                // one to a row, so the words are never cut off
+                button(.again, hints: hints)
+                button(.hard, hints: hints)
+                button(.good, hints: hints)
+                button(.easy, hints: hints)
+            } else if oneRow {
                 HStack(spacing: 12) {
                     button(.again, hints: hints)
                     button(.hard, hints: hints)
@@ -368,17 +399,21 @@ struct AnkiRatingBar: View {
     private func button(_ rating: AnkiRating, hints: Bool) -> some View {
         let when: String = labels[rating] ?? ""
         let key: Int = (AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1
+        let spoken: String = SpokenText.rating(Self.title(rating), interval: when)
         let action: () -> Void = {
             if hintsShown < Self.hintCards { hintsShown += 1 }
             onRate(rating)
+            Announce.say("Rated " + spoken + ".")
         }
+        // the scheduler's label already starts "in"; shown as "back in 4 d"
+        let back: String = SpokenText.backIn(when)
         let label = VStack(spacing: 2) {
             Text(Self.title(rating))
             if hints {
                 Text(Self.meaning(rating)).font(.footnote)
             }
-            if !when.isEmpty {
-                Text("back in " + when).font(.caption).opacity(0.85)
+            if !back.isEmpty {
+                Text(back).font(.caption).opacity(0.85)
             }
         }
         if rating == .good {
@@ -386,11 +421,15 @@ struct AnkiRatingBar: View {
                 .buttonStyle(.bigPrimary)
                 // 1 to 4, Again to Easy - Anki's own keys
                 .numberKey(key)
+                .accessibilityLabel(Self.title(rating))
+                .accessibilityValue(SpokenText.interval(when))
                 .accessibilityHint(Self.meaning(rating))
         } else {
             Button(action: action) { label }
                 .buttonStyle(.bigSecondary)
                 .numberKey(key)
+                .accessibilityLabel(Self.title(rating))
+                .accessibilityValue(SpokenText.interval(when))
                 .accessibilityHint(Self.meaning(rating))
         }
     }

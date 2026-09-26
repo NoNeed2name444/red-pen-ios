@@ -101,6 +101,7 @@ struct GuessFirstView: View {
         .popOut(.raised, in: shape, pressed: answered)
         .disabled(answered)
         .accessibilityLabel("\(StudyRhythm.letter(i)): \(text)")
+        .accessibilityValue(SpokenText.optionState(checked: answered, isCorrect: isRight, isChosen: isPicked))
         .accessibilityAddTraits(isPicked ? [.isSelected] : [])
     }
 

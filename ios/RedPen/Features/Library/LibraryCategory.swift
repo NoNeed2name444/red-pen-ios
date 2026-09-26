@@ -8,9 +8,10 @@ import SwiftUI
 /// rows and headings lie flat on it.
 extension LibraryView {
 
-    /// Two tiles across a phone, more on a wider window.
+    /// Two tiles across a phone, more on a wider window - and one across at
+    /// the accessibility text sizes, where a tile's name needs the width.
     private var tileColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 150), spacing: 12)]
+        GridItem.tiles(minimum: 150, accessibilitySize: typeSize.isAccessibilitySize)
     }
 
     /// One tile per kind of set here - the modes the old dock had a tab

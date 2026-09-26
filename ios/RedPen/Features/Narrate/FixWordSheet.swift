@@ -123,6 +123,6 @@ struct FixReport: View {
         // a floating surface, on the same plane as the bar it sits above
         .popOut(.floating, in: Capsule())
         .padding(.horizontal)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.slideFade(.bottom))
     }
 }

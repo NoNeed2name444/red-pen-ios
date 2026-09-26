@@ -89,7 +89,7 @@ struct GenerationHUD: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)
                     .frame(maxWidth: 560)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(.slideFade(.bottom))
             }
         }
         .animation(.spring(duration: 0.3), value: center.job?.id)

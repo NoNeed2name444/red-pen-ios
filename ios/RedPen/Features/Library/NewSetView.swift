@@ -55,6 +55,7 @@ struct NewSetView: View {
     /// Anki's schedule comes in with an imported deck.
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     @State private var name: String = ""
     @State private var subject: String = "General"
@@ -356,7 +357,7 @@ struct NewSetView: View {
     // MARK: the three choices
 
     private var modeGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
+        LazyVGrid(columns: GridItem.tiles(minimum: 220, accessibilitySize: typeSize.isAccessibilitySize), spacing: 12) {
             ForEach(StudySetKind.allCases) { option in
                 modeTile(option)
             }

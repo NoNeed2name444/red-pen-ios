@@ -173,6 +173,9 @@ struct LibraryView: View {
     /// The window, not the screen: an iPad app can be a third of one, and the
     /// rows read this to choose between selecting and pushing.
     @State var span: WindowSpan = .slim
+    /// At the accessibility text sizes the dock is one button over a list
+    /// (CategoryDock), so it sits at the bottom even on a wide iPad.
+    @Environment(\.dynamicTypeSize) var typeSize
 
     var body: some View {
         layout
@@ -433,12 +436,16 @@ struct LibraryView: View {
 
     private var searchPrompt: String { inIdeas ? "Search ideas" : "Search questions, cards, notes" }
 
+    /// The dock on end, on a wide iPad, while no sets are being picked -
+    /// not at the accessibility text sizes, where it is at the bottom.
+    private var railed: Bool { span == .broad && !typeSize.isAccessibilitySize }
+
     /// The dock on end, on a wide iPad, while no sets are being picked.
     @ViewBuilder
     private var rail: some View {
-        if span == .broad && !selecting {
+        if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
-                .transition(.move(edge: .leading).combined(with: .opacity))
+                .transition(.slideFade(.leading))
         }
     }
 
@@ -455,7 +462,7 @@ struct LibraryView: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.slideFade(.bottom))
         } else if keyboardUp {
             // the dock steps aside while typing
             EmptyView()
@@ -465,14 +472,14 @@ struct LibraryView: View {
                 // the page, so this one stays away until there is something
                 // to list; Ideas has its own capture row instead.
                 if !inIdeas && !store.library.isEmpty { newSetRow }
-                if span != .broad {
+                if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(.slideFade(.bottom))
         }
     }
 

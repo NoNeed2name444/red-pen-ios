@@ -8,6 +8,7 @@ struct ImportPreviewSheet: View {
     let preview: ImportPreview
     let onImport: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var importing = false
 
     /// The most set rows listed before "and N more".
@@ -65,7 +66,7 @@ struct ImportPreviewSheet: View {
     }
 
     private var facts: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
+        LazyVGrid(columns: GridItem.tiles(minimum: 120, accessibilitySize: typeSize.isAccessibilitySize), spacing: 12) {
             ForEach(preview.facts, id: \.self) { fact in
                 factTile(fact)
             }

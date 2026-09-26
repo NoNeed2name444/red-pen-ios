@@ -116,7 +116,7 @@ struct CardsEditorView: View {
             .buttonStyle(.bigPrimary)
             .keyboardShortcut("s", modifiers: .command)
         }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.slideFade(.bottom))
     }
 
     private func cardRow(_ card: AnkiCard) -> some View {

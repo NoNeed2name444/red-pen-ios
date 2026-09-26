@@ -140,7 +140,7 @@ private struct AppLockShield: ViewModifier {
             Rectangle().fill(.ultraThinMaterial)
             VStack(spacing: 16) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 34, weight: .semibold))
+                    .scaledFont(34, relativeTo: .largeTitle, weight: .semibold, maxSize: 44)
                     .frame(width: 72, height: 72)
                     .liquidGlassChip()
                 Text("Stethoscore is locked")

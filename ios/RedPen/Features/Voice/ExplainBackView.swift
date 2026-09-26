@@ -285,7 +285,7 @@ struct ExplainBackView: View {
         let plane: PopOutPlane = markIsNext ? .raised : .hero
         return Button(action: toggleRecording) {
             Image(systemName: symbol)
-                .font(.system(size: 30, weight: .bold))
+                .scaledFont(30, relativeTo: .title, weight: .bold, maxSize: 44)
                 .frame(width: 76, height: 76)
         }
         .buttonStyle(.glassProminent)
@@ -554,7 +554,8 @@ struct ExplainResultView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.result.score)")
-                        .font(.system(size: 54, weight: .bold, design: .rounded).monospacedDigit())
+                        .scaledFont(54, relativeTo: .largeTitle, weight: .bold, design: .rounded)
+                        .monospacedDigit()
                         .foregroundStyle(Self.scoreColor(attempt.result.score))
                     Text("/ 100").font(.title3).foregroundStyle(.secondary)
                     Spacer()

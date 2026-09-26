@@ -245,6 +245,7 @@ struct DuelView: View {
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
+                .accessibilityLabel(ok ? "Right" : "Wrong")
             VStack(alignment: .leading, spacing: 2) {
                 Text(line).font(.footnote.weight(.semibold))
                 if !feature.why.isEmpty {
@@ -362,6 +363,7 @@ private struct DuelFeatureResult: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
+                .accessibilityLabel(ok ? "Right" : "Wrong")
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.text).font(.subheadline.weight(.medium))
                 Text(answerLine)

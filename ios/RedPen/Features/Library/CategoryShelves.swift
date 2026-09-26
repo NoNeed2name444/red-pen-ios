@@ -151,7 +151,7 @@ struct PhotoCardsTile: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+            .accessibleGlass(.regular.tint(tint.opacity(0.14)), in: shape, wash: tint.opacity(0.14))
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }

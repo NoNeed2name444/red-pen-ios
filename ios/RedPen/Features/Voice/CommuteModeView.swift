@@ -348,7 +348,7 @@ private struct CommutePlayControls: View {
                 session.toggle()
             } label: {
                 Image(systemName: symbol)
-                    .font(.system(size: 34, weight: .bold))
+                    .scaledFont(34, relativeTo: .largeTitle, weight: .bold, maxSize: 48)
                     .frame(width: 84, height: 84)
             }
             .buttonStyle(.glassProminent)

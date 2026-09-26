@@ -208,7 +208,7 @@ struct RingCentre: View {
                 .font(.system(.subheadline, design: .rounded).weight(.bold).monospacedDigit())
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let caption {
-                Text(caption).font(.system(size: 9)).foregroundStyle(.secondary)
+                Text(caption).scaledFont(9, relativeTo: .caption2).foregroundStyle(.secondary)
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
         }
