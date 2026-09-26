@@ -8,8 +8,8 @@ import SwiftUI
 /// pretending one is the other produces a bar where half the controls lie.
 ///
 /// This is the bar's content: the screen hands it to `.studyBar { }`, so the
-/// transcript scrolls under the glass. The arrow keys skip ten seconds either
-/// way; Space plays and pauses.
+/// transcript scrolls under the glass. The arrow keys skip back fifteen
+/// seconds and forward thirty, as the buttons do; Space plays and pauses.
 struct NarrateAudioBar: View {
     @ObservedObject var player: LecturePlayer
     /// The position, fifteen times a second. Watched here and only here, so
@@ -59,19 +59,20 @@ struct NarrateAudioBar: View {
         }
     }
 
-    /// Back ten, Play, forward ten - the order every player uses - and the
-    /// speed, a compact menu, beside them.
+    /// Back fifteen, Play, forward thirty - the order every player uses, and
+    /// the steps a podcast player uses: back for "what did she just say",
+    /// forward for a tangent - and the speed, a compact menu, beside them.
     private var transport: some View {
         HStack(spacing: 12) {
             Button {
-                player.seek(to: clock.time - 10)
-            } label: { Image(systemName: "gobackward.10") }
+                player.skip(by: -NowPlaying.back)
+            } label: { Image(systemName: "gobackward.15") }
                 .buttonStyle(.bigCompanion)
                 .keyboardShortcut(.leftArrow, modifiers: [])
-                .accessibilityLabel("Back 10 seconds")
+                .accessibilityLabel("Back 15 seconds")
 
             Button {
-                player.toggle(rate: speed)
+                player.toggle()
             } label: {
                 Label(player.playing ? "Pause" : "Play",
                       systemImage: player.playing ? "pause.fill" : "play.fill")
@@ -80,23 +81,25 @@ struct NarrateAudioBar: View {
             .keyboardShortcut(.space, modifiers: [])
 
             Button {
-                player.seek(to: clock.time + 10)
-            } label: { Image(systemName: "goforward.10") }
+                player.skip(by: NowPlaying.forward)
+            } label: { Image(systemName: "goforward.30") }
                 .buttonStyle(.bigCompanion)
                 .keyboardShortcut(.rightArrow, modifiers: [])
-                .accessibilityLabel("Forward 10 seconds")
+                .accessibilityLabel("Forward 30 seconds")
 
             speedMenu
         }
     }
 
+    /// 0.75x to 2.5x in quarter steps. The screen hands the choice to the
+    /// player and remembers it for this lecture; the voice keeps its pitch.
     private var speedMenu: some View {
-        let shown: String = Self.rateLabel(speed)
+        let shown: String = AudioRate.label(speed)
         return Menu {
-            ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
-                Button(Self.rateName(rate)) {
-                    speed = rate
-                    player.setRate(rate)
+            // a picker inside the menu ticks the chosen speed by itself
+            Picker("Playback speed", selection: $speed) {
+                ForEach(AudioRate.steps, id: \.self) { rate in
+                    Text(AudioRate.name(rate)).tag(rate)
                 }
             }
         } label: {
@@ -105,15 +108,6 @@ struct NarrateAudioBar: View {
         }
         .buttonStyle(.bigCompanion)
         .accessibilityLabel("Playback speed, \(shown)")
-    }
-
-    /// "1.5\u{00d7}" - the speed as the chip shows it.
-    private static func rateLabel(_ rate: Double) -> String {
-        String(format: "%g\u{00d7}", rate)
-    }
-
-    private static func rateName(_ rate: Double) -> String {
-        rate == 1 ? "Normal" : rateLabel(rate)
     }
 }
 

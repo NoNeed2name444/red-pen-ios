@@ -51,6 +51,7 @@ struct NarrateReviewView: View {
     @StateObject var player = LecturePlayer()
     @StateObject var importer = LectureImporter()
     @StateObject var voice = NarrateVoice()
+    @StateObject var sleep = SleepTimer()
 
     @State var index = 0
     @State var playing = false
@@ -90,10 +91,18 @@ struct NarrateReviewView: View {
 
     // MARK: the screen, in three shallow layers
 
-    /// What sits in the bottom bar: the recording's own player, or the
-    /// read-aloud controls with the way to add a recording beside them.
-    @ViewBuilder
+    /// What sits in the bottom bar: the sections and the sleep timer
+    /// (NarrateListening), over the recording's own player or the read-aloud
+    /// controls with the way to add a recording beside them.
     private var controls: some View {
+        VStack(spacing: 10) {
+            if !texts.isEmpty || player.hasAudio { listenRow }
+            transport
+        }
+    }
+
+    @ViewBuilder
+    private var transport: some View {
         if player.hasAudio {
             NarrateAudioBar(player: player, clock: player.clock, speed: $speed)
         } else {
@@ -129,7 +138,7 @@ struct NarrateReviewView: View {
     private var screen: some View {
         stage
             .onAppear(perform: seed)
-            .onDisappear { voice.stop(); player.stop() }
+            .onDisappear { sleep.cancel(); voice.stop(); player.stop() }
             // a recording screen: the camera stays off while it is open
             .popOutFacePaused()
             // adding a recording is in the same More menu as every other
@@ -156,7 +165,7 @@ struct NarrateReviewView: View {
     }
 
     var body: some View {
-        screen
+        listenSync(screen)
             .onChange(of: importer.produced) { _, made in
                 if let made { adopt(made) }
             }
@@ -170,7 +179,7 @@ struct NarrateReviewView: View {
             }
             .onChange(of: voice.playing) { _, now in playing = now }
             .onChange(of: voice.finished) { _, now in finished = now }
-            .onChange(of: speed) { _, now in voice.setSpeed(now) }
+            .onChange(of: speed) { _, now in speedChosen(now) }
             .sheet(item: $fixing) { target in
                 FixWordSheet(target: target) { fix(target, to: $0) }
             }
@@ -203,8 +212,10 @@ struct NarrateReviewView: View {
         savedSegments = segments
         texts = segments.map(\.text)
         _ = learned.applyLearned(to: &texts)
+        restoreSpeed()
         relayout()
         if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording, title: title) }
+        attachSleep()
     }
 
     /// The word timeline and the text to read, worked out once whenever the
@@ -212,6 +223,7 @@ struct NarrateReviewView: View {
     /// lecture was laid out again on every tick of the audio clock.)
     private func relayout() {
         voice.load(texts, langs: segments.map(\.lang), title: title)
+        layoutSections()
         guard let measured = NarrateScheduler.measured(segments) else {
             player.setTimeline([])
             return

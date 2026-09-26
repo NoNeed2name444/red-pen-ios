@@ -35,11 +35,18 @@ struct NarrateClip: Sendable {
 @MainActor
 final class NarrateVoice: NSObject, ObservableObject {
 
-    @Published private(set) var spot = NarrateSpot(line: 0, word: nil)
+    @Published private(set) var spot = NarrateSpot(line: 0, word: nil) {
+        didSet { if spot.line != oldValue.line { lineMoved() } }
+    }
     @Published private(set) var playing = false
     @Published private(set) var finished = false
     /// Playing, but the next clip has not arrived yet.
     @Published private(set) var waiting = false
+    /// The speed, as chosen on the screen or the lock screen.
+    @Published private(set) var speed: Double = 1
+    /// Told when the student moves the place by hand, so a sleep timer set
+    /// for "the end of this section" follows them to the new one.
+    var sleepMoved: (@MainActor () -> Void)?
 
     /// After a refusal the cloud is left alone for a while, so jumping about
     /// does not wait on a server that has already said no.
@@ -50,13 +57,20 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var lines: [String] = []
     private var langs: [String] = []
     private var title = "Lecture"
-    private var speed: Double = 1
     private var chunks: [NarrateChunk] = []
     /// Stopped in place by Pause, so Play carries on rather than starting over.
     private var paused = false
     /// Bumped by every Play and Stop, so a late timer knows it is stale.
     private var session = 0
     private var remote: [Any] = []
+    /// The lecture's sections, by line, and the one being read.
+    @Published private(set) var chapters: [AudioChapter] = []
+    private var section: Int?
+    /// Paused by a call, so the end of the call may carry on.
+    private var pausedByInterruption = false
+    /// The sleep timer's fade, for the cloud voice. (The phone's voice
+    /// cannot be faded part way through a line; it simply stops.)
+    private var fade: Float = 1
 
     // the cloud voice
     private let cloud = CloudVoice()
@@ -75,6 +89,7 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var onCloud = false
     private var timeObserver: Any?
     private var observers: [NSObjectProtocol] = []
+    private var sessionWatch: [NSObjectProtocol] = []
 
     // the phone's voice
     private struct PhoneLine {
@@ -96,17 +111,16 @@ final class NarrateVoice: NSObject, ObservableObject {
         synthesizer.delegate = self
     }
 
-    /// A phone call stops the lecture in place; Play carries on after it.
+    /// A phone call stops the lecture in place, and it carries on after the
+    /// call when the system says to; headphones pulled out pause it.
     private func listen() {
+        if sessionWatch.isEmpty {
+            sessionWatch = NowPlaying.watch(interrupted: { [weak self] in self?.interrupted() },
+                                            mayResume: { [weak self] in self?.resumeAfterInterruption() },
+                                            unplugged: { [weak self] in self?.pause() })
+        }
         guard observers.isEmpty else { return }
         let center: NotificationCenter = NotificationCenter.default
-        let interrupted: NSObjectProtocol = center.addObserver(
-            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
-            let raw: UInt = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) ?? 0
-            let began: Bool = AVAudioSession.InterruptionType(rawValue: raw) == .began
-            guard began else { return }
-            MainActor.assumeIsolated { self?.pause() }
-        }
         let ended: NSObjectProtocol = center.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] note in
             guard let item = note.object as? AVPlayerItem else { return }
@@ -121,12 +135,25 @@ final class NarrateVoice: NSObject, ObservableObject {
             let id = ObjectIdentifier(item)
             MainActor.assumeIsolated { self?.itemFailed(id) }
         }
-        observers = [interrupted, ended, broke]
+        observers = [ended, broke]
     }
 
     private func unlisten() {
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
         observers = []
+        NowPlaying.unwatch(sessionWatch)
+        sessionWatch = []
+    }
+
+    private func interrupted() {
+        guard playing else { return }
+        pause()
+        pausedByInterruption = true
+    }
+
+    private func resumeAfterInterruption() {
+        guard pausedByInterruption else { return }
+        resume()
     }
 
     // MARK: what is read
@@ -157,8 +184,10 @@ final class NarrateVoice: NSObject, ObservableObject {
         session += 1
         finished = false
         paused = false
+        pausedByInterruption = false
         playing = true
         spot = NarrateSpot(line: start, word: nil)
+        sleepMoved?()
         // a Play is a fresh try: a clip that failed in a network drop is
         // asked for again rather than left to the phone for good
         failed = []
@@ -183,8 +212,10 @@ final class NarrateVoice: NSObject, ObservableObject {
             return
         }
         paused = false
+        pausedByInterruption = false
         playing = true
         NowPlaying.activate()
+        listen()
         if onCloud, let queue {
             queue.defaultRate = Float(speed)
             if queue.currentItem == nil {
@@ -205,6 +236,7 @@ final class NarrateVoice: NSObject, ObservableObject {
         guard playing else { return }
         playing = false
         paused = true
+        pausedByInterruption = false
         waiting = false
         if onCloud {
             queue?.pause()
@@ -230,12 +262,50 @@ final class NarrateVoice: NSObject, ObservableObject {
         paused = false
         finished = false
         spot = NarrateSpot(line: target, word: nil)
+        sleepMoved?()
+    }
+
+    // MARK: sections
+
+    /// The lecture's sections, worked out by the screen once per transcript.
+    func setChapters(_ made: [AudioChapter]) {
+        chapters = made
+        section = nil
+        lineMoved()
+    }
+
+    var hasSections: Bool { chapters.count >= 2 }
+
+    func nextSection() {
+        let here: Int? = AudioChapters.index(containingLine: spot.line, in: chapters)
+        guard let next = AudioChapters.next(after: here, in: chapters) else { return }
+        jump(to: chapters[next].lines.lowerBound)
+    }
+
+    /// Back to this section's first line, or to the one before from there.
+    func previousSection() {
+        guard let back = AudioChapters.previous(fromLine: spot.line, in: chapters) else { return }
+        jump(to: chapters[back].lines.lowerBound)
+    }
+
+    func jump(toSection i: Int) {
+        guard chapters.indices.contains(i) else { return }
+        jump(to: chapters[i].lines.lowerBound)
+    }
+
+    /// A new line may be a new section, which the lock screen shows.
+    private func lineMoved() {
+        let now: Int? = hasSections ? AudioChapters.index(containingLine: spot.line, in: chapters) : nil
+        guard now != section else { return }
+        section = now
+        showNowPlaying()
     }
 
     /// A new speed takes effect at once: the cloud clip is sped up in place,
     /// and the phone's voice starts again from the word it was on (a
     /// synthesizer cannot change the rate of a line it has started).
-    func setSpeed(_ newSpeed: Double) {
+    func setSpeed(_ chosen: Double) {
+        let newSpeed: Double = AudioRate.snapped(chosen)
         guard newSpeed != speed else { return }
         speed = newSpeed
         if onCloud {
@@ -368,6 +438,7 @@ final class NarrateVoice: NSObject, ObservableObject {
     private func ensureQueue() -> AVQueuePlayer {
         if let queue { return queue }
         let made = AVQueuePlayer()
+        made.volume = fade
         made.actionAtItemEnd = .advance
         made.automaticallyWaitsToMinimizeStalling = false
         let interval = CMTime(value: 1, timescale: 15)
@@ -736,16 +807,68 @@ final class NarrateVoice: NSObject, ObservableObject {
 
     // MARK: the lock screen
 
+    /// Play, Pause, the speed, and the headphones' next and previous moving
+    /// by section. No skip by seconds: a voice reading line by line has no
+    /// clock to skip along.
     private func attachRemote() {
         guard remote.isEmpty else { return }
-        remote = NowPlaying.handle(play: { [weak self] in self?.resume() },
-                                   pause: { [weak self] in self?.pause() },
-                                   toggle: { [weak self] in self?.toggle() })
+        var actions = NowPlaying.Actions(play: { [weak self] in self?.resume() },
+                                         pause: { [weak self] in self?.pause() },
+                                         toggle: { [weak self] in self?.toggle() })
+        actions.section = { [weak self] step in self?.stepSection(step) }
+        actions.rate = { [weak self] chosen in self?.setSpeed(chosen) }
+        remote = NowPlaying.handle(actions)
+    }
+
+    /// By section when the lecture has them, otherwise by line.
+    private func stepSection(_ step: Int) {
+        if hasSections {
+            if step > 0 { nextSection() } else { previousSection() }
+        } else {
+            jump(to: spot.line + (step > 0 ? 1 : -1))
+        }
     }
 
     private func showNowPlaying() {
         guard !remote.isEmpty else { return }
-        NowPlaying.show(title: title, playing: playing, rate: speed)
+        var shown: NowPlaying.Section?
+        if let section, chapters.indices.contains(section) {
+            shown = NowPlaying.Section(index: section, count: chapters.count, title: chapters[section].title)
+        }
+        NowPlaying.show(title: title, playing: playing, rate: speed, section: shown)
+    }
+}
+
+// The sleep timer counts lines for "the end of this section": a voice reading
+// line by line has no clock that says when the section will end, so the time
+// shown is an estimate and the stop waits for the line itself.
+extension NarrateVoice: SleepTarget {
+    var sleepPlaying: Bool { playing }
+
+    func sleepSectionEnd() -> Double? {
+        guard !lines.isEmpty else { return nil }
+        guard let i = AudioChapters.index(containingLine: spot.line, in: chapters), hasSections else {
+            return Double(lines.count)
+        }
+        return Double(chapters[i].lines.upperBound)
+    }
+
+    func sleepSecondsLeft(until end: Double) -> Double {
+        if finished { return 0 }
+        let endLine: Int = Int(end)
+        return AudioChapters.secondsToRead(lines, line: spot.line, word: spot.word ?? 0,
+                                           until: endLine, speed: speed)
+    }
+
+    func sleepFade(_ level: Float) {
+        fade = level
+        queue?.volume = level
+    }
+
+    func sleepFinish() {
+        pause()
+        fade = 1
+        queue?.volume = 1
     }
 }
 

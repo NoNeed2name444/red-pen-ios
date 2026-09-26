@@ -152,13 +152,6 @@ struct NarrateReadingControls: View {
 
     @Environment(\.windowSpan) private var span
 
-    /// The three reading speeds, slowest first.
-    private static let speeds: [ReadingSpeed] = [
-        ReadingSpeed(value: 0.75, name: "Slow"),
-        ReadingSpeed(value: 1, name: "Normal"),
-        ReadingSpeed(value: 1.5, name: "Fast")
-    ]
-
     @ViewBuilder
     var body: some View {
         if isEmpty, let onAddAudio {
@@ -206,18 +199,20 @@ struct NarrateReadingControls: View {
         .accessibilityIdentifier("narrateAddAudio")
     }
 
-    /// Slow, Normal, Fast, in a compact menu showing the one chosen.
+    /// The same speeds as a recording's (0.75x to 2.5x), in a compact menu
+    /// showing the one chosen, so a lecture sounds as fast either way.
     private var speedMenu: some View {
-        let shown: String = Self.name(for: speed)
+        let shown: String = AudioRate.label(speed)
         return Menu {
             // a picker inside the menu ticks the chosen speed by itself
             Picker("Reading speed", selection: $speed) {
-                ForEach(Self.speeds, id: \.self) { option in
-                    Text(option.name).tag(option.value)
+                ForEach(AudioRate.steps, id: \.self) { rate in
+                    Text(AudioRate.name(rate)).tag(rate)
                 }
             }
         } label: {
             Text(shown)
+                .monospacedDigit()
         }
         .buttonStyle(.bigCompanion)
         .accessibilityLabel("Reading speed, \(shown)")
@@ -240,14 +235,4 @@ struct NarrateReadingControls: View {
             .disabled(!canPlay)
         }
     }
-
-    private static func name(for value: Double) -> String {
-        speeds.first { $0.value == value }?.name ?? String(format: "%g\u{00d7}", value)
-    }
-}
-
-/// One reading speed: how fast, and its name on the menu.
-private struct ReadingSpeed: Hashable {
-    let value: Double
-    let name: String
 }
