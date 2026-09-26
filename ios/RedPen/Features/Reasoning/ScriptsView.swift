@@ -180,6 +180,7 @@ private struct SavedToIdeasToast: View {
         .onTapGesture(perform: onDismiss)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
+        .accessibilityAction(named: "Dismiss", onDismiss)
     }
 }
 

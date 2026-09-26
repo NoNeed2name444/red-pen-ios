@@ -74,7 +74,8 @@ struct TagChipsField: View {
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.bold))
                     .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
+                    // drawn small inside the chip; the target reaches 44
+                    .contentShape(Rectangle().inset(by: -11))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove tag \(tag)")

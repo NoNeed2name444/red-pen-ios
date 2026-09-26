@@ -104,6 +104,7 @@ struct QACardsView: View {
             if revealed {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Answer").font(.subheadline.weight(.bold)).foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
                     ForEach(Array(card.answer.enumerated()), id: \.offset) { _, a in
                         HStack(alignment: .top, spacing: 8) {
                             Text("\u{2022}").foregroundStyle(.secondary)
@@ -149,7 +150,7 @@ struct QACardsView: View {
             if revealed {
                 nextButton
             } else {
-                Button { withAnimation(.snappy) { revealed = true } } label: {
+                Button(action: reveal) {
                     Label("Reveal answer", systemImage: "eye")
                 }
                 .buttonStyle(.bigPrimary)
@@ -188,6 +189,15 @@ struct QACardsView: View {
         .buttonStyle(.bigCompanion)
         .accessibilityLabel("Talk to the patient")
         .accessibilityHint("Opens this case as a patient you can question")
+    }
+
+    /// Shows the answer, and reads it out: the button VoiceOver was on has
+    /// just become Next.
+    private func reveal() {
+        withAnimation(Motion.gentle(.snappy)) { revealed = true }
+        guard let card else { return }
+        let points: String = card.answer.joined(separator: ". ").replacingOccurrences(of: "**", with: "")
+        Announce.say(points.isEmpty ? "Answer shown." : "Answer: " + points)
     }
 
     private func goBack() {

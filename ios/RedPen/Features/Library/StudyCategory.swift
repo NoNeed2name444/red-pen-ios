@@ -460,9 +460,13 @@ struct FeatureTile: View {
     let tint: Color
     /// Said in place of the feature's own line - a mode's count of sets.
     var detail: String? = nil
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        // two lines each, or all of it at the accessibility sizes, where the
+        // tiles go one across (LibraryCategory)
+        let lines: Int? = typeSize.isAccessibilitySize ? nil : 2
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: feature.symbol)
                 .font(.title2.weight(.semibold))
@@ -473,12 +477,12 @@ struct FeatureTile: View {
                 Text(feature.title)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                    .lineLimit(2)
+                    .lineLimit(lines)
                     .multilineTextAlignment(.leading)
                 Text(detail ?? feature.detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(lines)
                     .multilineTextAlignment(.leading)
             }
         }

@@ -439,6 +439,16 @@ struct CoverageView: View {
         case .notCovered: return .red
         }
     }
+
+    /// The status as a shape, for Differentiate Without Colour: full, half,
+    /// empty.
+    static func symbol(_ status: CoverageStatus) -> String {
+        switch status {
+        case .covered: return "checkmark.circle.fill"
+        case .thin: return "circle.lefthalf.filled"
+        case .notCovered: return "circle.dashed"
+        }
+    }
 }
 
 /// One of the three counts at the top, as a chip that filters the rows to
@@ -447,16 +457,25 @@ private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
     let chosen: Bool
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
         let fill: Color = chosen ? colour.opacity(0.22) : Color.clear
         let edge: Color = chosen ? colour.opacity(0.6) : Color.primary.opacity(0.08)
+        let edgeWidth: CGFloat = chosen && noColour ? 2.5 : 1
         let shape = Capsule()
         VStack(spacing: 2) {
-            Text("\(count)")
-                .font(.title2.weight(.bold).monospacedDigit())
-                .foregroundStyle(colour)
+            HStack(spacing: 4) {
+                if noColour {
+                    Image(systemName: CoverageView.symbol(status))
+                        .font(.headline)
+                        .accessibilityHidden(true)
+                }
+                Text("\(count)")
+                    .font(.title2.weight(.bold).monospacedDigit())
+            }
+            .foregroundStyle(colour)
             Text(status.label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -472,7 +491,7 @@ private struct CoverageCountChip: View {
                 shape.fill(fill)
             }
         }
-        .overlay(shape.strokeBorder(edge, lineWidth: 1))
+        .overlay(shape.strokeBorder(edge, lineWidth: edgeWidth))
         .contentShape(shape)
         .popOut(.raised, in: shape, tint: chosen ? colour : nil)
         .contentShape(.hoverEffect, shape)
@@ -507,18 +526,25 @@ private struct CoverageCheckProgress: View {
     }
 }
 
-/// A small coloured label for a coverage status.
+/// A small coloured label for a coverage status - with its shape too, under
+/// Differentiate Without Colour.
 struct StatusChip: View {
     let status: CoverageStatus
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
 
     var body: some View {
-        Text(status.label)
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .foregroundStyle(CoverageView.color(status))
-            .background(CoverageView.color(status).opacity(0.15), in: Capsule())
-            .fixedSize()
+        HStack(spacing: 3) {
+            if noColour {
+                Image(systemName: CoverageView.symbol(status)).accessibilityHidden(true)
+            }
+            Text(status.label)
+        }
+        .font(.caption2.weight(.bold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .foregroundStyle(CoverageView.color(status))
+        .background(CoverageView.color(status).opacity(0.15), in: Capsule())
+        .fixedSize()
     }
 }
 

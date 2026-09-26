@@ -76,7 +76,7 @@ private struct GlassChip: ViewModifier {
 
     func body(content: Content) -> some View {
         let colour: Color = (tint ?? modeTint).opacity(0.35)
-        content.accessibleGlass(.regular.tint(colour), in: Capsule(), wash: colour.opacity(0.5))
+        return content.accessibleGlass(.regular.tint(colour), in: Capsule(), wash: colour.opacity(0.5))
     }
 }
 

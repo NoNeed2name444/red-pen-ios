@@ -175,6 +175,8 @@ struct StudyLensView: View {
         } else if let problem {
             banner(Label(problem, systemImage: "exclamationmark.triangle"))
                 .onTapGesture { self.problem = nil }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint("Dismisses this message")
         } else if model.paused && still == nil && access == .authorized {
             Button {
                 model.resume()
@@ -389,7 +391,7 @@ struct LensChipLayer: View {
                 ForEach(Array(chips.enumerated()), id: \.element.id) { pair in
                     LensChip(question: pair.element.question) { open(pair.element.question) }
                         .offset(x: origins[pair.offset].x, y: origins[pair.offset].y)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .transition(.growFade(0.6))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)

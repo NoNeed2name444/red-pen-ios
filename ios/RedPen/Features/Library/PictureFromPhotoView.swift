@@ -455,7 +455,7 @@ struct PictureFromPhotoView: View {
                     .foregroundStyle(answer.isEmpty ? .secondary : .primary)
                 Spacer(minLength: 0)
             }
-            .frame(minHeight: 36)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

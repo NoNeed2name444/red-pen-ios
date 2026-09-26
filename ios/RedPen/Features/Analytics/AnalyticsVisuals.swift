@@ -360,10 +360,17 @@ struct CalibrationChart: View {
 
 /// Twelve weeks of study as a calendar grid, a column a week, shaded by how
 /// much was done each day, with today outlined.
+///
+/// Each day is one of five steps (HeatLevel). With Differentiate Without
+/// Colour the step is also a dot in the cell, growing with the step, and the
+/// legend shows the same dots - so the grid reads without telling shades
+/// apart. VoiceOver hears a summary, then each week in turn.
 struct StudyHeatmap: View {
     /// Amount studied per day, keyed like StudyLog (`yyyy-MM-dd`).
     var counts: [String: Int]
     var weeks: Int = 12
+
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
 
     private struct Cell: Identifiable {
         var date: Date
@@ -396,19 +403,48 @@ struct StudyHeatmap: View {
         return out
     }
 
-    private static let legendLevels: [Double] = [0.0, 0.3, 0.6, 1.0]
-
-    private static func legendShade(_ level: Double) -> Color {
-        guard level > 0 else { return Color.primary.opacity(0.07) }
-        let strength: Double = 0.25 + 0.7 * level
+    private static func shade(_ level: HeatLevel) -> Color {
+        guard level != .none else { return Color.primary.opacity(0.07) }
+        let strength: Double = 0.25 + 0.7 * level.strength
         return Color.accentColor.opacity(strength)
     }
 
-    private func shade(_ count: Int, busiest: Int) -> Color {
-        guard count > 0, busiest > 0 else { return Color.primary.opacity(0.07) }
-        let level: Double = Double(count) / Double(busiest)
-        let strength: Double = 0.25 + 0.7 * min(1, level)
-        return Color.accentColor.opacity(strength)
+    /// One day's square: its shade, and with Differentiate Without Colour a
+    /// dot sized by its step.
+    private func square(_ level: HeatLevel, future: Bool, today: Bool) -> some View {
+        let fill: Color = future ? Color.clear : Self.shade(level)
+        let dot: Bool = noColour && !future && level != .none
+        return RoundedRectangle(cornerRadius: 3)
+            .fill(fill)
+            .overlay {
+                if dot {
+                    GeometryReader { geo in
+                        let side: CGFloat = geo.size.width * CGFloat(0.2 + 0.6 * level.strength)
+                        Circle()
+                            .fill(Color.primary)
+                            .frame(width: side, height: side)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+            }
+            .overlay {
+                if today {
+                    RoundedRectangle(cornerRadius: 3)
+                        .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.5)
+                }
+            }
+            .aspectRatio(1, contentMode: .fit)
+    }
+
+    /// One week for VoiceOver: "Week of 3 March: 4 days studied, most 12".
+    private func spokenWeek(_ column: [Cell]) -> String {
+        let past: [Cell] = column.filter { !$0.isFuture }
+        let start: String = column.first.map { $0.date.formatted(.dateTime.day().month(.wide)) } ?? ""
+        let days: Int = past.filter { $0.count > 0 }.count
+        let most: Int = past.map(\.count).max() ?? 0
+        let studied: String = SpokenText.count(days, "day") + " studied"
+        let tail: String = most > 0 ? ", most \(most) in a day" : ""
+        return "Week of \(start): " + studied + tail
     }
 
     var body: some View {
@@ -421,31 +457,31 @@ struct StudyHeatmap: View {
                 ForEach(Array(grid.enumerated()), id: \.offset) { _, column in
                     VStack(spacing: 3) {
                         ForEach(column) { cell in
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(cell.isFuture ? Color.clear : shade(cell.count, busiest: busiest))
-                                .overlay {
-                                    if cell.isToday {
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.5)
-                                    }
-                                }
-                                .aspectRatio(1, contentMode: .fit)
+                            let level: HeatLevel = HeatLevel.of(count: cell.count, busiest: busiest)
+                            square(level, future: cell.isFuture, today: cell.isToday)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(spokenWeek(column))
                 }
             }
             .frame(maxWidth: 320)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(summary(studied: studied, busiest: busiest))
             HStack(spacing: 4) {
                 Text("Less").font(.caption2).foregroundStyle(.secondary)
-                ForEach(Self.legendLevels, id: \.self) { level in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Self.legendShade(level))
-                        .frame(width: 10, height: 10)
+                ForEach(HeatLevel.allCases, id: \.self) { level in
+                    square(level, future: false, today: false)
+                        .frame(width: 12, height: 12)
                 }
                 Text("More").font(.caption2).foregroundStyle(.secondary)
             }
+            .accessibilityHidden(true)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Study calendar, last \(weeks) weeks: something studied on \(studied) day\(studied == 1 ? "" : "s"), at most \(busiest) in a day.")
+    }
+
+    private func summary(studied: Int, busiest: Int) -> String {
+        let days: String = SpokenText.count(studied, "day")
+        return "Study calendar, last \(weeks) weeks: something studied on \(days), at most \(busiest) in a day."
     }
 }

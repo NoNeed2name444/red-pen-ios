@@ -194,6 +194,14 @@ private struct DueBars: View {
     /// Days to the exam, to mark its bar.
     let examDay: Int?
 
+    private func spoken(total: Int) -> String {
+        let today: Int = counts.first ?? 0
+        let whole: String = SpokenText.count(total, "card") + " due over the next two weeks, \(today) today"
+        guard let examDay, examDay < counts.count else { return whole }
+        let exam: String = examDay == 0 ? "The exam is today." : "The exam is in \(SpokenText.count(examDay, "day"))."
+        return whole + ". " + exam
+    }
+
     var body: some View {
         let top: Int = max(1, counts.max() ?? 1)
         let total: Int = counts.reduce(0, +)
@@ -205,7 +213,7 @@ private struct DueBars: View {
             }
             .frame(height: 72)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(total) cards due over the next two weeks, \(counts.first ?? 0) today")
+            .accessibilityLabel(spoken(total: total))
             HStack {
                 Text("Today").font(.caption2).foregroundStyle(.secondary)
                 Spacer()
@@ -215,13 +223,20 @@ private struct DueBars: View {
         .padding(.vertical, 4)
     }
 
+    /// One day's bar. The exam's day is red and carries a flag, so it is
+    /// found without telling red from blue.
     private func bar(day: Int, count: Int, top: Int) -> some View {
         let share: CGFloat = CGFloat(count) / CGFloat(top)
-        let height: CGFloat = max(3, 64 * share)
+        let height: CGFloat = max(3, 56 * share)
         let isExam: Bool = examDay == day
         let fill: Color = isExam ? Color.red : StudySetKind.anki.tint
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
+            if isExam {
+                Image(systemName: "flag.fill")
+                    .font(.caption2)
+                    .foregroundStyle(Color.red)
+            }
             Capsule().fill(fill.opacity(count == 0 ? 0.25 : 1)).frame(height: height)
         }
         .frame(maxWidth: .infinity)
@@ -231,6 +246,8 @@ private struct DueBars: View {
 /// One ring per subject: locked in, with the questions on their way lighter.
 struct SecuredRingsView: View {
     let rings: [SecuredRule.Ring]
+    /// The rings' column, wider with the text size so a subject's name fits.
+    @ScaledMetric(relativeTo: .caption) private var column: CGFloat = 92
 
     var body: some View {
         if rings.isEmpty {
@@ -241,7 +258,7 @@ struct SecuredRingsView: View {
             let total: Int = rings.reduce(0) { $0 + $1.total }
             Text("\(secured) of \(total) questions locked in")
                 .font(.subheadline.weight(.semibold))
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 12)], spacing: 16) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: min(column, 300)), spacing: 12)], spacing: 16) {
                 ForEach(rings) { ring in SubjectRing(ring: ring) }
             }
             .padding(.vertical, 6)
@@ -251,6 +268,7 @@ struct SecuredRingsView: View {
 
 private struct SubjectRing: View {
     let ring: SecuredRule.Ring
+    @ScaledMetric(relativeTo: .caption) private var side: CGFloat = 60
 
     var body: some View {
         let total: Double = Double(max(1, ring.total))
@@ -269,8 +287,8 @@ private struct SubjectRing: View {
                 Text(RetentionForecast.percent(secured))
                     .font(.caption.weight(.bold).monospacedDigit())
             }
-            .frame(width: 60, height: 60)
-            Text(ring.subject).font(.caption).lineLimit(2).multilineTextAlignment(.center)
+            .frame(width: min(side, 120), height: min(side, 120))
+            Text(ring.subject).font(.caption).lineLimit(3).multilineTextAlignment(.center)
             Text("\(ring.secured)/\(ring.total)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .ignore)

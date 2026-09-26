@@ -27,7 +27,10 @@ struct AccuracyBadge: View {
             let assessment: AccuracyAssessment = accuracy.assessment(of: item)
             let checking: Bool = accuracy.isChecking(item)
             Button { showing = true } label: {
+                // the capsule is small; the target is 44 points tall
                 AccuracyBadgeFace(grade: assessment.grade, checking: checking)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Accuracy: " + (checking ? "checking" : assessment.grade.title))
@@ -39,7 +42,8 @@ struct AccuracyBadge: View {
     }
 }
 
-/// The capsule itself: a symbol and a word, in the grade's colour.
+/// The capsule itself: a symbol and a word, in the grade's colour - never
+/// the colour alone, so it reads with Differentiate Without Colour.
 struct AccuracyBadgeFace: View {
     let grade: AccuracyGrade
     var checking: Bool = false

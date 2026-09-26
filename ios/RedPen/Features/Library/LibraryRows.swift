@@ -57,12 +57,15 @@ extension LibraryView {
         .padding(16)
         .background(.regularMaterial, in: shape)
         .popOut(.raised, in: shape)
+        // one group for VoiceOver, heading first, lift-off last
+        .accessibilityElement(children: .contain)
     }
 
     /// "Mission Control", and the way into the whole plan.
     private func missionHeader(_ phase: ExamWeekPlanner.Phase) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("Mission Control").font(.headline)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
             Button { LearnRouter.shared.open(.examPlan) } label: {
                 Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
@@ -216,10 +219,11 @@ extension LibraryView {
                 .foregroundStyle(tint)
                 .frame(width: 24)
                 .accessibilityHidden(true)
+            // two lines, or all of it at the accessibility text sizes
             Text(text)
                 .font(.subheadline)
                 .monospacedDigit()
-                .lineLimit(2)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
             Spacer(minLength: 0)
         }
     }

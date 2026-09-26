@@ -115,6 +115,12 @@ struct NarrateLine: View, Equatable {
             .onLongPressGesture(minimumDuration: 0.35) {
                 onFix(FixTarget(segment: index, word: w, heard: text))
             }
+            // the tap and the hold, for VoiceOver
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Plays from here")
+            .accessibilityAction(named: "Fix this word") {
+                onFix(FixTarget(segment: index, word: w, heard: text))
+            }
     }
 }
 

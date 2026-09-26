@@ -66,7 +66,7 @@ struct ReaderBar: View {
             }
             if collapsed {
                 switcher
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.growFade(0.6))
             }
             Spacer(minLength: 0)
             if !whole {

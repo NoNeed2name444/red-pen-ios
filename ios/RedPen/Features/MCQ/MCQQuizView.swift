@@ -768,7 +768,7 @@ struct MCQQuizView: View {
             }
         }
         .contentCard()
-        .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+        .transition(.growFade(0.96, anchor: .top))
     }
 
     // MARK: confidence and why a mark was lost
