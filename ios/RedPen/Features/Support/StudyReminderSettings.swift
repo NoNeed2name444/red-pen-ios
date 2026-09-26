@@ -36,7 +36,7 @@ struct StudyReminderSettings: View {
                     .foregroundStyle(.red)
             }
         } header: {
-            Text("Study reminders")
+            Text(l10n: "Study reminders")
         } footer: {
             Text("A question from your weakest subject each day, answered right on the notification. In the evening, a calm re-read of the day\u{2019}s misses; the next morning, two minutes on the same ones. Nothing leaves your phone.")
         }

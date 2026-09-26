@@ -43,7 +43,7 @@ struct PlatformSettingsSection: View {
                     .shortcutsLinkStyle(.automaticOutline)
             }
         } header: {
-            Text("Siri and Spotlight")
+            Text(l10n: "Siri and Spotlight")
         } footer: {
             Text(siriFooter)
         }
@@ -53,7 +53,7 @@ struct PlatformSettingsSection: View {
                 Toggle("Exam-day Live Activity", isOn: $liveActivity)
                     .accessibilityIdentifier("platformLiveActivity")
             } header: {
-                Text("Widgets")
+                Text(l10n: "Widgets")
             } footer: {
                 Text("From 6 pm the evening before your exam, the Lock Screen shows the countdown and the cards still due. Add the widgets from the Home Screen, and the Review due button from Control Centre.")
             }
@@ -80,7 +80,7 @@ struct PlatformSettingsSection: View {
                         }
                 }
             } header: {
-                Text("Privacy and Health")
+                Text(l10n: "Privacy and Health")
             } footer: {
                 Text(privacyFooter)
             }

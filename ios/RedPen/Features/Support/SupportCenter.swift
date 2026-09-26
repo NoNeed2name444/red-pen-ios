@@ -118,9 +118,9 @@ struct SupportMenuItems: View {
         ForEach(SupportSection.allCases) { section in
             let pages: [SupportPage] = SupportPage.shown(in: section)
             if !pages.isEmpty {
-                Section(section.title) {
+                Section(L10n.lookup(section.title)) {
                     ForEach(pages) { page in
-                        Button(page.title, systemImage: page.symbol) { chosen = page }
+                        Button(L10n.lookup(page.title), systemImage: page.symbol) { chosen = page }
                     }
                 }
             }
@@ -180,7 +180,7 @@ struct SettingsPage: View {
         .scrollContentBackground(.hidden)
         .skyScroll()
         .background(LibraryBackdrop())
-        .navigationTitle("Settings")
+        .navigationTitle(L10n.string("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
         .onChange(of: face) { _, on in faceChanged(on) }
@@ -220,7 +220,7 @@ struct SettingsPage: View {
             }
             .accessibilityIdentifier("graphicsPicker")
         } header: {
-            Text("Look and feel")
+            Text(l10n: "Look and feel")
         } footer: {
             Text(lookFooter)
         }
@@ -295,7 +295,7 @@ struct SettingsPage: View {
                 DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)
             }
         } header: {
-            Text("Your exam")
+            Text(l10n: "Your exam")
         } footer: {
             Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
         }
@@ -325,7 +325,7 @@ struct SettingsPage: View {
             Toggle("Ask before deleting a set", isOn: $confirmDelete)
             Toggle("Open the last set on launch", isOn: $openLastSet)
         } header: {
-            Text("Study")
+            Text(l10n: "Study")
         } footer: {
             Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
         }

@@ -604,8 +604,8 @@ struct CategoryDock: View {
         .buttonStyle(.plain)
         // on the button itself, before the interactive glass and the
         // pop-out wrap it, so UI tests find (and can tap) the button
-        .accessibilityLabel(IdeasPlace.title)
-        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
+        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
         .glassEffect(.regular.tint(wash).interactive(), in: shape)
@@ -655,8 +655,8 @@ struct CategoryDock: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
-        .accessibilityLabel(IdeasPlace.title)
-        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
+        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
     }
@@ -672,7 +672,7 @@ struct CategoryDock: View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
         let ink: Color = chosen ? IdeasPlace.tint : Color.secondary
         let glow: Color? = chosen ? IdeasPlace.tint : nil
-        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink, glow: glow)
+        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), ink: ink, glow: glow)
     }
 
     private func item(_ category: StudyCategory) -> some View {
@@ -683,7 +683,7 @@ struct CategoryDock: View {
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: category.title, ink: ink,
+            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink,
                          glow: chosen ? category.tint : nil)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
@@ -705,7 +705,7 @@ struct CategoryDock: View {
         .buttonStyle(.plain)
         .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
         .accessibilityLabel(spoken(category))
-        .accessibilityHint("Shows these sets and ways to practise")
+        .accessibilityHint(L10n.string("Shows these sets and ways to practise"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-\(category.rawValue)")
     }
@@ -717,14 +717,16 @@ struct CategoryDock: View {
         return KeyEquivalent(character)
     }
 
+    /// "Cards, 3 sets", its plural and digits from the catalog.
     private func spoken(_ category: StudyCategory) -> String {
         let n: Int = count(category)
-        let plural: String = n == 1 ? "" : "s"
-        return "\(category.title), \(n) set\(plural)"
+        let title: String = L10n.lookup(category.title)
+        return L10n.string("\(title), \(n) sets")
     }
 }
 
-/// One dock item's face: a symbol over its name. The chosen one's symbol
+/// One dock item's face: a symbol over its name (already in the app's
+/// language: the dock's words are in the catalog). The chosen one's symbol
 /// sits in a soft coronal glow in its own colour - a small star.
 private struct DockItemFace: View {
     let symbol: String

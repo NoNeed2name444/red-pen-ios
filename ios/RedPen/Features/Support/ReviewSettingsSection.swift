@@ -37,7 +37,7 @@ struct ReviewSettingsSection: View {
                 }
             }
         } header: {
-            Text("Review")
+            Text(l10n: "Review")
         } footer: {
             Text(footer)
         }

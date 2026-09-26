@@ -46,7 +46,7 @@ struct HelpContactSection: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Contact us")
+            Text(l10n: "Contact us")
         } footer: {
             Text("A wrong question or card? Open it and use More \u{2192} Report a problem, so we know exactly which one. Messages include the app version, nothing from your library.")
         }

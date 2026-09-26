@@ -46,7 +46,7 @@ struct LibraryDataSettingsSection: View {
                 .disabled(!hasCards)
                 .accessibilityIdentifier("exportAllAnki")
         } header: {
-            Text("Your data")
+            Text(l10n: "Your data")
         } footer: {
             Text("One file with every set, your review schedule, progress, notes, study log and settings. Save it to Files or iCloud Drive. Restoring adds what this phone doesn\u{2019}t have \u{2014} nothing here is replaced or deleted.")
         }

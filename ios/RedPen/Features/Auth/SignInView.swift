@@ -36,8 +36,8 @@ struct SignInView: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) { doors }
         }
         .sheet(isPresented: $joining) { LinkDeviceView(joinOnly: true) }
-        .alert("Couldn't sign in", isPresented: troubleShown) {
-            Button("OK", role: .cancel) {}
+        .alert(L10n.string("Couldn't sign in"), isPresented: troubleShown) {
+            Button(L10n.string("OK"), role: .cancel) {}
         } message: {
             Text(account.trouble ?? "")
         }
@@ -82,9 +82,11 @@ struct SignInView: View {
                 }
             }
             .padding(.bottom, 6)
+            // a picture, not a row: fanned the same way in either direction
+            .keepsLeftToRight()
             .accessibilityHidden(true)
             Text(Brand.name).font(.largeTitle.weight(.bold))
-            Text("Turn your lectures into questions and flashcards.")
+            Text(l10n: "Turn your lectures into questions and flashcards.")
                 .font(.body).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -134,7 +136,7 @@ struct SignInView: View {
     private var smallPrint: some View {
         // one line of small print instead of two: what each choice means,
         // and that nothing is shared
-        Text("No account needed to start \u{2014} you can link an iPad or another phone later in Account. Nothing is shared with anyone else.")
+        Text(l10n: "No account needed to start \u{2014} you can link an iPad or another phone later in Account. Nothing is shared with anyone else.")
             .font(.footnote)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
@@ -170,7 +172,7 @@ struct SignInView: View {
         Button {
             joining = true
         } label: {
-            Label("I have a code from another device", systemImage: "ipad.and.iphone")
+            Label(L10n.string("I have a code from another device"), systemImage: "ipad.and.iphone")
                 .font(.body.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 40)
         }
@@ -192,7 +194,7 @@ struct SignInView: View {
         return Button {
             Task { await account.signInWithGoogle() }
         } label: {
-            doorLabel("Sign in with Google", symbol: "globe", busy: account.busy)
+            doorLabel(L10n.string("Sign in with Google"), symbol: "globe", busy: account.busy)
                 .frame(height: 56)
                 .foregroundStyle(ink)
                 .background(fill, in: SignInView.door)
@@ -227,7 +229,7 @@ struct SignInView: View {
         Button {
             account.useThisDeviceOnly(name: "")
         } label: {
-            doorLabel("Start without an account", symbol: "iphone.gen3")
+            doorLabel(L10n.string("Start without an account"), symbol: "iphone.gen3")
                 .frame(minHeight: 40)
         }
         .buttonStyle(.glassProminent)
@@ -236,7 +238,7 @@ struct SignInView: View {
         .tint(SignInView.pen)
         .popOut(.hero, in: SignInView.door)
         .keyboardShortcut(.defaultAction)
-        .accessibilityHint("Everything stays on this device")
+        .accessibilityHint(L10n.string("Everything stays on this device"))
         .accessibilityIdentifier("localSignIn")
     }
 

@@ -5,7 +5,9 @@
 # - a tour of the redesigned app (DesignTourUITests): the library on each of
 #   the dock's categories, a category's tiles, New set, a quiz, a card, Ideas
 #   in each view with its switcher open and folded, the menu, Settings and
-#   Progress.
+#   Progress;
+# - the first Arabic screens, right to left (ArabicUITests): sign-in, the
+#   recording terms, the dock and Settings, named ar-*.
 # A push to a preview/** branch runs it; the pictures land on the
 # design-preview branch, in shots/iphone/ and shots/ipad/, with a README
 # that shows them all on one page.
@@ -84,6 +86,7 @@ jobs:
           IPAD_NAME: ${{ steps.sim.outputs.ipad_name }}
           GRAPH: "-only-testing:RedPenUITests/GraphPreviewUITests"
           TOUR: "-only-testing:RedPenUITests/DesignTourUITests"
+          ARABIC: "-only-testing:RedPenUITests/ArabicUITests"
         run: |
           set -o pipefail
           # one xcodebuild run: the simulator, its result bundle and log, then
@@ -121,6 +124,8 @@ jobs:
           done
           # the tour, on the same phone, not recorded
           run_tests "$IPHONE" iphone-tour.xcresult iphone-tour.log "$TOUR"
+          # then the same phone in Arabic (launch arguments only)
+          run_tests "$IPHONE" iphone-arabic.xcresult iphone-arabic.log "$ARABIC"
           xcrun simctl shutdown "$IPHONE" || true
 
           if [ -n "$IPAD" ]; then
@@ -159,7 +164,7 @@ jobs:
                       n += 1
                   shutil.copy(os.path.join(raw, a['exportedFileName']), target)
           PY
-          for pair in $(ls -d iphone-graph-*.xcresult 2>/dev/null | sed 's/$/:iphone/') iphone-tour.xcresult:iphone ipad.xcresult:ipad; do
+          for pair in $(ls -d iphone-graph-*.xcresult 2>/dev/null | sed 's/$/:iphone/') iphone-tour.xcresult:iphone iphone-arabic.xcresult:iphone ipad.xcresult:ipad; do
             bundle="${pair%%:*}"
             device="${pair##*:}"
             [ -d "$bundle" ] || continue
@@ -185,12 +190,12 @@ jobs:
 
           # the test lines and any errors, per run
           : > out/log.txt
-          for log in iphone-graph-*.log iphone-tour.log ipad.log; do
+          for log in iphone-graph-*.log iphone-tour.log iphone-arabic.log ipad.log; do
             [ -f "$log" ] || continue
             echo "== $log" >> out/log.txt
             grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" "$log" | tail -30 >> out/log.txt || true
           done
-          for log in iphone-graph-*.log iphone-tour.log ipad.log; do
+          for log in iphone-graph-*.log iphone-tour.log iphone-arabic.log ipad.log; do
             [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
           done | sort -u | head -40 >> out/log.txt || true
 

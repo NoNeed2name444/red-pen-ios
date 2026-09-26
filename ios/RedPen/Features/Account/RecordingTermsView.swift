@@ -29,7 +29,7 @@ struct RecordingTermsView: View {
                     .foregroundStyle(.red)
                     .accessibilityHidden(true)
 
-                Text("Read this before you start")
+                Text(l10n: "Read this before you start")
                     .font(.largeTitle.bold())
 
                 warningBox
@@ -55,16 +55,16 @@ struct RecordingTermsView: View {
 
                 Toggle(isOn: $shareReports) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Share crash and failure reports")
+                        Text(l10n: "Share crash and failure reports")
                             .font(.subheadline.weight(.semibold))
-                        Text("When something breaks, \(Brand.name) sends what went wrong and the phone model to be fixed \u{2014} never your notes, questions, recordings, name or email. You can change this any time in Settings.")
+                        Text(l10n: "When something breaks, \(Brand.name) sends what went wrong and the phone model to be fixed \u{2014} never your notes, questions, recordings, name or email. You can change this any time in Settings.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
                 .accessibilityIdentifier("shareCrashReports")
 
-                Text("By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
+                Text(l10n: "By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -90,13 +90,13 @@ struct RecordingTermsView: View {
     private var warningBox: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         return VStack(alignment: .leading, spacing: 10) {
-            Text("\(Brand.name) is a study aid for students. It is NOT a medical tool.")
+            Text(l10n: "\(Brand.name) is a study aid for students. It is NOT a medical tool.")
                 .font(.headline)
-            Text("Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.")
+            Text(l10n: "Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.")
                 .font(.subheadline.weight(.semibold))
-            Text("AI content can be wrong, out of date or dangerous, even after it has been checked. Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.")
+            Text(l10n: "AI content can be wrong, out of date or dangerous, even after it has been checked. Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.")
                 .font(.subheadline.weight(.semibold))
-            Text("In an emergency, call your local emergency number.")
+            Text(l10n: "In an emergency, call your local emergency number.")
                 .font(.subheadline)
         }
         .foregroundStyle(.primary)
@@ -122,9 +122,11 @@ struct RecordingTermsView: View {
     /// under the finger. (The screen's big button, like every study screen's:
     /// a glass button on the glass slab would be glass on glass.)
     private var agreeButton: some View {
+        // the countdown in the reader's digits; the words from the catalog
         let waiting: Bool = remaining > 0
-        let title: String = waiting ? "\(remaining)" : "I understand and agree"
-        let spoken: String = waiting ? "Agree, available in \(remaining) seconds" : "I understand and agree"
+        let agree: String = L10n.string("I understand and agree")
+        let title: String = waiting ? L10n.count(remaining) : agree
+        let spoken: String = waiting ? L10n.string("Agree, available in \(remaining) seconds") : agree
         return Button {
             guard remaining == 0 else { return }
             onAccept()
@@ -141,7 +143,10 @@ struct RecordingTermsView: View {
         .accessibilityIdentifier("acceptRecordingTerms")
     }
 
-    private func point(_ symbol: String, _ title: String, _ detail: String) -> some View {
+    /// One point: its symbol at the leading edge, its heading and its
+    /// detail, both from the catalog.
+    private func point(_ symbol: String, _ title: String.LocalizationValue,
+                       _ detail: String.LocalizationValue) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
                 .font(.title3)
@@ -149,8 +154,8 @@ struct RecordingTermsView: View {
                 .frame(width: 30)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+                Text(l10n: title).font(.headline)
+                Text(l10n: detail).font(.subheadline).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

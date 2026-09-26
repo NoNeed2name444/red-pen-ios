@@ -77,7 +77,7 @@ struct DiagnosticsSettingsView: View {
                 Text(status).font(.footnote).foregroundStyle(.secondary)
             }
         } header: {
-            Text("Developer \u{00B7} personal build")
+            Text(l10n: "Developer \u{00B7} personal build")
         } footer: {
             Text("Reports become GitHub issues each day (diagnostics-triage workflow). Crashes and hangs come from MetricKit on the next launch, only with Share With App Developers on; an app killed while open is reported by itself.")
         }
