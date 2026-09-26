@@ -178,28 +178,12 @@ struct LabRangesSheet: View {
     @State private var conventional: Bool = LabUnits.conventional(for: ExamTrack.current)
 
     var body: some View {
-        let found: [LabRange] = LabRanges.search(query)
         NavigationStack {
             List {
                 Section {
-                    Picker("Units", selection: $conventional) {
-                        Text("SI").tag(false)
-                        Text("US conventional").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                } footer: {
-                    Text(LabRanges.caveat)
+                    WardUnitsPicker(conventional: $conventional)
                 }
-                ForEach(LabRanges.groups, id: \.self) { group in
-                    let rows: [LabRange] = found.filter { $0.group == group }
-                    if !rows.isEmpty {
-                        Section(group) {
-                            ForEach(rows) { row in
-                                labRow(row)
-                            }
-                        }
-                    }
-                }
+                LabRangesSections(query: query, conventional: conventional)
             }
             .searchable(text: $query, prompt: "Search lab values")
             .navigationTitle("Lab values")
@@ -211,6 +195,33 @@ struct LabRangesSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+}
+
+/// The reference ranges matching `query`, a section per group, with the
+/// caveat that the paper's own ranges win. Shared by the exam's lab values
+/// sheet and the Ward pocket's first tab.
+struct LabRangesSections: View {
+    let query: String
+    let conventional: Bool
+
+    var body: some View {
+        let found: [LabRange] = LabRanges.search(query)
+        Section {
+            Text(LabRanges.caveat)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        ForEach(LabRanges.groups, id: \.self) { group in
+            let rows: [LabRange] = found.filter { $0.group == group }
+            if !rows.isEmpty {
+                Section(group) {
+                    ForEach(rows) { row in
+                        labRow(row)
+                    }
+                }
+            }
+        }
     }
 
     private func labRow(_ row: LabRange) -> some View {

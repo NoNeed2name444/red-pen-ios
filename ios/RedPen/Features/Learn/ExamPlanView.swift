@@ -12,6 +12,7 @@ struct ExamPlanView: View {
     @State private var quiz: StudySet?
     @State private var showingRules = false
     @State private var showingMock = false
+    @State private var showingPocket = false
 
     var body: some View {
         let exam: Date? = ExamCap.storedDate()
@@ -46,12 +47,19 @@ struct ExamPlanView: View {
                 Text("A question is locked in once you have got it right on three separate days. Getting something right in three spaced sessions keeps far more of it than three times in one sitting. A wrong answer starts its count again.")
             }
             Section("What this phase is for") { phaseActions(phase) }
+            Section {
+                planRow("Ward pocket", symbol: "cross.case") { showingPocket = true }
+                    .accessibilityIdentifier("planWardPocket")
+            } footer: {
+                Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")
+            }
         }
         .navigationTitle("Exam plan")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $quiz) { MCQQuizView(set: $0, keepsProgress: false) }
         .navigationDestination(isPresented: $showingRules) { RuleSheetView() }
         .navigationDestination(isPresented: $showingMock) { MockPaperView() }
+        .sheet(isPresented: $showingPocket) { WardPocketSheet() }
     }
 
     private func dueCounts() -> [Int] {

@@ -789,8 +789,12 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
     let set: StudySet
     let turnInto: Bool
     let check: AccuracyAsk?
+    /// Offers the Ward pocket (lab values, calculators, scores); not in a
+    /// timed paper.
+    var pocket: Bool = true
     let extra: Extra
     @State private var turning: StudySet?
+    @State private var showingPocket = false
     @State private var request: AccuracyRequest?
     @State private var reporting: QuestionReport?
 
@@ -821,6 +825,12 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                             }
                             .accessibilityIdentifier("turnInto")
                         }
+                        if pocket {
+                            Button { showingPocket = true } label: {
+                                Label("Ward pocket", systemImage: "cross.case")
+                            }
+                            .accessibilityIdentifier("wardPocket")
+                        }
                     } label: {
                         Label("More", systemImage: "ellipsis.circle")
                             .labelStyle(.titleAndIcon)
@@ -832,15 +842,17 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
             .turnIntoPicker(for: $turning)
             .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
             .sheet(item: $reporting) { QuestionReportSheet(report: $0) }
+            .sheet(isPresented: $showingPocket) { WardPocketSheet() }
     }
 }
 
 extension View {
     /// The study screen's "More" menu: the screen's own `extra` items, then
-    /// Check accuracy (when `check` is given) and Turn into (when `turnInto`).
+    /// Check accuracy (when `check` is given), Turn into (when `turnInto`)
+    /// and the Ward pocket (unless `pocket` is false).
     func studyMoreMenu<Extra: View>(for set: StudySet, turnInto: Bool = true, check: AccuracyAsk? = nil,
-                                    @ViewBuilder extra: () -> Extra) -> some View {
-        modifier(StudyMoreMenu(set: set, turnInto: turnInto, check: check, extra: extra()))
+                                    pocket: Bool = true, @ViewBuilder extra: () -> Extra) -> some View {
+        modifier(StudyMoreMenu(set: set, turnInto: turnInto, check: check, pocket: pocket, extra: extra()))
     }
 
     /// The "More" menu with only the standard items.

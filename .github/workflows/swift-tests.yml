@@ -79,6 +79,9 @@ jobs:
           # attending's hint that never names the answer, calculator, lab ranges
           suite examtools ExamToolsTests.swift $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift \
                 $S/Exam/MockPaper.swift $S/Exam/TwinQueue.swift $S/Exam/AttendingHint.swift $S/Exam/ExamTools.swift
+          # the Ward pocket: every calculator and score against worked
+          # examples from the papers, band edges included
+          suite wardpocket WardPocketTests.swift $S/WardPocket.swift $S/WardPocketScores.swift
           suite quality CardQualityTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
                 $S/CardQuality.swift $S/QuizFromCards.swift
           suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
