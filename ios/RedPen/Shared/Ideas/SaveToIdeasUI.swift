@@ -225,25 +225,34 @@ private struct SaveToIdeasHost: ViewModifier {
                        set: { if !$0 { saver.stopAsking(host: here) } })
     }
 
+    /// Long enough to reach Undo; longer when it is read aloud and Undo
+    /// has to be found by swiping.
+    private static var showFor: Duration {
+        UIAccessibility.isVoiceOverRunning ? .seconds(10) : .seconds(4)
+    }
+
     func body(content: Content) -> some View {
         let shown: IdeaToast? = mine
         return content
             .environment(\.ideaHost, id)
             .overlay(alignment: .top) {
-                if let shown {
-                    SavedIdeaToast(toast: shown,
-                                   onUndo: { saver.undo() },
-                                   onDismiss: { saver.dismiss(shown.id) })
-                        .padding(.top, 8)
-                        .padding(.horizontal, 16)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                // the slip alone is animated, not the screen under it
+                ZStack {
+                    if let shown {
+                        SavedIdeaToast(toast: shown,
+                                       onUndo: { saver.undo() },
+                                       onDismiss: { saver.dismiss(shown.id) })
+                            .padding(.top, 8)
+                            .padding(.horizontal, 16)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
+                .animation(.snappy, value: shown?.id)
             }
-            .animation(.snappy, value: shown?.id)
-            // it says what happened and goes by itself; long enough to Undo
+            // it says what happened and goes by itself
             .task(id: shown?.id) {
                 guard let showing = shown?.id else { return }
-                try? await Task.sleep(for: .seconds(4))
+                try? await Task.sleep(for: Self.showFor)
                 guard !Task.isCancelled else { return }
                 saver.dismiss(showing)
             }
@@ -435,11 +444,16 @@ struct IdeaSelectableText: UIViewRepresentable {
         context.coordinator.onSave = onSave
         // rebuilt only when the words or the text size change, so a redraw
         // of the screen does not drop a selection being made
-        let size: String = String(describing: context.environment.dynamicTypeSize)
-        let key: String = size + "|" + text
+        let dynamic: DynamicTypeSize = context.environment.dynamicTypeSize
+        let key: String = String(describing: dynamic) + "|" + text
         guard context.coordinator.shown != key else { return }
         context.coordinator.shown = key
-        view.attributedText = styled(for: view.traitCollection)
+        // the text size SwiftUI is using, not the view's own traits, which
+        // are not settled before the view is in a window
+        let category = UIContentSizeCategory(dynamic)
+        let traits = UITraitCollection(preferredContentSizeCategory: category)
+        view.attributedText = styled(for: traits)
+        view.invalidateIntrinsicContentSize()
     }
 
     private func styled(for traits: UITraitCollection) -> NSAttributedString {
@@ -475,7 +489,8 @@ struct IdeaSelectableText: UIViewRepresentable {
             guard !picked.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             let image: UIImage? = UIImage(systemName: "lightbulb")
             let save = UIAction(title: "Save to Ideas", image: image) { _ in onSave(picked) }
-            return UIMenu(children: [save] + suggestedActions)
+            let first: [UIMenuElement] = [save]
+            return UIMenu(children: first + suggestedActions)
         }
     }
 }

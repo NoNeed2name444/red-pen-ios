@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Save to Ideas, the library's end of it: the idea store handed to the
 /// study screens' buttons once the library is on screen, and a saved note's
-/// way back - its chip, or the link at the top of its text - opening the
+/// way back - its chip, or the link at the end of its text - opening the
 /// question, card, case, station or lecture page where it lives, the way a
 /// search result is opened (openHit).
 extension LibraryView {
@@ -21,9 +21,13 @@ extension LibraryView {
             AppRouter.shared.notice = "That \(noun) is no longer in your library."
             return
         }
-        foundNote = nil
-        if !opened.isEmpty { opened = [] }
-        support = nil
+        if source.kind == .lecture, !set.sources.contains(where: { $0.id == source.itemID }) {
+            AppRouter.shared.notice = "That lecture is no longer in your library."
+            return
+        }
+        // back to the library itself: whatever was pushed or shown over it
+        // (a link can arrive from anywhere) is put away first
+        closeOpenPlaces()
         if inIdeas {
             withAnimation(.snappy(duration: 0.3)) { inIdeas = false }
             category = StudyCategory(kind: set.kind)
@@ -34,6 +38,19 @@ extension LibraryView {
             try? await Task.sleep(nanoseconds: 450_000_000)
             openHit(hit)
         }
+    }
+
+    private func closeOpenPlaces() {
+        foundNote = nil
+        foundCard = nil
+        reading = nil
+        quickQuiz = nil
+        featureQuiz = nil
+        featurePage = nil
+        sessionDeck = nil
+        showingDue = false
+        if !opened.isEmpty { opened = [] }
+        support = nil
     }
 
     /// The search result that opens the same place.
@@ -53,7 +70,7 @@ extension LibraryView {
 
 extension View {
     /// Links to the app's own places tapped inside the library - the one at
-    /// the top of a note saved to Ideas - go straight to the router rather
+    /// the end of a note saved to Ideas - go straight to the router rather
     /// than out through the system and back.
     func appLinksInPlace() -> some View {
         environment(\.openURL, OpenURLAction { url in

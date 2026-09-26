@@ -174,7 +174,7 @@ enum SaveToIdeas {
         let plain: String = oneLine(stripMarkup(text))
         guard !plain.isEmpty else { return fallback }
         let sentence: String = firstSentence(plain)
-        // `[[` and `]]` would read as a link to another note; `|` splits one
+        // `[[` and `]]` would read as a link to another note
         let safe: String = sentence
             .replacingOccurrences(of: "[[", with: "[")
             .replacingOccurrences(of: "]]", with: "]")
@@ -203,13 +203,17 @@ enum SaveToIdeas {
     }
 
     /// Whether the full stop at `index` ends a short abbreviation ("e.g.",
-    /// "i.e.", "Dr.", "vs.") rather than a sentence.
+    /// "i.e.", "Dr.", "vs.") rather than a sentence. A lone capital is a
+    /// sentence's end ("hepatitis B.", "vitamin K."), not an initial: stems
+    /// name those far more often than people.
     private static func isAbbreviation(_ chars: [Character], before index: Int) -> Bool {
         var start: Int = index
         while start > 0 && chars[start - 1] != " " { start -= 1 }
-        let word: String = String(chars[start..<index]).lowercased()
-        let known: Set<String> = ["e.g", "i.e", "dr", "vs", "approx", "etc", "mr", "mrs", "st", "no"]
-        return known.contains(word) || (word.count == 1 && word.first?.isLetter == true)
+        let raw: String = String(chars[start..<index])
+        let word: String = raw.lowercased()
+        let known: Set<String> = ["e.g", "i.e", "dr", "vs", "approx", "etc", "mr", "mrs", "st", "cf"]
+        if known.contains(word) { return true }
+        return raw.count == 1 && raw.first?.isLowercase == true
     }
 
     /// Cut at the last word that fits, with an ellipsis.
@@ -281,13 +285,26 @@ enum SaveToIdeas {
 
     // MARK: bodies
 
-    /// The body of a new note: a line saying where it came from, then the
-    /// text - a passage as a quote, so it reads as something kept. The line
+    /// The body of a new note: the text - a passage as a quote, so it reads
+    /// as something kept - then a line saying where it came from. The line
     /// is a link to the item too, so a note read as Markdown can go back to
-    /// it wherever the note is opened, not only where the chip is shown.
+    /// it wherever the note is opened, not only where the chip is shown. It
+    /// goes last so the note's first line (the Ideas list's preview) is the
+    /// idea itself rather than a link.
     static func body(for clip: IdeaClip) -> String {
-        let from: String = "_From " + fromLink(clip.source) + "_"
-        return from + "\n\n" + entry(for: clip)
+        entry(for: clip) + "\n\n" + fromLine(clip.source)
+    }
+
+    /// "_From [a question in Cardiology](stethoscore://item/...)_"
+    static func fromLine(_ source: NoteSource) -> String {
+        "_From " + fromLink(source) + "_"
+    }
+
+    /// Whether a paragraph is the line `body` ends a note with.
+    static func isFromLine(_ paragraph: String) -> Bool {
+        let line: String = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+        let linked: Bool = line.contains("](" + NoteSource.scheme + "://" + NoteSource.host + "/")
+        return line.hasPrefix("_From [") && line.hasSuffix(")_") && linked
     }
 
     /// "[a question in Cardiology](stethoscore://item/question/...)": the
@@ -318,16 +335,23 @@ enum SaveToIdeas {
         return name.isEmpty ? what : what + " in " + name
     }
 
-    /// The note's body with this save added at the end, or nil when the
-    /// note already holds it (compared on its words, so a re-wrapped copy
-    /// still counts) and there is nothing to add.
+    /// The note's body with this save added at the end - above the "From"
+    /// line when the note still ends with it - or nil when the note already
+    /// holds it (compared on its words, so a re-wrapped copy still counts)
+    /// and there is nothing to add.
     static func appending(_ clip: IdeaClip, to body: String) -> String? {
         let adding: String = entry(for: clip)
         let plainAdd: String = folded(stripQuotes(adding))
         guard !plainAdd.isEmpty else { return nil }
         if folded(stripQuotes(body)).contains(plainAdd) { return nil }
         let kept: String = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        return kept.isEmpty ? adding : kept + "\n\n" + adding
+        guard !kept.isEmpty else { return adding }
+        var paragraphs: [String] = kept.components(separatedBy: "\n\n")
+        guard let last = paragraphs.last, paragraphs.count > 1, isFromLine(last) else {
+            return kept + "\n\n" + adding
+        }
+        paragraphs.insert(adding, at: paragraphs.count - 1)
+        return paragraphs.joined(separator: "\n\n")
     }
 
     /// Quote marks and the page line, so a passage compares by its words.

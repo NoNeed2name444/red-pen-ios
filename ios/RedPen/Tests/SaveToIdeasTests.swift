@@ -27,6 +27,12 @@ check("a decimal does not end the sentence",
 check("e.g. does not end the sentence",
       SaveToIdeas.title(from: "Drugs e.g. digoxin cause it. More.") == "Drugs e.g. digoxin cause it.",
       SaveToIdeas.title(from: "Drugs e.g. digoxin cause it. More."))
+check("a lone capital ends the sentence",
+      SaveToIdeas.title(from: "Serology shows hepatitis B. What is the next step?") == "Serology shows hepatitis B.",
+      SaveToIdeas.title(from: "Serology shows hepatitis B. What is the next step?"))
+check("St. does not end the sentence",
+      SaveToIdeas.title(from: "St. John's wort induces CYP3A4. Which drug fails?") == "St. John's wort induces CYP3A4.",
+      SaveToIdeas.title(from: "St. John's wort induces CYP3A4. Which drug fails?"))
 check("a question alone is kept whole",
       SaveToIdeas.title(from: "What is the first-line drug for absence seizures?") == "What is the first-line drug for absence seizures?")
 check("bold markers come out", SaveToIdeas.title(from: "The **SA node** paces the heart") == "The SA node paces the heart")
@@ -75,13 +81,17 @@ let clip = SaveToIdeas.question(stem: stem, answer: "Right coronary artery",
 check("question clip title from stem", clip.title.hasPrefix("A 54-year-old man"))
 check("question clip has the answer", clip.text.contains("**Answer:** Right coronary artery"))
 let body = SaveToIdeas.body(for: clip)
-check("body says where it came from", body.hasPrefix("_From [a question in Cardiology]("), body)
+check("body starts with the idea, not the link", body.hasPrefix("**Answer:** Right coronary artery"), body)
+check("body ends saying where it came from", body.components(separatedBy: "\n\n").last.map(SaveToIdeas.isFromLine) == true, body)
+check("the from line names the set", body.contains("_From [a question in Cardiology]("), body)
 check("the from line links back to the question",
       body.contains("(stethoscore://item/question/\(setA.uuidString)/\(item.uuidString))_"), body)
-let linkText: String = String(body.split(separator: "(")[1].split(separator: ")")[0])
+let linkStart: String.Index = body.range(of: "](")?.upperBound ?? body.endIndex
+let linkText: String = String(body[linkStart...].prefix { $0 != ")" })
 check("the from link routes to the same item",
       NoteSource(url: URL(string: linkText)!)?.dedupeKey == q1.dedupeKey, linkText)
-check("body holds the explanation", body.hasSuffix("Inferior leads mean the RCA."))
+check("body holds the explanation", body.contains("Inferior leads mean the RCA.\n\n_From"), body)
+check("a hand-written line is not the from line", !SaveToIdeas.isFromLine("_From memory_"))
 check("saving the same again adds nothing", SaveToIdeas.appending(clip, to: body) == nil)
 
 let bit = SaveToIdeas.excerpt("Inferior leads\nmean the RCA.", of: clip)
@@ -91,14 +101,21 @@ check("an excerpt keeps the note's title", bit.title == clip.title)
 check("an excerpt already in the note adds nothing", SaveToIdeas.appending(bit, to: body) == nil)
 let newBit = SaveToIdeas.excerpt("Posterior MI shows ST depression in V1-V3.", of: clip)
 let grown = SaveToIdeas.appending(newBit, to: body)
-check("a new passage goes on the end",
-      grown == body + "\n\n> Posterior MI shows ST depression in V1-V3.", grown ?? "nil")
+let fromLine: String = SaveToIdeas.fromLine(q1)
+let expected: String = String(body.dropLast(fromLine.count)) + "> Posterior MI shows ST depression in V1-V3.\n\n" + fromLine
+check("a new passage goes above the from line", grown == expected, grown ?? "nil")
+let noFooter: String = "My own words about the RCA."
+check("a note whose from line was taken out grows at its end",
+      SaveToIdeas.appending(newBit, to: noFooter) == noFooter + "\n\n> Posterior MI shows ST depression in V1-V3.")
+check("an empty note takes just the entry",
+      SaveToIdeas.appending(newBit, to: "  ") == "> Posterior MI shows ST depression in V1-V3.")
 
 let page = SaveToIdeas.passage("Nephrotic: proteinuria > 3.5 g/day", lecture: "Glomerular disease",
                                source: lectureP9, subject: "Renal")
 check("a passage names the lecture", page.title == "Glomerular disease")
 check("a passage carries its page", SaveToIdeas.entry(for: page).hasSuffix("\u{2014} p. 9"))
-check("a lecture is from a lecture", SaveToIdeas.body(for: page).hasPrefix("_From [a lecture]("))
+check("a lecture is from a lecture", SaveToIdeas.body(for: page).hasSuffix(SaveToIdeas.fromLine(lectureP9)))
+check("a lecture note starts with the quote", SaveToIdeas.body(for: page).hasPrefix("> Nephrotic"))
 let samePage = SaveToIdeas.appending(page, to: SaveToIdeas.body(for: page))
 check("the same passage again adds nothing", samePage == nil)
 
@@ -128,7 +145,10 @@ check("a debrief says the score", debrief.text.hasPrefix("**Pretend patient:** 7
 check("a debrief lists what was missed", debrief.text.hasSuffix("Missed:\n- Ask about trauma"), debrief.text)
 let caseNote = SaveToIdeas.body(for: theCase)
 let withDebrief = SaveToIdeas.appending(debrief, to: caseNote)
-check("a debrief adds to the case note", withDebrief?.hasPrefix(caseNote) == true)
+check("a debrief adds to the case note, above its from line",
+      withDebrief?.hasPrefix(SaveToIdeas.entry(for: theCase)) == true
+      && withDebrief?.hasSuffix(SaveToIdeas.fromLine(whole)) == true
+      && withDebrief?.contains("Missed:") == true, withDebrief ?? "nil")
 check("the same debrief twice adds nothing", withDebrief.flatMap { SaveToIdeas.appending(debrief, to: $0) } == nil)
 
 // MARK: the backlink
@@ -155,6 +175,28 @@ let old = "{}".data(using: .utf8)!
 check("an old note has none", (try? JSONDecoder().decode(Holder.self, from: old)).map { $0.source == nil } == true)
 let future = "{\"kind\":\"poem\",\"setID\":\"\(setA.uuidString)\"}".data(using: .utf8)!
 check("a kind from a newer version does not read", (try? JSONDecoder().decode(NoteSource.self, from: future)) == nil)
+
+// the way Note reads it (NoteStore.swift): `try?` around the field, so a
+// source this version cannot read is dropped and the note still loads
+struct NoteLike: Decodable {
+    var title: String
+    var source: NoteSource?
+    private enum Keys: String, CodingKey { case title, source }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        title = try c.decode(String.self, forKey: .title)
+        source = try? c.decodeIfPresent(NoteSource.self, forKey: .source)
+    }
+}
+let newerNote = "{\"title\":\"Kept\",\"source\":{\"kind\":\"poem\",\"setID\":\"\(setA.uuidString)\"}}".data(using: .utf8)!
+let readNote: NoteLike? = try? JSONDecoder().decode(NoteLike.self, from: newerNote)
+check("a note with a newer source still loads", readNote?.title == "Kept" && readNote?.source == nil)
+let brokenSet = "{\"title\":\"Kept\",\"source\":{\"kind\":\"card\",\"setID\":\"nope\"}}".data(using: .utf8)!
+check("a note with a damaged source still loads", (try? JSONDecoder().decode(NoteLike.self, from: brokenSet))?.title == "Kept")
+let sourceJSON: String = String(data: try! JSONEncoder().encode(q1), encoding: .utf8)!
+let savedNote = ("{\"title\":\"Kept\",\"source\":" + sourceJSON + "}").data(using: .utf8)!
+check("a note's own source reads back", (try? JSONDecoder().decode(NoteLike.self, from: savedNote))?.source == q1,
+      String(data: savedNote, encoding: .utf8) ?? "")
 
 if failures.isEmpty {
     print("all save-to-ideas checks passed")
