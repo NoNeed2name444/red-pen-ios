@@ -152,17 +152,21 @@ enum NowPlaying {
         return Hook(command: command, token: token)
     }
 
+    /// Takes this player's buttons off again. Nothing hooked, nothing to do:
+    /// a player that never played must not clear the card or the buttons of
+    /// something else that is playing (Commute mode uses Next too).
     static func release(_ tokens: [Any]) {
+        guard !tokens.isEmpty else { return }
+        let center: MPRemoteCommandCenter = MPRemoteCommandCenter.shared()
+        let always: [MPRemoteCommand] = [center.playCommand, center.pauseCommand,
+                                         center.togglePlayPauseCommand]
         for case let hook as Hook in tokens {
             hook.command.removeTarget(hook.token)
+            // the optional buttons go with their player, so the next thing
+            // to play does not show a skip or a speed it cannot do
+            let kept: Bool = always.contains { $0 === hook.command }
+            if !kept { hook.command.isEnabled = false }
         }
-        // the optional buttons go with their player, so the next thing to
-        // play does not show a skip or a speed it cannot do
-        let center: MPRemoteCommandCenter = MPRemoteCommandCenter.shared()
-        let optional: [MPRemoteCommand] = [center.skipBackwardCommand, center.skipForwardCommand,
-                                           center.nextTrackCommand, center.previousTrackCommand,
-                                           center.changePlaybackRateCommand, center.changePlaybackPositionCommand]
-        for command in optional { command.isEnabled = false }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 

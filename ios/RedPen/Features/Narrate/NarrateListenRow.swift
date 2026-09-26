@@ -12,7 +12,9 @@ struct NarrateListenRow: View {
     let sections: [AudioChapter]
     /// The section being heard.
     let current: Int?
-    @ObservedObject var sleep: SleepTimer
+    /// Not watched here: the chip below watches it, so the countdown
+    /// redraws the chip and not the row.
+    let sleep: SleepTimer
     let onPrevious: () -> Void
     let onNext: () -> Void
     let onPick: (Int) -> Void
@@ -74,10 +76,10 @@ struct SleepTimerMenu: View {
 
     var body: some View {
         Menu {
-            Picker("Sleep timer", selection: choice) {
-                ForEach(SleepChoice.all, id: \.self) { option in
-                    Text(name(option)).tag(Optional(option))
-                }
+            // buttons rather than a picker, so choosing the same time again
+            // starts it over
+            ForEach(SleepChoice.all, id: \.self) { option in
+                Button { sleep.start(option) } label: { item(option) }
             }
             if sleep.running {
                 Button("Turn off", systemImage: "xmark") { sleep.cancel() }
@@ -91,11 +93,13 @@ struct SleepTimerMenu: View {
         .accessibilityLabel(sleep.running ? "Sleep timer, \(shown) left" : "Sleep timer")
     }
 
-    private var choice: Binding<SleepChoice?> {
-        Binding(get: { sleep.countdown?.choice },
-                set: { picked in
-                    if let picked { sleep.start(picked) } else { sleep.cancel() }
-                })
+    @ViewBuilder
+    private func item(_ option: SleepChoice) -> some View {
+        if sleep.countdown?.choice == option {
+            Label(name(option), systemImage: "checkmark")
+        } else {
+            Text(name(option))
+        }
     }
 
     private func name(_ option: SleepChoice) -> String {
@@ -126,6 +130,8 @@ struct SectionListSheet: View {
                     .foregroundStyle(.primary)
                 }
             }
+            // the sheet's own glass shows through, as on the app's other sheets
+            .scrollContentBackground(.hidden)
             .navigationTitle("Sections")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -161,5 +167,6 @@ struct SectionListSheet: View {
             }
         }
         .contentShape(Rectangle())
+        .accessibilityAddTraits(playing ? .isSelected : [])
     }
 }

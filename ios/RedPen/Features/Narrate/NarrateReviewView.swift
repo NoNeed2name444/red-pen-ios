@@ -51,7 +51,9 @@ struct NarrateReviewView: View {
     @StateObject var player = LecturePlayer()
     @StateObject var importer = LectureImporter()
     @StateObject var voice = NarrateVoice()
-    @StateObject var sleep = SleepTimer()
+    /// Held, not watched: its countdown ticks once a second, and only the
+    /// sleep chip (which watches it itself) needs to redraw for that.
+    @State var sleep = SleepTimer()
 
     @State var index = 0
     @State var playing = false

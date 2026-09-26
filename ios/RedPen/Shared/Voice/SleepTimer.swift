@@ -29,7 +29,12 @@ protocol SleepTarget: AnyObject {
 /// SleepCountdown, which the Linux tests cover.
 @MainActor
 final class SleepTimer: ObservableObject {
+    /// What the chip shows. Published only when the label or the choice
+    /// changes - once a second at most, even while the fade checks ten
+    /// times a second.
     @Published private(set) var countdown: SleepCountdown?
+    /// The countdown as the checks see it, to the tenth of a second.
+    private var live: SleepCountdown?
 
     private weak var target: SleepTarget?
     /// For "end of this section": where it ends, fixed when set (or when the
@@ -38,7 +43,7 @@ final class SleepTimer: ObservableObject {
     private var task: Task<Void, Never>?
     private var lastCheck = Date()
 
-    var running: Bool { countdown != nil }
+    var running: Bool { live != nil }
 
     /// The player the timer stops. A new one cancels the timer.
     func attach(_ newTarget: SleepTarget?) {
@@ -59,10 +64,11 @@ final class SleepTimer: ObservableObject {
             left = target.sleepSecondsLeft(until: end)
         }
         guard let made = SleepCountdown(choice: choice, sectionLeft: left) else { return }
+        live = made
         countdown = made
         lastCheck = Date()
         task = Task { [weak self] in
-            while let wait = self?.countdown?.nextCheck {
+            while let wait = self?.live?.nextCheck {
                 let nanos: UInt64 = UInt64(wait * 1_000_000_000)
                 try? await Task.sleep(nanoseconds: nanos)
                 if Task.isCancelled { return }
@@ -76,12 +82,13 @@ final class SleepTimer: ObservableObject {
         task?.cancel()
         task = nil
         mark = nil
-        if countdown != nil { target?.sleepFade(1) }
-        countdown = nil
+        if live != nil { target?.sleepFade(1) }
+        live = nil
+        if countdown != nil { countdown = nil }
     }
 
     private func check() {
-        guard var now = countdown, let target else {
+        guard var now = live, let target else {
             cancel()
             return
         }
@@ -97,7 +104,8 @@ final class SleepTimer: ObservableObject {
             finish()
             return
         }
-        if now != countdown { countdown = now }
+        live = now
+        show(now)
         if target.sleepPlaying { target.sleepFade(now.volume) }
     }
 
@@ -105,19 +113,26 @@ final class SleepTimer: ObservableObject {
         task?.cancel()
         task = nil
         mark = nil
+        live = nil
         countdown = nil
         target?.sleepFinish()
+    }
+
+    private func show(_ now: SleepCountdown) {
+        guard now.label != countdown?.label || now.choice != countdown?.choice else { return }
+        countdown = now
     }
 
     /// The student moved (a scrub, a tapped line, a section): "the end of
     /// this section" is now the end of the one they moved to.
     private func rearm() {
-        guard let now = countdown, now.choice == .endOfSection, let target,
+        guard let now = live, now.choice == .endOfSection, let target,
               let end = target.sleepSectionEnd() else { return }
         mark = end
         var moved: SleepCountdown = now
         moved.follow(sectionLeft: target.sleepSecondsLeft(until: end))
-        countdown = moved
+        live = moved
+        show(moved)
         target.sleepFade(moved.volume)
     }
 }

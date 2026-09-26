@@ -119,6 +119,16 @@ check("a typed lecture has no times", fromHeadings.allSatisfy { $0.start == nil 
 check("a Markdown heading is a heading", AudioChapters.heading("## Renal tubular acidosis") == "Renal tubular acidosis")
 check("a short line ending in a colon is a heading", AudioChapters.heading("Management:") == "Management")
 check("Part two is a heading", AudioChapters.heading("Part two") == "Part two")
+check("Section B and Chapter IV are headings",
+      AudioChapters.heading("Section B") == "Section B" && AudioChapters.heading("Chapter IV") == "Chapter IV")
+check("Slide 12 is a heading in a recording too",
+      AudioChapters.heading("slide 12 the nephron", timed: true) == "slide 12 the nephron")
+check("a sentence that starts with Part is not a heading",
+      AudioChapters.heading("part of the reason is the kidneys", timed: true) == nil)
+check("Topic: with its colon is a heading",
+      AudioChapters.heading("topic: the kidneys", timed: true) == "topic: the kidneys")
+check("nor one that starts with Lecture",
+      AudioChapters.heading("lecture notes are online after this", timed: true) == nil)
 check("a short capitalised line with no full stop is a heading in typed notes",
       AudioChapters.heading("Clinical features") == "Clinical features")
 check("but not in a recording's transcript, which may have no punctuation at all",

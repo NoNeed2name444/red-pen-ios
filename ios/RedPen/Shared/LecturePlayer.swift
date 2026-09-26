@@ -103,6 +103,8 @@ final class LecturePlayer: NSObject, ObservableObject {
         player = made
         clock.time = 0
         failure = nil
+        // on the first section before Play, so Next goes to the second
+        publishSection(at: 0)
         watch(item, in: made)
         Task { [weak self] in
             let length: Double? = await LecturePlayer.length(of: asset)

@@ -68,8 +68,8 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var section: Int?
     /// Paused by a call, so the end of the call may carry on.
     private var pausedByInterruption = false
-    /// The sleep timer's fade, for the cloud voice. (The phone's voice
-    /// cannot be faded part way through a line; it simply stops.)
+    /// The sleep timer's fade: the cloud voice follows it smoothly, the
+    /// phone's voice line by line (a line it has begun keeps its volume).
     private var fade: Float = 1
 
     // the cloud voice
@@ -775,6 +775,8 @@ final class NarrateVoice: NSObject, ObservableObject {
         let arabic: Bool = line < langs.count && langs[line] == "ar"
         utterance.voice = arabic ? arabicVoice : VoiceSpeaker.voices.narrator
         utterance.rate = NarratePlan.phoneRate(speed)
+        // a line begun while the sleep timer fades starts that much quieter
+        utterance.volume = fade
         utterance.preUtteranceDelay = 0
         // a phrase break, as a lecturer leaves between lines
         utterance.postUtteranceDelay = 0.06

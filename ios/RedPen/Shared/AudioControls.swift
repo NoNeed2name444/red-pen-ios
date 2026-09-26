@@ -240,10 +240,32 @@ enum AudioChapters {
 
     private static let markers: Set<String> = ["slide", "section", "part", "chapter", "topic", "lecture", "unit"]
 
+    private static let numberWords: Set<String> = ["one", "two", "three", "four", "five", "six", "seven",
+                                                   "eight", "nine", "ten", "eleven", "twelve", "first",
+                                                   "second", "third", "fourth", "fifth", "last", "final"]
+
+    /// "Slide 7", "Part two", "Section B", "Chapter IV" - a marker and then
+    /// its number. "Part of the reason is..." and "Lecture notes are online"
+    /// start with the same words and are sentences, not headings.
     private static func startsWithMarker(_ words: [Substring]) -> Bool {
         guard words.count >= 2 else { return false }
-        let first: String = words[0].lowercased()
-        return markers.contains(first)
+        let said: String = words[0].lowercased()
+        let first: String = said.hasSuffix(":") ? String(said.dropLast()) : said
+        guard markers.contains(first) else { return false }
+        // "Topic: the kidneys" - the colon says it is a label
+        if said.hasSuffix(":") { return true }
+        let bare: String = words[1].lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ":.,)-"))
+        return isNumbering(bare)
+    }
+
+    private static func isNumbering(_ word: String) -> Bool {
+        guard !word.isEmpty else { return false }
+        if word.allSatisfy(\.isNumber) { return true }
+        if numberWords.contains(word) { return true }
+        // a single letter (Section B), or a Roman numeral (Part IV)
+        if word.count == 1, word.first?.isLetter == true { return true }
+        let roman: Set<Character> = ["i", "v", "x", "l"]
+        return word.count <= 5 && word.allSatisfy { roman.contains($0) }
     }
 
     private static func tidy(_ line: String) -> String {
