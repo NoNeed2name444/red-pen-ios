@@ -1,0 +1,24 @@
+compile rc=0
+ok   a hyphenated break becomes one word
+ok   a dash on its own is left alone
+ok   ordinary text is unchanged
+ok   the lecturer's name on every page is furniture
+ok   the course line is furniture too
+ok   the actual content of a page is not furniture
+ok   a cleaned page keeps its content
+ok   and loses the page number
+ok   a bare number is furniture
+ok   so is 'Page 4'
+ok   but a real line is not
+ok   a line that merely contains numbers is kept
+ok   a two-page document has no furniture
+ok   runs of blank lines collapse
+ok   leading and trailing space goes
+ok   an empty page cleans to nothing rather than crashing
+ok   the furniture is gone from the assembled document
+ok   every page's content survives
+ok   how much came from OCR is known
+ok   a document with nothing in it says so
+
+ALL INGEST TESTS PASS
+run rc=0

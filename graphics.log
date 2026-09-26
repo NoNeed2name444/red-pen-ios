@@ -1,0 +1,66 @@
+compile rc=0
+PASS G1a a 4 GB phone (3.9e9 reported) is Smooth
+PASS G1b a 3 GB phone is Smooth
+PASS G1c a 6 GB phone (a little under 6e9 reported) is High
+PASS G1d an 8 GB phone is High
+PASS G1e Low Power Mode is Smooth
+PASS G1f a serious thermal state is Smooth
+PASS G1g a critical thermal state is Smooth
+PASS G1h a fair thermal state stays High
+PASS G1i unknown memory (0) is not held against it
+PASS G1j High quality is High even on a 3 GB phone in Low Power Mode
+PASS G1k Smooth is Smooth even on an 8 GB phone
+PASS G1l a missing setting is Automatic
+PASS G1m an unknown setting is Automatic
+PASS G1n every choice round-trips
+PASS G1o the Settings titles
+PASS G2a fewer link samples
+PASS G2b 60 frames a second at most
+PASS G2c lighter multisampling
+PASS G2d the shaders' simple path
+PASS G2e fewer sparks
+PASS G2f halos thinned sooner
+PASS G2g no twinkle, a still nebula, no haze
+PASS G2h High keeps all of them
+PASS G2i fewer faint stars
+PASS G2j High on a 60 Hz screen asks for 60
+PASS G2k High on ProMotion asks for 120
+PASS G2l Smooth on ProMotion asks for 60
+PASS G2m even Smooth's links are finer than the old six segments
+PASS G3a 120 Hz, called up to 1.5 ms early or late: every step within 0.2 ms of 1/120
+PASS G3b ...though the raw steps wobbled by up to 3 ms
+PASS G3c ...and ten seconds of it stay on the real clock
+PASS G3d 60 Hz, up to 2 ms early or late: every step within 0.2 ms of 1/60
+PASS G3e 40 Hz (a busy ProMotion screen): every step within 0.2 ms of 3 ticks
+PASS G3f the first frame is one tick
+PASS G3g a dropped frame is a whole number of ticks
+PASS G3h a stall is capped at 0.05 s
+PASS G3i ...and the clock starts again from it
+PASS G3j a clock going backwards is one tick
+PASS G3k a NaN time is one tick
+PASS G4a a straight link is its length
+PASS G4b it starts and ends at the trims
+PASS G4c its samples are evenly spaced
+PASS G4d and it has no turn at all
+PASS G4e a black hole and a gas giant bend; a sun does not
+PASS G4f six segments (the old ribbon) stray by more than the beam's half-width: kinks
+PASS G4g Smooth strays by under a quarter of the half-width
+PASS G4h High strays by under a tenth of it
+PASS G4i High's sharpest joint turns under a quarter as much as the old one's
+PASS G4j the bent ends keep their distance from each body (still at the trim)
+PASS G4k the distance along it only ever grows (continuous flow, no seam)
+PASS G4l every point is finite
+PASS G4m Smooth and High draw the same curve, only sampled differently
+PASS G4n a half-grown link reaches exactly the full curve's middle
+PASS G4o and starts where the full one does
+PASS G4p a link of no length samples to one point, length 0
+PASS G5a a short link keeps its distances
+PASS G5b a link of exactly 60 keeps them
+PASS G5c a 120-unit link is squeezed by half
+PASS G5d a 150-unit link's far end sits at 60, not past it
+PASS G5e and its last stretch still flows (the old cap froze it)
+PASS G6a cross of x and y is z
+PASS G6b a quarter turn about z takes x to y
+PASS G6c a perpendicular is square and unit
+ALL PASSED
+run rc=0

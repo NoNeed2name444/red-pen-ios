@@ -1,0 +1,67 @@
+compile rc=0
+ok   PLAB 1 is 180 questions in 3 hours
+ok   MRCP Part 1 is two papers of 100
+ok   USMLE blocks are 40 in 60 minutes
+ok   no more than seven USMLE blocks
+ok   MRCS A has its two papers
+ok   a big library fills the paper
+ok   no question twice
+ok   every subject gets its share before one fills the rest
+ok   a short library sits a shorter paper
+ok   at the real paper's pace
+ok   and says so honestly
+ok   blocks fill in order, the last one short
+ok   a short block keeps the pace
+ok   too few questions makes no paper
+ok   copies of one question are one question
+ok   the same seed makes the same paper
+ok   score counts right answers
+ok   unanswered are counted
+ok   50% does not pass a 60% mark
+ok   subjects are listed
+ok   renal answered once of twice
+ok   pacing: halfway through PLAB is Q90
+ok   a confident mistake's twin is due in a day
+ok   not due at once
+ok   due the next day
+ok   the question has a twin on the way
+ok   one waiting twin per missed question
+ok   a guess waits three days
+ok   a missed twin comes back a day later
+ok   a twin got right leaves the queue
+ok   twins gone from the library are forgotten
+ok   the re-test comes a few questions on
+ok   or at the end
+ok   the twin prompt carries the answer, the choice and the reason
+ok   the same stem again is too close
+ok   a new patient is not
+ok   naming the answer leaks
+ok   its distinctive word leaks
+ok   a nudge about the eyes does not
+ok   a word shared with other options is not a leak
+ok   a long stem of the answer word leaks
+ok   a leaking reply is refused
+ok   a good reply is kept, tidied
+ok   the fallback rules a rival out
+ok   and never names the answer
+ok   with no differential, a fixed nudge
+ok   a hint is kept
+ok   the oldest go past the cap
+ok   12 + 3 = 15
+ok   7 / 2 = 3.5
+ok   chained left to right, as a basic calculator does
+ok   dividing by zero says Error
+ok   a digit after Error starts again
+ok   -0.5
+ok   a third to ten figures
+ok   every group is listed
+ok   no range twice
+ok   sodium in SI and US units
+ok   USMLE reads conventional units
+ok   search finds a group
+ok   the pieces give back the stem
+ok   sentences are pieces
+ok   a decimal is not a break
+
+ALL EXAM TOOLS TESTS PASS
+run rc=0

@@ -1,0 +1,92 @@
+compile rc=0
+ok   zstd: zstd-text-19.zst decodes to the reference bytes
+ok   zstd: zstd-mixed-3.zst decodes to the reference bytes
+ok   zstd: zstd-binary-1.zst decodes to the reference bytes
+ok   zstd: a small frame with one match
+ok   zstd: two frames back to back are both read
+ok   zstd: cut-short and corrupted frames fail cleanly
+ok   zstd: output past the limit is refused, not allocated
+ok   zstd: streaming to a file gives the same bytes
+ok   zstd: not zstd at all is said so
+ok   html: tags gone, bold kept as **, entities decoded, blank lines dropped
+ok   html: pictures handed back by name
+ok   html: an unquoted src and odd case
+ok   html: numeric entities
+ok   html: a lone < is text
+ok   html: scripts are not text
+ok   html: cloze markers survive
+ok   templates: fields shown, FrontSide and conditionals skipped
+ok   templates: a type-in box is not a question
+ok   templates: the cloze field
+ok   tags: Anki's space-separated list
+ok   decks: both separators
+ok   occlusion: every cloze number read
+ok   occlusion: shapes under one number are one box
+ok   occlusion: pixel shapes become fractions
+ok   occlusion: pixel shapes with no size are skipped, not stretched
+ok   enhanced occlusion: the qshape is the target
+ok   enhanced occlusion: the other masks are its covers
+ok   plan: a set per deck, top-level decks as folders
+ok   plan: one deck is one set, not in a folder
+ok   plan: a deep tree is cut where the set count fits
+ok   plan: merged decks share a picture once
+ok   plan: a huge deck is split into parts
+ok   set: the deck's place becomes the set's tag
+ok   set: an occlusion card without its picture is left out; a basic card keeps its words
+ok   progress: a review card keeps its interval, reviews and lapses
+ok   progress: its due day counts from the collection's creation
+ok   progress: a new card brings nothing
+ok   progress: a learning card's due is a moment
+ok   progress: suspended is kept
+ok   anki-legacy.apkg: every note read (Anki 2.1)
+ok   anki-legacy.apkg: never the 'please update Anki' stub
+ok   anki-legacy.apkg: subdecks became sets in folders
+ok   anki-legacy.apkg: a basic note's answer lines are bullets
+ok   anki-legacy.apkg: tags kept, nested ones whole
+ok   anki-legacy.apkg: a reversed note is two cards
+ok   anki-legacy.apkg: a cloze note keeps every cN and its hint
+ok   anki-legacy.apkg: Anki's image occlusion is a card per mask, each covering the others
+ok   anki-legacy.apkg: the Enhanced add-on's SVG mask is read
+ok   anki-legacy.apkg: a picture on a basic card comes with it
+ok   anki-legacy.apkg: Anki's schedule comes with the reviewed card
+ok   anki-legacy.apkg: the pictures are taken out, under safe names
+ok   anki-legacy.apkg: a picture's bytes are the picture (zstd undone)
+ok   anki-legacy.apkg: its working folder is removed
+ok   anki-latest.apkg: every note read (Anki 2.1.50 or later)
+ok   anki-latest.apkg: never the 'please update Anki' stub
+ok   anki-latest.apkg: subdecks became sets in folders
+ok   anki-latest.apkg: a basic note's answer lines are bullets
+ok   anki-latest.apkg: tags kept, nested ones whole
+ok   anki-latest.apkg: a reversed note is two cards
+ok   anki-latest.apkg: a cloze note keeps every cN and its hint
+ok   anki-latest.apkg: Anki's image occlusion is a card per mask, each covering the others
+ok   anki-latest.apkg: the Enhanced add-on's SVG mask is read
+ok   anki-latest.apkg: a picture on a basic card comes with it
+ok   anki-latest.apkg: Anki's schedule comes with the reviewed card
+ok   anki-latest.apkg: the pictures are taken out, under safe names
+ok   anki-latest.apkg: a picture's bytes are the picture (zstd undone)
+ok   anki-latest.apkg: its working folder is removed
+ok   anki-latest.colpkg: every note read (Anki 2.1.50 or later)
+ok   anki-latest.colpkg: never the 'please update Anki' stub
+ok   anki-latest.colpkg: subdecks became sets in folders
+ok   anki-latest.colpkg: a basic note's answer lines are bullets
+ok   anki-latest.colpkg: tags kept, nested ones whole
+ok   anki-latest.colpkg: a reversed note is two cards
+ok   anki-latest.colpkg: a cloze note keeps every cN and its hint
+ok   anki-latest.colpkg: Anki's image occlusion is a card per mask, each covering the others
+ok   anki-latest.colpkg: the Enhanced add-on's SVG mask is read
+ok   anki-latest.colpkg: a picture on a basic card comes with it
+ok   anki-latest.colpkg: Anki's schedule comes with the reviewed card
+ok   anki-latest.colpkg: the pictures are taken out, under safe names
+ok   anki-latest.colpkg: a picture's bytes are the picture (zstd undone)
+ok   anki-latest.colpkg: its working folder is removed
+ok   pictures off: basic cards lose theirs, occlusion cards keep theirs
+ok   no picture budget: occlusion cards are left out and counted
+ok   not a package: a plain zip is refused
+ok   not a package: said plainly
+ok   TSV: Quizlet's export is a table
+ok   TSV: a card per line, term on the front
+ok   CSV: header found, quoted commas and line breaks kept
+ok   CSV: doubled quotes are one quote
+ok   CSV: the tags column becomes tags
+run rc=0

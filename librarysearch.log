@@ -1,0 +1,69 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   a set, its questions, its cards and each note are entries
+ok   each lecture with pages is kept for page search
+ok   a cloze reads with its gaps filled in
+ok   an unclosed cloze is left as written
+ok   tokens are folded words of two letters or more
+ok   the question itself is found, not just its set
+ok   and its set is listed
+ok   the matched phrase is where the range says
+ok   a lecture page matches too
+ok   one hit per page, however many times it says it
+ok   notes are searched, case aside
+ok   and cards
+ok   and questions, in their explanation too
+ok   the Cards scope shows only cards
+ok   and no sets group
+ok   the Notes scope, only notes
+ok   the Lectures scope, only pages
+ok   a cloze is found by its hidden answer
+ok   a set whose name matches comes first
+ok   every word anywhere will do when the phrase is nowhere
+ok   one letter matches sets only
+ok   a blank search finds nothing
+ok   results are capped at fifty, and say there are more
+ok   a snippet cut from the middle says so
+ok   and marks the match in the original case
+ok   a question opens first in its set
+ok   with the rest of the set after it
+ok   a question not in the set opens nothing
+ok   an empty filter does not narrow the library
+ok   missed this week does
+ok   only questions missed within the week
+ok   and cards that lapsed and were rated this week, not suspended ones
+ok   Due takes only cards due now
+ok   a subject, cards only (the suspended one left out)
+ok   a tag matching the set's subject takes the set
+ok   a tag is a #tag or the set's topic, not any word
+ok   flagged by the accuracy engine
+ok   words as the search reads them (the suspended card left out)
+ok   the limit holds
+ok   most recently missed first
+ok   one card alone cannot make a question
+ok   with its deck as the pool, it can
+ok   and the session is a quiz
+ok   keyed on the card's answer
+ok   the deck-only build is as it was
+ok   a review deck keeps the card's own id
+ok   and its picture
+ok   the session is named after its filter
+ok   in words
+ok   subjects for the picker
+ok   #cardio finds the card tagged #AK_Step1::Cardio, not its neighbour
+ok   a set's tag covers its cards
+ok   the sets holding them are listed
+ok   a parent tag finds everything filed under it
+ok   a tag and words together
+ok   a plain word finds a tag too
+ok   Build a session: tag cardio takes the cards tagged Cardio (nested or on the set)
+ok   Build a session: a parent tag, any case, with its #
+
+ALL LIBRARY SEARCH TESTS PASS
+run rc=0

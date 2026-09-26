@@ -1,0 +1,37 @@
+compile rc=0
+ok   a CRLF list is every question, not one
+ok   and nothing of the next line leaks into an explanation
+ok   old Mac line endings split too
+ok   OSCE stations split on CRLF
+ok   Narrate lines split on CRLF
+ok   Cards split on CRLF
+ok   Cases split on CRLF
+ok   a blank answer letter is not quietly A
+ok   a full-width letter is not quietly A
+ok   a digit is not a letter
+ok   a lower-case letter still counts
+ok   a letter past the options is refused
+ok   B is 1
+ok   a shared set gets an id of its own
+ok   a folder this library does not have is dropped, so the set can be seen
+ok   and it is dated as new here
+ok   a picture that only exists in the sender's account is left out
+ok   the occlusion card that needed it goes with it
+ok   the cards after it point at their own picture still
+ok   a written card keeps its words and loses only the picture
+ok   a textbook page points at the renumbered pictures and drops the missing one
+ok   a folder this library DOES have is kept
+ok   a set with every picture comes in whole
+ok   a cloze is escaped like any other field
+ok   ordinary medical text survives escaping
+ok   bold still works inside a cloze
+ok   each cN is one card
+ok   a c0 is not a card at ordinal -1
+ok   Anki's checksum reads the text, not the escaping
+ok   the archive is written from files
+ok   and reads back entry for entry
+ok   its CRC is the standard one
+ok   more entries than a zip can count is an error, not a crash
+
+ALL IMPORT TESTS PASS
+run rc=0

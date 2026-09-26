@@ -1,0 +1,52 @@
+compile rc=0
+ok   a phone photo is shrunk to 2048 on its long side
+ok   a screenshot is shrunk by its height
+ok   a small picture is never enlarged
+ok   exactly 2048 is kept
+ok   a sliver keeps at least a pixel
+ok   an empty picture is nothing
+ok   a box is pulled back inside the picture
+ok   a box is never smaller than the least
+ok   a box bigger than the picture is the picture
+ok   a drag moves a box
+ok   a box dragged off the edge stops at it
+ok   the bottom-right corner stretches
+ok   the top-left corner stretches and the far corner stays
+ok   a corner cannot cross its opposite
+ok   a corner stops at the picture's edge
+ok   the bottom-left corner stretches
+ok   a box drawn backwards is the same box
+ok   a tap draws nothing
+ok   a box drawn off the picture stays on it
+ok   a flat stroke still makes a findable box
+ok   a new cover sits in the middle
+ok   a new cover on a wide picture is taller as a fraction
+ok   a new cover near the edge stays inside
+ok   the smaller of two covers is the one hit
+ok   the big cover around it is hit elsewhere
+ok   empty picture is no cover
+ok   slack lets a finger just outside count
+ok   a corner is found near it
+ok   the top-left too
+ok   the middle of an edge is no corner
+ok   on a tiny box the nearest corner wins
+ok   OCR covers become editable ones, inside the picture
+ok   answers are tidied to one line
+ok   one card per answered label, a repeat asked once
+ok   cards are picture cards on the right picture
+ok   the answer is the tidied label
+ok   each card carries its source
+ok   an unanswered cover still hides its place on every card
+ok   a card's own cover is not among its siblings
+ok   the repeated label's second place stays covered on the first
+ok   one label is enough for a photo
+ok   no answers, no cards
+ok   nothing, nothing
+ok   a scan is named for its day
+ok   a photo deck is named for its day
+ok   a one-page source is just the name
+ok   a page of several says which
+ok   page text drops blank lines
+
+ALL PHOTO OCCLUSION TESTS PASS
+run rc=0

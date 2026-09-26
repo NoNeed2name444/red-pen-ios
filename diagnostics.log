@@ -1,0 +1,59 @@
+compile rc=0
+ok   a message must be a key, never a sentence
+ok   an identifier must look like code
+ok   a breadcrumb must be a name
+ok   only a termination reason's namespace and code are kept
+ok   free text loses emails, paths, ids and tokens
+ok   an error with a payload keeps only its case name
+ok   an error with a payload keeps none of its text
+ok   a case without a payload keeps its name
+ok   an error that describes itself is not read
+ok   nor an enum case that describes itself in a sentence
+ok   an NSError keeps its domain and code, not its userInfo
+ok   a report built to leak keeps none of it
+ok   its message becomes unknown
+ok   its breadcrumbs keep only names
+ok   its frames keep only binaries and UUIDs that look like them
+ok   a recorded failure keeps no medical text, email or path
+ok   and carries its trail
+ok   cancellation and no connection are not failures
+ok   nothing is recorded with reports turned off
+ok   FNV-1a of nothing
+ok   FNV-1a of "a"
+ok   FNV-1a of a canonical failure
+ok   FNV-1a of a canonical crash
+ok   a crash is known by its exception and its own frames (as the server)
+ok   the same crash, later, is the same fingerprint
+ok   a different place is a different crash
+ok   a failure's canonical form matches the server's
+ok   a crash has a readable title
+ok   the same failure five times is one report counted five times
+ok   at most 60 wait
+ok   a crash is kept over failures
+ok   at most 10 in one request, crashes first
+ok   at most 40 a day
+ok   the next day sends again
+ok   what was sent is kept to show
+ok   reports older than two weeks are dropped
+ok   a build says it runs once a day
+ok   and not twice
+ok   days are UTC dates
+ok   the trail keeps the last 50
+ok   in seconds before the problem
+ok   a run that went to the background ended cleanly
+ok   no marker, nothing to report
+ok   a run still active when it ended is an unclean exit
+ok   with the trail up to it
+ok   named by where it happened
+ok   MetricKit's crash report replaces the guess, keeping its trail
+ok   killed while active: the next launch reports it
+ok   left through the background: nothing more
+ok   a launch killed before it was on screen is reported
+ok   a background launch ended by iOS is not
+ok   the crashed thread's frames, innermost first
+ok   unreadable JSON is no frames
+ok   a report encodes with the server's field names
+ok   areas are the server's
+
+ALL DIAGNOSTICS TESTS PASS
+run rc=0

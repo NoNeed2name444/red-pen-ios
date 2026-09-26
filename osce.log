@@ -1,0 +1,50 @@
+compile rc=0
+ok   a leading number is not part of the step
+ok   however it is punctuated
+ok   a dash is a bullet, not a word
+ok   and neither is 'Step 3:'
+ok   but a step that simply starts with a number keeps it
+ok   "12-lead ECG interpretation" keeps its number
+ok   "0.9% saline flush" keeps its number
+ok   "5-10 mL lidocaine to the skin" keeps its number
+ok   "3.5 mmol/L is the lower limit" keeps its number
+ok   "2.5 cm incision" keeps its number
+ok   "3.Palpate" is numbering
+ok   "4: " is numbering
+ok   numbering before a clinical number goes, the number stays
+ok   a station about a 12-lead ECG keeps its title and steps whole
+ok   cleaning strips numbering, drops repeats, blanks, stubs and paragraphs
+ok   a station of nothing cleans to nothing
+ok   an unreasonably long station is capped
+ok   a titled station with enough steps is usable
+ok   one with no title is not
+ok   and neither is one with two steps, which is not a station
+ok   tidying drops repeats and the unusable
+ok   and cleans the title too
+ok   and the steps inside it
+ok   keeping the order they arrived in
+ok   every station survives the round trip
+ok   with its title
+ok   and every step, in order
+ok   and it is written in the format the screen documents
+ok   the prompt names the subject
+ok   and carries the source
+ok   and says what has already been written, so the next call does not repeat it
+ok   and asks for unnumbered steps, since the order is the number
+ok   a PLAB student gets PLAB 2 stations
+ok   and general revision gets no exam format
+ok   question and cloze lines both become cards
+ok   a cloze line keeps its hidden part, and its reason when it has one
+ok   a run starts at step 1
+ok   I got it moves on to the next step
+ok   Start over goes back to step 1 and keeps the miss
+ok   every start over is kept, at the step it happened
+ok   the step missed most comes first
+ok   getting the last step finishes the station
+ok   and a finished run is left alone
+ok   a station with no steps is already done
+ok   a saved position is fitted to the station
+ok   a clean run has no weak steps
+
+ALL OSCE TESTS PASS
+run rc=0

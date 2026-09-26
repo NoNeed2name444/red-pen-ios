@@ -1,0 +1,49 @@
+compile rc=0
+ok   every line is in exactly one clip, in order
+ok   the first clip is short, so speech starts quickly
+ok   later clips are longer, so a lecture is few requests
+ok   no clip is more than the server takes
+ok   a line too long for a clip is still its own clip, never lost
+ok   a blank line leaves no double space
+ok   an empty lecture has no clips
+ok   the clip holding a line is found
+ok   a line past the end is in no clip
+ok   every word is timed
+ok   the words fill the clip exactly
+ok   times only move forward
+ok   a comma leaves a pause before the next word
+ok   a full stop leaves a longer pause than a comma
+ok   a long word is given longer than a short one
+ok   the second line's words say which line they are in
+ok   nothing to time gives nothing
+ok   the word at a moment is found
+ok   in a pause the word just said stays lit
+ok   before the first word, the first word
+ok   after the end, the last word
+ok   no words, no spot
+ok   a line starts where its first word does
+ok   the playing clip and the next three are fetched
+ok   clips already here are not fetched again
+ok   nothing past the end is fetched
+ok   past the end, nothing
+ok   normal speed is the phone's normal pace
+ok   faster is faster, slower is slower
+ok   double speed stays intelligible
+ok   every step on the speed menu is faster than the last
+ok   the fastest step is still words
+ok   a range at the start is the first word
+ok   a double space does not count as a word
+ok   the third word
+ok   the words match the screen's split
+ok   Arabic counts words the same way
+ok   the phone hands the too-long line back at its own clip's end
+ok   not at the end of the lecture
+ok   a line in a longer clip hands back where that clip ends
+ok   a line in no clip has nowhere to hand back
+ok   nothing is pruned under the limit
+ok   the least recently used go first
+ok   a clip the lecture holds is never pruned, however old
+ok   with everything protected, nothing is deleted
+
+ALL NARRATE TESTS PASS
+run rc=0

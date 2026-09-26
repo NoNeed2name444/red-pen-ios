@@ -1,0 +1,30 @@
+compile rc=0
+ok   a diagonal join is one blob
+ok   two separate drawings stay separate
+ok   a blob's box covers all of it
+ok   an empty page has no blobs
+ok   no page at all does not crash
+ok   boxes one cell apart become one
+ok   and the merged box spans both
+ok   boxes far apart stay apart
+ok   a mark covering the threshold is a figure
+ok   a smudge below it is not
+ok   figures come back biggest first
+ok   a box becomes fractions of the whole image
+ok   an empty grid gives an empty box
+ok   a real label is kept
+ok   a number with no letters is dropped
+ok   the same term labelled twice is one card
+ok   a sentence is a caption, not a label
+ok   a label covering the diagram is dropped
+ok   a zero-sized box is dropped
+ok   one card per usable label
+ok   the card is an occlusion card
+ok   the answer is the label
+ok   it points at the right image
+ok   the mask is grown past the glyphs
+ok   and never runs off the edge of the image
+ok   a figure with no labels makes no cards
+
+ALL FIGURE TESTS PASS
+run rc=0

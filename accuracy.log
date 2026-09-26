@@ -1,0 +1,78 @@
+compile rc=0
+ok   paracetamol 10 g is a severe dose error
+ok   metformin 500 mg is fine
+ok   digoxin 25 mg is severe
+ok   adrenaline 0.5 mg IM is fine
+ok   a per-kg dose is left alone
+ok   a dose before the drug is read
+ok   micrograms are converted
+ok   atorvastatin 800 mg is severe
+ok   glucose 5.5 mg/dL is impossible
+ok   sodium 128 mmol/L is fine
+ok   sodium in mg/dL is the wrong unit
+ok   a wrong reference range is severe
+ok   the right reference range passes
+ok   pH and PaCO2 are read
+ok   one analyte raised and lowered
+ok   vitamin K is not potassium
+ok   a clean question has no hits
+ok   an explanation naming another letter
+ok   or another option's words
+ok   an explanation calling the key wrong
+ok   a duplicate of the key is severe
+ok   all of the above not last
+ok   all of the above keyed beside none of the above
+ok   a key outside the options
+ok   stem and explanation disagree on a value
+ok   an EXCEPT question whose explanation calls the key true
+ok   the explanation's letter is read
+ok   the source match
+ok   the tables are read
+ok   two passing votes with support are Verified
+ok   two flagging votes are Flagged
+ok   a split vote is Check this
+ok   rules alone never verify
+ok   a severe rule with no model is Flagged
+ok   a severe rule is never Verified
+ok   key disagreement is a share
+ok   the bundled weights decode and are valid
+ok   inference is the logistic of the weighted sum
+ok   new weights re-score without a new check
+ok   weights with crossed cut-offs are invalid
+ok   the hash is stable and 32 hex
+ok   it is of the content, not the id
+ok   any edit changes it
+ok   FNV-1a of the empty string is its offset basis
+ok   the checker text matches the server's
+ok   a question becomes an item
+ok   with its lecture excerpt
+ok   cards (not a wordless occlusion)
+ok   cases and stations
+ok   a textbook's pages
+ok   a narration's key facts, not its chatter
+ok   a note is its own kind
+ok   an unchecked item with no rule hits is Not checked yet
+ok   votes make it Verified
+ok   a model's new vote replaces its old one
+ok   and its concern is a reason
+ok   a reported item is never shown as Verified again
+ok   a set's summary
+ok   nothing checked: no summary line
+ok   a failed check waits before it is tried again
+ok   records of edited or deleted items are pruned
+ok   just-made content first, in the foreground
+ok   in batches of four
+ok   then this week's, then most-studied, then the rest, in the background
+ok   checked items are never sent again, failed ones wait
+ok   the day's limit is kept
+ok   the same content in two sets is checked once
+ok   a key correction moves the key
+ok   and the edit means a new check
+ok   a key outside the options is not offered
+ok   an explanation correction
+ok   a card's answer, line by line
+ok   a station's steps
+ok   a fix for an unknown item does nothing
+
+ALL ACCURACY TESTS PASS
+run rc=0

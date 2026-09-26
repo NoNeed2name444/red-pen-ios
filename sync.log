@@ -1,0 +1,92 @@
+compile rc=0
+ok   nothing anywhere is nothing to do
+ok   something the server has never seen is pushed
+ok   something from another device is taken
+ok   a tombstone for something we no longer have is still taken
+ok   two sides that already agree do nothing
+ok   a change only on the server is taken
+ok   a change only here is pushed
+ok   both sides arriving at the same text is not a conflict
+ok   the later edit wins and the earlier is kept beside it
+ok   and the same the other way round, so the other device loses nothing either
+ok   identical timestamps resolve the same way on every device
+ok   a deletion beats an older edit, and leaves no copy
+ok   an edit made after the deletion brings it back
+ok   deleting here beats an older edit there
+ok   and an edit there after our deletion brings it back
+ok   two deletions are not a conflict
+ok   a first sync with different copies keeps both
+ok   a first sync with matching copies just adopts the server's
+ok   the same body hashes the same
+ok   a different body hashes differently
+ok   a deletion hashes differently from an empty body
+ok   an unchanged document needs no push
+ok   an edited one does
+ok   and one never synced does
+ok   every image becomes a reference
+ok   and its bytes come back to be uploaded
+ok   the same picture twice is one blob
+ok   and both cards point at it
+ok   packing something already packed changes nothing
+ok   an image that cannot be decoded is left alone
+ok   a data: URI is understood
+ok   unpacking gives the pictures back
+ok   a reference with no blob yet stays a reference
+ok   only what is missing is asked for
+ok   the same name is a stable address
+ok   different bytes get different addresses
+ok   base64 and a reference name the same blobs
+ok   an unedited set whose encoding moved takes the other device's edit
+ok   and with nothing new there, there is nothing to do
+ok   a set its stamp says was edited here still conflicts and keeps both
+ok   an edit here goes up when the server has not moved
+ok   no bookmark still counts as changed, whatever the stamp says
+ok   a real reference names its blob
+ok   a reference that walks out of the folder is refused
+ok   a reference that is not a hash is refused
+ok   an upper-case hash is not one this app writes
+ok   a hash one character short is refused
+ok   a bad reference is left as it is, not dropped
+ok   and asks for nothing
+ok   a picture and its reference are the same picture
+ok   two different pictures are not
+ok   nor lists of different lengths
+ok   a held set's pictures are found in its text
+ok   and so is a bare hash, like a lecture file's
+ok   a longer run of hex is not a hash
+ok   a payload is counted in base64 characters, as the server counts it
+ok   a document at the server's limit fits
+ok   one byte more does not
+ok   a tombstone always fits
+ok   a big library goes up in batches
+ok   in order, and nothing left out
+ok   and cut by size as well as by count
+ok   a document bigger than a batch still goes, on its own
+ok   nothing to send is no batches
+ok   a set too large to sync is not offered again while unchanged
+ok   but is as soon as it changes
+ok   one refused for another reason waits a day
+ok   and is tried again after it
+ok   nothing refused is nothing held
+ok   the same bytes lose nothing
+ok   a field this version cannot read is a loss
+ok   a field this version adds is not a loss
+ok   a key that held nothing is not a loss
+ok   an item this version could not read is a loss
+ok   a value read as something else is a loss
+ok   the same values in another order are not
+ok   the cursor goes back to just before the earliest to read again
+ok   never forward
+ok   and not at all when there is nothing to read again
+ok   never below zero
+ok   a document that would lose fields is held
+ok   one that loses nothing is not
+ok   held a week, unchanged, it is still held
+ok   held a month, unchanged, it is let go
+ok   no such picture is remembered
+ok   nor one it will not look up
+ok   a server having a bad moment is not
+ok   a picture never missing is asked for
+ok   one the server just said it lacks is not asked for again every run
+ok   nor the next day
+run rc=0

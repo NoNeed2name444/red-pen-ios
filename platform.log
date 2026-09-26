@@ -1,0 +1,78 @@
+compile rc=0
+ok   due link
+ok   stethoscore scheme too
+ok   set link by path
+ok   set link by query
+ok   bad set id is not routed
+ok   quiz link
+ok   quiz with spaces
+ok   quiz without a subject is not routed
+ok   sign-in return is never routed
+ok   other schemes are ignored
+ok   unknown host is ignored
+ok   search link
+ok   new set link
+ok   exam link
+ok   round trip reviewDue
+ok   round trip openSet(973182BA-7C49-4DDC-890E-AAA16FBAE4EB)
+ok   round trip quiz(subject: "Renal medicine")
+ok   round trip search("a b")
+ok   round trip newSet
+ok   round trip examPlan
+ok   folded drops case, accents and punctuation
+ok   alias cardio
+ok   alias heart
+ok   US and UK spelling
+ok   word of a longer name
+ok   prefix
+ok   contained
+ok   unrelated
+ok   empty never matches
+ok   best of several names
+ok   distinct subjects, busiest first
+ok   apkg
+ok   colpkg
+ok   csv
+ok   tsv
+ok   our set
+ok   our backup
+ok   pdf is a lecture
+ok   unknown
+ok   a .stethoscore that is a zip is a backup
+ok   a .stethoscore that is JSON is a set
+ok   a .json array is not a set
+ok   a .zip whose first entry is the manifest is a backup
+ok   any other .zip is not a backup
+ok   the head read is long enough for the manifest's name
+ok   an apkg stays an apkg
+ok   study data vs other
+ok   due is every card
+ok   busiest three decks
+ok   days to exam
+ok   exam day is 0
+ok   a past exam is dropped
+ok   same content ignores when
+ok   a new count is new content
+ok   today reads 0 the next day
+ok   today on the day
+ok   streak alive the next day
+ok   streak gone after two days
+ok   nothing due before the next card
+ok   at least one after it
+ok   digest round trip
+ok   a newer file is not misread
+ok   garbage is nothing
+ok   window opens the evening before
+ok   not that afternoon
+ok   still on late in the day
+ok   over the next day
+ok   a date alone has no start time
+ok   a time is the start
+ok   declined says nothing
+ok   under 13 is a minor
+ok   16 to 17 is a minor
+ok   18 and over is an adult
+ok   no ends known says nothing
+ok   only a minor loses community
+all platform checks passed
+run rc=0

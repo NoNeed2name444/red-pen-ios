@@ -1,0 +1,72 @@
+compile rc=0
+ok   the <think> block is dropped
+ok   a reply cut off mid-thought has no answer in it
+ok   a reply with no thinking is kept, trimmed
+ok   only what follows the last </think> counts
+ok   JSON inside a code fence and chatter is found
+ok   no object, no data
+ok   every item of a reply is read, whatever its fields
+ok   a key written 1, "2" or "C" is read as the option it names
+ok   a key that names no option is none
+ok   a key written as the option's own text is found
+ok   a reply cut off mid-array keeps every complete item (2)
+ok   braces inside strings do not confuse the reading
+ok   a reply with another list has none of these
+ok   the instruction goes in its field
+ok   the input goes in its field
+ok   the output goes in its field
+ok   the risk scale and all eleven error categories are there
+ok   Level 3 is read as 3
+ok   and does not pass
+ok   both errors are found
+ok   fabricated → hallucination, missing → omission
+ok   the reasoning is kept for the sheet
+ok   and who checked it
+ok   'None' and 1 is a clean pass
+ok   errors listed with a grade of 1 are read as at least low risk
+ok   overstating is a certainty error
+ok   without the field, the number after 'level' is used
+ok   no readable grade is moderate - never a pass, and 'Error 1' is not a grade
+ok   an empty reply does not pass
+ok   errors "None." is no error and stays Level 1
+ok   errors "`None'" is no error and stays Level 1
+ok   errors "None found." is no error and stays Level 1
+ok   errors "Error 1: None" is no error and stays Level 1
+ok   errors "- None" is no error and stays Level 1
+ok   errors "No errors found." is no error and stays Level 1
+ok   an error that merely starts its explanation with 'none' is still an error
+ok   a later 'not a Level 1' does not turn a Level 4 into a pass
+ok   a 'risk level' with no grade after it is passed over for the one that has one
+ok   with only bare levels, the highest one named is taken
+ok   risk_level written inline is read
+ok   'Contradicting finding: None' and the rest are no issue, and Level 1 stays a pass
+ok   beside a filled-in None, a real can't-miss issue still counts
+ok   understating is certainty
+ok   an incorrect recommendation is a hallucination
+ok   missing context is an omission
+ok   the matching paragraph is chosen
+ok   a short source is used whole
+ok   no overlap falls back to the start, within the limit
+ok   the Word page really is bigger than the budget
+ok   a one-page Word lecture over the budget is still used, at the matching line
+ok   and stays within the budget
+ok   with its page named
+ok   nearest picks a line out of one long paragraph
+ok   the best page comes first
+ok   no shared word, no reference
+ok   a sixth option is F, and the key names it
+ok   no two options share a letter
+ok   five options read exactly as before
+ok   a key of -1 is said to be missing, not read out of range
+ok   and so is a key past the last option
+ok   every item graded: checked
+ok   nothing graded (offline, allowance used) is never 'Accuracy checked'
+ok   some ungraded: says how many
+ok   all graded, nothing to add
+ok   asked for three pages, three slices
+ok   every paragraph lands in some page - the end of the lecture is not dropped
+ok   in order
+ok   nothing to slice, no pages
+ok   a short source is one page, not five empty ones
+ALL LLM TESTS PASS
+run rc=0

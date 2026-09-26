@@ -1,0 +1,99 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   typed MCQ: one question
+ok   typed MCQ: five options
+ok   typed MCQ: stem without its number
+ok   typed MCQ: number kept
+ok   typed MCQ: 'first-line' reads as single best answer
+ok   typed MCQ: option text
+ok   typed MCQ: box covers every line
+ok   typed MCQ: full text lettered
+ok   marker styles: three questions
+ok   marker styles: all MCQ
+ok   marker styles: option counts 4/3/3
+ok   marker styles: Q2 numbered
+ok   marker styles: circled option text
+ok   numbered options: one question
+ok   numbered options: four options
+ok   numbered options: markers are numbers
+ok   numbered questions stay separate
+ok   numbered questions: short answer
+ok   two columns: two questions
+ok   two columns: left first
+ok   two columns: wrapped stem joined
+ok   two columns: nothing from the other column
+ok   two columns: four options each
+ok   two columns: vignette with options is SBA
+ok   two columns: boxes in their columns
+ok   gutter found between the columns
+ok   no gutter in one column
+ok   options in a grid: one question
+ok   options in a grid: in order A-D
+ok   inline options: split
+ok   inline options: stem alone
+ok   vignette: one question
+ok   vignette: clinical case
+ok   vignette: lines joined
+ok   true/false by its words
+ok   true/false by its options
+ok   fill in the blank
+ok   calculation with units
+ok   calculation from values
+ok   OSCE instruction
+ok   OSCE: examine
+ok   image labelling
+ok   'narrowing' is not an arrow
+ok   noise: page number and footer dropped
+ok   noise: hyphenated wrap rejoined
+ok   noise: '8.' read as B
+ok   prose is not a question
+ok   'E. coli' at the start is not option E
+ok   same words, same key wherever they are
+ok   a misread letter changes the key
+ok   but the words mostly agree
+ok   not shown after one sighting
+ok   shown after two
+ok   a misread keeps the same chip
+ok   the box eases, not jumps
+ok   gone after it leaves the frame
+ok   at most six chips
+ok   chips in reading order
+ok   the six nearest the middle
+ok   reads at first
+ok   waits for the interval
+ok   still active soon after a change
+ok   pauses when nothing moves
+ok   a tremor does not wake it
+ok   moving wakes it
+ok   smooth reads less often
+ok   overlapping chips pushed apart
+ok   aspect fill covers the view
+ok   vision boxes flipped
+ok   MCQ reply read
+ok   MCQ reply: a note per option
+ok   MCQ reply: answer text
+ok   MCQ reply: key points
+ok   MCQ reply: key written as '(b) ...' and notes as a list
+ok   MCQ reply without JSON still read
+ok   MCQ reply naming no option refused
+ok   T/F reply read
+ok   T/F verdict as a string
+ok   cloze reply read
+ok   cloze filled in when the model did not
+ok   calculation reply: steps and result
+ok   case reply: diagnosis and next step
+ok   case reply: differential read in tiers
+ok   OSCE reply: steps in order
+ok   OSCE reply without steps refused
+ok   short answer reply
+ok   garbage refused for a case
+ok   prompt holds the lettered question
+ok   prompt for an image says the picture is not sent
+ok   into Questions: keyed and tagged
+run rc=0

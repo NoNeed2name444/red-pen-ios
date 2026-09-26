@@ -1,0 +1,60 @@
+compile rc=0
+ok   three words on one line make one cover
+ok   its answer is the whole label
+ok   every word of it is inside the cover
+ok   the line checks out
+ok   a two-line label makes one cover
+ok   its answer reads across both lines
+ok   both lines are under the one cover
+ok   a centred wrapped label is one cover
+ok   a right-aligned wrapped label is one cover
+ok   a hyphenated break is mended
+ok   a label is at most three lines
+ok   two labels one under the other are two covers
+ok   each with its own answer
+ok   two labels along one line are two covers
+ok   and neither answer takes the other's words
+ok   lines with a leader line between them are not joined
+ok   without one they are
+ok   a number beside a label is its own piece
+ok   and the label's cover does not hide it
+ok   a heading is not joined to a small label
+ok   two overlapping readings of a word are one cover
+ok   said once
+ok   both readings are under it
+ok   and it checks out
+ok   a line read twice over is one cover
+ok   said once
+ok   overlapping covers are merged into one
+ok   one cover per label on a crowded diagram
+ok   the answers are the labels
+ok   no cover overlaps another
+ok   each answer is exactly the words under its cover
+ok   the whole diagram checks out
+ok   every cover is padded past its words when there is room
+ok   labels a hair apart: two covers
+ok   that do not overlap
+ok   and each still covers its words
+ok   a cover over a word not in its answer is caught
+ok   a cover a word sticks out of is caught
+ok   an answer that is not the words under it is caught
+ok   overlapping covers are caught
+ok   a phrase is kept whole
+ok   no piece of it is covered alone
+ok   a figure number is not covered
+ok   a direction alone is not covered
+ok   an unsure reading is not covered
+ok   the labels that pass are covered
+ok   the laid-out covers check out
+ok   a phrase with no ink under it is not covered
+ok   one card per different label
+ok   each card's answer is its cover's words
+ok   its box is the cover
+ok   every other cover rides along, the repeat too
+ok   the card points at its picture
+ok   one label is not a labelled diagram
+ok   the filter joins a wrapped label too
+ok   and knows its line height
+
+ALL OCCLUSION PHRASE TESTS PASS
+run rc=0

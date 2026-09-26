@@ -1,0 +1,73 @@
+compile rc=0
+PASS T1 two regions
+PASS T1 three relays
+PASS T1 nine large neurons
+PASS T1 twelve interneurons
+PASS T1 six glia on their neurons
+PASS T1 the bridging idea is commissural
+PASS T1 both loose notes are receptors
+PASS T1 no microglia
+PASS T1 summary
+PASS T1 Anatomy relays from Inguinal, Inguinal from Examples
+PASS T1 regions listed
+PASS T1 a region is its own region
+PASS T1 Anatomy's region is Examples
+PASS T2 a glial cell's link is hidden
+PASS T2 inside one cluster: local
+PASS T2 between clusters of one region: a projection round the region
+PASS T2 to a loose note: a far tract
+PASS T2 one pathway per relay
+PASS T2 each pathway runs from a container to the one inside it
+PASS T2 impulses run down the pathway
+PASS T2 a receptor sends inward
+PASS T2 every note link kept
+PASS T3 preview ladder
+PASS T3 preview: no cells meet as they drift
+PASS T3 preview: dendrites clear at rest
+PASS T3 preview: inside the envelope
+PASS T3 200 random vaults keep the ladder
+PASS T3 200 random vaults: dendrites clear at rest
+PASS T3 20 random vaults: no cells meet as they drift
+PASS T4 planned twice, identical
+PASS T4 in any order, identical
+PASS T5 every relay stands out along its parent's pathway
+PASS T5 every container has a system to fly in to
+PASS T5 a region's fly-in holds its whole pathway
+PASS T6 no folders: one brainstem first
+PASS T6 no folders: every note in it
+PASS T6 no folders: summary
+PASS T6 a folder cycle is cut into one region and one relay
+PASS T6 ten deep: the ladder holds
+PASS T6 ten deep: no overlaps
+PASS T6 ten deep: every relay stands out along its pathway
+PASS T6 an empty folder is a small region
+PASS T6 nothing at all plans nothing
+PASS T6 forty loose: twenty receptors and twenty microglia
+PASS T6 forty loose: none meet
+PASS T6 loose cells float at the periphery
+PASS T7 300 notes: every note planned
+PASS T7 300 notes: planned in under 2 s
+PASS T7 300 notes: the ladder holds
+PASS T7 300 notes: no overlaps
+PASS T7 300 notes: inside the envelope
+PASS T8 Space is the default
+PASS T8 Neurons is kept
+PASS T8 a theme not ready yet falls back
+PASS T8 the menu offers only ready themes
+PASS T8 the themes' words are their own
+PASS T9 no wobble without amplitude
+PASS T9 a drift stays within its amplitude
+PASS T9 a drift moves
+PASS T9 a drift is fine after 50 minutes
+PASS T10 slots 0.9 to 2.4 s, travel 0.45 to 0.95 s
+PASS T10 links keep their own rhythm
+PASS T10 never two firings within half a slot (refractory)
+PASS T10 about the budget's share of slots fire
+PASS T10 rate 0 never fires
+PASS T10 links do not fire in step
+PASS T10 each impulse arrives once, a travel time after it fires
+PASS T10 bursts arrive 0.12 s apart
+PASS T10 the per-frame check agrees with the full list
+PASS T10 the rhythm follows the whole seed
+all passed
+run rc=0

@@ -1,0 +1,69 @@
+compile rc=0
+ok   FSRS: recall is 90% after exactly one stability
+ok   FSRS: the interval at 90% retention is the stability
+ok   FSRS: a first Good starts at w2 (3.173 days)
+ok   FSRS: first difficulty falls from Again to Easy
+ok   FSRS: a first Good's difficulty is w4 - e^(2 w5) + 1
+ok   FSRS: Good on time grows stability
+ok   FSRS: Hard < Good < Easy in stability
+ok   FSRS: Again never leaves more stability than the card had
+ok   FSRS: Again makes it harder, Easy easier
+ok   FSRS: difficulty stays within 1...10
+ok   FSRS: a same-day Good uses the short-term step (x e^(w17 w18))
+ok   FSRS: a Good remembered later earns more than one on time
+ok   FSRS plan: Again is a one-minute step
+ok   FSRS plan: a new card's Good is the ten-minute step
+ok   FSRS plan: a new card's Easy graduates to about 16 days
+ok   FSRS rating keeps the memory on the record
+ok   FSRS rating marks when the card was introduced
+ok   FSRS: Good on the last learning step graduates it
+ok   FSRS plan: Hard < Good < Easy for a review card
+ok   FSRS plan: every review interval is whole days
+ok   FSRS: the Good button promises what is stored
+ok   FSRS: Again on a review card is a lapse, back in a minute
+ok   FSRS respects the exam cap
+ok   Classic stays the web app's rule and drops FSRS memory
+ok   Classic is the default scheduler
+ok   FSRS can take over a Classic card (Good grows from its interval)
+ok   a study day turns over at 4 am
+ok   3 am still counts as the day before
+ok   bury lasts until the next day's start
+ok   no limits: every due card is in the queue
+ok   new cards stop at the day's limit
+ok   today's counts read new cards from the schedule
+ok   so only one more new card today
+ok   reviews stop at the day's limit
+ok   a learning card is never held back by a limit
+ok   Due today counts the same limits
+ok   the count matches the queue, limits set
+ok   the count matches the queue, no limits
+ok   counts handed in are used, not worked out again
+ok   two decks together share one day's limits
+ok   a suspended card leaves the queue
+ok   a buried new card leaves the queue
+ok   a buried card is back the next day
+ok   a suspended card is still out the next day
+ok   study ahead skips suspended cards only
+ok   unsuspending clears the flag
+ok   rating a suspended card (study ahead) keeps it suspended
+ok   a record written before these fields still decodes
+ok   an untouched record encodes without the new keys (no spurious sync)
+ok   an undo beats the rating it cancelled, whichever side has it
+ok   a suspend on another device wins over an older rating
+ok   a later rating still wins over an older suspend
+ok   undoing a first rating leaves a never-rated card, due now
+ok   a report is queued
+ok   the reason leads the note sent
+ok   the same report twice is queued once
+ok   a failed send waits before the next try
+ok   and is tried again later
+ok   a sent report leaves the outbox
+ok   the outbox never grows past its cap
+ok   a month-old unsent message is let go
+ok   a 7-day streak asks
+ok   a 3-day streak does not
+ok   a first finished mock asks
+ok   never twice
+ok   never just after something went wrong
+all review essentials checks passed
+run rc=0

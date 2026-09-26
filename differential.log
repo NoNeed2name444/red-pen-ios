@@ -1,0 +1,70 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   a question saved before the field decodes
+ok   with no differential
+ok   and everything else as it was
+ok   a Cases card saved before the field decodes
+ok   a clue-by-clue case saved before the field decodes
+ok   a whole old set still opens
+ok   a differential with tiers missing decodes
+ok   a question with a differential keeps it through a save
+ok   so does a clue-by-clue case
+ok   a written case keeps its differential
+ok   most likely is read
+ok   with its findings for and its test
+ok   expanded keeps both, in order
+ok   a finding written as a string rather than a list is still read
+ok   can't miss under another key spelling and other field names is read
+ok   the case itself is read as before
+ok   a case written without a differential has none
+ok   tier names written as titles are read
+ok   a list of entries each naming its tier is read
+ok   an MCQ reply with no differential is not read as one, even saying "most likely"
+ok   nothing is nothing
+ok   "none" in a tier is not a diagnosis
+ok   each question's differential is read by position
+ok   a vignette's differential is read in full
+ok   a recall question has none
+ok   a malformed one is none, and costs nothing else
+ok   a question turned into a Cases card keeps its differential
+ok   the line form reads every tier
+ok   findings are split at commas inside the brackets
+ok   a name with a slash in it stays whole
+ok   the test is kept
+ok   a Cases line keeps its differential
+ok   and its answer points as before
+ok   a recall line has none
+ok   the checker sees each tier on its own line
+ok   the hernia example has all three tiers
+ok   its most likely is the case's diagnosis
+ok   its expanded tier holds the case's differentials
+ok   its can't-miss tier names strangulation, torsion and a femoral aneurysm
+ok   femoral hernia is argued against by where the lump is
+ok   every entry has findings and a test
+ok   nothing cites a source the lookup did not return
+ok   the prompt asks for the reasoning checks
+ok   and its field comes after MedVAL's own three, so MedVAL's format is unchanged
+ok   a finding that contradicts the answer raises the grade to at least moderate
+ok   both issues are kept
+ok   and counted among the findings
+ok   an unsupported claim alone raises no risk to low
+ok   a can't-miss diagnosis left open is at least moderate
+ok   "None" is no issue, and a clean grade stays clean
+ok   "No issues." is no issue
+ok   "None found." is no issue
+ok   "- None" is no issue
+ok   "N/A" is no issue
+ok   "No issues found" is no issue
+ok   but "No" starting a real issue is still one
+ok   a reply without the field reads exactly as before
+ok   a high grade is never lowered by an issue
+ok   a verdict saved before the field decodes
+
+ALL DIFFERENTIAL TESTS PASS
+run rc=0

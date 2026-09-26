@@ -1,0 +1,29 @@
+compile rc=0
+ok   a short clip is one chunk
+ok   an hour is six ten-minute chunks
+ok   a few seconds past a boundary join the last chunk
+ok   no audio, no chunks
+ok   JSON phrases are read
+ok   a fenced answer is read too
+ok   prose is not a transcript
+ok   lines sit on the recording's clock, not the chunk's
+ok   and keep their end
+ok   each word gets a time inside its line
+ok   word times follow each other
+ok   a longer word takes longer to say
+ok   all-zero times are not trusted
+ok   so the chunk is shared out by text length
+ok   times running backwards are not trusted
+ok   a small overlap is kept in order
+ok   nothing ends past the chunk
+ok   an Arabic line is Arabic
+ok   an English line is English
+ok   numbers alone read as English
+ok   repeated slide terms come first
+ok   short and common words are left out
+ok   the common list fills the room left, without repeats
+ok   Arabic on a slide is not a spelling hint
+ok   the prompt carries the slide terms
+ok   and asks for Egyptian Arabic in Arabic script, English in English
+all passed
+run rc=0

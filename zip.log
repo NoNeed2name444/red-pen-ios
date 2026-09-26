@@ -1,0 +1,42 @@
+compile rc=0
+ok   a stored entry comes back as it was
+ok   a deflated entry comes back whole, across many chunks
+ok   and is what was deflated
+ok   the directory lists without reading
+ok   only the entries asked for are read
+ok   an archive that is a slice of a larger buffer still opens
+ok   an entry claiming four gigabytes is refused
+ok   without losing the rest of the archive
+ok   an entry that inflates past its ceiling is dropped, not cut short
+ok   and the entries beside it are still read
+ok   and it gives up at the ceiling rather than inflating everything
+ok   a claimed ratio deflate cannot reach is refused
+ok   an entry that turns out denser than the ratio allows is refused
+ok   entries sharing one stream are read once
+ok   the directory lists it once too
+ok   the archive as a whole stops at its budget
+ok   having read what fitted
+ok   a stream that stops short neither hangs nor crashes
+ok   a stream that is not deflate at all is refused
+ok   a directory pointing past the end of the file reads as empty
+ok   an entry whose header is outside the file is skipped, not a crash
+ok   rubbish is not an archive
+ok   an empty file is not an archive
+ok   a slide is read
+ok   a Word document is read
+ok   a slide's relationships are not
+ok   an embedded lecture video never is
+ok   pictures only when diagrams are wanted
+ok   a tracked deletion is not read as text
+ok   a field's code is not read, its result is
+ok   a text box is read once, not twice
+ok   a tab stop is a setting, a tab is a tab, and a page break is a break
+ok   a greater-than sign in the text stays
+ok   runs with no closing tag end the slide rather than rescanning it
+ok   and so do runs whose tag never closes
+ok   a run after an empty one is still read
+ok   the runs before an unclosed one are kept
+ok   a slide left unread does not renumber the rest
+
+ALL ZIP TESTS PASS
+run rc=0

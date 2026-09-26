@@ -1,0 +1,90 @@
+compile rc=0
+ok   quarter steps from 0.75x to 2.5x
+ok   a speed off the menu snaps to the nearest step
+ok   too fast is the fastest
+ok   too slow is the slowest
+ok   not a number is Normal
+ok   faster goes up a step
+ok   faster at the top stays there
+ok   slower goes down a step
+ok   slower at the bottom stays there
+ok   the chip reads 1.25×
+ok   1x is called Normal
+ok   2x is called 2×
+ok   a lecture never played opens at Normal
+ok   a lecture opens at the speed it was last heard at
+ok   a new lecture opens at the last speed chosen anywhere
+ok   each lecture keeps its own
+ok   and the default follows the latest choice
+ok   a speed off the menu is kept as a step on it
+ok   the menu has the six times and the end of the section
+ok   fifteen minutes is 900 seconds
+ok   full volume to begin with
+ok   the chip counts down in minutes and seconds
+ok   a second heard is a second off
+ok   a long gap - the app was not running - takes off no more than a few seconds
+ok   time never runs backwards
+ok   checks once a second while far from the end
+ok   the last ten seconds are when it checks often
+ok   it never sleeps past the start of the fade
+ok   still loud until the fade
+ok   half way through the fade is a quarter of the volume
+ok   then it is done, and silent
+ok   the fade only ever gets quieter
+ok   the fade starts at full volume and ends at none
+ok   the end of a section with no end known cannot be set
+ok   the end of this section starts from the player's own count
+ok   a scrub back gives the time back
+ok   past the end is done
+ok   a section at every heading, and one for the opening
+ok   headings are the sections' names
+ok   a typed lecture has no times
+ok   a Markdown heading is a heading
+ok   a short line ending in a colon is a heading
+ok   Part two is a heading
+ok   Section B and Chapter IV are headings
+ok   Slide 12 is a heading in a recording too
+ok   a sentence that starts with Part is not a heading
+ok   Topic: with its colon is a heading
+ok   nor one that starts with Lecture
+ok   a short capitalised line with no full stop is a heading in typed notes
+ok   but not in a recording's transcript, which may have no punctuation at all
+ok   a sentence is not a heading
+ok   a long line is not a heading
+ok   Arabic has no capitals, so only a marker makes it a heading
+ok   a heading and its subheading start one section, under the first
+ok   headings on most lines are a list, not sections
+ok   a forty-minute recording is cut into sections of about five minutes
+ok   every line is in exactly one section, in order
+ok   each section starts when its first line does
+ok   a cut falls at the long pause
+ok   a cut falls at the line that turns to something new
+ok   no section is tiny
+ok   a section is named by its first words
+ok   a transcript with no times is cut by its length read aloud
+ok   a short lecture with no headings is one section
+ok   a single line is one section
+ok   the section at a moment
+ok   at the very start of a section, that section
+ok   before the first, the first
+ok   past the last start, the last
+ok   no sections, no section
+ok   the section a line is in
+ok   its last line too
+ok   a section ends where the next starts
+ok   the last ends with the recording
+ok   Back well into a section goes to its start
+ok   Back just after a section starts goes to the one before
+ok   Back in the first section goes to its start
+ok   Back by line: mid-section to its start
+ok   Back by line: on the first line, the one before
+ok   Next goes to the section after
+ok   there is no next after the last
+ok   the lock screen's words
+ok   ten words at 150 a minute is four seconds
+ok   twice as fast, half the time
+ok   the words already said do not count, but it is never quite zero
+ok   once there, zero
+
+ALL AUDIO CONTROLS TESTS PASS
+run rc=0

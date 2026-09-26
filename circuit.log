@@ -1,0 +1,50 @@
+compile rc=0
+PASS T1 one board per collection: Cardiology and Examples
+PASS T1 sub-folders are smaller chips
+PASS T1 pages are capacitors
+PASS T1 ideas are LEDs
+PASS T1 loose notes are gold pads
+PASS T1 only chips, capacitors, LEDs and pads (and wiring)
+PASS T1 the summary counts boards
+PASS T1 model tags are the app's own
+PASS T1 the controller's tag outranks its sub-chips'
+PASS T2 every part on a closed path from power to ground
+PASS T2 series and parallel follow the hierarchy
+PASS T2 current runs away from the power rail
+PASS T2 an idea hangs off the page it links to
+PASS T2 links between boards run as buses between edge connectors
+PASS T2 each is hidden as itself
+PASS T2 links inside a board are its traces
+PASS T2 every note link kept
+PASS T3 no parts overlap
+PASS T3 flat, still, each on its own board
+PASS T3 boards apart on the bench
+PASS T3 the envelope holds everything
+PASS T3 power rail along each board's top, ground along its bottom
+PASS T3 every ground tap sits on a ground rail
+PASS T3 sizes: chips > pages > ideas, sub-chips under their chip
+PASS T4 deterministic
+PASS T4 input order does not matter
+PASS T4 wiring ids are stable and unique
+PASS T5 120 random vaults: closed, in order, apart, flat
+PASS T6 nothing: no boards
+PASS T6 no folders: one board, one chip holds every note
+PASS T6 empty folders still close their loops; a loose note is a pad
+PASS T6 a folder cycle is cut
+PASS T7 300 notes in one folder: under 2 s
+PASS T7 ... closed, apart, flat
+PASS T7 ... wrapped into tiers, not one long row
+PASS T7 300 notes in 12 folders: under 2 s, whole
+PASS T8 Circuit is offered
+PASS T8 Circuit is kept
+PASS T8 the menu's order: Space, Neurons, Circuit
+PASS T8 the Circuit's own words teach how to add
+PASS T8 every theme's card teaches three ways to add
+PASS T9 400 traces: flat, square or 45°, continuous, trimmed
+PASS T9 at 40 points every corner is round (no turn over 25°)
+PASS T9 at 20 points no turn over 45° (never a kink sharper than the corner)
+PASS T9 a trace with both ends together is finite
+PASS T9 a trace along one axis runs nearly straight
+PASS T9 a lifted end eases down to the board
+all passed
+run rc=0

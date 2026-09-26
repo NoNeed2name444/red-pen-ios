@@ -1,0 +1,85 @@
+compile rc=0
+PASS T1 two galaxies
+PASS T1 three stars
+PASS T1 nine gas giants
+PASS T1 twelve rocky planets
+PASS T1 six moons round their planets
+PASS T1 one pulsar
+PASS T1 two comets
+PASS T1 only Heart failure is ringed
+PASS T1 sizes on the ladder
+PASS T1 star tiers: Inguinal and Femoral yellow-white, Anatomy orange
+PASS T1 folder labels with counts
+PASS T1 summary
+PASS T1 Anatomy stands beside Inguinal
+PASS T1 Heart failure has 250 words or more
+PASS T2 ladder: core > star > gas > rocky > moon > pulsar
+PASS T2 every container is bigger than anything it holds (a star than its own, strictly)
+PASS T3 planning twice gives identical bodies
+PASS T3 shuffled input gives the same plan
+PASS T3 same shells
+PASS T4 preview: no overlaps
+PASS T4 preview: none with note spheres x1.5
+PASS T4 big vault: no overlaps
+PASS T4 big vault: none with x1.5
+PASS T4 random vaults: no overlaps
+PASS T5 preview inside its envelope
+PASS T5 big vault inside its envelope
+PASS T6 a two-folder cycle is cut at the smaller uuid
+PASS T6 a folder with a missing parent is top level
+PASS T6 a note in a missing folder is a comet
+PASS T6 notes in the cycle stay planets
+PASS T6 bodies come after their parents
+PASS T7 one home star
+PASS T7 its label
+PASS T7 no comets or pulsars
+PASS T7 every note orbits it or its planets
+PASS T7 summary
+PASS T8 twelve active comets
+PASS T8 twenty-eight in the Oort cloud
+PASS T8 the newest fly
+PASS T8 summary
+PASS T9 moons: short, one link, same folder, a strong planet, capped
+PASS T10 at most one pulsar per galaxy, ideas only
+PASS T10 two folders, three links: a pulsar
+PASS T10 one other folder: a planet
+PASS T10 two cross links: a planet
+PASS T10 loose notes do not count
+PASS T10 another galaxy counts
+PASS T10 a bridging page stays a gas giant
+PASS T11 rates fall with radius
+PASS T11 a comet at phase 0 is a(1 - e) out
+PASS T11 moon rings clear their planet by 0.03
+PASS T11 stars and cores never move
+PASS T11 each body's home is where it is at time 0
+PASS T12 1000 notes and 120 folders plan in under 300 ms
+     planned in 5 ms
+PASS T12 every note has a body
+PASS T13 words
+PASS T13 no words
+PASS T13 levels: 0, 14 -> 0; 15 -> 1; 249 -> 4; 250 -> 5; 2000 and more -> 8
+PASS T14 a moon and its planet: hidden
+PASS T14 same folder: straight
+PASS T14 same galaxy: arched round its core
+PASS T14 to a loose note: far
+PASS T14 every link joins two bodies
+PASS deep nesting: tiers 0, 1, 2, then red dwarfs
+PASS deep nesting: always smaller than the parent, never down to a gas giant
+PASS the star floor falls with depth and stays above 0.26
+PASS deep nesting: nothing flattened
+PASS deep nesting: no overlaps
+PASS a one-note folder: a star with one planet
+PASS its note orbits it
+PASS an empty top folder: a dormant black hole
+PASS an empty subfolder: a dark star
+PASS an empty folder in it: a smaller dark star
+PASS empty folders do not shine
+PASS a note in no folder is a comet with no parent
+PASS it lights from the nearest star
+PASS 300-note scale: every note planned
+PASS 300-note scale: no overlaps
+PASS 300-note scale: inside the envelope
+PASS a long folder name is cut but the count shows
+PASS an empty title shows Untitled
+all passed
+run rc=0

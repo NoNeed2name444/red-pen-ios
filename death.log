@@ -1,0 +1,37 @@
+compile rc=0
+PASS D1 each kind of body dies its own way
+PASS D1 Universe roles map to kinds
+PASS D1 single looks' styles map to kinds
+PASS D2 1 to 2.5 s, phases inside, whole at the start, gone at the end, links drawn back first
+PASS D3 a black hole evaporates ever faster (Hawking)
+PASS D3 a small star swells to a giant first
+PASS D3 a supernova's star is gone at the flash
+PASS D3 tides stretch a planet along the pull before it breaks
+PASS D3 a pulsar spins down
+PASS D3 apoptosis: shrink, bleb, condense, fragment, apoptotic bodies, in that order
+PASS D3 a cell rounds up smaller before it breaks
+PASS D3 a short circuit: spark first, smoke last; traces flash then go dark
+PASS D3 only a short circuit flashes its traces
+PASS D4 a folder of 40 deleted: at most 6 full effects (3 at Smooth)
+PASS D4 the biggest get them; wiring never does
+PASS D4 particles bounded, fewer at Smooth
+PASS D5 Reduce Motion or a still space: a quick fade, no particles
+PASS D5 the same bodies, the same plans
+PASS R1 a set still being drawn is never written again
+PASS R1 the ring grows only as far as the GPU lags
+PASS R2 nothing free: none is picked
+PASS R2 the least recently used free set is picked
+PASS R2 never the set written this frame
+PASS R3 link ends follow a body's live size
+PASS R3 ... never collapsing to the centre
+PASS F1 the framing aims at the middle of the map's box
+PASS F1 ... so it is framed evenly above and below
+PASS F1 nothing: the origin
+PASS S1 membrane steps and the v coding round-trip, under 16,384
+PASS S1 a membrane's step is within 8% of it
+PASS S2 one cup per link: hugging the membrane across the cleft, inside its ribbon, bigger than the old cups
+PASS S3 two cups on one cell never touch when their links arrive over 50 degrees apart
+PASS S4 the impulse lands on the cup at the arrival time (the dendrite glow in step)
+PASS S4 the ribbon runs to the target's centre, give or take the membrane's step
+all passed
+run rc=0

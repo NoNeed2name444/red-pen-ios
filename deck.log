@@ -1,0 +1,62 @@
+compile rc=0
+ok   a picture with no readable text stays with the question
+ok   an ECG's own furniture is not the answer, so it stays with the question
+ok   a picture captioned with the diagnosis is held back
+ok   a picture repeating words the question already used reveals nothing
+ok   showing even one of the labels being asked for is enough to hold it back
+ok   but one showing the labels being asked for is held back
+ok   one incidental word out of a long answer is not a spoiler
+ok   but a picture carrying most of the answer's vocabulary is
+ok   and it can say which word gave it away
+ok   everyday and layout words are not evidence of anything
+ok   accents do not make a different word
+ok   plurals fold to the singular
+ok   and folding never has to be clever, only consistent
+ok   shading darkens
+ok   tinting lightens
+ok   components outside the range are clamped rather than producing a colour that cannot exist
+ok   hex is hex
+ok   a bright tint is not asked to carry white text
+ok   so its bar is filled with a darker shade
+ok   a dark tint carries white text as it is
+ok   one card per question
+ok   the options are on the question page
+ok   and none of them is marked correct there, which would give the game away
+ok   the answer page marks the right one
+ok   and carries the explanation
+ok   a station becomes one card per step
+ok   each answer is the step itself
+ok   filed under the station
+ok   options are lettered
+ok   and an implausible number of options does not crash
+ok   a stem with no ask falls back to its words, unmarked
+ok   and an empty one is still labelled
+ok   two stems with the same opening do not collapse to one row
+ok   the label is the ask, with its scaffolding words dropped
+ok   and not the vignette every card in the deck shares
+ok   cards are numbered from one, in order
+ok   consecutive cards on one topic collapse to a single row
+ok   shown as a range
+ok   a new topic starts a new row
+ok   a single card shows one number, not a range
+ok   an Anki set does not print as a PDF
+ok   and it is the only mode that does not
+ok   a copy's cards have ids of their own, so it has a schedule of its own
+ok   and so do its questions
+ok   with everything else as it was
+ok   a conflict copy's cards shared with the winner are renewed
+ok   and a card only the copy has keeps its id, so its schedule stays with it
+ok   so no card is in both decks, and deleting one never forgets the other's schedule
+ok   the sentence about another option is lifted out
+ok   and what makes the right answer right is left behind
+ok   the lifted sentence is the whole sentence, not a fragment
+ok   a near-miss worded differently is still recognised
+ok   a single sentence is never split
+ok   and with no other options to talk about, nothing is lifted
+ok   an explanation that is nothing but traps keeps its own shape
+ok   sentences end where punctuation says
+ok   a sentence is a trap only when it looks more like the distractor than like the answer
+ok   so the right answer's own mechanism stays in the core
+
+ALL DECK TESTS PASS
+run rc=0

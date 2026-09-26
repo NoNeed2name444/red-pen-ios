@@ -1,0 +1,82 @@
+compile rc=0
+ok   a medical label on the figure is kept
+ok   another is kept
+ok   an abbreviation on the figure is kept
+ok   the college name is dropped
+ok   the slide title is dropped
+ok   text off the figure is dropped
+ok   the lecturer is dropped
+ok   a slide number is dropped
+ok   a page count is dropped
+ok   a figure number is dropped
+ok   a source line is dropped
+ok   a web address is dropped
+ok   a copyright line is dropped
+ok   a date is dropped
+ok   exactly the three labels
+ok   a crest's letters in the header are dropped
+ok   a medical label in the header band survives
+ok   the title is dropped even on the figure
+ok   a label mid-page is kept
+ok   a faculty footer is dropped
+ok   a page number is dropped
+ok   without page bands, a label at the top is kept
+ok   no figure: a medical term passes
+ok   no figure: other words do not
+ok   a sentence is not a label
+ok   a lone number is not a label
+ok   one letter is not a label
+ok   a hospital is branding
+ok   an email is branding
+ok   a nerve is not branding
+ok   a Latin ending reads as medical
+ok   a plain word does not
+ok   an unsure OCR reading is not covered
+ok   a reading at 0.5 confidence is
+ok   a box with no height is not covered
+ok   a speck is not covered
+ok   a box over half the picture is not covered
+ok   an empty box is not covered
+ok   a sane box with a term is covered
+ok   mostly symbols is not a label
+ok   two letters is not a label
+ok   ink on a fifth of a box is text
+ok   a blank box is not
+ok   pieces side by side are joined into one label
+ok   no lone piece of the joined label is left
+ok   a label far along the same line stays its own
+ok   three labels after joining
+ok   a joined label covers both pieces
+ok   a joined label keeps the lower confidence
+ok   a heading is not joined to a small label beside it
+ok   a gap wider than a letter-height on a wide slide is two labels
+ok   'Left' alone is not covered
+ok   'the' is not covered
+ok   'Superior view' is not covered
+ok   'Diagram' is not covered
+ok   'See note' is not covered
+ok   'Deep' alone is not covered
+ok   a common word with a Latin-looking ending is not covered
+ok   a short unknown single word is not covered
+ok   'Left atrium' is covered
+ok   a long single word with an anatomical ending on the figure is covered
+ok   the same word with no figure to sit on is not
+ok   one testable label makes no cards when two are needed
+ok   two testable labels make two cards
+ok   each covers only the other passing label
+ok   three labels, three cards
+ok   each card carries the other two masks
+ok   a card's own mask is not among its siblings
+ok   an older card covers the other labels on its picture
+ok   a stored sibling list wins
+ok   a cover contains the label with room to spare
+ok   a cover sits on whole pixels
+ok   a cover is at least the minimum size
+ok   even a zero box gets a cover
+ok   a cover never runs off the picture
+ok   at 3x a cover sits on third-points
+ok   a card saved before siblings still opens
+ok   siblings survive a save
+
+ALL OCCLUSION TESTS PASS
+run rc=0

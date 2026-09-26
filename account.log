@@ -1,0 +1,36 @@
+compile rc=0
+ok   a verifier is not its own challenge
+ok   the same verifier always gives the same challenge
+ok   two verifiers differ
+ok   a challenge is safe to put in a URL
+ok   a hashed nonce is hex
+ok   the same input hashes the same way twice
+ok   the code comes back out of the redirect
+ok   a redirect with the wrong state is refused
+ok   a redirect with no code is refused
+ok   an error redirect is refused
+ok   an empty code is refused
+ok   a live session is valid
+ok   an expired one is not
+ok   a session is refreshed before it expires
+ok   a session with an hour left is refreshed
+ok   and not while it has days left
+ok   an expired session with a refresh token is kept at launch
+ok   and one without is not
+ok   nor one with an empty refresh token
+ok   a live session is kept however it was made
+ok   never subscribed is free
+ok   a live subscription is pro
+ok   a failed renewal keeps working while the App Store retries
+ok   and says why
+ok   a retry that never succeeded does end
+ok   a subscription we could not re-check keeps working for a few days
+ok   but not for ever
+ok   a lapse confirmed by the App Store is a lapse
+ok   a phone that has never asked, asks
+ok   a live subscription is not re-checked every minute
+ok   but is re-checked every hour
+ok   anything lapsed is re-checked at once
+
+ALL ACCOUNT TESTS PASS
+run rc=0

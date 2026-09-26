@@ -1,0 +1,32 @@
+compile rc=0
+ok   an Arabic and an English spelling of one sound match
+ok   the definite article does not change the sound
+ok   a ta-marbuta and a ha are the same word
+ok   different words stay different
+ok   qaf and kaf collide, exactly as they do in Python
+ok   a split word and a joined one meet once the seam is closed
+ok   a correction is trusted at once
+ok   and is then applied
+ok   one repetition is not yet trusted
+ok   three repetitions are
+ok   a weaker guess cannot overwrite a correction
+ok   the table survives a round trip through TSV
+ok   the word the student tapped is fixed
+ok   the same mistake elsewhere is fixed too
+ok   the lecturer's article is kept
+ok   the spread is reported rather than silent
+ok   and it was remembered
+ok   one undo puts all of it back
+ok   both occurrences end up fixed, none skipped
+ok   the tapped word is the one reported as here
+ok   every word gets a slot
+ok   the words run in order
+ok   an estimate says it is an estimate
+ok   the phrase ends where it was told to
+ok   the word at a moment is found
+ok   a measured time is used as given
+ok   a partly timed phrase keeps what was measured and estimates the rest
+ok   an Arabic word is not rushed
+
+ALL LEARNING TESTS PASS
+run rc=0

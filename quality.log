@@ -1,0 +1,48 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   a sound question passes clean
+ok   the longest option is caught
+ok   only the key hedging is caught
+ok   a word shared only by stem and key is caught
+ok   'all of the above' is caught
+ok   a topic is not a stem
+ok   an explanation about something else is caught
+ok   a sound card passes clean
+ok   a card carrying five facts is caught
+ok   a cloze that deletes the sentence is caught
+ok   a sound cloze passes clean
+ok   a cloze with no deletion is caught
+ok   a question that gives itself away is dropped
+ok   every other card became a question
+ok   every option came from the deck, none invented
+ok   each key is its own card's answer
+ok   no question repeats an option
+ok   the explanation names what it is explaining
+ok   an explanation that already names the answer is left alone
+ok   the shipped questions pass the quality rules
+ok   a thin deck refuses rather than inventing distractors
+ok   a multi-fact card makes no question
+ok   the quiz is reproducible
+ok   case and a hyphen do not make a different answer
+ok   nor a plural
+ok   so a restated key is not offered as a wrong answer
+ok   two values in the same unit are different answers
+ok   type 1 and type 2 are different answers
+ok   a value draws values first
+ok   a key that is the only value among terms gives itself away
+ok   a term with a digit in its name is still a term
+ok   every hole with the first one's number is blanked
+ok   other numbers are shown as words
+ok   an acronym keeps its capitals
+ok   so does CT
+ok   and an eponym
+ok   an ordinary first word is still lower-cased
+
+ALL CARD QUALITY TESTS PASS
+run rc=0

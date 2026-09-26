@@ -1,0 +1,54 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   MCQ turns into Cards instantly
+ok   the new set is a deck
+ok   it is named after the original
+ok   it is a new set, not the old one
+ok   subject, folder, pictures and lectures come with it
+ok   one card per sound question
+ok   the stem is the front
+ok   the right answer is the back
+ok   the explanation is the why
+ok   the citation is kept
+ok   the original is untouched
+ok   MCQ turns into Cases instantly
+ok   a long stem is a clinical case
+ok   a short stem is recall
+ok   the answer leads, then why
+ok   MCQ into OSCE needs writing
+ok   MCQ into Textbook needs writing
+ok   a set is never turned into itself
+ok   nothing turns into Narrate
+ok   a deck turns into a quiz instantly
+ok   every option is one of the deck's own answers
+ok   every key is right
+ok   too thin a deck is written instead
+ok   cards turn into Cases
+ok   a cloze card asks its first gap
+ok   a picture card is left out
+ok   Cases turn into cards
+ok   the answer points are the bullets
+ok   the topic already in the question is not repeated
+ok   a station turns into one card per step
+ok   the first card asks for the first step
+ok   later cards ask what comes next
+ok   a station turns into one talk-through case
+ok   a textbook into MCQ is written
+ok   a textbook into Cards is written
+ok   a textbook into Cases is written
+ok   a textbook into OSCE is written
+ok   the kept lecture is the material
+ok   no lecture, no material from one
+ok   a quiz's text has its stems, answers and explanations
+ok   a station's text keeps its steps in order
+ok   a textbook's text is the book
+ok   a cloze card's text has its words, not its braces
+
+ALL MODE CONVERSION TESTS PASS
+run rc=0

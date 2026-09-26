@@ -1,0 +1,99 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+compile rc=0
+ok   the right option is marked right in all 120 orders
+ok   every other option is marked wrong in all 120 orders
+ok   the summary marks exactly as the quiz did
+ok   the option recorded as picked is the one tapped, in the question's own numbering
+ok   no answer is not right
+ok   a slot past the end is not right
+ok   a checked but unanswered question is wrong in the summary
+ok   a right answer that was never checked does not score
+ok   a valid saved order is kept
+ok   an order for fewer options falls back to the written order
+ok   an order for more options falls back
+ok   an order with a repeat falls back
+ok   no saved order is the written order
+ok   a fresh shuffle is an ordering of every option
+ok   unshuffled is as written
+ok   a key missing from the options is in no slot
+ok   every question from a deck has the card's own answer as its key, whatever the shuffle
+ok   Turn into MCQ keys every question to its own card
+ok   a question turned into a card has the right answer on the back
+ok   the diagnosis is offered once, however the differentials repeat it
+ok   a differential repeated in another case is offered once
+ok   the diagnosis is among the choices
+ok   choosing the diagnosis is right
+ok   the diagnosis with different case or spacing is right
+ok   a differential is wrong
+ok   nothing is not the diagnosis
+ok   example case Indirect inguinal hernia: exactly one right choice among four
+ok   example case Indirect inguinal hernia: the decisive clue is one of its clues
+ok   example case NSTEMI: exactly one right choice among four
+ok   example case NSTEMI: the decisive clue is one of its clues
+ok   example case Diabetic ketoacidosis: exactly one right choice among four
+ok   example case Diabetic ketoacidosis: the decisive clue is one of its clues
+ok   the hernia case is settled by the vessels at operation, not the deep-ring test
+ok   a right answer on clue 2 of 7 scores 1 + 5/7
+ok   a wrong answer scores nothing
+ok   the buttons run first condition, both, second
+ok   swipe left is the first condition
+ok   swipe right is the second condition
+ok   swipe up is both
+ok   up and a little left is still both
+ok   a short drag is nothing
+ok   a drag mostly downwards is nothing, not a side
+ok   left and a little up is the first condition
+ok   side A
+ok   side b, lower case
+ok   both
+ok   "Side A" is A
+ok   "B only" is B
+ok   "Condition B" is B
+ok   the first condition's name is A
+ok   the second condition's name is B
+ok   "neither" is no side, not a guess
+ok   lateral to the inferior epigastrics is indirect
+ok   Hesselbach's triangle is direct
+ok   above and medial to the pubic tubercle is every inguinal hernia
+ok   a thrill on tapping is the saphena varix
+ok   strangulation risk is the femoral hernia
+ok   osmolality of 320 or more is HHS
+ok   ketones of 3 or more is DKA
+ok   insulin held back is HHS
+ok   Indirect inguinal hernia duel: every feature has its own id
+ok   Indirect inguinal hernia duel: features on both sides and shared
+ok   Femoral hernia duel: every feature has its own id
+ok   Femoral hernia duel: features on both sides and shared
+ok   Diabetic ketoacidosis duel: every feature has its own id
+ok   Diabetic ketoacidosis duel: features on both sides and shared
+ok   "B" is B
+ok   "bee" is B
+ok   "be" alone is B
+ok   "see" is C
+ok   "sea" is C
+ok   "dee" is D
+ok   "echo" is E
+ok   "it's A" is A
+ok   "a" is A
+ok   "it must be D" is D, not B
+ok   "I think it would be C" is C
+ok   "I see, it's B" is B, not C
+ok   "B - no, D" is the last one said
+ok   "answer delta" is D
+ok   "number two" is B
+ok   the option read out is understood
+ok   the option read out with its letter is understood
+ok   a letter and an option that disagree is not an answer
+ok   nothing said is not an answer
+ok   something unrelated is not an answer
+ok   only as many letters as options
+ok   "indirect inguinal hernia" read out is B
+ok   "direct inguinal hernia" read out is A, not the indirect one
+ok   a word every option shares is not an answer
+run rc=0

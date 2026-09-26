@@ -1,0 +1,92 @@
+compile rc=0
+ok   at least twenty exams
+ok   ids are unique
+ok   every exam asked for is there
+ok   step1: the blueprint sums to 100%
+ok   step1: raw weights are near 100% (or out of 200 / 300)
+ok   step1: no area twice
+ok   step1: every weight positive
+ok   step1: four or five options
+ok   step1: a paper to sit
+ok   step1: a sane pace
+ok   step1: a sane pass mark
+ok   step1: strictness 0-1
+ok   step1: a stem range
+ok   step1: cites its blueprint
+ok   step1: not both blockwise and separate
+ok   step2ck: the blueprint sums to 100%
+ok   step2ck: raw weights are near 100% (or out of 200 / 300)
+ok   step2ck: no area twice
+ok   step2ck: every weight positive
+ok   step2ck: four or five options
+ok   step2ck: a paper to sit
+ok   step2ck: a sane pace
+ok   step2ck: a sane pass mark
+ok   step2ck: strictness 0-1
+ok   step2ck: a stem range
+ok   step2ck: cites its blueprint
+ok   step2ck: not both blockwise and separate
+ok   step3: the blueprint sums to 100%
+ok   step3: raw weights are near 100% (or out of 200 / 300)
+ok   step3: no area twice
+ok   step3: every weight positive
+ok   step3: four or five options
+ok   step3: a paper to sit
+ok   step3: a sane pace
+ok   step3: a sane pass mark
+ok   step3: strictness 0-1
+ok   step3: a stem range
+ok   step3: cites its blueprint
+ok   step3: not both blockwise and separate
+ok   comlex1: the blueprint sums to 100%
+ok   comlex1: raw weights are near 100% (or out of 200 / 300)
+ok   comlex1: no area twice
+ok   comlex1: every weight positive
+ok   comlex1: four or five options
+ok   comlex1: a paper to sit
+ok   comlex1: a sane pace
+ok   comlex1: a sane pass mark
+ok   comlex1: strictness 0-1
+ok   comlex1: a stem range
+ok   comlex1: cites its blueprint
+ok   comlex1: not both blockwise and separate
+ok   comlex2: the blueprint sums to 100%
+ok   comlex2: raw weights are near 100% (or out of 200 / 300)
+ok   comlex2: no area twice
+ok   comlex2: every weight positive
+ok   comlex2: four or five options
+ok   comlex2: a paper to sit
+ok   comlex2: a sane pace
+ok   comlex2: a sane pass mark
+ok   comlex2: strictness 0-1
+ok   comlex2: a stem range
+ok   comlex2: cites its blueprint
+ok   comlex2: not both blockwise and separate
+ok   plab1: the blueprint sums to 100%
+ok   plab1: raw weights are near 100% (or out of 200 / 300)
+ok   plab1: no area twice
+ok   plab1: every weight positive
+ok   plab1: four or five options
+ok   plab1: a paper to sit
+ok   plab1: a sane pace
+ok   plab1: a sane pass mark
+ok   plab1: strictness 0-1
+ok   plab1: a stem range
+ok   plab1: cites its blueprint
+ok   plab1: not both blockwise and separate
+ok   mrcp1: the blueprint sums to 100%
+ok   mrcp1: raw weights are near 100% (or out of 200 / 300)
+ok   mrcp1: no area twice
+ok   mrcp1: every weight positive
+ok   mrcp1: four or five options
+ok   mrcp1: a paper to sit
+ok   mrcp1: a sane pace
+ok   mrcp1: a sane pass mark
+ok   mrcp1: strictness 0-1
+ok   mrcp1: a stem range
+ok   mrcp1: cites its blueprint
+ok   mrcp1: not both blockwise and separate
+ok   mrcsA: the blueprint sums to 100%
+ok   mrcsA: raw weights are near 100% (or out of 200 / 300)
+ok   mrcsA: no area twice
+run rc=0
