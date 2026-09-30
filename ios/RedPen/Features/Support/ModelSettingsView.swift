@@ -143,8 +143,8 @@ struct ModelSettingsView: View {
 
     private var cloudSection: some View {
         Section {
-            LabeledContent("Writer", value: "Gemini 3.1 Pro")
-            LabeledContent("Checker", value: "Gemini 3.1 Pro with MedVAL's rubric")
+            LabeledContent("Writer", value: "Gemini 3.5 Flash")
+            LabeledContent("Checker", value: "Gemini 3.5 Flash, MedVAL's rubric, current evidence")
             LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
         } header: {
             Text("\(Brand.name) Cloud \u{00B7} Pro")
