@@ -43,7 +43,7 @@ CORE_DROP = [
     "Shared/PopOut.swift", "Shared/PopOutMotion.swift", "Shared/HeadTracker.swift",
     "Shared/Diagnostics", "Features/Support/DiagnosticsSettingsView.swift",
     "Shared/Platform", "Shared/AppIntents.swift", "Shared/AppIntentsRouting.swift", "Shared/AppIntentsVisual.swift",
-    "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift", "Persistence/StoreSync.swift",
+    "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift",
     "Shared/SyncAPI.swift", "Shared/SyncRules.swift", "Shared/SyncMerge.swift",
     # the audio pipeline
     "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
