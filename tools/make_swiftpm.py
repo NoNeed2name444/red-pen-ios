@@ -14,12 +14,15 @@ if "--without" in args:
 src, name, bundle, out = args[:4]
 samples = args[4:]  # lectures for this build only (never in the repository)
 # What can be left out: the paths (relative to ios/RedPen, fnmatch patterns or
-# folders) and the stub that stands in for them. A chunk is only a chunk if the
-# rest of the app reaches it through the few names its stub provides.
+# folders), the files among them that stay because the rest of the app uses
+# them, and the stub that stands in for the rest. A chunk is only a chunk if
+# the rest of the app reaches it through the few names its stub provides.
 CHUNKS = {
-    "graph3d": (["Features/Notes/Graph*.swift"], "graph3d.swift"),   # the 3D Ideas map, ~20,000 lines of SceneKit
-    "lens": (["Features/Lens", "Shared/Lens"], "lens.swift"),         # Study Lens (camera reads a question)
-    "analytics": (["Features/Analytics"], "analytics.swift"),         # the Progress screen's rings and charts
+    # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
+    # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
+    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], "graph3d.swift"),
+    "lens": (["Features/Lens", "Shared/Lens"], [], "lens.swift"),          # Study Lens (camera reads a question)
+    "analytics": (["Features/Analytics"], [], "analytics.swift"),          # the Progress screen's rings and charts
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"
@@ -34,7 +37,7 @@ if without:
     os.makedirs(stub_dir, exist_ok=True)
     shutil.copy(os.path.join(stubs, "_common.swift"), stub_dir)
     for chunk in without:
-        patterns, stub = CHUNKS[chunk]
+        patterns, keep, stub = CHUNKS[chunk]
         files, lines = 0, 0
         for pattern in patterns:
             whole = os.path.join(root, pattern)
@@ -47,7 +50,7 @@ if without:
                 continue
             folder = os.path.join(root, os.path.dirname(pattern))
             for n in sorted(os.listdir(folder)):
-                if fnmatch.fnmatch(n, os.path.basename(pattern)):
+                if fnmatch.fnmatch(n, os.path.basename(pattern)) and n not in keep:
                     path = os.path.join(folder, n)
                     files += 1; lines += sum(1 for _ in open(path, errors="replace"))
                     os.remove(path)
