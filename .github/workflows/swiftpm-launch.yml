@@ -248,7 +248,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode: ['26.0.1', '26.2', '26.3']
+        # 26.0.1 is on the image too, but without its iOS platform, so it
+        # cannot build for the device
+        xcode: ['26.2', '26.3']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -280,7 +282,8 @@ jobs:
           {
             echo "### Xcode ${{ matrix.xcode }}, device build: $(grep -o -E 'BUILD (SUCCEEDED|FAILED)' "$R/build.log" | tail -1)"
             echo '```'; cat "$R/toolchain.txt"; echo '```'
-            echo "errors:"; echo '```'; grep -E "error:" "$R/build.log" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -60; echo '```'
+            # a build without errors makes grep exit 1: never let that end the step
+            echo "errors:"; echo '```'; { grep -E "error:" "$R/build.log" || true; } | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -60; echo '```'
             echo "slowest to type-check ($(wc -l < "$R/typecheck.txt" | tr -d ' ') over the limits):"; echo '```'; head -25 "$R/typecheck.txt"; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           gzip -f "$R/build.log"
