@@ -27,10 +27,8 @@ jobs:
           # tools/make_swiftpm.py CHUNKS)
           - variant: full
             without: ''
-          - variant: no-3d
-            without: graph3d
           - variant: core
-            without: graph3d,lens,analytics
+            without: core
     steps:
       - uses: actions/checkout@v4
         with:
