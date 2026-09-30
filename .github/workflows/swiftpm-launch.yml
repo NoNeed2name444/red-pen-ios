@@ -23,6 +23,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   launch:
+    # a commit whose message says [toolchains] only wants the job below
+    if: ${{ !contains(github.event.head_commit.message, '[toolchains]') }}
     runs-on: macos-latest
     timeout-minutes: 75
     strategy:
@@ -232,9 +234,63 @@ jobs:
         with:
           name: launch-${{ matrix.id }}
           path: out/results/${{ matrix.id }}
+  toolchains:
+    # Swift Playground 4.7 on the iPad compiles with the Swift 6 toolchain
+    # and iOS 26 SDK it shipped with in March 2026, older than the Xcode 26.6
+    # the runner uses by default. The same package is built here with the
+    # older Xcodes on the image, for the device as the iPad does, so an
+    # expression the older type-checker gives up on, or an API only the
+    # newer SDK has, shows up here rather than on the iPad.
+    runs-on: macos-26
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode: ['26.0.1', '26.2', '26.3']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Make the package
+        run: |
+          set -euo pipefail
+          python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out/Stethoscore.zip
+          cd out && rm -rf pkg && mkdir pkg && cd pkg && unzip -q ../Stethoscore.zip && ls
+      - name: Build with Xcode ${{ matrix.xcode }} for the device
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+        run: |
+          set -o pipefail
+          R="$GITHUB_WORKSPACE/out/results"; mkdir -p "$R"
+          if [ ! -d "$DEVELOPER_DIR" ]; then
+            echo "no Xcode ${{ matrix.xcode }} on this image:"; ls /Applications | grep -i xcode
+            echo "missing" > "$R/toolchain.txt"; exit 1
+          fi
+          { xcodebuild -version; xcrun swift --version 2>&1 | head -2; xcrun --sdk iphoneos --show-sdk-version; } | tee "$R/toolchain.txt"
+          (cd "out/pkg/Stethoscore Personal.swiftpm" && xcodebuild -scheme "Stethoscore Personal" -configuration Debug \
+            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd" \
+            -skipMacroValidation -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -Xfrontend -warn-long-expression-type-checking=150 -Xfrontend -warn-long-function-bodies=300' \
+            build 2>&1 | tee "$R/build.log" | grep -E "error:|BUILD |\*\* " | head -100 || true)
+          grep -E "error:|warning:" "$R/build.log" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -300 > "$R/build-issues.txt" || true
+          grep -E "took [0-9]+ms to type-check" "$R/build.log" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u \
+            | awk '{ ms = 0; for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+ms$/) ms = $i + 0; print ms "\t" $0 }' | sort -rn | cut -f2- > "$R/typecheck.txt" || true
+          {
+            echo "### Xcode ${{ matrix.xcode }}, device build: $(grep -o -E 'BUILD (SUCCEEDED|FAILED)' "$R/build.log" | tail -1)"
+            echo '```'; cat "$R/toolchain.txt"; echo '```'
+            echo "errors:"; echo '```'; grep -E "error:" "$R/build.log" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -60; echo '```'
+            echo "slowest to type-check ($(wc -l < "$R/typecheck.txt" | tr -d ' ') over the limits):"; echo '```'; head -25 "$R/typecheck.txt"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          gzip -f "$R/build.log"
+          grep -q "BUILD SUCCEEDED" <(zcat "$R/build.log.gz")
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolchain-${{ matrix.xcode }}
+          path: out/results
   publish:
     needs: launch
-    if: always()
+    if: always() && needs.launch.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
