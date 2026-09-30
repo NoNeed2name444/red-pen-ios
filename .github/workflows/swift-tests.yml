@@ -29,6 +29,7 @@ on:
       - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
       - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
       - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
+      - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -199,6 +200,8 @@ jobs:
           suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
           # touching the map: tap, double tap, hold, drag, orbit, the peek card
           suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
+          # lines: Curved / Straight - the straight segment and the board's bow
+          suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
           # the accuracy engine: dose, lab and contradiction rules (the same
           # cases as the server's), the accuracy model's grades, the cache key,
           # the order background checks run in, and one-tap corrections

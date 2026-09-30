@@ -297,7 +297,7 @@ enum LibraryBackupRunner {
     /// The backup's settings this phone has no value for.
     static func applySettings(_ data: Data?) -> Int {
         guard let data,
-              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
+              let plist = try? PropertyListSerialization.propertyList(from: data, options: PropertyListSerialization.ReadOptions(), format: nil),
               let backup = plist as? [String: Any] else { return 0 }
         let defaults = UserDefaults.standard
         let existing = Set(defaults.dictionaryRepresentation().keys)

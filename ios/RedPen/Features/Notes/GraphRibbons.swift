@@ -26,7 +26,9 @@ nonisolated struct GraphRibbonLink {
 /// its axis; near a gas giant it is pulled gently towards the ring's plane;
 /// an arched link bows on a smooth parabola. A link that is growing in is
 /// drawn from its sending end along the same curve, its tip fading in the
-/// shader.
+/// shader. With "Lines: Straight" (GraphLineStyle, read each frame) every
+/// link, in every theme, is instead the direct segment between the same
+/// trimmed ends (sampleStraight).
 ///
 /// The texture coordinates carry what the link shader needs (see
 /// GraphStyleShaders.link): u = ((styleA * 8 + styleB) * 16 + seed) * 64 +
@@ -93,6 +95,10 @@ nonisolated final class GraphRibbonWriter {
     private let arbor: GraphLinkArbor?
     /// Frames counted here when there is no fence.
     private var ownFrame: UInt64 = 0
+    /// "Lines: Straight" (GraphLineStyle), read once a frame: every link a
+    /// direct segment between its trimmed ends, in place of the theme's
+    /// curve, arch, curl or routed trace.
+    private var straight: Bool = false
 
     init(halfWidth: Float = GraphShape.linkHalfWidth, material: SCNMaterial,
          samples: Int = GraphQuality.current.linkSamples, expected: Int = 0, seeded: Bool = false,
@@ -120,6 +126,7 @@ nonisolated final class GraphRibbonWriter {
     func write(links: [GraphRibbonLink], position: [SIMD3<Float>], radius: [Float], codes: [Int],
                axis: [SIMD3<Float>]?, focus: Int, eye: SIMD3<Float>, device: MTLDevice?) -> SCNGeometry? {
         guard !links.isEmpty else { return nil }
+        straight = GraphLineStyleLive.shared.isStraight
         guard let device else {
             return writeFallback(links: links, position: position, radius: radius, codes: codes,
                                  axis: axis, focus: focus, eye: eye)
@@ -295,7 +302,8 @@ nonisolated final class GraphRibbonWriter {
             membrane = GraphLinkArbor.radius(level: level)
         }
         let path: GraphLinkPath = self.path(link, position: position, radius: radius, codes: codes, axis: axis)
-        let total: Float = GraphLinkCurve.sample(path, count: n, points: &points, lengths: &lengths)
+        let total: Float = straight ? sampleStraight(path, count: n)
+                                    : GraphLinkCurve.sample(path, count: n, points: &points, lengths: &lengths)
         let dir: SIMD3<Float> = GraphLinkCurve.unit(path.end - path.start, or: SIMD3<Float>(1, 0, 0))
         // the whole link's length (a growing link is drawn only in part)
         let whole: Float = link.grow > 0.001 ? total / min(link.grow, 1) : total
@@ -349,6 +357,25 @@ nonisolated final class GraphRibbonWriter {
             uv[v * 2 + 2] = u
             uv[v * 2 + 3] = highV
         }
+    }
+
+    /// Straight lines: the curve's samples replaced by evenly spaced points
+    /// on the direct segment between the path's trimmed ends (whatever
+    /// shape GraphLinkCurve would give it), grown as far as the link has,
+    /// with the distances along it measured on that segment - so the
+    /// length coordinate, and the impulses, packets and flow running on
+    /// it, follow the straight path. On a board (the Circuit) it lies at
+    /// the copper's height, as the routed trace does.
+    private func sampleStraight(_ path: GraphLinkPath, count n: Int) -> Float {
+        var from: SIMD3<Float> = path.start
+        var to: SIMD3<Float> = path.end
+        if let board {
+            let lift: SIMD3<Float> = board.normal * board.lift
+            from += lift
+            to += lift
+        }
+        return GraphStraightLine.sample(from: from, to: to, grow: path.grow, count: n,
+                                        points: &points, lengths: &lengths)
     }
 
     /// A link's seed as a theme's shader reads it (0...255), and as its

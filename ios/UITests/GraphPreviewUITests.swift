@@ -420,6 +420,84 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    /// Lines: Straight (`-ideasLines straight`, for this run only, so the
+    /// owner's choice is untouched): every link a direct segment in each
+    /// theme of the 3D map - no arches or black-hole curls, no meander, no
+    /// routed traces - with the Look menu's Lines section;
+    /// then the 2D board's straight connectors, reached through the
+    /// personal build's Ideas example (13 linked notes).
+    func testStraightLines() {
+        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme,
+                                    "-ideasLines", "straight"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(3)
+            snap(app, "48-\(k + 1)-\(theme)-straight-lines")
+            if k == 0 {
+                let look = app.buttons["Look"]
+                XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
+                look.tap()
+                XCTAssertTrue(app.buttons["Straight"].waitForExistence(timeout: 5), "no Lines in the Look menu")
+                XCTAssertTrue(app.buttons["Curved"].exists, "no Curved in the Look menu")
+                snap(app, "48-4-look-menu-lines")
+            }
+            app.terminate()
+        }
+
+        // the board: signed in locally, the Ideas example, Board
+        let app = XCUIApplication()
+        app.launchArguments += ["-personalBuild", "-ideasLines", "straight"]
+        app.launch()
+        func find(_ id: String) -> XCUIElement {
+            app.descendants(matching: .any).matching(identifier: id).firstMatch
+        }
+        func press(_ target: XCUIElement) -> Bool {
+            guard target.exists else { return false }
+            if target.isHittable {
+                target.tap()
+                return true
+            }
+            target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            return true
+        }
+        let dock = find("dockCategory-questions")
+        for _ in 0..<80 where !dock.exists {
+            let door = app.buttons["localSignIn"]
+            let accept = app.buttons["acceptRecordingTerms"]
+            let skipExam = app.buttons["examOnboardingSkip"]
+            if door.exists && door.isHittable {
+                door.tap()
+            } else if accept.exists && accept.isEnabled && accept.isHittable {
+                accept.tap()
+            } else if skipExam.exists && skipExam.isHittable {
+                skipExam.tap()
+            }
+            usleep(500_000)
+        }
+        XCTAssertTrue(dock.waitForExistence(timeout: 20), "the library didn't open")
+        let banner = find("examplesBanner")
+        for _ in 0..<16 where !(banner.exists && banner.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(press(banner), "no examples banner")
+        let example = find("example-ideas")
+        XCTAssertTrue(example.waitForExistence(timeout: 8) && press(example), "no Ideas example")
+        let board = find("ideasMode-board")
+        if !board.waitForExistence(timeout: 4) {
+            _ = press(find("ideasSwitcherToggle"))
+        }
+        XCTAssertTrue(board.waitForExistence(timeout: 4) && press(board), "no Board in the switcher")
+        sleep(2)
+        snap(app, "49-1-board-straight-lines")
+        let look = app.buttons["Look"]
+        if look.waitForExistence(timeout: 5) && press(look) {
+            sleep(1)
+            snap(app, "49-2-board-look-menu")
+        }
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name

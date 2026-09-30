@@ -1,7 +1,9 @@
 import SwiftUI
 
 /// The idea board: every note as a card on a flat canvas that goes on for
-/// ever, joined by curved lines where two notes are connected.
+/// ever, joined by lines where two notes are connected: gently bowed, or
+/// straight, as "Lines" is set (the Look tool here, the 3D map's Look menu,
+/// or Settings > Look and feel - GraphLineStyle).
 ///
 /// It is the noding system for idea points - the place to lay thoughts out
 /// next to each other and draw the lines between them by hand:
@@ -38,6 +40,8 @@ struct IdeaBoardView: View {
     /// The card a connection starts from, waiting for a second.
     @State private var source: UUID?
     @State private var adding: BoardSpot?
+    /// "Lines": Curved (false, a gentle bow) or Straight (GraphLineStyle).
+    @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
 
     /// Where a new idea was asked for, in board points.
     struct BoardSpot: Identifiable {
@@ -74,6 +78,7 @@ struct IdeaBoardView: View {
                 connecting.toggle()
                 source = nil
             }
+            IdeaBoardLookTool()
         }
         .sensoryFeedback(.selection, trigger: source)
         .sheet(item: $adding) { spot in
@@ -95,6 +100,8 @@ struct IdeaBoardView: View {
             let points = positions(in: size, midY: midY)
             let edges = notes.allEdges()
             let lineWidth: CGFloat = max(1, 1.5 * scale)
+            let style: GraphLineStyle = GraphLineStyle.inForce(straightLines)
+            let lanes: [(lane: Int, lanes: Int)] = Self.lanes(edges)
             ZStack {
                 // the board itself: moved by dragging, added to by double-tap
                 Color.clear
@@ -107,9 +114,10 @@ struct IdeaBoardView: View {
                 Canvas { context, _ in
                     let ink: Color = Color.primary.opacity(0.28)
                     let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                    for (a, b) in edges {
-                        guard let p = points[a], let q = points[b] else { continue }
-                        context.stroke(Self.curve(from: p, to: q), with: .color(ink), style: stroke)
+                    for (k, edge) in edges.enumerated() {
+                        guard let p = points[edge.0], let q = points[edge.1] else { continue }
+                        let line: Path = Self.line(style, from: p, to: q, lane: lanes[k].lane, lanes: lanes[k].lanes)
+                        context.stroke(line, with: .color(ink), style: stroke)
                     }
                 }
                 .allowsHitTesting(false)
@@ -270,16 +278,28 @@ struct IdeaBoardView: View {
         adding = BoardSpot(x: Double(x), y: Double(y))
     }
 
-    /// A gentle bow rather than a straight line, so two lines between nearby
-    /// cards do not lie on top of each other.
-    private static func curve(from p: CGPoint, to q: CGPoint) -> Path {
+    /// Each link's lane among those joining the same two cards.
+    private static func lanes(_ edges: [(UUID, UUID)]) -> [(lane: Int, lanes: Int)] {
+        let keys: [String] = edges.map { edge in edge.0.uuidString + edge.1.uuidString }
+        return IdeaLinkShape.lanes(for: keys)
+    }
+
+    /// One connector, as "Lines" is set (IdeaLinkShape): Curved, a gentle
+    /// bow - always to the same side of the pair's first card to its second
+    /// (allEdges orders each pair), so lines between nearby cards run side
+    /// by side instead of on top of each other, and several between one
+    /// pair fan out; Straight, card centre to card centre.
+    private static func line(_ style: GraphLineStyle, from p: CGPoint, to q: CGPoint,
+                             lane: Int, lanes: Int) -> Path {
         var path = Path()
+        if style.isStraight {
+            let ends: (CGPoint, CGPoint) = IdeaLinkShape.straightEnds(from: p, to: q, lane: lane, lanes: lanes)
+            path.move(to: ends.0)
+            path.addLine(to: ends.1)
+            return path
+        }
+        let control: CGPoint = IdeaLinkShape.control(from: p, to: q, lane: lane, lanes: lanes)
         path.move(to: p)
-        let dx = q.x - p.x
-        let dy = q.y - p.y
-        let midX: CGFloat = (p.x + q.x) / 2
-        let midY: CGFloat = (p.y + q.y) / 2
-        let control = CGPoint(x: midX - dy * 0.18, y: midY + dx * 0.18)
         path.addQuadCurve(to: q, control: control)
         return path
     }
