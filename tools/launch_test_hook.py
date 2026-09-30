@@ -26,10 +26,13 @@ enum LaunchTestHook {
 }
 #endif
 ''')
+# the full package's entry point, or the core build's (playgrounds_stubs/core)
 p = os.path.join(root, "RedPenApp.swift")
+if not os.path.exists(p):
+    p = os.path.join(root, "Shared", "PlaygroundsStubs", "CoreApp.swift")
 s = open(p).read()
 marker = "    init() {\n"
-assert marker in s, "RedPenApp.init() not found"
+assert marker in s, "the app's init() not found in " + p
 s = s.replace(marker, marker + "        #if targetEnvironment(simulator)\n        LaunchTestHook.prepare()\n        #endif\n", 1)
 open(p, "w").write(s)
 print("hook added to", root)

@@ -34,6 +34,11 @@ jobs:
           - id: current
             src: ''
             tool: ''
+          # the core build for the iPad (make_swiftpm.py --without core)
+          - id: current-core
+            src: ''
+            tool: ''
+            without: core
           # the owner's kind of zip: a lecture PDF bundled in Samples, which
           # the app reads into examples a few seconds after the library shows
           - id: current-lecture
@@ -89,6 +94,7 @@ jobs:
         env:
           SRC: ${{ matrix.src }}
           TOOL: ${{ matrix.tool }}
+          WITHOUT: ${{ matrix.without }}
         run: |
           set -euo pipefail
           LECTURES=""
@@ -106,7 +112,7 @@ jobs:
             mkdir -p out/cur && (cd out/cur && unzip -q ../Current.zip)
             python3 "$RUNNER_TEMP/launch_test_hook.py" "out/cur/Stethoscore Personal.swiftpm"
           else
-            make "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tools/make_swiftpm.py" "$GITHUB_WORKSPACE/out/Stethoscore.zip"
+            make "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tools/make_swiftpm.py" "$GITHUB_WORKSPACE/out/Stethoscore.zip" ${WITHOUT:+--without "$WITHOUT"}
           fi
           cd out && rm -rf pkg && mkdir pkg && cd pkg && unzip -q ../Stethoscore.zip && ls
           cat "Stethoscore Personal.swiftpm/Package.swift"

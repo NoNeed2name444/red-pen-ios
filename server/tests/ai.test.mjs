@@ -645,5 +645,65 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(appleAsked === 0, 'a subscription confirmed a moment ago is not asked about again');
 }
 
+
+// Claude Opus on Anthropic: the Pro frontier model, first in line only while Pro pays
+{
+  const { routeFor, costOf } = await import('../ai.js');
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
+  const r = routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak' }, 'cramdown-writer');
+  ok(r.sources[0].kind === 'anthropic' && r.sources[0].paid === true && r.sources[0].model === 'claude-opus-5-5',
+     'with its key set, Claude Opus 5.5 is the first source, and a paid one');
+  ok(routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', STETHOSCORE_DEFAULT_MODEL: 'claude-x' }, 'cramdown-writer').sources[0].model === 'claude-x',
+     'STETHOSCORE_DEFAULT_MODEL names the model');
+  ok(!routeFor(firebase, 'cramdown-writer').sources.some(s => s.kind === 'anthropic'), 'without the key there is no Claude source at all');
+
+  const gem = () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'gemini' }] } }] }), { status: 200 });
+  // before launch nothing paid is used: PRO_PAYS off means Claude is never called
+  let claude = 0;
+  const off = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', ANTHROPIC_API_KEY: 'ak' });
+  const r1 = await chat(off, 'a1', request, async url => {
+    if (url.includes('anthropic')) { claude++; return new Response('{}', { status: 500 }); }
+    return gem();
+  }, { owner: true });
+  ok(r1.status === 200 && claude === 0 && (await r1.json()).choices[0].message.content === 'gemini', 'PRO_PAYS off: Claude is never called, the free model answers');
+
+  // Pro pays: Claude answers, asked the way the Messages API wants
+  const on = () => freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on',
+                              PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5' });
+  let sent = null, headers = null;
+  const answer = { model: 'claude-opus-5-5', stop_reason: 'end_turn', content: [{ type: 'text', text: 'claude' }],
+                   usage: { input_tokens: 100, output_tokens: 50 } };
+  const f = async (url, init) => {
+    if (!url.includes('anthropic')) return gem();
+    sent = JSON.parse(init.body); headers = init.headers;
+    return new Response(JSON.stringify(answer), { status: 200 });
+  };
+  const req = { model: 'cramdown-writer', messages: [{ role: 'system', content: 'be brief' }, { role: 'user', content: 'hi' }],
+                max_tokens: 500, temperature: 0.2 };
+  const r2 = await chat(on(), 'a1', req, f, { owner: true });
+  const j2 = await r2.json();
+  ok(r2.status === 200 && j2.choices[0].message.content === 'claude' && j2.source === 'claude-opus-5-5', 'Pro pays: Claude answers first');
+  ok(headers['x-api-key'] === 'ak' && headers['anthropic-version'] === '2023-06-01' && headers['anthropic-beta'] === 'server-side-fallback-2026-07-01',
+     'the key, the API version and the fallback beta go in the headers');
+  ok(sent.system === 'be brief' && sent.messages.length === 1 && sent.messages[0].role === 'user' && sent.messages[0].content === 'hi',
+     'system lines go in `system`, the rest as turns');
+  ok(sent.temperature === undefined && sent.thinking === undefined && sent.fallbacks === 'default' && sent.max_tokens > 500
+     && sent.output_config.effort === 'medium', "no sampling or thinking setting, Anthropic's own fallback on, room for thinking in max_tokens");
+  ok(costOf(on(), 'claude-opus-5-5', answer.usage) === 100 * 4 + 50 * 20, "Claude's usage is priced from its token counts, never as free");
+
+  // a safety decline that survives Anthropic's own fallback: the free chain answers
+  const refused = { ...answer, stop_reason: 'refusal', content: [], stop_details: { type: 'refusal', category: 'bio' } };
+  const r3 = await chat(on(), 'a1', req, async url => url.includes('anthropic')
+    ? new Response(JSON.stringify(refused), { status: 200 }) : gem(), { owner: true });
+  ok(r3.status === 200 && (await r3.json()).choices[0].message.content === 'gemini', 'a refusal falls through to the free chain');
+
+  // the checker never grades what Claude wrote
+  const r4 = await chat(on(), 'a1', { ...req, model: 'cramdown-checker', avoid: ['claude-opus-5-5'] }, async url => {
+    if (url.includes('anthropic')) throw new Error('Claude must not check its own writing');
+    return gem();
+  }, { owner: true });
+  ok(r4.status === 200 && (await r4.json()).choices[0].message.content === 'gemini', "a check of Claude's own writing goes to another model");
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
