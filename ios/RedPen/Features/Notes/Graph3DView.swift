@@ -188,6 +188,13 @@ struct Graph3DView: View {
             guard GraphPreview.select != nil || GraphPreview.hold != nil else { return }
             let wait: UInt64 = GraphPreview.fly == nil ? 2_500_000_000 : 4_000_000_000
             try? await Task.sleep(nanoseconds: wait)
+            // a loaded runner builds the scene late: a tap or hold before it
+            // is built lands on nothing, so wait for it (up to 30 s more)
+            var waited: UInt64 = 0
+            while built == nil, waited < 30_000_000_000 {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                waited += 250_000_000
+            }
             if let name = GraphPreview.select, let id = previewID(name) {
                 touched(id)
                 if GraphPreview.opens {
