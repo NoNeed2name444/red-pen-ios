@@ -286,8 +286,10 @@ jobs:
             echo "errors:"; echo '```'; { grep -E "error:" "$R/build.log" || true; } | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -60; echo '```'
             echo "slowest to type-check ($(wc -l < "$R/typecheck.txt" | tr -d ' ') over the limits):"; echo '```'; head -25 "$R/typecheck.txt"; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # judged before compressing: macOS's zcat only knows .Z files
+          ok=0; grep -q "BUILD SUCCEEDED" "$R/build.log" || ok=1
           gzip -f "$R/build.log"
-          grep -q "BUILD SUCCEEDED" <(zcat "$R/build.log.gz")
+          exit $ok
       - uses: actions/upload-artifact@v4
         if: always()
         with:
