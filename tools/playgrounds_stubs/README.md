@@ -70,3 +70,24 @@ core in the simulator.
 
 Each chunk added back to the core is one zip for the owner to try. The
 first that fails to build marks the ceiling; everything under it can stay.
+
+The parts the core leaves out, measured on 30 September (lines of Swift),
+in the order worth adding them back, so that each step is about 10,000
+lines and the ceiling, expected between 36,600 and 71,700, shows within
+four zips:
+
+| step | adds back | lines | package after |
+|---|---|---|---|
+| 1 | lecture audio: transcriber, player, narrate plan, pronunciation, corrections (1,965), Voice (5,190), Recall and Narrate (2,269) | 9,424 | about 43,200 |
+| 2 | imports and exports: Anki packages, PDFs, backups, occlusion and picture cards, scanner | 9,585 | about 52,800 |
+| 3 | the full shell (5,144), sessions, stats and editors (2,797), sync (1,585) | 9,526 | about 62,400 |
+| 4 | Coverage, Learn, Examples, Insight, Mock (5,694), Reasoning (2,858) | 8,552 | about 70,900 |
+| 5 | Study Lens (3,520), analytics (1,477), the 2D Ideas map (2,261) | 7,258 | about 78,200 |
+| 6 | the living sky, pop-out, diagnostics, platform, App Intents | 6,920 | about 85,100 |
+| 7 | the 3D Ideas map | 20,433 | about 105,500 |
+
+Adding a part back means taking its files out of `CORE_DROP` and deleting
+their stand-ins from `core/CoreStandIns.swift`, then letting the package
+check compile it before the zip goes out. `tools/playgrounds_cut.py --drop
+<the remaining drops> --names` lists what the remaining stand-ins must
+still provide.
