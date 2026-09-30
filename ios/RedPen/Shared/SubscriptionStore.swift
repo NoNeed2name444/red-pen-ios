@@ -26,8 +26,16 @@ final class SubscriptionStore: ObservableObject {
     private(set) var originalTransactionID: String?
 
     var access: Access { Entitlement.access(record) }
-    /// Personal build: everything is unlocked, no subscription needed.
-    var isPro: Bool { true }
+    /// Pro: a live (or graced) App Store subscription - or the owner's
+    /// personal build, which unlocks everything with no subscription. A
+    /// runtime check rather than a patch, so one codebase builds both the
+    /// App Store app and the owner's Playgrounds app.
+    var isPro: Bool { SubscriptionStore.unlocks(personalBuild: PersonalBuild.isOn, access: access) }
+
+    /// The rule, apart from where its inputs come from.
+    nonisolated static func unlocks(personalBuild: Bool, access: Access) -> Bool {
+        personalBuild || access.isPro
+    }
 
     private var updates: Task<Void, Never>?
     private let fileURL: URL

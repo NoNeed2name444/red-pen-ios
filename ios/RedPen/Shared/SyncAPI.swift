@@ -108,6 +108,8 @@ enum SyncAPI {
     }
 
     private static func send(_ request: URLRequest, body: Data?) async throws -> (Data, URLResponse) {
+        var request = request
+        VignetteHeaders.apply(to: &request)
         do {
             if let body {
                 return try await URLSession.shared.upload(for: request, from: body)

@@ -195,6 +195,9 @@ enum CloudJobs {
     /// server too.
     static func run(_ spec: Spec, at endpoint: (base: URL, bearer: String), extra: Data? = nil,
                     onProgress: @escaping (Int, Int) -> Void) async throws -> [String] {
+        // the lecture goes to the worker only once the student has agreed;
+        // polling, collecting and forgetting a job already sent need no ask
+        try await CloudGate.shared.ensureConsent(for: .jobs)
         let created: Created = try await call("POST", "jobs", at: endpoint, body: try JSONEncoder().encode(spec))
         let id = created.job.id
         let bearer = endpoint.bearer
@@ -305,6 +308,7 @@ enum CloudJobs {
         request.httpMethod = method
         request.timeoutInterval = 60
         request.setValue("Bearer \(endpoint.bearer)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         if let body {
             request.httpBody = body
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

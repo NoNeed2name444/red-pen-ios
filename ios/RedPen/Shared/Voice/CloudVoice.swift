@@ -129,6 +129,12 @@ final class CloudVoice: NSObject {
     /// passed in.
     nonisolated static func fetch(_ text: String, patient: Bool, token: String) async -> CloudFetch {
         guard !token.isEmpty else { return CloudFetch(clip: nil, rest: 600) }
+        // no consent to cloud AI: the phone's own voice reads it
+        do {
+            try await CloudGate.shared.ensureConsent(for: .voice)
+        } catch {
+            return CloudFetch(clip: nil, rest: 600)
+        }
         var request = URLRequest(url: AuthAPI.baseURL.appendingPathComponent("tts"))
         request.httpMethod = "POST"
         // a line that takes longer than this would leave a long silence;
@@ -136,6 +142,7 @@ final class CloudVoice: NSObject {
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         let body: [String: String] = ["text": text, "voice": patient ? "patient" : "narrator"]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 

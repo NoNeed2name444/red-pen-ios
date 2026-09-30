@@ -110,7 +110,22 @@ struct HostedLLMClient: LLMBackend {
     var isOnDevice: Bool { false }
     var promptBudgetChars: Int { 40_000 }
 
+    /// Whether this provider is Vignette's own worker rather than one the
+    /// student added: only the worker is sent the app's build headers.
+    var isWorker: Bool {
+        VignetteHeaders.isWorker(URL(string: provider.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)))
+    }
+
+    /// What this request is for, as the consent gate files it.
+    var purpose: CloudPurpose {
+        guard isWorker else { return .ownProvider }
+        let checker: Bool = provider.model == "cramdown-checker" || provider.model == "cramdown-medval"
+        return checker ? .check : .generate
+    }
+
     func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
+        // nothing leaves the phone before the student has agreed to it
+        try await CloudGate.shared.ensureConsent(for: purpose)
         // A stored key only for a provider that still needs one: turned off,
         // it is not sent - least of all to an address changed since, which
         // the key was never meant for.
@@ -130,6 +145,8 @@ struct HostedLLMClient: LLMBackend {
         }
         request.timeoutInterval = 180
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // the worker only: a provider the student added is told nothing
+        VignetteHeaders.apply(to: &request)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {

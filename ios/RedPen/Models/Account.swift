@@ -31,6 +31,14 @@ struct Account: Codable, Equatable, Identifiable {
     var email: String?
     var displayName: String?
     var createdAt: Date = Date()
+    /// Whether the server says this is the app owner's account (session
+    /// responses and /account/me). Optional on purpose: synthesised Decodable
+    /// ignores default values, so a non-optional field would make every
+    /// session saved in the keychain before it existed fail to decode - and
+    /// sign everybody out.
+    var owner: Bool? = nil
+
+    var isOwner: Bool { owner == true }
 
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
@@ -85,4 +93,92 @@ enum AccountState: Equatable {
     }
     var account: Account? { session?.account }
     var isSignedIn: Bool { session != nil }
+}
+
+/// What /account/me says about the signed-in account: the owner flag and the
+/// consent versions it has agreed to, beside the versions now in force.
+/// Every field but the id is optional, so an older or newer worker that
+/// leaves one out still decodes.
+struct AccountMe: Decodable, Equatable {
+    struct Legal: Decodable, Equatable {
+        var privacy: Int?
+        var terms: Int?
+        var aiConsent: Int?
+        var rules: Int?
+        var effective: String?
+    }
+
+    var userId: String
+    var owner: Bool?
+    var termsVersion: Int?
+    var aiConsent: Int?
+    var rulesVersion: Int?
+    var legal: Legal?
+
+    var isOwner: Bool { owner == true }
+
+    /// The account agreed to an older version of the terms than the one now
+    /// in force. False when the server did not say.
+    var termsOutdated: Bool {
+        guard let current = legal?.terms else { return false }
+        return (termsVersion ?? 0) < current
+    }
+
+    /// Cloud AI consent is missing or older than the one now in force.
+    var aiConsentOutdated: Bool {
+        guard let current = legal?.aiConsent else { return false }
+        return (aiConsent ?? 0) < current
+    }
+}
+
+/// What a worker reply's status and `code` mean, before any message is
+/// attached (plan R14). Kept beside Account, and Foundation-only, so the
+/// account suite checks it without the network code around it.
+///
+/// A body with a `code` is a business answer ("that group is full"), never a
+/// signed-out session, whatever its status - except the four statuses that
+/// always mean the same thing: 401 signed out, 402 needs Pro, 428 needs a
+/// consent, 429 slow down. Without a code, 403 is still signed out and 404
+/// "not set up", as before.
+enum ServerVerdict: Equatable {
+    case ok
+    case signedOut
+    case needsPro
+    case needsConsent(String)
+    case tooManyTries
+    case refused(String)
+    case notFound
+    case gone
+    case server
+
+    static func of(status: Int, code: String?) -> ServerVerdict {
+        if (200...299).contains(status) { return .ok }
+        let trimmed: String = (code ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        switch status {
+        case 401: return .signedOut
+        case 402: return .needsPro
+        case 428: return .needsConsent(trimmed)
+        case 429: return .tooManyTries
+        default: break
+        }
+        if !trimmed.isEmpty { return .refused(trimmed) }
+        switch status {
+        case 403: return .signedOut
+        case 404: return .notFound
+        case 410: return .gone
+        default: return .server
+        }
+    }
+
+    /// The `code`, `message` and `error` of a worker's JSON error body; each
+    /// nil when missing or not a string.
+    static func problem(in data: Data) -> (code: String?, message: String?, error: String?) {
+        guard let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return (nil, nil, nil)
+        }
+        let code: String? = object["code"] as? String
+        let message: String? = object["message"] as? String
+        let error: String? = object["error"] as? String
+        return (code, message, error)
+    }
 }

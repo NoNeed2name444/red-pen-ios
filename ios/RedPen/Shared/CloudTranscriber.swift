@@ -168,11 +168,14 @@ enum CloudTranscriber {
     }
 
     static func post(audio: Data, prompt: String, token: String) async throws -> (Int, [String: Any]?) {
+        // the recording leaves the phone only once the student has agreed
+        try await CloudGate.shared.ensureConsent(for: .transcribe)
         var request = URLRequest(url: AuthAPI.baseURL.appendingPathComponent("transcribe/chunk"))
         request.httpMethod = "POST"
         request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "audio": audio.base64EncodedString(), "prompt": prompt,
         ])

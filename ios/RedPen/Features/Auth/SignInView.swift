@@ -67,6 +67,7 @@ struct SignInView: View {
         VStack(spacing: 20) {
             masthead
             smallPrint
+            agreement
         }
         .padding(.horizontal, 24)
         .padding(.top, 40)
@@ -138,6 +139,21 @@ struct SignInView: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
+    }
+
+    /// What continuing agrees to, with the Terms and the Privacy Policy one
+    /// tap away. One sentence for translators: the links are placeholders
+    /// (`legal://`) that LegalLinks turns into the worker's pages.
+    private var agreement: some View {
+        Text("By continuing you agree to the [Terms](legal://terms) and [Privacy Policy](legal://privacy).")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .environment(\.openURL, OpenURLAction { url in
+                guard let page = LegalLinks.resolve(url) else { return .systemAction }
+                return .systemAction(page)
+            })
+            .accessibilityIdentifier("signInAgreement")
     }
 
     // MARK: The doors

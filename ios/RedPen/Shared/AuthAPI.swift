@@ -29,6 +29,13 @@ enum AuthAPI {
         case notConfigured
         /// Refused because the account has no Pro (sync, cloud models).
         case needsPro(String)
+        /// A consent is missing (428): `ai_consent_required`, `rules_required`.
+        case needsConsent(String)
+        /// A business answer with a `code` ("that group is full"): not a
+        /// signed-out session, whatever the status (plan R14).
+        case refused(code: String, message: String)
+        /// The thing asked for has ended (410 without a code).
+        case gone
         case server(String)
 
         var errorDescription: String? {
@@ -41,6 +48,12 @@ enum AuthAPI {
                 return "Too many requests just now. Try again in a moment."
             case .notConfigured:
                 return "Sign-in isn't set up in this build yet."
+            case .needsConsent:
+                return "Cloud AI needs your permission first."
+            case .refused(_, let message):
+                return message
+            case .gone:
+                return "That has ended or is no longer available."
             case .server(let message), .needsPro(let message):
                 return message
             }
@@ -55,6 +68,8 @@ enum AuthAPI {
         var token: String
         var refreshToken: String?
         var expiresIn: TimeInterval
+        /// Sent by workers that know it; older ones leave it out.
+        var owner: Bool?
     }
 
     private struct Problem: Decodable { var error: String?; var message: String? }
@@ -84,8 +99,45 @@ enum AuthAPI {
 
     /// An account for a device that has none, so its library can sync.
     /// `claim`: the one the owner's personal build carries (OwnerClaim).
-    static func deviceAccount(claim: String? = nil) async throws -> Session {
-        try await session(at: "/auth/device", body: claim.map { ["claim": $0] } ?? [:])
+    /// `via`: the share or class code the account is being made to open, so
+    /// the worker can count it against that code's allowance rather than the
+    /// address's (attribution only; nothing rewards it).
+    static func deviceAccount(claim: String? = nil, via: String? = nil) async throws -> Session {
+        try await session(at: "/auth/device", body: deviceBody(claim: claim, via: via))
+    }
+
+    /// The /auth/device body: only the fields that are set, and never an
+    /// empty one.
+    static func deviceBody(claim: String?, via: String?) -> [String: String] {
+        var body: [String: String] = [:]
+        if let claim, !claim.isEmpty { body["claim"] = claim }
+        let code: String = (via ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !code.isEmpty { body["via"] = code }
+        return body
+    }
+
+    /// Who the server says this account is: the owner flag and the consent
+    /// versions agreed and in force.
+    static func me(token: String) async throws -> AccountMe {
+        let data = try await send("/account/me", body: [String: String](), token: token)
+        guard let me = try? JSONDecoder().decode(AccountMe.self, from: data) else {
+            throw Failure.server("The server sent something unexpected.")
+        }
+        return me
+    }
+
+    /// Records what the student agreed to. Each version is optional; an
+    /// `ai` of 0 withdraws the cloud AI consent.
+    static func consent(token: String, terms: Int? = nil, ai: Int? = nil,
+                        rules: Int? = nil) async throws {
+        struct Consent: Encodable {
+            var termsVersion: Int?
+            var aiConsent: Int?
+            var rulesVersion: Int?
+        }
+        _ = try await send("/account/consent",
+                           body: Consent(termsVersion: terms, aiConsent: ai, rulesVersion: rules),
+                           token: token)
     }
 
     /// Joins the account a code from another device belongs to.
@@ -125,25 +177,51 @@ enum AuthAPI {
         }
         return Session(
             account: Account(id: decoded.userId, provider: provider,
-                             email: decoded.email, displayName: decoded.displayName),
+                             email: decoded.email, displayName: decoded.displayName,
+                             owner: decoded.owner),
             token: decoded.token, refreshToken: decoded.refreshToken,
             expiresAt: Date().addingTimeInterval(decoded.expiresIn))
     }
 
-    /// One POST, one set of rules about what went wrong. Everything that talks
-    /// to the worker goes through here so that "no signal" and "signed out"
-    /// cannot be told apart differently in two places.
+    /// One request, one set of rules about what went wrong. Everything that
+    /// talks to the worker goes through here so that "no signal" and "signed
+    /// out" cannot be told apart differently in two places.
     @discardableResult
     static func send<Body: Encodable>(_ path: String, body: Body,
                                       token: String? = nil,
+                                      method: String = "POST",
                                       timeout: TimeInterval = 20) async throws -> Data {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        request.httpBody = try? JSONEncoder.sync.encode(body)
-        request.timeoutInterval = timeout
+        let encoded: Data? = try? JSONEncoder.sync.encode(body)
+        return try await sendData(path, data: encoded, token: token, method: method,
+                                  contentType: "application/json", timeout: timeout)
+    }
 
+    /// Raw bytes (a PUT of a file), with the same headers and status rules.
+    @discardableResult
+    static func sendData(_ path: String, data body: Data?, token: String? = nil,
+                         method: String = "PUT",
+                         contentType: String = "application/octet-stream",
+                         timeout: TimeInterval = 60) async throws -> Data {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = method
+        if body != nil { request.setValue(contentType, forHTTPHeaderField: "Content-Type") }
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        request.httpBody = body
+        request.timeoutInterval = timeout
+        return try await perform(request)
+    }
+
+    /// A public GET (no session): pages' JSON such as /config or /legal.json.
+    static func get(_ path: String, timeout: TimeInterval = 20) async throws -> Data {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = "GET"
+        request.timeoutInterval = timeout
+        return try await perform(request)
+    }
+
+    private static func perform(_ request: URLRequest) async throws -> Data {
+        var request = request
+        VignetteHeaders.apply(to: &request)
         let data: Data, response: URLResponse
         do {
             (data, response) = try await URLSession.shared.data(for: request)
@@ -151,18 +229,27 @@ enum AuthAPI {
             throw Failure.offline
         }
         guard let http = response as? HTTPURLResponse else { throw Failure.offline }
-        switch http.statusCode {
-        case 200...299: return data
-        case 401, 403: throw Failure.signedOut
-        case 404: throw notFound(data)
-        case 429: throw Failure.tooManyTries
-        case 402:
-            let problem = try? JSONDecoder().decode(Problem.self, from: data)
-            throw Failure.needsPro(problem?.message ?? "That is part of Pro.")
-        default:
-            let problem = try? JSONDecoder().decode(Problem.self, from: data)
-            throw Failure.server(problem?.message ?? problem?.error
-                                 ?? "Something went wrong talking to the server.")
+        if let failure = failure(status: http.statusCode, data: data) { throw failure }
+        return data
+    }
+
+    /// What a reply means, or nil for success. `needsPro` and `fallback` are
+    /// the words used when the server gives none.
+    static func failure(status: Int, data: Data,
+                        needsPro: String = "That is part of Pro.",
+                        fallback: String = "Something went wrong talking to the server.") -> Failure? {
+        let problem = ServerVerdict.problem(in: data)
+        let said: String? = problem.message ?? problem.error
+        switch ServerVerdict.of(status: status, code: problem.code) {
+        case .ok: return nil
+        case .signedOut: return .signedOut
+        case .needsPro: return .needsPro(problem.message ?? needsPro)
+        case .needsConsent(let code): return .needsConsent(code)
+        case .tooManyTries: return .tooManyTries
+        case .refused(let code): return .refused(code: code, message: said ?? fallback)
+        case .notFound: return notFound(data)
+        case .gone: return .gone
+        case .server: return .server(said ?? fallback)
         }
     }
 
