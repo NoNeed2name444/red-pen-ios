@@ -401,6 +401,13 @@ extension View {
 
 // MARK: - Helpers the kept code calls by name
 
+extension PassMark {
+    /// The chosen exam's rough pass mark, or the track's (Shared/Exam/ExamFormats.swift).
+    static func typical(for exam: TargetExam?, track: ExamTrack) -> Double {
+        exam?.passMark ?? typical(for: track)
+    }
+}
+
 enum MockPaperView {
     static func hours(_ minutes: Int) -> String {
         let h: Int = minutes / 60
