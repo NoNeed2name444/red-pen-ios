@@ -3,12 +3,15 @@ import Foundation
 /// How someone proved who they are.
 enum AuthProvider: String, Codable, CaseIterable {
     case apple, google, email
+    /// No Apple or Google account: a device linked by code (pair.js).
+    case device
 
     var label: String {
         switch self {
         case .apple: return "Apple"
         case .google: return "Google"
         case .email: return "Email"
+        case .device: return "a linked device"
         }
     }
 }
@@ -42,6 +45,11 @@ struct Account: Codable, Equatable, Identifiable {
 /// the whole reason this is its own type - a bearer token in a JSON file next
 /// to the flashcards is a bearer token in every backup that file lands in.
 struct Session: Codable, Equatable {
+    /// The token a this-device-only session carries (personal build). It is
+    /// never sent anywhere: sync skips a session that has it.
+    static let localToken = "local-only"
+    var isLocalOnly: Bool { token == Session.localToken }
+
     var account: Account
     var token: String
     var refreshToken: String?
@@ -49,10 +57,20 @@ struct Session: Codable, Equatable {
 
     func isValid(now: Date = Date()) -> Bool { expiresAt > now }
 
-    /// Refreshed before it actually expires, so a session never dies in the
-    /// middle of something.
-    func needsRefresh(now: Date = Date(), margin: TimeInterval = 300) -> Bool {
+    /// Refreshed a day before it actually expires, so a session never dies in
+    /// the middle of something. A day rather than minutes: the app only asks
+    /// when it is opened, brought back or syncs, and a margin of five minutes
+    /// is one those moments almost never land in.
+    func needsRefresh(now: Date = Date(), margin: TimeInterval = 86_400) -> Bool {
         expiresAt.timeIntervalSince(now) < margin
+    }
+
+    /// Worth keeping at launch: still valid, or expired but carrying the
+    /// refresh token that renews it. Throwing an expired session away unread
+    /// signs out a student whose refresh token still works - and a linked
+    /// device's account has no other way back in at all.
+    func canResume(now: Date = Date()) -> Bool {
+        isValid(now: now) || !(refreshToken ?? "").isEmpty
     }
 }
 

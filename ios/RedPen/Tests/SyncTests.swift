@@ -168,6 +168,178 @@ check("base64 and a reference name the same blobs",
       halfRestored == Set([BlobRefs.name(for: red), BlobRefs.name(for: blue)]),
       "\(halfRestored)")
 
+// MARK: an update that only changes how a set encodes
+
+// An app update that adds a field to a card changes every set's bytes without
+// anybody editing anything. Deciding "changed here" by hash then made the
+// other device's next edit a conflict copy of a deck nobody touched here.
+let reencoded = doc("same deck, new field", rev: 3, at: t0)
+check("an unedited set whose encoding moved takes the other device's edit",
+      SyncMerge.resolve(local: reencoded, mark: mark,
+                        remote: doc("their edit", rev: 9, at: at(20)), editedHere: false) == .applyRemote)
+check("and with nothing new there, there is nothing to do",
+      SyncMerge.resolve(local: reencoded, mark: mark, remote: agreed, editedHere: false) == .nothingToDo)
+check("a set its stamp says was edited here still conflicts and keeps both",
+      SyncMerge.resolve(local: doc("mine", rev: 3, at: at(10)), mark: mark,
+                        remote: doc("theirs", rev: 9, at: at(20)), editedHere: true)
+        == .applyRemoteKeepingLocalCopy)
+check("an edit here goes up when the server has not moved",
+      SyncMerge.resolve(local: doc("mine", rev: 3, at: at(10)), mark: mark,
+                        remote: agreed, editedHere: true) == .push)
+// with no bookmark there is nothing to have been edited since
+check("no bookmark still counts as changed, whatever the stamp says",
+      SyncMerge.resolve(local: doc("mine", rev: 0, at: at(10)), mark: nil,
+                        remote: doc("theirs", rev: 7, at: at(20)), editedHere: false)
+        == .applyRemoteKeepingLocalCopy)
+
+// MARK: a picture reference is only ever a hash
+
+let realName = BlobRefs.name(for: Data([1, 2, 3]))
+check("a real reference names its blob", BlobRefs.hash(fromRef: "blob:" + realName) == realName)
+// used as a file name, this read the app's own library into a "picture"
+check("a reference that walks out of the folder is refused",
+      BlobRefs.hash(fromRef: "blob:../../Documents/redpen-library.json") == nil)
+check("a reference that is not a hash is refused", BlobRefs.hash(fromRef: "blob:cat") == nil)
+check("an upper-case hash is not one this app writes",
+      BlobRefs.hash(fromRef: "blob:" + realName.uppercased()) == nil)
+check("a hash one character short is refused",
+      BlobRefs.hash(fromRef: "blob:" + String(realName.dropLast())) == nil)
+check("a bad reference is left as it is, not dropped",
+      BlobRefs.unpack(["blob:../x"], blobs: [:]) == ["blob:../x"])
+check("and asks for nothing", BlobRefs.missing(["blob:../x", "blob:cat"], have: []).isEmpty)
+
+// a picture filled in by a sync is the same picture
+let redBase64 = red.base64EncodedString()
+check("a picture and its reference are the same picture",
+      BlobRefs.samePictures([redBase64], ["blob:" + BlobRefs.name(for: red)]))
+check("two different pictures are not",
+      !BlobRefs.samePictures([redBase64], ["blob:" + BlobRefs.name(for: blue)]))
+check("nor lists of different lengths", !BlobRefs.samePictures([redBase64], []))
+
+// a set this version cannot read still names its pictures and its lecture file
+let heldJSON = "{\"images\":[\"blob:\(realName)\",\"blob:../x\"],\"sources\":[{\"fileBlob\":\"\(realName)\"}]}"
+check("a held set's pictures are found in its text",
+      BlobRefs.names(mentionedIn: heldJSON) == [realName])
+check("and so is a bare hash, like a lecture file's",
+      BlobRefs.hashes(in: "{\"fileBlob\":\"\(realName)\"}") == [realName])
+check("a longer run of hex is not a hash",
+      BlobRefs.hashes(in: realName + "0").isEmpty)
+
+// MARK: what the server will take
+
+func sized(_ id: String, bytes: Int) -> SyncDoc {
+    SyncDoc(id: id, kind: .set, rev: 0, updatedAt: t0, payload: Data(count: bytes))
+}
+check("a payload is counted in base64 characters, as the server counts it",
+      SyncRules.payloadChars(sized("a", bytes: 3)) == 4 && SyncRules.payloadChars(sized("a", bytes: 4)) == 8)
+// 1,425,000 bytes is exactly 1,900,000 characters
+check("a document at the server's limit fits", SyncRules.fitsServer(sized("a", bytes: 1_425_000)))
+check("one byte more does not", !SyncRules.fitsServer(sized("a", bytes: 1_425_001)))
+check("a tombstone always fits",
+      SyncRules.fitsServer(SyncDoc(id: "t", kind: .set, rev: 0, updatedAt: t0, deleted: true)))
+
+let many = (0..<120).map { sized("d\($0)", bytes: 10) }
+let byCount = SyncRules.batches(many, maxDocs: 50, maxBytes: 1_000_000)
+check("a big library goes up in batches", byCount.map(\.count) == [50, 50, 20], "\(byCount.map(\.count))")
+check("in order, and nothing left out", byCount.flatMap { $0 }.map(\.id) == many.map(\.id))
+let heavy = (0..<5).map { sized("h\($0)", bytes: 300_000) }
+let bySize = SyncRules.batches(heavy, maxDocs: 50, maxBytes: 1_000_000)
+check("and cut by size as well as by count", bySize.allSatisfy { $0.count <= 2 } && bySize.flatMap { $0 }.count == 5,
+      "\(bySize.map(\.count))")
+let lone = SyncRules.batches([sized("x", bytes: 900_000), sized("y", bytes: 10)], maxDocs: 50, maxBytes: 100_000)
+check("a document bigger than a batch still goes, on its own", lone.map(\.count) == [1, 1], "\(lone.map(\.count))")
+check("nothing to send is no batches", SyncRules.batches([]).isEmpty)
+
+// refused once, not sent again every minute
+let stamp = at(100)
+let tooBig = RefusedDoc(updatedAt: stamp, at: at(200), tooLarge: true)
+check("a set too large to sync is not offered again while unchanged",
+      SyncRules.stillRefused(tooBig, updatedAt: stamp, now: at(10 * 86_400)))
+check("but is as soon as it changes",
+      !SyncRules.stillRefused(tooBig, updatedAt: at(300), now: at(400)))
+let notTaken = RefusedDoc(updatedAt: stamp, at: at(200), tooLarge: false)
+check("one refused for another reason waits a day",
+      SyncRules.stillRefused(notTaken, updatedAt: stamp, now: at(200 + 3_600)))
+check("and is tried again after it",
+      !SyncRules.stillRefused(notTaken, updatedAt: stamp, now: at(200 + 86_401)))
+check("nothing refused is nothing held", !SyncRules.stillRefused(nil, updatedAt: stamp))
+
+// MARK: a document from a newer version
+
+func json(_ text: String) -> Data { Data(text.utf8) }
+check("the same bytes lose nothing",
+      !SyncRules.dropsFields(original: json("{\"a\":1}"), reencoded: json("{\"a\":1}")))
+// the newer device's field, read by the older one and written back without it
+check("a field this version cannot read is a loss",
+      SyncRules.dropsFields(original: json("{\"cards\":[{\"front\":\"q\",\"siblings\":[{\"x\":1}]}]}"),
+                            reencoded: json("{\"cards\":[{\"front\":\"q\"}]}")))
+// the other way round: the older device never wrote it
+check("a field this version adds is not a loss",
+      !SyncRules.dropsFields(original: json("{\"cards\":[{\"front\":\"q\"}]}"),
+                             reencoded: json("{\"cards\":[{\"front\":\"q\",\"siblings\":[]}]}")))
+check("a key that held nothing is not a loss",
+      !SyncRules.dropsFields(original: json("{\"a\":1,\"b\":[],\"c\":null,\"d\":{}}"),
+                             reencoded: json("{\"a\":1}")))
+check("an item this version could not read is a loss",
+      SyncRules.dropsFields(original: json("{\"cards\":[{\"f\":1},{\"f\":2}]}"),
+                            reencoded: json("{\"cards\":[{\"f\":1}]}")))
+check("a value read as something else is a loss",
+      SyncRules.dropsFields(original: json("{\"type\":\"diagram\"}"), reencoded: json("{\"type\":\"basic\"}")))
+check("the same values in another order are not",
+      !SyncRules.dropsFields(original: json("{\"a\":1,\"b\":\"x\"}"), reencoded: json("{\"b\":\"x\",\"a\":1}")))
+
+// after an update, what the last version could not read is fetched again
+check("the cursor goes back to just before the earliest to read again",
+      SyncRules.rereadCursor(500, revisiting: [120, 340]) == 119)
+check("never forward", SyncRules.rereadCursor(50, revisiting: [120]) == 50)
+check("and not at all when there is nothing to read again", SyncRules.rereadCursor(500, revisiting: []) == 500)
+check("never below zero", SyncRules.rereadCursor(500, revisiting: [0]) == 0)
+
+// held until the app is updated - but not for ever: the same revision still
+// losing fields a month on, through updates, holds fields no version keeps
+check("a document that would lose fields is held",
+      SyncRules.holdsForNewer(dropsFields: true, heldSince: nil, now: at(0)))
+check("one that loses nothing is not",
+      !SyncRules.holdsForNewer(dropsFields: false, heldSince: nil, now: at(0)))
+check("held a week, unchanged, it is still held",
+      SyncRules.holdsForNewer(dropsFields: true, heldSince: at(0), now: at(7 * 86_400)))
+check("held a month, unchanged, it is let go",
+      !SyncRules.holdsForNewer(dropsFields: true, heldSince: at(0), now: at(31 * 86_400)))
+
+// MARK: a picture the server does not have
+
+check("no such picture is remembered", SyncRules.pictureIsMissing(status: 404))
+check("nor one it will not look up", SyncRules.pictureIsMissing(status: 400))
+check("a server having a bad moment is not",
+      !SyncRules.pictureIsMissing(status: 503) && !SyncRules.pictureIsMissing(status: 500))
+check("a picture never missing is asked for", SyncRules.asksForPicture(missingSince: nil, now: at(0)))
+check("one the server just said it lacks is not asked for again every run",
+      !SyncRules.asksForPicture(missingSince: at(0), now: at(3_600)))
+check("nor the next day", !SyncRules.asksForPicture(missingSince: at(0), now: at(86_400)))
+check("but is after a week, in case it was uploaded since",
+      SyncRules.asksForPicture(missingSince: at(0), now: at(7 * 86_400)))
+
+// MARK: what becomes of a cloud job
+
+check("only a 404 means a job is gone", CloudJobRules.answer(forFailedStatus: 404) == .gone)
+check("a server error does not", CloudJobRules.answer(forFailedStatus: 503) == .unreachable)
+check("an expired session does not", CloudJobRules.answer(forFailedStatus: 401) == .unreachable)
+check("no signal does not", CloudJobRules.answer(forFailedStatus: nil) == .unreachable)
+let started = at(0)
+// nine days offline: the finished job is still on the server, and still wanted
+check("a job not heard from for nine days is kept",
+      !CloudJobRules.letGo(started: started, answer: .unreachable, reachable: true, now: at(9 * 86_400)))
+check("one the server says is gone after eight days is let go",
+      CloudJobRules.letGo(started: started, answer: .gone, reachable: true, now: at(9 * 86_400)))
+check("but not before: the server keeps a finished job a week",
+      !CloudJobRules.letGo(started: started, answer: .gone, reachable: true, now: at(3 * 86_400)))
+// made under another account: asking as this one finds nothing, which says
+// nothing about the job
+check("a job made under another account is kept a month",
+      !CloudJobRules.letGo(started: started, answer: .gone, reachable: false, now: at(20 * 86_400)))
+check("and let go after it",
+      CloudJobRules.letGo(started: started, answer: .unreachable, reachable: false, now: at(31 * 86_400)))
+
 print(failures.isEmpty ? "\nALL SYNC TESTS PASS"
                        : "\n\(failures.count) SYNC TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

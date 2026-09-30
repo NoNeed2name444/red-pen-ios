@@ -136,8 +136,9 @@ extension DeckPDF {
                                           width: width - indent, size: size, palette: palette,
                                           measuring: true)
                 if !measuring {
-                    let row = CGRect(x: margin - 8, y: y - size * 0.35,
-                                     width: width + 16, height: rowHeight + size * 0.7)
+                    let rowY: CGFloat = y - size * 0.35
+                    let rowH: CGFloat = rowHeight + size * 0.7
+                    let row = CGRect(x: margin - 8, y: rowY, width: width + 16, height: rowH)
                     color(palette.tint(0.93)).setFill()
                     UIBezierPath(roundedRect: row, cornerRadius: 6).fill()
                     color(palette, 0.95).setFill()
@@ -226,10 +227,10 @@ extension DeckPDF {
                 for step in steps {
                     if !measuring {
                         color(palette.shade(0.34), 0.55).setFill()
-                        UIBezierPath(ovalIn: CGRect(x: margin + inset + size * 0.06,
-                                                    y: inner + size * 0.42,
-                                                    width: size * 0.26,
-                                                    height: size * 0.26)).fill()
+                        let dotX: CGFloat = margin + inset + size * 0.06
+                        let dotY: CGFloat = inner + size * 0.42
+                        let dot: CGFloat = size * 0.26
+                        UIBezierPath(ovalIn: CGRect(x: dotX, y: dotY, width: dot, height: dot)).fill()
                     }
                     inner += write(step, x: margin + stepX, y: inner, width: stepWidth,
                                    font: body, color: UIColor(white: 0.14, alpha: 1),
@@ -249,16 +250,17 @@ extension DeckPDF {
                                                font: body, color: .black, measuring: true,
                                                leading: lead)
                         if !measuring {
-                            let row = CGRect(x: margin + inset - size * 0.2, y: inner,
-                                             width: bodyWidth + size * 0.4,
-                                             height: textHeight + rowPadY * 2)
+                            let rowX: CGFloat = margin + inset - size * 0.2
+                            let rowW: CGFloat = bodyWidth + size * 0.4
+                            let rowH: CGFloat = textHeight + rowPadY * 2
+                            let row = CGRect(x: rowX, y: inner, width: rowW, height: rowH)
                             color(palette, 0.93).setFill()
                             UIBezierPath(roundedRect: row, cornerRadius: size * 0.34).fill()
                             color(palette, 0.45).setFill()
-                            UIBezierPath(ovalIn: CGRect(x: margin + inset + size * 0.2,
-                                                        y: inner + rowPadY + size * 0.36,
-                                                        width: size * 0.28,
-                                                        height: size * 0.28)).fill()
+                            let markX: CGFloat = margin + inset + size * 0.2
+                            let markY: CGFloat = inner + rowPadY + size * 0.36
+                            let mark: CGFloat = size * 0.28
+                            UIBezierPath(ovalIn: CGRect(x: markX, y: markY, width: mark, height: mark)).fill()
                         }
                         _ = write(trap, x: margin + rowTextX, y: inner + rowPadY,
                                   width: rowTextWidth, font: body,

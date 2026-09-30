@@ -7,69 +7,269 @@ import SwiftUI
 /// because SwiftUI type-checks a whole view expression at once.
 extension LibraryView {
 
-    /// What is due right now, across every deck at once.
+    /// Days until the exam set in Settings → Your exam, or nil when no date
+    /// has been set.
+    var examDays: Int? {
+        let stamp = UserDefaults.standard.double(forKey: ExamTrack.dateKey)
+        guard stamp > 0 else { return nil }
+        let calendar = Calendar.current
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: Date()),
+                                        to: calendar.startOfDay(for: Date(timeIntervalSince1970: stamp))).day ?? 0
+    }
+
+    /// Whether there is anything for the Today card to say. A first launch
+    /// with nothing scheduled is not greeted by a card full of zeros.
+    var hasTodayCard: Bool {
+        examDays != nil || studyLog.streak > 0 || !store.answerLog.isEmpty
+            || store.library.contains { $0.kind == .anki } || !store.flaggedQuestions.isEmpty
+    }
+
+    /// Mission Control: today, in one card. "T-42 days · 18 due · on course",
+    /// what the student would remember if the exam were today and what it
+    /// takes to reach 90% on the day, how much is locked in, and one lift-off
+    /// button for the most useful session now (ExamWeekPlanner.mission).
     ///
-    /// The count is the point. Twenty lectures means twenty decks, and without
-    /// a number on the first screen nobody knows which of them is waiting - so
-    /// the schedule goes unused however well it works underneath.
-    @ViewBuilder
-    var dueBanner: some View {
-        let due = reviews.dueAcross(store.library).count
-        if store.library.contains(where: { $0.kind == .anki }) {
-            NavigationLink { DueTodayView() } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: due > 0 ? "tray.full.fill" : "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(due > 0 ? StudySetKind.anki.tint : .secondary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(due > 0 ? "\(due) card\(due == 1 ? "" : "s") due" : "Nothing due")
-                            .font(.body.weight(.semibold))
-                        Text(due > 0 ? "Across all your decks" : "You're up to date")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    if due > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(.vertical, 2)
+    /// These used to be four separate strips - countdown, streak, due cards,
+    /// flagged questions - stacked above the sets, so the first screen was a
+    /// dashboard before it was a library. The count of due cards still matters
+    /// most: twenty lectures means twenty decks, and without a number on the
+    /// first screen nobody knows which of them is waiting.
+    ///
+    /// It stands a little out of the glass as one raised slab - it holds the
+    /// page's most useful button - while the rows below lie flat on it.
+    var todayCard: some View {
+        let due: Int = reviews.dueAcross(store.library).count
+        let hasDecks: Bool = store.library.contains { $0.kind == .anki }
+        let situation: ExamWeekPlanner.Situation = store.cachedSituation(dueCards: due)
+        let forecast: RetentionForecast.Forecast = reviews.examForecast(store.library,
+                                                                      libraryVersion: store.changeCount)
+        let mission: ExamWeekPlanner.Mission = ExamWeekPlanner.mission(situation)
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        return VStack(alignment: .leading, spacing: 8) {
+            missionHeader(situation.phase)
+            missionStatusLine(phase: situation.phase, due: due, hasDecks: hasDecks, forecast: forecast)
+            if hasDecks && forecast.studied > 0 { forecastLine(forecast, phase: situation.phase) }
+            securedLine
+            if studyLog.streak > 0 { streakLine }
+            if situation.phase.holdsNewMaterial { phaseLine(situation.phase) }
+            liftOff(mission)
+        }
+        .padding(16)
+        .background(.regularMaterial, in: shape)
+        .popOut(.raised, in: shape)
+    }
+
+    /// "Mission Control", and the way into the whole plan.
+    private func missionHeader(_ phase: ExamWeekPlanner.Phase) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("Mission Control").font(.headline)
+            Spacer(minLength: 8)
+            Button { LearnRouter.shared.open(.examPlan) } label: {
+                Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .disabled(due == 0)
+            .buttonStyle(.borderless)
+            .accessibilityHint("Opens the exam plan and forecast")
+            .accessibilityIdentifier("missionPlan")
         }
     }
 
-    /// A row of small mode counters - how many of each kind of set the library
-    /// holds.
-    var summaryStrip: some View {
-        let counts = Dictionary(grouping: store.library, by: \.kind).mapValues(\.count)
-        let kinds = StudySetKind.allCases.filter { counts[$0] != nil }
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(kinds) { kind in
-                    HStack(spacing: 6) {
-                        Image(systemName: kind.symbol).font(.caption.weight(.semibold))
-                        Text("\(counts[kind] ?? 0) \(kind.label)").font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(kind.tint)
-                    .padding(.horizontal, 11).padding(.vertical, 7)
-                    .glassEffect(.regular.tint(kind.tint.opacity(0.22)), in: .capsule)
+    /// "T-42 days · 18 due · on course".
+    private func missionStatusLine(phase: ExamWeekPlanner.Phase, due: Int, hasDecks: Bool,
+                                   forecast: RetentionForecast.Forecast) -> some View {
+        var parts: [String] = []
+        switch phase {
+        case .examDay: parts.append("Exam day \u{2014} good luck")
+        case .after: parts.append("Your exam date has passed")
+        default:
+            if let days = phase.days {
+                let plural: String = days == 1 ? "" : "s"
+                parts.append("T-\(days) day\(plural)")
+            }
+        }
+        if hasDecks { parts.append(due > 0 ? "\(due) due" : "none due") }
+        let flagged: Int = store.flaggedQuestions.count
+        if flagged > 0 { parts.append("\(flagged) flagged") }
+        if phase.days != nil && phase != .examDay && forecast.studied > 0 {
+            parts.append(forecast.onCourse ? "on course" : "\(forecast.perDay) a day to reach 90%")
+        }
+        if parts.isEmpty { parts.append("No exam date set") }
+        let tint: Color = phase.days == nil ? .secondary : .accentColor
+        let symbol: String = phase == .noDate ? "calendar.badge.plus" : "calendar"
+        return todayLine(symbol: symbol, tint: tint, text: parts.joined(separator: " \u{00B7} "))
+    }
+
+    /// "If your exam were today you'd remember ~71%; do 140 reviews over the
+    /// next 10 days to reach 90%."
+    private func forecastLine(_ f: RetentionForecast.Forecast, phase: ExamWeekPlanner.Phase) -> some View {
+        let now: String = RetentionForecast.percent(f.today)
+        var text: String = "If your exam were today you\u{2019}d remember ~\(now) of your cards"
+        if phase.days != nil && phase != .examDay {
+            if f.reviewsNeeded > 0 {
+                let plural: String = f.days == 1 ? "" : "s"
+                text += "; do \(f.reviewsNeeded) reviews over the next \(f.days) day\(plural) to reach 90%"
+            } else {
+                text += "; on course for 90% on the day"
+            }
+        }
+        return todayLine(symbol: "brain.head.profile", tint: StudySetKind.anki.tint, text: text + ".")
+    }
+
+    /// "120 of 400 questions locked in", once anything has been answered.
+    @ViewBuilder
+    private var securedLine: some View {
+        if !store.answerLog.isEmpty {
+            let totals: SecuredRule.Ring = store.securedTotals()
+            if totals.total > 0 {
+                let text: String = "\(totals.secured) of \(totals.total) questions locked in"
+                todayLine(symbol: "lock.fill", tint: StudySetKind.mcq.tint, text: text)
+            }
+        }
+    }
+
+    private func phaseLine(_ phase: ExamWeekPlanner.Phase) -> some View {
+        todayLine(symbol: "moon.stars.fill", tint: .indigo, text: phase.headline)
+    }
+
+    /// The one lift-off button: the most useful session now.
+    @ViewBuilder
+    private func liftOff(_ mission: ExamWeekPlanner.Mission) -> some View {
+        if mission == .nothing {
+            Text("All done for now \u{2014} nothing is waiting.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        } else {
+            todayButton(mission.title, symbol: mission.symbol) { launch(mission) }
+                .accessibilityIdentifier("missionLiftOff")
+        }
+    }
+
+    /// Starts a mission: the due cards and quick quizzes on the library's own
+    /// screens, everything else through LearnRouter.
+    func launch(_ mission: ExamWeekPlanner.Mission) {
+        switch mission {
+        case .examKit: LearnRouter.shared.open(.examKit)
+        case .morningCheck: LearnRouter.shared.open(.morningCheck)
+        case .dueCards: showingDue = true
+        case .mock:
+            // the real paper; marked sat only when a sitting is finished
+            // (ExamStore.mocks, read by LearnMarks.mockDone)
+            LearnRouter.shared.open(.mockPaper)
+        case .confidentErrors: quickQuiz = store.confidentMistakesQuiz()
+        case .mistakes: quickQuiz = store.mistakesQuiz()
+        case .lockIn: quickQuiz = store.lockInQuiz()
+        case .flagged: startFlaggedQuiz()
+        case .weakest(let subject): quickQuiz = store.drill(subject: subject)
+        case .newQuestions: quickQuiz = store.untriedQuiz()
+        case .nothing: break
+        }
+    }
+
+    /// The personal build's tour of every feature, at the bottom of every
+    /// category's page.
+    @ViewBuilder
+    var examplesSection: some View {
+        if PersonalBuild.isOn {
+            Section {
+                Button { support = .examples } label: {
+                    Label("Try every feature", systemImage: "sparkles.rectangle.stack")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("examplesBanner")
+                .frostedListRow()
+            }
+        }
+    }
+
+    private func todayButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.glassProminent)
+        .popOut(.hero, in: Capsule(), tint: .accentColor)
+        .padding(.top, 8)
+    }
+
+    /// "5-day streak · 32 done today", or a nudge while the streak is still
+    /// yesterday's and alive until midnight.
+    private var streakLine: some View {
+        let streak = studyLog.streak
+        let today = studyLog.today
+        let text: String = today > 0 ? "\(streak)-day streak \u{00B7} \(today) done today"
+                                     : "\(streak)-day streak \u{2014} answer one to keep it"
+        let tint: Color = today > 0 ? .orange : .secondary
+        return todayLine(symbol: "flame.fill", tint: tint, text: text)
+    }
+
+    /// One line of the Today card: a symbol and a short sentence.
+    private func todayLine(symbol: String, tint: Color, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.body)
+                .foregroundStyle(tint)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.subheadline)
+                .monospacedDigit()
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Every flagged question in the library as one quiz.
+    ///
+    /// Built when tapped, not held ready: the quiz is a copy taken at that
+    /// moment, so unflagging a question part way through it leaves the quiz
+    /// as it was.
+    func startFlaggedQuiz() {
+        let picks = store.flaggedQuestions
+        guard !picks.isEmpty else { return }
+        quickQuiz = Store.temporaryQuiz(named: "Flagged questions", subject: "Flagged",
+                                        from: picks.shuffled())
+    }
+
+    /// Every question in the selected MCQ sets, shuffled together into one
+    /// quiz of at most fifty, and opened without being saved.
+    ///
+    /// Revising one lecture at a time teaches the order the lectures came
+    /// in; the exam mixes them, so practice should too.
+    func startMixedQuiz() {
+        let sets = selectedSets.filter { $0.kind == .mcq }
+        var seen: Set<UUID> = []
+        var picks: [QuestionPick] = []
+        for set in sets {
+            for question in set.questions {
+                // a Mistakes set holds copies of questions from its original
+                if seen.insert(question.id).inserted {
+                    picks.append(QuestionPick(set: set, question: question))
                 }
             }
-            .padding(.vertical, 2)
         }
+        guard !picks.isEmpty else { return }
+        let subjects = Set(sets.map { Store.subjectName($0) })
+        let subject = subjects.count == 1 ? (subjects.first ?? "Mixed") : "Mixed"
+        let quiz = Store.temporaryQuiz(named: "Mixed quiz", subject: subject,
+                                       from: Array(picks.shuffled().prefix(50)))
+        withAnimation(.snappy) { selecting = false; selected = [] }
+        quickQuiz = quiz
     }
 
     func sectionHeader(_ text: String) -> some View {
-        Text(text)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(nil)
+        CategoryHeading(title: text)
     }
 
     /// One library row - a navigation link normally, a tickable row in
-    /// selection mode, with the per-set actions in a long-press menu and as
-    /// swipe actions.
+    /// selection mode, with the per-set actions in a long-press menu, behind
+    /// the row's own ellipsis (for a pointer, and for anyone who never
+    /// thought to hold a row) and as swipe actions.
     @ViewBuilder
     func row(_ set: StudySet) -> some View {
         Group {
@@ -80,19 +280,31 @@ extension LibraryView {
                         else { selected.insert(set.id) }
                     }
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 16) {
                         Image(systemName: selected.contains(set.id) ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
-                            .foregroundStyle(selected.contains(set.id) ? set.kind.tint : Color.secondary)
+                            .accessibilityHidden(true)
+                            .foregroundStyle(selected.contains(set.id) ? Color.accentColor : Color.secondary)
                         setRow(set)
                     }
                 }
                 .buttonStyle(.pressableRow)
+                .accessibilityAddTraits(selected.contains(set.id) ? [.isSelected] : [])
             } else {
-                NavigationLink(value: set) { setRow(set) }
+                // The ellipsis sits beside the link rather than inside its
+                // label: a control inside a link's label fights the row for
+                // the tap, and VoiceOver folds it into the row.
+                HStack(spacing: 8) {
+                    NavigationLink(value: set) { setRow(set) }
+                        .accessibilityIdentifier("setRow-\(set.kind.rawValue)")
+                    rowMoreMenu(set)
+                }
             }
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        // frosted, so the backdrop shows through while the row stays easy
+        // to read
+        .frostedListRow()
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
@@ -102,7 +314,28 @@ extension LibraryView {
 
     @ViewBuilder
     func rowMenu(_ set: StudySet) -> some View {
+        // picking several sets starts from any one of them, ticked; while
+        // already picking, it adds this one rather than starting over
+        Button("Select", systemImage: "checkmark.circle") {
+            withAnimation(.snappy) {
+                if selecting {
+                    selected.insert(set.id)
+                } else {
+                    selecting = true
+                    selected = [set.id]
+                }
+            }
+        }
         Button("Rename", systemImage: "pencil") { renaming = set }
+        // the set's accuracy in words: verified, to check, flagged
+        AccuracySetSummary(set: set)
+        // any mode into any other: rearranged on the spot where it can be,
+        // written from the lecture where it cannot
+        if ModeConversion.targets.contains(where: { ModeConversion.canTurn(set, into: $0) }) {
+            Button("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath") { turning = set }
+                .accessibilityIdentifier("turnInto")
+        }
+        Button("Reasoning practice\u{2026}", systemImage: "brain.head.profile") { reasoningFor = set }
         // The lecture this set came from, readable on its own - not only by
         // way of a card that happens to cite it.
         if set.sources.count == 1, let only = set.sources.first {
@@ -139,9 +372,8 @@ extension LibraryView {
             Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }
         }
         if set.kind == .anki {
-            Button("Export Anki deck (.apkg)", systemImage: "square.and.arrow.up") {
-                if let url = try? ApkgExporter.export(set) { exportURL = url }
-                else { exportFailedSetName = set.name }
+            Button("Export deck (.apkg)", systemImage: "square.and.arrow.up") {
+                exportDeck(set)
             }
         }
         Button("Share as JSON", systemImage: "doc.text") {
@@ -149,50 +381,150 @@ extension LibraryView {
             else { exportFailedSetName = set.name }
         }
         Divider()
-        Button("Delete", systemImage: "trash", role: .destructive) { store.deleteSet(set.id) }
+        Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }
     }
 
-    /// The floating action bar shown in selection mode.
+    /// The floating action bar shown in selection mode: one glass slab like
+    /// the dock, in the dock's place. Done at the leading end; Move, Quiz and
+    /// Combine, then Delete last, at the trailing end, and it asks first.
     var selectionBar: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 10) {
-                Text(selected.isEmpty ? "Select sets" : "\(selected.count) selected")
-                    .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-                Spacer()
-                Button { naming = .folder } label: {
-                    Label("Folder", systemImage: "folder.badge.plus")
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        // the buttons' glass in a container of its own, as the dock's is, so
+        // it is drawn as glass on the slab rather than sampling the slab
+        return GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                selectionDoneButton
+                selectionCount
+                Spacer(minLength: 0)
+                ViewThatFits(in: .horizontal) {
+                    selectionActions(compact: false)
+                    selectionActions(compact: true)
                 }
-                .buttonStyle(.glass)
-                .disabled(selected.isEmpty)
-                Button { naming = .combine } label: {
-                    Label("Combine", systemImage: "square.stack.3d.down.forward")
-                }
-                .buttonStyle(.glassProminent)
-                .disabled(!canCombine)
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+            .padding(10)
         }
-        .padding(.horizontal, 10).padding(.bottom, 6)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .liquidGlassPanel(cornerRadius: 28)
+        .popOut(.floating, in: shape)
+        .frame(maxWidth: 700)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+    }
+
+    private var selectionDoneButton: some View {
+        Button {
+            withAnimation(.snappy) { selecting = false; selected = [] }
+        } label: {
+            Image(systemName: "xmark")
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .contentShape(.hoverEffect, Circle())
+        .hoverEffect(.highlight)
+        .keyboardShortcut(.cancelAction)
+        .accessibilityLabel("Done")
+        .accessibilityHint("Stop choosing sets")
+        .accessibilityIdentifier("selectionDone")
+    }
+
+    private var selectionCount: some View {
+        let count: Int = selected.count
+        let text: String = count == 0 ? "Select sets" : "\(count) selected"
+        return Text(text)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+    }
+
+    /// Whether the selection holds any questions to mix into one quiz.
+    var canMixQuiz: Bool {
+        selectedSets.contains { $0.kind == .mcq && !$0.questions.isEmpty }
+    }
+
+    /// Every selected set into a folder.
+    func moveSelected(to folderId: UUID?) {
+        for id in selected { store.move(id, to: folderId) }
+        withAnimation(.snappy) { selecting = false; selected = [] }
+    }
+
+    /// Move, Quiz, Combine, then Delete - with their names, or as symbols
+    /// alone when the names do not fit.
+    private func selectionActions(compact: Bool) -> some View {
+        HStack(spacing: 6) {
+            moveMenu(compact: compact)
+            quizButton(compact: compact)
+            combineButton(compact: compact)
+            deleteSelectedButton(compact: compact)
+        }
+    }
+
+    private func moveMenu(compact: Bool) -> some View {
+        Menu {
+            ForEach(store.folders) { folder in
+                Button(folder.name, systemImage: "folder") { moveSelected(to: folder.id) }
+            }
+            Button("New folder\u{2026}", systemImage: "folder.badge.plus") { naming = .folder }
+        } label: {
+            ActionLabel(title: "Move", symbol: "folder", compact: compact)
+        }
+        .buttonStyle(.glass)
+        .disabled(selected.isEmpty)
+    }
+
+    private func quizButton(compact: Bool) -> some View {
+        Button { startMixedQuiz() } label: {
+            ActionLabel(title: "Quiz", symbol: "shuffle", compact: compact)
+        }
+        .buttonStyle(.glass)
+        .disabled(!canMixQuiz)
+    }
+
+    private func combineButton(compact: Bool) -> some View {
+        Button { naming = .combine } label: {
+            ActionLabel(title: "Combine", symbol: "square.stack.3d.down.forward", compact: compact)
+        }
+        .buttonStyle(.glassProminent)
+        .disabled(!canCombine)
+    }
+
+    /// Last, at the trailing end, away from Combine's glow by the bar's own
+    /// order; it asks first unless "Ask before deleting a set" is off.
+    private func deleteSelectedButton(compact: Bool) -> some View {
+        Button(role: .destructive) { delete(Array(selected)) } label: {
+            ActionLabel(title: "Delete", symbol: "trash", compact: compact)
+                .foregroundStyle(.red)
+        }
+        .buttonStyle(.glass)
+        .disabled(selected.isEmpty)
     }
 
     func setRow(_ set: StudySet) -> some View {
         let due = set.kind == .anki ? reviews.dueCount(for: set.cards) : 0
-        return HStack(spacing: 14) {
+        let plural: String = set.itemCount == 1 ? "" : "s"
+        let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"
+        return HStack(spacing: 16) {
             ModeTile(kind: set.kind)
             VStack(alignment: .leading, spacing: 3) {
-                Text(set.name).font(.body.weight(.semibold)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(set.name).font(.body.weight(.semibold)).lineLimit(1)
+                    // the exam it was written for
+                    ExamBadge(examId: set.exam)
+                }
                 HStack(spacing: 6) {
                     Text(set.kind.label)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(set.kind.tint)
+                        .foregroundStyle(.secondary)
                     Text("\u{00b7}").foregroundStyle(.tertiary)
-                    Text("\(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")")
+                    Text(amount)
                         .font(.caption).foregroundStyle(.secondary)
                     if !set.subject.isEmpty && set.subject != "General" {
                         Text("\u{00b7}").foregroundStyle(.tertiary)
                         Text(set.subject).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
+                    // flagged or to check, once anything in it is checked
+                    AccuracySetMark(set: set)
                 }
             }
             Spacer(minLength: 0)
@@ -200,35 +532,149 @@ extension LibraryView {
                 Text("\(due)")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(StudySetKind.anki.tint, in: Capsule())
+                    .accessibilityLabel("\(due) due")
             }
         }
-        .padding(.vertical, 4)
+        // a whole row to aim at, not only its words
+        .frame(minHeight: 56)
+        .contentShape(Rectangle())
     }
 
+    /// The ellipsis at the end of a row: rename, turn into, export, delete -
+    /// the same menu holding the row opens, in plain sight. Not shown while
+    /// ticking sets.
+    private func rowMoreMenu(_ set: StudySet) -> some View {
+        let spoken: String = "More for \(set.name)"
+        return Menu {
+            rowMenu(set)
+        } label: {
+            moreMenuFace
+        }
+        // its own control inside the row, not a tap on the row
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .contentShape(.hoverEffect, Circle())
+        .hoverEffect(.highlight)
+        .accessibilityLabel(spoken)
+    }
+
+    /// The face of a "more" menu - a row's, a folder's: an ellipsis on a
+    /// small glass disc that stands a little out of the glass like any other
+    /// control, inside a 44-point target.
+    var moreMenuFace: some View {
+        let disc = Circle()
+        return Image(systemName: "ellipsis")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.primary)
+            .frame(width: 34, height: 34)
+            .glassEffect(.regular.interactive(), in: disc)
+            .popOut(.raised, in: disc)
+            .frame(width: 44, height: 44)
+            .contentShape(disc)
+    }
+
+    /// An empty library: what the app does in one sentence, one big button
+    /// to start, and two quiet links for anyone who wants to look around
+    /// first. A card at the top of the page rather than the whole page, so
+    /// the category's ways to practise are still there under it.
     var emptyState: some View {
-        VStack(spacing: 18) {
-            Spacer()
+        VStack(spacing: 14) {
             HStack(spacing: -10) {
                 ForEach([StudySetKind.mcq, .anki, .qa], id: \.self) { kind in
-                    ModeTile(kind: kind, size: 56)
-                        .rotationEffect(.degrees(kind == .anki ? 0 : (kind == .mcq ? -10 : 10)))
+                    fannedTile(kind)
                 }
             }
-            Text("Nothing here yet").font(.title2.weight(.bold))
-            Text("Make an MCQ quiz, an Anki deck, a textbook, a case set, an OSCE checklist, or a narrated transcript \u{2014} all of it stays on this phone.")
-                .font(.subheadline)
+            .accessibilityHidden(true)
+            Text("Make your first set").font(.title2.weight(.bold))
+            Text("Add a lecture and \(Brand.name) turns it into questions, flashcards or cases to study.")
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-            Button { showNewSet = true } label: {
-                Label("New set", systemImage: "plus").padding(.horizontal, 6)
+            Button { newSetKind = category.mainKind } label: {
+                Label("New set", systemImage: "plus")
+                    .font(.headline)
+                    .frame(maxWidth: 280, minHeight: 44)
             }
             .buttonStyle(.glassProminent)
-            Spacer()
-            Spacer()
+            .popOut(.hero, in: Capsule(), tint: .accentColor)
+            .keyboardShortcut("n", modifiers: .command)
+            .accessibilityHint("Make questions or cards from a lecture")
+            .accessibilityIdentifier("newSetButton")
+            // the rest of the app is there from the start, not only once
+            // something has been made
+            HStack(spacing: 16) {
+                Button { support = .sources } label: {
+                    Label("Your lectures", systemImage: "doc.richtext")
+                }
+                Button { support = .help } label: {
+                    Label("How it works", systemImage: "questionmark.app")
+                }
+            }
+            .font(.subheadline)
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier("emptyLibraryLinks")
         }
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
+    }
+
+    /// One of the empty library's three fanned tiles, each at its own height
+    /// out of the glass, so the fan reads as three cards held up in the air.
+    ///
+    /// Lifted before it is turned, so the slab side and the sheen are turned
+    /// with the tile and stay the tile's own shape.
+    private func fannedTile(_ kind: StudySetKind) -> some View {
+        let corner: CGFloat = 52 * 0.28
+        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+        let plane: PopOutPlane = LibraryView.fanPlane(kind)
+        let angle: Double = LibraryView.fanAngle(kind)
+        let layer: Double = Double(plane.rawValue)
+        return ModeTile(kind: kind, size: 52)
+            .popOut(plane, in: shape)
+            .rotationEffect(.degrees(angle))
+            // drawn in the order of their heights, so a higher tile is never
+            // covered by a lower one where they overlap
+            .zIndex(layer)
+    }
+
+    /// The fan: questions to the left, cards upright in the middle, cases to
+    /// the right.
+    static func fanAngle(_ kind: StudySetKind) -> Double {
+        switch kind {
+        case .anki: return 0
+        case .mcq: return -10
+        default: return 10
+        }
+    }
+
+    /// The middle tile highest, the right one next, the left one lowest.
+    static func fanPlane(_ kind: StudySetKind) -> PopOutPlane {
+        switch kind {
+        case .anki: return .hero
+        case .qa: return .floating
+        default: return .raised
+        }
+    }
+}
+
+/// A selection bar action's face: its name and symbol, or the symbol alone
+/// (still named for VoiceOver), at least 44 points tall with the glass.
+private struct ActionLabel: View {
+    let title: String
+    let symbol: String
+    let compact: Bool
+
+    var body: some View {
+        if compact {
+            Label(title, systemImage: symbol)
+                .labelStyle(.iconOnly)
+                .frame(minWidth: 22, minHeight: 30)
+        } else {
+            Label(title, systemImage: symbol)
+                .lineLimit(1)
+                .frame(minHeight: 30)
+        }
     }
 }

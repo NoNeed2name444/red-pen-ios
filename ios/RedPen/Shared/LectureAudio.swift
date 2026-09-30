@@ -24,12 +24,30 @@ enum LectureAudio {
     }
 
     /// The recording for this set, whatever container it arrived in.
+    ///
+    /// Found by listing the folder for `<id>.*` rather than by trying a list
+    /// of extensions: the picker accepts any audio, so .flac, .aiff, .m4b,
+    /// .ogg and .3gp all arrive, and a recording stored under an extension
+    /// the list did not have was never found again - no playback, no sync to
+    /// the transcript, and a file nothing could remove.
     static func existing(for setID: UUID) -> URL? {
-        for ext in ["m4a", "mp3", "wav", "aac", "caf", "mp4"] {
-            let candidate = url(for: setID, ext: ext)
-            if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
-        }
-        return nil
+        recordings(for: setID).first
+    }
+
+    /// Every file stored for this set, most likely container first.
+    static func recordings(for setID: UUID) -> [URL] {
+        let stem = setID.uuidString
+        let dir = folder
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        let known = ["m4a", "mp3", "wav", "aac", "caf", "mp4"]
+        return names
+            .filter { ($0 as NSString).deletingPathExtension == stem }
+            .sorted { first, second in
+                let a = known.firstIndex(of: (first as NSString).pathExtension.lowercased()) ?? known.count
+                let b = known.firstIndex(of: (second as NSString).pathExtension.lowercased()) ?? known.count
+                return a == b ? first < second : a < b
+            }
+            .map { dir.appendingPathComponent($0) }
     }
 
     /// Copy an imported file in, keeping its extension so AVAudioPlayer can
@@ -39,6 +57,10 @@ enum LectureAudio {
     /// which is why the access is opened and closed around the copy rather than
     /// the URL being kept - hold onto the original and it stops working the
     /// moment the picker goes away.
+    ///
+    /// Every earlier recording for the set goes first, whatever its
+    /// extension: one left behind under the same name made the copy fail with
+    /// "an item with the same name already exists".
     @discardableResult
     static func store(imported source: URL, for setID: UUID) throws -> URL {
         let scoped = source.startAccessingSecurityScopedResource()
@@ -46,15 +68,17 @@ enum LectureAudio {
 
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let destination = url(for: setID, ext: ext)
-        if let already = existing(for: setID) {
-            try? FileManager.default.removeItem(at: already)
-        }
+        remove(for: setID)
         try FileManager.default.copyItem(at: source, to: destination)
         return destination
     }
 
+    /// The set's recording, gone from the phone. Called when the set is
+    /// deleted: a lecture recording is tens of megabytes, often of other
+    /// people's voices, and the student who deleted the set has no other way
+    /// to reach it.
     static func remove(for setID: UUID) {
-        if let there = existing(for: setID) {
+        for there in recordings(for: setID) {
             try? FileManager.default.removeItem(at: there)
         }
     }

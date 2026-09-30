@@ -43,6 +43,7 @@ extension GemmaModel {
                     self.setStatus(Self.isDownloaded ? .ready : .notDownloaded)
                 }
             } catch {
+                Diagnostics.record(.error, area: .download, message: "gemma.download_failed", error: error)
                 await MainActor.run { self.setStatus(.failed(error.localizedDescription)) }
             }
             await MainActor.run { self.downloadTask = nil }

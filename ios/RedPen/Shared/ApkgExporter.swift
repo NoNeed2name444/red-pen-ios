@@ -45,27 +45,85 @@ enum ApkgExporter {
     private static let midBasic = 1_607_392_319
     private static let midCloze = 1_607_392_320
 
+    /// Builds the .apkg on a background thread, so a big deck does not freeze
+    /// the library while its pictures are drawn.
+    static func exportInBackground(_ set: StudySet) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) { try export(set) }.value
+    }
+
+    /// Picture cards whose picture is not on this phone - still a sync
+    /// reference while it downloads, or never uploaded by the phone that made
+    /// it. They cannot be drawn, so they are left out of the deck; this is how
+    /// many, for asking before that happens rather than after.
+    static func missingPictures(in set: StudySet) -> Int {
+        var readable: [Int: Bool] = [:]
+        func available(_ index: Int) -> Bool {
+            if let known = readable[index] { return known }
+            let ok = set.images.indices.contains(index) && BlobRefs.data(fromStored: set.images[index]) != nil
+            readable[index] = ok
+            return ok
+        }
+        return set.cards.filter { card in
+            guard card.type == .occlusion, card.occlusion != nil else { return false }
+            guard let index = card.imageIndex else { return true }
+            return !available(index)
+        }.count
+    }
+
     static func export(_ set: StudySet) throws -> URL {
+        let deckName = set.name.isEmpty ? Brand.name : set.name
+        return try export(decks: [(deckName, set)], fileName: set.name)
+    }
+
+    /// Every card set in the library as ONE package, a deck per set - filed
+    /// "Folder::Set" when the set is in a folder, which Anki shows as a
+    /// subdeck. For "Export all as Anki" in Settings.
+    static func exportAll(_ sets: [StudySet], folders: [StudyFolder], fileName: String) throws -> URL {
+        let names: [UUID: String] = Dictionary(folders.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+        var decks: [(name: String, set: StudySet)] = []
+        for set in sets where set.kind == .anki && !set.cards.isEmpty {
+            let own = set.name.isEmpty ? Brand.name : set.name
+            let folder: String? = set.folderId.flatMap { names[$0] }
+            decks.append((folder.map { $0 + "::" + own } ?? own, set))
+        }
+        guard !decks.isEmpty else { throw ExportError() }
+        return try export(decks: decks, fileName: fileName)
+    }
+
+    /// Builds every set's cards on a background thread.
+    static func exportAllInBackground(_ sets: [StudySet], folders: [StudyFolder], fileName: String) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            try exportAll(sets, folders: folders, fileName: fileName)
+        }.value
+    }
+
+    private static func export(decks: [(name: String, set: StudySet)], fileName: String) throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("apkg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
         let dbURL = dir.appendingPathComponent("collection.anki2")
 
-        var media: [(name: String, data: Data)] = []
-        try buildCollection(at: dbURL, set: set, media: &media)
+        // each picture goes to disk as it is drawn, not into memory
+        var media: [(name: String, file: URL)] = []
+        try buildCollection(at: dbURL, decks: decks, mediaFolder: dir, media: &media)
 
         // media manifest: {"0": "file.jpg", ...}; zipped entries are named by index
         var manifest: [String: String] = [:]
-        var entries: [(name: String, data: Data)] = []
-        entries.append(("collection.anki2", try Data(contentsOf: dbURL)))
+        var entries: [(name: String, file: URL)] = [("collection.anki2", dbURL)]
         for (i, m) in media.enumerated() {
             manifest[String(i)] = m.name
-            entries.append((String(i), m.data))
+            entries.append((String(i), m.file))
         }
-        entries.append(("media", try JSONSerialization.data(withJSONObject: manifest)))
+        let manifestURL = dir.appendingPathComponent("media.json")
+        try JSONSerialization.data(withJSONObject: manifest).write(to: manifestURL)
+        entries.append(("media", manifestURL))
 
-        let out = FileManager.default.temporaryDirectory.appendingPathComponent(safeFileName(set.name)).appendingPathExtension("apkg")
-        try MiniZip.write(entries: entries, to: out)
-        try? FileManager.default.removeItem(at: dir)
+        // a folder of its own, so two exports at once never write one file
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("apkg-out-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let out = folder.appendingPathComponent(safeFileName(fileName)).appendingPathExtension("apkg")
+        try MiniZip.write(files: entries, to: out)
         return out
     }
 
@@ -80,11 +138,19 @@ enum ApkgExporter {
     img { max-width: 100%; border-radius: 8px; }
     """
 
-    private static func buildCollection(at url: URL, set: StudySet, media: inout [(name: String, data: Data)]) throws {
+    private static func buildCollection(at url: URL, decks deckList: [(name: String, set: StudySet)], mediaFolder: URL,
+                                        media: inout [(name: String, file: URL)]) throws {
         var db: OpaquePointer?
         guard sqlite3_open(url.path, &db) == SQLITE_OK, let db else { throw ExportError() }
-        defer { sqlite3_close(db) }
+        // _v2: closes once the prepared statements below are finalized,
+        // whichever order their lifetimes happen to end in
+        defer { sqlite3_close_v2(db) }
 
+        // A throwaway file in the temporary folder: no journal and no fsync,
+        // and every row in ONE transaction. Each INSERT used to be its own
+        // committed transaction - a journal created, synced and deleted per
+        // card, four thousand times for a large cloze deck.
+        try exec(db, "PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF;")
         try exec(db, """
         CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null);
         CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld integer not null, csum integer not null, flags integer not null, data text not null);
@@ -97,8 +163,8 @@ enum ApkgExporter {
 
         var idc = Int(Date().timeIntervalSince1970 * 1000)
         func nextId() -> Int { idc += 1; return idc }
-        let deckName = set.name.isEmpty ? Brand.name : set.name
-        let did = deckId(for: deckName)
+        let firstName = deckList.first?.name ?? Brand.name
+        let did = deckId(for: firstName)
         let now = Int(Date().timeIntervalSince1970)
 
         let models: [String: Any] = [
@@ -107,54 +173,109 @@ enum ApkgExporter {
             String(midCloze): model(id: midCloze, name: "\(Brand.name) Cloze", cloze: true, fields: ["Text", "Extra"],
                                    templates: [["name": "Cloze", "ord": 0, "qfmt": "{{cloze:Text}}", "afmt": "{{cloze:Text}}{{#Extra}}<div class=\"why\"><b>Why / how</b>{{Extra}}</div>{{/Extra}}", "bqfmt": "", "bafmt": "", "did": NSNull()]], did: did),
         ]
-        let decks: [String: Any] = [
+        var decks: [String: Any] = [
             "1": ["id": 1, "name": "Default", "desc": "", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
-            String(did): ["id": did, "name": deckName, "desc": "Exported from \(Brand.name).", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false],
         ]
+        // a deck per set, and a parent deck for every "Folder::" above one -
+        // Anki makes the parents itself on import, but only if they are named
+        var deckNames: [String] = []
+        for entry in deckList {
+            let levels = entry.name.components(separatedBy: "::")
+            for depth in 1...max(1, levels.count) {
+                let name = levels.prefix(depth).joined(separator: "::")
+                if !deckNames.contains(name) { deckNames.append(name) }
+            }
+        }
+        for name in deckNames {
+            let id = deckId(for: name)
+            let entry: [String: Any] = ["id": id, "name": name, "desc": "Exported from \(Brand.name).", "mod": now, "usn": 0, "collapsed": false, "newToday": [0, 0], "revToday": [0, 0], "lrnToday": [0, 0], "timeToday": [0, 0], "dyn": 0, "extendNew": 10, "extendRev": 50, "conf": 1, "browserCollapsed": false]
+            decks[String(id)] = entry
+        }
         let conf: [String: Any] = ["nextPos": 1, "estTimes": true, "activeDecks": [1], "sortType": "noteFld", "timeLim": 0, "sortBackwards": false, "addToCur": true, "curDeck": 1, "newBury": true, "newSpread": 0, "dueCounts": true, "curModel": String(midBasic), "collapseTime": 1200]
         let dconf: [String: Any] = ["1": ["id": 1, "name": "Default", "replayq": true, "lapse": ["leechFails": 8, "minInt": 1, "delays": [10], "leechAction": 0, "mult": 0], "rev": ["perDay": 200, "ivlFct": 1, "maxIvl": 36500, "ease4": 1.3, "bury": true, "minSpace": 1, "fuzz": 0.05], "timer": 0, "maxTaken": 60, "usn": 0, "new": ["perDay": 20, "delays": [1, 10], "separate": true, "ints": [1, 4, 7], "initialFactor": 2500, "bury": true, "order": 1], "mod": 0, "autoplay": true]]
 
-        try exec(db, "INSERT INTO col VALUES (1, \(now), \(now * 1000), \(now * 1000), 11, 0, 0, 0, \(q(json(conf))), \(q(json(models))), \(q(json(decks))), \(q(json(dconf))), '{}')")
+        try exec(db, "BEGIN")
+        let collection = try Statement(db, "INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')")
+        try collection.run([.int(now), .int(now * 1000), .int(now * 1000), .text(json(conf)),
+                            .text(json(models)), .text(json(decks)), .text(json(dconf))])
+        let notes = try Statement(db, "INSERT INTO notes VALUES (?, ?, ?, ?, -1, ?, ?, ?, ?, 0, '')")
+        let cardRows = try Statement(db, "INSERT INTO cards VALUES (?, ?, ?, ?, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')")
+        // the picture drawn last, since a diagram's cards sit together:
+        // decoding it once per diagram rather than once per card, without
+        // holding every diagram at once
+        var picture: (index: Int, image: UIImage)?
 
-        for card in set.cards {
-            let why = card.why
-            var mid = midBasic, fields: [String], sort: String, isCloze = false
-            // The card's own id, not its text: editing a card must not create a
-            // second note, which is the whole reason a GUID exists.
-            let guid = guidFor(card.id.uuidString)
-            switch card.type {
-            case .cloze:
-                mid = midCloze; isCloze = true
-                let extra = why.isEmpty ? "" : bold(why)
-                fields = [card.clozeText, extra]
-                sort = plain(card.clozeText)
-            case .qa:
-                let front = bold(card.front)
-                let back = "<ul class=\"bullets\">" + card.bullets.map { "<li>\(bold($0))</li>" }.joined() + "</ul>" + (why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(esc(why))</div>")
-                fields = [front, back]
-                sort = plain(card.front)
-            case .occlusion:
-                guard let idx = card.imageIndex, set.images.indices.contains(idx), let occ = card.occlusion,
-                      let pair = renderOcclusion(set.images[idx], occ) else { continue }
-                let (frontJPEG, backJPEG) = pair
-                // named from the card's id so re-exporting overwrites the same
-                // media rather than piling up a copy per export
-                let short = card.id.uuidString.prefix(8)
-                let f = "occ_\(short)_front.jpg", b = "occ_\(short)_back.jpg"
-                media.append((f, frontJPEG)); media.append((b, backJPEG))
-                fields = ["<img src=\"\(f)\">" + (card.front.isEmpty ? "" : "<div>\(bold(card.front))</div>"),
-                          "<img src=\"\(b)\">" + (why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(esc(why))</div>")]
-                sort = plain(card.front.isEmpty ? "Image occlusion" : card.front)
-            }
-            let nid = nextId()
-            let flds = fields.joined(separator: "\u{1f}")
-            try exec(db, "INSERT INTO notes VALUES (\(nid), \(q(guid)), \(mid), \(now), -1, '', \(q(flds)), \(q(sort)), \(checksum(fields[0])), 0, '')")
-            // one card per note; cloze notes get one card per distinct cN as Anki would
-            let ords = isCloze ? clozeOrdinals(card.clozeText) : [0]
-            for ord in ords {
-                try exec(db, "INSERT INTO cards VALUES (\(nextId()), \(nid), \(did), \(ord), \(now), -1, 0, 0, \(nid % 1_000_000), 0, 0, 0, 0, 0, 0, 0, 0, '')")
+        for (deckName, set) in deckList {
+            let did = deckId(for: deckName)
+            // pictures are numbered per set
+            picture = nil
+            for card in set.cards {
+                let why = card.why
+                var mid = midBasic, fields: [String], sort: String, isCloze = false
+                // The card's own id, not its text: editing a card must not create a
+                // second note, which is the whole reason a GUID exists.
+                let guid = guidFor(card.id.uuidString)
+                switch card.type {
+                case .cloze:
+                    mid = midCloze; isCloze = true
+                    let extra = why.isEmpty ? "" : AnkiFields.bold(why)
+                    // escaped like every other field: a cloze from a shared set
+                    // or a model is HTML to Anki, and runs as HTML if left raw
+                    fields = [AnkiFields.cloze(card.clozeText), extra]
+                    sort = AnkiFields.plain(card.clozeText)
+                case .qa:
+                    let front = AnkiFields.bold(card.front)
+                    let items: String = card.bullets.map { "<li>\(AnkiFields.bold($0))</li>" }.joined()
+                    let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
+                    fields = [front, "<ul class=\"bullets\">" + items + "</ul>" + reason]
+                    sort = AnkiFields.plain(card.front)
+                case .occlusion:
+                    guard let idx = card.imageIndex, let occ = card.occlusion else { continue }
+                    if picture?.index != idx {
+                        picture = nil
+                        if set.images.indices.contains(idx),
+                           let data = BlobRefs.data(fromStored: set.images[idx]),
+                           let decoded = UIImage(data: data) {
+                            picture = (idx, decoded)
+                        }
+                    }
+                    // a picture not on this phone: counted beforehand by
+                    // missingPictures, and asked about there
+                    guard let base = picture?.image else { continue }
+                    // named from the card's id so re-exporting overwrites the same
+                    // media rather than piling up a copy per export
+                    let short = card.id.uuidString.prefix(8)
+                    let f = "occ_\(short)_front.jpg", b = "occ_\(short)_back.jpg"
+                    let drawn: Bool = try autoreleasepool {
+                        guard let pair = renderOcclusion(base, occ,
+                                                         others: OcclusionCovers.others(for: card, in: set.cards))
+                        else { return false }
+                        let frontFile = mediaFolder.appendingPathComponent("m\(media.count)")
+                        try pair.front.write(to: frontFile)
+                        media.append((f, frontFile))
+                        let backFile = mediaFolder.appendingPathComponent("m\(media.count)")
+                        try pair.back.write(to: backFile)
+                        media.append((b, backFile))
+                        return true
+                    }
+                    guard drawn else { continue }
+                    let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
+                    fields = ["<img src=\"\(f)\">" + (card.front.isEmpty ? "" : "<div>\(AnkiFields.bold(card.front))</div>"),
+                              "<img src=\"\(b)\">" + reason]
+                    sort = AnkiFields.plain(card.front.isEmpty ? "Image occlusion" : card.front)
+                }
+                let nid = nextId()
+                let flds = fields.joined(separator: "\u{1f}")
+                try notes.run([.int(nid), .text(guid), .int(mid), .int(now), .text(ankiTags(card.tags, set.tags)),
+                               .text(flds), .text(sort), .int(checksum(fields[0]))])
+                // one card per note; cloze notes get one card per distinct cN as Anki would
+                let ords = isCloze ? AnkiFields.clozeOrdinals(card.clozeText) : [0]
+                for ord in ords {
+                    try cardRows.run([.int(nextId()), .int(nid), .int(did), .int(ord), .int(now), .int(nid % 1_000_000)])
+                }
             }
         }
+        try exec(db, "COMMIT")
     }
 
     private static func model(id: Int, name: String, cloze: Bool, fields: [String], templates: [[String: Any]], did: Int) -> [String: Any] {
@@ -165,6 +286,18 @@ enum ApkgExporter {
             "css": cardCSS, "latexPre": "\\documentclass[12pt]{article}\\special{papersize=3in,5in}\\usepackage[utf8]{inputenc}\\usepackage{amssymb,amsmath}\\pagestyle{empty}\\setlength{\\parindent}{0in}\\begin{document}",
             "latexPost": "\\end{document}", "latexsvg": false, "req": [[0, "any", [0]]], "tags": [], "vers": [],
         ]
+    }
+
+    /// A note's tags as Anki stores them: space-separated with a space at
+    /// each end, the card's own and its set's together. A tag cannot hold a
+    /// space in Anki, so any left in one become "_".
+    static func ankiTags(_ own: [String]?, _ set: [String]?) -> String {
+        var all: [String] = []
+        for tag in (own ?? []) + (set ?? []) {
+            let clean = tag.split(whereSeparator: { $0.isWhitespace }).joined(separator: "_")
+            if !clean.isEmpty && !all.contains(clean) { all.append(clean) }
+        }
+        return all.isEmpty ? "" : " " + all.joined(separator: " ") + " "
     }
 
     // MARK: identity
@@ -194,56 +327,56 @@ enum ApkgExporter {
     /// find duplicate notes, so a different hash is not a private detail —
     /// it silently disables the duplicate warning in the card browser.
     static func checksum(_ field: String) -> Int {
-        let stripped = field.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        let digest = Insecure.SHA1.hash(data: Data(stripped.utf8))
+        let digest = Insecure.SHA1.hash(data: Data(AnkiFields.stripped(field).utf8))
         let hex = digest.prefix(4).map { String(format: "%02x", $0) }.joined()
         return Int(hex, radix: 16) ?? 0
     }
 
-    // MARK: helpers ported from the web app's ankiFieldBold / plainTextForSort
+    /// The longest side of a drawn occlusion picture, in pixels. The stored
+    /// pictures are 1,400; older sets hold some at 4,200, which is only more
+    /// memory and a bigger file for a picture Anki shows at phone size.
+    private static let pictureSide: CGFloat = 2000
 
-    /// `**term**` → <b>term</b>, everything else HTML-escaped.
-    private static func bold(_ s: String) -> String {
-        var out = "", rest = Substring(s), on = false
-        while let r = rest.range(of: "**") {
-            out += esc(String(rest[..<r.lowerBound])) + (on ? "</b>" : "<b>")
-            on.toggle(); rest = rest[r.upperBound...]
+    /// The front and back pictures of an image occlusion note, drawn the way
+    /// the app draws them: every other tested label covered in solid grey on
+    /// both sides, this card's label orange with a "?" on the front and
+    /// uncovered but outlined on the back. Nothing is translucent, so no text
+    /// shows through a cover in either picture.
+    ///
+    /// Drawn at a scale of one, so the size is the picture's own pixels: a
+    /// renderer left at the screen's scale drew a 1,400-pixel diagram 4,200
+    /// pixels across on a 3x phone, twice per card.
+    private static func renderOcclusion(_ image: UIImage, _ occ: OcclusionBox,
+                                        others: [OcclusionBox]) -> (front: Data, back: Data)? {
+        let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        let longest = max(pixels.width, pixels.height)
+        guard longest > 0 else { return nil }
+        let fit = min(1, pictureSide / longest)
+        let size = CGSize(width: max(1, (pixels.width * fit).rounded()),
+                          height: max(1, (pixels.height * fit).rounded()))
+        let frame = CGRect(origin: .zero, size: size)
+        // the stored covers are already padded, and only as far as they can
+        // go without meeting another; growing them here would make them overlap
+        let padding: CGFloat = OcclusionCovers.drawPadding
+        let minimum: CGFloat = OcclusionCovers.drawMinimum
+        let renderer = SourceIngest.pixelRenderer(size: size, opaque: true)
+        func picture(revealed: Bool) -> Data? {
+            renderer.image { ctx in
+                UIColor.white.setFill()
+                ctx.fill(frame)
+                image.draw(in: frame)
+                PDFOcclusion.drawCovers(target: occ, others: others, revealed: revealed,
+                                        in: frame, padding: padding, minimum: minimum,
+                                        context: ctx.cgContext)
+            }.jpegData(compressionQuality: 0.85)
         }
-        out += esc(String(rest))
-        return on ? out + "</b>" : out
-    }
-    private static func esc(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;")
-    }
-    private static func plain(_ s: String) -> String { s.replacingOccurrences(of: "**", with: "") }
-
-    static func clozeOrdinals(_ text: String) -> [Int] {
-        let re = try? NSRegularExpression(pattern: #"\{\{c(\d+)::"#)
-        let ns = text as NSString
-        let nums = re?.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { Int(ns.substring(with: $0.range(at: 1))) } ?? []
-        let ords = Set(nums.map { $0 - 1 }).sorted()
-        return ords.isEmpty ? [0] : ords
-    }
-
-    /// Draws the occlusion box over the image for the front, leaves the
-    /// back clean — the web app's `renderOcclusionImages()`.
-    private static func renderOcclusion(_ base64: String, _ occ: OcclusionBox) -> (Data, Data)? {
-        let payload = base64.hasPrefix("data:") ? String(base64[(base64.firstIndex(of: ",").map { base64.index(after: $0) } ?? base64.startIndex)...]) : base64
-        guard let data = Data(base64Encoded: payload), let image = UIImage(data: data) else { return nil }
-        let renderer = UIGraphicsImageRenderer(size: image.size)
-        let front = renderer.image { ctx in
-            image.draw(at: .zero)
-            UIColor.black.withAlphaComponent(0.92).setFill()
-            ctx.fill(CGRect(x: occ.x * image.size.width, y: occ.y * image.size.height, width: occ.w * image.size.width, height: occ.h * image.size.height))
-        }
-        guard let f = front.jpegData(compressionQuality: 0.85), let b = image.jpegData(compressionQuality: 0.85) else { return nil }
+        guard let f = picture(revealed: false), let b = picture(revealed: true) else { return nil }
         return (f, b)
     }
 
     private static func json(_ obj: Any) -> String {
         (try? JSONSerialization.data(withJSONObject: obj)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
-    private static func q(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "''") + "'" }
     private static func exec(_ db: OpaquePointer, _ sql: String) throws {
         var err: UnsafeMutablePointer<CChar>?
         guard sqlite3_exec(db, sql, nil, nil, &err) == SQLITE_OK else {
@@ -251,58 +384,52 @@ enum ApkgExporter {
             throw ExportError()
         }
     }
+    /// One statement, prepared once and run for every row with its values
+    /// bound - no SQL built out of a card's text.
+    private final class Statement {
+        enum Value {
+            case int(Int)
+            case text(String)
+        }
+
+        private let handle: OpaquePointer
+        /// SQLite copies bound text rather than keeping the pointer.
+        private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+
+        init(_ db: OpaquePointer, _ sql: String) throws {
+            var prepared: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &prepared, nil) == SQLITE_OK, let prepared else {
+                throw ExportError()
+            }
+            handle = prepared
+        }
+
+        deinit { sqlite3_finalize(handle) }
+
+        func run(_ values: [Value]) throws {
+            sqlite3_reset(handle)
+            sqlite3_clear_bindings(handle)
+            for (offset, value) in values.enumerated() {
+                let slot = Int32(offset + 1)
+                switch value {
+                case .int(let number): sqlite3_bind_int64(handle, slot, sqlite3_int64(number))
+                case .text(let text): sqlite3_bind_text(handle, slot, text, -1, Statement.transient)
+                }
+            }
+            let stepped = sqlite3_step(handle)
+            // reset straight away, so no statement is left in progress when
+            // the transaction commits
+            sqlite3_reset(handle)
+            guard stepped == SQLITE_DONE else { throw ExportError() }
+        }
+    }
+
     private static func safeFileName(_ s: String) -> String {
         let cleaned = s.replacingOccurrences(of: "[^A-Za-z0-9\\-_. ]", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespaces)
         return cleaned.isEmpty ? "red-pen-deck" : String(cleaned.prefix(80))
     }
-}
-
-/// The smallest possible ZIP writer: STORE (no compression), CRC-32,
-/// local headers + central directory. Anki only needs a valid archive;
-/// the SQLite file compresses poorly anyway.
-enum MiniZip {
-    static func write(entries: [(name: String, data: Data)], to url: URL) throws {
-        var out = Data(), central = Data()
-        for (name, data) in entries {
-            let nameBytes = Array(name.utf8)
-            let crc = crc32(data)
-            let offset = UInt32(out.count)
-            // local file header
-            out.append(le32(0x04034b50)); out.append(le16(20)); out.append(le16(0)); out.append(le16(0))
-            out.append(le16(0)); out.append(le16(0x21)) // time/date: fixed
-            out.append(le32(crc)); out.append(le32(UInt32(data.count))); out.append(le32(UInt32(data.count)))
-            out.append(le16(UInt16(nameBytes.count))); out.append(le16(0))
-            out.append(contentsOf: nameBytes); out.append(data)
-            // central directory entry
-            central.append(le32(0x02014b50)); central.append(le16(20)); central.append(le16(20)); central.append(le16(0)); central.append(le16(0))
-            central.append(le16(0)); central.append(le16(0x21))
-            central.append(le32(crc)); central.append(le32(UInt32(data.count))); central.append(le32(UInt32(data.count)))
-            central.append(le16(UInt16(nameBytes.count))); central.append(le16(0)); central.append(le16(0))
-            central.append(le16(0)); central.append(le16(0)); central.append(le32(0)); central.append(le32(offset))
-            central.append(contentsOf: nameBytes)
-        }
-        let cdOffset = UInt32(out.count)
-        out.append(central)
-        out.append(le32(0x06054b50)); out.append(le16(0)); out.append(le16(0))
-        out.append(le16(UInt16(entries.count))); out.append(le16(UInt16(entries.count)))
-        out.append(le32(UInt32(central.count))); out.append(le32(cdOffset)); out.append(le16(0))
-        try out.write(to: url, options: .atomic)
-    }
-
-    private static let table: [UInt32] = (0..<256).map { i -> UInt32 in
-        var c = UInt32(i)
-        for _ in 0..<8 { c = (c & 1) != 0 ? 0xEDB88320 ^ (c >> 1) : c >> 1 }
-        return c
-    }
-    private static func crc32(_ data: Data) -> UInt32 {
-        var c: UInt32 = 0xFFFFFFFF
-        for b in data { c = table[Int((c ^ UInt32(b)) & 0xFF)] ^ (c >> 8) }
-        return c ^ 0xFFFFFFFF
-    }
-    private static func le16(_ v: UInt16) -> Data { withUnsafeBytes(of: v.littleEndian) { Data($0) } }
-    private static func le32(_ v: UInt32) -> Data { withUnsafeBytes(of: v.littleEndian) { Data($0) } }
 }
 
 /// The set as JSON — the same `StudySet` Codable shape `NewSetView`

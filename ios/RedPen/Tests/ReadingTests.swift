@@ -98,7 +98,7 @@ for block in blocks {
     case .bullet(let text, let marker): bullets.append((text, marker))
     case .heading: headings += 1
     case .row: rows += 1
-    case .paragraph: break
+    default: break
     }
 }
 ok(headings == 1, "the heading is a heading")
@@ -109,6 +109,47 @@ ok(bullets[2].1 == nil && bullets[3].1 == nil, "an unnumbered one has no marker 
 ok(bullets.map(\.0) == ["Give oxygen", "Gain access", "Then reassess", "And again"],
    "and the marker is not repeated in the text")
 ok(rows == 2, "a table's rows are rows, and its separator line is not one of them")
+
+// The textbook's visual aids
+let rich = BookPages.blocks("""
+| Type | Feature |
+| --- | --- |
+| A | one |
+> **Exam tip:** Remember this
+```flow
+Suspect it
+If positive → confirm
+```
+![The brachial plexus](image:2)
+""")
+var header = 0, callouts: [String] = [], flows: [[String]] = [], pictures: [Int] = []
+for block in rich {
+    switch block {
+    case .row(_, let isHeader): if isHeader { header += 1 }
+    case .callout(let kind, _): callouts.append(kind)
+    case .flow(let steps): flows.append(steps)
+    case .image(let index, _): pictures.append(index)
+    default: break
+    }
+}
+ok(header == 1, "a table's first row, above the |---| line, is its header")
+ok(callouts == ["Exam tip"], "a > **Exam tip:** line is an exam-tip callout")
+ok(flows == [["Suspect it", "If positive \u{2192} confirm"]], "a flow block is a flowchart of its steps")
+ok(pictures == [2], "a picture line points at the set's picture")
+
+// one topic stays one page, and a page shows only the pictures it was given
+let tidy = BookPages.tidyPage("## Lupus\n## Clinical features\n- rash\n![made up](image:9)", fallbackTitle: "Part 1", figures: [4])
+ok(BookPages.split(tidy).count == 1, "a second ## inside a page becomes a section, not a new page")
+ok(!tidy.contains("image:9") && tidy.contains("image:4"), "a picture the page was not given is dropped; one it was given is added")
+
+// which figure goes on which page
+let figs = [BookFigure(imageBase64: "x", page: 3, labels: ["brachial", "plexus", "radial", "nerve"]),
+            BookFigure(imageBase64: "y", page: 9, labels: ["kidney", "nephron", "glomerulus"])]
+let placed = BookFigures.assign(figs, to: ["The kidney: nephron and glomerulus filtration", "Brachial plexus: radial nerve injury"])
+ok(placed == [[1], [0]], "each diagram goes on the page about its topic")
+let squeezed = BookFigures.compact("![a](image:5)\ntext\n![b](image:2)", images: ["0","1","2","3","4","5"])
+ok(squeezed.images == ["5", "2"] && squeezed.markdown.contains("image:0") && squeezed.markdown.contains("image:1"),
+   "a set keeps only the pictures its pages show, renumbered")
 
 print(failures == 0 ? "\nALL READING TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

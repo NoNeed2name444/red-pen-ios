@@ -23,6 +23,8 @@ struct AnkiReviewView: View {
 
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.windowSpan) private var span
 
     /// Cards whose next appearance is this close still come back before you
     /// put the phone down; further out and the sitting is over for them.
@@ -37,46 +39,38 @@ struct AnkiReviewView: View {
     /// The lecture page a citation asked for, if one is open.
     @State private var reading: SourceOpening?
     @State private var quizNote: String?
+    /// When Undo stops being offered; nil while it is not.
+    @State private var undoUntil: Date?
 
     var body: some View {
         VStack(spacing: 0) {
             header
             if let current {
-                ScrollView {
-                    AnkiCardFace(card: current.card, images: studySet.images,
-                                 revealed: revealed,
-                                 sources: studySet.sources,
-                                 openSource: { source, page in
-                                     reading = SourceOpening(source: source, page: page)
-                                 })
-                        .contentCard()
-                        .padding(.horizontal)
-                        .padding(.top, 4)
-                        .padding(.bottom, 24)
-                        .readableColumn()
-                }
-                Spacer(minLength: 0)
-                footer(current)
+                cardScroll(current)
             } else {
-                Spacer()
-                nothingDue
-                Spacer()
+                finishScroll
             }
         }
         .modeScreen(.anki)
-        .navigationTitle(studySet.subject.isEmpty ? "Anki" : studySet.subject)
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: startSitting)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: buildQuiz) {
-                    Label("Quiz me", systemImage: "list.bullet.rectangle")
+        // Quiz me, Check accuracy and Turn into, all in the one More menu
+        .studyMoreMenu(for: studySet, check: accuracyAsk) {
+            Button(action: buildQuiz) {
+                Label("Quiz me", systemImage: "list.bullet.rectangle")
+            }
+            .disabled(studySet.cards.count < 5)
+            if current != nil {
+                Button(action: buryCurrent) {
+                    Label("Bury until tomorrow", systemImage: "moon.zzz")
                 }
-                .buttonStyle(.glass)
-                .disabled(studySet.cards.count < 5)
+                Button(action: suspendCurrent) {
+                    Label("Suspend this card", systemImage: "pause.circle")
+                }
             }
         }
-        .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set) }
+        .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear(perform: startSitting)
+        .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set, keepsProgress: false) }
         // A sheet rather than a push: checking the slide is a glance in the
         // middle of a review, and the card underneath should still be there
         // when it closes.
@@ -92,25 +86,119 @@ struct AnkiReviewView: View {
         }
     }
 
-    // MARK: the two empty states, which say different things
+    /// What Check accuracy looks at: the card on screen.
+    private var accuracyAsk: AccuracyAsk {
+        AccuracyAsk(instruction: "Write a flashcard (question and answer) from the source.",
+                    item: { current.flatMap { AccuracyItem.card($0.card) } }) {
+            current.map { item -> String in
+                let c = item.card
+                let parts: [String] = [c.front, c.clozeText] + c.bullets + [c.why]
+                return parts.filter { !$0.isEmpty }.joined(separator: "\n")
+            }
+        }
+    }
+
+    // MARK: the empty states, which say different things
 
     @ViewBuilder
     private var nothingDue: some View {
-        VStack(spacing: 12) {
-            if studySet.cards.isEmpty {
-                Text("This deck has no cards.").foregroundStyle(.secondary)
-            } else if reviewedCount > 0 {
-                Text("Done for now.").font(.headline)
-                Text(nextLine).font(.footnote).foregroundStyle(.secondary)
-            } else {
-                Text("Nothing due in this deck.").font(.headline)
-                Text(nextLine).font(.footnote).foregroundStyle(.secondary)
-                Button("Study it anyway") { studyAhead() }
-                    .buttonStyle(.glass)
+        if studySet.cards.isEmpty {
+            FinishHero(symbol: "tray", title: "No cards yet",
+                       message: "This deck has no cards.")
+        } else if reviewedCount > 0 {
+            FinishHero(symbol: "checkmark.seal.fill", title: "Done for now", message: doneLine)
+        } else {
+            FinishHero(symbol: "clock", title: "Nothing to review",
+                       message: "No cards in this deck are due yet. " + nextLine)
+        }
+    }
+
+    /// The card, scrolling under the bar that turns it over and rates it.
+    private func cardScroll(_ item: AnkiQueueItem) -> some View {
+        ScrollView {
+            AnkiCardFace(card: item.card, images: studySet.images,
+                         revealed: revealed,
+                         sources: studySet.sources,
+                         openSource: { source, page in
+                             reading = SourceOpening(source: source, page: page)
+                         },
+                         deck: studySet.cards)
+                .contentCard()
+                .cardFlip(revealed: revealed, enabled: !startRevealed)
+                .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, revealed ? 8 : 24)
+                .readableColumn()
+            // turned over: the card's accuracy, and why
+            if revealed {
+                HStack {
+                    AccuracyBadge(set: studySet, itemID: item.card.id.uuidString)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+                .readableColumn()
             }
         }
-        .multilineTextAlignment(.center)
-        .padding()
+        .reviewUndoChip(until: $undoUntil, action: undo)
+        .studyBar { footer(item) }
+    }
+
+    /// The finish: what happened, the way to a quiz on the same cards, and
+    /// the bar with the one thing to do next.
+    private var finishScroll: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                nothingDue
+                // Quiz me needs five cards to find wrong answers among
+                if studySet.cards.count >= 5 { quizMeButton }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 32)
+            .padding(.bottom, 24)
+            .readableColumn()
+        }
+        .reviewUndoChip(until: $undoUntil, action: undo)
+        .studyBar { finishButtons }
+        // a streak of a week, finished here, is a good moment to ask once
+        .reviewPromptAfterStreak(reviewedCount > 0)
+    }
+
+    /// The deck as a quiz, under the finish - the same as More's Quiz me.
+    private var quizMeButton: some View {
+        Button(action: buildQuiz) {
+            Label("Quiz me on this deck", systemImage: "list.bullet.rectangle")
+        }
+        .buttonStyle(.bigSecondary)
+        .accessibilityHint("A quiz whose wrong answers come from the other cards in this deck")
+    }
+
+    /// Study ahead when nothing is due and nothing was done, with Done beside
+    /// it; otherwise Done alone.
+    @ViewBuilder
+    private var finishButtons: some View {
+        if !studySet.cards.isEmpty && reviewedCount == 0 {
+            HStack(spacing: 12) {
+                Button("Done") { dismiss() }
+                    .buttonStyle(.bigCompanion)
+                if span == .broad { Spacer(minLength: 16) }
+                Button("Study it anyway") { studyAhead() }
+                    .buttonStyle(.bigPrimary)
+                    .keyboardShortcut(.return, modifiers: [])
+            }
+        } else {
+            Button("Done") { dismiss() }
+                .buttonStyle(.bigPrimary)
+                .keyboardShortcut(.return, modifiers: [])
+        }
+    }
+
+    /// "You went through 12 cards. Next card back in 10 minutes."
+    private var doneLine: String {
+        let plural: String = reviewedCount == 1 ? "" : "s"
+        let first: String = "You went through \(reviewedCount) card\(plural). "
+        return first + nextLine
     }
 
     private var nextLine: String {
@@ -122,54 +210,28 @@ struct AnkiReviewView: View {
     }
 
     private var header: some View {
-        HStack {
-            Text("\(queue.count) card\(queue.count == 1 ? "" : "s") left"
-                 + (studyingAhead ? " (studying ahead)" : ""))
-                .font(.footnote).foregroundStyle(.secondary)
-            Spacer()
-            Text("\(reviewedCount) reviewed")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tint)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .liquidGlassChip()
-        }
-        .padding(.horizontal).padding(.vertical, 8)
+        let left = queue.count
+        let done = reviewedCount
+        let status: String = left == 0 ? "All done" : "\(left) card\(left == 1 ? "" : "s") left"
+        let detail: String = "\(done) done" + (studyingAhead ? " \u{00B7} studying ahead" : "")
+        let fraction: Double = Double(done) / Double(max(1, done + left))
+        return StudyProgressHeader(status, detail: detail, fraction: fraction)
     }
 
-    @ViewBuilder
+    /// Reveal, then the four ratings, always in the same place.
     private func footer(_ item: AnkiQueueItem) -> some View {
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 10) {
-                if !revealed {
-                    Button { revealed = true } label: {
-                        Text("Reveal").frame(maxWidth: .infinity).padding(.vertical, 2)
-                    }
-                    .buttonStyle(.glassProminent)
-                } else {
-                    let labels = AnkiScheduler.previewLabels(currentIntervalMin: item.intervalMin)
-                    HStack(spacing: 8) {
-                        rateButton(.again, labels[.again] ?? "", color: StudySetKind.anki.step(0))
-                        rateButton(.hard, labels[.hard] ?? "", color: StudySetKind.anki.step(1))
-                        rateButton(.good, labels[.good] ?? "", color: StudySetKind.anki.step(2))
-                        rateButton(.easy, labels[.easy] ?? "", color: StudySetKind.anki.step(3))
-                    }
-                }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 10)
-        }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
-    }
-
-    private func rateButton(_ rating: AnkiRating, _ subtitle: String, color: Color) -> some View {
-        Button { rate(rating) } label: {
-            VStack(spacing: 2) {
-                Text(rating.rawValue.capitalized).font(.subheadline.weight(.semibold))
-                Text(subtitle).font(.caption2).opacity(0.8)
-            }
-            .frame(maxWidth: .infinity).padding(.vertical, 4)
-        }
-        .buttonStyle(.glass).tint(color)
+        // from the card's stored standing, so studying ahead promises what
+        // an early rating will actually store
+        let kept: ReviewRecord = ReviewPlan.record(for: item.card, in: reviews.records)
+        let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept, now: Date(),
+                                                                    exam: ExamCap.storedDate(),
+                                                                    scheduler: ReviewSettings.scheduler())
+        return AnkiFooter(revealed: revealed, labels: labels,
+                          onReveal: {
+                              revealed = true
+                              SpaceFeedback.play(.reveal)
+                          },
+                          onRate: { rate($0) })
     }
 
     // MARK: the sitting
@@ -196,13 +258,51 @@ struct AnkiReviewView: View {
 
     private func rate(_ rating: AnkiRating) {
         guard let item = current else { return }
+        // Again is a miss; Hard, Good and Easy were remembered
+        SpaceFeedback.play(rating == .again ? .wrong : .correct)
         let kept = reviews.rate(rating, card: item.card)
+        StudyLog.shared.record()
         reviewedCount += 1
         queue.removeAll { $0.id == item.id }
         if kept.intervalMin <= Self.sittingMinutes {
             queue.append(AnkiQueueItem(card: item.card, due: kept.due,
                                        intervalMin: kept.intervalMin))
         }
+        undoUntil = Date().addingTimeInterval(5)
+        showNext()
+    }
+
+    /// Takes the last rating back: the card returns to the front, question
+    /// side up, and its schedule is as it was.
+    private func undo() {
+        undoUntil = nil
+        guard let last = reviews.undoLast(),
+              let card = studySet.cards.first(where: { $0.id == last.cardID }) else { return }
+        queue.removeAll { $0.id == card.id }
+        let before: ReviewRecord = ReviewPlan.record(for: card, in: reviews.records)
+        let back = AnkiQueueItem(card: card, due: .distantPast, intervalMin: before.intervalMin)
+        queue.insert(back, at: 0)
+        reviewedCount = max(0, reviewedCount - 1)
+        current = back
+        revealed = false
+    }
+
+    private func buryCurrent() {
+        guard let item = current else { return }
+        reviews.bury(item.card)
+        leaveSitting(item)
+    }
+
+    private func suspendCurrent() {
+        guard let item = current else { return }
+        reviews.suspend(item.card)
+        leaveSitting(item)
+    }
+
+    /// A card buried or suspended leaves this sitting at once.
+    private func leaveSitting(_ item: AnkiQueueItem) {
+        undoUntil = nil
+        queue.removeAll { $0.id == item.id }
         showNext()
     }
 
@@ -213,10 +313,11 @@ struct AnkiReviewView: View {
     private func buildQuiz() {
         let built = QuizFromCards.build(from: studySet.cards)
         guard built.questions.count >= 3 else {
-            let reasons = Set(built.skipped.map(\.why)).sorted().prefix(2)
-            quizNote = "This deck made \(built.questions.count) usable question"
-                + (built.questions.count == 1 ? "" : "s") + ". "
-                + (reasons.isEmpty ? "" : reasons.joined(separator: " "))
+            let reasons: [String] = Array(Set(built.skipped.map(\.why)).sorted().prefix(2))
+            let count: Int = built.questions.count
+            let plural: String = count == 1 ? "" : "s"
+            let why: String = reasons.joined(separator: " ")
+            quizNote = "This deck made \(count) usable question\(plural). \(why)"
             return
         }
         var set = studySet

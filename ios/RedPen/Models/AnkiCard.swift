@@ -16,8 +16,11 @@ struct OcclusionBox: Codable, Hashable {
 
     /// Convenience for drawing: the box's rect within a given image size.
     func rect(in size: CGSize) -> CGRect {
-        CGRect(x: x * size.width, y: y * size.height,
-               width: w * size.width, height: h * size.height)
+        let left: CGFloat = CGFloat(x) * size.width
+        let top: CGFloat = CGFloat(y) * size.height
+        let width: CGFloat = CGFloat(w) * size.width
+        let height: CGFloat = CGFloat(h) * size.height
+        return CGRect(x: left, y: top, width: width, height: height)
     }
 }
 
@@ -47,6 +50,17 @@ struct AnkiCard: Identifiable, Codable, Hashable {
     /// checked. Optional because a hand-typed card has no source, and because
     /// libraries saved before this existed decode without it.
     var source: String?
+    /// "occlusion" only: the masks over every OTHER tested label on the same
+    /// picture. They stay covered after the card is revealed, so a neighbouring
+    /// label can never give this card's answer away. Empty on cards saved
+    /// before this existed; those take the masks from the set's other cards on
+    /// the same picture (OcclusionCovers.others).
+    var siblings: [OcclusionBox] = []
+    /// Labels for finding and filtering - "#AK_Step1::Cardio", "pharm".
+    /// Kept from an Anki deck's notes on import and written back on export.
+    /// Optional, so cards saved before tags existed decode, and an untagged
+    /// card adds nothing to the library file.
+    var tags: [String]? = nil
 
     var displayFront: String {
         if type == .occlusion, front.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -70,5 +84,28 @@ struct AnkiQueueItem: Identifiable {
         self.card = card
         self.due = due
         self.intervalMin = intervalMin
+    }
+}
+
+/// Read tolerantly, like StudySet: a card from another version of the app
+/// may lack a field this one has.
+extension AnkiCard {
+    private enum Keys: String, CodingKey {
+        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source, siblings, tags
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        self.init(type: try c.decode(AnkiCardType.self, forKey: .type))
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? id
+        front = try c.decodeIfPresent(String.self, forKey: .front) ?? ""
+        bullets = try c.decodeIfPresent([String].self, forKey: .bullets) ?? []
+        clozeText = try c.decodeIfPresent(String.self, forKey: .clozeText) ?? ""
+        why = try c.decodeIfPresent(String.self, forKey: .why) ?? ""
+        imageIndex = try c.decodeIfPresent(Int.self, forKey: .imageIndex)
+        occlusion = try c.decodeIfPresent(OcclusionBox.self, forKey: .occlusion)
+        source = try c.decodeIfPresent(String.self, forKey: .source)
+        siblings = (try? c.decodeIfPresent([OcclusionBox].self, forKey: .siblings)) ?? []
+        tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
     }
 }

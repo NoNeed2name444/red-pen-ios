@@ -152,13 +152,13 @@ enum DeckPDF {
             kCGPDFContextTitle as String: set.name,
             kCGPDFContextSubject as String:
                 "\(count) cards \u{2014} \(set.subject), \(set.kind.label)",
-            kCGPDFContextCreator as String: "Red Pen",
+            kCGPDFContextCreator as String: Brand.name,
         ]
         return format
     }
 
     static func fileName(for set: StudySet) -> String {
-        let safe = set.name.isEmpty ? "Red Pen deck" : set.name
+        let safe = set.name.isEmpty ? "\(Brand.name) deck" : set.name
         let cleaned = safe.components(separatedBy: CharacterSet(charactersIn: "/\\:?%*|\"<>"))
             .joined(separator: "-")
         return cleaned + ".pdf"

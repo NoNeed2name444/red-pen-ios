@@ -27,6 +27,37 @@ Conflicts are settled on the device, in `SyncMerge`, where the rule is that the
 loser is kept as a visible copy rather than dropped. The server does not decide
 whose work survives.
 
+## The accuracy engine
+
+`accuracy.js` checks questions, cards, cases, OSCE stations, textbook pages,
+narrated facts and (when a student asks) their own notes. Each batch of up to
+four items is shown with its lecture excerpt and free literature
+(`evidence.js`: Europe PMC, MedlinePlus, openFDA) to two free checker models -
+a third when they disagree, never the model that wrote the items - and every
+call goes through `ai.js`'s free shares and neuron limits. `accuracy-rules.js`
+adds deterministic checks (doses, lab values and units, key/explanation
+contradictions), and `accuracy-model.js` combines everything into P(accurate)
+and Verified / Check this / Flagged. Verdict signals are cached in
+`accuracy_verdicts` by the hash of the item's content, so nothing is checked
+twice unless edited. Reports go to `accuracy_reports` (deleted with the
+account). The combiner's weights are trained for free by
+`bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
+from `accuracy_model`; before any training the bundled prior is used.
+
+## Exams
+
+`exams.js` holds the prompt side of the exam catalogue (the app's
+`Shared/Exam/ExamCatalog.swift` has the full blueprints; `tests/exams.test.mjs`
+keeps the two in step). Nothing is fine-tuned: a question writer is given the
+chosen exam's format rules and two or three real items in its style, from
+`exam-exemplars.js` - built by `bench/exam-exemplars.mjs` from MedQA (MIT) and
+MedMCQA (Apache-2.0) only, never from a copyrighted bank. A job's prompt may
+carry `{{EXEMPLARS:<exam>:<topic>:<n>}}`, filled with different items each
+batch; `/exams/catalogue` and `/exams/exemplars` serve the same data. With
+`exam` in `/accuracy/check`, that exam's management questions need a higher
+P(accurate) to be Verified, and `bench/train-accuracy.mjs` reports the model
+per exam style and per exam.
+
 ## Deploying it
 
     cd server

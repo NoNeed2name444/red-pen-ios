@@ -18,7 +18,8 @@ enum AuthAPI {
            let url = URL(string: override), !override.isEmpty {
             return url
         }
-        return URL(string: "https://auth.redpen.app")!
+        // builds without an Info.plist (Swift Playgrounds) use the deployed worker
+        return URL(string: "https://redpen-auth.vv7sh4rnnw.workers.dev")!
     }
 
     enum Failure: LocalizedError, Equatable {
@@ -26,6 +27,8 @@ enum AuthAPI {
         case signedOut
         case tooManyTries
         case notConfigured
+        /// Refused because the account has no Pro (sync, cloud models).
+        case needsPro(String)
         case server(String)
 
         var errorDescription: String? {
@@ -38,7 +41,7 @@ enum AuthAPI {
                 return "Too many requests just now. Try again in a moment."
             case .notConfigured:
                 return "Sign-in isn't set up in this build yet."
-            case .server(let message):
+            case .server(let message), .needsPro(let message):
                 return message
             }
         }
@@ -77,6 +80,27 @@ enum AuthAPI {
         try await session(at: "/auth/google", body: [
             "code": code, "codeVerifier": verifier, "redirectUri": redirect,
         ])
+    }
+
+    /// An account for a device that has none, so its library can sync.
+    /// `claim`: the one the owner's personal build carries (OwnerClaim).
+    static func deviceAccount(claim: String? = nil) async throws -> Session {
+        try await session(at: "/auth/device", body: claim.map { ["claim": $0] } ?? [:])
+    }
+
+    /// Joins the account a code from another device belongs to.
+    static func pair(code: String) async throws -> Session {
+        try await session(at: "/auth/pair", body: ["code": code])
+    }
+
+    /// A one-time code, shown on this device, for another device to join with.
+    static func pairingCode(token: String) async throws -> (code: String, expiresIn: Int) {
+        struct Reply: Decodable { var code: String; var expiresIn: Int }
+        let data = try await send("/pair/start", body: [String: String](), token: token)
+        guard let reply = try? JSONDecoder().decode(Reply.self, from: data) else {
+            throw Failure.server("The server sent something unexpected.")
+        }
+        return (reply.code, reply.expiresIn)
     }
 
     static func refresh(_ refreshToken: String) async throws -> Session {
@@ -130,12 +154,31 @@ enum AuthAPI {
         switch http.statusCode {
         case 200...299: return data
         case 401, 403: throw Failure.signedOut
-        case 404: throw Failure.notConfigured
+        case 404: throw notFound(data)
         case 429: throw Failure.tooManyTries
+        case 402:
+            let problem = try? JSONDecoder().decode(Problem.self, from: data)
+            throw Failure.needsPro(problem?.message ?? "That is part of Pro.")
         default:
             let problem = try? JSONDecoder().decode(Problem.self, from: data)
             throw Failure.server(problem?.message ?? problem?.error
                                  ?? "Something went wrong talking to the server.")
         }
+    }
+
+    /// The worker's answer for a route it does not have.
+    static let noSuchEndpoint = "No such endpoint."
+
+    /// What a 404 means. The server says: "That code is wrong or has
+    /// expired." for a mistyped pairing code, and telling that student
+    /// sign-in "isn't set up in this build" sends them away from a code they
+    /// only need to retype. Only a 404 with nothing to say - or the worker's
+    /// own "no such endpoint", a server without this route - is a build where
+    /// sign-in is not set up.
+    static func notFound(_ data: Data) -> Failure {
+        let problem = try? JSONDecoder().decode(Problem.self, from: data)
+        let said: String = (problem?.message ?? problem?.error ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !said.isEmpty, said != noSuchEndpoint else { return .notConfigured }
+        return .server(said)
     }
 }

@@ -9,6 +9,9 @@
 #   AI_API_KEY             Hugging Face token (CramDown Cloud's upstream)
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect in-app purchase key
 #   GOOGLE_CLIENT_SECRET   for Google sign-in
+#   NOVITA_API_KEY         Novita (novita.ai): Baichuan-M2-32B for CramDown Cloud
+#   FIREBASE_API_KEY, FIREBASE_PROJECT_ID   Gemini, for Narrate and CramDown Cloud
+#   APPCHECK_DEBUG_TOKEN, FIREBASE_APP_ID   App Check for those Gemini calls (a registered debug token)
 # SESSION_SECRET is generated on the first deploy and never changed after.
 name: Deploy the worker
 on:
@@ -37,7 +40,7 @@ jobs:
           node-version: '22'
       - name: Tests first
         working-directory: .
-        run: node server/tests/sync.test.mjs && node server/tests/ai.test.mjs
+        run: for t in server/tests/*.test.mjs; do node "$t" || exit 1; done
       - name: Check the secrets are there
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
@@ -59,6 +62,12 @@ jobs:
           # slide pictures stay on the device that has them.
           if $W r2 bucket create redpen-blobs > r2.log 2>&1 || grep -qi "already exists\|already own" r2.log; then
             echo "Picture storage: on"
+            # read-aloud lines (tts/) are a cache: gone after 60 days, so it
+            # cannot grow into a storage bill. Adding the rule again fails
+            # harmlessly once it exists.
+            $W r2 bucket lifecycle add redpen-blobs --name tts-expiry --prefix tts/ --expire-days 60 --force > lifecycle.log 2>&1 \
+              && echo "Read-aloud cache: expires after 60 days" \
+              || { grep -qi "already exists\|conflict\|duplicate" lifecycle.log && echo "Read-aloud cache expiry: already set" || { cat lifecycle.log; echo "::warning::Could not set the read-aloud cache expiry (R2 lifecycle)."; }; }
           else
             cat r2.log
             echo "::warning::No R2 picture storage (add a card in Cloudflare to turn it on). Deploying without picture sync."
@@ -67,9 +76,15 @@ jobs:
           # the schema is all CREATE ... IF NOT EXISTS; the columns added since
           # are ALTERs that fail harmlessly once they exist
           $W d1 execute redpen-auth --remote --file=schema.sql
-          for col in "original_transaction_id TEXT" "verified_until INTEGER NOT NULL DEFAULT 0" "checked_at INTEGER NOT NULL DEFAULT 0" "signed_out_before INTEGER NOT NULL DEFAULT 0"; do
+          for col in "original_transaction_id TEXT" "verified_until INTEGER NOT NULL DEFAULT 0" "checked_at INTEGER NOT NULL DEFAULT 0" "signed_out_before INTEGER NOT NULL DEFAULT 0" "apple_env TEXT" "owner INTEGER NOT NULL DEFAULT 0"; do
             $W d1 execute redpen-auth --remote --command "ALTER TABLE accounts ADD COLUMN $col" || true
           done
+          # one subscription, one account; an old duplicate must not stop a deploy
+          $W d1 execute redpen-auth --remote --command "CREATE UNIQUE INDEX IF NOT EXISTS accounts_original_transaction ON accounts (original_transaction_id) WHERE original_transaction_id IS NOT NULL" || echo "::warning::Could not add the one-subscription-one-account index (duplicates?)"
+          # the owner's claim remembers the account it made (worker.js deviceAccount)
+          $W d1 execute redpen-auth --remote --command "ALTER TABLE owner_claims ADD COLUMN claimed_by TEXT" || true
+          # Pro's budget counts live production subscribers (ai.js budget) without reading every account
+          $W d1 execute redpen-auth --remote --command "CREATE INDEX IF NOT EXISTS accounts_by_verified ON accounts (verified_until, apple_env)" || true
       - name: Owner accounts
         if: inputs.owner_account_ids != ''
         env:
@@ -89,6 +104,11 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          NOVITA_API_KEY: ${{ secrets.NOVITA_API_KEY }}
+          APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -96,7 +116,31 @@ jobs:
           if ! echo "$HAVE" | grep -q '"SESSION_SECRET"'; then
             openssl rand -hex 48 | $W secret put SESSION_SECRET
           fi
-          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET; do
+          # the owner key: the personal build works out the same value from the
+          # same secret, so the two match without either being stored anywhere
+          if [ -n "${AI_API_KEY:-}" ]; then
+            printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64 | tr -d '\n' | $W secret put OWNER_KEY
+          fi
+          # Doctor-R1 and MedVAL hosts (spaces-deploy.yml), when they exist:
+          # found from the Hugging Face account the AI_API_KEY belongs to
+          if [ -n "${AI_API_KEY:-}" ]; then
+            HFUSER=$(curl -sf -H "Authorization: Bearer $AI_API_KEY" https://huggingface.co/api/whoami-v2 | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).name||"")}catch{}})' || true)
+            SPACE_KEY=$(printf 'cramdown-space:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+            for m in doctor medval; do
+              if [ -n "$HFUSER" ] && curl -sf "https://huggingface.co/api/spaces/$HFUSER/cramdown-$m" >/dev/null; then
+                LOWER=$(echo "$HFUSER" | tr '[:upper:]' '[:lower:]')
+                UP=$(echo "$m" | tr '[:lower:]' '[:upper:]')
+                printf '%s' "https://$LOWER-cramdown-$m.hf.space/v1" | $W secret put "AI_${UP}_URL"
+                printf '%s' "$SPACE_KEY" | $W secret put "AI_${UP}_KEY"
+                echo "cramdown-$m -> https://$LOWER-cramdown-$m.hf.space/v1"
+              else
+                echo "(no cramdown-$m Space yet - skipped)"
+              fi
+            done
+          fi
+          # Novita's key is the writer's key (Baichuan-M2-32B)
+          if [ -n "${NOVITA_API_KEY:-}" ]; then printf '%s' "$NOVITA_API_KEY" | $W secret put AI_WRITER_KEY; else echo "(NOVITA_API_KEY not set - CramDown Cloud starts at Gemini)"; fi
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
           done

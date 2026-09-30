@@ -12,6 +12,17 @@
 // explained there.
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
+import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
+import { jobsRoute } from './jobs.js';
+import { checkBatch, report as reportError, modelWeights, setWeights, listReports } from './accuracy.js';
+import { speech } from './tts.js';
+import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
+import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
+import { examsRoute } from './exams.js';
+import { supportMessage, listSupportMessages, forgetSupport } from './support.js';
+
+// the Durable Object that runs generation jobs (see jobs.js)
+export { GenerationJobs } from './jobs.js';
 
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
@@ -30,12 +41,45 @@ const now = () => Math.floor(Date.now() / 1000);
 const text = (value, max) =>
   typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 
+/// A request's body as text, read no further than `max` bytes.
+///
+/// The declared size is checked before this, but a body sent without one
+/// (chunked) would otherwise be read into memory whole, however large. Past
+/// the limit the read stops and the body counts as unreadable.
+export async function boundedText(request, max) {
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => {});
+      throw new Error('body too large');
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
+
 /// What one account may keep in pictures.
 ///
 /// Not a business rule so much as a floor under the bill: without it, a single
 /// signed-in account can upload twelve megabytes at a time for as long as it
 /// likes, and nothing in the design would notice.
 const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
+
+/// Old builds asked here for the Firebase key and sent audio to Google
+/// themselves. The key now stays on the server (see transcribeChunk), so this
+/// only says so: an old build falls back to transcribing on the phone.
+export async function transcribeConfig() {
+  return fail(410, 'Cloud transcription now goes through Vignette; update the app.');
+}
 
 export default {
   async fetch(request, env) {
@@ -47,26 +91,117 @@ export default {
       if (path.startsWith('/blobs/') && path !== '/blobs/missing') {
         const id = await holder(request, env);
         if (!id) return fail(401, 'Please sign in again.');
+        const refused = await proGate(env, id, fetch, SYNC_IS_PRO);
+        if (refused) return refused;
+        // deployed without picture storage (no R2): documents still sync
+        if (!env.BLOBS) return fail(503, 'Picture sync is not set up on this server.');
         const name = path.slice('/blobs/'.length);
         if (request.method === 'PUT') return await putBlob(env, id, name, request, BLOB_BUDGET);
         if (request.method === 'GET') return await getBlob(env, id, name);
         return fail(405, 'PUT or GET.');
       }
 
+      // Generation jobs: GET and DELETE as well as POST, and a job carries
+      // its lecture, so it is sized here like a sync batch
+      if (path === '/jobs' || path.startsWith('/jobs/')) {
+        const declared = request.headers.get('content-length');
+        if (Number(declared) > 24 * 1024 * 1024) return fail(413, 'That request is too large.');
+        // a job is read whole into memory: one with no declared size is refused
+        // rather than read blind (the app always says how large it is)
+        if (request.method === 'POST' && declared === null && request.body) return fail(411, 'Say how large the job is.');
+        if (isOwnerKey(request, env)) return await jobsRoute(request, env, 'owner', { owner: true });
+        return await guarded(request, env, id => jobsRoute(request, env, id));
+      }
+
+      // crash and failure groups, for the owner and the triage workflow
+      // (diagnostics.js): anybody else is told there is no such endpoint
+      if (path === '/diagnostics/summary' && request.method === 'GET') {
+        if (!isOwnerKey(request, env) && !await isOwnerAccount(env, await holder(request, env))) return fail(404, 'No such endpoint.');
+        return await diagnosticsSummary(env, new URL(request.url));
+      }
+
       if (request.method !== 'POST') return fail(405, 'POST only.');
+      // Sized before it is read, since a body is read into memory whole:
+      // a transcription chunk is about 3 MB (never over 9), a sync batch can
+      // be larger, everything else is small.
+      const size = Number(request.headers.get('content-length')) || 0;
+      const allowed = path === '/transcribe/chunk' ? 10 * 1024 * 1024
+        : path === '/sync/push' ? 24 * 1024 * 1024   // a batch of documents
+        : path === '/diagnostics' ? DIAGNOSTICS_MAX  // crash and failure reports
+        : 2 * 1024 * 1024;
+      if (size > allowed) return fail(413, 'That request is too large.');
+      // a big body with no declared size is refused rather than read blind
+      if (!size && path === '/transcribe/chunk') return fail(411, 'Say how large the audio is.');
       let body = {};
-      try { body = await request.json(); } catch { body = {}; }
+      try { body = JSON.parse(await boundedText(request, allowed)); } catch { body = {}; }
 
       switch (path) {
         case '/auth/apple': return await withApple(body, env);
         case '/auth/google': return await withGoogle(body, env);
         case '/auth/refresh': return await refresh(body, env);
+        // a second device, by a code shown on the first (pair.js)
+        case '/auth/device': return await deviceAccount(request, body, env);
+        case '/auth/pair': return await pairDevice(request, body, env);
+        case '/pair/start': return await synced(request, env, async id => json(await startPairing(env, id)));
         case '/account/delete': return await deleteAccount(request, env);
         case '/account/signout': return await signOutEverywhere(request, env);
-        case '/account/subscription': return await setSubscription(request, body, env);
-        case '/sync/changes': return await guarded(request, env, id => changes(env, id, body));
-        case '/sync/push': return await guarded(request, env, id => push(env, id, body));
-        case '/blobs/missing': return await guarded(request, env, id => missingBlobs(env, id, body));
+        case '/account/subscription': return await setSubscription(request, body, env, clientIP(request));
+        // crash and failure reports from the app (diagnostics.js)
+        case '/diagnostics': return await guarded(request, env, id => diagnosticsRoute(env, id, body));
+        case '/sync/changes': return await synced(request, env, id => changes(env, id, body));
+        case '/sync/push': return await synced(request, env, id => push(env, id, body));
+        // Without picture storage nothing is asked for, so a device never
+        // tries to upload and the documents' own sync carries on regardless.
+        case '/blobs/missing': return await synced(request, env, id =>
+          env.BLOBS ? missingBlobs(env, id, body) : json({ missing: [] }));
+        // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
+        // special case - the session token is the key
+        case '/v1/chat/completions':
+          // the owner's benchmarks say so (x-bench), and count apart from the owner's app
+          if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true, bench: request.headers.get('x-bench') === '1' });
+          return await guarded(request, env, id => chat(env, id, body));
+        // Narrate's cloud transcription, for Pro: the audio comes here in
+        // ten-minute chunks and the server asks Gemini, so the Google key
+        // never reaches a phone
+        // for the owner: what Pro brings in and what the paid services cost
+        // this month
+        case '/costs':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return json(await budget(env, { fresh: true })); // forUse is null until the price is set (capped: false)
+        // a line read aloud in a natural voice, for Pro (tts.js): MP3 back
+        case '/tts':
+          if (isOwnerKey(request, env)) return await speech(env, 'owner', body, fetch, { owner: true });
+          return await guarded(request, env, id => speech(env, id, body));
+        // the accuracy engine (accuracy.js): a batch of items checked by
+        // voting free models against their lecture and the literature
+        case '/accuracy/check':
+          if (isOwnerKey(request, env)) return await checkBatch(env, 'owner', body, fetch, { owner: true, bench: request.headers.get('x-bench') === '1' });
+          return await guarded(request, env, id => checkBatch(env, id, body));
+        case '/accuracy/report':
+          if (isOwnerKey(request, env)) return await reportError(env, 'owner', body);
+          return await guarded(request, env, id => reportError(env, id, body));
+        // the weights are not a secret: the app fetches them signed in or not
+        case '/accuracy/model': return await modelWeights(env);
+        // "Contact us" (support.js)
+        case '/support/message': return await guarded(request, env, id => supportMessage(env, id, body));
+        case '/support/messages':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await listSupportMessages(env, body);
+        case '/accuracy/model/set':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await setWeights(env, body);
+        case '/accuracy/reports':
+          if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
+          return await listReports(env, body);
+        // the exam catalogue's format rules and the exam-style exemplars
+        // (exams.js): public, like the accuracy weights - nothing in them is
+        // anyone's own, and every exemplar is openly licensed
+        case '/exams/catalogue':
+        case '/exams/exemplars': return examsRoute(path, body);
+        case '/transcribe/config': return await transcribeConfig();
+        case '/transcribe/chunk':
+          if (isOwnerKey(request, env)) return await transcribeChunk(env, 'owner', body, fetch, { owner: true });
+          return await guarded(request, env, id => transcribeChunk(env, id, body));
         default: return fail(404, 'No such endpoint.');
       }
     } catch (error) {
@@ -74,6 +209,13 @@ export default {
       console.error(path, error);
       return fail(500, 'Something went wrong. Please try again.');
     }
+  },
+
+  // Once a night (wrangler.toml [triggers]): what deleted accounts left behind.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sweepDeleted(env).catch(error => console.error('sweep', error)));
+    // crash and failure reports past their time (diagnostics.js)
+    ctx.waitUntil(pruneDiagnostics(env).catch(error => console.error('diagnostics', error)));
   },
 };
 
@@ -163,6 +305,64 @@ async function withGoogle(body, env) {
   return await session(env, account);
 }
 
+// MARK: a device of its own, and a second one
+
+const clientIP = request => request.headers.get('cf-connecting-ip') || 'unknown';
+
+/// An account for a device that started "on this device only", so it can
+/// sync: no name, no email, just a random id.
+async function deviceAccount(request, body, env) {
+  if (!await allowed(env, clientIP(request), 'device', DEVICES_PER_HOUR)) {
+    return fail(429, 'Too many new accounts from this network. Try again in an hour.');
+  }
+  // The owner's personal build carries a claim that makes its account the
+  // owner's. It is tied to the account it made: presented again - the answer
+  // to the first request was lost, or the owner signed out and started again -
+  // it opens that same account, rather than making an ordinary one and
+  // leaving the owner without Pro for good. (So the claim is a lasting
+  // credential for the owner's account, which is why it lives only inside the
+  // owner's own build.)
+  if (typeof body.claim === 'string' && body.claim.length >= 32 && body.claim.length <= 128) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body.claim));
+    const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+    const claim = await env.DB.prepare('SELECT used, claimed_by FROM owner_claims WHERE hash = ?').bind(hash).first();
+    if (claim) {
+      let mine = claim.claimed_by;
+      // redeemed before the account was recorded: the owner account is the one
+      // account marked as the owner's, if there is exactly one
+      if (claim.used && !mine) {
+        const owners = (await env.DB.prepare('SELECT id FROM accounts WHERE owner = 1 LIMIT 2').all()).results || [];
+        if (owners.length === 1) {
+          mine = owners[0].id;
+          await env.DB.prepare('UPDATE owner_claims SET claimed_by = ? WHERE hash = ? AND claimed_by IS NULL').bind(mine, hash).run();
+        }
+      }
+      const existing = mine ? await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(mine).first() : null;
+      if (existing) return await session(env, existing);
+      // never used, or its account has since been deleted: a new one, made
+      // the owner's - by whichever request gets there first
+      const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
+      const taken = await env.DB.prepare(
+        'UPDATE owner_claims SET used = 1, claimed_by = ? WHERE hash = ? AND (claimed_by IS ? OR (used = 0 AND claimed_by IS NULL))')
+        .bind(account.id, hash, mine ?? null).run();
+      if (taken.meta.changes === 1) {
+        await env.DB.prepare('UPDATE accounts SET owner = 1 WHERE id = ?').bind(account.id).run();
+      }
+      return await session(env, account);
+    }
+  }
+  const account = await upsert(env, { provider: 'device', subject: crypto.randomUUID() });
+  return await session(env, account);
+}
+
+async function pairDevice(request, body, env) {
+  const result = await finishPairing(env, clientIP(request), body.code);
+  if (result.error) return fail(result.status, result.error);
+  const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(result.accountId).first();
+  if (!account) return fail(404, 'That code is wrong or has expired.');
+  return await session(env, account);
+}
+
 // MARK: staying and leaving
 
 async function refresh(body, env) {
@@ -184,6 +384,19 @@ async function guarded(request, env, work) {
   const id = await holder(request, env);
   if (!id) return fail(401, 'Please sign in again.');
   return await work(id);
+}
+
+/// Sync is part of Pro: the library following a student between devices is
+/// what the subscription pays for, alongside the cloud models. Nothing is
+/// deleted when Pro ends - the library stays on each device and on the
+/// server, and syncs again when Pro comes back.
+const SYNC_IS_PRO = 'Syncing between devices is part of Pro.';
+
+async function synced(request, env, work) {
+  return await guarded(request, env, async id => {
+    const refused = await proGate(env, id, fetch, SYNC_IS_PRO);
+    return refused || await work(id);
+  });
 }
 
 async function holder(request, env) {
@@ -222,6 +435,8 @@ async function signOutEverywhere(request, env) {
   // the one that authorised this call - is on the wrong side of the line.
   await env.DB.prepare('UPDATE accounts SET signed_out_before = ? WHERE id = ?')
     .bind(now() + 1, id).run();
+  // and a pairing code still on some screen can no longer bring a device in
+  await env.DB.prepare('DELETE FROM pair_codes WHERE account_id = ?').bind(id).run();
   return json({ ok: true });
 }
 
@@ -231,17 +446,88 @@ async function deleteAccount(request, env) {
   // Actually deleted, not flagged, and the library goes with it. The App Store
   // requires the account to be removable from inside the app, and an account
   // whose data outlives it has not been deleted.
-  await wipe(env, id);
+  //
+  // The account goes FIRST. From that moment every token for it is refused
+  // (stillValid), so the student's other devices - an iPad syncing on its own
+  // timer - cannot write anything new while the library is being removed.
+  // Something a device had already started writing can still land, which is
+  // what the note below is for: the nightly pass removes everything under this
+  // id again (sweepDeleted), and finishes the job if this request cannot.
+  const account = await env.DB.prepare('SELECT provider, subject FROM accounts WHERE id = ?').bind(id).first();
+  await env.DB.prepare('INSERT OR REPLACE INTO deleted_accounts (id, deleted_at, passes) VALUES (?, ?, 0)').bind(id, now()).run();
+  // What the App Store put on this account's purchases, released to the same
+  // Apple or Google sign-in: signing in again makes a new account, and its
+  // subscription must still be theirs (ai.js mayUse). No name, no email.
+  if (account && account.provider !== 'device') {
+    await env.DB.prepare('INSERT OR REPLACE INTO released_tokens (token, provider, subject, released_at) VALUES (?, ?, ?, ?)')
+      .bind(await accountToken(id), account.provider, account.subject, now()).run();
+  }
+  // The month's AI spend and today's allowance stay: they hold no personal
+  // data, and deleting them would let a new account on the same subscription
+  // start the month over.
+  await env.DB.prepare('DELETE FROM pair_codes WHERE account_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(id).run();
+  try {
+    await forgetEverything(env, id);
+  } catch (error) {
+    // the account is gone and cannot come back; the nightly pass will finish
+    console.error('delete', error);
+  }
   return json({ ok: true });
 }
 
-async function setSubscription(request, body, env) {
+/// Everything an account left: its library and pictures (sync.js wipe), and
+/// its background jobs and their outputs (jobs.js), which live in a Durable
+/// Object of their own that nothing else would ever reach again.
+async function forgetEverything(env, id) {
+  await wipe(env, id);
+  // the errors this account reported, with the items it sent
+  try { await env.DB.prepare('DELETE FROM accuracy_reports WHERE account_id = ?').bind(id).run(); } catch { /* no table yet */ }
+  // the crash and failure reports it sent
+  try { await forgetDiagnostics(env, id); } catch { /* no table yet */ }
+  // the messages it sent us
+  try { await forgetSupport(env, id); } catch { /* no table yet */ }
+  if (env.JOBS) {
+    const stub = env.JOBS.get(env.JOBS.idFromName(id));
+    await stub.fetch(new Request('https://jobs/wipe', { method: 'POST' }));
+  }
+}
+
+/// The nightly pass over deleted accounts: everything under each id removed
+/// again - a push or an upload that was already under way when the account
+/// went lands after the first removal - and the note of it dropped once it
+/// has been removed twice, a day apart.
+export async function sweepDeleted(env, clock = now) {
+  const rows = (await env.DB.prepare(
+    'SELECT id, passes FROM deleted_accounts WHERE deleted_at < ? ORDER BY deleted_at LIMIT 25')
+    .bind(clock() - 600).all()).results || [];
+  for (const row of rows) {
+    await forgetEverything(env, row.id);
+    if (row.passes >= 1) await env.DB.prepare('DELETE FROM deleted_accounts WHERE id = ?').bind(row.id).run();
+    else await env.DB.prepare('UPDATE deleted_accounts SET passes = passes + 1 WHERE id = ?').bind(row.id).run();
+  }
+  return rows.length;
+}
+
+/// How often one account, and one network, may ask Apple about a
+/// subscription: every ask is a call to the App Store Server API, whose limit
+/// is shared by every subscriber. The app reports its plan a few times a day.
+const LINKS_PER_DAY = 30;
+const LINKS_PER_HOUR_PER_ADDRESS = 60;
+
+async function setSubscription(request, body, env, ip = 'unknown') {
   const id = await holder(request, env);
   if (!id) return fail(401, 'Please sign in again.');
+  if (body.originalTransactionId && (!await spend(env, `link:${id}`, LINKS_PER_DAY)
+      || !await allowed(env, ip, 'link', LINKS_PER_HOUR_PER_ADDRESS))) {
+    return fail(429, 'Too many subscription checks. Try again later.');
+  }
   const expires = Math.floor(new Date(body.expiresAt || 0).getTime() / 1000) || null;
   await env.DB.prepare('UPDATE accounts SET plan = ?, expires_at = ? WHERE id = ?')
     .bind(text(body.plan, 40), expires, id).run();
+  // The one part Apple is asked about: which subscription this is, for the
+  // cloud models. The plan above stays a convenience.
+  if (body.originalTransactionId) return await linkSubscription(env, id, body);
   // Recorded as a convenience so a second phone knows what to expect. The App
   // Store remains the authority - this row is never what unlocks the app.
   return json({ ok: true });

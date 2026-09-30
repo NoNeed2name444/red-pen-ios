@@ -37,6 +37,47 @@ struct SyncState: Codable, Equatable {
     var deviceName: String = ""
     var lastSyncedAt: Date?
 
+    /// The account these bookmarks describe. They are about that account's
+    /// copy on the server and nothing else: another account starts from
+    /// nothing, however it came to be signed in. Nil when nothing has synced
+    /// since this was first recorded.
+    var accountId: String?
+    /// The account this device's library has been sent up to. Somebody else
+    /// signing in on the same phone is asked before any of it goes into their
+    /// account (SyncEngine.chooseLibrary). Survives a reset: it is about the
+    /// library on this device, not about any account's bookmarks.
+    var libraryOwner: String?
+    /// Sets and folders kept on this device only - a library that was here
+    /// before a different account signed in, when the student chose not to
+    /// add it. Never pushed. Survives a reset, like `libraryOwner`.
+    var heldBack: Set<String> = []
+    /// Documents the server would not keep, so they are not sent again every
+    /// minute to be refused again (SyncRules.stillRefused).
+    var refused: [String: RefusedDoc] = [:]
+    /// Documents from another device this version could not read, and their
+    /// revision. The cursor has moved past them, so after an update they are
+    /// fetched again rather than missed for good.
+    var unreadable: [String: Int] = [:]
+    /// Documents from another device carrying fields this version would drop
+    /// on its next save (SyncRules.dropsFields), and their revision. Edits to
+    /// them wait here until the app is updated; after that they are fetched
+    /// again whole.
+    var newer: [String: Int] = [:]
+    /// What `newer` held under the build before this one, while those
+    /// documents are read again after an update.
+    var newerBefore: [String: Int] = [:]
+    /// When each document in `newer` was first held at that revision. One
+    /// still held a month on, unchanged, is let go (SyncRules.holdsForNewer):
+    /// no update is coming that keeps its fields.
+    var newerSince: [String: Date] = [:]
+    /// The build that last synced: a different one reads `unreadable` and
+    /// `newer` again.
+    var build: String?
+    /// Pictures the server said it does not have (or would not look up), and
+    /// when. Asked for again only after a while, or when a set naming them
+    /// arrives again (SyncRules.asksForPicture) - not on every run for ever.
+    var missingPictures: [String: Date] = [:]
+
     func mark(_ id: String) -> SyncMark? { marks[id] }
 
     /// Records agreement about ONE document. Deliberately does not touch the
@@ -58,11 +99,58 @@ struct SyncState: Codable, Equatable {
     }
 }
 
+/// Read field by field, each with its default when absent: a bookmark file
+/// that failed to read would be thrown away, and a device with no bookmarks
+/// treats every document it has as a conflict. Files written before a field
+/// existed are the usual case, not the exception.
+extension SyncState {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func read<T: Decodable>(_ key: CodingKeys, _ type: T.Type) -> T? {
+            let found: T?? = try? c.decodeIfPresent(type, forKey: key)
+            return found ?? nil
+        }
+        cursor = read(.cursor, Int.self) ?? 0
+        marks = read(.marks, [String: SyncMark].self) ?? [:]
+        stamps = read(.stamps, [String: Date].self) ?? [:]
+        deviceName = read(.deviceName, String.self) ?? ""
+        lastSyncedAt = read(.lastSyncedAt, Date.self)
+        accountId = read(.accountId, String.self)
+        libraryOwner = read(.libraryOwner, String.self)
+        heldBack = read(.heldBack, Set<String>.self) ?? []
+        refused = read(.refused, [String: RefusedDoc].self) ?? [:]
+        unreadable = read(.unreadable, [String: Int].self) ?? [:]
+        newer = read(.newer, [String: Int].self) ?? [:]
+        newerBefore = read(.newerBefore, [String: Int].self) ?? [:]
+        newerSince = read(.newerSince, [String: Date].self) ?? [:]
+        build = read(.build, String.self)
+        missingPictures = read(.missingPictures, [String: Date].self) ?? [:]
+    }
+}
+
 /// Where that bookmark lives between launches.
+///
+/// Changed in memory and written when asked (`commit`), off the main thread.
+/// A sync changes a bookmark per document, and writing the whole file for each
+/// one made a first sync of a big library freeze the screen. Writing later is
+/// also what lets the order be right: a bookmark may only reach the disk after
+/// the library it describes (SyncEngine commits after `Store.flushed`). A
+/// bookmark lost to the app being killed costs a document fetched twice; one
+/// written before its document would be a document missed for good.
 @MainActor
 final class SyncStateStore {
     private let fileURL: URL
     private(set) var state = SyncState()
+    /// Moves on every reset. A sync run notes it when it starts and stops as
+    /// soon as it has moved, so a run that began for one account can never
+    /// write that account's bookmarks back over another's.
+    private(set) var generation = 0
+    private var dirty = false
+
+    /// One write at a time, in order: a later bookmark never lands before an
+    /// earlier one.
+    private static let writeQueue = DispatchQueue(label: "redpen.sync-state.write", qos: .utility)
 
     init(fileURL: URL? = nil) {
         if let fileURL {
@@ -81,26 +169,50 @@ final class SyncStateStore {
         if state.deviceName.isEmpty { state.deviceName = Self.thisDevice() }
     }
 
+    /// Changes the bookmarks in memory; `commit` writes them.
     func update(_ change: (inout SyncState) -> Void) {
         change(&state)
-        save()
+        dirty = true
     }
 
-    /// Everything this device thought it knew, thrown away.
+    /// Writes whatever changed, and returns once it is on disk. The main
+    /// thread is not held while it is written.
+    func commit() async {
+        guard dirty else { return }
+        dirty = false
+        let snapshot = state
+        let url = fileURL
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            Self.writeQueue.async {
+                Self.write(snapshot, to: url)
+                done.resume()
+            }
+        }
+    }
+
+    /// Everything this device thought it knew about an account, thrown away.
     ///
     /// Used when somebody signs in as a different person: keeping the old
     /// bookmarks would have the new account's first sync assume it had already
-    /// seen documents it has never met.
+    /// seen documents it has never met. What is about the library on this
+    /// device rather than an account - its name, whose library it is, what
+    /// stays on it - is kept.
     func reset() {
-        let name = state.deviceName
+        let kept = state
         state = SyncState()
-        state.deviceName = name
-        save()
+        state.deviceName = kept.deviceName
+        state.libraryOwner = kept.libraryOwner
+        state.heldBack = kept.heldBack
+        generation &+= 1
+        dirty = true
+        Task { await self.commit() }
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder.redPen.encode(state) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+    private nonisolated static func write(_ state: SyncState, to url: URL) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(state) else { return }
+        try? data.write(to: url, options: .atomic)
     }
 
     /// A name a person would recognise on a conflict copy - "Ahmed's iPhone"

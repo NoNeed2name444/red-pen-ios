@@ -44,9 +44,17 @@ enum OsceStations {
     }
 
     /// Removes "1.", "1)", "-", "•", "Step 2:" and the like from the front.
+    ///
+    /// A number is list numbering only when its "." or ")" is followed by a
+    /// space or straight by a letter ("1. Wash", "2)Consent"), or its ":" by a
+    /// space. Never a number joined to more of itself: "12-lead ECG", "0.9%
+    /// saline", "5-10 mL lidocaine" and "3.5 mmol/L" are clinical facts, and
+    /// stripping their first number changed what the station says.
     static func stripLeadingMarker(_ step: String) -> String {
         var text = step
-        let patterns = [#"^\s*step\s*\d+\s*[:.)-]\s*"#, #"^\s*\d+\s*[:.)-]\s*"#, #"^\s*[-–—•*]\s*"#]
+        let patterns = [#"^\s*step\s*\d+\s*[:.)-]\s*"#,
+                        #"^\s*\d{1,3}\s*(?:[.)]\s+|[.)](?=[^\W\d_])|:\s+)"#,
+                        #"^\s*[-–—•*]\s*"#]
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
             else { continue }
@@ -94,7 +102,7 @@ enum OsceStations {
     /// "already written" list makes every call return the same station - and
     /// checking it needs no model, only the text.
     static func prompt(sourceText: String, count: Int, subject: String,
-                       alreadyWritten: [String]) -> String {
+                       alreadyWritten: [String], exam: ExamTrack = .current) -> String {
         var lines = [
             "You write OSCE station checklists for a medical student revising \(subject.isEmpty ? "clinically" : subject).",
             "",
@@ -107,6 +115,7 @@ enum OsceStations {
             "Use only what the source supports. Do not invent a procedure the source never mentions.",
             "Do not number the steps; the order is the number.",
         ]
+        if let style = exam.osceStyle { lines.append(style) }
         if !alreadyWritten.isEmpty {
             lines.append("")
             lines.append("You have already written these stations - write different ones:")

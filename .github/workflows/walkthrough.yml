@@ -35,6 +35,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        # no token left in .git/config for the build: the packages it
+        # compiles (and their macros and plugins) run in later steps
+        with:
+          persist-credentials: false
 
       - name: Tools
         run: |

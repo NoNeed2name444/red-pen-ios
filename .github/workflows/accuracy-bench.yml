@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       n:
-        description: Questions (150 takes ~30 min; 1000 are needed to prove 98%)
+        description: Questions (150 takes ~30 min; at most 500 a day - 5 calls each on the benchmarks' own 2,500-call allowance; 1000 to prove 98% means two days, two seeds)
         required: false
         default: '150'
       seed:

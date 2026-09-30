@@ -35,6 +35,7 @@ Two things this gets wrong if written naively, both caught by its own tests:
     complete flattering one.
 """
 import random
+import re
 from difflib import SequenceMatcher
 
 from card_quality import CLOZE, check_mcq, terms
@@ -72,8 +73,11 @@ def stem_of(card):
         first = CLOZE.search(text)
         if not first:
             return ""
-        # the sentence with the answer blanked, which reads as a question
-        blanked = text[:first.start()] + "______" + text[first.end():]
+        # the sentence with the answer blanked, which reads as a question -
+        # every hole with the first one's number, as Anki hides a repeated c1
+        # together; otherwise the second one shows the answer
+        number = first.group(1)
+        blanked = CLOZE.sub(lambda m: "______" if m.group(1) == number else m.group(0), text)
         return CLOZE.sub(lambda m: m.group(2), blanked).strip()
     return (card.get("front") or "").strip()
 
@@ -89,7 +93,30 @@ def explain(answer, why):
         return answer
     if terms(answer) & terms(why):
         return why                      # it already names the answer
-    return "%s — %s" % (answer, why[0].lower() + why[1:] if why[0].isupper() else why)
+    return "%s — %s" % (answer, lower_first_word(why))
+
+
+NAMED = {"disease", "syndrome", "sign", "triad", "test", "reflex", "phenomenon",
+         "criteria", "score", "classification", "law", "node", "palsy", "ulcer",
+         "fracture", "tumour", "tumor", "manoeuvre", "maneuver", "lesion"}
+
+
+def lower_first_word(text):
+    """"Lowers flares" -> "lowers flares"; "ACE", "CT" and "Addison disease" keep their capitals."""
+    word = re.match(r"[^\W\d_]*", text).group(0)
+    if not word or not word[0].isupper():
+        return text
+    if word == "A":
+        return "a" + text[1:]
+    if len(word) < 2 or not word[1].islower():
+        return text                     # an acronym, or "I"
+    rest = text[len(word):]
+    if rest.startswith("'s") or rest.startswith("\u2019s"):
+        return text                     # an eponym
+    following = re.match(r"[ -]*([^\W\d_]*)", rest).group(1).lower()
+    if following in NAMED:
+        return text
+    return text[0].lower() + text[1:]
 
 
 def alike(a, b):

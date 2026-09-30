@@ -41,6 +41,20 @@ extension Store {
     func removeFromSync(_ id: UUID) {
         library.removeAll { $0.id == id }
         folders.removeAll { $0.id == id }
+        // the set's lecture recording goes with it, as when it is deleted
+        // here (Store.deleteSet): it lives outside the library, where nothing
+        // could reach it once the set is gone (a folder's id names no file)
+        LectureAudio.remove(for: id)
+        // A folder deleted on another device: sets filed in it here - moved in
+        // while the two devices disagreed - come out of it, stamped as a change
+        // so the other device hears where they went. Left pointing at a folder
+        // that no longer exists they were shown nowhere, here or there, and
+        // looked deleted.
+        let now = Date()
+        for idx in library.indices where library[idx].folderId == id {
+            library[idx].folderId = nil
+            library[idx].updatedAt = now
+        }
         quizProgress[id] = nil
         osceProgress[id] = nil
         save()
@@ -49,9 +63,15 @@ extension Store {
     /// A conflicting copy kept so that nothing is lost when two devices edited
     /// the same set. It is a NEW set with a new id, which is what makes it
     /// visible in the library rather than silently merged away.
+    ///
+    /// Its cards get ids of their own where they share one with `winner`, the
+    /// version that stays under the original id (every card, when that is not
+    /// known). The schedule is kept by card id: sharing them, the two decks
+    /// shared one schedule - each card twice in the day's queue - and deleting
+    /// the copy forgot the original's schedule with it.
     @discardableResult
-    func keepConflictCopy(of set: StudySet, from device: String) -> StudySet {
-        var copy = set
+    func keepConflictCopy(of set: StudySet, from device: String, beside winner: StudySet? = nil) -> StudySet {
+        var copy = winner.map { set.withNewItemIDs(sharedWith: $0) } ?? set.withNewItemIDs()
         copy.id = UUID()
         copy.name = set.name + " (from " + device + ")"
         copy.updatedAt = Date()

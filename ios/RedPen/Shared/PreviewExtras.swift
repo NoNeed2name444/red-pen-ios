@@ -11,7 +11,7 @@ import SwiftUI
 /// actually prove.
 enum PreviewExtras {
 
-    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing"]
+    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -26,6 +26,9 @@ enum PreviewExtras {
             // a real Egyptian-mix lecture line, with the fix sheet open on the
             // word the recogniser got wrong
             NavigationStack { NarrateReviewView(set: PreviewDecks.lecture, startFixing: 3) }
+        case "occlusion-example":
+            // the heart diagram, read and covered by the real route
+            NavigationStack { OcclusionExampleView() }
         default:
             EmptyView()
         }

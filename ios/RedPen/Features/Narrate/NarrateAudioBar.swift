@@ -6,79 +6,114 @@ import SwiftUI
 /// two are not the same instrument. Reading pace has Play and a speed; a
 /// recording has a position you can scrub to and a length you can see, and
 /// pretending one is the other produces a bar where half the controls lie.
+///
+/// This is the bar's content: the screen hands it to `.studyBar { }`, so the
+/// transcript scrolls under the glass. The arrow keys skip ten seconds either
+/// way; Space plays and pauses.
 struct NarrateAudioBar: View {
     @ObservedObject var player: LecturePlayer
+    /// The position, fifteen times a second. Watched here and only here, so
+    /// the moving slider does not rebuild the transcript above it.
+    @ObservedObject var clock: LectureClock
     @Binding var speed: Double
     /// Scrubbing must not fight the player: while the thumb is held, the slider
     /// shows the held value and the clock is only moved on release.
     @State private var scrubbing = false
     @State private var held: Double = 0
 
-    private var position: Double { scrubbing ? held : player.time }
+    private var position: Double { scrubbing ? held : clock.time }
 
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 8) {
-                Slider(value: Binding(get: { position },
-                                      set: { held = $0 }),
-                       in: 0...max(player.duration, 0.1),
-                       onEditingChanged: { editing in
-                           if editing {
-                               held = player.time
-                               scrubbing = true
-                           } else {
-                               scrubbing = false
-                               player.seek(to: held)
-                           }
-                       })
-                    .tint(StudySetKind.narrate.tint)
+        VStack(spacing: 12) {
+            scrubber
+            transport
+        }
+    }
 
-                HStack {
-                    Text(LectureAudio.clock(position))
-                    Spacer()
-                    Text(LectureAudio.clock(player.duration))
-                }
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+    private var scrubber: some View {
+        let length: Double = max(player.duration, 0.1)
+        return VStack(spacing: 4) {
+            Slider(value: Binding(get: { position },
+                                  set: { held = $0 }),
+                   in: 0...length,
+                   onEditingChanged: { editing in
+                       if editing {
+                           held = clock.time
+                           scrubbing = true
+                       } else {
+                           scrubbing = false
+                           player.seek(to: held)
+                       }
+                   })
+                .tint(StudySetKind.narrate.tint)
+                .accessibilityLabel("Position in the recording")
 
-                HStack(spacing: 10) {
-                    Button {
-                        player.seek(to: player.time - 10)
-                    } label: { Image(systemName: "gobackward.10") }
-                        .buttonStyle(.glass)
+            HStack {
+                Text(LectureAudio.clock(position))
+                Spacer()
+                Text(LectureAudio.clock(player.duration))
+            }
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
+        }
+    }
 
-                    Button {
-                        player.toggle(rate: speed)
-                    } label: {
-                        Image(systemName: player.playing ? "pause.fill" : "play.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 2)
-                    }
-                    .buttonStyle(.glassProminent)
+    /// Back ten, Play, forward ten - the order every player uses - and the
+    /// speed, a compact menu, beside them.
+    private var transport: some View {
+        HStack(spacing: 12) {
+            Button {
+                player.seek(to: clock.time - 10)
+            } label: { Image(systemName: "gobackward.10") }
+                .buttonStyle(.bigCompanion)
+                .keyboardShortcut(.leftArrow, modifiers: [])
+                .accessibilityLabel("Back 10 seconds")
 
-                    Button {
-                        player.seek(to: player.time + 10)
-                    } label: { Image(systemName: "goforward.10") }
-                        .buttonStyle(.glass)
+            Button {
+                player.toggle(rate: speed)
+            } label: {
+                Label(player.playing ? "Pause" : "Play",
+                      systemImage: player.playing ? "pause.fill" : "play.fill")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
 
-                    Menu {
-                        ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
-                            Button(rate == 1 ? "Normal" : "\(rate, specifier: "%g")\u{00d7}") {
-                                speed = rate
-                                player.setRate(rate)
-                            }
-                        }
-                    } label: {
-                        Text(speed == 1 ? "1\u{00d7}" : "\(speed, specifier: "%g")\u{00d7}")
-                            .font(.subheadline.weight(.semibold).monospacedDigit())
-                    }
-                    .buttonStyle(.glass)
+            Button {
+                player.seek(to: clock.time + 10)
+            } label: { Image(systemName: "goforward.10") }
+                .buttonStyle(.bigCompanion)
+                .keyboardShortcut(.rightArrow, modifiers: [])
+                .accessibilityLabel("Forward 10 seconds")
+
+            speedMenu
+        }
+    }
+
+    private var speedMenu: some View {
+        let shown: String = Self.rateLabel(speed)
+        return Menu {
+            ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
+                Button(Self.rateName(rate)) {
+                    speed = rate
+                    player.setRate(rate)
                 }
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+        } label: {
+            Text(shown)
+                .monospacedDigit()
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Playback speed, \(shown)")
+    }
+
+    /// "1.5\u{00d7}" - the speed as the chip shows it.
+    private static func rateLabel(_ rate: Double) -> String {
+        String(format: "%g\u{00d7}", rate)
+    }
+
+    private static func rateName(_ rate: Double) -> String {
+        rate == 1 ? "Normal" : rateLabel(rate)
     }
 }
 
@@ -89,18 +124,26 @@ struct NarrateAudioBar: View {
 /// there is worse than an honest spinner.
 struct TranscribingBanner: View {
     let message: String
+    /// False while Gemini has it, so the line under the message says where
+    /// the recording went rather than promising it stayed on the phone.
+    var onDevice: Bool = true
+
+    private var whereLine: String {
+        if onDevice { return "On this phone. The recording is not uploaded anywhere." }
+        return "Gemini (Pro) is transcribing it: the recording went through \(Brand.name) to Google."
+    }
 
     var body: some View {
         HStack(spacing: 12) {
             ProgressView()
             VStack(alignment: .leading, spacing: 2) {
-                Text(message).font(.subheadline.weight(.medium))
-                Text("On this phone. The recording is not uploaded anywhere.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(message).font(.headline)
+                Text(whereLine)
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
         .contentCard()
-        .padding(.horizontal)
+        .padding(.horizontal, 16)
     }
 }

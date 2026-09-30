@@ -38,22 +38,20 @@ struct StudySetEntity: AppEntity {
 struct StudySetQuery: EntityQuery {
     @MainActor
     func entities(for identifiers: [UUID]) async throws -> [StudySetEntity] {
-        StudySetQuery.all().filter { identifiers.contains($0.id) }
+        await StudySetQuery.all().filter { identifiers.contains($0.id) }
     }
 
     @MainActor
     func suggestedEntities() async throws -> [StudySetEntity] {
-        StudySetQuery.all()
+        await StudySetQuery.all()
     }
 
-    /// The library as the app last saved it.
-    ///
-    /// A Store of its own, read fresh each time: an intent may run while the
-    /// app is not, and it must not show a library from whenever the process
-    /// last happened to be alive.
+    /// The library on screen, or as the app last saved it (IntentLibrary):
+    /// read off the main thread, and never through a second Store, which
+    /// would be a second writer to the library's files.
     @MainActor
-    static func all() -> [StudySetEntity] {
-        Store().library.map {
+    static func all() async -> [StudySetEntity] {
+        await IntentLibrary.sets().map {
             StudySetEntity(id: $0.id, name: $0.name, kind: $0.kind.label, cards: $0.itemCount)
         }
     }
@@ -64,7 +62,7 @@ struct StudySetQuery: EntityQuery {
 struct ExportDeckIntent: AppIntent {
     static var title: LocalizedStringResource = "Export deck"
     static var description = IntentDescription(
-        "Builds a set as a printable flashcard deck - one question to a page, its answer overleaf - and hands back the file. Anki sets come back as .apkg instead, which keeps their schedule and their occlusion masks.")
+        "Builds a set as a printable flashcard deck - one question to a page, its answer overleaf - and hands back the file. Cards sets come back as .apkg instead, which keeps their schedule and their occlusion masks.")
     static var openAppWhenRun = false
 
     @Parameter(title: "Set")
@@ -76,10 +74,11 @@ struct ExportDeckIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
-        guard let studySet = Store().library.first(where: { $0.id == set.id }) else {
+        let library: [StudySet] = await IntentLibrary.sets()
+        guard let studySet = library.first(where: { $0.id == set.id }) else {
             throw DeckExportError.gone(set.name)
         }
-        return .result(value: try DeckExport.file(for: studySet))
+        return .result(value: try await DeckExport.file(for: studySet))
     }
 }
 
@@ -101,7 +100,8 @@ struct ExportEveryDeckIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<[IntentFile]> {
         let wanted = subject.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let sets = Store().library.filter {
+        let library: [StudySet] = await IntentLibrary.sets()
+        let sets = library.filter {
             wanted.isEmpty || $0.subject.lowercased().contains(wanted)
         }
         guard !sets.isEmpty else { throw DeckExportError.nothingToBuild }
@@ -109,7 +109,10 @@ struct ExportEveryDeckIntent: AppIntent {
         // One failure does not lose the rest: a single set that cannot be built
         // - an empty one, say - should not cost a weekly automation every other
         // deck it was asked for.
-        let files = sets.compactMap { try? DeckExport.file(for: $0) }
+        var files: [IntentFile] = []
+        for set in sets {
+            if let file = try? await DeckExport.file(for: set) { files.append(file) }
+        }
         guard !files.isEmpty else { throw DeckExportError.nothingToBuild }
         return .result(value: files)
     }
@@ -119,11 +122,16 @@ struct ExportEveryDeckIntent: AppIntent {
 
 enum DeckExport {
     /// Whichever form keeps the most of the set, as the library screen decides it.
+    ///
+    /// A deck is built off the main thread, with the pictures a sync has
+    /// already fetched filled in. There is nobody to ask about picture cards
+    /// whose pictures are not on this phone, so those are left out, as the
+    /// library's own export does once the student has said so.
     @MainActor
-    static func file(for set: StudySet) throws -> IntentFile {
+    static func file(for set: StudySet) async throws -> IntentFile {
         let url: URL?
         if set.kind == .anki {
-            url = try? ApkgExporter.export(set)
+            url = try? await ApkgExporter.exportInBackground(BlobCache().restore(set))
         } else {
             url = DeckPDF.export(set)
         }
@@ -159,5 +167,23 @@ struct RedPenShortcuts: AppShortcutsProvider {
         AppShortcut(intent: ExportEveryDeckIntent(), phrases: [
             "Export every \(.applicationName) deck",
         ], shortTitle: "Export every deck", systemImageName: "square.stack.3d.up")
+
+        // Siri, the Action button and iOS 26's Spotlight actions (AppIntents.swift)
+        AppShortcut(intent: ReviewDueIntent(), phrases: [
+            "Review my due cards in \(.applicationName)",
+            "Review due cards in \(.applicationName)",
+            "What's due in \(.applicationName)",
+        ], shortTitle: "Review due", systemImageName: "rectangle.stack.badge.play")
+
+        AppShortcut(intent: QuizMeIntent(), phrases: [
+            "Quiz me on \(\.$subject) in \(.applicationName)",
+            "\(.applicationName) quiz on \(\.$subject)",
+            "Quiz me in \(.applicationName)",
+        ], shortTitle: "Quiz me", systemImageName: "questionmark.bubble")
+
+        AppShortcut(intent: OpenSetIntent(), phrases: [
+            "Open \(\.$target) in \(.applicationName)",
+            "Open a set in \(.applicationName)",
+        ], shortTitle: "Open set", systemImageName: "rectangle.stack")
     }
 }

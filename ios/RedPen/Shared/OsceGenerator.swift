@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
 import FoundationModels
 #endif
 
@@ -17,7 +17,7 @@ import FoundationModels
 enum OsceGenerator {
 
     static let maxStationsPerCall = 2
-    static let maxStationsTotal = 20
+    static let maxStationsTotal = 1_000
     static let maxPromptChars = 12_000
 
     /// Whether generating is possible at all, in the words the student needs.
@@ -51,7 +51,7 @@ enum OsceGenerator {
         sourceText: String, count: Int, subject: String,
         onProgress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [OsceChecklist] {
-        #if canImport(FoundationModels)
+        #if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
         guard #available(iOS 26.0, *) else {
             throw Trouble.unavailable("Writing stations needs iOS 26 or later.")
         }
@@ -109,7 +109,7 @@ enum OsceGenerator {
     }
 }
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && !NO_FOUNDATION_MODELS
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedStations {

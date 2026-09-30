@@ -169,8 +169,34 @@ ok(!DeckBuilder.printsAsPDF(.anki), "an Anki set does not print as a PDF")
 ok(StudySetKind.allCases.filter { !DeckBuilder.printsAsPDF($0) } == [.anki],
    "and it is the only mode that does not")
 
-print(failures == 0 ? "\nALL DECK TESTS PASS" : "\n\(failures) FAILED")
-exit(failures == 0 ? 0 : 1)
+// MARK: a second copy of a set gets its own items
+
+// A conflict copy or a re-imported file that kept its cards' ids shared one
+// schedule with the original, since the schedule is kept by card id.
+var original = StudySet(name: "Lupus", kind: .anki)
+original.cards = [AnkiCard(type: .qa, front: "Malar rash spares?", bullets: ["Nasolabial folds"]),
+                  AnkiCard(type: .qa, front: "Entry criterion?", bullets: ["ANA"])]
+original.questions = [MCQQuestion(stem: "Which?", options: ["A", "B"], correctIndex: 1, explanation: "")]
+let copy = original.withNewItemIDs()
+ok(Set(copy.cards.map(\.id)).isDisjoint(with: Set(original.cards.map(\.id))),
+   "a copy's cards have ids of their own, so it has a schedule of its own")
+ok(Set(copy.questions.map(\.id)).isDisjoint(with: Set(original.questions.map(\.id))),
+   "and so do its questions")
+ok(copy.cards.map(\.front) == original.cards.map(\.front) && copy.questions[0].correctIndex == 1,
+   "with everything else as it was")
+
+// A conflict copy beside the version that won: only the cards both hold get
+// new ids. A card added on this device alone keeps its id - and its schedule.
+var losing = original
+losing.cards.append(AnkiCard(type: .qa, front: "Only here?", bullets: ["Yes"]))
+let kept = losing.withNewItemIDs(sharedWith: original)
+ok(Set(kept.cards.prefix(2).map(\.id)).isDisjoint(with: original.itemIDs),
+   "a conflict copy's cards shared with the winner are renewed")
+ok(kept.cards[2].id == losing.cards[2].id,
+   "and a card only the copy has keeps its id, so its schedule stays with it")
+ok(kept.itemIDs.isDisjoint(with: original.itemIDs),
+   "so no card is in both decks, and deleting one never forgets the other's schedule")
+
 
 // MARK: the explanation, arranged
 
@@ -227,3 +253,6 @@ ok(mechanism.traps.count == 1,
    "a sentence is a trap only when it looks more like the distractor than like the answer")
 ok(mechanism.core.contains("delayed pulmonary valve closure"),
    "so the right answer's own mechanism stays in the core")
+
+print(failures == 0 ? "\nALL DECK TESTS PASS" : "\n\(failures) FAILED")
+exit(failures == 0 ? 0 : 1)

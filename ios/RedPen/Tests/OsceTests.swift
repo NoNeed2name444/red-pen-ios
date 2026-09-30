@@ -19,6 +19,18 @@ ok(OsceStations.stripLeadingMarker("Step 3: Expose the chest") == "Expose the ch
    "and neither is 'Step 3:'")
 ok(OsceStations.stripLeadingMarker("10 mL of saline") == "10 mL of saline",
    "but a step that simply starts with a number keeps it")
+// real clinical numbers are not list numbering
+for kept in ["12-lead ECG interpretation", "0.9% saline flush", "5-10 mL lidocaine to the skin",
+             "3.5 mmol/L is the lower limit", "2.5 cm incision"] {
+    ok(OsceStations.stripLeadingMarker(kept) == kept, "\"\(kept)\" keeps its number")
+}
+ok(OsceStations.stripLeadingMarker("3.Palpate the abdomen") == "Palpate the abdomen", "\"3.Palpate\" is numbering")
+ok(OsceStations.stripLeadingMarker("4: Auscultate the heart") == "Auscultate the heart", "\"4: \" is numbering")
+ok(OsceStations.stripLeadingMarker("1. 12-lead ECG") == "12-lead ECG", "numbering before a clinical number goes, the number stays")
+ok(OsceStations.tidy([OsceChecklist(title: "12-lead ECG interpretation",
+                                    steps: ["Introduce yourself", "12-lead ECG to look for ischaemia", "Check rate and rhythm"])])
+    .first.map { $0.title == "12-lead ECG interpretation" && $0.steps[1] == "12-lead ECG to look for ischaemia" } == true,
+   "a station about a 12-lead ECG keeps its title and steps whole")
 
 // MARK: cleaning
 
@@ -90,6 +102,45 @@ ok(asked.contains("Respiratory examination"),
    "and says what has already been written, so the next call does not repeat it")
 ok(asked.contains("Do not number the steps"),
    "and asks for unnumbered steps, since the order is the number")
+
+let plab = OsceStations.prompt(sourceText: "Chest pain.", count: 1, subject: "", alreadyWritten: [], exam: .plab)
+ok(plab.contains("PLAB 2") && plab.contains("8 minutes"), "a PLAB student gets PLAB 2 stations")
+ok(!OsceStations.prompt(sourceText: "x", count: 1, subject: "", alreadyWritten: [], exam: .general).contains("PACES"),
+   "and general revision gets no exam format")
+
+// Cards: question lines and cloze lines both import
+let mixedCards = PlainTextImport.parseAnkiQA("""
+First-line drug for all SLE patients? | **hydroxychloroquine** | protects against flares
+Anti-{{c1::dsDNA}} antibodies rise with lupus nephritis activity. | used to monitor
+The malar rash spares the {{c1::nasolabial folds}}.
+""")
+ok(mixedCards.count == 3, "question and cloze lines both become cards")
+ok(mixedCards.filter { $0.type == .cloze }.count == 2 && mixedCards[1].why == "used to monitor",
+   "a cloze line keeps its hidden part, and its reason when it has one")
+
+// MARK: a run through a station goes in order
+
+var run = OsceRun(stepCount: 3)
+ok(run.stepIndex == 0 && !run.complete && run.restarts == 0, "a run starts at step 1")
+run.gotIt()
+ok(run.stepIndex == 1, "I got it moves on to the next step")
+run.startOver()
+ok(run.stepIndex == 0 && run.misses == [1] && !run.complete, "Start over goes back to step 1 and keeps the miss")
+run.gotIt(); run.gotIt(); run.startOver()
+ok(run.misses == [1, 2] && run.restarts == 2, "every start over is kept, at the step it happened")
+run.gotIt(); run.gotIt(); run.startOver()
+ok(run.weakSteps.map(\.step) == [2, 1] && run.weakSteps.first?.times == 2,
+   "the step missed most comes first")
+run.gotIt(); run.gotIt(); run.gotIt()
+ok(run.complete && run.stepIndex == 2, "getting the last step finishes the station")
+run.startOver(); run.gotIt()
+ok(run.complete && run.restarts == 3, "and a finished run is left alone")
+ok(OsceRun(stepCount: 0).complete, "a station with no steps is already done")
+let restored = OsceRun(stepCount: 3, stepIndex: 9, misses: [0, 7])
+ok(restored.stepIndex == 2 && restored.misses == [0], "a saved position is fitted to the station")
+var clean = OsceRun(stepCount: 2)
+clean.gotIt(); clean.gotIt()
+ok(clean.complete && clean.weakSteps.isEmpty, "a clean run has no weak steps")
 
 print(failures == 0 ? "\nALL OSCE TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

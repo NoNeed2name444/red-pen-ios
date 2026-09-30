@@ -22,7 +22,12 @@ final class AccountStore: ObservableObject {
     init(session: Session? = nil) {
         if let session {
             state = .signedIn(session)
-        } else if let stored = Keychain.session(), stored.isValid() {
+        } else if let stored = Keychain.session(), stored.canResume() {
+            // An expired session is kept when it carries its refresh token:
+            // it is renewed the first time the app asks (refreshIfNeeded).
+            // Dropping it here instead signed out everybody who had not opened
+            // the app for a month - and a linked device, whose account has no
+            // Apple or Google sign-in behind it, could never get back in.
             state = .signedIn(stored)
         }
     }
@@ -86,6 +91,66 @@ final class AccountStore: ObservableObject {
         }
     }
 
+    // MARK: personal build
+
+    /// Personal build only: sign in as yourself with no Apple or Google
+    /// account and no server. The session never expires and never syncs;
+    /// the library stays on this device.
+    func useThisDeviceOnly(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        adopt(Session(
+            account: Account(id: "local-" + UUID().uuidString, provider: .email,
+                             email: nil, displayName: trimmed.isEmpty ? "Me" : trimmed),
+            token: Session.localToken, refreshToken: nil,
+            expiresAt: Date.distantFuture))
+    }
+
+    // MARK: linking devices
+
+    /// The session to sync with, making a server account for a device that
+    /// started "on this device only" (its name kept). Nil with a reason in
+    /// `trouble` when the server cannot be reached.
+    func ensureServerSession() async -> Session? {
+        guard let current = state.session else { return nil }
+        guard current.isLocalOnly else { return current }
+        busy = true
+        trouble = nil
+        defer { busy = false }
+        do {
+            var made = try await AuthAPI.deviceAccount(claim: OwnerClaim.bundled)
+            made.account.displayName = current.account.displayName
+            carryAgreement(from: current, to: made)
+            adopt(made)
+            return made
+        } catch {
+            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Joins the account another device shows a code for. True when it worked.
+    func join(code: String) async -> Bool {
+        let before = state.session
+        busy = true
+        trouble = nil
+        defer { busy = false }
+        do {
+            let joined = try await AuthAPI.pair(code: code)
+            if let before { carryAgreement(from: before, to: joined) }
+            adopt(joined)
+            return true
+        } catch {
+            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return false
+        }
+    }
+
+    /// Someone who already agreed to the recording terms on this device is
+    /// not asked again just because the account under it changed.
+    private func carryAgreement(from old: Session, to new: Session) {
+        if RecordingTerms.accepted(by: old.account.id) { RecordingTerms.accept(for: new.account.id) }
+    }
+
     private func adopt(_ session: Session) {
         Keychain.save(session)
         state = .signedIn(session)
@@ -93,21 +158,51 @@ final class AccountStore: ObservableObject {
 
     // MARK: staying signed in
 
+    /// The refresh in flight, so the several moments that ask for one at once
+    /// (opening the app, a sync, coming back to it) share a single request.
+    private var refreshing: Task<Void, Never>?
+
     /// Renews the session before it dies rather than after, so nothing fails
-    /// halfway through. A refresh that cannot reach the server is left alone:
-    /// the session is still valid for now, and signing somebody out because
-    /// their train went into a tunnel would be absurd.
-    func refreshIfNeeded() async {
-        guard let session = state.session, session.needsRefresh(),
-              let refreshToken = session.refreshToken else { return }
-        do {
-            adopt(try await AuthAPI.refresh(refreshToken))
-        } catch AuthAPI.Failure.offline {
+    /// halfway through. `force` renews it now whatever its date says - for a
+    /// call the server has just refused as signed out.
+    ///
+    /// Only the server refusing the refresh token itself ends the session. No
+    /// signal, a server having a bad minute or too many requests leaves it
+    /// exactly as it is, to be asked about again next time: signing somebody
+    /// out because their train went into a tunnel would be absurd, and for a
+    /// linked device it would be for good.
+    func refreshIfNeeded(force: Bool = false) async {
+        if let refreshing {
+            await refreshing.value
             return
-        } catch {
+        }
+        guard let session = state.session, !session.isLocalOnly,
+              force || session.needsRefresh(),
+              let refreshToken = session.refreshToken, !refreshToken.isEmpty else { return }
+        let task = Task { await self.renew(session, with: refreshToken) }
+        refreshing = task
+        await task.value
+        refreshing = nil
+    }
+
+    private func renew(_ session: Session, with refreshToken: String) async {
+        do {
+            var fresh = try await AuthAPI.refresh(refreshToken)
+            // Somebody signed out or linked another account while the request
+            // was out: the session it was for is gone, and must not come back.
+            guard state.session == session else { return }
+            // The server never knew a linked device's name - it was chosen on
+            // this phone - so it is carried over rather than lost.
+            if (fresh.account.displayName ?? "").isEmpty {
+                fresh.account.displayName = session.account.displayName
+            }
+            adopt(fresh)
+        } catch AuthAPI.Failure.signedOut {
             // the server refused the refresh token: that session is genuinely
             // over, and pretending otherwise only delays the sign-in screen
-            if !session.isValid() { signOut() }
+            if state.session == session { signOut() }
+        } catch {
+            // offline, or the server could not answer: try again later
         }
     }
 

@@ -17,20 +17,92 @@ enum DocxText {
     static let mediaPrefix = "word/media/"
 
     /// One entry per paragraph, blank ones dropped.
+    ///
+    /// Only the words Word shows are kept: the text of its runs (<w:t>, and
+    /// <m:t> in an equation), with the tabs and breaks between them. Other
+    /// character data in the XML is not the document's text, and reading it
+    /// as if it were puts wrong facts on cards:
+    ///   * <w:delText> is a tracked DELETION - "500 mg" struck out and
+    ///     replaced by "250 mg" must not read as "500 mg250 mg";
+    ///   * <w:instrText> is a field's code (PAGE, TOC \o "1-3",
+    ///     HYPERLINK "https://..."), whose result is in ordinary runs beside it;
+    ///   * <mc:Fallback> repeats every text box for older readers of the file,
+    ///     so its words would appear twice; and a tracked move keeps the moved
+    ///     text in <w:moveFrom> as well as where it went.
+    ///
+    /// Walked byte by byte, once: a long handout's XML is megabytes, and a
+    /// run with no end must not cost a search to the end of the file per run.
     static func paragraphs(fromXML xml: String) -> [String] {
-        var marked = xml
-        // the breaks Word writes inside a paragraph mean a line break, and the
-        // end of a paragraph means a new line: without these every page of the
-        // handout arrives as one unbroken sentence
-        for (tag, replacement) in [("</w:p>", "\n"), ("<w:br/>", "\n"),
-                                   ("<w:br />", "\n"), ("<w:cr/>", "\n"),
-                                   ("<w:tab/>", "\t"), ("<w:tab />", "\t")] {
-            marked = marked.replacingOccurrences(of: tag, with: replacement)
+        let bytes = Array(xml.utf8)
+        var out: [UInt8] = []
+        out.reserveCapacity(bytes.count / 4)
+        var inText = false
+        var skipping = 0
+        var index = 0
+        while index < bytes.count {
+            let byte = bytes[index]
+            guard byte == UInt8(ascii: "<") else {
+                if inText && skipping == 0 { out.append(byte) }
+                index += 1
+                continue
+            }
+            guard let end = bytes[index...].firstIndex(of: UInt8(ascii: ">")) else { break }
+            let tag = Tag(bytes, from: index + 1, to: end)
+            index = end + 1
+            switch tag.name {
+            case "w:t", "m:t":
+                if tag.closing { inText = false } else if !tag.empty { inText = true }
+            case "mc:Fallback", "w:del", "w:moveFrom":
+                // a self-closing <w:del/> marks a deleted paragraph mark and
+                // holds nothing to skip
+                if tag.closing { skipping = max(0, skipping - 1) } else if !tag.empty { skipping += 1 }
+            case "w:tab":
+                // with attributes it is a tab STOP in the paragraph's
+                // settings, not a tab character in the text
+                if !tag.closing && !tag.attributes && skipping == 0 { out.append(UInt8(ascii: "\t")) }
+            case "w:br", "w:cr":
+                // the breaks Word writes inside a paragraph mean a line
+                // break: without them a page of the handout arrives as one
+                // unbroken sentence
+                if !tag.closing && skipping == 0 { out.append(UInt8(ascii: "\n")) }
+            case "w:p":
+                if (tag.closing || tag.empty) && skipping == 0 { out.append(UInt8(ascii: "\n")) }
+            default:
+                break
+            }
         }
-        return decodeEntities(stripTags(marked))
+        return decodeEntities(String(decoding: out, as: UTF8.self))
             .components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+    }
+
+    /// One tag, read from between its angle brackets.
+    private struct Tag {
+        var name = ""
+        /// </w:t>
+        var closing = false
+        /// <w:p/>
+        var empty = false
+        /// Whether anything follows the name.
+        var attributes = false
+
+        init(_ bytes: [UInt8], from start: Int, to end: Int) {
+            guard start < end else { return }
+            var cursor = start
+            if bytes[cursor] == UInt8(ascii: "/") { closing = true; cursor += 1 }
+            empty = end > start && bytes[end - 1] == UInt8(ascii: "/")
+            let nameStart = cursor
+            while cursor < end, !Tag.isBlank(bytes[cursor]), bytes[cursor] != UInt8(ascii: "/") {
+                cursor += 1
+            }
+            name = String(decoding: bytes[nameStart..<cursor], as: UTF8.self)
+            attributes = bytes[cursor..<end].contains { !Tag.isBlank($0) && $0 != UInt8(ascii: "/") }
+        }
+
+        static func isBlank(_ byte: UInt8) -> Bool {
+            byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D
+        }
     }
 
     /// The whole document as plain text, one paragraph per line.

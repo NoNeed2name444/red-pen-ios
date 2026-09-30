@@ -162,18 +162,34 @@ enum FigureGrid {
     /// The mask is grown slightly, because a box drawn exactly on the glyphs
     /// leaves the tops of tall letters and the tails of descenders poking out,
     /// and a student who can read half the word has not been tested.
+    ///
+    /// Each card also carries every other label's mask as its `siblings`: the
+    /// whole diagram is covered on every card, and only the one being asked
+    /// about comes off when it is revealed.
+    ///
+    /// `minimumLabels` is how many usable labels a figure needs before it is
+    /// worth any cards at all: a diagram with one surviving word on it is
+    /// almost always a picture that was never labelled, and a card about that
+    /// word teaches nothing. Only labels that pass make cards, and only their
+    /// masks go on a card as siblings.
     static func cards(from labels: [Label], imageIndex: Int,
                       question: String = "What is labelled here?",
-                      grow: Double = 0.006) -> [AnkiCard] {
-        usableLabels(labels).map { label in
-            let box = OcclusionBox(
-                x: max(0, label.box.x - grow),
-                y: max(0, label.box.y - grow),
-                w: min(1 - max(0, label.box.x - grow), label.box.w + grow * 2),
-                h: min(1 - max(0, label.box.y - grow), label.box.h + grow * 2))
-            return AnkiCard(type: .occlusion, front: question,
-                            bullets: [label.text], why: "",
-                            imageIndex: imageIndex, occlusion: box)
+                      grow: Double = 0.006, minimumLabels: Int = 1) -> [AnkiCard] {
+        let usable = usableLabels(labels)
+        guard !usable.isEmpty, usable.count >= minimumLabels else { return [] }
+        let boxes: [OcclusionBox] = usable.map { (label: Label) -> OcclusionBox in
+            let x: Double = max(0, label.box.x - grow)
+            let y: Double = max(0, label.box.y - grow)
+            let w: Double = min(1 - x, label.box.w + grow * 2)
+            let h: Double = min(1 - y, label.box.h + grow * 2)
+            return OcclusionBox(x: x, y: y, w: w, h: h)
+        }
+        return usable.indices.map { i in
+            var card = AnkiCard(type: .occlusion, front: question,
+                                bullets: [usable[i].text], why: "",
+                                imageIndex: imageIndex, occlusion: boxes[i])
+            card.siblings = boxes.indices.filter { $0 != i }.map { boxes[$0] }
+            return card
         }
     }
 }

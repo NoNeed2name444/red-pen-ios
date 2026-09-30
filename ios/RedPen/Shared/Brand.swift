@@ -2,7 +2,9 @@ import SwiftUI
 
 /// The app's own identity, kept in one place.
 ///
-/// The name is CramDown, and it is about compression rather than panic: a
+/// The app is Stethoscore (formerly Vignette, and before that CramDown).
+///
+/// The name was CramDown, and it was about compression rather than panic: a
 /// term's worth of lectures pressed down into the few hundred things that
 /// actually fit in a head on the morning of a final. The app's whole method -
 /// spacing the work so it peaks on the day - is the opposite of an all-nighter,
@@ -15,10 +17,14 @@ import SwiftUI
 /// screen belongs to the mode you are in. The one exception is `signal`, used
 /// for the count-down to exam day - the only thing that should ever shout.
 enum Brand {
-    static let name = "CramDown"
+    /// Every user-visible mention of the app reads this, so a rename is one
+    /// line. (Storage keys, URL schemes and file names keep their old
+    /// "vignette" / "redpen" spellings on purpose: renaming them would strand
+    /// data already on phones.)
+    static let name = "Stethoscore"
 
     /// The tagline, where there is room for one.
-    static let line = "Everything, pressed down to what fits."
+    static let line = "Listen \u{00B7} Learn \u{00B7} Score"
 
     /// Near-black with a trace of blue: ink on paper, not a pure grey.
     static let ink = Color(red: 0.08, green: 0.09, blue: 0.11)
@@ -51,8 +57,11 @@ enum Brand {
                 let widths: [CGFloat] = [1.0, 0.74, 0.48]
                 let tops: [CGFloat] = [0.10, 0.34, 0.54]
                 for (i, ratio) in widths.enumerated() {
-                    let bar = CGRect(x: (w - w * ratio) / 2, y: h * tops[i],
-                                     width: w * ratio, height: h * 0.11)
+                    let barWidth: CGFloat = w * ratio
+                    let barX: CGFloat = (w - barWidth) / 2
+                    let barY: CGFloat = h * tops[i]
+                    let barHeight: CGFloat = h * 0.11
+                    let bar = CGRect(x: barX, y: barY, width: barWidth, height: barHeight)
                     context.fill(Path(roundedRect: bar, cornerRadius: h * 0.055),
                                  with: .color(tint.opacity(1 - Double(i) * 0.22)))
                 }

@@ -59,12 +59,39 @@ enum MCQCoverage {
             .filter { $0.count > 2 && !scaffolding.contains($0) })
     }
 
-    /// How much two stems have in common, 0 to 1.
+    /// How much two stems have in common, 0 to 1, measured against the
+    /// shorter of the two.
     static func overlap(_ a: String, _ b: String) -> Double {
         let left = contentWords(a), right = contentWords(b)
         guard !left.isEmpty, !right.isEmpty else { return 0 }
         let shared = Double(left.intersection(right).count)
         return shared / Double(min(left.count, right.count))
+    }
+
+    /// How much two stems have in common, 0 to 1, measured against every
+    /// word either one uses. Symmetric, so the word that differs counts:
+    /// "first-line treatment for gout" and "...for hypertension" share the
+    /// template and nothing else.
+    static func likeness(_ a: String, _ b: String) -> Double {
+        let left = contentWords(a), right = contentWords(b)
+        let union: Int = left.union(right).count
+        guard union > 0, !left.isEmpty, !right.isEmpty else { return 0 }
+        return Double(left.intersection(right).count) / Double(union)
+    }
+
+    /// Two answers that name the same thing: equal once case and punctuation
+    /// are set aside ("Beta-blockers", "beta blockers"), or one adding to the
+    /// other ("Allopurinol", "Allopurinol 100 mg daily").
+    static func sameAnswer(_ a: String, _ b: String) -> Bool {
+        let bare: (String) -> String = { text in
+            String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        }
+        let left: String = bare(a), right: String = bare(b)
+        guard !left.isEmpty, !right.isEmpty else { return false }
+        if left == right { return true }
+        let leftWords = contentWords(a), rightWords = contentWords(b)
+        guard !leftWords.isEmpty, !rightWords.isEmpty else { return false }
+        return leftWords.isSubset(of: rightWords) || rightWords.isSubset(of: leftWords)
     }
 
     /// Whether this question tests something already tested.
@@ -73,17 +100,30 @@ enum MCQCoverage {
     /// a third of their words but land on "amiodarone" are one fact asked
     /// twice, and that is the shape repetition usually takes - the model varies
     /// the vignette and keeps the answer.
+    ///
+    /// And it is much higher when the answers plainly differ. Recall questions
+    /// share a template - "What is the first-line treatment for gout?", "...for
+    /// hypertension?" - and measured against the shorter stem they looked 75%
+    /// alike, so every templated question after the first was dropped as a
+    /// repeat and generation stopped short. With different answers, only a
+    /// stem that is all but the same word for word (by likeness, which counts
+    /// the differing topic word) is the same question.
     static func isRepeat(stem: String, key: String, of asked: [Asked],
                          stemThreshold: Double = 0.6,
-                         sameKeyThreshold: Double = 0.3) -> Bool {
-        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                         sameKeyThreshold: Double = 0.3,
+                         differentKeyThreshold: Double = 0.8) -> Bool {
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
         for previous in asked {
-            let sameKey = !trimmedKey.isEmpty
-                && previous.key.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .lowercased() == trimmedKey
+            let previousKey = previous.key.trimmingCharacters(in: .whitespacesAndNewlines)
             let similarity = overlap(stem, previous.stem)
-            if similarity >= stemThreshold { return true }
-            if sameKey && similarity >= sameKeyThreshold { return true }
+            if trimmedKey.isEmpty || previousKey.isEmpty {
+                // no answer to go on: the stems alone decide
+                if similarity >= stemThreshold { return true }
+            } else if sameAnswer(trimmedKey, previousKey) {
+                if similarity >= sameKeyThreshold { return true }
+            } else if likeness(stem, previous.stem) >= differentKeyThreshold {
+                return true
+            }
         }
         return false
     }

@@ -14,13 +14,117 @@ database_id = ""
 binding = "BLOBS"
 bucket_name = "redpen-blobs"
 
+# Cloudflare's own models, on the account's free daily allowance: CramDown
+# Cloud's fallback when Gemini's free quota is spent.
+[ai]
+binding = "AI"
+
+# Generation that carries on after the app is closed: one object per account
+# runs its jobs on an alarm (jobs.js). SQLite-backed, which the free plan has.
+[[durable_objects.bindings]]
+name = "JOBS"
+class_name = "GenerationJobs"
+
+[[migrations]]
+tag = "v1-jobs"
+new_sqlite_classes = ["GenerationJobs"]
+
+# Once a night: whatever a deleted account left behind is removed again
+# (worker.js scheduled). Cron triggers are part of the free plan.
+[triggers]
+crons = ["41 3 * * *"]
+
 [vars]
 # Not secret: the bundle id Apple's tokens must be addressed to, the address
 # codes are sent from, and Google's public client id.
-APPLE_BUNDLE_ID = "com.redpen.app"
+APPLE_BUNDLE_ID = "com.cramdown.app"
 GOOGLE_CLIENT_ID = ""
+# CramDown Cloud (Pro), for now: Gemini, then Workers AI - both free, nothing
+# to pay for or set up. At launch: add the NOVITA_API_KEY repository secret and
+# redeploy, and Baichuan-M2-32B on Novita's API goes first (key in the
+# AI_WRITER_KEY secret, from NOVITA_API_KEY; about $0.07 per million tokens,
+# not used for training), then Gemini through the Firebase project
+# (FIREBASE_* secrets), then Workers AI below. Each takes over when the one
+# before is busy or out of quota. Baichuan-M3 has no pay-per-use host outside
+# Baichuan's own China-only platform.
+AI_WRITER_URL = "https://api.novita.ai/openai"
+AI_WRITER_MODEL = "baichuan/baichuan-m2-32b"
+AI_BASE_URL = "https://router.huggingface.co/v1"
+AI_DAILY_LIMIT = "400"
+# Google's free daily allowances, tried in turn (3.5 Flash 20 a day,
+# Flash-Lite 500, Gemma 4 the most)
+# Gemini 3.1 Pro first: the best-scoring medical model reachable (MedQA 96.4%
+# independently, MedXpertQA 80.7% self-reported). It has no free allowance, so
+# it answers only once the Firebase project is on the Blaze plan; until
+# PRO_PAYS is on, only the owner key uses it (PAID_ONLY_MODELS).
+# CAREFUL: on the Blaze plan Google bills 3.5 Flash and Flash-Lite from the
+# first token as well - a billed project has no free tier. Set GEMINI_BILLING
+# to "on" the moment the Firebase project is billed: every paid call is then
+# counted against a budget (PRO_MONTHLY_BUDGET_USD / PRO_NET_MONTHLY_USD, and
+# OWNER_MONTHLY_USD for the owner key), and with no budget set, students get
+# the free Gemma only. The server also switches to this by itself the first
+# time a paid-only model answers, and never makes more than
+# GEMINI_DAILY_CEILING non-Gemma calls a day before paid calls are budgeted.
+CLOUD_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+PAID_ONLY_MODELS = "gemini-3.1-pro-preview"
+GEMINI_BILLING = "off"
+GEMINI_DAILY_CEILING = "1000"
+# each account's share of the scarce free allowances, requests a day
+FREE_MODEL_SHARES = "gemini-3.5-flash:4,gemini-3.5-flash-lite:100"
+TRANSCRIBE_MODELS = "gemini-3.5-flash,gemini-3.5-flash-lite"
+# Pro pays for everything that costs money (see budget() in ai.js). Until
+# launch PRO_PAYS stays "off" and only free services are used. At launch:
+# put the paid accounts in place (Firebase Blaze plan; optionally a Novita
+# key as NOVITA_API_KEY), set PRO_NET_MONTHLY_USD to what Apple pays per
+# subscription per month after its cut, FIXED_MONTHLY_USD to the monthly
+# bills that don't depend on use, and PRO_PAYS = "on". Paid calls are then
+# limited to COST_SHARE of Pro revenue minus the fixed bills, shared equally
+# between Pro accounts. GEMINI_PRICES is dollars per million tokens,
+# input/output, for every paid model - check them at launch.
+PRO_PAYS = "off"
+PRO_NET_MONTHLY_USD = ""
+COST_SHARE = "0.6"
+# Every bill that isn't per AI call, in dollars a month, by name. Add a line
+# for any new cost; Pro's budget takes it off before anything else is spent.
+# (Apple's $99 a year is $8.25 a month; GitHub Actions minutes for a private
+# repo, Cloudflare Workers Paid $5, a rented GPU server, ...)
+MONTHLY_BILLS = "apple-developer:8.25,github-actions:0,cloudflare-workers:0"
+# Gemini 3.1 Pro first once Pro pays: Google's frontier model, paid only (its
+# free allowance is 0), reachable through the same Firebase project
+PAID_MODELS = "gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it"
+GEMINI_PRICES = "gemini-3.1-pro-preview:2.00/12.00,gemini-3.5-flash:0.30/2.50,gemini-3.5-flash-lite:0.10/0.40,baichuan/baichuan-m2-32b:0.07/0.07"
+# Audio input (Narrate's transcription) is priced apart from text, and higher:
+# dollars per million audio tokens. Check at launch with GEMINI_PRICES.
+GEMINI_AUDIO_PRICES = "gemini-3.5-flash:1.00,gemini-3.5-flash-lite:0.30"
+FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
+# Accounts that are always Pro for the cloud models (comma-separated ids).
+OWNER_ACCOUNT_IDS = ""
+# Workers AI's free 10,000 neurons a day are one pool for the whole account
+# (the voice and the text fallback): kept a little under it, and no account may
+# take more than its share (ai.js takeNeurons).
+WORKERS_AI_DAILY_NEURONS = "9000"
+WORKERS_AI_NEURONS_PER_ACCOUNT = "4500"
+# The owner's benchmarks have a daily allowance of their own (x-bench), so a
+# long run cannot leave the owner's own app without cloud for the day.
+OWNER_BENCH_DAILY_LIMIT = "2500"
+# The natural voice (POST /tts, see tts.js): Deepgram Aura-2 on Workers AI.
+# It costs $0.03 per 1,000 characters out of the same free 10,000 neurons a
+# day as the text fallback (1,000 characters is about 2,700 neurons), so
+# everyone together gets TTS_FREE_DAILY_CHARS of it a day for free; every line
+# is cached in R2, so a repeated line costs nothing. Past that, MeloTTS (about
+# 19 neurons a minute of speech, one voice only) - or, once PRO_PAYS is on,
+# Aura-2 out of Pro's budget. TTS_DAILY_LIMIT is lines per account per day.
+# Lines are cached per account (tts/<account>/) and expire after 60 days (an
+# R2 lifecycle rule the deploy sets).
+TTS_FREE_DAILY_CHARS = "2500"
+TTS_DAILY_LIMIT = "300"
+TTS_VOICES = "narrator:pandora,patient:draco"
 
 # Secrets are NOT in this file, and must never be added to it - it is in the
 # repository. Set each one with `wrangler secret put NAME`:
 #   SESSION_SECRET        a long random string; signs sessions and peppers codes
 #   GOOGLE_CLIENT_SECRET  from the Google Cloud console
+#   AI_API_KEY            the upstream key (a Hugging Face token for the router)
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY
+#                         an App Store Connect in-app purchase key, so the worker
+#                         can ask Apple whether a subscription is live

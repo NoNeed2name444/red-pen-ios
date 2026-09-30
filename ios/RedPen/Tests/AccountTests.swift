@@ -65,7 +65,26 @@ check("an expired one is not",
 check("a session is refreshed before it expires",
       Session(account: account, token: "t", refreshToken: "r",
               expiresAt: now.addingTimeInterval(60)).needsRefresh(now: now))
-check("and not while it has hours left", !live.needsRefresh(now: now))
+// the app only asks when it opens or syncs: five minutes' warning is a window
+// those moments almost never land in, so it is a day
+check("a session with an hour left is refreshed", live.needsRefresh(now: now))
+check("and not while it has days left",
+      !Session(account: account, token: "t", refreshToken: "r",
+               expiresAt: now.addingTimeInterval(3 * 86_400)).needsRefresh(now: now))
+// an expired access token with a live refresh token is a session to renew,
+// not one to throw away: a linked device's account has no other way back in
+let lapsed = Session(account: account, token: "t", refreshToken: "r",
+                     expiresAt: now.addingTimeInterval(-40 * 86_400))
+check("an expired session with a refresh token is kept at launch", lapsed.canResume(now: now))
+check("and one without is not",
+      !Session(account: account, token: "t", refreshToken: nil,
+               expiresAt: now.addingTimeInterval(-1)).canResume(now: now))
+check("nor one with an empty refresh token",
+      !Session(account: account, token: "t", refreshToken: "",
+               expiresAt: now.addingTimeInterval(-1)).canResume(now: now))
+check("a live session is kept however it was made",
+      Session(account: account, token: "t", refreshToken: nil,
+              expiresAt: now.addingTimeInterval(60)).canResume(now: now))
 
 // MARK: what counts as subscribed
 

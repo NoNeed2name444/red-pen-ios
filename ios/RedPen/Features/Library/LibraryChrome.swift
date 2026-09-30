@@ -1,23 +1,21 @@
 import SwiftUI
 
-/// The library's own backdrop: a warm paper tone with a whisper of pen red,
-/// matching the web app's cream-and-red identity.
+/// The backdrop of the pages that belong to no one mode: the same slow mesh
+/// as every mode's screen, as it is.
 struct LibraryBackdrop: View {
-    @Environment(\.colorScheme) private var scheme
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-            RadialGradient(colors: [StudySetKind.mcq.tint.opacity(scheme == .dark ? 0.22 : 0.14), .clear],
-                           center: .init(x: 1.0, y: 0.0), startRadius: 0, endRadius: 380)
-            RadialGradient(colors: [StudySetKind.anki.tint.opacity(scheme == .dark ? 0.16 : 0.10), .clear],
-                           center: .init(x: 0.0, y: 1.0), startRadius: 0, endRadius: 360)
-        }
-        .ignoresSafeArea()
+        AppBackdrop(tint: nil)
     }
 }
 
 /// A one-field naming sheet used for new folders, combined sets and renames -
 /// the native stand-in for the web app's inline save forms.
+///
+/// One field on the backdrop rather than a one-row Form: the field is the
+/// only thing to touch, so it stands a little out of the glass - moving only
+/// sideways with the tilt, never leaning, so the caret holds still under the
+/// eye. Return saves; Cancel and the confirm button sit in the system's own
+/// places at the top.
 struct NameSheet: View {
     let title: String
     let prompt: String
@@ -28,26 +26,51 @@ struct NameSheet: View {
     @State private var name = ""
     @FocusState private var focused: Bool
 
+    init(title: String, prompt: String, initial: String, confirm: String,
+         onConfirm: @escaping (String) -> Void) {
+        self.title = title
+        self.prompt = prompt
+        self.initial = initial
+        self.confirm = confirm
+        self.onConfirm = onConfirm
+    }
+
+    private var blank: Bool {
+        name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                TextField(prompt, text: $name)
-                    .focused($focused)
-                    .submitLabel(.done)
-                    .onSubmit(submit)
+            VStack(spacing: 0) {
+                field
+                Spacer(minLength: 0)
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(LibraryBackdrop())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(confirm, action: submit)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(blank)
                 }
             }
             .onAppear { name = initial; focused = true }
         }
-        .presentationDetents([.height(180)])
+        .presentationDetents([.height(220), .medium])
+    }
+
+    private var field: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return TextField(prompt, text: $name)
+            .focused($focused)
+            .submitLabel(.done)
+            .onSubmit(submit)
+            .padding(14)
+            .background(.regularMaterial, in: shape)
+            .popOut(.raised, in: shape, cues: .translateOnly)
     }
 
     private func submit() {

@@ -77,6 +77,74 @@ check("and a card keeps the interval it earned",
       ahead.first { $0.card.id == lupus.id }?.intervalMin ?? 0 >= 4 * 24 * 60,
       "\(ahead.first { $0.card.id == lupus.id }?.intervalMin ?? -1)")
 
+// Rated ahead of time, a card grows by the time that actually passed, not by
+// the whole interval it was given. Easy on Monday, then Easy again each day
+// while studying ahead, used to be 4 days, 16, 64, 256: gone for months.
+let dayMin: Double = 1440
+let monday = now
+var ahead4 = ReviewPlan.after(rating: .easy, record: ReviewRecord(due: monday, intervalMin: 0), now: monday)
+for day in 1...3 {
+    let today = monday.addingTimeInterval(Double(day) * 86_400)
+    ahead4 = ReviewPlan.after(rating: .easy, record: ahead4, now: today)
+}
+let thursday = monday.addingTimeInterval(3 * 86_400)
+check("studying ahead every day does not compound the interval",
+      ahead4.intervalMin <= 4 * dayMin + 1, "\(ahead4.intervalMin / dayMin) d")
+check("so a card seen on Thursday is back within days, not months",
+      ahead4.due.timeIntervalSince(thursday) <= 4 * 86_400 + 60,
+      "\(ahead4.due.timeIntervalSince(thursday) / 86_400) d")
+
+let earnedMonth = ReviewRecord(due: now.addingTimeInterval(28 * 86_400), intervalMin: 30 * dayMin,
+                               reviews: 4, lapses: 0, ratedAt: now.addingTimeInterval(-2 * 86_400))
+let earlyGood = ReviewPlan.after(rating: .good, record: earnedMonth, now: now)
+check("an early Good never shortens the interval a card had earned",
+      earlyGood.intervalMin >= earnedMonth.intervalMin, "\(earlyGood.intervalMin / dayMin) d")
+check("and does not multiply it as if the month had passed",
+      earlyGood.intervalMin < 30 * dayMin * 2.5, "\(earlyGood.intervalMin / dayMin) d")
+let earlyHard = ReviewPlan.after(rating: .hard, record: earnedMonth, now: now)
+check("an early Hard brings it closer, by at most 40%",
+      earlyHard.intervalMin >= 0.6 * 30 * dayMin - 1 && earlyHard.intervalMin <= 30 * dayMin,
+      "\(earlyHard.intervalMin / dayMin) d")
+let earlyAgain = ReviewPlan.after(rating: .again, record: earnedMonth, now: now)
+check("an early Again is still a lapse", earlyAgain.intervalMin == 1 && earlyAgain.lapses == 1)
+let rightOnTime = ReviewPlan.after(rating: .good, record: earnedMonth, now: earnedMonth.due)
+check("rated when due, the interval grows as before",
+      rightOnTime.intervalMin == 75 * dayMin, "\(rightOnTime.intervalMin / dayMin) d")
+
+// a sitting still moves a card on: Good at 10 minutes, shown again a minute
+// later and rated Good, leaves the sitting instead of looping at 10 minutes
+let stepped = ReviewPlan.after(rating: .good, record: ReviewRecord(due: now, intervalMin: 0), now: now)
+let steppedAgain = ReviewPlan.after(rating: .good, record: stepped, now: now.addingTimeInterval(60))
+check("a learning step shown early still moves on", steppedAgain.intervalMin == 25, "\(steppedAgain.intervalMin)")
+
+// the buttons promise what an early rating stores
+let promisedEarly = ReviewPlan.previewLabels(for: earnedMonth, now: now, exam: nil)
+check("an early review's buttons promise what it will store",
+      promisedEarly[.good] == "in " + AnkiScheduler.formatInterval(earlyGood.intervalMin),
+      "\(promisedEarly[.good] ?? "-") vs \(AnkiScheduler.formatInterval(earlyGood.intervalMin))")
+// and the exam cap still holds an early review back before the paper
+let examSoon = now.addingTimeInterval(10 * 86_400)
+let cappedEarly = ReviewPlan.after(rating: .easy, record: earnedMonth, now: now, exam: examSoon)
+check("the exam cap still applies to an early review",
+      cappedEarly.due < examSoon, "\(cappedEarly.due.timeIntervalSince(now) / 86_400) d")
+
+// MARK: no runaway intervals
+
+var runaway = ReviewRecord(due: now, intervalMin: 0)
+var clock = now
+for _ in 0..<60 {
+    runaway = ReviewPlan.after(rating: .easy, record: runaway, now: clock)
+    clock = runaway.due
+}
+check("sixty Easy ratings stop at the ceiling",
+      runaway.intervalMin <= AnkiScheduler.maxIntervalMin, "\(runaway.intervalMin)")
+check("and the label for it does not crash",
+      AnkiScheduler.formatInterval(runaway.intervalMin) == "36500 d", AnkiScheduler.formatInterval(runaway.intervalMin))
+check("nor for an interval already stored out of range",
+      AnkiScheduler.formatInterval(1e30) == "36500 d" && AnkiScheduler.formatInterval(.infinity) == "36500 d")
+check("the buttons for a runaway card do not crash",
+      AnkiScheduler.previewLabels(currentIntervalMin: 1e300, exam: nil)[.easy] == "in 36500 d")
+
 // MARK: the whole library at once
 
 let anatomy = Deck(deckName: "Anatomy", deckCards: [card("femoral triangle")])
@@ -91,6 +159,15 @@ check("a deck with nothing due contributes nothing",
                            records: records, now: now).isEmpty)
 check("an empty library is not an error",
       ReviewPlan.dueAcross([Deck](), records: records, now: now).isEmpty)
+// a copy of a deck that kept its cards' ids (a sync conflict copy, a file
+// imported twice): one card in two decks is two rows, not one identity twice
+let copied = Deck(deckName: "Immunology (from another device)", deckCards: cards)
+let twice = ReviewPlan.dueAcross([immunology, copied], records: records, now: now)
+check("the same card in two decks is two distinct rows",
+      Set(twice.map(\.id)).count == twice.count && twice.count == 2, "\(twice.map(\.id))")
+var remaining = twice
+if let first = twice.first { remaining.removeAll { $0.id == first.id } }
+check("and removing one leaves the other", remaining.count == 1)
 
 // MARK: forgetting
 

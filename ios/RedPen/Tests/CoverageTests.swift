@@ -75,6 +75,33 @@ check("a blank answer does not match every other blank answer",
       !MCQCoverage.isRepeat(stem: ventricular, key: "",
                             of: [MCQCoverage.Asked(stem: rhythm, key: "")]))
 
+// Recall questions share a template. The topic word is what differs, and with
+// a different answer that makes them different questions, not repeats.
+let gout = [MCQCoverage.Asked(stem: "What is the first-line treatment for gout?", key: "Colchicine")]
+check("a templated stem about another disease is not a repeat",
+      !MCQCoverage.isRepeat(stem: "What is the first-line treatment for hypertension?",
+                            key: "ACE inhibitor", of: gout),
+      "likeness \(MCQCoverage.likeness("What is the first-line treatment for gout?", "What is the first-line treatment for hypertension?"))")
+check("nor one about another drug",
+      !MCQCoverage.isRepeat(stem: "What is the mechanism of action of ramipril?", key: "ACE inhibition",
+                            of: [MCQCoverage.Asked(stem: "What is the mechanism of action of amlodipine?",
+                                                   key: "L-type calcium channel blockade")]))
+check("nor a longer template with one word changed",
+      !MCQCoverage.isRepeat(stem: "Which electrolyte abnormality is most commonly caused by spironolactone therapy in elderly patients?",
+                            key: "Hyperkalaemia",
+                            of: [MCQCoverage.Asked(stem: "Which electrolyte abnormality is most commonly caused by furosemide therapy in elderly patients?",
+                                                   key: "Hypokalaemia")]))
+check("the same stem keyed to another answer is still a repeat",
+      MCQCoverage.isRepeat(stem: "What is the first-line treatment for gout?", key: "NSAIDs", of: gout))
+check("the same template with the same answer, written differently, is a repeat",
+      MCQCoverage.isRepeat(stem: "Which drug is first-line treatment in an acute gout flare?", key: "colchicine.", of: gout))
+check("an answer with a dose added is the same answer",
+      MCQCoverage.sameAnswer("Allopurinol", "Allopurinol 100 mg daily"))
+check("a hyphen does not make a different answer",
+      MCQCoverage.sameAnswer("Beta-blockers", "beta blockers"))
+check("two different drugs are different answers", !MCQCoverage.sameAnswer("Ramipril", "Amlodipine"))
+check("likeness is symmetric", MCQCoverage.likeness(infarct, porphyria) == MCQCoverage.likeness(porphyria, infarct))
+
 // MARK: what the next batch is told
 
 check("the first batch is told nothing", MCQCoverage.avoidanceNote([]).isEmpty)

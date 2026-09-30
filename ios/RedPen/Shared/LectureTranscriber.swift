@@ -1,7 +1,9 @@
 import Foundation
 import Speech
 
-/// Turning a recording into a transcript, on the phone.
+/// Turning a recording into a transcript, on the phone. (Gemini, in
+/// CloudTranscriber, is the default; this is the offline choice and the
+/// fallback when Gemini can't be reached.)
 ///
 /// This is the piece the web app never had natively and the conversion note
 /// listed as unported: Narrate following a REAL recording rather than a typed
@@ -50,7 +52,7 @@ enum LectureTranscriber {
             case .noRecogniser(let locale):
                 return "This phone has no speech recogniser for \(locale)."
             case .notOnDevice(let locale):
-                return "\(locale) can only be recognised on Apple's servers on this phone, and \(Brand.name) never uploads a lecture. Download the offline language in Settings › General › Keyboard › Dictation, or transcribe elsewhere and paste the text in."
+                return "\(locale) can only be recognised on Apple's servers on this phone, and on-device transcription never uploads. Transcribe with Gemini instead, or download the offline language in Settings › General › Keyboard › Dictation."
             case .failed(let why):
                 return why
             }
