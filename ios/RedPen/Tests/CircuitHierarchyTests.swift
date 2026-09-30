@@ -1,19 +1,24 @@
-// The Circuit theme (GraphCircuit): one small board per collection (each
-// top-level folder), each a closed circuit - a power rail along its top, a
-// ground rail along its bottom, the folder's chip as controller, sub-folders
-// as smaller chips on branches of its bus, pages as capacitors on the bus,
-// ideas as LEDs in parallel branches off the page they link to and their
-// linked ideas in series after them, every branch ending on the ground rail;
-// loose notes as gold pads on a board's edge; links between boards through
-// edge connectors and a thin bus - boards in a tidy grid on a dark bench.
+// The Circuit theme (GraphCircuit): one upright tile per collection (each
+// top-level folder), each a closed circuit of light - a source cell at the
+// top centre feeding the folder's chip, the chip's trunk down the middle,
+// branches left and right: sub-folders as smaller chips with their own
+// trunks, pages as rings fanning out into lanes of the ideas that link to
+// them (capsules, their linked ideas in series after them), other ideas in
+// lanes of their own; every lane ending on the return rail up its side of
+// the tile, the rails running back along the top into the source; loose
+// notes as prisms off the feed; links between tiles through ports on their
+// facing edges and a fibre - tiles packed to the phone's shape.
 //
 // None of this needs a screen, so it is all checked here: the design
-// preview's boards and parts; that every part lies on a closed path from
-// the power rail to ground; that series and parallel follow the hierarchy;
-// that current (the ranks) always runs away from the power rail; the same
-// notes always give the same boards; no overlaps, flat, boards apart; edge
-// cases; 300 notes in under 2 s; the words; and that every routed trace is
-// one smooth piece of straights and 45 degree diagonals.
+// preview's tiles and parts; that every part lies on a closed loop from the
+// source to a rail; that series and parallel follow the hierarchy; that
+// current (the ranks) always runs away from the source; the same notes
+// always give the same tiles; no overlaps, flat, tiles apart; the upright
+// layout (trunk, square branches, lanes to the rails, rails into the
+// source, no joint a crossing, inlays open to their rail); edge cases; 300
+// notes in under 2 s; the words; that every routed guide is one smooth
+// piece of straights and 45 degree diagonals; and that the circuit map
+// tells a route its class and where the pulse of light is.
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphCircuit.swift,
 // GraphLinkCurve.swift, GraphNeuronImpulses.swift and GraphTheme.swift
@@ -419,6 +424,24 @@ func openParts(_ plan: ThemePlan) -> [String] {
     return bad
 }
 
+/// Whether body `i` is fed from its tile's source, straight or through
+/// the feed's joints.
+func fedFromSource(_ plan: ThemePlan, _ i: Int) -> Bool {
+    var f: Int = plan.feeds[i]
+    var steps: Int = 0
+    while f >= 0 && roleOf(plan.bodies[f]) == .bus && steps < plan.bodies.count {
+        f = plan.feeds[f]
+        steps += 1
+    }
+    return f >= 0 && roleOf(plan.bodies[f]) == .vcc
+}
+
+/// A return rail's piece: from a joint on a rail (to the next, or into the
+/// source). Wiring, but no part of the ranks.
+func isRail(_ plan: ThemePlan, _ l: ThemeLink) -> Bool {
+    l.kind == 5 && roleOf(plan.bodies[l.a]) == .ground
+}
+
 /// Series and parallel against the hierarchy, from the feeds.
 func topologyProblems(_ plan: ThemePlan) -> [String] {
     var bad: [String] = []
@@ -430,7 +453,7 @@ func topologyProblems(_ plan: ThemePlan) -> [String] {
         let r: CircuitRole = roleOf(b)
         switch r {
         case .processor, .soc:
-            if f < 0 || roleOf(plan.bodies[f]) != .vcc { note("\(b.title) not fed from the power rail") }
+            if !fedFromSource(plan, i) { note("\(b.title) not fed from the source") }
         case .module:
             // from its parent chip's bus
             guard f >= 0, roleOf(plan.bodies[f]) == .bus, feeds[f] >= 0 else { note("\(b.title) no bus"); continue }
@@ -446,7 +469,9 @@ func topologyProblems(_ plan: ThemePlan) -> [String] {
             if fr != .capacitor && fr != .led && fr != .bus { note("\(b.title) fed by \(fr)") }
             if fr != .bus && plan.bodies[f].parent != b.parent { note("\(b.title) fed across folders") }
         case .pad:
-            if f < 0 || roleOf(plan.bodies[f]) != .vcc { note("\(b.title) pad not on the power rail") }
+            if !fedFromSource(plan, i) || f < 0 || roleOf(plan.bodies[f]) != .bus {
+                note("\(b.title) prism not on a joint of the feed")
+            }
         default:
             break
         }
@@ -454,10 +479,11 @@ func topologyProblems(_ plan: ThemePlan) -> [String] {
     return bad
 }
 
-/// Current running towards the power rail on any wire or circuit link.
+/// Current running towards the source on any wire or circuit link (the
+/// return rails aside: they close the loops).
 func backwards(_ plan: ThemePlan) -> [String] {
     var bad: [String] = []
-    for l in plan.links where l.kind == 5 {
+    for l in plan.links where l.kind == 5 && !isRail(plan, l) {
         let ra: Int = plan.bodies[l.a].rank
         let rb: Int = plan.bodies[l.b].rank
         let cross: Bool = plan.bodies[l.a].role == CircuitRole.connector.rawValue
@@ -528,17 +554,17 @@ func whole(_ plan: ThemePlan) -> [String] {
 
 let preview: ThemePlan = GraphCircuit.plan(previewInput())
 let chips: Set<String> = titles(preview, .processor)
-check("T1 one board per collection: Cardiology and Examples", chips == ["Cardiology", "Examples"]
+check("T1 one tile per collection: Cardiology and Examples", chips == ["Cardiology", "Examples"]
       && preview.regions.count == 2, "\(chips)")
 check("T1 sub-folders are smaller chips", titles(preview, .module) == ["Inguinal", "Femoral", "Anatomy"])
-check("T1 pages are capacitors", titles(preview, .capacitor).contains("Heart failure")
+check("T1 pages are rings", titles(preview, .capacitor).contains("Heart failure")
       && titles(preview, .capacitor).contains("Groin hernia"))
-check("T1 ideas are LEDs", titles(preview, .led).contains("BNP") && titles(preview, .led).contains("LA/PM mnemonic"))
-check("T1 loose notes are gold pads", titles(preview, .pad).count == 2)
+check("T1 ideas are capsules", titles(preview, .led).contains("BNP") && titles(preview, .led).contains("LA/PM mnemonic"))
+check("T1 loose notes are prisms", titles(preview, .pad).count == 2)
 let used: Set<Int> = Set(preview.bodies.map(\.role))
-check("T1 only chips, capacitors, LEDs and pads (and wiring)",
+check("T1 only chips, rings, capsules and prisms (and wiring)",
       used.isSubset(of: Set(CircuitRole.allCases.map(\.rawValue))))
-check("T1 the summary counts boards", preview.summary.hasPrefix("2 boards"), preview.summary)
+check("T1 the summary counts circuits", preview.summary.hasPrefix("2 circuits"), preview.summary)
 let tags: [String] = preview.bodies.filter { roleOf($0).isContainer }.map {
     GraphCircuit.modelTag(count: $0.count, depth: $0.depth)
 }
@@ -550,14 +576,14 @@ check("T1 the controller's tag outranks its sub-chips'",
 
 // MARK: T2 closed circuits
 
-check("T2 every part on a closed path from power to ground", openParts(preview).isEmpty, "\(openParts(preview))")
+check("T2 every part on a closed loop from the source to a rail", openParts(preview).isEmpty, "\(openParts(preview))")
 check("T2 series and parallel follow the hierarchy", topologyProblems(preview).isEmpty, "\(topologyProblems(preview))")
-check("T2 current runs away from the power rail", backwards(preview).isEmpty, "\(backwards(preview))")
+check("T2 current runs away from the source", backwards(preview).isEmpty, "\(backwards(preview))")
 if let hf = bodyNamed(preview, "Heart failure"), let bnp = bodyNamed(preview, "BNP") {
     check("T2 an idea hangs off the page it links to", preview.feeds[bnp] == hf || preview.feeds[preview.feeds[bnp]] == hf,
           "\(preview.feeds[bnp])")
 }
-// two collections linked twice: two buses between their edge connectors
+// two collections linked twice: two fibres between ports on their edges
 let pairInput = UniverseInput(notes: [
     UniverseNote(id: fixedID(800), title: "P1", isPage: true, folder: fixedID(810), words: 50, created: 0),
     UniverseNote(id: fixedID(801), title: "I1", isPage: false, folder: fixedID(810), words: 20, created: 1),
@@ -568,8 +594,10 @@ let pairInput = UniverseInput(notes: [
     edges: [UniverseEdge(a: fixedID(800), b: fixedID(802)), UniverseEdge(a: fixedID(801), b: fixedID(803)),
             UniverseEdge(a: fixedID(800), b: fixedID(801))], seedByName: false)
 let pairPlan: ThemePlan = GraphCircuit.plan(pairInput)
-let crossing: [ThemeLink] = pairPlan.links.filter { $0.kind == 6 }
-check("T2 links between boards run as buses between edge connectors", crossing.count == 2 && crossing.allSatisfy {
+let crossing: [ThemeLink] = pairPlan.links.filter {
+    $0.kind == 6 && roleOf(pairPlan.bodies[$0.a]) == .connector && roleOf(pairPlan.bodies[$0.b]) == .connector
+}
+check("T2 links between tiles run as fibres between ports", crossing.count == 2 && crossing.allSatisfy {
     roleOf(pairPlan.bodies[$0.a]) == .connector && roleOf(pairPlan.bodies[$0.b]) == .connector
         && topOf(pairPlan, $0.a) != topOf(pairPlan, $0.b)
 } && whole(pairPlan).isEmpty, "\(crossing) \(whole(pairPlan))")
@@ -578,39 +606,66 @@ check("T2 each is hidden as itself", pairHidden.count == 2 && pairHidden.allSati
     topOf(pairPlan, $0.a) != topOf(pairPlan, $0.b)
 })
 let hidden: [ThemeLink] = preview.links.filter { $0.kind == 3 }
-let inside: [ThemeLink] = preview.links.filter { $0.kind == 0 }
-check("T2 links inside a board are its traces", inside.allSatisfy { topOf(preview, $0.a) == topOf(preview, $0.b) })
+let inside: [ThemeLink] = preview.links.filter { $0.kind == 0 || $0.kind == 2 }
+check("T2 links inside a tile stay inside it", inside.allSatisfy { topOf(preview, $0.a) == topOf(preview, $0.b) })
+let wiringLinks: [ThemeLink] = preview.links.filter { $0.kind == 0 }
+let feedsOK: Bool = wiringLinks.allSatisfy { preview.feeds[$0.b] == $0.a || preview.feeds[$0.a] == $0.b }
+check("T2 a note link drawn as wiring is one the current runs along; the rest are drawn apart (kind 2)",
+      feedsOK && !wiringLinks.isEmpty && preview.links.contains { $0.kind == 2 })
 check("T2 every note link kept", inside.count + hidden.count == 35, "\(inside.count + hidden.count)")
 
 // MARK: T3 layout
 
 check("T3 no parts overlap", footprintOverlaps(preview).isEmpty, "\(footprintOverlaps(preview))")
 check("T3 flat, still, each on its own board", flatProblems(preview).isEmpty, "\(flatProblems(preview))")
-check("T3 boards apart on the bench", boardsTouching(preview).isEmpty, "\(boardsTouching(preview))")
+check("T3 tiles apart on the bench", boardsTouching(preview).isEmpty, "\(boardsTouching(preview))")
 check("T3 the envelope holds everything", envelopeHolds(preview).isEmpty, "\(envelopeHolds(preview))")
+/// Each tile's source (its vcc body).
+func sourceOf(_ plan: ThemePlan, _ t: Int) -> Int? {
+    plan.bodies.indices.first { roleOf(plan.bodies[$0]) == .vcc && topOf(plan, $0) == t }
+}
+
 var railsOK: Bool = true
+var railsDetail: String = ""
 for t in preview.regions {
-    let mine: [ThemeBar] = preview.bars.filter { $0.owner == t }
-    let power: [ThemeBar] = mine.filter { $0.kind == 0 }
-    let ground: [ThemeBar] = mine.filter { $0.kind == 1 }
-    guard power.count == 1, let top = power.first, let low = ground.min(by: { $0.y < $1.y }) else {
+    guard let src = sourceOf(preview, t) else {
         railsOK = false
         continue
     }
+    let o: SIMD2<Double> = onBoard(preview.bodies[src].home)
     let board: CircuitRect = boardOf(preview, t)
-    let at: SIMD2<Double> = onBoard(preview.bodies[t].home)
-    if Double(top.y) + at.y < board.high.y - 0.4 || Double(low.y) + at.y > board.low.y + 0.4 { railsOK = false }
+    // the source at the top centre, the chip below it
+    let chipAt: SIMD2<Double> = onBoard(preview.bodies[t].home)
+    if abs(o.x - board.c.x) > 1e-4 || o.y < board.high.y - 0.6 || chipAt.y >= o.y || abs(chipAt.x - o.x) > 1e-4 {
+        railsOK = false
+        railsDetail += "source/chip \(t) "
+    }
+    // every rail joint the same way out on either side, and each side's
+    // rail running up from joint to joint and into the source
+    let joints: [Int] = preview.bodies.indices.filter { roleOf(preview.bodies[$0]) == .ground && topOf(preview, $0) == t }
+    let outs: Set<Int> = Set(joints.map { Int((abs(onBoard(preview.bodies[$0].home).x - o.x) * 1e4).rounded()) })
+    if outs.count != 1 { railsOK = false; railsDetail += "rail x \(outs) " }
+    let pieces: [ThemeLink] = preview.links.filter { isRail(preview, $0) && topOf(preview, $0.a) == t }
+    for l in pieces {
+        let a: SIMD2<Double> = onBoard(preview.bodies[l.a].home)
+        let b: SIMD2<Double> = onBoard(preview.bodies[l.b].home)
+        let up: Bool = abs(a.x - b.x) < 1e-4 && b.y > a.y
+        let home: Bool = l.b == src && abs(a.y - b.y) < 1e-4
+        if !up && !home { railsOK = false; railsDetail += "piece " }
+    }
+    if pieces.filter({ $0.b == src }).count != 2 { railsOK = false; railsDetail += "into source " }
 }
-check("T3 power rail along each board's top, ground along its bottom", railsOK)
+check("T3 the source at each tile's top centre, the chip below; return rails up both sides and into the source",
+      railsOK, railsDetail)
 let taps: [Int] = preview.bodies.indices.filter { preview.bodies[$0].role == CircuitRole.ground.rawValue }
-var tapsOnRails: Bool = true
-for g in taps {
-    let t: Int = topOf(preview, g)
-    let y: Double = onBoard(preview.bodies[g].home).y - onBoard(preview.bodies[t].home).y
-    let onRail: Bool = preview.bars.contains { $0.owner == t && $0.kind == 1 && abs(Double($0.y) - y) < 1e-4 }
-    if !onRail { tapsOnRails = false }
+var lanesOK: Bool = !taps.isEmpty
+for l in preview.links where l.kind == 5 && roleOf(preview.bodies[l.b]) == .ground && !isRail(preview, l) {
+    // a lane ends square on its rail: level with the part it comes from
+    let a: SIMD2<Double> = onBoard(preview.bodies[l.a].home)
+    let b: SIMD2<Double> = onBoard(preview.bodies[l.b].home)
+    if abs(a.y - b.y) > 1e-4 { lanesOK = false }
 }
-check("T3 every ground tap sits on a ground rail", tapsOnRails && !taps.isEmpty)
+check("T3 every lane runs straight out to its rail", lanesOK)
 var sizesOK: Bool = true
 for (i, b) in preview.bodies.enumerated() where roleOf(b) == .module {
     if b.sphere >= preview.bodies[b.parent].sphere { sizesOK = false }
@@ -687,7 +742,7 @@ let crowdTook: Double = Date().timeIntervalSince(crowdStart)
 check("T7 300 notes in one folder: under 2 s", crowdTook < 2, "\(crowdTook) s")
 check("T7 ... closed, apart, flat", whole(crowd).isEmpty, "\(whole(crowd))")
 let crowdBoard: CircuitRect = boardOf(crowd, crowd.regions[0])
-check("T7 ... wrapped into tiers, not one long row", crowdBoard.h.x < crowdBoard.h.y * 4, "\(crowdBoard.h)")
+check("T7 ... one upright tile, its trunk down the middle", crowdBoard.h.y > crowdBoard.h.x, "\(crowdBoard.h)")
 let many: UniverseInput = randomVault(99, maxNotes: 300, maxFolders: 12, exact: true)
 let manyStart: Date = Date()
 let manyPlan: ThemePlan = GraphCircuit.plan(many)
@@ -815,6 +870,188 @@ let raisedPts: [SIMD3<Float>] = samples(raised, 20)
 check("T9 a lifted end eases down to the board",
       abs(dot3(raisedPts[0], boardNormal) - 0.4 - board.lift) < 1e-3
       && abs(dot3(raisedPts[20], boardNormal) - board.lift) < 1e-3)
+
+// MARK: T10 the upright layout
+
+/// Problems with a plan's upright layout: the trunk wiring straight down,
+/// every branch leaving a joint square to its trunk, no two branches
+/// leaving one trunk within 0.2 of each other (a crossing), each folder's
+/// inlay open to its rail and nested in its parent's, and every fibre
+/// straight between ports on facing edges.
+func uprightProblems(_ plan: ThemePlan) -> [String] {
+    var bad: [String] = []
+    func note(_ s: String) { if bad.count < 6 { bad.append(s) } }
+    var jointsOf: [Int: [Double]] = [:]
+    for l in plan.links where l.kind == 5 && !isRail(plan, l) {
+        let ra: CircuitRole = roleOf(plan.bodies[l.a])
+        let rb: CircuitRole = roleOf(plan.bodies[l.b])
+        let a: SIMD2<Double> = onBoard(plan.bodies[l.a].home)
+        let b: SIMD2<Double> = onBoard(plan.bodies[l.b].home)
+        let feeding: Bool = ra == .vcc || ra.isContainer || ra == .bus
+        if feeding && (rb == .bus || rb.isContainer) && !(rb.isContainer && ra == .bus && abs(a.y - b.y) < 1e-4) {
+            if abs(a.x - b.x) > 1e-4 || b.y >= a.y { note("trunk \(plan.bodies[l.b].title) not straight down") }
+        }
+        if ra == .bus && rb != .bus && !rb.isContainer && abs(a.y - b.y) > 1e-4 && rb != .capacitor {
+            note("branch not square off its trunk")
+        }
+        if ra == .bus && rb == .bus { jointsOf[plan.bodies[l.a].parent, default: []].append(a.y) }
+        if rb == .bus { jointsOf[plan.bodies[l.b].parent, default: []].append(b.y) }
+    }
+    for (_, ys) in jointsOf {
+        let sorted: [Double] = Set(ys.map { ($0 * 1e6).rounded() / 1e6 }).sorted()
+        for k in sorted.indices.dropFirst() where sorted[k] - sorted[k - 1] < 0.2 * 0.6 - 1e-6 {
+            note("two joints \(sorted[k] - sorted[k - 1]) apart")
+        }
+    }
+    // inlays: a sub-chip's patch holds the chip and reaches its rail
+    for (i, b) in plan.bodies.enumerated() where roleOf(b) == .module {
+        let p: SIMD4<Float> = plan.patches[i]
+        let at: SIMD2<Double> = onBoard(b.home)
+        let inlay = CircuitRect(c: at + SIMD2<Double>(Double(p.x), Double(p.y)), h: SIMD2<Double>(Double(p.z), Double(p.w)))
+        let chip: CircuitRect = footprint(b)
+        if chip.low.x < inlay.low.x || chip.high.x > inlay.high.x || chip.low.y < inlay.low.y || chip.high.y > inlay.high.y {
+            note("\(b.title)'s inlay misses its chip")
+        }
+        let t: Int = topOf(plan, i)
+        let rails: [Double] = plan.bodies.indices.filter { roleOf(plan.bodies[$0]) == .ground && topOf(plan, $0) == t }
+            .map { onBoard(plan.bodies[$0].home).x }
+        let reachesRail: Bool = rails.contains { abs($0 - inlay.low.x) < 1e-3 || abs($0 - inlay.high.x) < 1e-3 }
+        if !reachesRail { note("\(b.title)'s inlay stops short of its rail") }
+        let up: Int = b.parent
+        if roleOf(plan.bodies[up]) == .module {
+            let q: SIMD4<Float> = plan.patches[up]
+            let upAt: SIMD2<Double> = onBoard(plan.bodies[up].home)
+            let outer = CircuitRect(c: upAt + SIMD2<Double>(Double(q.x), Double(q.y)), h: SIMD2<Double>(Double(q.z), Double(q.w)))
+            let inside: Bool = inlay.low.x >= outer.low.x - 1e-4 && inlay.high.x <= outer.high.x + 1e-4
+                && inlay.low.y > outer.low.y && inlay.high.y < outer.high.y
+            if !inside { note("\(b.title)'s inlay not nested in its parent's") }
+        }
+    }
+    // fibres straight, ports just inside their tiles' edges
+    for l in plan.links where l.kind == 6 {
+        guard roleOf(plan.bodies[l.a]) == .connector, roleOf(plan.bodies[l.b]) == .connector else { continue }
+        let a: SIMD2<Double> = onBoard(plan.bodies[l.a].home)
+        let b: SIMD2<Double> = onBoard(plan.bodies[l.b].home)
+        if abs(a.x - b.x) > 1e-4 && abs(a.y - b.y) > 1e-4 { note("a fibre not straight") }
+        for end in [l.a, l.b] {
+            let r: CircuitRect = boardOf(plan, topOf(plan, end))
+            let p: SIMD2<Double> = onBoard(plan.bodies[end].home)
+            let edge: Double = min(p.x - r.low.x, r.high.x - p.x, p.y - r.low.y, r.high.y - p.y)
+            if edge > 0.1 || edge < 0.02 { note("a port \(edge) from its edge") }
+        }
+    }
+    return bad
+}
+
+check("T10 the preview upright: trunks straight down, branches square, no crossing joints, inlays open and nested",
+      uprightProblems(preview).isEmpty, "\(uprightProblems(preview))")
+check("T10 two linked tiles: fibres straight between facing ports", uprightProblems(pairPlan).isEmpty,
+      "\(uprightProblems(pairPlan))")
+var uprightBad: [String] = []
+for seed in 0..<40 {
+    let input: UniverseInput = randomVault(UInt64(seed) &* 104_729 &+ 11, maxNotes: 50, maxFolders: 8)
+    let problems: [String] = uprightProblems(GraphCircuit.plan(input))
+    if !problems.isEmpty && uprightBad.count < 3 { uprightBad.append("vault \(seed): \(problems)") }
+}
+check("T10 40 random vaults upright", uprightBad.isEmpty, "\(uprightBad)")
+
+/// The bench's shape as it shows (foreshortened by the tilt): width over
+/// height of all the tiles.
+func benchShape(_ plan: ThemePlan) -> Double {
+    let rects: [CircuitRect] = plan.regions.map { boardOf(plan, $0) }
+    let whole: CircuitRect = CircuitRect.bounding(rects)
+    return whole.h.x / (whole.h.y * cos(GraphCircuit.tilt))
+}
+let sevenFolders: [UniverseFolder] = (0..<7).map { UniverseFolder(id: fixedID(1_000 + $0), name: "F\($0)", parent: nil) }
+var sevenNotes: [UniverseNote] = []
+for k in 0..<42 {
+    sevenNotes.append(UniverseNote(id: fixedID(1_100 + k), title: "S\(k)", isPage: k % 3 == 0,
+                                   folder: fixedID(1_000 + k % 7), words: 60, created: Double(k)))
+}
+let seven: ThemePlan = GraphCircuit.plan(UniverseInput(notes: sevenNotes, folders: sevenFolders, edges: [],
+                                                        seedByName: false))
+let sevenRows: Set<Int> = Set(seven.regions.map { Int((boardOf(seven, $0).high.y * 100).rounded()) })
+check("T10 seven collections pack several abreast, close to the phone's shape",
+      sevenRows.count >= 2 && sevenRows.count < 7 && abs(log(benchShape(seven) / GraphCircuit.benchAspect)) < 0.5,
+      "\(sevenRows.count) rows, shape \(benchShape(seven))")
+check("T10 two collections: the bench no wider than the phone's shape wants",
+      benchShape(preview) < GraphCircuit.benchAspect * 1.8, "\(benchShape(preview))")
+
+// MARK: T11 the pulse of light and the circuit map
+
+let spots: [CircuitPulseSpot] = GraphCircuit.pulseSpots(preview)
+var map = GraphCircuitMap(spacing: Float(GraphCircuit.pulseSpacing))
+for s in spots {
+    map.add(GraphCircuitSpot(at: SIMD2<Float>(Float(s.at.x), Float(s.at.y)), dist: Float(s.dist), kind: s.kind))
+}
+var mapped = board
+mapped.circuit = map
+var pulseBad: [String] = []
+for (i, s) in spots.enumerated() {
+    let f: Int = preview.feeds[i]
+    if preview.bodies[i].kind != .fixture && s.dist <= 0 && pulseBad.count < 3 { pulseBad.append("\(preview.bodies[i].title) unlit") }
+    if f >= 0 && spots[f].dist >= s.dist && pulseBad.count < 3 { pulseBad.append("\(preview.bodies[i].title) before its feed") }
+    let q = SIMD2<Float>(Float(s.at.x), Float(s.at.y))
+    if map.find(q + SIMD2<Float>(0.004, -0.003))?.dist != Float(s.dist) && pulseBad.count < 3 { pulseBad.append("lost \(i)") }
+}
+check("T11 the light reaches every part after the part feeding it, and the map finds each at rest", pulseBad.isEmpty,
+      "\(pulseBad)")
+let stray = SIMD2<Float>(Float(spots[0].at.x) + 0.05, Float(spots[0].at.y))
+check("T11 a body moved off its rest is not found", map.find(stray) == nil)
+let sourceDist: [Double] = preview.regions.compactMap { t in sourceOf(preview, t).map { spots[$0].dist } }
+check("T11 the tiles' beats are staggered", Set(sourceDist).count == sourceDist.count && sourceDist.contains(0),
+      "\(sourceDist)")
+
+func routeFor(_ l: ThemeLink, trimA: Float = 0, trimB: Float = 0) -> GraphLinkRoute {
+    GraphLinkRoute(from: preview.bodies[l.a].home, to: preview.bodies[l.b].home, board: mapped, trimA: trimA,
+                   trimB: trimB, seed: 0)
+}
+var classes: [Int: Int] = [:]
+var classBad: [String] = []
+for l in preview.links where l.kind == 5 {
+    let route: GraphLinkRoute = routeFor(l)
+    classes[route.kind, default: 0] += 1
+    let ra: CircuitRole = roleOf(preview.bodies[l.a])
+    if isRail(preview, l) && route.kind != GraphCircuitMap.returnRail { classBad.append("rail as \(route.kind)") }
+    if ra == .bus && roleOf(preview.bodies[l.b]) == .bus && route.kind != GraphCircuitMap.trunk {
+        classBad.append("trunk as \(route.kind)")
+    }
+    // lifted by its class, flat along its length
+    let pts: [SIMD3<Float>] = samples(route, 20)
+    let want: Float = mapped.lift + Float(route.kind) * mapped.step
+    if pts.contains(where: { abs(dot3($0, boardNormal) - want) > 1e-4 }) && classBad.count < 4 { classBad.append("height") }
+    // its pulse starts where the light has reached (trims 0: a run on past the joint)
+    let reached: Float = Float(spots[l.a].dist) + route.from - (route.total - route.span) * 0.5
+    let turns: Float = (reached / map.spacing).rounded(.down)
+    if abs(route.phase - (reached - turns * map.spacing)) > 0.01 && classBad.count < 4 { classBad.append("phase") }
+}
+check("T11 wiring classed by the map: trunks, branches, return rails, each at its own height, its pulse in phase",
+      classBad.isEmpty && classes[GraphCircuitMap.trunk] != nil && classes[GraphCircuitMap.branch] != nil
+      && classes[GraphCircuitMap.returnRail] != nil, "\(classBad) \(classes)")
+let pairSpots: [CircuitPulseSpot] = GraphCircuit.pulseSpots(pairPlan)
+var pairMap = GraphCircuitMap(spacing: Float(GraphCircuit.pulseSpacing))
+for s in pairSpots {
+    pairMap.add(GraphCircuitSpot(at: SIMD2<Float>(Float(s.at.x), Float(s.at.y)), dist: Float(s.dist), kind: s.kind))
+}
+var pairBoard = board
+pairBoard.circuit = pairMap
+let fibreKinds: [Int] = pairPlan.links.filter { $0.kind == 6 }.map { l in
+    GraphLinkRoute(from: pairPlan.bodies[l.a].home, to: pairPlan.bodies[l.b].home, board: pairBoard, trimA: 0.03,
+                   trimB: 0.03, seed: 0).kind
+}
+check("T11 a link between tiles: two legs and a fibre", fibreKinds.filter { $0 == GraphCircuitMap.fibre }.count == 2
+      && fibreKinds.filter { $0 == GraphCircuitMap.leg }.count == 4, "\(fibreKinds)")
+// a ring's lanes all split at one place past its rim
+var fanOK: Bool = false
+for (i, b) in preview.bodies.enumerated() where roleOf(b) == .capacitor {
+    let lanes: [ThemeLink] = preview.links.filter { $0.a == i && roleOf(preview.bodies[$0.b]) == .led }
+    guard lanes.count >= 2 else { continue }
+    let trim: Float = b.sphere * 1.08
+    let splits: [SIMD2<Float>] = lanes.map { routeFor($0, trimA: trim, trimB: 0.07).k1 }
+    fanOK = splits.allSatisfy { length3(SIMD3<Float>($0.x - splits[0].x, $0.y - splits[0].y, 0)) < 1e-4 }
+    break
+}
+check("T11 a ring's lanes fan out from one split", fanOK)
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

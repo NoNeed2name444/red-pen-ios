@@ -14,7 +14,12 @@ import simd
 //
 // Colours are fluorescence dyes on black: each region its own (teal, green,
 // azure, violet, lime), its nucleus in a second dye; receptors gold,
-// microglia pale ice; axons pale teal, impulses amber with a magenta halo.
+// microglia pale ice; axons pale teal (tracts paler blue), impulses amber
+// with a white-hot front and a magenta halo.
+//
+// Each link is one axon (GraphLinkArbor, NeuronShaders.axon): a hillock
+// cone out of the sending cell, a thin gel fibre in a faint myelin haze,
+// one bouton on the target's membrane.
 //
 // Nothing is made per cell but its nodes: materials are one per (region
 // dye, kind of cell), geometry one sphere and a few arbor shapes per kind,
@@ -81,20 +86,22 @@ final class GraphNeuronLook: GraphThemeLook {
     let support: NeuronSupport
     let linkMaterial: SCNMaterial
     let farMaterial: SCNMaterial
-    let linkHalfWidth: Float = 0.08
-    let farHalfWidth: Float = 0.13
+    /// The links' strips: just wide enough for the axon's hillock (the
+    /// fibre itself is under a quarter of it).
+    let linkHalfWidth: Float = GraphLinkArbor.axon.ribbon
+    let farHalfWidth: Float = GraphLinkArbor.tract.ribbon
 
-    /// Every axon ends in one synapse on its target, a gel golf-tee cup
+    /// Every link is one axon ending in one bouton on its target
     /// (GraphLinkArbor, drawn by NeuronShaders.axon): the cell's membrane
-    /// is 1.25 of its trim radius; one fibre is 0.3 of an axon's half
-    /// width, 0.2 of a tract's (three fibres, gathered before the cup).
-    /// Only when the axon shader works: the plain fallback draws no cup.
+    /// is 1.25 of its trim radius; an axon's fibre 0.018 round, a tract's
+    /// (between regions, down a pathway) 0.026. Only when the axon shader
+    /// works: the plain fallback draws a plain line.
     var arbor: GraphLinkArbor? {
-        support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.3) : nil
+        support.has("axon") ? GraphLinkArbor.axon : nil
     }
 
     var farArbor: GraphLinkArbor? {
-        support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.2) : nil
+        support.has("axon") ? GraphLinkArbor.tract : nil
     }
     let hotRing: SCNGeometry
     private(set) var clocked: [SCNMaterial] = []
@@ -118,10 +125,10 @@ final class GraphNeuronLook: GraphThemeLook {
         self.budget = budget
         let support: NeuronSupport = NeuronProbe.support
         self.support = support
-        linkMaterial = Self.axonMaterial(bundle: false, bold: bold, lively: lively, budget: budget, support: support,
-                                         half: 0.08)
-        farMaterial = Self.axonMaterial(bundle: true, bold: bold, lively: lively, budget: budget, support: support,
-                                        half: 0.13)
+        linkMaterial = Self.axonMaterial(GraphLinkArbor.axon, tint: Self.fibre, bold: bold, lively: lively,
+                                         budget: budget, support: support)
+        farMaterial = Self.axonMaterial(GraphLinkArbor.tract, tint: Self.tract, bold: bold, lively: lively,
+                                        budget: budget, support: support)
         let ball = SCNSphere(radius: 1)
         ball.segmentCount = budget.tier == .high ? 40 : 24
         sphere = ball
@@ -386,11 +393,15 @@ final class GraphNeuronLook: GraphThemeLook {
         return material
     }
 
-    /// An axon (a tract of three when `bundle`): the impulses' rate and
-    /// bursts from the Graphics budget.
-    private static func axonMaterial(bundle: Bool, bold: Bool, lively: Bool, budget: GraphicsBudget,
-                                     support: NeuronSupport, half: Float) -> SCNMaterial {
-        let base: SIMD3<Float> = bundle ? tract : fibre
+    /// A point's size at unit distance, for the axon shader's hairlines
+    /// (rpPixel): the camera's 55° field over a phone's height in points.
+    /// Near enough anywhere - it only keeps a far fibre a point wide.
+    static let pointAtUnitDepth: Float = 1.0412 / 820
+
+    /// An axon (`shape`: an axon's or a tract's fibre, tinted `base`): the
+    /// impulses' rate and bursts from the Graphics budget.
+    private static func axonMaterial(_ shape: GraphLinkArbor, tint base: SIMD3<Float>, bold: Bool, lively: Bool,
+                                     budget: GraphicsBudget, support: NeuronSupport) -> SCNMaterial {
         let strength: Float = bold ? 1.35 : 1
         guard support.has("axon") else {
             let plain: SCNMaterial = GraphLook.link(bold: bold, shader: false, lively: lively)
@@ -407,8 +418,9 @@ final class GraphNeuronLook: GraphThemeLook {
         // rather than impulses frozen partway along the axons
         set(material, "rpRate", lively ? (high ? 0.55 : 0.3) : 0)
         set(material, "rpBurst", lively && high ? 0.18 : 0)
-        set(material, "rpBundle", bundle ? 1 : 0)
-        set(material, "rpHalf", half)
+        set(material, "rpHalf", shape.ribbon)
+        set(material, "rpFibre", shape.fibre)
+        set(material, "rpPixel", pointAtUnitDepth)
         set(material, "rpDetail", budget.shaderDetail)
         tint(material, "rpTintA", base * strength)
         tint(material, "rpTintB", impulse)
@@ -887,7 +899,8 @@ nonisolated enum NeuronProbe {
             let ok: Bool = GraphStyleProbe.renders(modifiers, on: shape, device: device) { material in
                 let values: [(String, Float)] = [("rpMotion", 1), ("rpNucleus", 0.4), ("rpSway", 0),
                                                  ("rpWobble", 0.02), ("rpGain", 1), ("rpRate", 0.5),
-                                                 ("rpBurst", 0.2), ("rpBundle", 0), ("rpHalf", 0.08)]
+                                                 ("rpBurst", 0.2), ("rpHalf", 0.0756),
+                                                 ("rpFibre", 0.018), ("rpPixel", 0.0013)]
                 for (key, value) in values { material.setValue(NSNumber(value: value), forKey: key) }
             }
             if ok { passed.insert(name) }
