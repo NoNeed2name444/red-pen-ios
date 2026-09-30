@@ -35,6 +35,12 @@ const MAX_TOKENS = 2_000;
 /// hold the request (and a background job's alarm) until the platform kills it.
 const UPSTREAM_TIMEOUT_MS = 120_000;
 const AUDIO_TIMEOUT_MS = 240_000;
+// The Pro frontier model: Claude Opus on Anthropic's Messages API, first in
+// line while Pro pays (routeFor). Thinking is always on there and counts
+// against max_tokens, so every call asks for room beyond the reply.
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
+const ANTHROPIC_THINKING_ROOM = 4_000;
 /// How long a confirmed subscription is trusted before Apple is asked again.
 const RECHECK_SECONDS = 6 * 60 * 60;
 
@@ -75,6 +81,10 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // not the 3.1 Pro that writes); `avoid` names the models that wrote what
   // is being checked, and they are skipped while any other is left.
   if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
+  // the same rule for Claude: what it wrote, another model checks
+  if (body.model === 'cramdown-checker' && Array.isArray(body.avoid)) {
+    route.sources = route.sources.filter(s => s.kind !== 'anthropic' || !body.avoid.includes(s.model));
+  }
   // A request can ask for one model first (the syllabus check asks for 3.1
   // Pro); only among the models this account may use, so it grants nothing.
   if (gemini && typeof body.prefer === 'string' && gemini.models.includes(body.prefer)) {
@@ -281,6 +291,10 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     if (source.paid && !route.canPay) continue;
     if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted, route);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature, source.model, route.account || 'owner', !!route.owner);
+    else if (source.kind === 'anthropic') {
+      result = await askAnthropic(env, source, messages, maxTokens, fetcher);
+      if (result.usage) counted(source.model, result.usage);
+    }
     else {
       result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
       if (result.usage) counted(source.model, result.usage);
@@ -294,7 +308,10 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
       // the paid host's key refused or expired (Novita answers a bad key
       // with 403), its credit used up (402) or the model withdrawn (404):
       // the free sources still answer, rather than every request failing
-      || (source.paid && [401, 402, 403, 404].includes(result.status));
+      || (source.paid && [401, 402, 403, 404].includes(result.status))
+      // Claude declining (451 here) or refusing the shape of a request: the
+      // free chain still answers, rather than the student getting nothing
+      || (source.kind === 'anthropic' && [400, 451].includes(result.status));
     if (!next) break;
   }
   // every source's reason, not just the last one's
@@ -333,6 +350,54 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
   // billed whether or not the reply is usable
   return content ? { ok: true, content, source: route.model, usage: answer.usage }
     : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.', usage: answer?.usage };
+}
+
+/// Claude on Anthropic's Messages API. System lines go in `system` and the
+/// rest as turns (neighbouring turns of one role folded together, as the API
+/// wants them). No sampling parameters and no thinking setting: Opus 5.5
+/// refuses both, thinking is always on and effort is the one control. A
+/// safety decline (stop_reason "refusal") is retried by Anthropic on its own
+/// fallback model inside the call (fallbacks: "default"); one that still
+/// comes back refused is a 451 here, so the next source answers.
+async function askAnthropic(env, source, messages, maxTokens, fetcher) {
+  const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+  const turns = [];
+  for (const m of messages) {
+    if (m.role === 'system') continue;
+    const last = turns[turns.length - 1];
+    if (last && last.role === m.role) last.content += '\n\n' + m.content;
+    else turns.push({ role: m.role, content: m.content });
+  }
+  if (!turns.length || turns[0].role !== 'user') return { ok: false, status: 400, detail: 'Nothing to send.' };
+  const effort = env.STETHOSCORE_DEFAULT_EFFORT || 'medium';
+  let upstream;
+  try {
+    upstream = await fetcher(ANTHROPIC_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': source.key, 'anthropic-version': '2023-06-01',
+                 'anthropic-beta': 'server-side-fallback-2026-07-01' },
+      body: JSON.stringify({
+        model: source.model, max_tokens: Math.min(maxTokens + ANTHROPIC_THINKING_ROOM, 16_000),
+        ...(system ? { system } : {}), messages: turns,
+        output_config: { effort }, fallbacks: 'default',
+      }),
+      signal: timeoutSignal(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch (error) {
+    return { ok: false, status: 504, detail: `${source.model}: ${String(error?.message || error).slice(0, 200)}` };
+  }
+  if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
+  let answer = null;
+  try { answer = await upstream.json(); } catch { /* an HTML error page with a 200 */ }
+  const usage = answer?.usage;
+  if (answer?.stop_reason === 'refusal') {
+    return { ok: false, status: 451, detail: `${source.model}: declined (${answer?.stop_details?.category || 'safety'}).`, usage };
+  }
+  const content = (Array.isArray(answer?.content) ? answer.content : [])
+    .filter(block => block?.type === 'text').map(block => block.text || '').join('').trim();
+  // billed whether or not the reply is usable
+  return content ? { ok: true, content, source: answer?.model || source.model, usage }
+    : { ok: false, status: 502, detail: 'The cloud model sent back nothing usable.', usage };
 }
 
 /// The answer without a reasoning model's thinking: everything up to the last
@@ -789,6 +854,9 @@ export function priceOf(env, model) {
       return { input: input || 0, output: output || 0 };
     }
   }
+  // a Claude model no entry names is priced as Opus 5.5 ($4 / $20 a million),
+  // never as free: an unpriced paid model would spend outside the budget
+  if (/^claude-/.test(model)) return { input: 4, output: 20 };
   return { input: 0, output: 0 };
 }
 
@@ -798,10 +866,13 @@ export function priceOf(env, model) {
 export function costOf(env, model, usage) {
   if (!usage) return 0;
   const price = priceOf(env, model);
-  const input = usage.promptTokenCount ?? usage.prompt_tokens ?? 0;
+  const input = usage.promptTokenCount ?? usage.prompt_tokens ?? usage.input_tokens ?? 0;
+  // Anthropic bills prompt-cache reads at a tenth of the input price and
+  // cache writes at a quarter over it; neither is in input_tokens
+  const cached = (usage.cache_read_input_tokens || 0) * 0.1 + (usage.cache_creation_input_tokens || 0) * 1.25;
   const audio = (usage.promptTokensDetails || []).filter(d => d.modality === 'AUDIO').reduce((n, d) => n + (d.tokenCount || 0), 0);
-  const out = (usage.candidatesTokenCount ?? usage.completion_tokens ?? 0) + (usage.thoughtsTokenCount || 0);
-  return Math.ceil((input - audio) * price.input + audio * audioPriceOf(env, model, price.input) + out * price.output);
+  const out = (usage.candidatesTokenCount ?? usage.completion_tokens ?? usage.output_tokens ?? 0) + (usage.thoughtsTokenCount || 0);
+  return Math.ceil((input - audio + cached) * price.input + audio * audioPriceOf(env, model, price.input) + out * price.output);
 }
 
 /// Google prices audio input well above text (2.5 Flash: $1.00 against
@@ -962,6 +1033,13 @@ export function usedNeurons(usage, rateIn, rateOut) {
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
   const sources = [];
+  // Claude Opus on Anthropic, the Pro frontier model: first while Pro money
+  // covers it (paid), and only when its key is set, so a server without the
+  // key answers from the free chain exactly as before
+  if (env.ANTHROPIC_API_KEY) {
+    sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
+                   model: env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL });
+  }
   // Baichuan-M2-32B on Novita, or any OpenAI-compatible server, when set
   if (env.AI_WRITER_URL && env.AI_WRITER_KEY) {
     sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY, paid: true,
