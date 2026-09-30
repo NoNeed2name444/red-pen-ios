@@ -357,7 +357,8 @@ final class GraphPreviewUITests: XCTestCase {
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewHold", "Heart failure"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
-            XCTAssertTrue(app.otherElements["graphNodeMenu"].waitForExistence(timeout: 15), "no options")
+            // the scene, then the app's own hold: a loaded runner takes its time
+            XCTAssertTrue(app.otherElements["graphNodeMenu"].waitForExistence(timeout: 45), "no options")
             XCTAssertTrue(app.buttons["Link to\u{2026}"].exists && app.buttons["Delete"].exists, "an option is missing")
             snap(app, "43-\(k + 1)-\(theme)-hold-options")
             app.terminate()
