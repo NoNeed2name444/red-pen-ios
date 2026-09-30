@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 """Make Stethoscore's app icon set from the master render.
 
-The icon is a picture, not a drawing: a glossy blue stethoscope with an A+ on
-its diaphragm, on a sky-to-royal-blue tile. The render the owner chose is kept
-at design/icon/source.png, and this script turns that one file into everything
-the app needs, so a new render is a one-file swap and the whole set comes out
-consistent:
+The icon is a picture, not a drawing: the render the owner chose, a glossy
+blue stethoscope with an A+ on its diaphragm on a sky-to-royal-blue tile,
+kept at design/icon/source.png. This script turns that one file into what the
+app needs and changes nothing about the picture itself:
 
     python3 tools/make_icon.py                 # into the asset catalogue
     python3 tools/make_icon.py --out /tmp/x    # somewhere else, to look first
 
-What it does with the render:
-- finds the tile (the blue rounded square), crops to it and throws away the
-  page margin and the drop shadow around it;
-- fits the tile's gradient and paints it into the rounded corners, because an
-  iOS icon asset has to be a full opaque square (the system cuts the corners);
-- separates the stethoscope from the tile by how far each pixel sits from that
-  fitted gradient, which is what gives the Dark, Tinted, Clear and layered
-  appearances without a second render;
-- writes the launch logo: the icon, the wordmark and the tagline on Midnight
-  navy, the same picture LaunchSplash carries into the first SwiftUI frame.
+- It finds the tile (the blue rounded square) in the render and crops to it,
+  dropping the page margin and the drop shadow around it.
+- It paints the tile's own gradient into the rounded corners, because an iOS
+  icon asset has to be a full opaque square: the system cuts the corners
+  itself, so nothing painted there is ever seen.
+- It ships that one square for every appearance. There is no separate dark or
+  tinted file: iOS shows the same picture in dark mode and makes its own
+  tinted version, so the icon is the render and nothing else.
+- It writes the launch logo: the icon, the wordmark and the tagline on
+  Midnight navy, flat, with no shadow.
 """
 
 from __future__ import annotations
@@ -34,8 +33,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 S = 1024
 SOURCE = Path("design/icon/source.png")
 
-# Midnight navy: the launch background (LaunchBackground.colorset) and the
-# ground of the Dark appearance.
+# Midnight navy: the launch background (LaunchBackground.colorset).
 NAVY = (10, 22, 40)
 # The wordmark: "Stetho" in Clean Sheet white, "score" in the tile's sky blue
 # so it reads on navy, the tagline in a quiet blue-grey.
@@ -50,6 +48,12 @@ FONT_CANDIDATES = [
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
     "/System/Library/Fonts/Helvetica.ttc",
 ]
+
+# Files earlier versions of this script wrote and this one does not: removed
+# on the way past, so a stale appearance never ships by accident.
+STALE_ICON = ("icon-1024-dark.png", "icon-1024-tinted.png")
+STALE_DESIGN = ("background.png", "background-dark.png", "foreground.png", "foreground-tinted.png",
+                "clear-light.png", "clear-dark.png", "preview-dark.png")
 
 
 # --- reading the render -----------------------------------------------------
@@ -124,107 +128,20 @@ def fit_gradient(arr: np.ndarray, outside: np.ndarray) -> np.ndarray:
     return np.clip(fitted, 0, 255)
 
 
-def object_alpha(arr: np.ndarray, fitted: np.ndarray, outside: np.ndarray) -> np.ndarray:
-    """How much of each pixel is stethoscope rather than tile, from its
-    distance to the fitted gradient. The ramp starts high on purpose: the
-    shadows the stethoscope casts are only darker tile, and counting them as
-    object is what puts a glowing halo round it on the dark and tinted
-    grounds. The tubing, chrome and white sit far beyond the ramp."""
-    d = np.sqrt(((arr - fitted) ** 2).sum(axis=2))
-    a = np.clip((d - 45.0) / (90.0 - 45.0), 0.0, 1.0)
-    a[outside] = 0.0
-    img = Image.fromarray((a * 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(0.8))
-    return np.asarray(img).astype(np.float32) / 255.0
-
-
-def unmix(arr: np.ndarray, fitted: np.ndarray, alpha: np.ndarray) -> np.ndarray:
-    """The object's own colour at its soft edges, with the tile colour that was
-    blended into them taken back out; otherwise a pale-blue fringe follows the
-    tubing onto the dark and tinted grounds."""
-    a = alpha[..., None]
-    # only where the pixel is mostly object: dividing by a small alpha turns
-    # a highlight a shade lighter than the tile into an orange speck
-    mostly = a > 0.35
-    safe = np.where(mostly, a, 1.0)
-    own = (arr - (1.0 - a) * fitted) / safe
-    own = np.where(mostly, own, arr)
-    return np.clip(own, 0, 255)
-
-
-# --- the appearances --------------------------------------------------------
-
-def to_image(rgb: np.ndarray, alpha: np.ndarray | None = None) -> Image.Image:
-    rgb8 = np.clip(rgb, 0, 255).astype(np.uint8)
-    if alpha is None:
-        return Image.fromarray(rgb8, "RGB")
-    a8 = np.clip(alpha * 255, 0, 255).astype(np.uint8)
-    return Image.fromarray(np.dstack([rgb8, a8]), "RGBA")
-
-
-def luminance(rgb: np.ndarray) -> np.ndarray:
-    return rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
-
-
-class Icon:
-    def __init__(self, source: Path):
-        page = np.asarray(Image.open(source).convert("RGB")).astype(np.float32)
-        box = square(find_tile(page), (page.shape[1], page.shape[0]))
-        crop = page[box[1]:box[3], box[0]:box[2]]
-        outside = outside_mask(crop)
-        fitted = fit_gradient(crop, outside)
-        filled = crop.copy()
-        filled[outside] = fitted[outside]
-        alpha = object_alpha(crop, fitted, outside)
-        own = unmix(filled, fitted, alpha)
-
-        def at(a: np.ndarray, mode: str = "RGB") -> np.ndarray:
-            img = to_image(a) if a.shape[-1] == 3 else Image.fromarray((a * 255).astype(np.uint8), "L")
-            return np.asarray(img.resize((S, S), Image.LANCZOS)).astype(np.float32)
-
-        self.light = at(filled)
-        self.ground = at(fitted)
-        self.alpha = at(alpha) / 255.0
-        self.own = at(own)
-        self.box = box
-
-    # the Dark appearance: the same wash turned down to navy, the stethoscope
-    # kept, its blue tubing lifted a little so it still separates from the tile
-    def dark(self) -> np.ndarray:
-        ground = self.dark_ground()
-        # the tile and the shadows on it darken together, by the same ratio,
-        # so a shadow stays a shadow instead of turning into a pale rim
-        ratio = np.clip(ground / np.maximum(self.ground, 1.0), 0.0, 1.2)
-        shaded = np.clip(self.light * ratio, 0, 255)
-        own = self.own.copy()
-        r, g, b = own[..., 0], own[..., 1], own[..., 2]
-        tubing = ((b > r + 40) & (b > g + 15))[..., None]
-        own = np.where(tubing, np.clip(own * 1.28, 0, 255), own)
-        a = self.alpha[..., None]
-        return a * own + (1 - a) * shaded
-
-    def dark_ground(self) -> np.ndarray:
-        return self.ground * 0.30 + np.array(NAVY, dtype=np.float32) * 0.55
-
-    # the Tinted appearance: the system supplies the hue, so ship the shape in
-    # grey on black, which is what iOS wants under its tint
-    def tinted(self) -> np.ndarray:
-        grey = np.clip(luminance(self.own) * 1.12, 0, 255)[..., None].repeat(3, axis=2)
-        a = self.alpha[..., None]
-        return a * grey + (1 - a) * np.zeros_like(grey)
-
-    def foreground(self, mono: bool = False) -> Image.Image:
-        rgb = self.own
-        if mono:
-            rgb = luminance(self.own)[..., None].repeat(3, axis=2)
-        return to_image(rgb, self.alpha)
-
-    # the Clear appearance is a stencil the system frosts out of the wallpaper:
-    # light shape for a dark wallpaper, dark shape for a light one
-    def clear(self, dark: bool) -> Image.Image:
-        grey = luminance(self.own)
-        if not dark:
-            grey = 255 - grey
-        return to_image(grey[..., None].repeat(3, axis=2), self.alpha)
+def master(source: Path) -> Image.Image:
+    """The render as the one square iOS wants: the tile, cropped out of the
+    page, its corners filled with its own gradient, at 1024 x 1024."""
+    page = np.asarray(Image.open(source).convert("RGB")).astype(np.float32)
+    box = square(find_tile(page), (page.shape[1], page.shape[0]))
+    crop = page[box[1]:box[3], box[0]:box[2]]
+    outside = outside_mask(crop)
+    filled = crop.copy()
+    filled[outside] = fit_gradient(crop, outside)[outside]
+    img = Image.fromarray(np.clip(filled, 0, 255).astype(np.uint8), "RGB")
+    img = img.resize((S, S), Image.LANCZOS)
+    x0, y0, x1, y1 = box
+    print(f"tile {x1 - x0}x{y1 - y0} at ({x0},{y0}) in {source}")
+    return img
 
 
 def rounded(img: Image.Image, radius: float = 0.225) -> Image.Image:
@@ -247,17 +164,14 @@ def font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 
 def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
-    """The first frame: icon, wordmark, tagline on Midnight navy. 300 x 240 pt."""
+    """The first frame: icon, wordmark, tagline on Midnight navy. 300 x 240 pt.
+    The icon sits flat on the navy, as it does on a home screen: no shadow."""
     w, h = 300 * scale, 240 * scale
     out = Image.new("RGBA", (w, h), NAVY + (255,))
 
     side = 128 * scale
     tile = rounded(icon.resize((side, side), Image.LANCZOS))
-    x, y = (w - side) // 2, 10 * scale
-    shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    shadow.paste((0, 0, 0, 150), (x, y + 4 * scale), tile.split()[3])
-    out = Image.alpha_composite(out, shadow.filter(ImageFilter.GaussianBlur(8 * scale)))
-    out.alpha_composite(tile, (x, y))
+    out.alpha_composite(tile, ((w - side) // 2, 10 * scale))
 
     draw = ImageDraw.Draw(out)
     size = 52 * scale
@@ -274,7 +188,7 @@ def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
     draw.text((x0 + left, y0), "score", font=f, fill=SKY)
 
     # the tagline, tracked by hand: PIL has no letter spacing of its own
-    text = "LISTEN \u00B7 LEARN \u00B7 SCORE"
+    text = "LISTEN · LEARN · SCORE"
     track = 3 * scale
     size = 12 * scale
     while size > 6:
@@ -292,6 +206,14 @@ def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
 
 # --- writing ----------------------------------------------------------------
 
+def remove(folder: Path, names: tuple[str, ...]) -> None:
+    for name in names:
+        stale = folder / name
+        if stale.exists():
+            stale.unlink()
+            print(f"removed {stale}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--source", default=str(SOURCE), help="the master render")
@@ -299,37 +221,27 @@ def main() -> int:
                         help="where the icon itself goes")
     parser.add_argument("--launch", default="ios/RedPen/Assets.xcassets/LaunchLogo.imageset",
                         help="where the launch logo goes")
-    parser.add_argument("--layers", default="design/icon",
-                        help="the flat layers and the appearances that are not\n"
-                             "expressible in an asset catalogue")
+    parser.add_argument("--design", default="design/icon",
+                        help="where the preview goes, next to the master render")
     args = parser.parse_args()
 
-    icon = Icon(Path(args.source))
-    light = to_image(icon.light)
-    dark = to_image(icon.dark())
+    icon = master(Path(args.source))
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    light.save(out / "icon-1024.png")
-    dark.save(out / "icon-1024-dark.png")
-    to_image(icon.tinted()).save(out / "icon-1024-tinted.png")
+    icon.save(out / "icon-1024.png")
+    remove(out, STALE_ICON)
+    # one image for every appearance: the system reuses it in dark mode and
+    # derives the tinted one itself
     (out / "Contents.json").write_text(json.dumps({
-        "images": [
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024.png"},
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024-dark.png",
-             "appearances": [{"appearance": "luminosity", "value": "dark"}]},
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024-tinted.png",
-             "appearances": [{"appearance": "luminosity", "value": "tinted"}]},
-        ],
+        "images": [{"idiom": "universal", "platform": "ios", "size": "1024x1024",
+                    "filename": "icon-1024.png"}],
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
     launch = Path(args.launch)
     launch.mkdir(parents=True, exist_ok=True)
-    big = launch_logo(light, scale=3)
+    big = launch_logo(icon, scale=3)
     big.save(launch / "launch-logo@3x.png")
     big.resize((600, 480), Image.LANCZOS).save(launch / "launch-logo@2x.png")
     big.resize((300, 240), Image.LANCZOS).save(launch / "launch-logo@1x.png")
@@ -339,24 +251,14 @@ def main() -> int:
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
-    layers = Path(args.layers)
-    layers.mkdir(parents=True, exist_ok=True)
-    to_image(icon.ground).save(layers / "background.png")
-    to_image(icon.dark_ground()).save(layers / "background-dark.png")
-    icon.foreground().save(layers / "foreground.png")
-    icon.foreground(mono=True).save(layers / "foreground-tinted.png")
-    icon.clear(dark=False).save(layers / "clear-light.png")
-    icon.clear(dark=True).save(layers / "clear-dark.png")
-    rounded(light).save(layers / "preview.png")
-    rounded(dark).save(layers / "preview-dark.png")
+    design = Path(args.design)
+    design.mkdir(parents=True, exist_ok=True)
+    rounded(icon).save(design / "preview.png")
+    remove(design, STALE_DESIGN)
 
-    x0, y0, x1, y1 = icon.box
-    print(f"tile {x1 - x0}x{y1 - y0} at ({x0},{y0}) in {args.source}")
-    for name in ("icon-1024.png", "icon-1024-dark.png", "icon-1024-tinted.png"):
-        print(out / name)
+    print(out / "icon-1024.png")
     print(f"{launch}/ launch-logo@1x, @2x, @3x")
-    print(f"{layers}/ background, background-dark, foreground, foreground-tinted,")
-    print(f"{layers}/ clear-light, clear-dark, preview, preview-dark")
+    print(f"{design}/ preview.png")
     return 0
 
 
