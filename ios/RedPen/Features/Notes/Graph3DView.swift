@@ -2015,6 +2015,9 @@ struct GraphSCNView: UIViewRepresentable {
         }
 
         /// A request from the card.
+        /// How often the design preview's hold has waited for a screen position.
+        private var previewHoldTries = 0
+
         func run(_ kind: GraphMapCommand.Kind) {
             guard let sim else { return }
             switch kind {
@@ -2025,8 +2028,18 @@ struct GraphSCNView: UIViewRepresentable {
                 guard let i = sim.index[id] else { return }
                 fly(to: i, animated: true)
             case .previewHold(let id):
-                guard let i = sim.index[id], let point = screenPoint(i) else { return }
-                touch.hold(id, point)
+                // the design preview's hold: on a loaded runner the body may
+                // have no screen position yet (the scene still fitting, the
+                // camera still flying in), so it is asked again for up to 15 s
+                if let i = sim.index[id], let point = screenPoint(i) {
+                    previewHoldTries = 0
+                    touch.hold(id, point)
+                } else if previewHoldTries < 60 {
+                    previewHoldTries += 1
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                        self?.run(.previewHold(id))
+                    }
+                }
             case .none, .clear, .links:
                 break
             }
