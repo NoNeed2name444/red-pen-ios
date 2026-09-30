@@ -15,14 +15,73 @@ src, name, bundle, out = args[:4]
 samples = args[4:]  # lectures for this build only (never in the repository)
 # What can be left out: the paths (relative to ios/RedPen, fnmatch patterns or
 # folders), the files among them that stay because the rest of the app uses
-# them, and the stub that stands in for the rest. A chunk is only a chunk if
-# the rest of the app reaches it through the few names its stub provides.
+# them, and the stand-ins (files or folders under tools/playgrounds_stubs) that
+# take their place. A chunk is only a chunk if the rest of the app reaches it
+# through the names its stand-ins provide.
+#
+# "core" is the build for an iPad whose Swift Playgrounds cannot compile the
+# whole app: about a third of the lines, keeping the library, the study modes
+# (questions, cards, textbook, cases, OSCE), sources, generation and the
+# accuracy engine, sign-in and the exam; with its own small library shell
+# (playgrounds_stubs/core). Everything else is left out and named in
+# CoreLibrary's footer.
+CORE_DROP = [
+    # whole features
+    "Features/Notes", "Persistence/NoteStore.swift",             # Ideas and the 3D map
+    "Features/Lens", "Shared/Lens",                              # Study Lens
+    "Features/Analytics",                                         # Progress analytics
+    "Features/Voice", "Shared/Voice",                             # spoken OSCE, commute mode, explain-it-back
+    "Features/Reasoning", "Shared/Reasoning",                     # clue cases, duels, scripts, how-to-reach
+    "Features/Recall",                                            # draw from memory
+    "Features/Narrate",                                           # audio lectures
+    "Features/Coverage", "Shared/Coverage/CoverageCloudCheck.swift", "Shared/Coverage/CoverageExamples.swift",
+    "Shared/Learn", "Features/Learn",                             # exam plan, exam-day kit, reminders
+    "Features/Examples", "Features/Insight",                      # the examples hub, mistake diagnosis
+    "Features/Mock", "Features/Exam/ExamDashboardCard.swift",
+    "Shared/Exam/ExamFormats.swift",
+    "Shared/Space", "Shared/AppBackdrop.swift",                   # the living sky
+    "Shared/PopOut.swift", "Shared/PopOutMotion.swift", "Shared/HeadTracker.swift",
+    "Shared/Diagnostics", "Features/Support/DiagnosticsSettingsView.swift",
+    "Shared/Platform", "Shared/AppIntents.swift", "Shared/AppIntentsRouting.swift", "Shared/AppIntentsVisual.swift",
+    "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift", "Persistence/StoreSync.swift",
+    "Shared/SyncAPI.swift", "Shared/SyncRules.swift", "Shared/SyncMerge.swift",
+    # the audio pipeline
+    "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
+    "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
+    # imports and exports beyond lectures, text and spreadsheets
+    "Shared/ApkgImport.swift", "Shared/Zstd.swift", "Shared/AnkiNoteText.swift", "Shared/AnkiFields.swift",
+    "Shared/ApkgExporter.swift", "Shared/DeckPDF.swift", "Shared/DeckPDFBlocks.swift", "Shared/DeckPDFPages.swift",
+    "Shared/PDFExporter.swift", "Shared/LibraryBackup.swift", "Shared/LibraryBackupRunner.swift", "Shared/MiniZip.swift",
+    "Shared/OcclusionPhrases.swift", "Shared/OcclusionFilter.swift", "Shared/PhotoOcclusion.swift",
+    "Shared/PhotoOcclusionReader.swift", "Shared/PDFOcclusion.swift", "Shared/FigureFinder.swift", "Shared/FigureGrid.swift",
+    "Features/Library/PictureFromPhotoView.swift", "Features/Library/OcclusionCoverEditor.swift",
+    "Features/Library/DeckExportIntents.swift", "Features/Library/DocumentScannerSheet.swift",
+    "Features/Library/IncomingImport.swift",
+    # sessions, stats, editors
+    "Features/Library/StatsView.swift", "Shared/CustomSession.swift", "Features/Library/CustomSessionSheet.swift",
+    "Shared/LibrarySearch.swift", "Features/Library/LibrarySearchResults.swift", "Features/Library/LibrarySearchModel.swift",
+    "Features/Library/CardEditSheets.swift", "Features/Library/CardsEditorView.swift",
+    "Features/Library/TagChips.swift", "Shared/CardTags.swift",
+    # the full app's shell: the core has its own (playgrounds_stubs/core)
+    "RedPenApp.swift", "Features/Library/LibraryView.swift", "Features/Library/StudyCategory.swift",
+    "Features/Library/LibraryRows.swift", "Features/Library/CategoryShelves.swift", "Features/Library/CategoryPages.swift",
+    "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift",
+    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/PlatformSettingsSection.swift", "Features/Support/LibraryDataSettingsSection.swift",
+    "Features/Support/StudyReminderSettings.swift", "Features/Auth/LinkDeviceView.swift",
+    "Shared/PreviewExtras.swift",
+]
+CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
+             "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift"]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
     # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
-    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], "graph3d.swift"),
-    "lens": (["Features/Lens", "Shared/Lens"], [], "lens.swift"),          # Study Lens (camera reads a question)
-    "analytics": (["Features/Analytics"], [], "analytics.swift"),          # the Progress screen's rings and charts
+    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], ["graph3d.swift"]),
+    "lens": (["Features/Lens", "Shared/Lens"], [], ["lens.swift"]),          # Study Lens (camera reads a question)
+    "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
+    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core"]),
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"
@@ -37,16 +96,20 @@ if without:
     os.makedirs(stub_dir, exist_ok=True)
     shutil.copy(os.path.join(stubs, "_common.swift"), stub_dir)
     for chunk in without:
-        patterns, keep, stub = CHUNKS[chunk]
+        patterns, keep, stand_ins = CHUNKS[chunk]
         files, lines = 0, 0
         for pattern in patterns:
             whole = os.path.join(root, pattern)
             if os.path.isdir(whole):
                 for folder, _, names in os.walk(whole):
                     for n in names:
+                        if n in keep: continue
+                        path = os.path.join(folder, n)
                         if n.endswith(".swift"):
-                            files += 1; lines += sum(1 for _ in open(os.path.join(folder, n), errors="replace"))
-                shutil.rmtree(whole)
+                            files += 1; lines += sum(1 for _ in open(path, errors="replace"))
+                        os.remove(path)
+                for folder, dirs, names in os.walk(whole, topdown=False):
+                    if not dirs and not names: os.rmdir(folder)
                 continue
             folder = os.path.join(root, os.path.dirname(pattern))
             for n in sorted(os.listdir(folder)):
@@ -54,8 +117,14 @@ if without:
                     path = os.path.join(folder, n)
                     files += 1; lines += sum(1 for _ in open(path, errors="replace"))
                     os.remove(path)
-        shutil.copy(os.path.join(stubs, stub), stub_dir)
-        print(f"without {chunk}: {files} files, {lines} lines left out; {stub} stands in")
+        for stand_in in stand_ins:
+            source = os.path.join(stubs, stand_in)
+            if os.path.isdir(source):
+                for n in sorted(os.listdir(source)):
+                    if n.endswith(".swift"): shutil.copy(os.path.join(source, n), stub_dir)
+            else:
+                shutil.copy(source, stub_dir)
+        print(f"without {chunk}: {files} files, {lines} lines left out; {', '.join(stand_ins)} stand in")
 # always a Samples folder (Bundle.module needs a declared resource), with
 # this build's lectures in it when there are any
 os.makedirs(os.path.join(root, "Samples"), exist_ok=True)
