@@ -293,6 +293,7 @@ final class SyncEngine: ObservableObject {
 
     @Published private(set) var status: Status = .idle
     @Published var copiesKept = 0
+    @Published var lastSyncedAt: Date? = nil
 
     var setsKeptHere: Int { 0 }
 
