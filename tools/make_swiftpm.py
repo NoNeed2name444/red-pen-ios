@@ -1,14 +1,58 @@
-# Usage: make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip [lectures...]
+# Usage: make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip [--without a,b] [lectures...]
 # The name is the package's and the app's (Playgrounds shows it); the bundle id
 # is never renamed with it - a new id would be a new app with an empty library.
-import os, re, shutil, sys, subprocess
-src, name, bundle, out = sys.argv[1:5]
-samples = sys.argv[5:]  # lectures for this build only (never in the repository)
+# --without leaves whole features out of the package (CHUNKS below), each
+# replaced by a small stand-in from tools/playgrounds_stubs, for an iPad whose
+# Swift Playgrounds cannot build the whole app at once. The full app is untouched.
+import fnmatch, os, re, shutil, sys, subprocess
+args = sys.argv[1:]
+without = []
+if "--without" in args:
+    at = args.index("--without")
+    without = [w for w in args[at + 1].split(",") if w]
+    del args[at:at + 2]
+src, name, bundle, out = args[:4]
+samples = args[4:]  # lectures for this build only (never in the repository)
+# What can be left out: the paths (relative to ios/RedPen, fnmatch patterns or
+# folders) and the stub that stands in for them. A chunk is only a chunk if the
+# rest of the app reaches it through the few names its stub provides.
+CHUNKS = {
+    "graph3d": (["Features/Notes/Graph*.swift"], "graph3d.swift"),   # the 3D Ideas map, ~20,000 lines of SceneKit
+    "lens": (["Features/Lens", "Shared/Lens"], "lens.swift"),         # Study Lens (camera reads a question)
+    "analytics": (["Features/Analytics"], "analytics.swift"),         # the Progress screen's rings and charts
+}
+unknown = [w for w in without if w not in CHUNKS]
+assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"
 pkg = f"{name}.swiftpm"
 work = os.path.join(os.path.dirname(out) or ".", "swiftpm_build")
 shutil.rmtree(work, ignore_errors=True)
 root = os.path.join(work, pkg)
 shutil.copytree(src, root, ignore=shutil.ignore_patterns("Tests", "Info.plist", "*.storekit", "*.entitlements"))
+stubs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "playgrounds_stubs")
+if without:
+    stub_dir = os.path.join(root, "Shared", "PlaygroundsStubs")
+    os.makedirs(stub_dir, exist_ok=True)
+    shutil.copy(os.path.join(stubs, "_common.swift"), stub_dir)
+    for chunk in without:
+        patterns, stub = CHUNKS[chunk]
+        files, lines = 0, 0
+        for pattern in patterns:
+            whole = os.path.join(root, pattern)
+            if os.path.isdir(whole):
+                for folder, _, names in os.walk(whole):
+                    for n in names:
+                        if n.endswith(".swift"):
+                            files += 1; lines += sum(1 for _ in open(os.path.join(folder, n), errors="replace"))
+                shutil.rmtree(whole)
+                continue
+            folder = os.path.join(root, os.path.dirname(pattern))
+            for n in sorted(os.listdir(folder)):
+                if fnmatch.fnmatch(n, os.path.basename(pattern)):
+                    path = os.path.join(folder, n)
+                    files += 1; lines += sum(1 for _ in open(path, errors="replace"))
+                    os.remove(path)
+        shutil.copy(os.path.join(stubs, stub), stub_dir)
+        print(f"without {chunk}: {files} files, {lines} lines left out; {stub} stands in")
 # always a Samples folder (Bundle.module needs a declared resource), with
 # this build's lectures in it when there are any
 os.makedirs(os.path.join(root, "Samples"), exist_ok=True)
