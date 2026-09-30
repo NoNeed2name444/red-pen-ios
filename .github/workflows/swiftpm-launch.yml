@@ -60,7 +60,8 @@ jobs:
       - name: A stand-in lecture
         if: matrix.lecture
         run: |
-          python3 -m pip install -q pillow
+          # Homebrew's python refuses a plain install (PEP 668)
+          python3 -m pip install -q --break-system-packages pillow || python3 -m pip install -q --user pillow
           python3 - <<'PY'
           # 45 slides, each with a heading, bullet text and a labelled diagram
           from PIL import Image, ImageDraw, ImageFont
@@ -142,6 +143,7 @@ jobs:
             (cd "$1" && xcodebuild -scheme "Stethoscore Personal" -configuration Debug \
               -destination 'generic/platform=iOS Simulator' -derivedDataPath "$2" \
               -skipMacroValidation -skipPackagePluginValidation ARCHS=arm64 \
+              OTHER_SWIFT_FLAGS='$(inherited) -Xfrontend -warn-long-expression-type-checking=150 -Xfrontend -warn-long-function-bodies=300' \
               build 2>&1 | tee "$3" | grep -E "error:|BUILD |\*\* " | head -100 || true)
             { echo "### ${{ matrix.id }}: build $(basename "$3")"; echo '```'; grep -E "error:|BUILD (SUCCEEDED|FAILED)" "$3" | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -40; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
             grep -q "BUILD SUCCEEDED" "$3"
@@ -219,6 +221,11 @@ jobs:
           cp out/build.log "out/results/${{ matrix.id }}/build.log" 2>/dev/null || true
           cp out/build-current.log "out/results/${{ matrix.id }}/build-current.log" 2>/dev/null && gzip -f "out/results/${{ matrix.id }}/build-current.log" || true
           grep -E "error:|warning:" out/build.log 2>/dev/null | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -200 > "out/results/${{ matrix.id }}/build-issues.txt" || true
+          # Playgrounds compiles on the iPad itself, with far less time than a Mac:
+          # the expressions slowest to type-check here are the ones that would fail there
+          grep -E "took [0-9]+ms to type-check" out/build.log 2>/dev/null | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u \
+            | awk '{ ms = 0; for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+ms$/) ms = $i + 0; print ms "\t" $0 }' | sort -rn | cut -f2- > "out/results/${{ matrix.id }}/typecheck.txt" || true
+          { echo "### ${{ matrix.id }}: slowest to type-check ($(wc -l < "out/results/${{ matrix.id }}/typecheck.txt" | tr -d ' ') over the limits)"; echo '```'; head -25 "out/results/${{ matrix.id }}/typecheck.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY" || true
           gzip -f "out/results/${{ matrix.id }}/build.log" || true
       - uses: actions/upload-artifact@v4
         if: always()
@@ -247,7 +254,7 @@ jobs:
             for b in */; do
               b="${b%/}"
               echo; echo "## $b"
-              echo; echo '```'; cat "$b/status.txt" 2>/dev/null; echo '```'
+              echo; echo '```'; cat "$b/status.txt" 2>/dev/null || echo "(no launches: the job stopped before them)"; echo '```'
               for sc in "$b"/*/*/; do
                 sc="${sc%/}"
                 [ -f "$sc/key.txt" ] || continue
