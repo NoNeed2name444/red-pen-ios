@@ -5,7 +5,9 @@
 // them, and the answer was one OCR line rather than the words the cover hid.
 // These cases are built from synthetic word boxes, the shape Vision reports.
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 var failures: [String] = []
 

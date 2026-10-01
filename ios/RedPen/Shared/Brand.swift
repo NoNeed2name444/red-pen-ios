@@ -1,4 +1,8 @@
+#if canImport(SwiftUI)
 import SwiftUI
+#else
+import Foundation
+#endif
 
 /// The app's own identity, kept in one place.
 ///
@@ -27,6 +31,9 @@ enum Brand {
     static let line = "Listen \u{00B7} Learn \u{00B7} Score"
 
     /// Near-black with a trace of blue: ink on paper, not a pure grey.
+    // the look (SwiftUI only; the name and line above also build on Linux,
+    // where the test suites run)
+    #if canImport(SwiftUI)
     static let ink = Color(red: 0.08, green: 0.09, blue: 0.11)
 
     /// The page. Warm rather than white, so long reading is easy on the eye.
@@ -78,4 +85,5 @@ enum Brand {
             .accessibilityHidden(true)
         }
     }
+    #endif
 }

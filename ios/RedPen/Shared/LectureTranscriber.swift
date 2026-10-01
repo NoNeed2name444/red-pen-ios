@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(Speech)
 import Speech
+#endif
 
 /// Turning a recording into a transcript, on the phone. (Gemini, in
 /// CloudTranscriber, is the default; this is the offline choice and the
@@ -100,6 +102,9 @@ enum LectureTranscriber {
     }
 
     // MARK: the device
+    // (Apple's Speech framework only: the pure parts above also build on Linux,
+    // where the test suites run)
+    #if canImport(Speech)
 
     static func authorize() async -> Bool {
         if SFSpeechRecognizer.authorizationStatus() == .authorized { return true }
@@ -151,6 +156,7 @@ enum LectureTranscriber {
         }
         return lines(from: words)
     }
+    #endif
 }
 
 /// Terms worth telling the recogniser to expect.

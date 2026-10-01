@@ -12,7 +12,9 @@
 import Foundation
 import UIKit
 import ImageIO
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 /// One picture being turned into cards.
 struct PhotoPage: Identifiable {

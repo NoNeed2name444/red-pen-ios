@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 /// The three card shapes: a question with bullet answers, a cloze-deletion
 /// sentence, or an image with a hidden region to identify.

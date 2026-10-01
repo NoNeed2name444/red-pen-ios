@@ -1,7 +1,9 @@
 // Picture cards from your own photo or scan: the size a picture is kept at,
 // covers dragged, stretched, drawn and hit, and the cards the covers make.
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 var failures: [String] = []
 

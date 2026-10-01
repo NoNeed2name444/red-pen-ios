@@ -19,7 +19,9 @@
 // outranks anything the recogniser guesses.
 import Foundation
 import Vision
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 public struct OCRLine {
     public let text: String

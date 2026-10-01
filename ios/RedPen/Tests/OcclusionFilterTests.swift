@@ -4,7 +4,9 @@
 // the lecturer's name and "Slide 12". These cases are the page furniture every
 // lecture template carries, and the labels a student is actually examined on.
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 var failures: [String] = []
 

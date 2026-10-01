@@ -71,8 +71,10 @@ enum LectureAudio {
 
     /// `store(imported:for:)` into a given folder (a test's own).
     static func store(imported source: URL, for setID: UUID, in dir: URL) throws -> URL {
+        #if !os(Linux)  // security scopes are Apple's; the Linux test suites have plain files
         let scoped = source.startAccessingSecurityScopedResource()
         defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        #endif
 
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let destination = dir.appendingPathComponent("\(setID.uuidString).\(ext)")

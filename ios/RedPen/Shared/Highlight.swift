@@ -24,7 +24,11 @@ enum Highlight {
         var out = AttributedString()
         for run in runs(text) {
             var piece = AttributedString(run.text)
+            // (Linux's Foundation has no presentation intents; the test suites
+            // there check runs(_:), which decides what is bold)
+            #if !os(Linux)
             if run.bold { piece.inlinePresentationIntent = .stronglyEmphasized }
+            #endif
             out.append(piece)
         }
         return out

@@ -13,7 +13,9 @@
 // a card about a word that was really part of a caption, which is visible at a
 // glance and gone in one tap.
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 
 enum FigureFinder {
 
