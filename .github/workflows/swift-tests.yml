@@ -232,6 +232,15 @@ jobs:
                 $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
                 $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
                 $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
+          # an explanation's "option B" named by the option's words, since
+          # options are shown shuffled - and a key it contradicts left to flag
+          suite mcqrepair MCQRepairTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+                $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+                $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+                $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+                $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift $S/MCQRepair.swift
           # Anki review essentials: daily limits, suspend and bury, undo that
           # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
           suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \
@@ -257,7 +266,7 @@ jobs:
                 $S/Insight/InsightModels.swift $S/Learn/RetentionForecast.swift $S/Learn/SecuredRule.swift \
                 $S/Learn/ExamWeekPlanner.swift $S/Learn/SymptomBlocks.swift $S/Learn/Pretest.swift $S/Learn/StudyRhythm.swift \
                 $S/Exam/MockPaper.swift $S/Coverage/Syllabus.swift $S/Coverage/CoverageEngine.swift \
-                $S/MCQCoverage.swift $S/MCQGenerator.swift $S/MCQPrompt.swift \
+                $S/MCQCoverage.swift $S/MCQGenerator.swift $S/MCQPrompt.swift $S/MCQRepair.swift \
                 $S/Exam/ExamCatalog.swift $S/Exam/ExamChoice.swift $S/Exam/ExamBlueprint.swift $S/Exam/ExamExemplarData.swift \
                 $S/Exam/ExamExemplars.swift $S/Exam/ExamPrompt.swift $S/Exam/ExamFormats.swift
           # search that finds the item: the index, phrase and word matching,

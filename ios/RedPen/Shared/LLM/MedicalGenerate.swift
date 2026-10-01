@@ -204,7 +204,10 @@ enum MedicalGenerate {
                   let key = LLMText.keyIndex(item["correctIndex"], options: options),
                   MCQGenerator.isValidQuestion(stem: stem, options: options, correctIndex: key) else { continue }
             let explanation: String = item["explanation"] as? String ?? ""
-            var q = MCQQuestion(stem: stem, options: options, correctIndex: key, explanation: explanation)
+            // a position in the explanation ("option B") named by the
+            // option's words instead, since the options are shown shuffled
+            var q = MCQRepair.repaired(MCQQuestion(stem: stem, options: options, correctIndex: key,
+                                                   explanation: explanation))
             // read tolerantly on its own, so a malformed one costs only itself
             // and never the question
             q.differential = item["differential"].flatMap { DifferentialTiers.parse(json: $0) }
