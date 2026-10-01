@@ -2033,7 +2033,11 @@ struct GraphSCNView: UIViewRepresentable {
                 // camera still flying in), so it is asked again for up to 15 s
                 if let i = sim.index[id], let point = screenPoint(i) {
                     previewHoldTries = 0
-                    touch.hold(id, point)
+                    // asked from updateUIView: the hold sets SwiftUI state
+                    // (the options, the choice), which SwiftUI drops during
+                    // its own update, so it lands after it (as apply's does)
+                    let hold: (UUID, CGPoint) -> Void = touch.hold
+                    DispatchQueue.main.async { hold(id, point) }
                 } else if previewHoldTries < 60 {
                     previewHoldTries += 1
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
