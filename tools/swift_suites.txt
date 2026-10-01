@@ -185,6 +185,17 @@ suite chart PatientChartTests.swift $M/MCQQuestion.swift $M/Differential.swift $
       $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
       $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
       $S/PatientChart.swift
+# the question screen as that chart: the header's words, what the card
+# shows of a stem, the highlighter across story and question, how options
+# are marked (never in a timed paper), the bar's words, what VoiceOver hears
+suite chartquiz ChartQuizTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+      $S/PatientChart.swift $F/MCQ/ChartQuiz.swift
 # Anki review essentials: daily limits, suspend and bury, undo that
 # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
 suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \

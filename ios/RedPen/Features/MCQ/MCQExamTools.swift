@@ -49,7 +49,7 @@ extension View {
 
 // MARK: - the highlighter
 
-/// The stem, with the pieces the student marked drawn in highlighter yellow.
+/// The stem, with the pieces the student marked drawn in highlighter amber.
 /// While `highlighting` is on, each piece is its own button: a tap marks or
 /// clears it.
 struct HighlightableStem: View {
@@ -59,8 +59,10 @@ struct HighlightableStem: View {
     let plain: AttributedString
     @Binding var marked: Set<Int>
     let highlighting: Bool
+    /// Whether "Tap a phrase" heads it: once a card, however many parts.
+    var prompt = true
 
-    private static let ink: Color = Color.yellow.opacity(0.45)
+    private static let ink: Color = Color.wardBeam.opacity(0.3)
 
     var body: some View {
         let pieces: [String] = StemPieces.split(stem)
@@ -75,9 +77,11 @@ struct HighlightableStem: View {
 
     private func editing(_ pieces: [String]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label("Tap a phrase to highlight it", systemImage: "highlighter")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            if prompt {
+                Label("Tap a phrase to highlight it", systemImage: "highlighter")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
             ForEach(Array(pieces.enumerated()), id: \.offset) { index, piece in
                 pieceButton(index: index, piece: piece)
             }
@@ -86,7 +90,7 @@ struct HighlightableStem: View {
 
     private func pieceButton(index: Int, piece: String) -> some View {
         let on: Bool = marked.contains(index)
-        let fill: Color = on ? Self.ink : Color.primary.opacity(0.04)
+        let fill: Color = on ? Self.ink : Color.wardInkSecondary.opacity(0.06)
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         return Button {
             UISelectionFeedbackGenerator().selectionChanged()
@@ -126,15 +130,16 @@ struct AttendingHintCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Attending\u{2019}s hint", systemImage: "stethoscope")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
             if let text {
                 Text(text)
                     .font(.body)
+                    .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 HStack(spacing: 8) {
-                    ProgressView()
-                    Text("Thinking it through\u{2026}").foregroundStyle(.secondary)
+                    EcgLoader()
+                    Text("Thinking it through\u{2026}").foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
@@ -145,25 +150,24 @@ struct AttendingHintCard: View {
     }
 }
 
-/// The small Hint button beside Flag: quiet, raised, 44 points tall.
+/// The small Hint button beside Flag: a Ward chip, 44 points tall, lit in
+/// Caution Amber once used.
 struct HintChip: View {
     let used: Bool
+    /// Its word beside the bulb; the bulb alone where room is short.
+    var labelled = true
     let action: () -> Void
 
     var body: some View {
+        let symbol: String = used ? "lightbulb.fill" : "lightbulb"
         Button(action: action) {
-            Label(used ? "Hint shown" : "Hint", systemImage: used ? "lightbulb.fill" : "lightbulb")
-                .labelStyle(.titleAndIcon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(used ? Color.orange : Color.secondary)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(Color.primary.opacity(0.06), in: Capsule())
-                .contentShape(Capsule())
+            if labelled {
+                Label(used ? "Hint shown" : "Hint", systemImage: symbol).labelStyle(.titleAndIcon)
+            } else {
+                Image(systemName: symbol)
+            }
         }
-        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
+        .buttonStyle(WardChipButtonStyle(on: used, tone: .warning))
         .disabled(used)
         .accessibilityLabel(used ? "Hint shown" : "Show a hint")
         .accessibilityHint("The next step in the reasoning, without the answer")

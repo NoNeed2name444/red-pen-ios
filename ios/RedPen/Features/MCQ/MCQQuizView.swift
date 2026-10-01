@@ -181,7 +181,7 @@ struct MCQQuizView: View {
         }
         .examToolSheets($toolSheet)
         .saveToIdeasHost()
-        .navigationTitle(studySet.subject.isEmpty ? "MCQ" : studySet.subject)
+        .navigationTitle(ChartQuiz.title(subject: studySet.subject, name: studySet.name))
         .diagnosticsScreen("screen:mcq_quiz")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -261,7 +261,7 @@ struct MCQQuizView: View {
         let line: String = "You left off \(when) \u{00B7} \(done) of \(total) answered"
         return Label(line, systemImage: "clock.arrow.circlepath")
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -359,7 +359,7 @@ struct MCQQuizView: View {
         let track = ExamTrack.current
         let pace: String = track == .general ? "revision" : track.title
         let note: String = "\(track.secondsPerQuestion) seconds a question (\(pace) pace). Answers wait until the end."
-        let title: String = "Start timed exam \u{00B7} \(Self.clock(examSeconds))"
+        let title: String = "Start timed exam \u{00B7} \(ChartQuiz.clock(examSeconds))"
         return Section(note) {
             Button(title, systemImage: "timer") {
                 startExam()
@@ -393,21 +393,14 @@ struct MCQQuizView: View {
         }
     }
 
-    /// Time left, ticking once a second, red for the last minute - a chip
-    /// in the header, where it is glanced at.
+    /// Time left, ticking once a second, Resus Red for the last minute - the
+    /// timer pill in the header, where it is glanced at.
     private func examClock(_ ends: Date) -> some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let left: Int = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
-            let ink: Color = left <= 60 ? Color.red : Color.primary
-            Label(Self.clock(left), systemImage: "timer")
-                .labelStyle(.titleAndIcon)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(ink)
-                .accessibilityLabel("\(left / 60) minutes \(left % 60) seconds left")
+            WardTimerPill(seconds: left, warnBelow: 61)
+                .accessibilityLabel(ChartQuiz.spokenClock(left))
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 36)
-        .liquidGlassChip(plane: .raised)
     }
 
     /// Before the first answer: one tap turns this into a timed paper. The
@@ -416,19 +409,10 @@ struct MCQQuizView: View {
         let track = ExamTrack.current
         let hint: String = "The whole paper against the clock, \(track.secondsPerQuestion) seconds a question. Answers wait until the end."
         return Button(action: startExam) {
-            Label("Timed", systemImage: "timer")
-                .labelStyle(.titleAndIcon)
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .contentShape(Capsule())
-                .liquidGlassChip()
+            Label("Timed", systemImage: "timer").labelStyle(.titleAndIcon)
         }
-        // lifted by the style, so it sinks flat under the finger
-        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
-        .accessibilityLabel("Start a timed exam, \(Self.clock(examSeconds))")
+        .buttonStyle(WardChipButtonStyle())
+        .accessibilityLabel("Start a timed exam, \(ChartQuiz.clock(examSeconds))")
         .accessibilityHint(hint)
     }
 
@@ -463,12 +447,6 @@ struct MCQQuizView: View {
         finish()
     }
 
-    /// "1:05:00" or "12:30".
-    private static func clock(_ seconds: Int) -> String {
-        let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
-        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
-    }
-
     // MARK: flags
 
     /// Whether this question is one the library keeps, and so can be flagged
@@ -480,78 +458,73 @@ struct MCQQuizView: View {
         }
     }
 
-    private var flagButton: some View {
-        let on = store.flagged.contains(q.id)
+    /// Flag, lit in Caution Amber; its word beside it where there is room.
+    private func flagButton(labelled: Bool) -> some View {
+        let on: Bool = store.flagged.contains(q.id)
+        let symbol: String = on ? "flag.fill" : "flag"
         return Button {
             UISelectionFeedbackGenerator().selectionChanged()
             withAnimation(.snappy) { store.toggleFlag(q.id) }
         } label: {
-            Label(on ? "Flagged" : "Flag", systemImage: on ? "flag.fill" : "flag")
-                .labelStyle(.titleAndIcon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(on ? Color.orange : Color.secondary)
-                .contentTransition(.symbolEffect(.replace))
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(Color.primary.opacity(0.06), in: Capsule())
-                .contentShape(Capsule())
+            if labelled {
+                Label(on ? "Flagged" : "Flag", systemImage: symbol).labelStyle(.titleAndIcon)
+            } else {
+                Image(systemName: symbol)
+            }
         }
-        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
+        .contentTransition(.symbolEffect(.replace))
+        .buttonStyle(WardChipButtonStyle(on: on, tone: .warning))
         .accessibilityLabel(on ? "Remove flag" : "Flag this question")
     }
 
-    /// "Question 3 of 20", with the running score under it - or, in exam
-    /// mode, only how many are answered, since the score is what it holds back.
+    /// The subject is the title (the navigation bar's); under it "Patient 3
+    /// of 20" with the running score - or, in exam mode, only how many are
+    /// answered, since the score is what it holds back - the timer pill, and
+    /// the Pager Amber strip filling as the paper goes on.
     private var header: some View {
         let s = scoreSoFar
-        let total = questions.count
-        let detail: String
-        if examMode {
-            detail = "\(s.checked) answered"
-        } else if pendingResume != nil {
-            detail = "Pick up where you left off?"
-        } else if s.checked == 0 {
-            detail = "Tap the answer you think is right"
-        } else {
-            detail = "\(s.correct) of \(s.checked) right so far"
-        }
-        let status: String = "Question \(current + 1) of \(total)"
-        let fraction: Double = Double(current) / Double(max(1, total))
+        let total: Int = questions.count
+        let detail: String = ChartQuiz.detail(examMode: examMode, resuming: pendingResume != nil,
+                                              correct: s.correct, checked: s.checked)
+        let status: String = ChartQuiz.status(current: current, total: total)
+        let fraction: Double = ChartQuiz.fraction(current: current, total: total)
         return StudyProgressHeader(status, detail: detail, fraction: fraction) {
             headerAccessory
         }
     }
 
-    /// The question itself, with its picture if it has one.
+    /// The question as a patient's chart: PATIENT CHART, Hint and Flag; once
+    /// answered, the accuracy badge; who the patient is, the vitals grid, the
+    /// story, the results table and the question in bold - or, with nothing
+    /// to chart, the stem as plain text - then its picture if it has one.
     private var questionCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 8) {
-                cardTitle
-                Spacer(minLength: 8)
-                if canHint { HintChip(used: hints[q.id] != nil, action: askHint) }
-                if inLibrary(q.id) { flagButton }
-            }
+        let layout: ChartQuiz.Layout = ChartQuiz.layout(q.stem)
+        return VStack(alignment: .leading, spacing: 12) {
+            chartTitle
             // once answered: Verified / Check this / Flagged, and why
             if a.checked && !examMode {
                 AccuracyBadge(set: studySet, itemID: q.id.uuidString)
             }
-            HighlightableStem(stem: q.stem, plain: stemText, marked: highlightBinding,
-                              highlighting: highlighting)
-                .font(.title3.weight(.semibold))
-                .lineSpacing(3)
+            if layout.plain {
+                HighlightableStem(stem: q.stem, plain: plainText(q.stem), marked: highlightBinding,
+                                  highlighting: highlighting)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
+                    .lineSpacing(3)
+            } else {
+                chart(layout)
+            }
             if minReadSeconds > 0 && !a.checked {
                 Label("Slow reading: the key words are marked, and you can answer after \(minReadSeconds) seconds.",
                       systemImage: "eye")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             if let idx = q.imageIndex, idx >= 0, idx < studySet.images.count,
                let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
                let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage).resizable().scaledToFit().frame(maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
             }
         }
         .contentCard()
@@ -559,28 +532,73 @@ struct MCQQuizView: View {
         .id("stem-\(current)")
     }
 
-    /// "Pick the one best answer", shortened when the chips beside it need
-    /// the room - or, on a re-test, saying so.
-    private var cardTitle: some View {
-        let again: Bool = isRetest(current)
-        let full: String = again ? "Second try \u{00B7} pick the best answer" : "Pick the one best answer"
-        let short: String = again ? "Second try" : "Best answer"
-        return ViewThatFits(in: .horizontal) {
-            Text(full)
-            Text(short)
+    /// The chart's parts, each only when the stem gives it - no empty grid
+    /// or table. Story and question are highlighted apart (ChartQuiz.marks).
+    @ViewBuilder
+    private func chart(_ layout: ChartQuiz.Layout) -> some View {
+        if !layout.chips.isEmpty { ChartChipsRow(chips: layout.chips) }
+        if !layout.vitals.isEmpty { ChartVitalsGrid(vitals: layout.vitals) }
+        if !layout.story.isEmpty {
+            HighlightableStem(stem: layout.story, plain: plainText(layout.story),
+                              marked: chartMarks(question: false), highlighting: highlighting)
+                .font(.body)
+                .foregroundStyle(Color.wardInk)
+                .lineSpacing(3)
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.tint)
-        .lineLimit(1)
+        if !layout.labs.isEmpty { ChartLabsTable(labs: layout.labs) }
+        if !layout.question.isEmpty {
+            HighlightableStem(stem: layout.question, plain: plainText(layout.question),
+                              marked: chartMarks(question: true), highlighting: highlighting,
+                              prompt: layout.story.isEmpty)
+                .font(.headline)
+                .foregroundStyle(Color.wardInk)
+                .lineSpacing(3)
+        }
     }
 
-    private var stemText: AttributedString {
-        minReadSeconds > 0 ? Self.highlighted(q.stem) : AttributedString(q.stem)
+    /// PATIENT CHART and its chip - Best answer, or Second try on a re-test -
+    /// then Hint and Flag: with their words where they fit, as symbols where
+    /// they do not, and on a line of their own when even those do not.
+    private var chartTitle: some View {
+        let flaggable: Bool = inLibrary(q.id)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { chartLabel; Spacer(minLength: 8); chartTools(labelled: true, flaggable: flaggable) }
+            HStack(spacing: 8) { chartLabel; Spacer(minLength: 8); chartTools(labelled: false, flaggable: flaggable) }
+            VStack(alignment: .leading, spacing: 8) { chartLabel; chartTools(labelled: false, flaggable: flaggable) }
+        }
+    }
+
+    private var chartLabel: some View {
+        let again: Bool = isRetest(current)
+        return HStack(spacing: 8) {
+            Text("Patient chart").wardSmallCaps().accessibilityAddTraits(.isHeader)
+            WardChip(text: ChartQuiz.kindChip(retest: again), tone: again ? .warning : .blue)
+        }
+    }
+
+    private func chartTools(labelled: Bool, flaggable: Bool) -> some View {
+        HStack(spacing: 8) {
+            if canHint { HintChip(used: hints[q.id] != nil, labelled: labelled, action: askHint) }
+            if flaggable { flagButton(labelled: labelled) }
+        }
+    }
+
+    /// A stem's text when nothing is being marked: in the slow reading
+    /// drill, the key words drawn in Theatre Blue and bold.
+    private func plainText(_ text: String) -> AttributedString {
+        minReadSeconds > 0 ? Self.highlighted(text) : AttributedString(text)
     }
 
     private var highlightBinding: Binding<Set<Int>> {
         let at: Int = current
         return Binding(get: { highlights[at] ?? [] }, set: { highlights[at] = $0 })
+    }
+
+    /// The marks of a chart's story or question, kept in the one set.
+    private func chartMarks(question: Bool) -> Binding<Set<Int>> {
+        let at: Int = current
+        return Binding(get: { ChartQuiz.marks(highlights[at] ?? [], question: question) },
+                       set: { highlights[at] = ChartQuiz.merging($0, question: question, into: highlights[at] ?? []) })
     }
 
     /// Whether the question at `index` is a re-test: the same question
@@ -617,51 +635,29 @@ struct MCQQuizView: View {
         }
     }
 
+    /// One option as a Ward row (WardOptionRow): Theatre Blue once chosen;
+    /// checked, the right one green with a check and a wrong pick red with a
+    /// cross - in a timed paper, only what was chosen (ChartQuiz.mark).
     private func optionRow(_ idx: Int) -> some View {
-        let state = optionState(idx)
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        // the chosen answer stands a little out of the glass; the rest lie on it
-        let plane: PopOutPlane = idx == a.selected ? .raised : .screen
+        let mark: ChartQuiz.Mark = ChartQuiz.mark(slot: idx, selected: a.selected, correct: correctSlot(current),
+                                                  checked: a.checked, examMode: examMode)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let out: Bool = isStruck(idx)
-        // a crossed-out option is dimmed; after checking the right one shows
-        // at full strength whatever was done to it
-        let dim: Double = out && (!a.checked || idx != correctSlot(current)) ? 0.45 : 1
+        let text: String = optionText(current, slot: idx)
         return Button {
             // a crossed-out option is never chosen by a stray tap: restore it first
             guard !a.checked, !out else { return }
             withAnimation(.snappy(duration: 0.2)) { answers[current].selected = idx }
         } label: {
-            HStack(spacing: 12) {
-                Text(letter(idx))
-                    .font(.body.weight(.bold).monospaced())
-                    .foregroundStyle(state.badgeFg)
-                    .frame(width: 32, height: 32)
-                    .background(state.badgeBg, in: Circle())
-                    .accessibilityHidden(true)
-                Text(optionText(current, slot: idx))
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .strikethrough(out, color: .secondary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-                if let mark = state.mark {
-                    Image(systemName: mark).foregroundStyle(state.badgeBg).font(.body.weight(.semibold))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minHeight: 56)
-            .background(state.fill, in: shape)
-            .overlay(shape.strokeBorder(state.border, lineWidth: 1.5))
-            .opacity(dim)
+            WardOptionRow(letter: letter(idx), text: text, mark: mark, struck: out)
         }
-        // the chosen answer is lifted by the style, so it sinks under the finger
-        .buttonStyle(PopPressStyle(plane: plane, shape: shape))
+        .buttonStyle(.pressableRow)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)
         .numberKey(idx + 1)
         .strikeOutGestures(struck: out, enabled: !a.checked) { toggleStrike(idx) }
-        .accessibilityLabel("Answer \(letter(idx)): \(optionText(current, slot: idx))" + (out ? ", crossed out" : ""))
+        .accessibilityLabel("Answer \(letter(idx)): \(text)" + (out ? ", crossed out" : ""))
+        .accessibilityValue(ChartQuiz.spoken(mark) ?? "")
         .accessibilityAddTraits(idx == a.selected ? .isSelected : [])
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
@@ -691,42 +687,20 @@ struct MCQQuizView: View {
         struck[current]?.contains(q.correctIndex) ?? false
     }
 
-    private struct OptionState {
-        var fill: Color, border: Color, badgeBg: Color, badgeFg: Color, mark: String?
-    }
-
-    private func optionState(_ idx: Int) -> OptionState {
-        let tint = StudySetKind.mcq.tint
-        let card = Color(.secondarySystemGroupedBackground)
-        // exam mode keeps showing only what was chosen: right and wrong
-        // wait for the results
-        if !a.checked || examMode {
-            let on = idx == a.selected
-            return OptionState(fill: on ? tint.opacity(0.10) : card,
-                               border: on ? tint : .clear,
-                               badgeBg: on ? tint : Color.primary.opacity(0.07),
-                               badgeFg: on ? .white : .primary, mark: nil)
-        }
-        if idx == correctSlot(current) {
-            return OptionState(fill: .green.opacity(0.12), border: .green, badgeBg: .green, badgeFg: .white, mark: "checkmark.circle.fill")
-        }
-        if idx == a.selected {
-            return OptionState(fill: .red.opacity(0.10), border: .red, badgeBg: .red, badgeFg: .white, mark: "xmark.circle.fill")
-        }
-        return OptionState(fill: card.opacity(0.7), border: .clear, badgeBg: Color.primary.opacity(0.06), badgeFg: .secondary, mark: nil)
-    }
+    /// What Explain scrolls to.
+    private var explainID: String { "explain-\(current)" }
 
     private var explanationBox: some View {
         let correct = isRight(current)
         return VStack(alignment: .leading, spacing: 8) {
             Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
-                .foregroundStyle(correct ? Color.green : Color.red)
+                .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
             if struckTheAnswer {
                 Label("You crossed out the right answer. What made you rule it out?",
                       systemImage: "line.diagonal")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.wardWarning)
             }
             // a passage selected here is saved on its own (Save to Ideas)
             let idea: IdeaClip = ideaClip
@@ -737,6 +711,7 @@ struct MCQQuizView: View {
             SaveToIdeasButton(clip: idea)
         }
         .contentCard()
+        .id(explainID)
         .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
     }
 
@@ -747,27 +722,51 @@ struct MCQQuizView: View {
 
     // MARK: confidence and why a mark was lost
 
-    /// Sure / Maybe / Guess, before checking. None is chosen to begin with,
-    /// and tapping the chosen one again clears it. Marked optional, so
-    /// nobody thinks they have to answer it before they can check.
+    /// How sure? Sure / Maybe / Guess, before checking, on one line where it
+    /// fits. None is chosen to begin with, and tapping the chosen one again
+    /// clears it. Marked optional, so nobody thinks they have to answer it
+    /// before they can check: the tag shows where there is room, and
+    /// VoiceOver always says it.
     private var confidencePicker: some View {
-        let chosen = confidences[q.id]
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text("How sure are you?")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                OptionalTag()
-            }
-            HStack(spacing: 8) {
-                ForEach(AnswerConfidence.allCases) { level in
-                    chip(level.title, symbol: nil, on: chosen == level) {
-                        confidences[q.id] = chosen == level ? nil : level
-                    }
-                }
-            }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { sureLabel(tagged: true); sureChips }
+            HStack(spacing: 8) { sureLabel(tagged: false); sureChips }
+            VStack(alignment: .leading, spacing: 8) { sureLabel(tagged: true); HStack(spacing: 8) { sureChips } }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func sureLabel(tagged: Bool) -> some View {
+        HStack(spacing: 6) {
+            Text("How sure?")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInkSecondary)
+            if tagged { optionalTag }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("How sure are you? Optional")
+    }
+
+    private var sureChips: some View {
+        let chosen: AnswerConfidence? = confidences[q.id]
+        return ForEach(AnswerConfidence.allCases) { level in
+            chip(level.title, symbol: nil, on: chosen == level) {
+                confidences[q.id] = chosen == level ? nil : level
+            }
+        }
+    }
+
+    /// For a question the student can happily skip.
+    private var optionalTag: some View { WardChip(text: "optional", tone: .grey) }
+
+    /// A skippable question's lead line, tagged optional.
+    private func skippable(_ lead: String) -> some View {
+        HStack(spacing: 8) {
+            Text(lead)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInkSecondary)
+            optionalTag
+        }
     }
 
     /// "Why?" under a wrong answer: one tap files the mistake under a reason
@@ -775,12 +774,7 @@ struct MCQQuizView: View {
     private var whyChooser: some View {
         let chosen = reasons[q.id]
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text("Why did you miss it?")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                OptionalTag()
-            }
+            skippable("Why did you miss it?")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(MistakeReason.allCases) { reason in
@@ -815,12 +809,7 @@ struct MCQQuizView: View {
             ? "You were sure, so this is the kind of mistake that comes back. Fix it now:"
             : "Fix it while it\u{2019}s fresh:"
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(lead)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                OptionalTag()
-            }
+            skippable(lead)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     if canRetest {
@@ -838,15 +827,15 @@ struct MCQQuizView: View {
             if retested.contains(id) && !isRetest(current) {
                 Label("It comes back, re-shuffled, a few questions from now.", systemImage: "arrow.uturn.forward")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             if writing {
                 HStack(spacing: 8) {
-                    ProgressView()
-                    Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(.secondary)
+                    EcgLoader()
+                    Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
             } else if let note {
-                Text(note).font(.footnote).foregroundStyle(.secondary)
+                Text(note).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .transition(.opacity)
@@ -907,13 +896,11 @@ struct MCQQuizView: View {
         }
     }
 
-    /// One small choice in the confidence and "why" rows: 44 points tall, so
-    /// it is easy to hit, but quiet, so it never looks like the main button.
+    /// One small choice in the confidence and "why" rows: a Ward chip with a
+    /// 44-point target, so it is easy to hit, but quiet, so it never looks
+    /// like the main button; the chosen one is Theatre Blue.
     private func chip(_ title: String, symbol: String?, on: Bool, action: @escaping () -> Void) -> some View {
-        let tint = StudySetKind.mcq.tint
-        let fill: Color = on ? tint : Color.primary.opacity(0.07)
-        let ink: Color = on ? Color.white : Color.primary
-        return Button {
+        Button {
             UISelectionFeedbackGenerator().selectionChanged()
             withAnimation(.snappy(duration: 0.2)) { action() }
         } label: {
@@ -921,16 +908,8 @@ struct MCQQuizView: View {
                 if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
                 Text(title)
             }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(ink)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 44)
-            .background(fill, in: Capsule())
-            .contentShape(Capsule())
         }
-        .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
+        .buttonStyle(WardChipButtonStyle(on: on))
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 
@@ -946,74 +925,95 @@ struct MCQQuizView: View {
         return out
     }
 
+    /// Where a new patient's chart scrolls back to.
+    private static let chartTop: String = "chart-top"
+
     /// The question, the options and what follows them, scrolling under the
-    /// bar at the bottom.
+    /// bar at the bottom; a new patient starts at the top of the chart.
     private var questionScroll: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if let p = pendingResume { resumeBanner(p) }
-                questionCard
-                hintCard
-
-                VStack(spacing: 12) {
-                    ForEach(q.options.indices, id: \.self) { idx in
-                        optionRow(idx)
-                            .riseIn(index: idx + 1)
-                            .id("\(current)-\(idx)")
-                    }
-                }
-
-                // in exam mode the explanation waits for the results,
-                // as it would in the real paper
-                if a.checked && !examMode { explanationBox }
-
-                if a.checked && !examMode && !isRight(current)
-                    && shuffle && inLibrary(q.id) {
-                    whyChooser
-                    twinOffer
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 1).id(Self.chartTop)
+                    scrollContent
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
-            .readableColumn()
-        }
-        .studyBar { footer }
-    }
-
-    /// While a saved place waits, Start again and Resume; otherwise Back on
-    /// the left, small, and the one big button - Check, then Next - in the
-    /// same place for every question.
-    @ViewBuilder
-    private var footer: some View {
-        if let p = pendingResume {
-            resumeButtons(p)
-        } else {
-            // inside the bar, above the buttons, so it is never hidden under
-            // the bar and is where the thumb already is
-            if !a.checked && shuffle && asksConfidence { confidencePicker }
-            answerButtons
+            .studyBar { footer(proxy) }
+            .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }
         }
     }
 
-    private var answerButtons: some View {
+    private var scrollContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let p = pendingResume { resumeBanner(p) }
+            questionCard
+            hintCard
+
+            VStack(spacing: 10) {
+                ForEach(q.options.indices, id: \.self) { idx in
+                    optionRow(idx)
+                        .riseIn(index: idx + 1)
+                        .id("\(current)-\(idx)")
+                }
+            }
+
+            // in exam mode the explanation waits for the results,
+            // as it would in the real paper
+            if a.checked && !examMode { explanationBox }
+
+            if a.checked && !examMode && !isRight(current)
+                && shuffle && inLibrary(q.id) {
+                whyChooser
+                twinOffer
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+        .readableColumn()
+    }
+
+    /// While a saved place waits, Start again and Resume; otherwise How
+    /// sure? over Back and the one big button - Check answer, then Next
+    /// patient with Explain beside it - in the same place for every question.
+    /// One column, so How sure? sits over the buttons in any bar.
+    private func footer(_ proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 12) {
+            if let p = pendingResume {
+                resumeButtons(p)
+            } else {
+                // inside the bar, above the buttons, so it is never hidden under
+                // the bar and is where the thumb already is
+                if !a.checked && shuffle && asksConfidence { confidencePicker }
+                answerButtons(proxy)
+            }
+        }
+    }
+
+    private func answerButtons(_ proxy: ScrollViewProxy) -> some View {
+        let explains: Bool = ChartQuiz.explains(checked: a.checked, examMode: examMode)
         let symbol: String = a.checked ? "arrow.right" : "checkmark"
         let waiting: Bool = !a.checked && (a.selected == nil || holding)
+        // says what to do, rather than sitting there grey with no reason
+        let title: String = ChartQuiz.primaryTitle(checked: a.checked, picked: a.selected != nil, holding: holding,
+                                                   examMode: examMode, last: current == questions.count - 1)
         return HStack(spacing: 12) {
-            Button { if current > 0 { current -= 1 } } label: {
-                Label("Back", systemImage: "chevron.left")
-            }
-            .buttonStyle(.bigCompanion)
-            .keyboardShortcut(.leftArrow, modifiers: [])
-            .disabled(current == 0)
-            .accessibilityLabel("Previous question")
+            backButton(short: explains)
 
             if span == .broad { Spacer(minLength: 16) }
+
+            if explains {
+                Button("Explain") {
+                    withAnimation(.snappy) { proxy.scrollTo(explainID, anchor: .top) }
+                }
+                .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
+                .accessibilityHint("Scrolls to the explanation")
+            }
 
             Button {
                 withAnimation(.snappy) { onCheckOrNext() }
             } label: {
-                Label(checkButtonTitle, systemImage: symbol)
+                Label(title, systemImage: symbol)
                     .labelStyle(.titleAndIcon)
             }
             .buttonStyle(.bigPrimary)
@@ -1022,14 +1022,20 @@ struct MCQQuizView: View {
         }
     }
 
-    private var checkButtonTitle: String {
-        let last = current == questions.count - 1
-        if holding && !a.checked { return "Keep reading" }
-        // says what to do, rather than sitting there grey with no reason
-        if !a.checked && a.selected == nil { return "Pick an answer" }
-        if examMode && !a.checked { return last ? "Finish paper" : "Next" }
-        if !a.checked { return "Check answer" }
-        return last ? "See results" : "Next"
+    /// Back: with its word before checking, the chevron alone once Explain
+    /// needs the room; the left arrow key either way.
+    private func backButton(short: Bool) -> some View {
+        Button { if current > 0 { current -= 1 } } label: {
+            if short {
+                Image(systemName: "chevron.left")
+            } else {
+                Label("Back", systemImage: "chevron.left")
+            }
+        }
+        .buttonStyle(.bigCompanion)
+        .keyboardShortcut(.leftArrow, modifiers: [])
+        .disabled(current == 0)
+        .accessibilityLabel("Previous question")
     }
 
     private func onCheckOrNext() {
@@ -1104,9 +1110,9 @@ struct MCQQuizView: View {
 }
 
 /// A control that stands out of the glass at `plane` and sinks flat under the
-/// finger, the way BigButtonStyle and PopTileStyle do: the chosen answer, the
-/// confidence and why chips, Flag and Timed. A disabled one sits flat too
-/// (popOut reads isEnabled).
+/// finger, the way PopTileStyle does: the mock paper's options and Flag, the
+/// calculator's keys (this screen's own are on the Ward kit now: WardOptionRow,
+/// WardChipButtonStyle). A disabled one sits flat too (popOut reads isEnabled).
 struct PopPressStyle<S: InsettableShape>: ButtonStyle {
     let plane: PopOutPlane
     let shape: S
