@@ -41,14 +41,16 @@ final class ReviewStore: ObservableObject {
 
     func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let stored = try? JSONDecoder.redPen.decode([UUID: ReviewRecord].self, from: data) else {
+        // card by card: a record this version cannot read costs only itself,
+        // not the whole schedule
+        guard let read = RecoveryFiles.records(ReviewRecord.self, from: data, decoder: .redPen) else {
             // put aside before the next rating writes an empty schedule over it
-            let aside = fileURL.deletingLastPathComponent()
-                .appendingPathComponent("reviews-unreadable-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.copyItem(at: fileURL, to: aside)
+            RecoveryFiles.putAside(fileURL, as: "reviews-unreadable")
             return
         }
-        records = stored
+        // the records left out survive in a copy (Settings > Your data)
+        if read.skipped > 0 { RecoveryFiles.putAside(fileURL, as: "reviews-partly-unreadable") }
+        records = read.values
     }
 
     private func save() {
