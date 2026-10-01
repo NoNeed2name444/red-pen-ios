@@ -203,6 +203,12 @@ enum SpaceWarp {
     }
 }
 
+extension View {
+    /// Keeps the space sounds quiet while a screen records or speaks
+    /// (Shared/Space/SpaceFeedback.swift): there are no sounds here.
+    func spaceSoundsHushed() -> some View { self }
+}
+
 enum PhotonPalette {
     static func colour(_ c: SIMD3<Float>) -> Color {
         Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))
