@@ -52,14 +52,16 @@ export const LIMITS = {
   // A job still "running" that nothing has touched for this long has lost its
   // alarm (the platform gave up retrying it): it ends, with what it has.
   staleHours: 24,
-  // A job kept waiting this long - writing switched off, or every provider
-  // resting - ends too, keeping what it has written.
-  holdHours: 24,
+  // A job kept waiting this long on providers that are all resting ends,
+  // keeping what it has written: a progress bar that stops moving for longer
+  // than this is a frozen screen to the student (older builds do not read
+  // `held`), so the job answers instead.
+  holdMinutes: 10,
 };
 const RETRY_SECONDS = 20;
 /// How often a waiting job looks again whether it may carry on.
 const HOLD_SECONDS = 300;
-const SWITCHED_OFF = 'Background writing is switched off for now; this carries on where it stopped once it is back on.';
+const SWITCHED_OFF = 'Background writing is switched off for now. What was written is kept; start the rest again once it is back on.';
 const CHECK_OFF = 'The cloud check is switched off for now; what was not checked stays Unverified until it is back.';
 const MAX_FAILURES = 4;
 /// A reply in a job may be as long as the job asked for (checkSpec caps it at
@@ -499,9 +501,15 @@ export class GenerationJobs {
       }
       return this.checkStep(job);
     }
-    // writing (or all background work) switched off: no call, nothing spent;
-    // the job keeps its place and carries on when it is back on
-    if (isOff(this.env, 'write') || isOff(this.env, 'jobs')) return this.hold(job, SWITCHED_OFF, HOLD_SECONDS);
+    // writing (or all background work) switched off: no call, nothing spent,
+    // and the job ends at once with what it has - "done", partial, if
+    // anything was written, "failed" with the reason if nothing was - so the
+    // app delivers it and says why, rather than a progress bar left standing
+    // for as long as the switch stays off. A switch can stay off for days.
+    if (isOff(this.env, 'write') || isOff(this.env, 'jobs')) {
+      stop(job, SWITCHED_OFF);
+      return 0;
+    }
     const index = job.mode === 'each' ? job.done : job.round % job.stepCount;
     const step = await this.storage.get(`step:${job.id}:${index}`);
     const source = step.source >= 0 ? (await this.storage.get(`src:${job.id}:${step.source}`)) || '' : '';
@@ -530,7 +538,8 @@ export class GenerationJobs {
         return 0;
       }
       // every provider resting after failing (breakers.js): nothing was
-      // asked or spent, so it is not a failure - the job waits its turn
+      // asked, and chat() gave the request back to the day's allowance, so
+      // it is not a failure - the job waits its turn, for holdMinutes at most
       if (body?.busy) return this.hold(job, message, Number(body.retryAfter) || RETRY_SECONDS);
       job.failures += 1;
       job.error = message;
@@ -664,15 +673,15 @@ export class GenerationJobs {
     return 0;
   }
 
-  /// The job waits instead of calling: writing is switched off, or every
-  /// provider is resting. No failure is counted and nothing is spent; the job
-  /// keeps its place, says why it is waiting (`held`), and carries on from
-  /// where it stopped. Kept waiting past holdHours it ends, keeping what it
-  /// has written - an answer, never a job left spinning for ever.
+  /// The job waits instead of calling: every provider is resting. No failure
+  /// is counted and nothing is spent; the job keeps its place, says why it is
+  /// waiting (`held`), and carries on from where it stopped. Kept waiting past
+  /// holdMinutes it ends, keeping what it has written - an answer, never a
+  /// job left spinning.
   hold(job, reason, seconds) {
     const now = Date.now();
     job.heldSince = job.heldSince || now;
-    if (now - job.heldSince >= LIMITS.holdHours * 3_600_000) {
+    if (now - job.heldSince >= LIMITS.holdMinutes * 60_000) {
       stop(job, reason);
       return 0;
     }

@@ -12,8 +12,9 @@
 // A switched-off feature is refused before anything is read, signed in,
 // spent or queued, with a JSON message the app shows as it is (`off` names
 // the feature) and Retry-After. Nothing a student has is lost: collecting
-// and cancelling background jobs still work, a running job waits (jobs.js),
-// and an item that cannot be checked stays Unverified.
+// and cancelling background jobs still work, a running job ends at once with
+// what it has written and says why (jobs.js), and an item that cannot be
+// checked stays Unverified.
 
 /// The features, the status each is refused with and what the student reads.
 /// The status is chosen by what the app already does with it:

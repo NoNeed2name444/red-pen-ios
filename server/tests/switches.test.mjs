@@ -1,8 +1,8 @@
 // Kill switches (switches.js): an AI feature switched off in the server's
 // configuration is refused with a message the app shows - before anything is
 // read, signed in, spent or queued - and nothing a student already has is
-// lost: jobs can still be collected and cancelled, a running job waits, and
-// what cannot be checked stays Unverified.
+// lost: jobs can still be collected and cancelled, a running job ends with
+// what it wrote and says why, and what cannot be checked stays Unverified.
 //
 // Run: node server/tests/switches.test.mjs
 
@@ -242,7 +242,8 @@ function storage() {
 const jobEnv = off => ({ DB: d1(database()), AI_API_KEY: 'k', STETHOSCORE_OFF: off });
 const get = async (object, id) => (await (await object.fetch(new Request(`https://jobs/get?id=${id}&outputs=1`))).json());
 
-// writing switched off mid-job: it waits, keeps its place, and carries on
+// writing switched off mid-job: it ends at once with what it wrote and says
+// why - never a progress bar left standing while the switch stays off
 {
   const store = storage();
   const env = jobEnv('');
@@ -255,45 +256,30 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
   ok((await get(object, made.job.id)).job.done === 1, 'one card written');
 
   env.STETHOSCORE_OFF = 'write';
-  const before = Date.now();
   await object.alarm();
-  await object.alarm();
-  const held = await get(object, made.job.id);
+  const ended = await get(object, made.job.id);
   ok(calls === 1, 'switched off: no model is asked');
-  ok(held.job.status === 'running' && held.job.done === 1 && /switched off/.test(held.job.held), 'the job waits, says why, keeps what it wrote');
-  ok(held.outputs.length === 1 && !held.job.error, 'nothing is lost and it is not counted as failing');
-  const at = await store.getAlarm();
-  ok(at >= before + 290_000 && at <= Date.now() + 301_000, 'it looks again in five minutes, not every few seconds');
-
-  env.STETHOSCORE_OFF = 'jobs';
+  ok(ended.job.status === 'done' && ended.job.partial && ended.job.done === 1 && /switched off/.test(ended.job.reason),
+     'the job ends at once: done, partial, with the reason the app shows');
+  ok(ended.outputs.length === 1 && ended.job.held === null, 'what was written is there to collect; nothing is left waiting');
   await object.alarm();
-  ok(calls === 1 && (await get(object, made.job.id)).job.status === 'running', 'all background work off: the same wait');
-
-  env.STETHOSCORE_OFF = '';
-  for (let i = 0; i < 5 && (await get(object, made.job.id)).job.status === 'running'; i++) await object.alarm();
-  const done = await get(object, made.job.id);
-  ok(done.job.status === 'done' && done.job.done === 3 && !done.job.partial && done.job.held === null,
-     'switched back on: it carries on from where it stopped and finishes');
+  ok(calls === 1 && (await get(object, made.job.id)).job.status === 'done', 'and nothing more is asked afterwards');
 }
 
-// switched off for longer than a day: it ends, keeping what it wrote
+// all background work switched off before anything was written: failed, with
+// the reason - the app shows it rather than a spinner
 {
   const store = storage();
   const env = jobEnv('');
-  const fake = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 });
+  let calls = 0;
+  const fake = async () => { calls++; return new Response(JSON.stringify({ choices: [{ message: { content: 'Q | A' } }] }), { status: 200 }); };
   const object = new GenerationJobs({ storage: store }, env, fake);
   const spec = checkSpec({ title: 'Cards', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write 1.' }] }).spec;
   const made = await (await object.create({ accountId: 'owner', owner: true, spec })).json();
-  await object.alarm();
-  env.STETHOSCORE_OFF = 'write';
-  await object.alarm();
-  const job = await store.get(`job:${made.job.id}`);
-  job.heldSince = Date.now() - LIMITS.holdHours * 3_600_000 - 1;
-  await store.put(`job:${made.job.id}`, job);
+  env.STETHOSCORE_OFF = 'jobs';
   await object.alarm();
   const ended = await get(object, made.job.id);
-  ok(ended.job.status === 'done' && ended.job.partial && /switched off/.test(ended.job.reason) && ended.outputs.length === 1,
-     'after a day it ends as a partial set the app can collect, with the reason');
+  ok(calls === 0 && ended.job.status === 'failed' && /switched off/.test(ended.job.error), 'nothing written: failed, saying writing is switched off');
 }
 
 // the check switched off while a job is being checked: the writing is handed
@@ -343,6 +329,39 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
   resetBreakers();
   await object.alarm();
   ok((await get(object, made.job.id)).job.status === 'done' && calls === 1, 'the provider back: the job finishes');
+}
+
+// waiting on busy answers costs the student nothing, and is bounded: past
+// holdMinutes the job ends with what it has, rather than a bar that never moves
+{
+  resetBreakers();
+  const store = storage();
+  const env = jobEnv('');
+  const db = env.DB;
+  let calls = 0;
+  const fake = async () => { calls++; return new Response(JSON.stringify({ choices: [{ message: { content: `Q${calls} | A${calls}` } }] }), { status: 200 }); };
+  const object = new GenerationJobs({ storage: store }, env, fake);
+  const spec = checkSpec({ title: 'Cards', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write 1.' }] }).spec;
+  const made = await (await object.create({ accountId: 'a1', owner: false, spec })).json();
+  // a Pro account (an owner id), so the job's calls go through the allowance
+  env.OWNER_ACCOUNT_IDS = 'a1';
+  db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
+  await object.alarm();
+  const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('a1').first()?.requests ?? 0;
+  ok((await get(object, made.job.id)).job.done === 1 && usedNow() === 1, 'one card written, one request counted');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'openai:baichuan-inc/Baichuan-M2-32B:featherless-ai');
+  for (let i = 0; i < 5; i++) await object.alarm();
+  const waiting = await get(object, made.job.id);
+  ok(waiting.job.status === 'running' && /busy/.test(waiting.job.held) && calls === 1, 'the only provider resting: the job waits');
+  ok(usedNow() === 1, "five busy turns: none of the student's day is used");
+  const job = await store.get(`job:${made.job.id}`);
+  job.heldSince = Date.now() - LIMITS.holdMinutes * 60_000 - 1;
+  await store.put(`job:${made.job.id}`, job);
+  await object.alarm();
+  const ended = await get(object, made.job.id);
+  ok(LIMITS.holdMinutes <= 15 && ended.job.status === 'done' && ended.job.partial && /busy/.test(ended.job.reason) && ended.outputs.length === 1,
+     'busy past holdMinutes: it ends as a partial set the app collects, with the reason');
+  resetBreakers();
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
