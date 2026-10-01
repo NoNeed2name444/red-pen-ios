@@ -39,7 +39,13 @@ enum CloudTranscriber {
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
         guard duration.isFinite, duration > 0 else { throw Failure.noAudio }
-        let starts = CloudTranscript.chunkStarts(duration: duration)
+        var starts = CloudTranscript.chunkStarts(duration: duration)
+        // each cut after the first moves back to the quietest moment before
+        // it; a stretch that cannot be read keeps the exact mark
+        for i in starts.indices.dropFirst() {
+            try Task.checkCancellation()
+            starts[i] = await quietCut(in: asset, near: starts[i], after: starts[i - 1])
+        }
         let prompt = CloudTranscript.prompt(vocabulary: vocabulary, language: language)
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("transcribe-\(UUID().uuidString)", isDirectory: true)
@@ -182,6 +188,52 @@ enum CloudTranscriber {
     }
 
     // MARK: cutting the recording
+
+    /// The quietest moment in the few seconds before `edge`, read from the
+    /// recording itself (CloudTranscript.quietestCut decides). Never before
+    /// the chunk it ends has begun; the edge itself when the audio there
+    /// cannot be read.
+    static func quietCut(in asset: AVURLAsset, near edge: Double, after previous: Double) async -> Double {
+        let from = max(previous + 1, edge - CloudTranscript.searchSeconds)
+        guard edge - from > CloudTranscript.frameSeconds,
+              let samples = try? await pcm(of: asset, from: from, length: edge - from) else { return edge }
+        let levels = CloudTranscript.frameLevels(samples, sampleRate: 16000)
+        return CloudTranscript.quietestCut(levels: levels, windowStart: from, edge: edge)
+    }
+
+    /// A few seconds of the recording as 16 kHz mono 16-bit samples.
+    static func pcm(of asset: AVURLAsset, from start: Double, length: Double) async throws -> [Int16] {
+        guard let track = try await asset.loadTracks(withMediaType: .audio).first else { throw Failure.noAudio }
+        let reader = try AVAssetReader(asset: asset)
+        reader.timeRange = CMTimeRange(start: CMTime(seconds: start, preferredTimescale: 600),
+                                       duration: CMTime(seconds: length, preferredTimescale: 600))
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: 16000,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+        ])
+        reader.add(output)
+        guard reader.startReading() else { throw Failure.noAudio }
+        defer { reader.cancelReading() }
+        var samples: [Int16] = []
+        while let buffer = output.copyNextSampleBuffer() {
+            guard let block = CMSampleBufferGetDataBuffer(buffer) else { continue }
+            let count = CMBlockBufferGetDataLength(block) / 2
+            guard count > 0 else { continue }
+            var piece = [Int16](repeating: 0, count: count)
+            let status = piece.withUnsafeMutableBytes { raw -> OSStatus in
+                guard let base = raw.baseAddress else { return kCMBlockBufferBadCustomBlockSourceErr }
+                return CMBlockBufferCopyDataBytes(block, atOffset: 0, dataLength: raw.count, destination: base)
+            }
+            if status == kCMBlockBufferNoErr { samples += piece }
+        }
+        if reader.status == .failed { throw Failure.noAudio }
+        return samples
+    }
 
     /// One stretch of the recording as 16 kHz mono AAC at 32 kbps: all a
     /// voice needs, and small enough to send inline.

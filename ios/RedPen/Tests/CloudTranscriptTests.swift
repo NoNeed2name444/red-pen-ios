@@ -12,12 +12,34 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 
 typealias Phrase = CloudTranscript.Phrase
 
-// chunks
+// chunks: the planned edges, before each is moved to a quiet moment
 check("a short clip is one chunk", CloudTranscript.chunkStarts(duration: 95) == [0])
-check("an hour is six ten-minute chunks", CloudTranscript.chunkStarts(duration: 3600) == [0, 600, 1200, 1800, 2400, 3000])
+check("an hour is planned as six ten-minute chunks", CloudTranscript.chunkStarts(duration: 3600) == [0, 600, 1200, 1800, 2400, 3000])
 check("a few seconds past a boundary join the last chunk",
       CloudTranscript.chunkStarts(duration: 1210) == [0, 600], "\(CloudTranscript.chunkStarts(duration: 1210))")
 check("no audio, no chunks", CloudTranscript.chunkStarts(duration: 0).isEmpty)
+
+// the quiet moment a cut moves back to
+let rate = 16000.0
+func speech(seconds: Double, quietFrom: Double? = nil, quietTo: Double = 0) -> [Int16] {
+    (0..<Int(seconds * rate)).map { i in
+        let t = Double(i) / rate
+        if let from = quietFrom, t >= from, t < quietTo { return Int16(i % 2 == 0 ? 40 : -40) }
+        return Int16(i % 2 == 0 ? 8000 : -8000)
+    }
+}
+let pause = CloudTranscript.frameLevels(speech(seconds: 3, quietFrom: 1.2, quietTo: 1.6), sampleRate: rate)
+check("three seconds are measured in overlapping tenths", pause.count == 59, "\(pause.count)")
+let cut = CloudTranscript.quietestCut(levels: pause, windowStart: 597, edge: 600)
+check("the cut moves back into the pause between words", cut >= 598.2 && cut <= 598.6, "\(cut)")
+let steady = CloudTranscript.frameLevels(speech(seconds: 3), sampleRate: rate)
+let late = CloudTranscript.quietestCut(levels: steady, windowStart: 597, edge: 600)
+check("with no pause the cut stays as late as it can", late > 599.8 && late <= 600, "\(late)")
+check("audio that could not be read keeps the exact mark",
+      CloudTranscript.quietestCut(levels: [], windowStart: 597, edge: 600) == 600)
+check("a sliver too short to measure has no levels", CloudTranscript.frameLevels([1, 2, 3], sampleRate: rate).isEmpty)
+let edgeCut = CloudTranscript.quietestCut(levels: [5, 5, 0], windowStart: 597, edge: 597.1)
+check("a cut never passes the planned edge", edgeCut <= 597.1, "\(edgeCut)")
 
 // the answer
 let reply = """

@@ -20,7 +20,10 @@ enum CloudTranscript {
     /// enough that one failed request costs ten minutes, not the lecture.
     static let chunkSeconds: Double = 600
 
-    /// Where each chunk starts, for a recording this long.
+    /// Where each chunk is planned to start, for a recording this long: every
+    /// ten minutes. Each edge after the first is then moved back to the
+    /// quietest moment just before it (`quietestCut`), once the recording's
+    /// levels there have been read.
     static func chunkStarts(duration: Double) -> [Double] {
         guard duration > 0 else { return [] }
         var starts: [Double] = []
@@ -33,6 +36,46 @@ enum CloudTranscript {
         // a phrase cut in half at the very end is worse than a longer chunk
         if starts.count > 1, duration - starts[starts.count - 1] < 20 { starts.removeLast() }
         return starts
+    }
+
+    // MARK: cutting where nobody is speaking
+
+    /// How far before a planned edge a quieter place to cut is looked for,
+    /// and the stretch whose loudness is measured, as in the transcription
+    /// pipeline (red-pen-transcribe transcribe.py window_bounds). A cut on an
+    /// exact ten-minute mark could fall inside a word, which then arrives in
+    /// neither chunk whole; a pause between words a second or two earlier
+    /// costs nothing.
+    static let searchSeconds: Double = 3
+    static let frameSeconds: Double = 0.1
+
+    /// The loudness of a stretch of 16-bit samples: the mean absolute level of
+    /// each `frameSeconds` frame, a frame starting every half frame.
+    static func frameLevels(_ samples: [Int16], sampleRate: Double) -> [Float] {
+        let frame = max(1, Int((frameSeconds * sampleRate).rounded()))
+        let step = max(1, frame / 2)
+        guard samples.count >= frame else { return [] }
+        var levels: [Float] = []
+        var at = 0
+        while at + frame <= samples.count {
+            var sum = 0
+            for i in at..<(at + frame) { sum += abs(Int(samples[i])) }
+            levels.append(Float(sum) / Float(frame))
+            at += step
+        }
+        return levels
+    }
+
+    /// Where to cut instead of `edge`: the middle of the quietest frame in the
+    /// levels read from `windowStart` on. Of two equally quiet frames the later
+    /// one wins, so a chunk is shortened no more than it has to be. With no
+    /// levels (the recording could not be read there) the edge stays.
+    static func quietestCut(levels: [Float], windowStart: Double, edge: Double) -> Double {
+        guard let quietest = levels.min() else { return edge }
+        let index = levels.lastIndex(of: quietest) ?? 0
+        let step = frameSeconds / 2
+        let cut = windowStart + Double(index) * step + frameSeconds / 2
+        return min(edge, max(windowStart, cut))
     }
 
     /// What Gemini is told, one prompt per language. The app's own rules come
