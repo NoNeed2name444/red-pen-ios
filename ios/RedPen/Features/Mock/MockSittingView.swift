@@ -8,6 +8,7 @@ struct MockSittingView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.windowSpan) private var span
+    @Environment(\.scenePhase) private var phase
 
     @State private var section: Int = 0
     @State private var current: Int = 0
@@ -31,13 +32,62 @@ struct MockSittingView: View {
     @State private var confirmQuit = false
     @State private var result: MockResult?
 
-    init(sitting: MockSitting) {
+    /// A new sitting, or one put back as it was left (`resumed`, from
+    /// MockSittingStore): the same questions, option orders, answers, marks
+    /// and the time that was left on the clock.
+    init(sitting: MockSitting, resumed: MockSittingSave? = nil) {
         self.sitting = sitting
-        var made: [UUID: [Int]] = [:]
-        for pick in sitting.picks.flatMap({ $0 }) {
+        var made: [UUID: [Int]] = resumed?.orders ?? [:]
+        for pick in sitting.picks.flatMap({ $0 }) where made[pick.question.id] == nil {
             made[pick.question.id] = OptionOrder.make(count: pick.question.options.count, shuffle: true)
         }
         _orders = State(initialValue: made)
+        if let resumed {
+            _section = State(initialValue: min(max(0, resumed.section), max(0, sitting.specs.count - 1)))
+            _current = State(initialValue: max(0, resumed.current))
+            _selected = State(initialValue: resumed.selected)
+            _flagged = State(initialValue: resumed.flagged)
+            _struck = State(initialValue: resumed.struck)
+            _highlights = State(initialValue: resumed.highlights)
+            _spent = State(initialValue: resumed.spent)
+            _startedAt = State(initialValue: resumed.startedAt)
+            _onBreak = State(initialValue: resumed.onBreak)
+            _sectionEndsAt = State(initialValue: resumed.secondsLeft.map { Date().addingTimeInterval(max(1, $0)) })
+        }
+    }
+
+    /// What changes as the paper is sat: kept on disk whenever it does.
+    private struct Progress: Equatable {
+        var section: Int
+        var current: Int
+        var selected: [UUID: Int]
+        var flagged: Set<UUID>
+        var struck: [UUID: Set<Int>]
+        var highlights: [UUID: Set<Int>]
+        var onBreak: Bool
+        var sectionEndsAt: Date?
+    }
+
+    private var progress: Progress {
+        Progress(section: section, current: current, selected: selected, flagged: flagged, struck: struck,
+                 highlights: highlights, onBreak: onBreak, sectionEndsAt: sectionEndsAt)
+    }
+
+    /// The sitting as it stands, for MockSittingStore.
+    private var snapshot: MockSittingSave {
+        MockSittingSave(title: sitting.title, specs: sitting.specs,
+                        questionIds: sitting.picks.map { $0.map(\.question.id) },
+                        wanted: sitting.wanted, track: sitting.track.rawValue, passMark: sitting.passMark,
+                        section: section, current: current, selected: selected, orders: orders,
+                        flagged: flagged, struck: struck, highlights: highlights,
+                        secondsLeft: sectionEndsAt.map { max(0, $0.timeIntervalSinceNow) },
+                        onBreak: onBreak, spent: spent, startedAt: startedAt)
+    }
+
+    /// Kept after every change while the paper is open; never once it is marked.
+    private func persist() {
+        guard result == nil else { return }
+        MockSittingStore.save(snapshot)
     }
 
     private var picks: [QuestionPick] {
@@ -63,8 +113,18 @@ struct MockSittingView: View {
         }
         .interactiveDismissDisabled()
         .onAppear {
-            guard sectionEndsAt == nil, result == nil else { return }
+            // a resumed sitting already has its clock, or is between sections
+            guard sectionEndsAt == nil, result == nil, !onBreak else { return }
             startSection()
+        }
+        // on disk after every answer, flag, move and section, and as the app
+        // leaves the screen: iOS may end it in the background at any time
+        .onChange(of: progress) { _, _ in persist() }
+        .onChange(of: phase) { _, new in
+            if new != .active {
+                if sectionEndsAt != nil { noteTime() }
+                persist()
+            }
         }
         // the section closes when its time is up, answered or not
         .task(id: sectionEndsAt) {
@@ -101,7 +161,10 @@ struct MockSittingView: View {
                 Button("End") { confirmQuit = true }
                     .confirmationDialog("End the paper now?", isPresented: $confirmQuit, titleVisibility: .visible) {
                         Button("End and see results", role: .destructive) { finish() }
-                        Button("Leave without results", role: .destructive) { dismiss() }
+                        Button("Leave without results", role: .destructive) {
+                            MockSittingStore.clear()
+                            dismiss()
+                        }
                     } message: {
                         Text("Unanswered questions count as wrong.")
                     }
@@ -502,6 +565,8 @@ struct MockSittingView: View {
         ExamStore.shared.record(MockRecord(title: sitting.title, track: sitting.track.rawValue,
                                            correct: made.correct, total: total, wanted: sitting.wanted,
                                            passMark: passMark, minutesUsed: minutesUsed))
+        // marked and kept in the history: nothing left to resume
+        MockSittingStore.clear()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation(.snappy) {
             onBreak = false

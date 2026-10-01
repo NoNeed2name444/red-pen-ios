@@ -30,6 +30,7 @@ on:
       - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
       - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
       - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
+      - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
@@ -105,6 +106,9 @@ jobs:
           suite storefiles StoreFileTests.swift $S/StoreFiles.swift
           # a replaced lecture recording: the old one goes only once the new one is in
           suite lectureaudio LectureAudioTests.swift $S/LectureAudio.swift
+          # a mock paper left part way comes back as it was left
+          suite mocksave MockSittingSaveTests.swift $F/Mock/MockSittingSave.swift $S/Exam/MockPaper.swift \
+                $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one
