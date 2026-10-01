@@ -97,6 +97,8 @@ jobs:
           # a library file that is there but cannot be read (a launch before the
           # first unlock) is not empty, and a write that did not land is not a save
           suite storefiles StoreFileTests.swift $S/StoreFiles.swift
+          # a replaced lecture recording: the old one goes only once the new one is in
+          suite lectureaudio LectureAudioTests.swift $S/LectureAudio.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

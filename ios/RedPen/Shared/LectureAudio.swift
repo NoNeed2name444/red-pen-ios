@@ -35,9 +35,8 @@ enum LectureAudio {
     }
 
     /// Every file stored for this set, most likely container first.
-    static func recordings(for setID: UUID) -> [URL] {
+    static func recordings(for setID: UUID, in dir: URL = LectureAudio.folder) -> [URL] {
         let stem = setID.uuidString
-        let dir = folder
         let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
         let known = ["m4a", "mp3", "wav", "aac", "caf", "mp4"]
         return names
@@ -58,19 +57,45 @@ enum LectureAudio {
     /// the URL being kept - hold onto the original and it stops working the
     /// moment the picker goes away.
     ///
-    /// Every earlier recording for the set goes first, whatever its
-    /// extension: one left behind under the same name made the copy fail with
-    /// "an item with the same name already exists".
+    /// The new file is copied in beside the old recording first, and only
+    /// once it is all there does it take the old one's place: removing the
+    /// old one first lost the student's only copy whenever the copy failed
+    /// (the disk full, a file that stopped being readable half way). Earlier
+    /// recordings under other extensions go after: one left behind under the
+    /// same name made the copy fail with "an item with the same name already
+    /// exists".
     @discardableResult
     static func store(imported source: URL, for setID: UUID) throws -> URL {
+        try store(imported: source, for: setID, in: folder)
+    }
+
+    /// `store(imported:for:)` into a given folder (a test's own).
+    static func store(imported source: URL, for setID: UUID, in dir: URL) throws -> URL {
         let scoped = source.startAccessingSecurityScopedResource()
         defer { if scoped { source.stopAccessingSecurityScopedResource() } }
 
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
-        let destination = url(for: setID, ext: ext)
-        remove(for: setID)
-        try FileManager.default.copyItem(at: source, to: destination)
-        return destination
+        let destination = dir.appendingPathComponent("\(setID.uuidString).\(ext)")
+        // hidden, and named so it is never taken for one of the set's recordings
+        let incoming = dir.appendingPathComponent(".incoming-\(UUID().uuidString).\(ext)")
+        try FileManager.default.copyItem(at: source, to: incoming)
+        let older = recordings(for: setID, in: dir)
+        let same = older.first { $0.lastPathComponent.lowercased() == destination.lastPathComponent.lowercased() }
+        var placed = destination
+        do {
+            if let same {
+                placed = try FileManager.default.replaceItemAt(same, withItemAt: incoming) ?? same
+            } else {
+                try FileManager.default.moveItem(at: incoming, to: destination)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: incoming)
+            throw error
+        }
+        for there in older where there != same {
+            try? FileManager.default.removeItem(at: there)
+        }
+        return placed
     }
 
     /// The set's recording, gone from the phone. Called when the set is
