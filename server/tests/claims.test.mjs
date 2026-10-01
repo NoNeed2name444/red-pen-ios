@@ -8,14 +8,21 @@
 // 2. The gate: hard findings only where an item restates its lecture and
 //    contradicts it (a flipped negation, another dose, frequency or
 //    percentage); paraphrases, extra detail and other sentences pass.
-// 3. Its work budget: a long page stops at MAX_CHECKS, saying so.
+// 3. Its work budget: a long page stops at its share of MAX_WORK, saying
+//    so; a batch of ordinary items is done well within it; and the worst
+//    batch the server takes stays within a few ms of CPU, cold and warm (the
+//    Worker's free plan gives a request about 10 ms).
+// 4. Python's \b and \w: the cheap ASCII patterns where a text has no other
+//    letters, the Unicode ones where it does, with the same answers.
 //
 // Run: node server/tests/claims.test.mjs
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import * as C from '../claims.js';
+import { claimsStage } from '../accuracy.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -130,9 +137,9 @@ const CASES = [
   const long = { kind: 'note', text: 'Metformin is not first-line in type 2 diabetes. Amoxicillin 500 mg twice daily for otitis media. '.repeat(40),
     source: 'Metformin is first-line in type 2 diabetes. Amoxicillin 500 mg three times daily for otitis media. '.repeat(20) };
   const full = C.claimGate(long);
-  ok(full.checks <= C.MAX_CHECKS, `never more than MAX_CHECKS (${C.MAX_CHECKS}) judgements an item (${full.checks})`);
-  const cut = C.claimGate(long, 2);
-  ok(cut.checks <= 2 && cut.complete === false, 'cut short at its budget, it says so');
+  ok(full.work <= C.MAX_WORK && full.complete === false, `never more work than MAX_WORK (${C.MAX_WORK}) an item (${full.work}, ${full.checks} judgements)`);
+  const cut = C.claimGate(long, 2 * C.VERIFY_WORK);
+  ok(cut.checks <= 2 && cut.work <= 2 * C.VERIFY_WORK && cut.complete === false, 'cut short at its budget, it says so');
   const none = C.claimGate(long, 0);
   ok(none.checks === 0 && !none.hard.length && none.complete === false, 'no budget at all: nothing judged, nothing found, and not complete');
   let started = performance.now();
@@ -143,6 +150,65 @@ const CASES = [
   const before = JSON.stringify(C.claimGate(CASES[0][2] && { source: CASES[0][1], ...CASES[0][2] }));
   C.claimGate(long);
   ok(JSON.stringify(C.claimGate({ source: CASES[0][1], ...CASES[0][2] })) === before, 'the same item, the same findings, whatever ran before');
+}
+
+// the worst batch the server takes: four notes of MAX_ITEM_CHARS (3,500),
+// every sentence a dose that restates one of its lecture's (MAX_SOURCE_CHARS,
+// 1,400) with another dose and frequency - and an ordinary batch: a
+// question, two cards and a note against one full lecture
+const WORST = `
+const drugs = ['amoxicillin', 'paracetamol', 'ibuprofen', 'metformin', 'gentamicin', 'vancomycin', 'ceftriaxone', 'furosemide', 'digoxin', 'warfarin',
+  'heparin', 'insulin', 'lithium', 'phenytoin', 'morphine', 'codeine', 'aspirin', 'clopidogrel', 'atenolol', 'ramipril'];
+const conds = ['pneumonia', 'cellulitis', 'meningitis', 'pyelonephritis', 'osteomyelitis', 'endocarditis', 'sepsis', 'cholangitis', 'peritonitis', 'arthritis',
+  'gastritis', 'pancreatitis', 'bronchitis', 'sinusitis', 'otitis', 'mastitis', 'prostatitis', 'colitis', 'hepatitis', 'nephritis'];
+const line = (i, dose, h) => 'For ' + conds[i % 20] + ' in elderly adults, ' + drugs[i % 20] + ' ' + dose + ' mg every ' + h + ' hours, and ' + (10 + i) + '% improve.';
+const fill = (k, max, dose, h) => { let t = '', i = 0; while ((t + line(i + k, dose, h)).length < max) t += line(i++ + k, dose, h) + ' '; return t; };
+const worst = [0, 1, 2, 3].map(k => ({ id: 'w' + k, kind: 'note', text: fill(k * 5, 3500, 250, 6), source: fill(k * 5, 1400, 500, 8) }));`;
+const lecture = 'Metformin is first-line in type 2 diabetes. Start metformin 500 mg once daily with food and increase the dose every week to reduce gastrointestinal side effects. The usual maximum dose of metformin is 2 g daily in divided doses. Metformin is contraindicated when the eGFR is below 30. Lactic acidosis is a rare but serious adverse effect of metformin. Sulfonylureas such as gliclazide cause hypoglycaemia and weight gain. Gliclazide 40 mg once daily is the usual starting dose in adults. SGLT2 inhibitors reduce cardiovascular events in patients with established heart failure. Pioglitazone causes fluid retention and is avoided in heart failure. DPP-4 inhibitors are weight neutral. HbA1c should be checked every 3 months until stable. Insulin is started when HbA1c stays above target despite oral therapy.';
+const ordinary = [
+  { id: 'a', kind: 'mcq', stem: 'First-line drug in type 2 diabetes?', options: ['Gliclazide', 'Metformin', 'Insulin', 'Pioglitazone'], key: 1,
+    explanation: 'Metformin is first-line in type 2 diabetes. Start metformin 500 mg twice daily with food and increase the dose every week to reduce gastrointestinal side effects.', source: lecture },
+  { id: 'b', kind: 'card', text: 'Q: Usual starting dose of gliclazide in adults?\nA: Gliclazide 80 mg once daily is the usual starting dose in adults.', source: lecture },
+  { id: 'c', kind: 'card', text: 'Q: Metformin and renal function?\nA: Metformin is contraindicated when the eGFR is below 30.', source: lecture },
+  { id: 'd', kind: 'note', text: 'Pioglitazone causes fluid retention and is avoided in heart failure. SGLT2 inhibitors reduce cardiovascular events in patients with established heart failure. HbA1c should be checked every 6 months until stable. DPP-4 inhibitors are weight neutral.', source: lecture },
+];
+{
+  const worst = new Function(`${WORST}\nreturn worst;`)();
+  ok(worst.every(i => i.text.length <= 3500 && i.text.length > 3400 && i.source.length <= 1400 && i.source.length > 1300), 'the worst batch is as long as the server lets it be');
+  const w = claimsStage(worst).value;
+  ok(w.reduce((n, g) => n + g.work, 0) <= C.MAX_WORK, `the worst batch shares MAX_WORK (${w.map(g => g.work).join('+')} units, ${w.map(g => g.checks).join('+')} judgements)`);
+  ok(w.some(g => g.hard.length) && w.every(g => !g.complete), 'and finds what it reaches, saying it stopped short');
+  const o = claimsStage(ordinary).value;
+  ok(o.every(g => g.complete), `an ordinary batch is gated to the end within the budget (${o.map(g => g.work).join('+')} units of ${C.MAX_WORK})`);
+  ok(o.map(g => g.hard.map(f => f.code).join('+')).join() === 'frequency,dose,,', `and finds the changed dose and dose frequency, and nothing in the rest (${o.map(g => g.hard.map(f => f.code).join('+') || '-').join(', ')})`);
+  // CPU, warm: the median of 30 runs
+  const warm = batch => { const t = []; for (let i = 0; i < 30; i++) { const a = performance.now(); claimsStage(batch); t.push(performance.now() - a); } return t.sort((x, y) => x - y)[15]; };
+  for (let i = 0; i < 20; i++) claimsStage(worst);
+  const wms = warm(worst), oms = warm(ordinary);
+  console.log(`     warm: the worst batch ${wms.toFixed(1)} ms, an ordinary one ${oms.toFixed(1)} ms`);
+  ok(wms < 8 && oms < 8, 'warm, a batch takes a few ms of CPU at most (about 3 here; generous for a slow runner)');
+  // CPU, cold: the first batch of a fresh isolate, the gate's patterns and
+  // code compiled on the way (Unicode \b alone was about 100 ms of it)
+  const accuracy = new URL('../accuracy.js', import.meta.url).href;
+  const cold = Number(execFileSync(process.execPath, ['--input-type=module', '-e',
+    `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst a = performance.now(); claimsStage(worst); console.log(performance.now() - a);`]).toString().trim());
+  console.log(`     cold: the worst batch ${cold.toFixed(1)} ms`);
+  ok(cold < 50, 'cold, the worst batch is a few tens of ms at most, not the 130 it was (about 15 here)');
+}
+
+// MARK: 4. Python's \b and \w, cheaply
+
+{
+  // ASCII text, and text whose only other characters are not letters or
+  // digits, read with the ASCII patterns; letters beyond ASCII with the Unicode ones
+  ok(C.frequencyMultiplier('take it daily') === 1 && C.frequencyMultiplier('take it daily – ≥ 2') === 1, 'ASCII, and symbols beyond it: a word ends where a symbol starts');
+  ok(C.frequencyMultiplier('take it dailyé') === null, 'a letter beyond ASCII is part of the word, as in Python: "dailyé" is not "daily"');
+  ok(C.frequencyMultiplier('é bid') === 2 && C.frequencyMultiplier('ébid') === null, 'and before it too');
+  ok(JSON.stringify(C.quantities('5 mgé then 10 mg')) === '[[10,"mg"]]' && JSON.stringify(C.quantities('5 mg then 10 mg')) === '[[5,"mg"],[10,"mg"]]',
+     'every match in a text, either way');
+  ok(C.NEGATION.test('NOT given') && !C.NEGATION.test('nothing given') && C.NEGATION.test('été not given'), 'a case-blind pattern either way');
+  const astral = 'daily \u{1F48A}';
+  ok(C.frequencyMultiplier(astral) === 1, 'a character beyond the Basic Multilingual Plane takes the Unicode path, and the same answer');
 }
 
 console.log(failures ? `\n${failures} CLAIM GATE FAILURE(S)` : '\nALL CLAIM GATE TESTS PASS');

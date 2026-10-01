@@ -42,13 +42,51 @@
 // only ASCII's: py() gives a pattern Python's meaning of them.
 const WORD = '[\\p{L}\\p{N}_]';
 const BOUNDARY = `(?:(?<=${WORD})(?!${WORD})|(?<!${WORD})(?=${WORD}))`;
-const py = (source, flags = '') => new RegExp(source.replaceAll('\\b', BOUNDARY).replaceAll('\\w', WORD), `${flags}u`);
+// Unicode \b and \w cost V8 about 2 ms each to compile, on first use, in
+// every fresh isolate - some 100 ms for the gate's patterns, ten times the
+// free plan's CPU for a request. Where a text has no letter or digit outside
+// ASCII (and no astral character) the ASCII meanings are the same as the
+// Unicode ones, and cost nothing to compile; so each pattern is kept both
+// ways, and the Unicode one is only built for a text that needs it.
+const UNICODE_WORDY = /[^\x00-\x7f\P{L}]|[^\x00-\x7f\P{N}]|[\u{10000}-\u{10ffff}]/u;
+const asciiWords = text => !/[^\x00-\x7f]/.test(text) || !UNICODE_WORDY.test(text);
+class PyRegExp extends RegExp {
+  constructor(source, flags = '') {
+    // matchAll and split make copies through this constructor, with the copy's flags
+    const plain = source instanceof PyRegExp ? source.plain.source : String(source);
+    const bare = flags.replace('u', '');
+    super(plain, bare);
+    this.plain = new RegExp(plain, bare);
+    this.full = null;
+    this.bare = bare;
+  }
+  exec(text) {
+    const s = String(text);
+    const regex = asciiWords(s) ? this.plain
+      : (this.full ||= new RegExp(this.plain.source.replaceAll('\\b', BOUNDARY).replaceAll('\\w', WORD), `${this.bare}u`));
+    regex.lastIndex = this.lastIndex;
+    const found = regex.exec(s);
+    this.lastIndex = regex.lastIndex;
+    return found;
+  }
+}
+const py = (source, flags = '') => new PyRegExp(source, flags);
 const r = String.raw;
 
 // str.split()'s whitespace, and " ".join(text.split())
 const PY_SPACE = /[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/u;
 const squash = text => String(text).split(PY_SPACE).filter(Boolean).join(' ');
-const allOf = (text, regex) => [...String(text).matchAll(regex)];
+/// [...text.matchAll(regex)] for a global regex, without the copy of the
+/// regex matchAll makes each time.
+const allOf = (text, regex) => {
+  const s = String(text), out = [];
+  regex.lastIndex = 0;
+  for (let m = regex.exec(s); m; m = regex.exec(s)) {
+    out.push(m);
+    if (!m[0]) regex.lastIndex += s.codePointAt(regex.lastIndex) > 0xffff ? 2 : 1;
+  }
+  return out;
+};
 const unique = list => [...new Set(list)];
 const sorted = list => [...list].sort();
 const subset = (a, b) => [...a].every(x => b.has(x));
@@ -63,9 +101,10 @@ const ASCII_TOKEN = /[a-z0-9'-]+/g;
 let memo = null;
 const remembered = (name, fn) => text => {
   if (!memo) return fn(text);
-  const key = `${name}|${text}`;
-  if (!memo.has(key)) memo.set(key, fn(text));
-  return memo.get(key);
+  let known = memo.get(name);
+  if (!known) memo.set(name, known = new Map());
+  if (!known.has(text)) known.set(text, fn(text));
+  return known.get(text);
 };
 
 // MARK: entity_normalization.py
@@ -294,7 +333,7 @@ const MULTILINGUAL = [
 
 const replaceAll = (text, pairs) => pairs.reduce((t, [from, to]) => t.split(from).join(to), text);
 
-export const normalizeMultilingual = text => replaceAll(String(text).toLowerCase(), MULTILINGUAL);
+export const normalizeMultilingual = remembered('multilingual', text => replaceAll(String(text).toLowerCase(), MULTILINGUAL));
 export const normalizeDoubleNegation = remembered('logic', text => replaceAll(normalizeMultilingual(text), DOUBLE_NEGATION_EQUIVALENTS));
 
 /// The words of four letters or more.
@@ -725,7 +764,7 @@ const DETAIL = new Set(['once', 'twice', 'three', 'four', 'time', 'daily', 'ever
 
 /// A sentence's content words: four letters or more, a plural's "s"
 /// dropped, and no bare numbers, filler, negation or dose details.
-function content(text) {
+const content = remembered('content', text => {
   const out = new Set();
   for (const word of String(text).toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
     if (word.length < 4 || /^\d+$/.test(word) || FILLER.has(word) || NEGATING.has(word)) continue;
@@ -733,7 +772,7 @@ function content(text) {
     if (!DETAIL.has(stem)) out.add(stem);
   }
   return out;
-}
+});
 
 const DIMENSION = { mg: 'mass', g: 'mass', mcg: 'mass', ug: 'mass', ml: 'volume', l: 'volume' };
 const doseCount = text => quantities(String(text).toLowerCase()).filter(([, u]) => DIMENSION[u] === 'mass').length;
@@ -819,56 +858,101 @@ export function conflicts(claim, source, judged = verify(claim, source)) {
 }
 
 /** @typedef {{ code: string, claim: string, source: string }} ClaimFinding */
-/** @typedef {{ hard: ClaimFinding[], soft: ClaimFinding[], checks: number, complete: boolean }} ClaimFindings */
+/** @typedef {{ hard: ClaimFinding[], soft: ClaimFinding[], checks: number, work: number, complete: boolean }} ClaimFindings */
 
 const LIMIT = 5;
-/// How many sentence pairs the gate may judge for one item. The Worker has
-/// about 10 ms of CPU a request on the free plan, and a Worker's clock
-/// stands still while it computes, so the gate's budget is counted in work,
-/// not read off a clock: a long page against its lecture stops here, with
-/// what it found so far (never more than the votes would have had without
-/// it).
-export const MAX_CHECKS = 120;
+/// The gate's budget for a batch, counted in work, not read off a clock: a
+/// Worker's clock stands still while it computes, and the free plan gives a
+/// request about 10 ms of CPU, most of it for the rest of the check. A
+/// statement of the item looked at, and each statement of the lecture it is
+/// compared with, is a unit of work (about 5 microseconds); a judgement
+/// (verify(), about 120) is VERIFY_WORK units. The worst batch the server
+/// takes - four items of MAX_ITEM_CHARS, every sentence a dose, against
+/// lectures of MAX_SOURCE_CHARS - comes to about 3 ms warm, and a batch of
+/// ordinary cards and questions is done well within it
+/// (tests/claims.test.mjs holds it to both). A long page stops at its share,
+/// with what it found so far (never more than the votes would have had
+/// without it) and `complete` false.
+export const MAX_WORK = 1200;
+export const VERIFY_WORK = 30;
+/// How many sentences of an item, and of its lecture, the gate reads: the
+/// first so many. Each is worked out (split into clauses and words, its
+/// doses read) before any pair is compared.
+export const MAX_SENTENCES = 20;
 const excerpt = s => (s.length > 160 ? `${s.slice(0, 157)}...` : s);
+
+/// What mayBack() needs of a statement, worked out once: its words and its
+/// daily dose.
+function backing(text) {
+  const logic = normalizeDoubleNegation(text);
+  return { tokens: tokens(logic), daily: dailyDoseEquivalent(logic) };
+}
 
 /// Could verify() say SUPPORTS at all: half the claim's words in the
 /// statement, or the same daily dose (its own first test, done cheaply).
 function mayBack(claim, statement) {
-  const a = tokens(normalizeDoubleNegation(claim)), b = tokens(normalizeDoubleNegation(statement));
+  const a = claim.tokens, b = statement.tokens;
   if (a.size && [...a].filter(t => b.has(t)).length / a.size >= 0.5) return true;
-  const x = dailyDoseEquivalent(normalizeDoubleNegation(claim)), y = dailyDoseEquivalent(normalizeDoubleNegation(statement));
+  const x = claim.daily, y = statement.daily;
   return x !== null && y !== null && Math.abs(x - y) < 1e-9;
+}
+
+/// Run `fn` with each text's facts worked out once throughout - a batch's
+/// items often share their lecture. Nested calls share the outer memo.
+export function remembering(fn) {
+  if (memo) return fn();
+  memo = new Map();
+  try {
+    return fn();
+  } finally {
+    memo = null;
+  }
 }
 
 /// The claim gate for one item: each of its statements against those of its
 /// lecture that it restates - unless any statement of the lecture backs it
 /// as it is (a lecture can give a loading dose and a daily one). Nothing to
 /// say without a lecture, or where nothing is restated. Each finding once a
-/// sentence; at most MAX_CHECKS judgements (`complete` false when it
-/// stopped there).
+/// sentence; at most `maxWork` units of work (`complete` false when it
+/// stopped there, or when the item or its lecture had more than
+/// MAX_SENTENCES sentences). `work` is what it used, `checks` how many
+/// judgements it made.
 /** @returns {ClaimFindings} */
-export function claimGate(item, maxChecks = MAX_CHECKS) {
-  memo = new Map();
-  try {
-    return gate(item, maxChecks);
-  } finally {
-    memo = null;
-  }
+export function claimGate(item, maxWork = MAX_WORK) {
+  return remembering(() => gate(item, maxWork));
 }
 
-function gate(item, maxChecks) {
-  const out = { hard: [], soft: [], checks: 0, complete: true };
-  const lecture = statements(clean(item?.source || '')).map(s => ({ ...s, words: content(s.text) }));
+/// A lecture's statements (its first MAX_SENTENCES sentences), each with its
+/// content words; once a batch, when the batch's items share it.
+const lectureOf = remembered('lecture', source => {
+  const read = sentences(clean(source));
+  const lecture = statements(read.slice(0, MAX_SENTENCES).join('\n')).map(s => ({ ...s, words: content(s.text) }));
+  return { lecture, cut: read.length > MAX_SENTENCES };
+});
+
+function gate(item, maxWork) {
+  const out = { hard: [], soft: [], checks: 0, work: 0, complete: true };
+  const { lecture, cut } = lectureOf(String(item?.source || ''));
   if (!lecture.length) return out;
-  const judge = (claim, source) => { out.checks++; return verify(claim, source); };
+  const claims = itemClaims(item);
+  const said = statements(claims.slice(0, MAX_SENTENCES).join('\n'));
+  if (cut || claims.length > MAX_SENTENCES) out.complete = false;
+  const judge = (claim, source) => { out.checks++; out.work += VERIFY_WORK; return verify(claim, source); };
   const seen = new Set();
-  for (const { text: claim, sentence } of statements(itemClaims(item).join('\n'))) {
+  for (const { text: claim, sentence } of said) {
+    // each step's work is counted before it is done, so an item never uses
+    // more than it was given
     const words = content(claim);
     const near = lecture.filter(s => [...words].some(w => s.words.has(w)));
+    if (out.work + 1 + near.length > maxWork) { out.complete = false; break; }
+    out.work += 1 + near.length;
     const restated = near.filter(s => restates(claim, s.text));
     if (!restated.length) continue;
-    const backers = near.filter(s => mayBack(claim, s.text));
-    if (out.checks + backers.length + restated.length > maxChecks) { out.complete = false; break; }
+    if (out.work + near.length > maxWork) { out.complete = false; break; }
+    out.work += near.length;
+    const facts = backing(claim);
+    const backers = near.filter(s => mayBack(facts, s.backing ||= backing(s.text)));
+    if (out.work + (backers.length + restated.length) * VERIFY_WORK > maxWork) { out.complete = false; break; }
     if (backers.some(s => judge(claim, s.text).label === 'SUPPORTS')) continue;
     for (const { text: source } of restated) {
       const found = conflicts(claim, source, judge(claim, source));

@@ -63,8 +63,14 @@ sentence but flips its negation or gives another dose, frequency or
 percentage, it is never Verified - Check this at best - and the reply carries
 `claims: { hard, soft }`; what else the guards notice (a wider scope, a cause
 read from an association) is reported as soft and changes nothing. It is
-counted in work, not time (`MAX_CHECKS` judgements a batch), and a gate that
-fails holds the item at Check this. `tests/claims.test.mjs` holds the port to
+counted in work, not time (`MAX_WORK` units a batch, a judgement costing
+`VERIFY_WORK`; the first `MAX_SENTENCES` sentences of an item and of its
+lecture), since a Worker's clock stands still while it computes and the free
+plan gives a request about 10 ms of CPU: the worst batch the server takes
+costs about 3 ms warm and 15 ms in a fresh isolate (where Python's Unicode
+`\b` would have cost 100 ms to compile, so each pattern also has an ASCII
+form used for text without letters beyond ASCII). A page cut short says so
+(`partial`), and a gate that fails holds the item at Check this. `tests/claims.test.mjs` holds the port to
 what the Python said on its 35 shared conformance vectors and on
 Stethoscore-shaped pairs (`tests/claim-vectors.json`, made by
 `bench/claim-vectors.py` from a checkout of the verifier).

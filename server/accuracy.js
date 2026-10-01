@@ -35,7 +35,7 @@ import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
 import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights, isOath, oathClaims } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
-import { claimGate, MAX_CHECKS } from './claims.js';
+import { claimGate, MAX_WORK, remembering } from './claims.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -289,7 +289,7 @@ export function suggestedFix(item, votes) {
 //             guards): each item against its own lecture, sentence by
 //             sentence, before any vote; a hard finding (a flipped negation,
 //             another dose, frequency or percentage) keeps it from Verified.
-//             Pure, and counted in work (MAX_CHECKS judgements a batch),
+//             Pure, and counted in work (MAX_WORK units a batch),
 //             since a Worker's clock stands still while it computes; a gate
 //             that fails holds the item at Check this at best
 //   lookup    each item's cached signals, by its hash; out of time or
@@ -334,7 +334,7 @@ export const STAGES = ['rules', 'claims', 'lookup', 'evidence', 'votes', 'jev', 
 /// have waited for and used.
 export const BUDGETS = {
   rules: 250,       // the batch; pure, so measured, not enforced
-  claims: 250,      // the batch; pure, so measured - and bounded by MAX_CHECKS
+  claims: 250,      // the batch; pure, so measured - and bounded by MAX_WORK
   lookup: 5_000,    // each item's cached verdict, all at once
   evidence: 8_000,  // each item's literature, all at once
   votes: 125_000,   // each voter, one after another (MAX_CALLS of them at most)
@@ -381,27 +381,31 @@ export function rulesStage(items, budget = BUDGETS.rules) {
 }
 
 /// claims: the claim gate on every item, before any vote. The batch shares
-/// MAX_CHECKS judgements, each item taking an even share of what is left
-/// (what one leaves unused goes to the next). An item the gate fails on is
-/// held back from Verified (a hard 'gate_failed'), never let through.
+/// MAX_WORK units of work: an item may use what is left but half an even
+/// share for each item after it (so one long page cannot starve the rest,
+/// and what an item leaves goes to the next), and the items' facts are
+/// worked out once for the batch (they often share a lecture). An item the
+/// gate fails on is held back from Verified (a hard 'gate_failed'), never let
+/// through.
 /** @returns {StageResult<ClaimFindings[]>} */
-export function claimsStage(items, budget = BUDGETS.claims, maxChecks = MAX_CHECKS, gate = claimGate) {
+export function claimsStage(items, budget = BUDGETS.claims, maxWork = MAX_WORK, gate = claimGate) {
   const started = Date.now();
   const statuses = [];
-  let left = maxChecks;
-  const found = items.map((item, n) => {
-    const share = Math.floor(left / (items.length - n));
+  let left = maxWork;
+  const kept = Math.floor(maxWork / items.length / 2);
+  const found = remembering(() => items.map((item, n) => {
+    const share = Math.max(0, left - kept * (items.length - n - 1));
     try {
       const g = gate(item, share);
-      left -= g.checks;
+      left -= g.work ?? 0;
       statuses.push('ok');
       return g;
     } catch (error) {
       console.error('accuracy claim gate', error);
       statuses.push('error');
-      return { hard: [{ code: 'gate_failed', claim: '', source: '' }], soft: [], checks: 0, complete: false };
+      return { hard: [{ code: 'gate_failed', claim: '', source: '' }], soft: [], checks: 0, work: 0, complete: false };
     }
-  });
+  }));
   return ended('claims', statuses, started, budget, found);
 }
 
@@ -511,7 +515,7 @@ export async function cacheStage(env, writes, budget = BUDGETS.cache) {
 
 /// POST /accuracy/check: the stages above, in order. `budgets` and
 /// `onStage` (each stage's result as it ends) are for tests and benches.
-export async function checkBatch(env, account, body, fetcher = fetch, { owner = false, bench = false, budgets = {}, onStage = null, maxChecks = MAX_CHECKS, gate = claimGate } = {}) {
+export async function checkBatch(env, account, body, fetcher = fetch, { owner = false, bench = false, budgets = {}, onStage = null, maxWork = MAX_WORK, gate = claimGate } = {}) {
   if (!owner) {
     const refused = await proGate(env, account, fetcher, 'The accuracy check is part of Pro.');
     if (refused) return refused;
@@ -544,7 +548,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const unchecked = reason => outcomes.map(o => o || { from: 'none', signals: null, reason });
 
   const rules = done(rulesStage(items, budget.rules));
-  const claims = done(claimsStage(items, budget.claims, maxChecks, gate));
+  const claims = done(claimsStage(items, budget.claims, maxWork, gate));
   const cached = done(await lookupStage(env, hashes, budget.lookup));
   cached.forEach((signals, i) => { if (signals) outcomes[i] = { from: 'cache', signals }; });
   const todo = items.map((_, i) => i).filter(i => !cached[i]);

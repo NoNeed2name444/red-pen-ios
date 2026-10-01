@@ -444,7 +444,7 @@ function firstDifference(a, b, path = '') {
     const r = await checkBatch(w.env, 'owner', { items }, w.fetcher, { owner: true, onStage: s => trace.push(s), ...opts });
     return { r, body: await r.json(), trace, at: name => trace.find(s => s.stage === name), w };
   };
-  const quiet = () => ({ hard: [], soft: [], checks: 0, complete: true });
+  const quiet = () => ({ hard: [], soft: [], checks: 0, work: 0, complete: true });
   const open = await run([FLIP, DOSED, Q1], { gate: quiet });
   ok(open.body.items[0].verdict === 'verified' && open.body.items[1].verdict === 'verified' && !('claims' in open.body.items[0]),
      'without the gate, the votes alone would have Verified both');
@@ -468,16 +468,16 @@ function firstDifference(a, b, path = '') {
 
   // the batch shares the work budget; what one item leaves goes to the next
   const shares = [];
-  const spy = used => (item, share) => { shares.push(share); return { ...quiet(), checks: Math.min(used, share) }; };
+  const spy = used => (item, share) => { shares.push(share); return { ...quiet(), work: Math.min(used, share) }; };
   claimsStage([FLIP, DOSED, Q1, C1], 250, 120, spy(4));
-  ok(shares.join() === '30,38,56,108', `each item an even share of what is left (${shares.join()})`);
+  ok(shares.join() === '75,86,97,108', `each item what is left but half an even share for each after it (${shares.join()})`);
   shares.length = 0;
   claimsStage([FLIP, DOSED], 250, 120, spy(1000));
-  ok(shares.join() === '60,60', 'and no item more than its share when all use theirs');
+  ok(shares.join() === '90,30', 'and the last item still has half an even share when the first uses all it may');
   const long = { id: 'l1', kind: 'note', text: 'Metformin is not first-line in type 2 diabetes. '.repeat(60), source: 'Metformin is first-line in type 2 diabetes. '.repeat(30) };
   const cut = claimsStage([long], 250, 3);
   ok(cut.value[0].checks <= 3 && cut.value[0].complete === false, 'a long page stops at the budget, saying it was cut short');
-  const partial = await run([long], { maxChecks: 0 });
+  const partial = await run([long], { maxWork: 0 });
   ok(partial.body.items[0].claims?.partial === true, 'and the reply says the gate did not finish');
 }
 
