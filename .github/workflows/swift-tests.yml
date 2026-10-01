@@ -7,8 +7,10 @@
 # never compile.
 #
 # Only UIKit-free files can be listed: the runner is a Mac, so a file importing
-# UIKit, PDFKit, StoreKit or Vision cannot be compiled for it. That is why the
+# UIKit, PDFKit or StoreKit cannot be compiled for it. That is why the
 # decisions worth testing live in files that import nothing but Foundation.
+# Vision is the exception: it is on macOS too, and RedPenOCR.swift builds here
+# with plain swiftc (red-pen-transcribe's ocr-verify run did exactly that).
 name: Swift tests
 on:
   workflow_dispatch:
@@ -103,6 +105,9 @@ jobs:
                 $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
                 $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
+          # a slide line mixing Arabic and English comes back from Vision in
+          # visual order; logicalOrder puts it back, tatweels and all
+          suite ocr OCRTests.swift $S/RedPenOCR.swift
           suite narrate NarrateTests.swift $S/NarratePlan.swift
           # a library file that is there but cannot be read (a launch before the
           # first unlock) is not empty, and a write that did not land is not a save
