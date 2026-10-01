@@ -109,3 +109,46 @@ extension AnkiCard {
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
     }
 }
+
+// MARK: - a cloze sentence, in pieces
+
+extension AnkiCard {
+    /// One run of a cloze sentence: plain text, or a gap with its answer and
+    /// the hint Anki writes after a second `::` ({{c1::answer::hint}}).
+    struct ClozePiece: Equatable {
+        var text: String
+        var isGap: Bool
+        var hint: String? = nil
+    }
+
+    /// The sentence split at its gaps, so a card can show it as Anki does: the
+    /// same words in the same place, the gap hidden and then filled in where
+    /// it stood, rather than the whole sentence written out again below.
+    static func clozePieces(_ text: String) -> [ClozePiece] {
+        guard let re = try? NSRegularExpression(pattern: #"\{\{c\d+::([\s\S]+?)(?:::([\s\S]*?))?\}\}"#) else {
+            return [ClozePiece(text: text, isGap: false)]
+        }
+        let ns = text as NSString
+        var out: [ClozePiece] = []
+        var at = 0
+        for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            if m.range.location > at {
+                out.append(ClozePiece(text: ns.substring(with: NSRange(location: at, length: m.range.location - at)),
+                                      isGap: false))
+            }
+            let hintRange = m.range(at: 2)
+            let hint: String? = hintRange.location == NSNotFound ? nil
+                : ns.substring(with: hintRange).trimmingCharacters(in: .whitespaces)
+            out.append(ClozePiece(text: ns.substring(with: m.range(at: 1)), isGap: true,
+                                  hint: (hint?.isEmpty ?? true) ? nil : hint))
+            at = m.range.location + m.range.length
+        }
+        if at < ns.length { out.append(ClozePiece(text: ns.substring(from: at), isGap: false)) }
+        return out
+    }
+
+    /// How a gap reads before it is revealed: Anki's "[...]", or its hint.
+    static func clozeGap(_ piece: ClozePiece) -> String {
+        "[" + (piece.hint ?? "...") + "]"
+    }
+}

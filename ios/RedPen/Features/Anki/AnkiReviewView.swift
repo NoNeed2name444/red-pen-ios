@@ -124,7 +124,8 @@ struct AnkiReviewView: View {
                          },
                          deck: studySet.cards)
                 .contentCard()
-                .cardFlip(revealed: revealed, enabled: !startRevealed)
+                // a cloze is not turned over: its answer fills the gap in place
+                .cardFlip(revealed: revealed, enabled: !startRevealed && item.card.type != .cloze)
                 .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
