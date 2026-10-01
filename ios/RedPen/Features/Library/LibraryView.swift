@@ -171,7 +171,7 @@ struct LibraryView: View {
 
     /// The sets opened on the stack.
     @State var opened: [StudySet] = []
-    /// A page chosen from the account and settings menu (Progress, lectures,
+    /// A page chosen from the account and settings menu (Vitals, lectures,
     /// account, settings, help...), pushed.
     @State var support: SupportPage?
 

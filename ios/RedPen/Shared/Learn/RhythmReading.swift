@@ -89,6 +89,18 @@ enum RhythmReading {
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
+    /// The days studied, from the study log and the dated answers together:
+    /// the larger count each day, as the Vitals screen's Time section counts
+    /// them. The study log is this phone's own; answers synced from another
+    /// one are in the answer log only, and still count as a day studied.
+    static func merged(log: [String: Int], answers: [Date], calendar: Calendar = .current) -> [String: Int] {
+        var perDay: [String: Int] = [:]
+        for date in answers { perDay[key(date, calendar: calendar), default: 0] += 1 }
+        var days: [String: Int] = log
+        for (day, count) in perDay where count > (days[day] ?? 0) { days[day] = count }
+        return days
+    }
+
     static func read(days: [String: Int], now: Date, calendar: Calendar = .current) -> Reading {
         let active: Set<String> = Set(days.filter { $0.value > 0 }.map { $0.key })
         let today: Date = calendar.startOfDay(for: now)

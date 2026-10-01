@@ -62,7 +62,8 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     /// The heading over this category's sets.
     var setsHeading: String {
         switch self {
-        case .questions: return "Your question sets"
+        // the home's own list, under the ward round
+        case .questions: return "Your sets"
         case .cards: return "Your decks and books"
         case .cases: return "Your cases"
         case .osce: return "Your OSCE stations"

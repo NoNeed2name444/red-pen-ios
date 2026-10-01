@@ -284,6 +284,16 @@ check("three days in, three days studied: regular over three days",
 let first = RhythmReading.read(days: days([0]), now: now, calendar: calendar)
 check("the first day says day, not 1 days", first.line == "Studied 1 of the last day.", first.line)
 check("VoiceOver hears the rhythm", steady.spoken.hasPrefix("Study rhythm, regular."), steady.spoken)
+
+// the study log and the dated answers, together
+let answersOn: [Date] = [now, now, now.addingTimeInterval(-3 * day)]
+let together = RhythmReading.merged(log: ["2026-09-24": 1, "2026-09-20": 4], answers: answersOn, calendar: calendar)
+check("merged: the larger count each day", together["2026-09-24"] == 2 && together["2026-09-20"] == 4,
+      "\(together)")
+check("merged: a day only the answers know still counts", together["2026-09-21"] == 1, "\(together)")
+check("merged days read as studied",
+      RhythmReading.read(days: RhythmReading.merged(log: [:], answers: [now], calendar: calendar),
+                         now: now, calendar: calendar).rhythm == .regular)
 check("no word is alarming", [none, steady, patchy, away].allSatisfy { reading in
     let text = (reading.words + " " + reading.line).lowercased()
     return !["arrest", "flatline", "fail", "bad", "lazy", "danger"].contains { text.contains($0) }

@@ -91,7 +91,9 @@ extension LibraryView {
 
     private func homeTiles(due: Int) -> some View {
         let readiness: ReadinessEstimate? = store.readiness(dueCards: due)
-        let rhythm: RhythmReading.Reading = RhythmReading.read(days: studyLog.days, now: Date())
+        let days: [String: Int] = StudyDays.merged(log: studyLog.days, answers: store.answerLog,
+                                                   version: store.changeCount)
+        let rhythm: RhythmReading.Reading = RhythmReading.read(days: days, now: Date())
         let map: (ideas: Int, links: Int) = BrainMapCount.counts(noteStore)
         return HomeTiles(readiness: readiness, streak: studyLog.streak, rhythm: rhythm,
                          ideas: map.ideas, links: map.links,
@@ -595,6 +597,24 @@ enum BrainMapCount {
         let links: Int = notes.allEdges().count
         memo = (key: key, ideas: all.count, links: links)
         return (ideas: all.count, links: links)
+    }
+}
+
+/// The days studied as the Vitals screen counts them (RhythmReading.merged:
+/// the study log with the dated answers), worked out again only when either
+/// changes rather than on every redraw of the home.
+@MainActor
+enum StudyDays {
+    private static var memo: (key: String, days: [String: Int])?
+
+    static func merged(log: [String: Int], answers: [AnswerEvent], version: Int) -> [String: Int] {
+        let total: Int = log.values.reduce(0, +)
+        let key: String = "\(version)-\(log.count)-\(total)"
+        if let saved = memo, saved.key == key { return saved.days }
+        let dates: [Date] = answers.map { $0.date }
+        let days: [String: Int] = RhythmReading.merged(log: log, answers: dates)
+        memo = (key: key, days: days)
+        return days
     }
 }
 
