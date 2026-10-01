@@ -39,6 +39,12 @@ jobs:
             src: ''
             tool: ''
             without: core
+          # the core plus step 1 of the add-back order (lecture audio, the
+          # spoken modes, draw from memory, narrate): the next zip to try
+          - id: current-core1
+            src: ''
+            tool: ''
+            without: core1
           # the owner's kind of zip: a lecture PDF bundled in Samples, which
           # the app reads into examples a few seconds after the library shows
           - id: current-lecture
