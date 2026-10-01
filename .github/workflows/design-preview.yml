@@ -6,14 +6,21 @@
 #   the dock's categories, a category's tiles, New set, a quiz, a card, Ideas
 #   in each view with its switcher open and folded, the menu, Settings and
 #   Progress.
-# A push to a preview/** branch runs it; the pictures land on the
-# design-preview branch, in shots/iphone/ and shots/ipad/, with a README
-# that shows them all on one page.
+# A push to a preview/<name> branch runs it; the pictures land on the
+# shots/<name> branch (preview/graph's on design-preview), in shots/iphone/
+# and shots/ipad/, with a README that shows them all on one page. The run is
+# red when the build fails (its errors in the run's summary) or when a test
+# fails (the pictures are still pushed).
 name: Design preview
 on:
   push:
     branches: ['preview/**']
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Only the tests whose names match this pattern (grep -E), e.g. testGraphAtRest|testEachStyle'
+        required: false
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -23,7 +30,7 @@ concurrency:
 jobs:
   shots:
     runs-on: macos-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         # no token left in .git/config for the build: the packages it
@@ -76,6 +83,35 @@ jobs:
           else:
               print("no iPad simulator on this runner", file=sys.stderr)
           PY
+      - name: Build for testing
+        id: build
+        working-directory: ios
+        env:
+          IPHONE: ${{ steps.sim.outputs.iphone_udid }}
+        run: |
+          set -o pipefail
+          # one build for every test run below; a failed build stops the run
+          # here, red, with its errors in the summary (it used to carry on
+          # and report success with no pictures)
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "platform=iOS Simulator,id=$IPHONE" -derivedDataPath build-sim \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build-for-testing 2>&1 | tee ../build.log | grep -E "error:|\*\* " || true
+          if ! grep -q "TEST BUILD SUCCEEDED" ../build.log; then
+            {
+              echo '### The build failed'
+              echo '```'
+              grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true
+              echo '```'
+              echo 'The end of the log:'
+              echo '```'
+              tail -40 ../build.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Take the pictures
         working-directory: ios
         env:
@@ -83,12 +119,11 @@ jobs:
           IPHONE_NAME: ${{ steps.sim.outputs.iphone_name }}
           IPAD: ${{ steps.sim.outputs.ipad_udid }}
           IPAD_NAME: ${{ steps.sim.outputs.ipad_name }}
-          GRAPH: "-only-testing:RedPenUITests/GraphPreviewUITests"
-          TOUR: "-only-testing:RedPenUITests/DesignTourUITests"
+          # workflow_dispatch: a pattern of test names to run (grep -E), all when empty
+          ONLY: ${{ inputs.only }}
         run: |
-          set -o pipefail
-          # one xcodebuild run: the simulator, its result bundle and log, then
-          # which tests; the second and third runs reuse the first one's build
+          # one test run against the build above: the simulator, its result
+          # bundle and log, then which tests
           run_tests() {
             local udid="$1" bundle="$2" log="$3"
             shift 3
@@ -98,7 +133,8 @@ jobs:
               -skipMacroValidation -skipPackagePluginValidation \
               SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
               CODE_SIGNING_ALLOWED=NO \
-              test 2>&1 | tee "../$log" | grep -E "error:|Test Case|TEST |\*\* " || true
+              test-without-building > "../$log" 2>&1 || true
+            grep -E "error:|Test Case|TEST |\*\* " "../$log" || true
           }
           boot() {
             xcrun simctl boot "$1" || true
@@ -106,28 +142,34 @@ jobs:
             xcrun simctl status_bar "$1" override --time "9:41" --batteryLevel 100 \
               --batteryState charged --wifiBars 3 || true
           }
+          GRAPH_TESTS=$(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPreviewUITests.swift | awk '{print $2}' | grep -E "${ONLY:-.}" || true)
+          TOUR=""
+          echo testDesignTour | grep -qE "${ONLY:-.}" && TOUR="-only-testing:RedPenUITests/DesignTourUITests"
 
           echo "iPhone: $IPHONE_NAME ($IPHONE)"
           boot "$IPHONE"
           # a screen recording of each 3D map test, for the owner to watch:
           # one file per test, in HEVC, so none comes near GitHub's 100 MB
           # limit on a single file (one recording of every test was 127 MB)
-          for t in $(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPreviewUITests.swift | awk '{print $2}'); do
+          for t in $GRAPH_TESTS; do
             xcrun simctl io "$IPHONE" recordVideo --codec=hevc --force "../graph-$t.mp4" &
             REC=$!
             sleep 2
-            run_tests "$IPHONE" "iphone-graph-$t.xcresult" "iphone-graph-$t.log" "$GRAPH/$t"
+            run_tests "$IPHONE" "iphone-graph-$t.xcresult" "iphone-graph-$t.log" "-only-testing:RedPenUITests/GraphPreviewUITests/$t"
             kill -INT $REC || true
             wait $REC || true
           done
           # the tour, on the same phone, not recorded
-          run_tests "$IPHONE" iphone-tour.xcresult iphone-tour.log "$TOUR"
+          [ -n "$TOUR" ] && run_tests "$IPHONE" iphone-tour.xcresult iphone-tour.log "$TOUR"
           xcrun simctl shutdown "$IPHONE" || true
 
           if [ -n "$IPAD" ]; then
             echo "iPad: $IPAD_NAME ($IPAD)"
             boot "$IPAD"
-            run_tests "$IPAD" ipad.xcresult ipad.log "$GRAPH" "$TOUR"
+            args=()
+            for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
+            [ -n "$TOUR" ] && args+=("$TOUR")
+            [ ${#args[@]} -gt 0 ] && run_tests "$IPAD" ipad.xcresult ipad.log "${args[@]}"
             xcrun simctl shutdown "$IPAD" || true
           else
             echo "no iPad simulator on this runner" | tee ../ipad.log
@@ -186,10 +228,14 @@ jobs:
 
           # the test lines and any errors, per run
           : > out/log.txt
+          if [ -f build.log ] && ! grep -q "TEST BUILD SUCCEEDED" build.log; then
+            echo "== build.log (the build failed)" >> out/log.txt
+            grep -E "error:" build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 >> out/log.txt || true
+          fi
           for log in iphone-graph-*.log iphone-tour.log ipad.log; do
             [ -f "$log" ] || continue
             echo "== $log" >> out/log.txt
-            grep -E "error:|Test Case|TEST (SUCCEEDED|FAILED)" "$log" | tail -30 >> out/log.txt || true
+            grep -E "error:|Test Case|TEST (EXECUTE )?(SUCCEEDED|FAILED)" "$log" | tail -30 >> out/log.txt || true
           done
           for log in iphone-graph-*.log iphone-tour.log ipad.log; do
             [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
@@ -220,11 +266,39 @@ jobs:
             done
           } > out/README.md
 
+          # the run's summary: how many pictures, and every failed test
+          pictures=$(find out/shots -name '*.png' | wc -l | tr -d ' ')
+          target=design-preview
+          case "$GITHUB_REF_NAME" in preview/graph|"") ;; preview/*) target="shots/${GITHUB_REF_NAME#preview/}" ;; esac
+          {
+            echo "### Design preview"
+            echo
+            echo "$pictures pictures, pushed to [$target](https://github.com/${GITHUB_REPOSITORY}/tree/$target)."
+            # (the shell runs with pipefail: a missing log or no match must not stop the push)
+            failed=$(grep -sE "^Test Case .* failed" iphone-graph-*.log iphone-tour.log ipad.log \
+              | sed -E "s/^([^:]+)\.log:Test Case '-\[RedPenUITests\.([^]]+)\]' failed.*/\2 (\1)/" | sort -u || true)
+            if [ -n "$failed" ]; then
+              echo
+              echo "Failed tests:"
+              echo '```'
+              echo "$failed"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
           cd out
           git init -q && git checkout -q -b design-preview
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
           git add -A && git commit -q -m "design preview $GITHUB_RUN_ID"
-          # preview/graph keeps its old home; any other preview/<name> lands on shots/<name>
-          target=design-preview
-          case "$GITHUB_REF_NAME" in preview/graph|"") ;; preview/*) target="shots/${GITHUB_REF_NAME#preview/}" ;; esac
+          # preview/graph keeps its old home; any other preview/<name> lands on shots/<name> (set above)
           git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "design-preview:$target"
+      - name: Every test passed
+        working-directory: ios
+        run: |
+          # red when a test failed or nothing ran, so green means every picture was taken
+          ls ../*.log >/dev/null
+          if grep -sqE "^Test Case .* failed|TEST EXECUTE FAILED" ../iphone-graph-*.log ../iphone-tour.log ../ipad.log; then
+            echo "A test failed: see the summary and log.txt on the shots branch"
+            exit 1
+          fi
+          grep -sq "TEST EXECUTE SUCCEEDED" ../iphone-graph-*.log ../iphone-tour.log ../ipad.log
