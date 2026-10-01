@@ -14,6 +14,10 @@ on:
       - 'tests/**'
       - 'tools/question-bank/**'
       - '.github/workflows/server-tests.yml'
+      # the transcription benchmark's scorer, and the app prompt it rebuilds
+      - 'tools/asr_bench.mjs'
+      - 'ios/RedPen/Shared/CloudTranscript.swift'
+      - 'ios/RedPen/Shared/LectureTranscriber.swift'
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -24,7 +28,7 @@ jobs:
         with:
           # node:sqlite, which these tests run against, arrived in 22.5.
           node-version: '22'
-      - name: Every server test (sync, cloud models, jobs, pairing, voice, evidence, benchmarks) and the licence gate
+      - name: Every server test (sync, cloud models, jobs, pairing, voice, evidence, benchmarks, the transcription scorer) and the licence gate
         run: |
           failed=0
           for t in server/tests/*.test.mjs tests/*/*.test.mjs; do node "$t" || { echo "::error::$t failed"; failed=1; }; done

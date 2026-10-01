@@ -1,10 +1,12 @@
 // Red Pen · what the transcription learning must do.
 //
-// The sound keys are checked against the values pipeline/consensus.py produces
-// for the same tokens. The two implementations have to agree exactly: a table
-// learned on the phone is read by the committee and one learned by the
-// committee is read by the phone, so a single disagreement makes both wrong in
-// a way nobody would notice until a transcript came back strange.
+// The sound keys must equal the values sound() in consensus.py produces for the
+// same tokens (in red-pen-transcribe; there is no copy in this repository, and
+// nothing runs the two side by side yet). The two implementations have to
+// agree exactly: a table learned on the phone is read by the committee and one
+// learned by the committee is read by the phone, so a single disagreement
+// makes both wrong in a way nobody would notice until a transcript came back
+// strange.
 import Foundation
 
 var failures: [String] = []
