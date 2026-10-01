@@ -135,6 +135,14 @@ export async function openFDA(drug, fetcher = fetch) {
   }] : [];
 }
 
+/// A title as the same work's other records write it: the "(journal, year)"
+/// the listing adds and any case, markup or punctuation set aside.
+export function workKey(title) {
+  const words = String(title || '').replace(/\s*\([^()]*\)\s*$/, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 120);
+  return words ? 't:' + words : '';
+}
+
 /// Everything found for these terms, deduplicated and numbered [S1], [S2]...
 export async function gather(terms, fetcher = fetch) {
   const lookups = [
@@ -143,8 +151,17 @@ export async function gather(terms, fetcher = fetch) {
     ...terms.drugs.map(d => openFDA(d, fetcher)),
   ];
   const found = (await Promise.all(lookups.map(p => p.catch(() => [])))).flat();
+  // one work counts once: the same review found by two queries, or as a
+  // preprint and as published (another DOI, the same title), is one source,
+  // not two agreeing (Islamic brief: two chains through one narrator are one)
   const seen = new Set();
-  const unique = found.filter(e => !seen.has(e.url) && seen.add(e.url));
+  const unique = found.filter(e => {
+    const work = workKey(e.title);
+    if (seen.has(e.url) || (work && seen.has(work))) return false;
+    seen.add(e.url);
+    if (work) seen.add(work);
+    return true;
+  });
   const out = [];
   let used = 0;
   for (const e of unique) {

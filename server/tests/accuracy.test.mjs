@@ -62,9 +62,11 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
 {
   const cases = JSON.parse(readFileSync(new URL('./rule-vectors.json', import.meta.url), 'utf8'));
   for (const c of cases) {
-    const hits = ruleHits({ kind: 'card', text: c.text }).map(h => `${h.rule}:${h.severity}`);
-    for (const h of c.has || []) ok(hits.includes(h), `"${c.text}" gives ${h}`);
-    for (const n of c.not || []) ok(!hits.some(x => x.startsWith(`${n}:`)), `"${c.text}" gives no ${n}`);
+    const item = c.mcq ? { kind: 'mcq', ...c.mcq } : { kind: 'card', text: c.text };
+    const said = c.mcq ? c.mcq.stem : c.text;
+    const hits = ruleHits(item).map(h => `${h.rule}:${h.severity}`);
+    for (const h of c.has || []) ok(hits.includes(h), `"${said}" gives ${h} (${hits.join(', ')})`);
+    for (const n of c.not || []) ok(!hits.some(x => x.startsWith(`${n}:`)), `"${said}" gives no ${n} (${hits.join(', ')})`);
   }
 }
 

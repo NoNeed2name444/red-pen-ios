@@ -303,14 +303,19 @@ var ruleRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 while !FileManager.default.fileExists(atPath: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json").path), ruleRoot.path != "/" {
     ruleRoot.deleteLastPathComponent()
 }
-struct RuleCase: Decodable { var text: String; var has: [String]?; var not: [String]? }
+struct RuleQuestion: Decodable { var stem: String; var options: [String]; var key: Int; var explanation: String }
+struct RuleCase: Decodable { var text: String?; var mcq: RuleQuestion?; var has: [String]?; var not: [String]? }
 let ruleCases: [RuleCase] = (try? JSONDecoder().decode([RuleCase].self,
     from: Data(contentsOf: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json")))) ?? []
 check("the shared rule cases are found", ruleCases.count >= 20, "\(ruleCases.count)")
 for c in ruleCases {
-    let found: [String] = ids(card(c.text))
-    for h in c.has ?? [] { check("\"\(c.text)\" gives \(h)", found.contains(h), found.joined(separator: ", ")) }
-    for n in c.not ?? [] { check("\"\(c.text)\" gives no \(n)", !found.contains { $0.hasPrefix(n + ":") }, found.joined(separator: ", ")) }
+    let item: AccuracyItem = c.mcq.map {
+        AccuracyItem(id: "x", kind: .mcq, stem: $0.stem, options: $0.options, key: $0.key, explanation: $0.explanation)
+    } ?? card(c.text ?? "")
+    let said: String = c.mcq?.stem ?? c.text ?? ""
+    let found: [String] = ids(item)
+    for h in c.has ?? [] { check("\"\(said)\" gives \(h)", found.contains(h), found.joined(separator: ", ")) }
+    for n in c.not ?? [] { check("\"\(said)\" gives no \(n)", !found.contains { $0.hasPrefix(n + ":") }, found.joined(separator: ", ")) }
 }
 
 print(failures.isEmpty ? "\nALL ACCURACY TESTS PASS" : "\n\(failures.count) ACCURACY TEST FAILURE(S)")
