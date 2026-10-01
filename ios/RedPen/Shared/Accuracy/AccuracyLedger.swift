@@ -14,6 +14,40 @@ struct AccuracyRecord: Codable, Hashable {
     var checkedAt: Date = Date()
     /// The student reported this item as wrong.
     var reported: Bool = false
+    /// The server's claim gate (server/claims.js): what the item says that
+    /// contradicts its own lecture - "negation", "dose", "frequency",
+    /// "percentage" - or "gate_failed" when the gate could not tell. Any of
+    /// them and the item is never Verified, whatever the votes say. Nil when
+    /// the gate found nothing (or the check predates it).
+    var claimHolds: [String]? = nil
+}
+
+/// What the server's /accuracy/check answers, as much of it as the device
+/// keeps: per item, in the order sent, the votes, evidence, correction and
+/// features, and the claim gate's hard findings. Everything is optional, so
+/// an older or newer server's reply still decodes.
+struct AccuracyCheckReply: Decodable {
+    struct Finding: Decodable { var code: String? }
+    struct Claims: Decodable {
+        var hard: [Finding]?
+        var partial: Bool?
+    }
+    struct Item: Decodable {
+        var id: String?
+        var votes: [AccuracyVote]?
+        var evidence: [AccuracyEvidence]?
+        var fix: AccuracySuggestion?
+        var features: [String: Double]?
+        var reason: String?
+        var claims: Claims?
+    }
+    var items: [Item]?
+    var limit: String?
+    var message: String?
+
+    /// The gate's code for "it failed on this item": held at Check this, and
+    /// the item is asked about again later (its votes come from the cache).
+    static let gateFailed = "gate_failed"
 }
 
 /// One item's standing, ready to show.
@@ -24,14 +58,27 @@ struct AccuracyAssessment: Hashable {
     var record: AccuracyRecord?
     var features: [String: Double]
 
-    /// Which rules and which models raised a concern, in words.
+    /// Which rules, which of the claim gate's findings and which models
+    /// raised a concern, in words.
     var reasons: [String] {
         var out: [String] = rules.map { $0.detail }
+        for code in record?.claimHolds ?? [] { out.append(AccuracyAssessment.holdReason(code)) }
         for v in record?.votes ?? [] where v.risk >= 3 {
             let issue: String = v.issues.first ?? "Judged it likely to mislead (risk \(v.risk) of 4)."
             out.append(v.model + ": " + issue)
         }
         return out
+    }
+
+    static func holdReason(_ code: String) -> String {
+        switch code {
+        case "negation": return "Says the opposite of its own lecture."
+        case "dose": return "Gives a different dose from its own lecture."
+        case "frequency": return "Gives a different dosing frequency from its own lecture."
+        case "percentage": return "Gives a different percentage from its own lecture."
+        case AccuracyCheckReply.gateFailed: return "Couldn't be compared with its lecture yet; it will be checked again."
+        default: return "Differs from its own lecture."
+        }
     }
 }
 
@@ -97,6 +144,9 @@ struct AccuracyLedger: Codable {
         var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: cutoffs, oath: AccuracyModel.isOath(item.checkedText))
         // the student said it is wrong: never shown as Verified to them again
         if record?.reported == true && grade == .verified { grade = .check }
+        // it contradicts its own lecture (or the claim gate could not tell):
+        // never Verified on the votes alone
+        if !(record?.claimHolds ?? []).isEmpty && grade == .verified { grade = .check }
         return AccuracyAssessment(grade: grade, probability: p, rules: rules, record: record, features: f)
     }
 
@@ -106,9 +156,11 @@ struct AccuracyLedger: Codable {
         return s
     }
 
-    /// Checked already: a model voted on exactly this content.
+    /// Checked already: a model voted on exactly this content, and the claim
+    /// gate did not fail on it (an item it failed on is asked about again).
     func isChecked(_ hash: String) -> Bool {
-        !(records[hash]?.votes.isEmpty ?? true)
+        guard let record = records[hash], !record.votes.isEmpty else { return false }
+        return !(record.claimHolds ?? []).contains(AccuracyCheckReply.gateFailed)
     }
 
     /// Worth trying again: never failed, or failed more than `after` ago.
@@ -119,8 +171,11 @@ struct AccuracyLedger: Codable {
 
     /// A vote from a check made elsewhere - MedVAL screening a generated set,
     /// or the server's batch check - added to the item's record.
+    /// `holds`: the claim gate's hard findings from that check, which replace
+    /// any earlier ones (the server works them out afresh for every reply);
+    /// nil from a check that has no gate, leaving them as they were.
     mutating func add(votes: [AccuracyVote], evidence: [AccuracyEvidence] = [], sourceMatch: Double? = nil,
-                      fix: AccuracySuggestion? = nil, for hash: String, at now: Date = Date()) {
+                      fix: AccuracySuggestion? = nil, holds: [String]? = nil, for hash: String, at now: Date = Date()) {
         var record: AccuracyRecord = records[hash] ?? AccuracyRecord(hash: hash)
         for v in votes {
             record.votes.removeAll { $0.model == v.model }
@@ -129,9 +184,30 @@ struct AccuracyLedger: Codable {
         if !evidence.isEmpty { record.evidence = evidence }
         if let sourceMatch { record.sourceMatch = sourceMatch }
         if let fix { record.fix = fix }
+        if let holds { record.claimHolds = holds.isEmpty ? nil : holds }
         record.checkedAt = now
         records[hash] = record
         if !votes.isEmpty { failed[hash] = nil }
+    }
+
+    /// The server's answer to a batch, item by item in the order sent: the
+    /// votes and the claim gate's findings kept; an item with no vote marked
+    /// failed (tried again later) unless the day's checks ran out; an item
+    /// the gate failed on kept, held at Check this, and tried again later too.
+    mutating func record(_ reply: AccuracyCheckReply?, for hashes: [String], at now: Date = Date()) {
+        let replied: [AccuracyCheckReply.Item] = reply?.items ?? []
+        for (n, hash) in hashes.enumerated() {
+            guard n < replied.count, let votes = replied[n].votes, !votes.isEmpty else {
+                if reply?.limit != "day" { failed[hash] = now }
+                continue
+            }
+            let got: AccuracyCheckReply.Item = replied[n]
+            let noSource: Bool = (got.features?["no_source"] ?? 1) > 0
+            let match: Double? = noSource ? nil : got.features?["source_match"]
+            let holds: [String] = (got.claims?.hard ?? []).map { $0.code ?? AccuracyCheckReply.gateFailed }
+            add(votes: votes, evidence: got.evidence ?? [], sourceMatch: match, fix: got.fix, holds: holds, for: hash, at: now)
+            if holds.contains(AccuracyCheckReply.gateFailed) { failed[hash] = now }
+        }
     }
 
     mutating func markReported(_ hash: String) {

@@ -183,20 +183,6 @@ final class AccuracyStore: ObservableObject {
 
     enum Outcome { case done, dayUsed, notPro(String), offline }
 
-    struct CheckReply: Decodable {
-        struct Item: Decodable {
-            var id: String?
-            var votes: [AccuracyVote]?
-            var evidence: [AccuracyEvidence]?
-            var fix: AccuracySuggestion?
-            var features: [String: Double]?
-            var reason: String?
-        }
-        var items: [Item]?
-        var limit: String?
-        var message: String?
-    }
-
     private func send(_ batch: AccuracyBatch, token: String) async -> Outcome {
         let hashes: [String] = batch.items.map(\.contentHash)
         inFlight.formUnion(hashes)
@@ -204,7 +190,7 @@ final class AccuracyStore: ObservableObject {
         struct Body: Encodable { var items: [AccuracyItem]; var priority: String }
         let body = Body(items: batch.items, priority: batch.priority)
         guard let (data, status) = await post("/accuracy/check", body: body, token: token) else { return .offline }
-        let reply = try? JSONDecoder().decode(CheckReply.self, from: data)
+        let reply = try? JSONDecoder().decode(AccuracyCheckReply.self, from: data)
         if status == 402 { return .notPro(reply?.message ?? "The accuracy check is part of Pro.") }
         if status == 401 { return .notPro("Sign in again to check accuracy.") }
         record(reply, for: batch.items)
@@ -212,18 +198,8 @@ final class AccuracyStore: ObservableObject {
         return status == 200 ? .done : .offline
     }
 
-    private func record(_ reply: CheckReply?, for items: [AccuracyItem]) {
-        let now = Date()
-        for (n, item) in items.enumerated() {
-            let hash: String = item.contentHash
-            guard let got = reply?.items?[safe: n], let votes = got.votes, !votes.isEmpty else {
-                if reply?.limit != "day" { ledger.failed[hash] = now }
-                continue
-            }
-            let noSource: Bool = (got.features?["no_source"] ?? 1) > 0
-            let match: Double? = noSource ? nil : got.features?["source_match"]
-            ledger.add(votes: votes, evidence: got.evidence ?? [], sourceMatch: match, fix: got.fix, for: hash, at: now)
-        }
+    private func record(_ reply: AccuracyCheckReply?, for items: [AccuracyItem]) {
+        ledger.record(reply, for: items.map(\.contentHash), at: Date())
         memo.removeAll()
         scheduleSave()
     }
@@ -345,8 +321,4 @@ final class AccuracyStore: ObservableObject {
             try? data.write(to: url, options: .atomic)
         }
     }
-}
-
-private extension Array {
-    subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }

@@ -192,6 +192,46 @@ var reported = AccuracyLedger()
 reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")], sourceMatch: 0.8, for: item0.contentHash)
 reported.markReported(item0.contentHash)
 check("a reported item is never shown as Verified again", reported.assess(item0).grade == .check)
+// the claim gate (server/claims.js): the server's reply, as it sends it
+func gateReply(_ claims: String) -> AccuracyCheckReply? {
+    let json: String = """
+    {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
+      "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null},
+                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null}],
+      "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)}]}
+    """
+    return try? JSONDecoder().decode(AccuracyCheckReply.self, from: Data(json.utf8))
+}
+let hash0: String = item0.contentHash
+let gateTime = Date(timeIntervalSince1970: 3_000_000)
+var gated = AccuracyLedger()
+gated.record(gateReply(""), for: [hash0], at: gateTime)
+check("a reply the gate found nothing in: Verified on the votes, as before", gated.assess(item0).grade == .verified && gated.records[hash0]?.claimHolds == nil)
+gated.record(gateReply(#","claims":{"hard":[{"code":"frequency","claim":"every 4 hours","source":"every 6 hours"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("an item that contradicts its own lecture is never Verified, whatever the votes", gated.assess(item0).grade == .check
+      && gated.records[hash0]?.claimHolds == ["frequency"] && gated.isChecked(hash0))
+check("and the finding is a reason, in words", gated.assess(item0).reasons.contains("Gives a different dosing frequency from its own lecture."))
+gated.record(gateReply(""), for: [hash0], at: gateTime)
+check("a later reply's findings replace the earlier ones", gated.assess(item0).grade == .verified)
+gated.add(votes: [AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports")], holds: ["negation"], for: hash0)
+gated.add(votes: [AccuracyVote(model: "d", risk: 1, answer: "A", evidence: "supports")], for: hash0)
+check("a vote from elsewhere, with no gate, leaves the findings as they were", gated.records[hash0]?.claimHolds == ["negation"] && gated.assess(item0).grade == .check)
+var broken = AccuracyLedger()
+broken.record(gateReply(#","claims":{"hard":[{"code":"gate_failed","claim":"","source":""}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a gate that failed holds the item at Check this, with its votes kept", broken.assess(item0).grade == .check && broken.records[hash0]?.votes.count == 2)
+check("and it is asked about again later, not at once", !broken.isChecked(hash0) && !broken.mayRetry(hash0, now: gateTime.addingTimeInterval(60))
+      && broken.mayRetry(hash0, now: gateTime.addingTimeInterval(7 * 3600)))
+broken.record(gateReply(""), for: [hash0], at: gateTime.addingTimeInterval(7 * 3600))
+check("asked again and the gate works: graded on the votes", broken.isChecked(hash0) && broken.assess(item0).grade == .verified)
+var unread = AccuracyLedger()
+unread.record(gateReply(#","claims":{"hard":[{"claim":"x"}],"soft":[],"partial":true}"#), for: [hash0], at: gateTime)
+check("a finding without a code still holds the item", unread.assess(item0).grade == .check)
+var unanswered = AccuracyLedger()
+unanswered.record(AccuracyCheckReply(items: [], limit: "day", message: nil), for: [hash0], at: gateTime)
+unanswered.record(nil, for: ["other"], at: gateTime)
+check("no vote: failed, unless the day's checks ran out", unanswered.failed[hash0] == nil && unanswered.failed["other"] == gateTime && unanswered.records.isEmpty)
+let older = try? JSONDecoder().decode(AccuracyRecord.self, from: Data(#"{"hash":"h","votes":[],"evidence":[],"checkedAt":0,"reported":false}"#.utf8))
+check("a record saved before the gate still loads, with no findings", older != nil && older?.claimHolds == nil)
 let summary = reported.summary(of: [item0, AccuracyItem(id: "z", kind: .card, text: "Give paracetamol 10 g now")])
 check("a set's summary", summary.check == 1 && summary.flagged == 1 && summary.grade == .flagged && summary.line == "1 to check \u{00B7} 1 flagged")
 check("nothing checked: no summary line", AccuracySummary().line == nil)
