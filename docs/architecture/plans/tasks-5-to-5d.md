@@ -57,5 +57,5 @@ apply; status lines are kept current as the work lands.
 |---|---|
 | Contract | agents/, tools/, orchestration/, prompts/, api/, governance/, evals/, tests/, docs/architecture/. |
 | Default chosen | red-pen-ios: new non-app work goes into the §3c slots at the top (docs/architecture/, governance/, prompts/, evals/); the app (ios/) and the Worker (server/) stay where they are, as deployment units whose build tools and workflows depend on their paths (the audit gives clients and infrastructure no slot). Chat-me: the medical verifier moves into the tree per the Task 4 audit's mapping table. |
-| Blocker | Chat-me is not attached with write access in this session; its part waits for that. |
-| Status | docs/architecture/ made in red-pen-ios (this file); the other slots are made as their first files land. |
+| Blocker | None (Chat-me attached with write access on 1 October). |
+| Status | Done. red-pen-ios: docs/architecture/, governance/, prompts/ and tests/ in use. Chat-me: the medical verifier is in api/, agents/, orchestration/, governance/, tools/, evals/, tests/{unit,integration}/ and clients/ios (personal d504978), all 170 tests passing. |
