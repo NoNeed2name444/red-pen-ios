@@ -1,0 +1,5325 @@
+[
+ {
+  "id": "medxpertqa:Text-1153#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4433#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-572#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:e07f595e-83b9-4224-8edc-6002abe79485#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4947#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4397#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:412479da-a41f-4746-90c5-4863d77e15c6#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.983,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4840#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5061#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1525#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.018,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "G",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The question describes esophageal atresia (curling orogastric tube, mucous bubbling, polyhydramnios). Esophageal atresia is frequently associated with VACTERL association, where a single umbilical artery can be seen, but the most classic and defining abdominal/physical exam finding for congenital di"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4376#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5240#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2027#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.65,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:a1c31b3c-38a4-407b-8a99-e9aee9f9f8ef#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:7735e3cf-4a2e-4671-a594-d00cd784cf7e#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:a1c31b3c-38a4-407b-8a99-e9aee9f9f8ef#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.961,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1905#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:b20d7eaf-f49a-4838-9488-5fe15e7ef6b0#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4717#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:428f4b21-6158-4605-88fd-2474869a9e19#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1648#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "G",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The presentation of acute inflammatory back pain, dactylitis ('swelling of the distal parts of the fingers'), asymmetric oligoarthritis, and conjunctivitis/uveitis following unprotected sexual intercourse classic for Reactive Arthritis (formerly Reiter's syndrome), driven by a recent sexually transm"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4716#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5031#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:af033753-acfa-4da4-923d-b0e9ad10d34a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:a079d7bd-1a5d-41d3-ad0c-607dca85b53d#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.176,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 3,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "An S1-S2 gallop rhythm is incorrect; gallop rhythms are S3 or S4, not S1-S2."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4602#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9f90986c-b95d-4887-b807-39d4bf932107#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.896,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 2,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The progression of Alzheimer's is highly variable; while cognitive deficits usually precede functional decline, the exact sequence of mood vs behavioral symptoms is not strictly linear across all patients."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1330#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:dad16bf8-663d-4b9d-8e29-da568386a585#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.859,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 2,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1349#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4477#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1153#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1418#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9f4eb879-2b71-4186-b509-1ca144710203#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4376#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:8a8f6b15-cb83-41af-b208-af90e03f982e#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4972#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4988#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5132#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1097#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5623#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1648#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "G",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-572#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5538#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1097#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-858#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5240#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-858#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4773#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.06,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Thiazide diuretics decrease urinary calcium excretion and are actually beneficial for bone mineral density, whereas PPIs, lithium, and hormone replacement therapy/estrogen have various effects on bone or indications. However, thiazides should not be discontinued for osteopenia as they protect agains"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:e07f595e-83b9-4224-8edc-6002abe79485#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1418#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-447#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1330#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5132#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:bdbaebc7-737c-4cfd-8600-85d84f867dfa#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:5388b7ec-779f-4795-9e54-71c6992372d8#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4618#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.181,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The clinical presentation (jaundice within 24 hours, fever, loss of flexion, splenomegaly, decreased haptoglobin, increased LDH) describes Glucose-6-phosphate dehydrogenase (G6PD) deficiency or sepsis presenting with hemolysis, but G6PD deficiency involves a decrease in reduced glutathione (option A"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1287#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9f90986c-b95d-4887-b807-39d4bf932107#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.018,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Organophosphorus insecticides are well absorbed through the skin, death usually occurs hours rather than minutes after exposure, and the mechanism is acetylcholinesterase inhibition, not nicotine symptoms first."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5375#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-231#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-973#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4602#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5001#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:dbd055f7-f013-4ed4-951e-5f955744203b#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5015#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:57f0a163-389c-4088-b2bc-9216e5e5b6a2#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4962#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-442#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4947#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4685#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:57f0a163-389c-4088-b2bc-9216e5e5b6a2#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5623#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:412479da-a41f-4746-90c5-4863d77e15c6#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.673,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:d2cc7dce-97e2-49f2-a721-3f0148416a6a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4587#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:c0b5e935-1e52-4156-88d3-45f058d8113a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2136#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.06,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The provided reference evidence covers unrelated topics (gastric cancer and candidemia) and does not provide evidence for testicular torsion management."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "G",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:8796704d-1692-4c9a-b816-898d8609b76d#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.06,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The provided reference evidence is completely unrelated to minor head injury imaging guidelines."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1201#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.018,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 3,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The question describes classic chronic thromboembolic pulmonary hypertension (CTEPH) following previous pulmonary embolism (or similar presentation), but the prompt's reference list lacks relevant evidence (only cough and silicosis guidelines provided). However, medically, option A (Chronic thromboe"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2016#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.808,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [
+     "S1",
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4962#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S1",
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-161#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4685#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2136#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The clinical presentation is a classic textbook case of testicular torsion (acute severe lower abdominal/testicular pain, high-riding testicle, absent cremasteric reflex, nausea/vomiting). The standard management for suspected testicular torsion is immediate urological consultation for surgical expl"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1460#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The patient presents with involuntary weight loss (approx 10% of body weight over 6 months), early satiety, and normal basic laboratory findings. In elderly institutionalized patients, unintended weight loss is frequently multifactorial (related to assistance needed with eating, dietary monotony, mi"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4988#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.983,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1467#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.415,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 2,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5617#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9524b877-0270-4de4-8865-e0e4b1255ff5#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:dad16bf8-663d-4b9d-8e29-da568386a585#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:b5e9067c-dd83-46d2-9b2f-816eef7f4368#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5375#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1460#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:c0b5e935-1e52-4156-88d3-45f058d8113a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4836#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-161#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:7f1493c9-fad8-467a-9eb1-c11d5cfc5fe5#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:0aa17acd-1557-4e90-a43d-d46582312c33#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1014#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-271#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.758,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4618#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.06,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The clinical presentation described (fever, jaundice, loss of flexion/hypotonia, decreased haptoglobin, increased LDH within the first 24 hours of life in an Rh+ infant) describes neonatal sepsis or potentially ABO incompatibility/G6PD deficiency, but Rh incompatibility (Option B) is ruled out by ma"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4716#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The case describes clozapine-induced agranulocytosis (or neutropenia/bone marrow suppression), myocarditis (friction rub, tachycardia), and acute kidney injury/nephritis, presenting with oral ulcers, fever/tachycardia, and abnormal lab values. The correct next step for management is to discontinue c"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4433#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:0aa17acd-1557-4e90-a43d-d46582312c33#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-353#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5015#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.65,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4652#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-271#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1525#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2027#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.646,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:dbd055f7-f013-4ed4-951e-5f955744203b#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:8a8f6b15-cb83-41af-b208-af90e03f982e#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:1bd21e7f-cd0d-4b55-a583-64a9efb9962c#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1665#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1390#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5288#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.808,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1349#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-472#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Question is not supported by provided medical literature sources and lacks a definitive consensus-based factual answer in evidence."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1665#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.054,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Testicular torsion requires urgent surgical exploration and bilateral orchiopexy (bilateral surgical procedure) to fix the affected side and prophylactically fix the contralateral side, but the provided sources do not cover this topic."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:bdbaebc7-737c-4cfd-8600-85d84f867dfa#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-442#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.005,
+  "reasons": [
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Patient has acute onset of new-onset atrial fibrillation with rapid ventricular response for 3 hours and signs of acute heart failure (pulmonary congestion, crackles, elevated BNP), making him hemodynamically unstable/compromised (or unstable due to acute HF). According to ACLS guidelines, immediate"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5061#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4477#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:7735e3cf-4a2e-4671-a594-d00cd784cf7e#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1014#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1201#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5617#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1921#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-2016#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-447#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-973#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1655#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1287#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9f4eb879-2b71-4186-b509-1ca144710203#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5280#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4836#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.981,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5288#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:7f1493c9-fad8-467a-9eb1-c11d5cfc5fe5#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1921#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.668,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:8796704d-1692-4c9a-b816-898d8609b76d#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4840#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:b22c3a0b-fe62-4767-b008-e6f0431a2103#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1655#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "F",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5001#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:b5e9067c-dd83-46d2-9b2f-816eef7f4368#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.018,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Painless jaundice, weight loss, and dilated intra- and extrahepatic bile ducts with a distended gallbladder (Courvoisier's law) in an elderly patient strongly suggest a malignant obstructive tumor of the distal common bile duct (such as pancreatic cancer or cholangiocarcinoma), requiring staging CT."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:af033753-acfa-4da4-923d-b0e9ad10d34a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.758,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4587#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:d2cc7dce-97e2-49f2-a721-3f0148416a6a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4397#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1905#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:b20d7eaf-f49a-4838-9488-5fe15e7ef6b0#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4652#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-353#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:9524b877-0270-4de4-8865-e0e4b1255ff5#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-472#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.051,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 3,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The provided reference evidence is completely irrelevant to the question about orthopedic patient concerns."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:1bd21e7f-cd0d-4b55-a583-64a9efb9962c#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:a079d7bd-1a5d-41d3-ad0c-607dca85b53d#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "flagged",
+  "p": 0.051,
+  "reasons": [
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 3,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Option B describes signs of heart failure, but not specifically the 'false statement' regarding cardiorenal syndrome as a whole. However, in a multiple choice question asking for the 'false' statement, if A, C, and D are universally true, B is the only candidate for being 'false' if it implies these"
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1390#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "flagged",
+  "p": 0.06,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The question lacks medical consensus on the single most common complication of endoscopic transthoracic anterior disc surgery, and the reference evidence does not cover this topic."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4717#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4972#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-1467#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medxpertqa:Text-231#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "G",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5538#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:4773#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:428f4b21-6158-4605-88fd-2474869a9e19#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "reasons": [
+   "Not checked yet."
+  ],
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b22c3a0b-fe62-4767-b008-e6f0431a2103#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "careqa:5388b7ec-779f-4795-9e54-71c6992372d8#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.959,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5031#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ },
+ {
+  "id": "medqa:5280#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than two independent blind solves reached the key.",
+   "Not yet passed by two model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ]
+ }
+]
