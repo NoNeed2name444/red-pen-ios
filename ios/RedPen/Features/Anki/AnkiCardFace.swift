@@ -19,6 +19,7 @@ struct AnkiCardFace: View {
     /// before cards carried their neighbours' masks - can still cover every
     /// other label on its picture.
     var deck: [AnkiCard] = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -40,15 +41,27 @@ struct AnkiCardFace: View {
             }
 
             if revealed {
-                back
-                if !card.pictureOnFront { picture }
-                if !card.why.trimmingCharacters(in: .whitespaces).isEmpty {
-                    why
+                // the answer opens under the question, as Anki shows a card's
+                // back below its front: nothing turns over, the question stays
+                // where it was read (a cloze fills its gap in place instead)
+                VStack(alignment: .leading, spacing: 14) {
+                    if card.type != .cloze {
+                        Divider().accessibilityHidden(true)
+                    }
+                    back
+                    if !card.pictureOnFront { picture }
+                    if !card.why.trimmingCharacters(in: .whitespaces).isEmpty {
+                        why
+                    }
                 }
+                .transition(reduceMotion ? .opacity
+                            : .asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
             }
 
             citation
         }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: revealed)
+        .clipped()
     }
 
     /// Where this card came from.
@@ -233,48 +246,6 @@ struct AnkiCardFace: View {
     static func stripDataPrefix(_ s: String) -> String {
         guard s.hasPrefix("data:"), let comma = s.firstIndex(of: ",") else { return s }
         return String(s[s.index(after: comma)...])
-    }
-}
-
-/// Turns the card over when its answer is revealed.
-///
-/// Applied by the review screens to the whole card, background and all, since
-/// the card's panel is theirs rather than the face's. It is a quarter turn
-/// away and a quarter turn back, with the face swapped while the card is
-/// edge-on - a half turn in one go would leave the back reading mirror-wise.
-///
-/// Only the reveal turns the card. Moving on to the next one is a new card,
-/// not the old one turned back, so that simply appears.
-struct CardFlip: ViewModifier {
-    let revealed: Bool
-    /// Off for the screenshot launch, which opens on a revealed card and
-    /// should not be photographed half way round.
-    var enabled: Bool = true
-    @State private var angle: Double = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        content
-            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-            .onChange(of: revealed) { _, now in
-                guard now, enabled, !reduceMotion else {
-                    angle = 0
-                    return
-                }
-                withAnimation(.easeIn(duration: 0.12)) {
-                    angle = 90
-                } completion: {
-                    // edge-on, so the jump to the other side cannot be seen
-                    angle = -90
-                    withAnimation(.easeOut(duration: 0.2)) { angle = 0 }
-                }
-            }
-    }
-}
-
-extension View {
-    func cardFlip(revealed: Bool, enabled: Bool = true) -> some View {
-        modifier(CardFlip(revealed: revealed, enabled: enabled))
     }
 }
 

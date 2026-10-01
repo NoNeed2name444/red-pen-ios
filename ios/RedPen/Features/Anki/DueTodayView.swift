@@ -86,8 +86,7 @@ struct DueTodayView: View {
                              revealed: revealed, deck: deck(for: due))
             }
             .contentCard()
-            // a cloze is not turned over: its answer fills the gap in place
-            .cardFlip(revealed: revealed, enabled: due.card.type != .cloze)
+            // the answer opens under the question (AnkiCardFace): no flip
             .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
             .padding(.horizontal, 16)
             .padding(.top, 8)
