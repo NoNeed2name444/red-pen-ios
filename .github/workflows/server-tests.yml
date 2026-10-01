@@ -12,6 +12,7 @@ on:
       - 'server/**'
       - 'governance/**'
       - 'tests/**'
+      - 'tools/question-bank/**'
       - '.github/workflows/server-tests.yml'
 jobs:
   tests:
