@@ -218,7 +218,7 @@ final class AccuracyStore: ObservableObject {
         }
         let outcome: Outcome = await send(AccuracyBatch(setID: UUID(), items: [item], priority: "foreground"), token: token)
         switch outcome {
-        case .done: return ledger.isChecked(item.contentHash) ? nil : "The checkers are busy. Try again in a minute."
+        case .done: return ledger.isChecked(item.contentHash, question: item.kind == .mcq) ? nil : "The checkers are busy. Try again in a minute."
         case .dayUsed: return "Today's free checks are used. Try again after midnight UTC."
         case .notPro(let why): return why
         case .offline: return "Couldn't reach the server. Check your connection."

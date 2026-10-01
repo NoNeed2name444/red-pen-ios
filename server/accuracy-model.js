@@ -67,6 +67,22 @@ export function features({ kind, rules = [], votes = [], evidenceCount = 0, sour
   // not a weighted feature: how many model families the votes that pass the
   // item come from (the verdict needs two)
   f.families = new Set(read.filter(v => v.risk < 3).map(v => familyOf(v.model))).size;
+  // not weighted either: the blind solves of a question, counted by family,
+  // since a witness from the same family as another is not a second witness
+  // (DNA brief: independence multiplies, correlation does not; Islamic brief:
+  // tawatur counts independent chains). blind_agree: families whose blind
+  // answer is the key. blind_against: the most families agreeing on one
+  // other answer. blind_split: blind families that answered differently.
+  if (kind === 'mcq' && keyLetter) {
+    const byLetter = new Map();
+    for (const v of answered.filter(v => v.blind)) {
+      if (!byLetter.has(v.answer)) byLetter.set(v.answer, new Set());
+      byLetter.get(v.answer).add(familyOf(v.model));
+    }
+    f.blind_agree = byLetter.get(keyLetter)?.size || 0;
+    f.blind_against = Math.max(0, ...[...byLetter].filter(([l]) => l !== keyLetter).map(([, fams]) => fams.size));
+    f.blind_split = byLetter.size > 1 ? 1 : 0;
+  }
   return f;
 }
 
@@ -144,12 +160,47 @@ export const isOath = text => {
 export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   if (f.no_models) return f.rule_severe > 0 ? 'flagged' : 'unchecked';
+  // two independent blind solvers agreeing on another answer: an explained
+  // objection from two chains, which outweighs any approval (Islamic brief:
+  // jarh mufassar, tawatur) - the key is wrong
+  const question = Number(f.kind_mcq) === 1;
+  if (question && (Number(f.blind_against) || 0) >= MIN_VERIFY_VOTERS) return 'flagged';
   if (p < t.flagged) return 'flagged';
   const enough = Math.round((Number(f.voters) || 0) * 3) >= MIN_VERIFY_VOTERS;
   const backed = !oath || (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
   const independent = (Number(f.families) || 0) >= MIN_VERIFY_VOTERS;
-  if (p >= t.verified && !f.rule_severe && enough && backed && independent) return 'verified';
+  // a question is Verified only when two independent blind solves reach its
+  // key: a checker shown the key tends to agree with it (DNA brief: kinetic
+  // proofreading, a second discrimination that does not see the first)
+  const solved = !question || (Number(f.blind_agree) || 0) >= MIN_VERIFY_VOTERS;
+  if (p >= t.verified && !f.rule_severe && enough && backed && independent && solved) return 'verified';
   return 'check';
+}
+
+/// Why an item got its verdict, in words the student can read: each reason
+/// that held it back or brought it down (Islamic brief: always record the
+/// reason; an unresolved conflict is said to be one, tawaqquf).
+export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = false, letters = null) {
+  const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
+  const out = [];
+  const question = Number(f.kind_mcq) === 1;
+  if (f.no_models) return verdictName === 'flagged' ? ['A safety rule failed; no checker has looked yet.'] : ['Not checked yet.'];
+  if (question && (Number(f.blind_against) || 0) >= MIN_VERIFY_VOTERS) {
+    out.push(`Checkers from ${f.blind_against} different model families, solving it without the key, chose another answer${letters ? ` (${letters})` : ''}.`);
+  }
+  if (f.rule_severe) out.push('A safety rule failed.');
+  if (question && f.blind_split && !(f.blind_against >= MIN_VERIFY_VOTERS) && !(f.blind_agree >= MIN_VERIFY_VOTERS)) {
+    out.push('Unresolved: independent checkers solving it blind did not agree.');
+  } else if (question && (Number(f.blind_agree) || 0) < MIN_VERIFY_VOTERS && verdictName !== 'flagged') {
+    out.push('Fewer than two independent blind solves reached the key.');
+  }
+  if ((Number(f.families) || 0) < MIN_VERIFY_VOTERS && verdictName !== 'flagged') out.push('Not yet passed by two model families.');
+  if (oath && !((Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH)) {
+    out.push('A dose, diagnosis or treatment without evidence behind it.');
+  }
+  if (p < t.flagged) out.push('The checkers judged it likely wrong.');
+  else if (p < t.verified && verdictName !== 'verified') out.push('The checkers were not confident enough.');
+  return out;
 }
 
 // MARK: stricter for an exam's management questions

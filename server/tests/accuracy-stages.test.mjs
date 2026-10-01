@@ -14,13 +14,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, claimsStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage,
-  BATCH, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix,
-} from '../accuracy.js';
+  BATCH, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix, staleSignals } from '../accuracy.js';
 import { proGate, askModel, spend } from '../ai.js';
 import { resetBreakers } from '../breakers.js';
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from '../jev.js';
 import { ruleHits, itemText, sourceMatch } from '../accuracy-rules.js';
-import { features, predict, verdict, examWeights, isOath, oathClaims } from '../accuracy-model.js';
+import { features, predict, verdict, examWeights, isOath, oathClaims, familyOf } from '../accuracy-model.js';
 import { exam as examById } from '../exams.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -180,6 +179,7 @@ const PASS = { risk: 1, answer: 'B', evidence: 'supports', cites: ['S1'], issues
 /// the tests write their intent into the items' text.
 function voteOn(model, block) {
   if (block.includes('MUTE') && model.includes('flash-lite')) return null;
+  if (block.includes('KEYWRONG')) return { risk: 1, answer: 'A', evidence: 'none', cites: [], issues: [], fix: null };
   if (block.includes('WRONG')) return { risk: 4, answer: 'A', evidence: 'contradicts', cites: [], issues: ['That is wrong.'], fix: { field: 'text', value: 'Corrected.' } };
   if (block.includes('SPLIT')) {
     return model.includes('gpt-oss') ? { risk: 4, answer: 'A', evidence: 'contradicts', cites: [], issues: ['The key is wrong.'], fix: { field: 'key', value: 'A' } } : PASS;
@@ -290,6 +290,11 @@ const SEVERE = { id: 'p1', kind: 'card', text: 'Give paracetamol 10 g orally for
 const MUTE = { id: 'u1', kind: 'case', text: 'A 30-year-old with fever and neck stiffness. MUTE', source: 'Meningitis presents with fever and neck stiffness.' };
 const NOTE = { id: 'n1', kind: 'note', text: 'Metformin is first-line in type 2 diabetes. NOEVIDENCE', source: '' };
 const card = t => ({ kind: 'card', text: `Q: ${t}\nA: y` });
+const CARDSPLIT = { id: 'cs1', kind: 'card', text: 'Q: Drug of choice for absence seizures? SPLIT\nA: Phenytoin', source: '' };
+// both checkers, solving blind, reach A; the key says B
+const KEYWRONG = { id: 'k1', kind: 'mcq', stem: 'First-line drug for absence seizures? KEYWRONG', options: ['Ethosuximide', 'Phenytoin', 'Carbamazepine'], key: 1, explanation: '', source: '' };
+const EXPLAINED = { id: 'e1', kind: 'mcq', stem: 'A patient on warfarin bleeds. Best immediate reversal?', options: ['Vitamin K', 'Prothrombin complex concentrate'], key: 1,
+  explanation: 'Prothrombin complex concentrate reverses warfarin within minutes; vitamin K takes hours.', source: '' };
 
 /// One way of checking (old or staged), run through a list of calls in a
 /// fresh world: every reply, every outside call, and the database after.
@@ -330,23 +335,18 @@ function firstDifference(a, b, path = '') {
       { body: null },
     ]],
     ['a fresh batch, then the same from the cache, then one item edited', {}, {}, [
-      { body: { items: [Q1, C1, DOSE, MGMT] } },
-      { body: { items: [Q1, C1, DOSE, MGMT] } },
-      { body: { items: [Q1, { ...C1, text: `${C1.text} (edited)` }] } },
-    ]],
-    ['an exam\'s stricter management questions', {}, {}, [
-      { body: { items: [MGMT, Q1], exam: 'step2ck' } },
-      { body: { items: [MGMT, Q1], exam: 'step2ck' } },
-      { body: { items: [MGMT], exam: 'nope' } },
+      { body: { items: [C1, DOSE, NOTE, TREAT] } },
+      { body: { items: [C1, DOSE, NOTE, TREAT] } },
+      { body: { items: [NOTE, { ...C1, text: `${C1.text} (edited)` }] } },
     ]],
     ['the writer never votes; a split asks a third voter', {}, {}, [
-      { body: { items: [SPLIT], writer: 'gemini-3.5-flash-lite' } },
-      { body: { items: [{ ...SPLIT, stem: `${SPLIT.stem} Again.` }] } },
+      { body: { items: [CARDSPLIT], writer: 'gemini-3.5-flash-lite' } },
+      { body: { items: [{ ...CARDSPLIT, text: `${CARDSPLIT.text} Again.` }] } },
       { body: { items: [WRONG, C1] } },
     ]],
     ['voters down or unreadable: failures for the owner, unchecked when nobody answers', {}, {
       down: new Set(['gemini-3.5-flash-lite']), garbage: new Set(['@cf/openai/gpt-oss-120b']) }, [
-      { body: { items: [Q1, SEVERE] } },
+      { body: { items: [C1, SEVERE] } },
       { body: { items: [C1] } },
     ]],
     ['nobody answers: busy, nothing kept, asked again next time', {}, {
@@ -378,9 +378,12 @@ function firstDifference(a, b, path = '') {
   ];
   // The old implementation is the reference for everything the staged one
   // did not change on purpose. Intended since then, and set aside here:
-  // the families count beside the features, the blind second voter's marker
-  // and its withheld fix, the "busy" reply when nobody answered, and the
-  // allowance that reply gives back. Verdicts, P and calls must still agree.
+  // the families count beside the features, the blind voter's marker and its
+  // withheld fix, the "busy" reply when nobody answered, the allowance that
+  // reply gives back, and the reasons now sent with each verdict. Batches
+  // with questions are not compared: they are solved blind by two families
+  // first (1 Oct, the briefs), tested on their own below. Verdicts, P and
+  // calls must still agree.
   const normalize = run => {
     const votes = list => (list || []).forEach(v => { if (v && v.blind) { delete v.blind; v.fix = null; } });
     const blindAt = {};
@@ -392,6 +395,7 @@ function firstDifference(a, b, path = '') {
       delete j.busy;
       for (const [ii, it] of (j.items || []).entries()) {
         if (it.features) delete it.features.families;
+        delete it.reasons;
         (it.votes || []).forEach((v, n) => { if (v && v.blind) { (blindAt[`${ri}:${ii}`] ||= []).push(n); (blindModels[`${ri}:${ii}`] ||= []).push(v.model); } });
         votes(it.votes);
       }
@@ -399,7 +403,7 @@ function firstDifference(a, b, path = '') {
     };
     const replies = run.replies.map((r, ri) => ({ status: r.status, body: body(r.body, ri) }));
     const db = JSON.parse(JSON.stringify(run.db, (k, v) => {
-      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); votes(s.votes); return JSON.stringify(s); } catch { return v; } }
+      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); votes(s.votes); delete s.kind; return JSON.stringify(s); } catch { return v; } }
       return v;
     }));
     if (db && typeof db === 'object') delete db.ai_usage;
@@ -697,18 +701,71 @@ function firstDifference(a, b, path = '') {
 
 // MARK: what the briefs changed (1 Oct): a blind second voter, two families, refunds, no retractions
 {
-  // the second voter sees a question without its key or explanation
+  // a question is solved blind by two families before anyone sees its key
   const w = world();
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true });
   const body = JSON.parse(await r.text());
   const withheld = w.prompts.filter(p => p.includes('Keyed answer and explanation withheld'));
   const full = w.prompts.filter(p => p.includes('Keyed answer: B'));
-  ok(withheld.length === 1 && full.length === 1 && !withheld[0].includes('PCC works fastest'),
-     'the second voter is shown the question blind: no key, no explanation');
+  ok(withheld.length === 2 && full.length === 0 && !withheld.some(p => p.includes('PCC works fastest')),
+     'the first two voters solve the question blind: no key, no explanation (a short explanation needs no third look)');
   const votes = body.items[0].votes;
-  ok(votes.length === 2 && votes[1].blind === true && votes[1].fix === null && !votes[0].blind, 'its vote is marked blind and fixes nothing');
-  ok(body.items[0].verdict === 'verified', 'a key the blind voter also reaches, with a passing full judgment, can be Verified');
+  ok(votes.length === 2 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
+  ok(new Set(votes.map(v => familyOf(v.model))).size === 2, 'and come from two model families');
+  ok(body.items[0].verdict === 'verified', 'two independent blind solves reaching the key, passing it: Verified');
+  w.release();
+}
+{
+  // a question cached before blind-first voting is checked again, not graded on votes that saw the key
+  const w = world();
+  forgetWeights();
+  const first = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true });
+  const hash = JSON.parse(await first.text()).items[0].hash;
+  const old = { votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'B', evidence: 'supports' }, { model: 'gpt-oss-120b', risk: 1, answer: 'B', evidence: 'supports', blind: true }], sourceMatch: 1, evidence: [] };
+  w.db.prepare('UPDATE accuracy_verdicts SET signals = ? WHERE hash = ?').run(JSON.stringify(old), hash);
+  const calls = w.prompts.length;
+  const again = JSON.parse(await (await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true })).text()).items[0];
+  ok(!again.cached && w.prompts.length === calls + 2 && again.votes.filter(v => v.blind).length === 2, 'old question votes are stale: asked again, blind');
+  ok(staleSignals(old) && !staleSignals(again) && !staleSignals({ votes: [{ risk: 1, answer: null }] }), 'stale means a question with fewer than two blind solves');
+  w.release();
+}
+{
+  // an explanation worth judging brings a third voter, shown the key
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [EXPLAINED] }, w.fetcher, { owner: true });
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.votes.length === 3 && item.votes.filter(v => v.blind).length === 2 && !item.votes[2].blind
+     && w.prompts.some(p => p.includes('vitamin K takes hours')), 'two blind solves, then a review shown the key and the explanation');
+  w.release();
+}
+{
+  // a wrong key: both families, solving blind, choose another answer
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [KEYWRONG] }, w.fetcher, { owner: true });
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.verdict === 'flagged' && item.fix?.field === 'key' && item.fix.value === 'A', 'Flagged, with the answer they chose offered as the fix');
+  ok(item.reasons.some(x => x.includes('another answer (A)')), 'and the reason says why', JSON.stringify(item.reasons));
+  w.release();
+}
+{
+  // blind solves that split: a third family breaks the tie
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [SPLIT] }, w.fetcher, { owner: true });
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.votes.length === 3 && item.votes.every(v => v.blind), 'a split between the blind solves asks a third, also blind');
+  w.release();
+}
+{
+  // a question beside a card: the card still gets two full votes, and the question its blind solves
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [Q1, C1] }, w.fetcher, { owner: true });
+  const items = JSON.parse(await r.text()).items;
+  ok(items[0].verdict === 'verified' && items[1].verdict === 'verified' && items[1].votes.length === 2, 'a mixed batch verifies both kinds');
   w.release();
 }
 {

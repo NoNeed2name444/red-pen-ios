@@ -73,7 +73,7 @@ for (const statement of schema.split(';')) if (statement.trim()) db.exec(stateme
 db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('bench', 'apple', 'bench', 0)`).run();
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-let modelCalls = 0, throttled = 0;
+let modelCalls = 0, throttled = 0, shown = 0;
 // free-tier limits answer 429: wait as told and ask again, so a busy minute
 // is not scored as a checker that could not answer
 // --stub: the plumbing alone, offline - every checker answers the keyed
@@ -89,7 +89,16 @@ const fetcher = async (url, init) => {
   if (stub) return String(url).includes('models.github.ai') ? stubReply(init) : new Response('{}', { status: 404 });
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, init);
-    if (String(url).includes('models.github.ai')) modelCalls++;
+    if (String(url).includes('models.github.ai')) {
+      modelCalls++;
+      // the first replies, and any refusal, word for word: a run whose every
+      // call fails says why
+      if (shown < 3 || (res.status !== 200 && shown < 8)) {
+        shown++;
+        const text = await res.clone().text();
+        console.error(`models.github.ai ${JSON.parse(init.body).model} -> ${res.status}: ${text.slice(0, 500).replace(/\s+/g, ' ')}`);
+      }
+    }
     if (res.status !== 429 || attempt >= 5) return res;
     throttled++;
     const wait = Number(res.headers.get('retry-after')) || 20 * (attempt + 1);
@@ -113,6 +122,11 @@ for (let b = 0; b < cases.length; b += perBatch) {
   const body = await res.json();
   (body.items || []).forEach((r, n) => results.push({ ...batch[n], result: r }));
   if (body.failures) console.error('failures:', body.failures.join(' | '));
+  // nobody answered the first batches: stop and say so, rather than spend the run
+  if (b >= perBatch * 2 && results.every(r => (r.result?.verdict || 'unchecked') === 'unchecked')) {
+    console.error('No checker answered the first batches: stopping. See the replies above.');
+    process.exit(1);
+  }
   process.stdout.write(`\r${Math.min(b + perBatch, cases.length)}/${cases.length} checked, ${modelCalls} model calls, ${throttled} waits`);
 }
 console.log('');

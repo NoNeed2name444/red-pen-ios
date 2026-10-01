@@ -45,8 +45,10 @@ jobs:
         env:
           MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -sf -H "Authorization: Bearer $MODELS_TOKEN" -H "Accept: application/json" \
-            https://models.github.ai/catalog/models -o catalog.json || echo '[]' > catalog.json
+          code=$(curl -s -o catalog.json -w '%{http_code}' -H "Authorization: Bearer $MODELS_TOKEN" \
+            -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://models.github.ai/catalog/models)
+          echo "catalog HTTP $code: $(head -c 300 catalog.json)"
+          [ "$code" = "200" ] || echo '[]' > catalog.json
           node tools/verification-bench/pick-voters.mjs catalog.json "${{ inputs.voters }}" >> "$GITHUB_OUTPUT"
       - name: The whole layer on hard questions
         env:

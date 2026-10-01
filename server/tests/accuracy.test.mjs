@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ruleHits, doses, labValues, explainedAnswer, sourceMatch, itemText, DRUGS, LABS } from '../accuracy-rules.js';
-import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH, familyOf } from '../accuracy-model.js';
+import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, reasonsFor, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH, familyOf } from '../accuracy-model.js';
 import { DOSE_VECTORS } from './oath-vectors.mjs';
 import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights, describe } from '../accuracy.js';
 import { normaliseMedQA, normaliseMedMCQA, variants, corrupt, reportedExamples, train, reportMarkdown } from '../bench/train-accuracy.mjs';
@@ -72,9 +72,21 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
 
 // MARK: the model
 {
-  const pass = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const pass = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports', blind: true }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   const p1 = predict(pass);
-  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `two passing votes with support are Verified (${p1.toFixed(3)})`);
+  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `two blind solves from two families reach the key, with support: Verified (${p1.toFixed(3)})`);
+  // the briefs' rules for questions (DNA: kinetic proofreading; Islamic: tawatur, jarh mufassar, tawaqquf)
+  const anchored = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(verdict(predict(anchored), anchored) === 'check', 'votes that saw the key are not enough to verify a question');
+  const oneBlind = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: 'gemma-4-31b-it', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(oneBlind.blind_agree === 1 && verdict(predict(oneBlind), oneBlind) === 'check', 'two blind solves from one family are one witness');
+  const against = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(against.blind_against === 2 && verdict(predict(against), against) === 'flagged', 'two families solving it blind agree on another answer: Flagged, whatever a reviewer shown the key said');
+  ok(reasonsFor('flagged', predict(against), against, undefined, false, 'C')[0].includes('another answer (C)'), 'and the reason names the answer they chose');
+  const parted = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'none', blind: true }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(verdict(predict(parted), parted) === 'check' && reasonsFor('check', predict(parted), parted).some(r => r.startsWith('Unresolved')), 'blind solves that split leave it Unresolved (Check this), and say so');
+  const card2 = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7 });
+  ok(verdict(predict(card2), card2) === 'verified', 'a card has no key to solve: two families passing it still verify it');
   const bad = features({ kind: 'mcq', votes: [{ risk: 4, answer: 'B', evidence: 'contradicts' }, { risk: 4, answer: 'B', evidence: 'contradicts' }], keyLetter: 'A', sourceMatch: 0.7 });
   ok(verdict(predict(bad), bad) === 'flagged', 'two flagging votes are Flagged');
   const split = features({ kind: 'mcq', votes: [{ risk: 1, answer: 'A', evidence: 'none' }, { risk: 3, answer: 'A', evidence: 'none' }], keyLetter: 'A', sourceMatch: 0.5 });

@@ -42,7 +42,7 @@ enum AccuracySchedule {
             for item in items(set) {
                 if planned + pending.count >= limit { break }
                 let hash: String = item.contentHash
-                if ledger.isChecked(hash) || !ledger.mayRetry(hash, now: now) || hashes.contains(hash) { continue }
+                if ledger.isChecked(hash, question: item.kind == .mcq) || !ledger.mayRetry(hash, now: now) || hashes.contains(hash) { continue }
                 hashes.insert(hash)
                 pending.append(item)
             }

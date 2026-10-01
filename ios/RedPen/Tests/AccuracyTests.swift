@@ -67,11 +67,29 @@ check("the tables are read", AccuracyRules.drugs.count > 100 && AccuracyRules.dr
 
 // MARK: the model
 
-let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports"),
-                                                                      AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports")],
+let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports", blind: true),
+                                                                      AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports", blind: true)],
                                        evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
 let p1 = AccuracyModel.probability(pass)
-check("two passing votes with support are Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+check("two blind solves from two families reach the key, with support: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+// the briefs' rules for questions, as the server has them (server/accuracy-model.js verdict)
+func mcqVotes(_ votes: [AccuracyVote]) -> [String: Double] {
+    AccuracyModel.featureValues(kind: .mcq, rules: [], votes: votes, evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+}
+let anchoredF = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports"),
+                          AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports")])
+check("votes that saw the key do not verify a question", AccuracyModel.grade(AccuracyModel.probability(anchoredF), anchoredF) == .check)
+let againstF = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "C", blind: true),
+                         AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "C", blind: true),
+                         AccuracyVote(model: "@cf/nvidia/nemotron-3-120b-a12b", risk: 1, answer: "A", evidence: "supports")])
+check("two families solving it blind agree on another answer: Flagged", againstF["blind_against"] == 2
+      && AccuracyModel.grade(AccuracyModel.probability(againstF), againstF) == .flagged)
+let oneFamilyBlind = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports", blind: true),
+                               AccuracyVote(model: "gemma-4-31b-it", risk: 1, answer: "A", evidence: "supports", blind: true)])
+check("two blind solves from one family are one witness", oneFamilyBlind["blind_agree"] == 1
+      && AccuracyModel.grade(AccuracyModel.probability(oneFamilyBlind), oneFamilyBlind) == .check)
+let decodedBlind = try? JSONDecoder().decode(AccuracyVote.self, from: Data(#"{"model":"m","risk":1,"answer":"A","blind":true}"#.utf8))
+check("the blind mark comes from the server's reply", decodedBlind?.blind == true)
 // two votes from one family are one witness (independence), as on the server
 let oneFamily = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"),
                                                                            AccuracyVote(model: "gemma-4-31b-it", risk: 1, evidence: "supports")],
@@ -190,22 +208,26 @@ check("a note is its own kind", AccuracyItem.note(id: UUID(), title: "T", body: 
 var ledger = AccuracyLedger()
 let item0 = AccuracyItem.items(in: mcqSet)[0]
 check("an unchecked item with no rule hits is Not checked yet", ledger.assess(item0).grade == .unchecked)
-ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")],
+ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)],
            evidence: [AccuracyEvidence(id: "S1", source: "MedlinePlus", title: "t", url: "https://medlineplus.gov")], sourceMatch: 0.8, for: item0.contentHash)
-check("votes make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash))
+check("blind solves make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
+var anchoredLedger = AccuracyLedger()
+anchoredLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")], sourceMatch: 0.8, for: item0.contentHash)
+check("a question checked before blind solving is asked about again", !anchoredLedger.isChecked(item0.contentHash, question: true)
+      && anchoredLedger.isChecked(item0.contentHash) && anchoredLedger.assess(item0).grade == .check)
 ledger.add(votes: [AccuracyVote(model: "a", risk: 4, answer: "B", evidence: "contradicts", issues: ["Wrong"])], for: item0.contentHash)
 check("a model's new vote replaces its old one", ledger.records[item0.contentHash]?.votes.count == 2 && ledger.assess(item0).grade != .verified)
 check("and its concern is a reason", ledger.assess(item0).reasons.contains("a: Wrong"))
 var reported = AccuracyLedger()
-reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")], sourceMatch: 0.8, for: item0.contentHash)
+reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)], sourceMatch: 0.8, for: item0.contentHash)
 reported.markReported(item0.contentHash)
 check("a reported item is never shown as Verified again", reported.assess(item0).grade == .check)
 // the claim gate (server/claims.js): the server's reply, as it sends it
 func gateReply(_ claims: String) -> AccuracyCheckReply? {
     let json: String = """
     {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
-      "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null},
-                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null}],
+      "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
+                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true}],
       "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)}]}
     """
     return try? JSONDecoder().decode(AccuracyCheckReply.self, from: Data(json.utf8))
@@ -230,7 +252,7 @@ check("a gate that failed holds the item at Check this, with its votes kept", br
 check("and it is asked about again later, not at once", !broken.isChecked(hash0) && !broken.mayRetry(hash0, now: gateTime.addingTimeInterval(60))
       && broken.mayRetry(hash0, now: gateTime.addingTimeInterval(7 * 3600)))
 broken.record(gateReply(""), for: [hash0], at: gateTime.addingTimeInterval(7 * 3600))
-check("asked again and the gate works: graded on the votes", broken.isChecked(hash0) && broken.assess(item0).grade == .verified)
+check("asked again and the gate works: graded on the votes", broken.isChecked(hash0, question: true) && broken.assess(item0).grade == .verified)
 var unread = AccuracyLedger()
 unread.record(gateReply(#","claims":{"hard":[{"claim":"x"}],"soft":[],"partial":true}"#), for: [hash0], at: gateTime)
 check("a finding without a code still holds the item", unread.assess(item0).grade == .check)

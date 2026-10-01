@@ -161,8 +161,11 @@ struct AccuracyLedger: Codable {
 
     /// Checked already: a model voted on exactly this content, and the claim
     /// gate did not fail on it (an item it failed on is asked about again).
-    func isChecked(_ hash: String) -> Bool {
+    /// A question checked before two families solved it blind (1 Oct) is
+    /// asked about again: votes that saw the key cannot verify it now.
+    func isChecked(_ hash: String, question: Bool = false) -> Bool {
         guard let record = records[hash], !record.votes.isEmpty else { return false }
+        if question && record.votes.filter({ $0.blind == true }).count < 2 { return false }
         return !(record.claimHolds ?? []).contains(AccuracyCheckReply.gateFailed)
     }
 

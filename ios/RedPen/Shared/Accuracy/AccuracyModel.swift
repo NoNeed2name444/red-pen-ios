@@ -33,13 +33,16 @@ struct AccuracyVote: Codable, Hashable {
     var cites: [String] = []
     var issues: [String] = []
     var fix: AccuracySuggestion? = nil
+    /// The checker solved the question without seeing its key or explanation
+    /// (server/accuracy.js votesStage). Nil for a vote that saw them.
+    var blind: Bool? = nil
 
-    enum CodingKeys: String, CodingKey { case model, risk, answer, evidence, cites, issues, fix }
+    enum CodingKeys: String, CodingKey { case model, risk, answer, evidence, cites, issues, fix, blind }
 
     init(model: String = "", risk: Int, answer: String? = nil, evidence: String = "none",
-         cites: [String] = [], issues: [String] = [], fix: AccuracySuggestion? = nil) {
+         cites: [String] = [], issues: [String] = [], fix: AccuracySuggestion? = nil, blind: Bool? = nil) {
         self.model = model; self.risk = risk; self.answer = answer; self.evidence = evidence
-        self.cites = cites; self.issues = issues; self.fix = fix
+        self.cites = cites; self.issues = issues; self.fix = fix; self.blind = blind
     }
 
     /// Anything the server leaves out takes its default, so a reply from a
@@ -53,6 +56,7 @@ struct AccuracyVote: Codable, Hashable {
         cites = try c.decodeIfPresent([String].self, forKey: .cites) ?? []
         issues = try c.decodeIfPresent([String].self, forKey: .issues) ?? []
         fix = try c.decodeIfPresent(AccuracySuggestion.self, forKey: .fix)
+        blind = try? c.decodeIfPresent(Bool.self, forKey: .blind)
     }
 }
 
@@ -196,6 +200,18 @@ enum AccuracyModel {
         // not a weighted feature: how many model families the votes that pass
         // the item come from (the verdict needs two), as the server counts it
         f["families"] = Double(Set(votes.filter { $0.risk < 3 }.map { familyOf($0.model) }).count)
+        // the blind solves of a question, counted by family (features() in
+        // server/accuracy-model.js): agreeing with the key, the most agreeing
+        // on one other answer, and whether they split
+        if kind == .mcq, let keyLetter {
+            var byLetter: [String: Set<String>] = [:]
+            for v in answered where v.blind == true {
+                if let a = v.answer { byLetter[a, default: []].insert(familyOf(v.model)) }
+            }
+            f["blind_agree"] = Double(byLetter[keyLetter]?.count ?? 0)
+            f["blind_against"] = Double(byLetter.filter { $0.key != keyLetter }.map { $0.value.count }.max() ?? 0)
+            f["blind_split"] = byLetter.count > 1 ? 1 : 0
+        }
         return f
     }
 
@@ -322,11 +338,16 @@ enum AccuracyModel {
                       oath: Bool = false) -> AccuracyGrade {
         let severe: Bool = (f["rule_severe"] ?? 0) > 0
         if (f["no_models"] ?? 1) > 0 { return severe ? .flagged : .unchecked }
+        // two families solving it blind agree on another answer: the key is wrong
+        let question: Bool = (f["kind_mcq"] ?? 0) == 1
+        if question && (f["blind_against"] ?? 0) >= Double(minVerifyVoters) { return .flagged }
         if p < w.thresholds.flagged { return .flagged }
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
         let backed: Bool = !oath || (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
         let independent: Bool = (f["families"] ?? 0) >= Double(minVerifyVoters)
-        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed && independent { return .verified }
+        // a question is Verified only when two independent blind solves reach its key
+        let solved: Bool = !question || (f["blind_agree"] ?? 0) >= Double(minVerifyVoters)
+        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed && independent && solved { return .verified }
         return .check
     }
 }

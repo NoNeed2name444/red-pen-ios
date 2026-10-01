@@ -33,7 +33,7 @@ import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
 import { proGate, askModel, spend, refund } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights, isOath, oathClaims, familyOf } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
 
@@ -252,9 +252,13 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   const oath = oathWithJev(isOath(text), signals?.jevOath);
   const graded = verdict(p, f, examWeights(weights, item, strictness), oath);
   const contradicted = Boolean(claims?.hard?.length);
+  const final = contradicted && graded === 'verified' ? 'check' : graded;
+  const fixed = suggestedFix(item, votes);
+  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null);
+  if (contradicted) reasons.push('It contradicts its own lecture.');
   return {
-    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: contradicted && graded === 'verified' ? 'check' : graded, modelVersion: weights.version,
-    features: f, rules, votes, evidence: signals?.evidence || [], fix: suggestedFix(item, votes),
+    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: final, modelVersion: weights.version, reasons,
+    features: f, rules, votes, evidence: signals?.evidence || [], fix: fixed,
     ...(oath ? { oath: oathClaims(text) } : {}),
     ...(claimsReply(claims) || {}),
   };
@@ -274,6 +278,17 @@ export function suggestedFix(item, votes) {
   const read = votes.filter(Boolean);
   if (item.kind === 'mcq') {
     const keyed = item.key >= 0 ? letter(item.key) : null;
+    // two families solving it blind agree on another answer: that answer
+    const blindBy = new Map();
+    for (const v of read.filter(v => v.blind && v.answer && v.answer !== keyed)) {
+      if (!blindBy.has(v.answer)) blindBy.set(v.answer, new Set());
+      blindBy.get(v.answer).add(familyOf(v.model));
+    }
+    for (const [answer, fams] of blindBy) {
+      if (fams.size >= 2 && answer.charCodeAt(0) - 65 < item.options.length) {
+        return { field: 'key', value: answer, by: read.filter(v => v.blind && v.answer === answer).map(v => v.model) };
+      }
+    }
     const answers = read.map(v => v.answer).filter(Boolean);
     const other = answers.filter(a => a !== keyed);
     if (answers.length >= 2 && other.length === answers.length && other.every(a => a === other[0])
@@ -454,6 +469,23 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
   const statuses = [];
   let wanted = 2, calls = 0;
   const queue = votersFor(env, writer);
+  // a batch of questions is solved blind by two families first (DNA brief:
+  // kinetic proofreading - independent discriminations before any is shown
+  // the key); a third blind solve breaks a split; a voter shown the key
+  // comes last, and only for what it alone can judge: an explanation's
+  // facts, or a card in the same batch
+  const explained = entries.some(e => e.item.kind === 'mcq' && String(e.item.explanation || '').trim().length > 20);
+  // a card in the batch sees the full item on every ballot; a third is asked
+  // when the first two disagree about it, as for a batch of cards
+  const otherSplit = () => ballots.length >= 2 && entries.some((e, n) => e.item.kind !== 'mcq'
+    && disagree([ballots[0].parsed[n]], [ballots[1].parsed[n]]));
+  const blindCount = () => ballots.filter(b => b.blind).length;
+  const blindSplit = () => entries.some((e, n) => {
+    if (e.item.kind !== 'mcq') return false;
+    const answers = ballots.filter(b => b.blind).map(b => b.parsed[n]?.answer).filter(Boolean);
+    const key = e.item.key >= 0 ? String.fromCharCode(65 + e.item.key) : null;
+    return answers.length >= 2 && (new Set(answers).size > 1 || answers.some(a => a !== key) && answers.some(a => a === key));
+  });
   while (queue.length) {
     if (ballots.length >= wanted || calls >= MAX_CALLS) break;
     // once one family has voted, the next voter is from another family when
@@ -465,7 +497,9 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     }
     const use = queue.shift();
     calls++;
-    const blind = hasMcq && ballots.length === 1;
+    // questions: blind until two blind solves stand (three when they split)
+    const blindWanted = !hasMcq ? 0 : (blindCount() >= 2 && blindSplit() ? 3 : 2);
+    const blind = hasMcq && blindCount() < blindWanted;
     // room for a reasoning model to think before it answers every item
     const asked = await within(budget, () => askModel(env, account, owner, use, blind ? blindMessages : messages, 500 * entries.length + 600, fetcher), null);
     statuses.push(asked.status);
@@ -478,7 +512,11 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     // a blind voter judged only the stem and options: it fixes nothing
     if (blind) parsed.forEach((v, n) => { if (v && entries[n].item.kind === 'mcq') { v.fix = null; v.blind = true; } });
     ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) });
-    if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
+    if (hasMcq) {
+      // two blind solves, a third when they split, then one shown the key
+      // when an explanation needs judging or a card was disputed
+      wanted = (blindCount() >= 2 && blindSplit() ? 3 : 2) + (explained || otherSplit() ? 1 : 0);
+    } else if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
   }
   return ended('votes', statuses, started, budget, { ballots, failures });
 }
@@ -614,7 +652,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   for (const [n, e] of entries.entries()) {
     if (!votes[n].length) { outcomes[e.i] = { from: 'none', signals: null, reason: 'busy' }; continue; }
     const signals = {
-      votes: votes[n], sourceMatch: sourceMatch(e.item, e.item.source),
+      kind: e.item.kind, votes: votes[n], sourceMatch: sourceMatch(e.item, e.item.source),
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
     };
     if (jev[n] !== null) signals.jevOath = jev[n];
@@ -632,13 +670,24 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   return reply({ items: results, ...(!ballots.length ? { busy: true } : {}), ...(owner && failures.length ? { failures } : {}) });
 }
 
+/// Signals from before questions were solved blind by two families (1 Oct):
+/// fewer than two blind solves of a question. They are checked again rather
+/// than graded on votes that saw the key.
+export function staleSignals(signals) {
+  const votes = Array.isArray(signals?.votes) ? signals.votes : [];
+  // kept with its kind since; before, a question is known by its answer letters
+  const question = signals?.kind ? signals.kind === 'mcq' : votes.some(v => v && typeof v.answer === 'string');
+  return question && votes.filter(v => v && v.blind).length < 2;
+}
+
 async function readVerdict(env, hash) {
   try {
     const row = await env.DB.prepare('SELECT signals, created_at FROM accuracy_verdicts WHERE hash = ?').bind(hash).first();
     if (!row) return null;
     const days = Number(env.ACCURACY_CACHE_DAYS) || 365;
     if (row.created_at < now() - days * 86_400) return null;
-    return JSON.parse(row.signals);
+    const signals = JSON.parse(row.signals);
+    return staleSignals(signals) ? null : signals;
   } catch { return null; }
 }
 
