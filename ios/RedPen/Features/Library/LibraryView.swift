@@ -108,6 +108,8 @@ struct LibraryView: View {
     @State var turning: StudySet?
     /// The set whose reasoning practice (cases, duels, scripts) is open.
     @State var reasoningFor: StudySet?
+    /// The set whose sources and licences are open.
+    @State var creditsFor: StudySet?
     /// A set just turned into another mode, to open; or New set, filled in.
     @ObservedObject var modeSwitch = ModeSwitch.shared
 
@@ -242,6 +244,7 @@ struct LibraryView: View {
     var presentingSheet: Bool {
         let sets: Bool = newSetKind != nil || addingKind != nil || naming != nil || renaming != nil
         let edits: Bool = renamingFolder != nil || editing != nil || reading != nil || reasoningFor != nil
+            || creditsFor != nil
         let found: Bool = buildingSession || foundCard != nil || foundNote != nil || exportURL != nil
         let turned: Bool = turning != nil || modeSwitch.writing != nil
         return sets || edits || found || turned

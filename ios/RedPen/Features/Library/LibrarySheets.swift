@@ -44,6 +44,14 @@ extension LibraryView {
                         }
                 }
             }
+            .sheet(item: $creditsFor) { set in
+                NavigationStack {
+                    SetCreditsView(set: set)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { creditsFor = nil } }
+                        }
+                }
+            }
             .sheet(isPresented: Binding(get: { exportURL != nil },
                                         set: { if !$0 { exportURL = nil } })) {
                 if let exportURL { ShareSheet(items: [exportURL]) }

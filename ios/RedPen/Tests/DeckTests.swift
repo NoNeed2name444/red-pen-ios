@@ -16,6 +16,24 @@ func ok(_ condition: Bool, _ what: String) {
 
 let stem = "A 24-year-old returns with facial swelling. What is the diagnosis?"
 
+// MARK: which pictures are read in Arabic
+//
+// The Arabic read is several times slower than the English one, and an export
+// reads every picture before drawing a page, so only a card whose answer adds
+// an Arabic word gets it.
+
+ok(!ImageSpoiler.needsArabic(question: stem, answer: "Membranous nephropathy"),
+   "an English answer keeps the quick English-only read")
+ok(ImageSpoiler.needsArabic(question: stem, answer: "Membranous nephropathy \u{2014} \u{627}\u{644}\u{630}\u{626}\u{628}\u{629}"),
+   "an answer that adds an Arabic word is read in Arabic")
+ok(!ImageSpoiler.needsArabic(question: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}: what is the treatment?",
+                             answer: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629} hydroxychloroquine"),
+   "an Arabic word the question already has cannot be given away, so it is not")
+ok(ImageSpoiler.placement(imageText: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}",
+                          question: stem,
+                          answer: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}") == .answer,
+   "and a picture showing that Arabic answer is held back")
+
 ok(ImageSpoiler.placement(imageText: "", question: stem,
                           answer: "Membranous nephropathy") == .question,
    "a picture with no readable text stays with the question")

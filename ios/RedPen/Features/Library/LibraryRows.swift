@@ -351,6 +351,9 @@ extension LibraryView {
                 }
             }
         }
+        // where the set's content came from, with its licences and credits
+        Button("Sources and licences", systemImage: "books.vertical") { creditsFor = set }
+            .accessibilityIdentifier("setCredits")
         if set.kind == .anki || set.kind == .mcq {
             Button("Edit cards", systemImage: "square.and.pencil") { editing = set }
         }

@@ -6,3 +6,4 @@ docx
 imports
 sync
 zip
+ocr

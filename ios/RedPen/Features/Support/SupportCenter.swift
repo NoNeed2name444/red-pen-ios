@@ -400,7 +400,15 @@ struct SettingsPage: View {
 
     private var versionSection: some View {
         Section {
+            NavigationLink {
+                ContentLicencesView()
+            } label: {
+                Label("Sources and licences", systemImage: "books.vertical")
+            }
+            .accessibilityIdentifier("contentLicences")
             LabeledContent("Version", value: Bundle.main.shortVersion)
+        } header: {
+            Text("About")
         } footer: {
             Text(Brand.line)
         }
