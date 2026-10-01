@@ -15,7 +15,10 @@ enum MedicalGenerate {
         using backend: LLMBackend,
         onProgress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [MCQQuestion] {
-        let promptSource = String(sourceText.prefix(backend.promptBudgetChars))
+        // the whole lecture, a window at a time (audit #90): every batch reads
+        // the next part rather than every batch the first 40,000 characters
+        let windows: [String] = Array(TextSlicing.windows(sourceText, maxChars: backend.promptBudgetChars).prefix(60))
+        let promptSource: String = windows.first ?? ""
         // Vignette Cloud: the server writes the whole set, even with the app closed
         if let cloud = CloudJobs.endpoint(for: backend) {
             // fewer per call than on a direct model: each question now carries
@@ -29,9 +32,10 @@ enum MedicalGenerate {
                 exemplars: 2, exemplarPlaceholder: true, topicText: String(promptSource.prefix(4000)))
             var spec = CloudJobs.Spec(
                 title: "Writing \(count) questions", mode: "loop", extract: "questions", count: count,
-                sources: [promptSource],
-                steps: [.init(system: instructions, user: "Write the \(perCall) questions now, as JSON only.",
-                              maxTokens: 950 * perCall, temperature: 0.7)])
+                sources: windows,
+                // one prompt per window: a loop job takes them in turn
+                steps: windows.indices.map { .init(system: instructions, user: "Write the \(perCall) questions now, as JSON only.",
+                                                   source: $0, maxTokens: 950 * perCall, temperature: 0.7) })
             if CloudJobs.context?.serverCheck == true {
                 spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.mcqInstruction,
                                                          limit: backend.promptBudgetChars)
@@ -57,8 +61,9 @@ enum MedicalGenerate {
             try Task.checkCancellation()
             let callCount = min(perCall, count - collected.count)
             onProgress(collected.count, count)
+            let batch: Int = asked.count / max(1, perCall)
             let instructions = MCQGenerator.buildPrompt(
-                sourceText: promptSource, count: callCount, subject: subject,
+                sourceText: TextSlicing.window(windows, round: batch), count: callCount, subject: subject,
                 highYield: highYield, requestJSONShape: true, alreadyAsked: asked,
                 exemplars: backend.isOnDevice ? 1 : 2, round: asked.count / max(1, perCall))
             do {
@@ -95,7 +100,10 @@ enum MedicalGenerate {
         onProgress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async throws -> [OsceChecklist] {
         let wanted = min(count, OsceGenerator.maxStationsTotal)
-        let promptSource = String(sourceText.prefix(min(backend.promptBudgetChars, OsceGenerator.maxPromptChars)))
+        // a station prompt is long: 12,000 characters of source a call on a
+        // hosted model, 4,000 on a phone, and the whole lecture in turn
+        let budget: Int = backend.isOnDevice ? OsceGenerator.maxPromptChars : min(backend.promptBudgetChars, 12_000)
+        let windows: [String] = Array(TextSlicing.windows(sourceText, maxChars: budget).prefix(60))
         if let cloud = CloudJobs.endpoint(for: backend) {
             let perCall = OsceGenerator.maxStationsPerCall
             let instructions = OsceGenerator.prompt(sourceText: "{{SOURCE}}", count: perCall,
@@ -103,10 +111,10 @@ enum MedicalGenerate {
                 + "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
             var spec = CloudJobs.Spec(
                 title: "Writing \(wanted) stations", mode: "loop", extract: "stations", count: wanted,
-                sources: [promptSource],
-                steps: [.init(system: instructions,
-                              user: "Write the \(perCall) station\(perCall == 1 ? "" : "s") now, as JSON only.",
-                              maxTokens: 900 * perCall, temperature: 0.6)])
+                sources: windows,
+                steps: windows.indices.map { .init(system: instructions,
+                                                   user: "Write the \(perCall) station\(perCall == 1 ? "" : "s") now, as JSON only.",
+                                                   source: $0, maxTokens: 900 * perCall, temperature: 0.6) })
             if CloudJobs.context?.serverCheck == true {
                 spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.osceInstruction,
                                                          limit: backend.promptBudgetChars)
@@ -127,8 +135,8 @@ enum MedicalGenerate {
             try Task.checkCancellation()
             let callCount = min(OsceGenerator.maxStationsPerCall, wanted - collected.count)
             onProgress(collected.count, wanted)
-            let instructions = OsceGenerator.prompt(sourceText: promptSource, count: callCount,
-                                                    subject: subject, alreadyWritten: titles)
+            let instructions = OsceGenerator.prompt(sourceText: TextSlicing.window(windows, round: titles.count / max(1, OsceGenerator.maxStationsPerCall)),
+                                                    count: callCount, subject: subject, alreadyWritten: titles)
                 + "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
             do {
                 let reply = try await backend.complete(

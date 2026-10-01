@@ -18,7 +18,10 @@ enum OsceGenerator {
 
     static let maxStationsPerCall = 2
     static let maxStationsTotal = 1_000
-    static let maxPromptChars = 12_000
+    /// A station's rules and the stations written back share the on-device
+    /// model's 4,096-token window with the source (audit #85: 12,000
+    /// characters overflowed it); a long lecture is read a window at a time.
+    static let maxPromptChars = 4_000
 
     /// Whether generating is possible at all, in the words the student needs.
     /// Deferred to MCQGenerator so there is one answer to this question in the
@@ -61,7 +64,8 @@ enum OsceGenerator {
         }
 
         let wanted = min(count, maxStationsTotal)
-        let promptSource = String(sourceText.prefix(maxPromptChars))
+        let windows: [String] = TextSlicing.windows(sourceText, maxChars: maxPromptChars)
+        var call = 0
         var collected: [OsceChecklist] = []
         var titles: [String] = []
         var consecutiveFailures = 0
@@ -73,6 +77,8 @@ enum OsceGenerator {
             let callCount = min(maxStationsPerCall, wanted - collected.count)
             onProgress(collected.count, wanted)
 
+            let promptSource: String = TextSlicing.window(windows, round: call)
+            call += 1
             let instructions = prompt(sourceText: promptSource, count: callCount,
                                       subject: subject, alreadyWritten: titles)
             let session = LanguageModelSession(instructions: Instructions { instructions })

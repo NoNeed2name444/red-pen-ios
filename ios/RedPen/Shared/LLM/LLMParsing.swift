@@ -471,6 +471,41 @@ enum LLMText {
 /// Choosing text by overlap, and cutting it into pieces.
 enum TextSlicing {
 
+    /// A source longer than one prompt can hold, as windows that each fit,
+    /// cut at a paragraph, line or sentence end where one is near, so every
+    /// part of a lecture is read by some batch (audit #90: only the first
+    /// 40-45k characters ever were, 8-10k on a phone).
+    static func windows(_ text: String, maxChars: Int) -> [String] {
+        let limit: Int = max(500, maxChars)
+        guard text.count > limit else { return [text] }
+        var out: [String] = []
+        var rest: Substring = Substring(text)
+        while !rest.isEmpty {
+            if rest.count <= limit { out.append(String(rest)); break }
+            let hard: String.Index = rest.index(rest.startIndex, offsetBy: limit)
+            let head: Substring = rest[rest.startIndex..<hard]
+            // a paragraph end in the last third of the window, else a line
+            // or sentence end in its last fifth, else a hard cut
+            var cut: String.Index = hard
+            for (mark, share) in [("\n\n", 2), ("\n", 4), (". ", 4)] {
+                let floor: String.Index = rest.index(rest.startIndex, offsetBy: limit * share / (share + 1))
+                if let r = head.range(of: mark, options: .backwards), r.lowerBound >= floor {
+                    cut = r.upperBound
+                    break
+                }
+            }
+            out.append(String(rest[rest.startIndex..<cut]).trimmingCharacters(in: .whitespacesAndNewlines))
+            rest = rest[cut...]
+        }
+        return out.filter { !$0.isEmpty }
+    }
+
+    /// The window a batch reads: each batch the next one, round and round.
+    static func window(_ windows: [String], round: Int) -> String {
+        guard !windows.isEmpty else { return "" }
+        return windows[((round % windows.count) + windows.count) % windows.count]
+    }
+
     static func words(_ text: String) -> Set<String> {
         Set(text.lowercased().components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { $0.count > 3 })

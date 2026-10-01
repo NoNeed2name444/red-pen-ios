@@ -417,5 +417,19 @@ if let osceA {
 check("suggested destinations", LensDestination.suggested(for: .clinicalCase) == .cases && LensDestination.suggested(for: .cloze) == .cards)
 check("sentences keep 'E. coli' whole", LensConversion.sentences("E. coli causes it. Treat early.").count == 2)
 
+// MARK: reading the chosen option (audit #92)
+let antiplatelets: [String] = ["Aspirin", "Clopidogrel", "Ticagrelor", "Warfarin"]
+check("\"B - Clopidogrel, not aspirin\" is B", LensAnswerParser.keyIndex("B - Clopidogrel, not aspirin", options: antiplatelets) == 1)
+check("\"Clopidogrel, not aspirin\" is clopidogrel, not the first option it mentions", LensAnswerParser.keyIndex("Clopidogrel, not aspirin", options: antiplatelets) == 1)
+check("\"Ticagrelor rather than aspirin\" is ticagrelor", LensAnswerParser.keyIndex("Ticagrelor rather than aspirin", options: antiplatelets) == 2)
+check("\"2\" counts from 1: B", LensAnswerParser.keyIndex("2", options: antiplatelets) == 1)
+check("the number 3 counts from 1: C", LensAnswerParser.keyIndex(3, options: antiplatelets) == 2)
+check("\"C Ticagrelor\" is C", LensAnswerParser.keyIndex("C Ticagrelor", options: antiplatelets) == 2)
+check("\"D.\" and \"(A)\" still read", LensAnswerParser.keyIndex("D.", options: antiplatelets) == 3 && LensAnswerParser.keyIndex("(A)", options: antiplatelets) == 0)
+check("an option written out is that option", LensAnswerParser.keyIndex("warfarin", options: antiplatelets) == 3)
+check("an option that begins with a letter-like word is still matched by its text",
+      LensAnswerParser.keyIndex("A beta blocker", options: ["Metoprolol", "A beta blocker"]) == 1)
+check("a number past the options names none", LensAnswerParser.keyIndex("9", options: antiplatelets) == nil)
+
 print(failures.isEmpty ? "\nall lens checks passed" : "\n\(failures.count) FAILED: \(failures)")
 exit(failures.isEmpty ? 0 : 1)

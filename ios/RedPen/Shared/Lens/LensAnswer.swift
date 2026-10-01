@@ -189,19 +189,55 @@ enum LensAnswerParser {
     /// An option index however it was written: "C", "c)", 2, "2", "(C)",
     /// "C. Aspirin", or the option's own text.
     static func keyIndex(_ raw: Any?, options: [String]) -> Int? {
+        // a bare number: the prompt asks for a letter, so a model that answers
+        // with a number counts as people do, from 1 - "2" is B (audit #92)
+        if let n = number(raw) {
+            if options.indices.contains(n - 1) { return n - 1 }
+            return n == 0 && !options.isEmpty ? 0 : nil
+        }
         if let direct = LLMText.keyIndex(raw, options: options) { return direct }
         guard let text = raw as? String else { return nil }
         let t: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let m = QuestionDetector.match(#"^\(?([A-Za-z])\s*[\.\):]"#, t),
+        // "C", "C.", "(C)", "C)", "C:", "C -", "C – Aspirin", "C, aspirin"
+        if let m = QuestionDetector.match(#"^\(?([A-Za-z])\s*(?:[\.\):,\-–—]|$)"#, t),
            let i = QuestionDetector.letterIndex(m[0]), options.indices.contains(i) {
+            return i
+        }
+        // "C Aspirin": a letter, a space, then that option's own words
+        if let m = QuestionDetector.match(#"^\(?([A-Za-z])\)?\s+(.+)$"#, t), m.count > 1,
+           let i = QuestionDetector.letterIndex(m[0]), options.indices.contains(i), !options[i].isEmpty,
+           m[1].lowercased().hasPrefix(String(options[i].lowercased().prefix(12))) {
             return i
         }
         if let m = QuestionDetector.match(#"^(?:option|answer)\s*:?\s*\(?([A-Fa-f])\b"#, t, caseInsensitive: true),
            let i = QuestionDetector.letterIndex(m[0]), options.indices.contains(i) {
             return i
         }
+        // otherwise the option the answer names first, passing over one it
+        // rules out ("clopidogrel, not aspirin" is clopidogrel)
         let lower: String = t.lowercased()
-        return options.firstIndex { !$0.isEmpty && lower.contains($0.lowercased()) }
+        var best: (index: Int, at: Int)? = nil
+        for (i, option) in options.enumerated() where !option.isEmpty {
+            var from: String.Index = lower.startIndex
+            while let r = lower.range(of: option.lowercased(), range: from..<lower.endIndex) {
+                let lead: String = String(lower[lower.startIndex..<r.lowerBound].suffix(16))
+                let ruledOut: Bool = lead.range(of: #"\b(?:not|rather than|instead of|unlike|over)\s*$"#, options: .regularExpression) != nil
+                if !ruledOut {
+                    let at: Int = lower.distance(from: lower.startIndex, to: r.lowerBound)
+                    if best.map({ at < $0.at }) ?? true { best = (index: i, at: at) }
+                    break
+                }
+                from = r.upperBound
+            }
+        }
+        return best?.index
+    }
+
+    /// A whole number, written as one or as text ("2"), else nil.
+    private static func number(_ raw: Any?) -> Int? {
+        if let n = raw as? Int { return n }
+        if let s = raw as? String { return Int(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        return nil
     }
 
     /// One note per option from `{"A": "...", "B": "..."}`, a list in order,
