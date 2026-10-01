@@ -325,6 +325,24 @@ struct RuleSheetView: View {
     var body: some View { NotInThisBuild(feature: "The rule sheet") }
 }
 
+/// The ward pocket (Features/Exam/WardPocketView.swift): calculators and scores.
+struct WardPocketSheet: View {
+    var body: some View { NotInThisBuild(feature: "The ward pocket") }
+}
+
+/// SI or US conventional units, for the exam's lab values sheet.
+struct WardUnitsPicker: View {
+    @Binding var conventional: Bool
+
+    var body: some View {
+        Picker("Units", selection: $conventional) {
+            Text("SI").tag(false)
+            Text("US conventional").tag(true)
+        }
+        .pickerStyle(.segmented)
+    }
+}
+
 /// The reasoning card under a question (Features/Reasoning): nothing here.
 struct HowToReachCard: View {
     let differential: DifferentialTiers

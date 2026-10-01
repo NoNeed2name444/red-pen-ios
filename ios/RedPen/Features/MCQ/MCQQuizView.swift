@@ -174,7 +174,8 @@ struct MCQQuizView: View {
         // Exam mode, Check accuracy and Turn into, all in the one More menu.
         // Turn into is not for a quiz that is not saved yet, nor in the middle
         // of a timed paper.
-        .studyMoreMenu(for: studySet, turnInto: !isUnsaved && examEndsAt == nil, check: accuracyAsk) {
+        .studyMoreMenu(for: studySet, turnInto: !isUnsaved && examEndsAt == nil, check: accuracyAsk,
+                       pocket: examEndsAt == nil) {
             if canStartExam { examMenuItem }
             ExamToolMenuItems(sheet: $toolSheet, highlighting: $highlighting)
         }

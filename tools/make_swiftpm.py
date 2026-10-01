@@ -39,6 +39,7 @@ CORE_DROP = [
     "Features/Examples", "Features/Insight",                      # the examples hub, mistake diagnosis
     "Features/Mock", "Features/Exam/ExamDashboardCard.swift",
     "Shared/Exam/ExamFormats.swift",
+    "Features/Exam/WardPocketView.swift", "Shared/WardPocket.swift", "Shared/WardPocketScores.swift",  # ward pocket
     "Shared/Space", "Shared/AppBackdrop.swift",                   # the living sky
     "Shared/PopOut.swift", "Shared/PopOutMotion.swift", "Shared/HeadTracker.swift",
     "Shared/Diagnostics", "Features/Support/DiagnosticsSettingsView.swift",
