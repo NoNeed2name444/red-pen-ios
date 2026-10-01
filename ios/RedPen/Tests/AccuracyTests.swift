@@ -87,6 +87,42 @@ check("a severe rule with no model is Flagged", AccuracyModel.grade(AccuracyMode
 let passRuled = AccuracyModel.featureValues(kind: .card, rules: severe, votes: [AccuracyVote(risk: 1, evidence: "supports"), AccuracyVote(risk: 1, evidence: "supports")],
                                             evidenceCount: 5, sourceMatch: 1, keyLetter: nil)
 check("a severe rule is never Verified", AccuracyModel.grade(AccuracyModel.probability(passRuled), passRuled) != .verified)
+
+// one model's word is never enough, and the oath check (server/tests/accuracy.test.mjs, case for case)
+let lone = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports")],
+                                       evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
+check("a single vote, however sure, is Check this, never Verified", AccuracyModel.grade(0.99, lone) == .check)
+let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "none"), AccuracyVote(risk: 1, evidence: "none")],
+                                           evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
+check("an oath item with two votes but no support stays Check this",
+      AccuracyModel.grade(0.99, unbacked) == .verified && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
+let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports"), AccuracyVote(risk: 1, evidence: "none")],
+                                             evidenceCount: 2, sourceMatch: 0.2, keyLetter: nil)
+let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "none"), AccuracyVote(risk: 1, evidence: "none")],
+                                          evidenceCount: 0, sourceMatch: AccuracyModel.oathSourceMatch, keyLetter: nil)
+check("with the literature or its own lecture behind it, an oath item can be Verified",
+      AccuracyModel.grade(0.99, literature, oath: true) == .verified && AccuracyModel.grade(0.99, lecture, oath: true) == .verified)
+// server/tests/oath-vectors.mjs, text for text
+let doseVectors: [(String, Bool)] = [
+    ("Give amoxicillin 500 mg PO three times a day", true),
+    ("Start IV ceftriaxone 2 g once daily", true),
+    ("Paracetamol 15 mg/kg every 6 hours", true),
+    ("Enoxaparin 1 mg/kg twice daily", true),
+    ("Adrenaline IM 0.5 mg", true),
+    ("Insulin 10 units at night nocte", true),
+    ("Give 1 g stat", true),
+    ("Potassium 6.8 mmol/L, glucose 250 mg/dL", false),
+    ("A 45-year-old man weighing 80 kg presents", false),
+    ("Haemoglobin 9 g/dL with low MCV", false),
+    ("What is the most likely diagnosis?", false),
+    ("The mechanism of aspirin", false),
+]
+for (text, dose) in doseVectors {
+    check("dose \(dose ? "found" : "not found"): \(text)", AccuracyModel.hasDose(text) == dose)
+}
+check("a diagnosis, a treatment or a dose makes an oath item; a mechanism does not",
+      AccuracyModel.isOath("What is the most likely diagnosis?") && AccuracyModel.isOath("What is the next best step in management?")
+      && AccuracyModel.isOath("Give amoxicillin 500 mg PO three times a day") && !AccuracyModel.isOath("Which enzyme is deficient in PKU?"))
 check("key disagreement is a share", AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 1, answer: "C"), AccuracyVote(risk: 1, answer: "A")],
                                                                  evidenceCount: 0, sourceMatch: nil, keyLetter: "A")["key_disagree"] == 0.5)
 check("the bundled weights decode and are valid", AccuracyModel.bundled.version == "prior-1" && AccuracyModel.bundled.isValid

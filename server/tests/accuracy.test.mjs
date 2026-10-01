@@ -9,8 +9,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ruleHits, doses, labValues, explainedAnswer, sourceMatch, itemText, DRUGS, LABS } from '../accuracy-rules.js';
-import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, validWeights, fit, crossValidate, metrics, thresholds, auc, probability } from '../accuracy-model.js';
-import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights } from '../accuracy.js';
+import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH } from '../accuracy-model.js';
+import { DOSE_VECTORS } from './oath-vectors.mjs';
+import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights, describe } from '../accuracy.js';
 import { normaliseMedQA, normaliseMedMCQA, variants, corrupt, reportedExamples, train, reportMarkdown } from '../bench/train-accuracy.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -73,6 +74,24 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   const passRuled = features({ kind: 'card', rules: [{ severity: 'severe' }], votes: [{ risk: 1, evidence: 'supports' }, { risk: 1, evidence: 'supports' }], sourceMatch: 1, evidenceCount: 5 });
   ok(verdict(predict(passRuled), passRuled) !== 'verified', 'a severe rule hit is never Verified');
   ok(features({ kind: 'mcq', votes: [{ risk: 1, answer: 'C' }, { risk: 1, answer: 'A' }], keyLetter: 'A' }).key_disagree === 0.5, 'key disagreement is the share answering otherwise');
+  // one model's word is never enough (audit #95, #97)
+  const lone = features({ kind: 'card', votes: [{ risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(verdict(0.99, lone) === 'check', 'a single vote, however sure, is Check this, never Verified');
+  // the oath check (plan §22 Layer 7): a dose, a diagnosis or a treatment needs evidence behind it
+  const unbacked = features({ kind: 'card', votes: [{ risk: 1, evidence: 'none' }, { risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
+  ok(verdict(0.99, unbacked) === 'verified' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check',
+     'an oath item with two votes but no support from the literature or its lecture stays Check this');
+  const literature = features({ kind: 'card', votes: [{ risk: 1, evidence: 'supports' }, { risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
+  const lecture = features({ kind: 'card', votes: [{ risk: 1, evidence: 'none' }, { risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
+  ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'verified' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'verified',
+     'with the literature supporting it, or its own lecture saying it, an oath item can be Verified');
+  for (const [text, dose] of DOSE_VECTORS) ok(hasDose(text) === dose, `dose ${dose ? 'found' : 'not found'}: ${text}`);
+  ok(isOath('What is the most likely diagnosis?') && isOath('What is the next best step in management?')
+     && isOath('Give amoxicillin 500 mg PO three times a day') && !isOath('Which enzyme is deficient in PKU?'),
+     'a diagnosis, a treatment or a dose makes an oath item; a mechanism does not');
+  const described = describe({ id: 'd1', kind: 'card', text: 'Q: Dose of amoxicillin for otitis media?\nA: 500 mg PO three times a day', source: '' },
+    'h', { votes: [{ model: 'm1', risk: 1, evidence: 'none' }, { model: 'm2', risk: 1, evidence: 'none' }], sourceMatch: 0, evidence: [] }, DEFAULT_WEIGHTS);
+  ok(described.verdict !== 'verified' && described.oath?.dose === true, 'describe applies the oath check and says what it found');
   ok(validWeights(DEFAULT_WEIGHTS) && !validWeights({ ...DEFAULT_WEIGHTS, weights: [1] }) && !validWeights({ ...DEFAULT_WEIGHTS, thresholds: { verified: 0.3, flagged: 0.5 } }), 'weights are validated');
 
   // the phone carries the same prior

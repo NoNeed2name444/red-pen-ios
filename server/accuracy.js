@@ -22,11 +22,12 @@
 //   POST /accuracy/model/set  { weights }                            owner key
 //   POST /accuracy/reports    { limit }                              owner key (training)
 
+import { jevOath, oathWithJev } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
 import { proGate, askModel, spend } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights, isOath, oathClaims } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 
 export const BATCH = 4;
@@ -226,9 +227,14 @@ export function describe(item, hash, signals, weights, strictness = 0) {
   const f = features({ kind: item.kind, rules, votes, evidenceCount: (signals?.evidence || []).length,
                        sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter });
   const p = predict(f, weights);
+  // the oath check: a dose, a diagnosis or a treatment needs evidence behind
+  // it; Jev's yes (jev.js, recorded with the votes) can only add one
+  const text = itemText(item);
+  const oath = oathWithJev(isOath(text), signals?.jevOath);
   return {
-    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: verdict(p, f, examWeights(weights, item, strictness)), modelVersion: weights.version,
+    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: verdict(p, f, examWeights(weights, item, strictness), oath), modelVersion: weights.version,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: suggestedFix(item, votes),
+    ...(oath ? { oath: oathClaims(text) } : {}),
   };
 }
 
@@ -312,6 +318,11 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
       votes, sourceMatch: sourceMatch(e.item, e.item.source),
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
     };
+    // Jev, where paid calls are on: asked only about items the patterns did not hold
+    if (votes.length && !isOath(itemText(e.item))) {
+      const jevP = await jevOath(env, itemText(e.item), fetcher);
+      if (jevP !== null) signals.jevOath = Math.round(jevP * 1000) / 1000;
+    }
     if (votes.length) await writeVerdict(env, hashes[e.i], signals);
     results[e.i] = { ...describe(e.item, hashes[e.i], votes.length ? signals : null, weights, strict),
                      ...(votes.length ? {} : { reason: 'busy' }) };
