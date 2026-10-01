@@ -43,4 +43,41 @@ enum CloudJobRules {
         guard reachable else { return age > unreachableAfter }
         return answer == .gone && age > goneAfter
     }
+
+    // MARK: fetching a finished job's result
+
+    /// What to do after a request for a finished job's result has failed.
+    enum Retry: Equatable {
+        /// Ask again after this many seconds, the screen still waiting.
+        case after(TimeInterval)
+        /// Stop asking from the screen. The job is handed to the collector,
+        /// which asks again every minute while the app is open and at every
+        /// launch, and makes the set; it is never forgotten here.
+        case handOver
+    }
+
+    /// The waits between tries while the screen waits: about two minutes
+    /// in all, for a signal that drops in a lift or a server that blinks.
+    static let fetchWaits: [TimeInterval] = [2, 4, 8, 15, 30, 30, 30]
+
+    /// `failed`: how many tries have failed so far (1 after the first).
+    /// `status`: the HTTP status the failure came with; nil for no answer at
+    /// all (no signal, a timeout) or one that could not be read.
+    ///
+    /// The job was finished when this was asked, so a failure here never
+    /// means the set is gone: at worst it is collected later.
+    static func afterFailedFetch(failed: Int, status: Int?) -> Retry {
+        // Answers that asking again in a few seconds cannot change: no such
+        // job (404), or a session that does not open it (401, 403), which the
+        // next launch's sign-in may.
+        if let status, status == 401 || status == 403 || status == 404 { return .handOver }
+        guard failed >= 1, failed <= fetchWaits.count else { return .handOver }
+        return .after(fetchWaits[failed - 1])
+    }
+
+    /// What the student is told when the screen stops waiting for a finished
+    /// job's result. `what`: "Your 40 questions" (CloudJobs.Pending.what).
+    static func handedOverMessage(_ what: String) -> String {
+        what + " finished in the cloud but could not be downloaded yet. Nothing is lost: the set will be in your library as soon as the cloud can be reached."
+    }
 }

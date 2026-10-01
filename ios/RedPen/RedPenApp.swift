@@ -160,6 +160,12 @@ struct RedPenApp: App {
                             while !Task.isCancelled {
                                 try? await Task.sleep(nanoseconds: 60_000_000_000)
                                 if phase == .active { await sync.syncNow() }
+                                // a finished cloud job whose result its screen
+                                // could not download: asked for again while
+                                // the app is open, not left for a relaunch
+                                if phase == .active && CloudJobs.handedOver {
+                                    await CloudJobCollector.collect(into: store)
+                                }
                             }
                         }
                         .task {

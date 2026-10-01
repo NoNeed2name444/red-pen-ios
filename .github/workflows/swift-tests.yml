@@ -117,6 +117,9 @@ jobs:
           # a new generation never stops the one running (and with it a cloud
           # job's finished work): it is refused, saying what runs and how to stop it
           suite generation GenerationRulesTests.swift $S/GenerationRules.swift
+          # a finished cloud job's result that fails to download: asked again
+          # with waits between, then handed to the collector, never stranded
+          suite cloudretry CloudJobRetryTests.swift $S/CloudJobRules.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

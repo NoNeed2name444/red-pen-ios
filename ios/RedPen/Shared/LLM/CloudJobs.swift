@@ -237,7 +237,25 @@ enum CloudJobs {
                 }
                 switch status.status {
                 case "done":
-                    let fetched = try await self.result(id, at: endpoint)
+                    let fetched: (outputs: [String], checks: [Verdict])
+                    do {
+                        fetched = try await resultRetrying(id, at: endpoint)
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        // a stop that came while it was asking is a stop,
+                        // however the request reports it
+                        try Task.checkCancellation()
+                        // Finished, and kept on the server: handed to the
+                        // collector, which makes the set while the app is
+                        // open (every minute, RedPenApp) or at the next
+                        // launch. It used to wait for a relaunch, the
+                        // student told only that something went wrong.
+                        pending.launch = nil
+                        save(pending)
+                        Diagnostics.record(.warning, area: .cloudJobs, message: "cloud_job.result_handed_over")
+                        throw LLMError.notReady(CloudJobRules.handedOverMessage(pending.what))
+                    }
                     // this generation's verdicts, not a global another job
                     // could replace while it is still reading them
                     CloudChecks.server(fetched.checks)
@@ -290,6 +308,31 @@ enum CloudJobs {
         return (fetched.outputs ?? [], fetched.checks ?? [])
     }
 
+    /// A finished job's result, asked for again after a failed request, with
+    /// waits between (CloudJobRules.afterFailedFetch), while the screen
+    /// waits. Throws the last failure once the rules hand the job over.
+    static func resultRetrying(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> (outputs: [String], checks: [Verdict]) {
+        var failed = 0
+        while true {
+            do {
+                return try await result(id, at: endpoint)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+                failed += 1
+                var code: Int?
+                if case LLMError.http(let status, _) = error { code = status }
+                switch CloudJobRules.afterFailedFetch(failed: failed, status: code) {
+                case .after(let seconds):
+                    try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                case .handOver:
+                    throw error
+                }
+            }
+        }
+    }
+
     /// Stops a job, or clears a collected one off the server.
     static func forget(_ id: String, at endpoint: (base: URL, bearer: String)) async {
         struct Done: Decodable {}
@@ -333,6 +376,13 @@ enum CloudJobs {
 
     static func remove(_ id: String) {
         try? FileManager.default.removeItem(at: folder.appendingPathComponent(id + ".json"))
+    }
+
+    /// Whether a job of this run was handed to the collector (its screen
+    /// stopped waiting for it): asked about every minute while the app is
+    /// open, rather than only when it next comes to the front.
+    static var handedOver: Bool {
+        pending().contains { $0.launch == nil }
     }
 
     static func pending() -> [Pending] {
