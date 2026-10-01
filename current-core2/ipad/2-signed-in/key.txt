@@ -1,0 +1,69 @@
+bundle=com.cramdown.personal exe=Stethoscore Personal
+keep=1 args=-launchTestSignedIn
+launch_status=0
+peak_rss_mb=476
+pid=21892 alive_after_30s=yes
+--- stderr.txt (last 25 of 1)
+IOSurfaceClientSetSurfaceNotify failed e00002c7
+--- log-process.txt: 64 matching lines (last 30)
+2026-10-01 08:05:04.349 Df Stethoscore Personal[21892:10ce5] [com.apple.CFNetwork:Default] Connection 1: starting, TC(0x0)
+2026-10-01 08:05:04.352 Df Stethoscore Personal[21892:10ce5] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> setting up Connection 1
+2026-10-01 08:05:04.368 Df Stethoscore Personal[21892:10cd9] [com.apple.CFNetwork:Default] Connection 1: asked to evaluate TLS Trust
+2026-10-01 08:05:04.369 Df Stethoscore Personal[21892:10cd9] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> auth completion disp=1 cred=0x0
+2026-10-01 08:05:04.387 Df Stethoscore Personal[21892:10ce5] [com.apple.CFNetwork:Default] System Trust Evaluation yielded status(0)
+2026-10-01 08:05:04.390 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Connection 1: TLS Trust result 0
+2026-10-01 08:05:04.391 Df Stethoscore Personal[21892:10cf1] [com.apple.network:boringssl] nw_protocol_boringssl_signal_connected(895) [C1.1.1.1:2][0x11b63c060] TLS connected [server(0) version(0x0304) ciphersuite(TLS_AES_256_GCM_SHA384) group(0x11ec) signature_alg(0x0403) alpn(h2) resumed(0) offered_ticket(0) in_early_data(0) early_data_accepted(0) false_started(0) ocsp_received(0) sct_received(1
+2026-10-01 08:05:04.391 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Connection 1: connected successfully
+2026-10-01 08:05:04.391 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Connection 1: TLS handshake complete
+2026-10-01 08:05:04.392 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Connection 1: ready C(N) E(N)
+2026-10-01 08:05:04.393 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> now using Connection 1
+2026-10-01 08:05:04.394 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> sent request, body S 2
+2026-10-01 08:05:04.498 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> received response, status 200 content U
+2026-10-01 08:05:04.498 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> done using Connection 1
+2026-10-01 08:05:04.504 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> response ended
+2026-10-01 08:05:04.505 Df Stethoscore Personal[21892:10cf1] [com.apple.CFNetwork:Default] Task <CC71C69F-C9DE-4DBD-A624-43846295FD45>.<1> finished successfully
+2026-10-01 08:05:04.794 I  Stethoscore Personal[21892:10ce6] [com.apple.storekit:Default] AAFService Closing XPCConnection d2bf9d3e
+2026-10-01 08:05:04.794 Df Stethoscore Personal[21892:10cf0] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 08:05:04.795 Df Stethoscore Personal[21892:10ce6] [com.apple.storekit:Default] Registering for 'transactionsupdated' daemon notification
+2026-10-01 08:05:19.437 Df Stethoscore Personal[21892:10acf] [com.apple.network:activity] <nw_activity 50:1 [0624437A-6AFE-45D6-AE22-D6F62CC7E5CD] (global parent) (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 18069ms
+2026-10-01 08:05:19.438 Df Stethoscore Personal[21892:10acf] [com.apple.network:activity] <nw_activity 50:2 [EC3E308F-582E-403A-8ABC-9DAF6EA81AAE] (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 18069ms
+2026-10-01 08:05:19.438 Df Stethoscore Personal[21892:10acf] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [0624437A-6AFE-45D6-AE22-D6F62CC7E5CD] (global parent) (reporting strategy default) complete (reason success)>
+2026-10-01 08:05:38.822 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Adding observer for DDS asset update notification for asset type: (com.apple.MobileAsset.LinguisticData)
+2026-10-01 08:05:38.827 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Adding observer for DDS asset update notification for asset type: (com.apple.MobileAsset.LinguisticDataAuto)
+2026-10-01 08:05:39.497 I  Stethoscore Personal[21892:10ba2] [com.apple.LanguageModeling:Default] Options is updating adaptationEnabled from 1 to 0
+2026-10-01 08:05:39.697 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Auto asset specifier: Priority_ar is not supported
+2026-10-01 08:05:39.704 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Auto asset specifier: Priority_ar is not supported
+2026-10-01 08:05:39.763 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Supported compatibility version = 17 in file: Info.plist
+2026-10-01 08:05:39.766 Df Stethoscore Personal[21892:10ba2] [com.apple.DataDeliveryServices:Default] Supported compatibility version for LinguisticData assets = 17
+2026-10-01 08:05:39.795 I  Stethoscore Personal[21892:10ba2] [com.apple.LanguageModeling:Default] Options is updating adaptationEnabled from 1 to 0
+--- log-system.txt: 171 matching lines (last 30)
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/31CF58DE-1731-4EB9-BCD6-57966FE160E7 to memory
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/31CF58DE-1731-4EB9-BCD6-57966FE160E7 <private>
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/3A1A9634-0B08-4A52-A97D-00AF09A83E08 from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/3A1A9634-0B08-4A52-A97D-00AF09A83E08 to memory
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/3A1A9634-0B08-4A52-A97D-00AF09A83E08 <private>
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/11B33243-FF00-456C-ADB8-84D4C6B89436 from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.170 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/11B33243-FF00-456C-ADB8-84D4C6B89436 to memory
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/11B33243-FF00-456C-ADB8-84D4C6B89436 <private>
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/D6E44D69-B57F-4712-95D8-BF3CE6CF5321 from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/D6E44D69-B57F-4712-95D8-BF3CE6CF5321 to memory
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/D6E44D69-B57F-4712-95D8-BF3CE6CF5321 <private>
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/73E06F50-7BBF-4F11-9D00-5D7C2373CFB8 from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/73E06F50-7BBF-4F11-9D00-5D7C2373CFB8 to memory
+2026-10-01 08:05:06.171 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/73E06F50-7BBF-4F11-9D00-5D7C2373CFB8 <private>
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/F7F5CE86-3321-4B1C-ABF1-CC2B1E411DA5 from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/F7F5CE86-3321-4B1C-ABF1-CC2B1E411DA5 to memory
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/F7F5CE86-3321-4B1C-ABF1-CC2B1E411DA5 <private>
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVHarvestEligibility: item StudySetEntity/FE601F04-9027-471A-BE02-48DD4D4051EE from bundle com.cramdown.personal is eligible
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVDonationReceiver: received 1 searchableItems for com.cramdown.personal ((
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: writing com.cramdown.personal:StudySetEntity/FE601F04-9027-471A-BE02-48DD4D4051EE to memory
+2026-10-01 08:05:06.172 Df suggestd[17944:fbcc] [com.apple.proactive.ProactiveHarvesting:Default] HVQueue<ProactiveHarvesting.ThirdPartyApp>: enqueueContent: com.cramdown.personal:StudySetEntity/FE601F04-9027-471A-BE02-48DD4D4051EE <private>
+2026-10-01 08:05:07.210 Df searchd[17934:ec30] [com.apple.spotlight:default] Apps changed: (
+2026-10-01 08:05:10.234 Df corespeechd[17912:ddc3] [com.apple.CoreEmbeddedSpeechRecognition:SpeechProfile] -[CESRSpeechProfileSiteManager _handleUpdatedSets:siteURL:] Site (Default) processing update(s) to set(s): (
+2026-10-01 08:05:19.547 Df runningboardd[17819:d87e] [com.apple.DynamicPrefetching:default] end_scenario: Called with bundleid "com.cramdown.personal" scenario "Launch"
+2026-10-01 08:05:25.731 E  assistant_service[18377:109d6] [com.apple.siri:Plugin] -[AAPSyncMetaDataItemUpdate scrapeAppInfo] com.apple.siri.applications: Error: could not get the bundle for metaDataItem=<AAPSyncMetaDataItemUpdate:0x1065f0040 appId='com.cramdown.personal' bundleURL='file:///Users/runner/Library/Developer/CoreSimulator/Devices/A2011F14-88A1-46AA-999A-FD6FEDCD870B/data/Containers/Bun

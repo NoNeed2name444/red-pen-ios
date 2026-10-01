@@ -1,0 +1,122 @@
+{"app_name":"MobileCal","timestamp":"2026-10-01 07:44:55.00 +0000","app_version":"1.0","slice_uuid":"01cb60b0-4410-3f89-8611-a0a4fce2c874","build_version":"1","platform":7,"bundleID":"com.apple.mobilecal","share_with_app_devs":0,"is_first_party":0,"bug_type":"309","os_version":"macOS 26.6.2 (25G83)","roots_installed":0,"name":"MobileCal","incident_id":"3989CEEA-38DB-4D0B-95FD-80F989B445E9"}
+{
+  "uptime" : 1400,
+  "procRole" : "Non UI",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "VirtualMac2,1",
+  "coalitionID" : 1747,
+  "osVersion" : {
+    "train" : "macOS 26.6.2",
+    "build" : "25G83",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2026-10-01 07:44:25.1165 +0000",
+  "codeSigningMonitor" : 0,
+  "incident" : "3989CEEA-38DB-4D0B-95FD-80F989B445E9",
+  "pid" : 24940,
+  "translated" : false,
+  "cpuType" : "ARM-64",
+  "procLaunch" : "2026-10-01 07:40:18.0204 +0000",
+  "procStartAbsTime" : 29075771791,
+  "procExitAbsTime" : 29824003144,
+  "procName" : "MobileCal",
+  "procPath" : "\/Volumes\/VOLUME\/*\/MobileCal.app\/MobileCal",
+  "bundleInfo" : {"CFBundleShortVersionString":"1.0","CFBundleVersion":"1","CFBundleIdentifier":"com.apple.mobilecal"},
+  "storeInfo" : {"deviceIdentifierForVendor":"7382CA89-0D53-520D-8E2C-B346ADF113B4","thirdParty":true},
+  "parentProc" : "launchd_sim",
+  "parentPid" : 22222,
+  "coalitionName" : "com.apple.CoreSimulator.SimDevice.A2011F14-88A1-46AA-999A-FD6FEDCD870B",
+  "crashReporterKey" : "795528CA-C9CF-C7DB-6282-97B97FC8C642",
+  "appleIntelligenceStatus" : {"state":"unavailable","reasons":["deviceNotCapable","selectedSiriLanguageIneligibleInfo(und)","countryBillingIneligible","countryLocationIneligible","selectedSiriLanguageIneligible"]},
+  "developerMode" : 1,
+  "responsiblePid" : 2108,
+  "responsibleProc" : "SimulatorTrampoline",
+  "codeSigningID" : "com.apple.mobilecal",
+  "codeSigningTeamID" : "",
+  "codeSigningFlags" : 570442241,
+  "codeSigningValidationCategory" : 1,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "instructionByteStream" : {"beforePC":"DgkAkewDFqroAw6qawAANisAgFIEAAAUixVAOL8BC2vrB58a6gsA+Q==","atPC":"TRVAOA4FAJHN\/v81SwEANgoVwDjq\/\/836AsA+R8BFOsIBQBUKQUAUQ=="},
+  "bootSessionUUID" : "F9C8A1B7-2A33-4117-8A4F-1D40414078C7",
+  "sip" : "disabled",
+  "exception" : {"codes":"0x0000000000000000, 0x0000000000000000","rawCodes":[0,0],"type":"EXC_CRASH","signal":"SIGKILL"},
+  "termination" : {"code":2343432205,"flags":6,"namespace":"FRONTBOARD","reasons":["<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:process-launch watchdog transgression: app<com.apple.mobilecal((null))>:24940 exhausted real (wall clock) time allowance of 30.00 seconds","ProcessVisibility: Background","ProcessState: Running","WatchdogEvent: process-launch","WatchdogVisibility: Background","WatchdogCPUStatistics: (","\"Elapsed total CPU time (seconds): 88.170 (user 35.760, system 52.410), 97% CPU\",","\"Elapsed application CPU time (seconds): 0.827, 1% CPU\"",") reportType:CrashLog maxTerminationResistance:Interactive>"]},
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 0,
+  "threads" : [{"triggered":true,"id":76877,"threadState":{"x":[{"value":6126977432},{"value":2},{"value":9656080720},{"value":7541466888},{"value":24445440},{"value":0},{"value":6126978623},{"value":0},{"value":9656008731},{"value":1},{"value":9656008730},{"value":0},{"value":7541466891},{"value":115},{"value":9656008731},{"value":1},{"value":338},{"value":4344987488,"symbolLocation":56,"symbol":"fcntl"},{"value":0},{"value":6126978112},{"value":9656080720},{"value":9656008704},{"value":7541466889},{"value":9656008710},{"value":0},{"value":72016},{"value":9656008709},{"value":688128},{"value":0}],"flavor":"ARM_THREAD_STATE64","lr":{"value":4344062308},"cpsr":{"value":1610616832},"fp":{"value":6126978080},"sp":{"value":6126977408},"esr":{"value":1442840704,"description":"(Syscall)"},"pc":{"value":4344062132,"matchesCrashFrame":1},"far":{"value":0}},"frames":[{"imageOffset":188596,"symbol":"dyld3::MachOFile::trieWalk(Diagnostics&, unsigned char const*, unsigned char const*, char const*)","symbolLocation":268,"imageIndex":1},{"imageOffset":155112,"symbol":"DyldSharedCache::hasImagePath(char const*, unsigned int&) const","symbolLocation":112,"imageIndex":1},{"imageOffset":105888,"symbol":"invocation function for block in dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":176,"imageIndex":1},{"imageOffset":263848,"symbol":"invocation function for block in mach_o::UnsafeHeader::forEachLinkedDylib(void (char const*, mach_o::LinkedDylibAttributes, mach_o::Version32, mach_o::Version32, bool, bool&) block_pointer) const","symbolLocation":128,"imageIndex":1},{"imageOffset":256540,"symbol":"mach_o::UnsafeHeader::forEachLoadCommand(void (load_command const*, bool&) block_pointer) const","symbolLocation":200,"imageIndex":1},{"imageOffset":263156,"symbol":"mach_o::UnsafeHeader::forEachLinkedDylib(void (char const*, mach_o::LinkedDylibAttributes, mach_o::Version32, mach_o::Version32, bool, bool&) block_pointer) const","symbolLocation":144,"imageIndex":1},{"imageOffset":105452,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":136,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":105560,"symbol":"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","symbolLocation":244,"imageIndex":1},{"imageOffset":46172,"symbol":"dyld4::prepare(dyld4::APIs&, mach_o::UnsafeHeader const*)","symbolLocation":712,"imageIndex":1},{"imageOffset":45144,"symbol":"_dyld_sim_prepare","symbolLocation":856,"imageIndex":1},{"imageOffset":141376,"symbol":"dyld4::prepareSim(dyld4::RuntimeState&, char const*)","symbolLocation":1300,"imageIndex":2},{"imageOffset":134304,"symbol":"dyld4::prepare(dyld4::APIs&, mach_o::UnsafeHeader const*)","symbolLocation":340,"imageIndex":2},{"imageOffset":133936,"symbol":"dyld4::start(dyld4::KernelArgs*, void*, void*, unsigned long long)::$_1::operator()() const","symbolLocation":320,"imageIndex":2},{"imageOffset":132236,"symbol":"start","symbolLocation":6904,"imageIndex":2}]}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4339892224,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.mobilecal",
+    "size" : 2129920,
+    "uuid" : "01cb60b0-4410-3f89-8611-a0a4fce2c874",
+    "path" : "\/Volumes\/VOLUME\/*\/MobileCal.app\/MobileCal",
+    "name" : "MobileCal",
+    "CFBundleVersion" : "1"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4343873536,
+    "size" : 327680,
+    "uuid" : "ba544d9a-46ab-3c59-a00f-aba1479d2079",
+    "path" : "\/Volumes\/VOLUME\/*\/dyld_sim",
+    "name" : "dyld_sim"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64e",
+    "base" : 4344971264,
+    "size" : 737280,
+    "uuid" : "74e52480-c2bd-3c8d-812d-95fe2b74a096",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  }
+],
+  "vmSummary" : "ReadOnly portion of Libraries: Total=4000K resident=0K(0%) swapped_out_or_unallocated=4000K(100%)\nWritable regions: Total=10.9M written=1076K(10%) resident=1076K(10%) swapped_out=0K(0%) unallocated=9.8M(90%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nSTACK GUARD                       56.0M        1 \nStack                             8176K        1 \nVM_ALLOCATE                         16K        1 \nVM_ALLOCATE (reserved)             720K        6         reserved VM address space (unallocated)\n__AUTH_CONST                        32K        1 \n__DATA                             384K        4 \n__DATA_CONST                       112K        3 \n__DATA_DIRTY                        32K        2 \n__LINKEDIT                         880K        3 \n__TEXT                            3120K        3 \n__TPRO_CONST                       160K        2 \ndyld private memory                3.0G       13 \nmapped file                        3.1G       33 \npage table in kernel              1076K        1 \n===========                     =======  ======= \nTOTAL                              6.1G       74 \nTOTAL, minus reserved VM space     6.1G       74 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+
+  }
+},
+  "logWritingSignature" : "cb0d673e2f619a8ac5730b40e9843d38d4cb8861",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "trmStatus" : 2105344,
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "63508950b3714d3622fc77f7",
+      "factorPackIds" : [
+        "6526e111d0c9ce2f459b54a8"
+      ],
+      "deploymentId" : 240000015
+    },
+    {
+      "rolloutId" : "645eb1d0417dab722a215927",
+      "factorPackIds" : [
+
+      ],
+      "deploymentId" : 240000005
+    }
+  ],
+  "experiments" : [
+
+  ]
+},
+  "reportNotes" : [
+  "dyld_process_snapshot_get_shared_cache failed"
+]
+}

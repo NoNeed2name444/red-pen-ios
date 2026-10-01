@@ -1,0 +1,69 @@
+bundle=swift-playgrounds-dev-run.launchtest exe=Stethoscore Personal
+keep=0 args=-launchTestSignedIn
+launch_status=0
+peak_rss_mb=409
+pid=19374 alive_after_30s=yes
+--- stderr.txt (last 25 of 1)
+IOSurfaceClientSetSurfaceNotify failed e00002c7
+--- log-process.txt: 55 matching lines (last 30)
+2026-10-01 07:43:01.906 Df Stethoscore Personal[19374:e706] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/FCD832E2-00B9-4AE5-A9F9-5B77E2F0F06C/Library/HTTPStorages/swift-playgrounds-dev-run.launchtest
+2026-10-01 07:43:01.907 Df Stethoscore Personal[19374:e85b] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 07:43:01.916 Df Stethoscore Personal[19374:e706] [com.apple.CFNetwork:Default] Connection 0: creating secure tcp or quic connection
+2026-10-01 07:43:01.924 Df Stethoscore Personal[19374:e706] [com.apple.CFNetwork:Default] Connection 1: enabling TLS
+2026-10-01 07:43:01.924 Df Stethoscore Personal[19374:e706] [com.apple.CFNetwork:Default] Connection 1: starting, TC(0x0)
+2026-10-01 07:43:01.982 Df Stethoscore Personal[19374:e706] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> setting up Connection 1
+2026-10-01 07:43:02.025 Df Stethoscore Personal[19374:e85b] [com.apple.CFNetwork:Default] Connection 1: asked to evaluate TLS Trust
+2026-10-01 07:43:02.026 Df Stethoscore Personal[19374:e85b] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> auth completion disp=1 cred=0x0
+2026-10-01 07:43:02.031 Df Stethoscore Personal[19374:e85a] [com.apple.CFNetwork:Default] System Trust Evaluation yielded status(0)
+2026-10-01 07:43:02.039 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Connection 1: TLS Trust result 0
+2026-10-01 07:43:02.041 Df Stethoscore Personal[19374:e6dc] [com.apple.network:boringssl] nw_protocol_boringssl_signal_connected(895) [C1.1.1.1:2][0x11722f760] TLS connected [server(0) version(0x0304) ciphersuite(TLS_AES_256_GCM_SHA384) group(0x11ec) signature_alg(0x0403) alpn(h2) resumed(0) offered_ticket(0) in_early_data(0) early_data_accepted(0) false_started(0) ocsp_received(0) sct_received(1)
+2026-10-01 07:43:02.043 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Connection 1: connected successfully
+2026-10-01 07:43:02.043 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Connection 1: TLS handshake complete
+2026-10-01 07:43:02.043 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Connection 1: ready C(N) E(N)
+2026-10-01 07:43:02.048 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> now using Connection 1
+2026-10-01 07:43:02.049 Df Stethoscore Personal[19374:e85b] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> sent request, body S 2
+2026-10-01 07:43:02.111 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> received response, status 200 content U
+2026-10-01 07:43:02.112 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> done using Connection 1
+2026-10-01 07:43:02.122 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> response ended
+2026-10-01 07:43:02.125 Df Stethoscore Personal[19374:e6dc] [com.apple.CFNetwork:Default] Task <08D6E41A-E2D0-419D-9586-37F034F57336>.<1> finished successfully
+2026-10-01 07:43:02.421 I  Stethoscore Personal[19374:e702] [com.apple.storekit:Default] AAFService Starting new XPCConnection ac87c2d7
+2026-10-01 07:43:02.434 Df Stethoscore Personal[19374:e893] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-10-01 07:43:02.465 I  Stethoscore Personal[19374:e893] [com.apple.storekit:Default] AAFService Closing XPCConnection ac87c2d7
+2026-10-01 07:43:02.468 Df Stethoscore Personal[19374:e893] [com.apple.storekit:Default] Registering for 'transactionsupdated' daemon notification
+2026-10-01 07:43:02.469 Df Stethoscore Personal[19374:e892] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 07:43:02.565 Df Stethoscore Personal[19374:e85a] [com.apple.CFNetwork:Default] Garbage collection for alternative services
+2026-10-01 07:43:20.315 Df Stethoscore Personal[19374:e705] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/FCD832E2-00B9-4AE5-A9F9-5B77E2F0F06C/Library/Application Support/RedPenSources
+2026-10-01 07:43:25.913 Df Stethoscore Personal[19374:e670] [com.apple.network:activity] <nw_activity 50:1 [9BC77021-34C3-4321-9F32-96682961078F] (global parent) (reporting strategy default) complete (reason failure)> complete with reason 3 (failure), duration 28455ms
+2026-10-01 07:43:25.913 Df Stethoscore Personal[19374:e670] [com.apple.network:activity] <nw_activity 50:2 [74740D7D-9501-4482-AB1E-90B2C34A4040] (reporting strategy default) complete (reason failure)> complete with reason 3 (failure), duration 28455ms
+2026-10-01 07:43:25.913 Df Stethoscore Personal[19374:e670] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [9BC77021-34C3-4321-9F32-96682961078F] (global parent) (reporting strategy default) complete (reason failure)>
+--- log-system.txt: 73 matching lines (last 30)
+2026-10-01 07:42:56.016 Df splashboardd[6446:60fd] [com.apple.SplashBoard:Capture] Updating window to <XBLaunchStateRequest: 0x10365e300; groupID: swift-playgrounds-dev-run.launchtest - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Dark>
+2026-10-01 07:42:56.049 Df SpringBoard[3968:e41c] [com.apple.UserNotifications:DataProviderFactory] [swift-playgrounds-dev-run.launchtest] Application installed using default data provider
+2026-10-01 07:42:56.054 Df SpringBoard[3968:e41a] [com.apple.SplashBoard:FileManifest] <XBApplicationSnapshotManifestImpl: 0x11c345d00> [swift-playgrounds-dev-run.launchtest] Snapshot data for <XBApplicationSnapshot: 0x11eba3b80; …2C36C303232F> [swift-playgrounds-dev-run.launchtest] written to file: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Con
+2026-10-01 07:42:56.386 Df SpringBoard[3968:e41a] [com.apple.SplashBoard:FileManifest] <XBApplicationSnapshotManifestImpl: 0x11c345d00> [swift-playgrounds-dev-run.launchtest] Snapshot data for <XBApplicationSnapshot: 0x11c22b100; …322B8FD7B03F> [swift-playgrounds-dev-run.launchtest] written to file: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Con
+2026-10-01 07:42:56.400 Df SpringBoard[3968:e41a] [com.apple.SplashBoard:Capture] Image generation complete for: <XBLaunchStateRequest: 0x11ef07cd0; groupID: swift-playgrounds-dev-run.launchtest - {DEFAULT GROUP}; statusBar: normal; refSize: {402, 874}; orientation: Portrait; userInterfaceStyle: Dark>
+    "terminate_running_process" = 1;
+	retryTimeout: 120.000000 (default write com.apple.CoreSimulatorBridge LaunchRetryTimeout <value>)
+	bootTimeout: 300.000000 (default write com.apple.CoreSimulatorBridge BootRetryTimeout <value>)
+	bootLeeway: 120.000000 (default write com.apple.CoreSimulatorBridge BootLeeway <value>)
+	Note: Use 'xcrun simctl spawn booted defaults write <domain> <key> <value>' to modify defaults in the booted Simulator device.
+2026-10-01 07:42:57.428 Df CoreSimulatorBridge[3998:ce06] [com.apple.FrontBoard:Common] FBSSystemAppProxy: Sending request to terminate application swift-playgrounds-dev-run.launchtest
+2026-10-01 07:42:57.429 Df SpringBoard[3968:e41c] [com.apple.FrontBoard:Common] [FBSystemService] Request received from CoreSimulatorBr.3998 to terminate application swift-playgrounds-dev-run.launchtest: "Termination requested by simulator host"
+2026-10-01 07:42:57.444 E  CoreSimulatorBridge[3998:b230] [com.apple.FrontBoard:Common] FBSSystemAppProxy: Error reported for termination request: <NSError: 0x1060489f0; domain: NSPOSIXErrorDomain; code: 3 ("No such process"); "The request to terminate "swift-playgrounds-dev-run.launchtest" failed. found nothing to terminate">
+    homeAffordanceDrawingSuppression: Default;
+2026-10-01 07:42:57.840 Df runningboardd[3971:e412] [com.apple.runningboard:assertion] Using default underlying assertion for app: [app<swift-playgrounds-dev-run.launchtest((null))>:19374]
+	<RBSDomainAttribute| domain:"com.apple.underlying" name:"defaultUnderlyingAppAssertion" sourceEnvironment:"(null)">,
+<SBTransitionSwitcherModifierEvent: 0x11edd9340; type: MainTransition; transitionID: 4AF534CA-E154-412D-BCEF-57416200E0AA; phase: Prepare; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x107ff5500; primary: swift-playgrounds-dev-run.launchtest:402841E7EB10; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpa
+<SBTransitionSwitcherModifierEvent: 0x11edd9340; type: MainTransition; transitionID: 4AF534CA-E154-412D-BCEF-57416200E0AA; phase: Animate; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x107ff5500; primary: swift-playgrounds-dev-run.launchtest:402841E7EB10; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpa
+<SBTransitionSwitcherModifierEvent: 0x11eea79c0; type: MainTransition; transitionID: 4AF534CA-E154-412D-BCEF-57416200E0AA; phase: Complete; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x107ff5500; primary: swift-playgrounds-dev-run.launchtest:402841E7EB10; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSp
+2026-10-01 07:42:59.101 Df backboardd[3989:e44c] [com.apple.iohid:default] Connection added: IOHIDEventSystemConnection uuid:387B492B-DE4E-4666-BC2C-3D642B35BE96 pid:19374 process:Stethoscore Personal type:Passive entitlements:0x0 caller:BackBoardServices: ___getHIDEventSystemClient_block_invoke + 296 attributes:{
+2026-10-01 07:42:59.101 Df backboardd[3989:e44c] [com.apple.BackBoard:HID] Adding client connection: <BKHIDClientConnection: 0x10b57b100; IOHIDEventSystemConnectionRef: 0x103feba00; vpid: 19374(v9900); taskPort: 0x4B8CF; bundleID: swift-playgrounds-dev-run.launchtest> for client: IOHIDEventSystemConnection uuid:387B492B-DE4E-4666-BC2C-3D642B35BE96 pid:19374 process:Stethoscore Personal type:Passiv
+2026-10-01 07:43:00.683 Df storekitd[6441:7d57] [com.apple.storekit:Default] [storekitd.LaunchServicesObserver] Handling installed event for ["swift-playgrounds-dev-run.launchtest"]
+2026-10-01 07:43:00.704 Df storekitd[6441:e79e] [com.apple.storekit:Default] [Default] Running task with context: ([Client] swift-playgrounds-dev-run.launchtest (Stethoscore Personal) Sandbox)
+2026-10-01 07:43:01.800 Df storekitd[6441:73e1] [com.apple.storekit:Default] [Default] Running task with context: ([Client] swift-playgrounds-dev-run.launchtest (Stethoscore Personal) Sandbox)
+2026-10-01 07:43:01.906 Df Stethoscore Personal[19374:e706] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/FCD832E2-00B9-4AE5-A9F9-5B77E2F0F06C/Library/HTTPStorages/swift-playgrounds-dev-run.launchtest
+2026-10-01 07:43:02.431 Df storekitd[6441:bab0] [com.apple.storekit:Default] [Default] Running task with context: ([Client] swift-playgrounds-dev-run.launchtest (Stethoscore Personal) Sandbox)
+2026-10-01 07:43:21.892 Df runningboardd[3971:dd94] [com.apple.DynamicPrefetching:default] end_scenario: Called with bundleid "swift-playgrounds-dev-run.launchtest" scenario "Launch"
+2026-10-01 07:43:49.055 Df biomed[3982:3fbd] [com.apple.Biome:BiomeCascade] Creating dataResource: CCDataResource: file:///Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Library/Biome/sets/Default/App.Shortcut.Phrase/sourceIdentifier=swift-playgrounds-dev-run.launchtest/ in temporary path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A9
+2026-10-01 07:43:49.101 Df biomed[3982:3fbd] [com.apple.Biome:BiomeCascade] Successfully renamed temporary directory and moved to final path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Library/Biome/sets/Default/App.Shortcut.Phrase/sourceIdentifier=swift-playgrounds-dev-run.launchtest/Database
+2026-10-01 07:43:54.567 Df storekitd[6441:f2dc] [com.apple.storekit:Default] [Client] (swift-playgrounds-dev-run.launchtest) Initialized with server Sandbox bundle ID swift-playgrounds-dev-run.launchtest and request bundle ID swift-playgrounds-dev-run.launchtest]

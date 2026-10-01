@@ -1,0 +1,5 @@
+bundle=com.cramdown.personal exe=Stethoscore Personal
+keep=1 args=-launchTestSignedIn -launchTestOpenSets
+launch_status=0
+peak_rss_mb=337
+pid=10773 alive_after_60s=yes

@@ -1,0 +1,8 @@
+Features/Book/BookReaderView.swift:117:18: warning: instance method 'blockView' took 772ms to type-check (limit: 300ms)
+RedPenApp.swift:114:26: warning: getter for property 'body' took 672ms to type-check (limit: 300ms)
+Features/Narrate/NarrateReviewView.swift:158:25: warning: getter for property 'body' took 609ms to type-check (limit: 300ms)
+Features/Notes/Graph3DView.swift:121:25: warning: getter for property 'body' took 522ms to type-check (limit: 300ms)
+Features/Reasoning/ScriptsView.swift:22:25: warning: getter for property 'body' took 490ms to type-check (limit: 300ms)
+Features/Lens/LensAnswerSheet.swift:367:25: warning: getter for property 'body' took 340ms to type-check (limit: 300ms)
+Features/Library/TagChips.swift:111:25: warning: getter for property 'body' took 321ms to type-check (limit: 300ms)
+Features/Support/AccuracyBadge.swift:209:29: warning: expression took 156ms to type-check (limit: 150ms)

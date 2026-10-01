@@ -1,0 +1,7 @@
+bundle=com.cramdown.personal exe=Stethoscore Personal
+keep=0 args=
+launch_status=0
+peak_rss_mb=105
+pid=24946 alive_after_30s=yes
+MobileCal-2026-10-01-074455.ips
+UsageTrackingAgent-2026-10-01-073946.ips

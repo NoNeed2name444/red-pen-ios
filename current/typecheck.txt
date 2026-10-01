@@ -1,0 +1,1 @@
+Features/Book/BookReaderView.swift:117:18: warning: instance method 'blockView' took 583ms to type-check (limit: 300ms)

@@ -1,0 +1,7 @@
+iphone/1-fresh=0
+iphone/2-signed-in=0
+iphone/3-relaunch=0
+iphone/5-other-bundle-id=0
+ipad/1-fresh=0
+ipad/2-signed-in=0
+ipad/3-relaunch=0

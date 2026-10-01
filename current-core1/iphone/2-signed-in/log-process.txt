@@ -1,0 +1,929 @@
+getpwuid_r did not find a match for uid 501
+Timestamp               Ty Process[PID:TID]
+2026-10-01 08:05:45.832 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x10376b690] activating connection: mach=true listener=false peer=false name=com.apple.cfprefsd.daemon
+2026-10-01 08:05:45.852 A  Stethoscore Personal[13651:a94b] (Security) SecItemCopyMatching_ios
+2026-10-01 08:05:45.852 Df Stethoscore Personal[13651:a94b] [com.apple.securityd:secitemratelimit] Not internal release, disabling SIRL
+2026-10-01 08:05:45.854 Df Stethoscore Personal[13651:a94b] [com.apple.securityd:thread-local-client-debug] SecSecurityClientGet new thread!
+2026-10-01 08:05:45.857 Df Stethoscore Personal[13651:a94b] [com.apple.securityd:keychain] System Keychain Always Supported set via feature flag to disabled
+2026-10-01 08:05:45.858 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x10376c450] activating connection: mach=true listener=false peer=false name=com.apple.securityd
+2026-10-01 08:05:45.875 A  Stethoscore Personal[13651:a94b] (Security) SecItemDelete_ios
+2026-10-01 08:05:45.882 A  Stethoscore Personal[13651:a94b] (Security) SecItemAdd_ios
+2026-10-01 08:05:45.910 A  Stethoscore Personal[13651:a94b] (Security) SecItemCopyMatching_ios
+2026-10-01 08:05:45.932 A  Stethoscore Personal[13651:a94b] (Security) SecItemCopyMatching_ios
+2026-10-01 08:05:45.987 Df Stethoscore Personal[13651:a94b] [com.apple.BoardServices:XPCErrors] [C:1] Alloc com.apple.frontboard.systemappservices
+2026-10-01 08:05:45.988 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54000] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-10-01 08:05:46.007 Df Stethoscore Personal[13651:a94b] (libMobileGestalt.dylib) No persisted cache on this platform.
+2026-10-01 08:05:46.073 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54140] activating connection: mach=true listener=false peer=false name=com.apple.metrickit.xpc
+2026-10-01 08:05:46.073 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54140] failed to do a bootstrap look-up: xpc_error=[3: No such process]
+2026-10-01 08:05:46.073 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54140] invalidated after a failed init
+2026-10-01 08:05:46.134 Df Stethoscore Personal[13651:a94b] [com.apple.UserNotifications:Connections] [com.cramdown.personal] Creating a user notification center
+2026-10-01 08:05:46.168 A  Stethoscore Personal[13651:a94b] (Security) SecItemCopyMatching_ios
+2026-10-01 08:05:46.290 A  Stethoscore Personal[13651:a9b1] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-10-01 08:05:46.294 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason added: 10; deactivation reasons: 0 -> 1024; animating application lifecycle event: 0
+2026-10-01 08:05:46.295 Df Stethoscore Personal[13651:a94b] [com.apple.runningboard:connection] Initializing connection
+2026-10-01 08:05:46.295 Df Stethoscore Personal[13651:a94b] [com.apple.runningboard:process] Removing all cached process handles
+2026-10-01 08:05:46.296 Df Stethoscore Personal[13651:a9b1] [com.apple.runningboard:connection] Sending handshake request attempt #1 to server
+2026-10-01 08:05:46.296 Df Stethoscore Personal[13651:a9b1] [com.apple.runningboard:connection] Creating connection to com.apple.runningboard
+2026-10-01 08:05:46.296 Df Stethoscore Personal[13651:a94b] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.open
+2026-10-01 08:05:46.296 Df Stethoscore Personal[13651:a9b1] [com.apple.xpc:connection] [0x103d54500] activating connection: mach=true listener=false peer=false name=com.apple.runningboard
+2026-10-01 08:05:46.296 Df Stethoscore Personal[13651:a94b] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.workspace-service
+2026-10-01 08:05:46.297 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:Common] FBSWorkspace registering source: com.apple.frontboard.systemappservices
+2026-10-01 08:05:46.298 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:Common] FBSWorkspace connected to endpoint : <BSServiceConnectionEndpoint: 0x103d4cba0; target: com.apple.frontboard.systemappservices; service: com.apple.frontboard.workspace-service>
+2026-10-01 08:05:46.298 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x103cf4640 com.apple.frontboard.systemappservices> attempting immediate handshake from activate
+2026-10-01 08:05:46.298 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x103cf4640 com.apple.frontboard.systemappservices> sent handshake
+2026-10-01 08:05:46.300 Df Stethoscore Personal[13651:a94b] [com.apple.runningboard:general] Added observer for process assertions expiration warning: <_RBSExpirationWarningClient: 0x103d4d1a0>
+2026-10-01 08:05:46.301 A  Stethoscore Personal[13651:a9b3] (RunningBoardServices) didChangeInheritances
+2026-10-01 08:05:46.302 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UIApplicationSceneKeyboardSettings on FBSSceneSettings
+2026-10-01 08:05:46.305 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneOcclusionSettings> on FBSSceneSettings
+2026-10-01 08:05:46.306 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneInterfaceProtectionSettings> on FBSSceneSettings
+2026-10-01 08:05:46.306 Df Stethoscore Personal[13651:a9b2] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-10-01 08:05:46.306 Df Stethoscore Personal[13651:a9b2] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-10-01 08:05:46.306 Df Stethoscore Personal[13651:a9b2] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x103db0640>
+2026-10-01 08:05:46.306 I  Stethoscore Personal[13651:a9b2] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "Shared Background Assertion 0 for com.cramdown.personal" ID:(null) target:13651>
+2026-10-01 08:05:46.307 Df Stethoscore Personal[13651:a9b1] [com.apple.runningboard:connection] Handshake succeeded
+2026-10-01 08:05:46.307 Df Stethoscore Personal[13651:a9b1] [com.apple.runningboard:connection] Identity resolved as app<com.cramdown.personal((null))>
+2026-10-01 08:05:46.307 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneLayoutPreferencesHostSettingsExtension on FBSSceneSettings
+2026-10-01 08:05:46.308 Df Stethoscore Personal[13651:a9b2] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x103db0640>
+2026-10-01 08:05:46.308 Df Stethoscore Personal[13651:a9b2] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x103cc6dc0>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 810 (elapsed = 0).
+2026-10-01 08:05:46.308 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneSafeAreaSettingsExtension on FBSSceneSettings
+2026-10-01 08:05:46.315 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:UIScreen] Evaluated capturing state as 0 on <UIScreen: 0x103d54780> for initial
+2026-10-01 08:05:46.315 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneLayoutPreferenceClientSettingsExtension on FBSSceneClientSettings
+2026-10-01 08:05:46.315 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:UIScreen] Evaluated capturing state as 0 on <UIScreen: 0x103d54780> for CADisplay KVO
+2026-10-01 08:05:46.317 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UIHomeAffordanceHostSceneSettings> on FBSSceneSettings
+2026-10-01 08:05:46.318 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISystemShellSceneHostingEnvironmentSettings on FBSSceneSettings
+2026-10-01 08:05:46.318 Df Stethoscore Personal[13651:a94b] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 1, category name = (null)
+2026-10-01 08:05:46.318 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneRenderingEnvironmentSettings on FBSSceneSettings
+2026-10-01 08:05:46.319 Df Stethoscore Personal[13651:a94b] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 0, category name = (null)
+2026-10-01 08:05:46.320 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneRenderingEnvironmentClientSettings> on FBSSceneClientSettings
+2026-10-01 08:05:46.320 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneTransitioningHostSettings> on FBSSceneSettings
+2026-10-01 08:05:46.321 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneFocusSystemSettings> on FBSSceneSettings
+2026-10-01 08:05:46.322 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneOrientationSettingsExtension on FBSSceneSettings
+2026-10-01 08:05:46.322 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneOrientationClientSettingsExtension on FBSSceneClientSettings
+2026-10-01 08:05:46.322 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneWindowingControlClientSettings on FBSSceneClientSettings
+2026-10-01 08:05:46.323 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneSettingsCore on FBSSceneSettings
+2026-10-01 08:05:46.326 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingContentSizePreferenceClientSettings> on FBSSceneClientSettings
+2026-10-01 08:05:46.327 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneClientSettingsCore on FBSSceneClientSettings
+2026-10-01 08:05:46.327 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneHostingTraitCollectionPropagationSettings on FBSSceneSettings
+2026-10-01 08:05:46.331 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationSettings> on FBSSceneSettings
+2026-10-01 08:05:46.331 Df Stethoscore Personal[13651:a94b] [com.apple.dt.xctest:Default] Registering for test daemon availability notify post.
+2026-10-01 08:05:46.331 Df Stethoscore Personal[13651:a94b] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-10-01 08:05:46.332 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneSettings setting counterpart class: UIApplicationSceneSettings
+2026-10-01 08:05:46.332 Df Stethoscore Personal[13651:a94b] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-10-01 08:05:46.332 Df Stethoscore Personal[13651:a94b] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-10-01 08:05:46.333 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationClientSettings> on FBSSceneClientSettings
+2026-10-01 08:05:46.333 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingEventDeferringSettings> on FBSSceneSettings
+2026-10-01 08:05:46.333 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason added: 11; deactivation reasons: 1024 -> 3072; animating application lifecycle event: 0
+2026-10-01 08:05:46.333 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneClientSettings setting counterpart class: UIApplicationSceneClientSettings
+2026-10-01 08:05:46.334 Df Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneTransitionContextCore on FBSSceneTransitionContext
+2026-10-01 08:05:46.335 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneSettings
+2026-10-01 08:05:46.336 I  Stethoscore Personal[13651:a9dc] [com.apple.FrontBoard:Common] [FBSScene] [(FBSceneManager):sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7] Created client agent: <UIApplicationSceneClientAgent: 0x103f30020>
+2026-10-01 08:05:46.336 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneClientSettings
+2026-10-01 08:05:46.336 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingViewControllerPreferencePropagationClientSettings> on FBSSceneClientSettings
+2026-10-01 08:05:46.336 Df Stethoscore Personal[13651:a9b2] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneZoomTransitionSettings> on FBSSceneSettings
+2026-10-01 08:05:46.337 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason removed: 10; deactivation reasons: 3072 -> 2048; animating application lifecycle event: 0
+2026-10-01 08:05:46.337 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventBus] Event Timing Profile for Touch: not found, path="/System/Library/EventTimingProfiles/Sim.Touch.plist"
+2026-10-01 08:05:46.337 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventBus] Event Timing Profile for Pencil: not found, path="/System/Library/EventTimingProfiles/Sim.Pencil.plist"
+2026-10-01 08:05:46.338 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:UpdateScheduler] Selected display: name=LCD (PurpleMain), id=1
+2026-10-01 08:05:46.340 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54c80] activating connection: mach=true listener=false peer=false name=com.apple.lsd.mapdb
+2026-10-01 08:05:46.341 I  Stethoscore Personal[13651:a94b] [com.apple.launchservices:db] LaunchServices database schema version: 20971544
+2026-10-01 08:05:46.422 Df Stethoscore Personal[13651:a94b] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/6DDBE881-1E14-49B8-9C8C-A18F22367129/Library/Application Support/RedPenBlobs
+2026-10-01 08:05:46.562 E  Stethoscore Personal[13651:a94b] [com.apple.UIKit:MenuBuilder] Replacement elements conflict with existing elements:
+
+Keyboard Shortcut (duplicate modifierFlags: command, input: F):
+- Existing keyboard shortcut: <UIKeyCommand: 0x103ebe5a0; title = Find; action: find:; input: f; modifierFlags: Cmd>
+- Conflicting keyboard shortcut: <UIKeyCommand: 0x103ebfd40; title = Search Library; action: _performMainMenuShortcutKeyCommand:; input: f; modifierFlags: Cmd>
+Ensure all keyboard shortcuts are unique to avoid undefined behavior.
+
+Make a symbolic breakpoint at _UIMenuBuilderError to catch this in the debugger.
+2026-10-01 08:05:46.564 Df Stethoscore Personal[13651:a94b] [com.apple.BoardServices:XPCErrors] [C:2] Alloc com.apple.backboard.hid-services.xpc
+2026-10-01 08:05:46.564 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x103d54f00] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-10-01 08:05:46.572 I  Stethoscore Personal[13651:a94b] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "app_launch_measurement: pageins recording enabled" ID:(null) target:13651>
+2026-10-01 08:05:46.573 Df Stethoscore Personal[13651:a94b] [com.apple.app_launch_measurement:ApplicationLaunch] alm_acquire_pageins_recording_assertion: acquired pageins recording assertion!
+2026-10-01 08:05:46.574 Df Stethoscore Personal[13651:a9dc] [com.apple.BackBoard:EventDelivery] BKSHIDEventDeliveryManager - connection activation
+2026-10-01 08:05:46.576 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason added: 5; deactivation reasons: 2048 -> 2080; animating application lifecycle event: 1
+2026-10-01 08:05:46.577 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Should send trait collection or coordinate space update, interface style 1 -> 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.578 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.578 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:HomeAffordanceObservation] Initializing: <_UIHomeAffordanceSceneNotifier: 0x103f435d0>; with scene: <UIWindowScene: 0x103780fc0>
+2026-10-01 08:05:46.578 Df Stethoscore Personal[13651:a94b] [com.apple.BacklightServices:scenes] 0x103c4a370 setDelegate:<0x103c4a430 _UIBacklightEnvironment> hasDelegate:YES for environment:sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:46.578 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.578 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventDeferring] [0x103f43800] Initialized with scene: <UIWindowScene: 0x103780fc0>; behavior: <_UIEventDeferringBehavior_iOS: 0x10acb5560>; availableForProcess: 1, systemShellManagesKeyboardFocus: 1
+2026-10-01 08:05:46.581 Df Stethoscore Personal[13651:a9dc] [com.apple.BackBoard:EventDelivery] BKSHIDEventObserver - connection activation
+2026-10-01 08:05:46.581 Df Stethoscore Personal[13651:a94b] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x103e7d980; process scope; status: target> was:none
+2026-10-01 08:05:46.581 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to LastOneWins
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Scene target of keyboard event deferring environment did change: 1; scene: UIWindowScene: 0x103780fc0; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventDeferring] [0x103f43800] Scene target of event deferring environments did update: scene: 0x103780fc0; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x103780fc0; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Stack[KeyWindow] 0x103c4a6a0: Taking no further action for migration from LastOneWins -> SystemShellManaged as there are no scenes
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to SystemShellManaged
+2026-10-01 08:05:46.582 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Key window needs update: 0; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x103780fc0; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x0; reason: UIWindowScene: 0x103780fc0: Window scene became target of keyboard environment
+2026-10-01 08:05:46.583 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.584 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.586 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.586 I  Stethoscore Personal[13651:a94b] [com.apple.SwiftUI:Scenes] Received scene connection to session: <UISceneSession: 0x103db1ae0; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: EA23B3FF-7722-46A5-95F9-351EEF92A8B7; scene: (nil); configuration: <UISceneConfiguration: 0x103db1a90>; userInfo: (nil)>
+2026-10-01 08:05:46.599 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:main] initUAUserActivity:com.apple.SwiftUI.stateRestoration- C4C16A59-E371-4CFD-838B-41604DE1015F UserActivity
+2026-10-01 08:05:46.599 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] - UAUserActivity	v1.0
+2026-10-01 08:05:46.599 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] C4C16A59-E371-4CFD-838B-41604DE1015F CREATED com.apple.SwiftUI.stateRestoration/(null)
+2026-10-01 08:05:46.600 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] C4C16A59-E371-4CFD-838B-41604DE1015F SET-USERINFO	count=1 false
+2026-10-01 08:05:46.600 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] C4C16A59-E371-4CFD-838B-41604DE1015F SET-DIRTY	wasDirty=false force=false informServer=false informIndex=false
+2026-10-01 08:05:46.640 I  Stethoscore Personal[13651:a94b] [com.apple.SwiftUI:Scenes] Scene session EA23B3FF-7722-46A5-95F9-351EEF92A8B7 will use item WindowGroup with id: 'type(SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.Group<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<Stethoscore_Personal.GraphPreviewRoot, SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI._ConditionalContent<SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.AnkiReviewView>, SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.MCQQuizView>>, SwiftUI._ConditionalContent<SwiftUI.NavigationStack<SwiftUI.NavigationPath, Stethoscore_Personal.NarrateReviewView>, SwiftUI.NavigationStack<<…>
+2026-10-01 08:05:46.709 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Orientation] <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7) Scene updated orientation preferences: none -> ( Pu )
+2026-10-01 08:05:46.721 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Key window API is scene-level: YES
+2026-10-01 08:05:46.721 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] UIWindowScene: 0x103780fc0: Window became key in scene: UIWindow: 0x103e80400; contextId: 0x9B4599D6: reason: UIWindowScene: 0x103780fc0: Window requested to become key in scene: 0x103e80400
+2026-10-01 08:05:46.721 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Key window needs update: 1; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x103780fc0; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x103e80400; reason: UIWindowScene: 0x103780fc0: Window requested to become key in scene: 0x103e80400
+2026-10-01 08:05:46.721 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Window did become application key: UIWindow: 0x103e80400; contextId: 0x9B4599D6; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:46.722 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventDeferring] [0x103f43800] Begin local event deferring requested for token: 0x103e7e9a0; environments: 1; reason: UIWindowScene: 0x103780fc0: Begin event deferring in keyboardFocus for window: 0x103e80400
+2026-10-01 08:05:46.723 I  Stethoscore Personal[13651:a94b] [com.apple.SwiftUI:Scenes] Finished willConnectTo for session EA23B3FF-7722-46A5-95F9-351EEF92A8B7 with scene <UIWindowScene: 0x103780fc0; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: EA23B3FF-7722-46A5-95F9-351EEF92A8B7; activationState: UISceneActivationStateUnattached>
+2026-10-01 08:05:46.723 Df Stethoscore Personal[13651:a9de] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x103e7d980; token: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7; status: ancestor> was:target
+2026-10-01 08:05:46.723 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.727 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7  persistentID: EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:46.727 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Ignoring already applied deactivation reason: 5; deactivation reasons: 2080
+2026-10-01 08:05:46.727 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason added: 12; deactivation reasons: 2080 -> 6176; animating application lifecycle event: 1
+2026-10-01 08:05:46.727 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason removed: 11; deactivation reasons: 6176 -> 4128; animating application lifecycle event: 1
+2026-10-01 08:05:46.728 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneIntelligenceSupportSettings> on FBSSceneSettings
+2026-10-01 08:05:46.730 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:46.730 Df Stethoscore Personal[13651:a9de] [com.apple.UIIntelligenceSupport:xpc] establishing connection to agent
+2026-10-01 08:05:46.731 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:session] [0x103db03c0] Session created.
+2026-10-01 08:05:46.731 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:session] [0x103db03c0] Session created from connection [0x10ad38280]
+2026-10-01 08:05:46.731 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x10ad38280] activating connection: mach=true listener=false peer=false name=com.apple.uiintelligencesupport.agent
+2026-10-01 08:05:46.732 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:session] [0x103db03c0] Session activated
+2026-10-01 08:05:46.738 A  Stethoscore Personal[13651:a94b] (CoreFoundation) Updating Key-Value Observers Of Preferences
+2026-10-01 08:05:47.080 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 13528 bytes, DynamicBody<ViewBodyAccessor<LibraryView>, MainThreadFlags> -> ModifiedContent<ModifiedContent<SubscriptionView<Publisher, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<SubscriptionView<Publisher, SubscriptionView<Publisher, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<NavigationStack<Array<StudySet>, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ZStack<ModifiedContent<IDView<_ConditionalContent<IdeasVie<…>
+2026-10-01 08:05:47.114 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 11632 bytes, DynamicBody<ViewBodyAccessor<NavigationStack<Array<StudySet>, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ZStack<ModifiedContent<IDView<_ConditionalContent<IdeasView, _ConditionalContent<ModifiedContent<ModifiedContent<ScrollViewReader<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<List<Never, TupleView<(Optional<Section<EmptyView, ModifiedContent<ModifiedContent<ModifiedContent<VStack<TupleView<(ModifiedContent<HStack<ForEach<Array<StudySetKind>, StudySetKind, ModifiedCo<…> -> <decode: missing data>
+2026-10-01 08:05:47.159 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 11632 bytes, AppliedBody -> ModifiedContent<ModifiedContent<NavigationStackStyledCore<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ZStack<ModifiedContent<IDView<_ConditionalContent<IdeasView, _ConditionalContent<ModifiedContent<ModifiedContent<ScrollViewReader<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<List<Never, TupleView<(Optional<Section<EmptyView, ModifiedContent<ModifiedContent<ModifiedContent<VStack<TupleView<(ModifiedContent<HStack<ForEach<Array<StudySetK<…>
+2026-10-01 08:05:47.161 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 11633 bytes, Child -> NavigationStackRepresentableRoot
+2026-10-01 08:05:47.172 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 11625 bytes, StaticBody<ViewBodyAccessor<NavigationStackRepresentableRoot>, MainThreadFlags> -> ModifiedContent<ModifiedContent<ResolvedNavigationStackStyle, StaticSourceWriter<Root, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ZStack<ModifiedContent<IDView<_ConditionalContent<IdeasView, _ConditionalContent<ModifiedContent<ModifiedContent<ScrollViewReader<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<List<Never, TupleView<(Optional<Section<EmptyView, ModifiedContent<…>
+2026-10-01 08:05:47.344 Df Stethoscore Personal[13651:a9b3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 1
+2026-10-01 08:05:47.344 Df Stethoscore Personal[13651:a9b3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 1 and description: <_UIBackgroundTaskInfo: 0x103cc6dc0>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 810 (elapsed = 1), _expireHandler: (null)
+2026-10-01 08:05:47.344 Df Stethoscore Personal[13651:a9b3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x103db0640> (used by background task with identifier 1: <_UIBackgroundTaskInfo: 0x103cc6dc0>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 810 (elapsed = 1))
+2026-10-01 08:05:47.344 Df Stethoscore Personal[13651:a9b3] [com.apple.UIKit:BackgroundTask] Will invalidate assertion: <BKSProcessAssertion: 0x103db0640> for task identifier: 1
+2026-10-01 08:05:47.452 A  Stethoscore Personal[13651:a9b3] (RunningBoardServices) didChangeInheritances
+2026-10-01 08:05:47.464 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x10ad39540] activating connection: mach=true listener=false peer=false name=com.apple.fontservicesd
+2026-10-01 08:05:47.654 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 8872 bytes, DelayedPreferenceChild<ScrollablePreferenceKey, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<List<Never, TupleView<(Optional<Section<EmptyView, ModifiedContent<ModifiedContent<ModifiedContent<VStack<TupleView<(ModifiedContent<HStack<ForEach<Array<StudySetKind>, StudySetKind, ModifiedContent<ModifiedContent<ModifiedContent<ModeTile, PopOutModifier<RoundedRectangle>>, _RotationEffect>, _TraitWritingModifier<ZIndexTraitKey>>>>, AccessibilityAttachmentModifier>, Text, ModifiedContent<Text, _EnvironmentKeyWritingModifier<TextAlignment>>, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<Button<ModifiedContent<ModifiedContent<Label<Text, Image>, _EnvironmentKeyWritingModifier<Optional<Font>>>, _FlexFrameLayout>>, PrimitiveButtonStyleContainerModifier<GlassProminentButtonStyle>>, PopOutModifier<Capsule>>, _EnvironmentKeyWritingModifier<Optional<KeyboardShortcut>>>, ViewInputFlagModifier<HasKeyboardShortcut<…> -> <decode: missing data>
+2026-10-01 08:05:47.662 I  Stethoscore Personal[13651:a94b] [com.apple.attributegraph:misc] large attribute value: 17640 bytes, DynamicBody<ViewBodyAccessor<List<Never, TupleView<(Optional<Section<EmptyView, ModifiedContent<ModifiedContent<ModifiedContent<VStack<TupleView<(ModifiedContent<HStack<ForEach<Array<StudySetKind>, StudySetKind, ModifiedContent<ModifiedContent<ModifiedContent<ModeTile, PopOutModifier<RoundedRectangle>>, _RotationEffect>, _TraitWritingModifier<ZIndexTraitKey>>>>, AccessibilityAttachmentModifier>, Text, ModifiedContent<Text, _EnvironmentKeyWritingModifier<TextAlignment>>, ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<ModifiedContent<Button<ModifiedContent<ModifiedContent<Label<Text, Image>, _EnvironmentKeyWritingModifier<Optional<Font>>>, _FlexFrameLayout>>, PrimitiveButtonStyleContainerModifier<GlassProminentButtonStyle>>, PopOutModifier<Capsule>>, _EnvironmentKeyWritingModifier<Optional<KeyboardShortcut>>>, ViewInputFlagModifier<HasKeyboardShortcut>>, _TraitWritingModifier<KeyboardShortcutPickerOptionTraitKey>>, AccessibilityAttachmentModifier>, ModifiedContent<…> -> <decode: missing data>
+2026-10-01 08:05:47.852 E  Stethoscore Personal[13651:aa61] [com.apple.locationd.Core:Core] {"msg":"file does not exist... clearing", "file":/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, "error":Error Domain=NSCocoaErrorDomain Code=260 "The file “com.apple.CoreMotion.plist” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSURL=file:///Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS%2026.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed%20Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSUnderlyingError=0x10ad19da0 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}}
+2026-10-01 08:05:47.855 A  Stethoscore Personal[13651:aa61] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-10-01 08:05:47.871 I  Stethoscore Personal[13651:a94b] [com.apple.DesignLibrary:defaults] liveTuning=false
+2026-10-01 08:05:48.247 Df Stethoscore Personal[13651:a94b] [PrototypeTools:domain] Not observing PTDefaults on customer install.
+2026-10-01 08:05:48.420 Df Stethoscore Personal[13651:a9b3] [com.apple.xpc:connection] [0x103d56f80] activating connection: mach=true listener=false peer=false name=com.apple.IOSurface.Remote
+2026-10-01 08:05:48.497 Df Stethoscore Personal[13651:a9a7] [com.apple.calls.callkit:Default] Call host has no calls
+2026-10-01 08:05:48.673 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:SceneClient] [(FBSceneManager):sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7] Sending action(s): BLSInvalidateFrameSpecifiersAction
+2026-10-01 08:05:48.708 I  Stethoscore Personal[13651:a9b3] [com.apple.appintents:Metadata] Updating AppShortcut parameters
+2026-10-01 08:05:48.719 Df Stethoscore Personal[13651:a9b3] [com.apple.xpc:connection] [0x11608ebc0] activating connection: mach=true listener=false peer=false name=com.apple.linkd.autoShortcut
+2026-10-01 08:05:48.722 A  Stethoscore Personal[13651:a9de] (StoreKit) StoreKit/TransactionQuery
+2026-10-01 08:05:48.724 I  Stethoscore Personal[13651:a9de] [com.apple.storekit:Default] AAFService Starting new XPCConnection f3803529
+2026-10-01 08:05:48.726 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x11608ee40] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-10-01 08:05:48.764 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x11608ebc0] Re-initialization successful; calling out to event handler with XPC_ERROR_CONNECTION_INTERRUPTED
+2026-10-01 08:05:48.769 E  Stethoscore Personal[13651:a9de] [com.apple.appintents:General] Failed to connect to linkd to request update AppShortcut parameters, error: Couldn’t communicate with a helper application.
+2026-10-01 08:05:48.796 Df Stethoscore Personal[13651:a9de] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-10-01 08:05:48.796 I  Stethoscore Personal[13651:a9de] [com.apple.storekit:Default] AAFService Closing XPCConnection f3803529
+2026-10-01 08:05:48.796 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x11608ee40] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:48.796 Df Stethoscore Personal[13651:a9de] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 08:05:49.079 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11639b340] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-10-01 08:05:49.080 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11639b480] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-10-01 08:05:49.080 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11639b5c0] activating connection: mach=true listener=false peer=false name=com.apple.metal.simulator
+2026-10-01 08:05:49.835 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:misc] RBDevice: initialized bg state: false
+2026-10-01 08:05:50.164 A  Stethoscore Personal[13651:a9a7] (RunningBoardServices) didChangeInheritances
+2026-10-01 08:05:50.178 E  Stethoscore Personal[13651:a94b] [com.apple.UIKit:MenuBuilder] Replacement elements conflict with existing elements:
+
+Keyboard Shortcut (duplicate modifierFlags: command, input: F):
+- Existing keyboard shortcut: <UIKeyCommand: 0x103ebe5a0; title = Find; action: find:; input: f; modifierFlags: Cmd>
+- Conflicting keyboard shortcut: <UIKeyCommand: 0x116cf6d80; title = Search Library; action: _performMainMenuShortcutKeyCommand:; input: f; modifierFlags: Cmd>
+Ensure all keyboard shortcuts are unique to avoid undefined behavior.
+
+Make a symbolic breakpoint at _UIMenuBuilderError to catch this in the debugger.
+2026-10-01 08:05:50.182 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:1 [EB75C636-E7F2-4403-9DE4-14A06E8E9B5B] (reporting strategy default)>
+2026-10-01 08:05:50.182 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:2 [E8AC9415-1C32-4912-B804-3653BD70EE9E] (reporting strategy default)>
+2026-10-01 08:05:50.182 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] Set activity <nw_activity 50:1 [EB75C636-E7F2-4403-9DE4-14A06E8E9B5B] (reporting strategy default)> as the global parent
+2026-10-01 08:05:50.183 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:UpdateScheduler] Target list changed: <CADisplay:LCD PurpleMain>
+2026-10-01 08:05:50.188 A  Stethoscore Personal[13651:a9de] (RunningBoardServices) didChangeInheritances
+2026-10-01 08:05:50.191 Df Stethoscore Personal[13651:a9a7] [com.apple.CoreAnalytics:client] No XPC connection in Simulator
+2026-10-01 08:05:50.191 E  Stethoscore Personal[13651:a9a7] [com.apple.app_launch_measurement:General] Failed to send CA Event for app launch measurements for ca_event_type: 0 event_name: com.apple.app_launch_measurement.FirstFramePresentationMetric
+2026-10-01 08:05:50.240 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7  persistentID: EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:50.241 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:50.241 A  Stethoscore Personal[13651:a9a7] (StoreKit) StoreKit/TransactionUpdateStart
+2026-10-01 08:05:50.241 A  Stethoscore Personal[13651:a9a7] (StoreKit) StoreKit/TransactionQuery
+2026-10-01 08:05:50.241 I  Stethoscore Personal[13651:a9a7] [com.apple.storekit:Default] AAFService Starting new XPCConnection 029007a3
+2026-10-01 08:05:50.242 Df Stethoscore Personal[13651:a9a7] [com.apple.xpc:connection] [0x11758c000] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-10-01 08:05:50.244 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:main] initUAUserActivity:com.apple.SwiftUI.stateRestoration- 4F9D14A3-1C3B-484E-9F26-B13B961CBC57 UserActivity
+2026-10-01 08:05:50.244 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] 4F9D14A3-1C3B-484E-9F26-B13B961CBC57 CREATED com.apple.SwiftUI.stateRestoration/(null)
+2026-10-01 08:05:50.246 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] 4F9D14A3-1C3B-484E-9F26-B13B961CBC57 SET-DIRTY	wasDirty=false force=false informServer=false informIndex=false
+2026-10-01 08:05:50.252 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] 4F9D14A3-1C3B-484E-9F26-B13B961CBC57 SET-USERINFO	count=1 false
+2026-10-01 08:05:50.253 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] 4F9D14A3-1C3B-484E-9F26-B13B961CBC57 SET-DIRTY	wasDirty=true force=false informServer=false informIndex=false
+2026-10-01 08:05:50.253 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] C4C16A59-E371-4CFD-838B-41604DE1015F INVALIDATE	wasCurrent=false needsSave=true dirty=true sendToServer=false
+2026-10-01 08:05:50.257 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:EventDeferring] [0x103f43800] Scene target of event deferring environments did update: scene: 0x103780fc0; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-10-01 08:05:50.257 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x103780fc0; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Acom.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:50.259 Df Stethoscore Personal[13651:a94b] [com.apple.Accessibility:AXCommon] Read Per-App on Init: Smart invert = (null)
+2026-10-01 08:05:50.270 Df Stethoscore Personal[13651:a9a7] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-10-01 08:05:50.270 Df Stethoscore Personal[13651:a94b] [com.apple.network:] networkd_settings_read_from_file_locked initialized networkd settings by reading plist directly
+2026-10-01 08:05:50.270 Df Stethoscore Personal[13651:a94b] [com.apple.network:] networkd_settings_read_from_file_locked initialized networkd settings by reading plist directly
+2026-10-01 08:05:50.270 I  Stethoscore Personal[13651:a9a7] [com.apple.storekit:Default] AAFService Closing XPCConnection 029007a3
+2026-10-01 08:05:50.272 Df Stethoscore Personal[13651:a9a7] [com.apple.xpc:connection] [0x11758c000] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:50.274 A  Stethoscore Personal[13651:a9de] (StoreKit) StoreKit/TransactionUpdateCheck
+2026-10-01 08:05:50.277 I  Stethoscore Personal[13651:a9de] [com.apple.storekit:Default] AAFService Starting new XPCConnection a0a6fabb
+2026-10-01 08:05:50.278 Df Stethoscore Personal[13651:a9de] [com.apple.xpc:connection] [0x11758ca00] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-10-01 08:05:50.293 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> resuming, timeouts(180.0, 604800.0) qos(0x19) voucher((null)) activity(00000000-0000-0000-0000-000000000000)
+2026-10-01 08:05:50.294 A  Stethoscore Personal[13651:a9a7] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-10-01 08:05:50.305 I  Stethoscore Personal[13651:a94b] [com.apple.useractivity:biome-69594900] C4C16A59-E371-4CFD-838B-41604DE1015F RELEASED changeCount=1
+2026-10-01 08:05:50.335 I  Stethoscore Personal[13651:a9a7] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "com.apple.CFNetwork.StorageDB" ID:(null) target:13651>
+2026-10-01 08:05:50.359 A  Stethoscore Personal[13651:ab32] (RunningBoardServices) didChangeInheritances
+2026-10-01 08:05:50.389 Df Stethoscore Personal[13651:ab32] [com.apple.storekit:Default] [Default] Finished iterating transaction batches
+2026-10-01 08:05:50.391 Df Stethoscore Personal[13651:a94b] [com.apple.FrontBoard:SceneExtension] Realizing settings extension SBUISecureRenderingSettingsExtension on FBSSceneSettings
+2026-10-01 08:05:50.400 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:50.402 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x103780fc0> (EA23B3FF-7722-46A5-95F9-351EEF92A8B7)
+2026-10-01 08:05:50.408 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:com.cramdown.personal-EA23B3FF-7722-46A5-95F9-351EEF92A8B7  persistentID: EA23B3FF-7722-46A5-95F9-351EEF92A8B7
+2026-10-01 08:05:50.419 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason removed: 12; deactivation reasons: 4128 -> 32; animating application lifecycle event: 1
+2026-10-01 08:05:50.419 Df Stethoscore Personal[13651:a94b] [com.apple.KeyboardArbiter:Client] Send setDeactivating: N (-DeactivationReason:SuspendedEventsOnly)
+2026-10-01 08:05:50.422 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:Application] Deactivation reason removed: 5; deactivation reasons: 32 -> 0; animating application lifecycle event: 0
+2026-10-01 08:05:50.459 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Initializing NSHTTPCookieStorage singleton
+2026-10-01 08:05:50.462 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Initializing CFHTTPCookieStorage singleton
+2026-10-01 08:05:50.462 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Creating default cookie storage with process/bundle identifier
+2026-10-01 08:05:50.463 A  Stethoscore Personal[13651:a9a7] (libsystem_containermanager.dylib) container_system_group_path_for_identifier
+2026-10-01 08:05:50.464 Df Stethoscore Personal[13651:a9a7] [com.apple.containermanager:xpc] Requesting container lookup; class = 13, identifier = com.apple.nsurlsessiond, group_identifier = systemgroup.com.apple.nsurlstoragedresources, create = 1, temp = 0, euid = 501, uid = 501
+2026-10-01 08:05:50.464 A  Stethoscore Personal[13651:a9a7] (libsystem_containermanager.dylib) container_query_t
+2026-10-01 08:05:50.464 Df Stethoscore Personal[13651:a9a7] [com.apple.containermanager:xpc] Query; euid = 501, uid = 501, class = 13, identifier = [com.apple.nsurlsessiond](1), flags = 900000003
+2026-10-01 08:05:50.474 Df Stethoscore Personal[13651:a9a7] [com.apple.containermanager:unspecified] _container_query_get_result_at_index: success
+2026-10-01 08:05:50.475 A  Stethoscore Personal[13651:a9a7] (libsystem_containermanager.dylib) container_copy_object
+2026-10-01 08:05:50.475 Df Stethoscore Personal[13651:a9a7] [com.apple.containermanager:unspecified] container_system_group_path_for_identifier: success
+2026-10-01 08:05:50.475 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Initializing AlternativeServices Storage singleton
+2026-10-01 08:05:50.476 Df Stethoscore Personal[13651:a9a7] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/6DDBE881-1E14-49B8-9C8C-A18F22367129/Library/HTTPStorages/com.cramdown.personal
+2026-10-01 08:05:50.479 Df Stethoscore Personal[13651:a9b3] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 08:05:50.500 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Connection 0: creating secure tcp or quic connection
+2026-10-01 08:05:50.548 Df Stethoscore Personal[13651:a94b] [com.apple.UserNotifications:Connections] [com.cramdown.personal] Removing 0 pending notification requests with identifiers (
+)
+2026-10-01 08:05:50.550 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11631f340] activating connection: mach=true listener=false peer=false name=com.apple.usernotifications.listener
+2026-10-01 08:05:50.949 Df Stethoscore Personal[13651:a94b] [com.apple.KeyboardArbiter:Client] startConnection
+2026-10-01 08:05:50.951 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x10ad397c0] activating connection: mach=true listener=false peer=false name=com.apple.UIKit.KeyboardManagement.hosted
+2026-10-01 08:05:50.958 I  Stethoscore Personal[13651:ab31] [com.apple.storekit:Default] AAFService Closing XPCConnection a0a6fabb
+2026-10-01 08:05:50.958 Df Stethoscore Personal[13651:ab31] [com.apple.xpc:connection] [0x11758ca00] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:50.963 Df Stethoscore Personal[13651:ab32] [com.apple.xpc:connection] [0x10ad38500] activating connection: mach=true listener=false peer=false name=com.apple.lsd.advertisingidentifiers
+2026-10-01 08:05:50.968 Df Stethoscore Personal[13651:ab32] [com.apple.storekit:Default] Registering for 'transactionsupdated' daemon notification
+2026-10-01 08:05:50.978 Df Stethoscore Personal[13651:ab34] [com.apple.storekit:Default] AAFService connection invalidated
+2026-10-01 08:05:51.029 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_connection_create_with_id [C1] create connection to Hostname#76412d1e:443
+2026-10-01 08:05:51.029 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_connection_create_with_id_block_invoke [C1] has alternative UNKNOWN for quic
+2026-10-01 08:05:51.029 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Connection 1: enabling TLS
+2026-10-01 08:05:51.030 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Connection 1: starting, TC(0x0)
+2026-10-01 08:05:51.031 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1 12433097-2593-48C5-833E-58EBC0F710EC Hostname#76412d1e:443 quic-connection, url: https://redpen-auth.vv7sh4rnnw.workers.dev/accuracy/model, definite, attribution: developer, context: com.apple.CFNetwork.NSURLSession.{F19FCAB1-0217-438D-82E9-326F00F78D6B}{(null)}{Y}{2}{0x0} (private), proc: E9D91521-A637-33E5-98D5-4DBE5971C524, delegated upid: 0] start
+2026-10-01 08:05:51.031 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_endpoint_handler_start [C1 Hostname#76412d1e:443 initial parent-flow ((null))]
+2026-10-01 08:05:51.031 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1 Hostname#76412d1e:443 initial parent-flow ((null))] event: path:start @0.000s
+2026-10-01 08:05:51.113 Df Stethoscore Personal[13651:a94b] [com.apple.KeyboardArbiter:Client] handleKeyboardChange: set currentKeyboard:N (wasKeyboard:N)
+2026-10-01 08:05:51.115 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyboardSceneDelegate] forceReloadInputViews
+2026-10-01 08:05:51.115 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyboardSceneDelegate] Reloading input views for key-window scene responder: <(null): 0x0; > force:Y
+2026-10-01 08:05:51.120 Df Stethoscore Personal[13651:a94b] [com.apple.UIKit:KeyboardArbiterClientLog] isWritingToolsHandlingKeyboardTracking:Y (WT ready:Y, Arbiter ready:Y)
+2026-10-01 08:05:51.402 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1 Hostname#76412d1e:443 waiting parent-flow (satisfied (Path is satisfied), interface: en0)] event: path:satisfied @0.370s, uuid: 92F9CBDE-EF66-4F0C-B001-3F7E371174B3
+2026-10-01 08:05:51.402 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_connection_endpoint_report_on_nw_queue_block_invoke [C1 Hostname#76412d1e:443 waiting parent-flow (satisfied (Path is satisfied), interface: en0)] skipping state update
+2026-10-01 08:05:51.406 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1 Hostname#76412d1e:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0)] event: flow:start_connect @0.375s
+2026-10-01 08:05:51.407 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C1] reporting state preparing
+2026-10-01 08:05:51.411 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_endpoint_flow_connect [C1 Hostname#76412d1e:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0)] connect bottom protocol
+2026-10-01 08:05:51.419 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1 Hostname#76412d1e:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0)] event: flow:start_child @0.387s
+2026-10-01 08:05:51.419 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_endpoint_handler_start [C1.1 Hostname#76412d1e:443 initial path ((null))]
+2026-10-01 08:05:51.452 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1176108c0
+2026-10-01 08:05:51.452 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:51.555 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:51.555 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:51.557 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1 Hostname#76412d1e:443 initial path ((null))] event: path:start @0.525s
+2026-10-01 08:05:51.610 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1 Hostname#76412d1e:443 waiting path (satisfied (Path is satisfied), interface: en0)] event: path:satisfied @0.578s, uuid: 92F9CBDE-EF66-4F0C-B001-3F7E371174B3
+2026-10-01 08:05:51.611 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1 Hostname#76412d1e:443 in_progress transform (satisfied (Path is satisfied), interface: en0)] event: transform:start @0.579s
+2026-10-01 08:05:51.611 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_endpoint_handler_start [C1.1.1 Hostname#76412d1e:443 initial path ((null))]
+2026-10-01 08:05:51.611 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1.1 Hostname#76412d1e:443 initial path ((null))] event: path:start @0.580s
+2026-10-01 08:05:51.632 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1.1 Hostname#76412d1e:443 waiting path (satisfied (Path is satisfied), interface: en0)] event: path:satisfied @0.600s, uuid: 9185BE93-3524-46CD-955A-B1622AE64F2C
+2026-10-01 08:05:51.633 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] event: resolver:start_dns @0.601s
+2026-10-01 08:05:51.635 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_resolver_create_dns_service_locked [C1.1.1] Starting host resolution Hostname#76412d1e:443, flags 0xc000d000 proto 0
+2026-10-01 08:05:51.635 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> setting up Connection 1
+2026-10-01 08:05:51.635 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_resolver_host_resolve_callback [C1.1.1] flags=0x40000002 ifindex=0 error=NoSuchRecord(-65554) hostname=redpen-auth.vv7sh4rnnw.workers.dev. addr=IN6ADDR_ANY ttl=60
+2026-10-01 08:05:51.682 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_resolver_host_resolve_callback [C1.1.1] flags=0x3 ifindex=0 error=NoError(0) hostname=redpen-auth.vv7sh4rnnw.workers.dev. addr=IPv4#01a826e0 ttl=473
+2026-10-01 08:05:51.686 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_resolver_host_resolve_callback [C1.1.1] flags=0x2 ifindex=0 error=NoError(0) hostname=redpen-auth.vv7sh4rnnw.workers.dev. addr=IPv4#16166377 ttl=473
+2026-10-01 08:05:51.689 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] Adding endpoint handler for IPv4#10852631:443
+2026-10-01 08:05:51.690 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] Adding endpoint handler for IPv4#bc3b9189:443
+2026-10-01 08:05:51.690 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] event: resolver:receive_dns @0.658s
+2026-10-01 08:05:51.690 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_resolver_start_next_child [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] starting child endpoint IPv4#10852631:443
+2026-10-01 08:05:51.690 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_handler_start [C1.1.1.1 IPv4#10852631:443 initial path ((null))]
+2026-10-01 08:05:51.707 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] [C1.1.1.1 IPv4#10852631:443 initial path ((null))] event: path:start @0.676s
+2026-10-01 08:05:51.713 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] [C1.1.1.1 IPv4#10852631:443 waiting path (satisfied (Path is satisfied), interface: en0)] event: path:satisfied @0.682s, uuid: F3CA639A-C317-452D-8BD5-C199427134A5
+2026-10-01 08:05:51.748 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_association_create_flow <nw_association IPv4#10852631:443> Added association flow ID 14831424-0A6E-47C3-AB50-40ABB6A86F39
+2026-10-01 08:05:51.750 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_flow_setup_protocols [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] setup flow id 14831424-0A6E-47C3-AB50-40ABB6A86F39
+2026-10-01 08:05:51.770 Df Stethoscore Personal[13651:a9b3] [com.apple.network:connection] [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] event: flow:start_connect @0.738s
+2026-10-01 08:05:51.772 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_connection_get_association_rtt_estimate_ms [C1] Association has 0 connected flows
+2026-10-01 08:05:51.775 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_flow_start_connect_stall_timer [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] starting connect connect stall timer (2000ms)
+2026-10-01 08:05:51.777 I  Stethoscore Personal[13651:a9b3] [com.apple.network:boringssl] boringssl_context_restore_ssl_context(3495) [0x116093c60] New context
+2026-10-01 08:05:51.778 I  Stethoscore Personal[13651:a9b3] [com.apple.network:connection] nw_endpoint_resolver_start_next_child [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] starting next child endpoint in 100ms
+2026-10-01 08:05:51.795 Df Stethoscore Personal[13651:ab32] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.1.1:3] Socket received CONNECTED event
+2026-10-01 08:05:51.796 Df Stethoscore Personal[13651:ab32] [com.apple.network:connection] nw_flow_connected [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] Transport protocol connected (socket)
+2026-10-01 08:05:51.796 Df Stethoscore Personal[13651:ab32] [com.apple.network:connection] [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] event: flow:finish_transport @0.764s
+2026-10-01 08:05:51.796 I  Stethoscore Personal[13651:ab32] [com.apple.network:connection] nw_endpoint_resolver_receive_report [C1.1.1 Hostname#76412d1e:443 in_progress resolver (satisfied (Path is satisfied), interface: en0)] pushing out endpoint race by 2000ms
+2026-10-01 08:05:51.796 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_is_local_networking(751) [C1.1.1.1:2][0x116093c60] set false
+2026-10-01 08:05:51.797 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_legacy_ats_applicable(742) [C1.1.1.1:2][0x116093c60] set true
+2026-10-01 08:05:51.797 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_applicable(733) [C1.1.1.1:2][0x116093c60] set false
+2026-10-01 08:05:51.799 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_enforced(760) [C1.1.1.1:2][0x116093c60] set false
+2026-10-01 08:05:51.801 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_minimum_rsa_key_size(810) [C1.1.1.1:2][0x116093c60] set 0
+2026-10-01 08:05:51.802 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_minimum_ecdsa_key_size(819) [C1.1.1.1:2][0x116093c60] set 0
+2026-10-01 08:05:51.803 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_minimum_signature_algorithm(886) [C1.1.1.1:2][0x116093c60] set 0
+2026-10-01 08:05:51.804 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_ats_non_pfs_ciphersuite_allowed(895) [C1.1.1.1:2][0x116093c60] set false
+2026-10-01 08:05:51.804 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_set_old_ats_enforced(769) [C1.1.1.1:2][0x116093c60] set true
+2026-10-01 08:05:51.805 Df Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_session_apply_protocol_options_for_transport_block_invoke_2(2367) [C1.1.1.1:2][0x116093c60] TLS configured [server(0) min_version(0x0303) max_version(0x0304) name(redacted) tickets(false) false_start(false) enforce_ev(false) enforce_ats(false) ats_non_pfs_ciphersuite_allowed(false) cc_mode_enforced(false) ech(false) pqtls(true), pake(false) skip_ats_trust(false)]
+2026-10-01 08:05:51.805 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_session_install_association_state(1593) [C1.1.1.1:2][0x116093c60] Client session cache miss
+2026-10-01 08:05:51.811 Df Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_info_handler(2806) [C1.1.1.1:2][0x116093c60] Client handshake started
+2026-10-01 08:05:51.832 Df Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS client enter_early_data
+2026-10-01 08:05:51.833 Df Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS client read_server_hello
+2026-10-01 08:05:51.835 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_session_handshake_incomplete(261) [C1.1.1.1:2][0x116093c60] Handshake incomplete: waiting for data to read [2]
+2026-10-01 08:05:51.836 I  Stethoscore Personal[13651:ab32] [com.apple.network:boringssl] boringssl_session_handshake_incomplete(261) [C1.1.1.1:2][0x116093c60] Handshake incomplete: waiting for data to read [2]
+2026-10-01 08:05:51.853 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_hello_retry_request
+2026-10-01 08:05:51.853 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_server_hello
+2026-10-01 08:05:51.853 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_encrypted_extensions
+2026-10-01 08:05:51.854 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_certificate_request
+2026-10-01 08:05:51.854 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_server_certificate
+2026-10-01 08:05:51.854 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_server_certificate_verify
+2026-10-01 08:05:51.854 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_evaluate_trust_async(2249) [C1.1.1.1:2][0x116093c60] Performing external trust evaluation
+2026-10-01 08:05:51.854 A  Stethoscore Personal[13651:ab34] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:51.857 A  Stethoscore Personal[13651:ab34] (Security) SecKeyCopyAttributes
+2026-10-01 08:05:51.870 A  Stethoscore Personal[13651:ab34] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:51.876 Df Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_context_evaluate_trust_async_external(2234) [C1.1.1.1:2][0x116093c60] Asyncing for external verify block
+2026-10-01 08:05:51.877 I  Stethoscore Personal[13651:ab34] [com.apple.network:boringssl] boringssl_session_handshake_incomplete(261) [C1.1.1.1:2][0x116093c60] Handshake incomplete: certificate evaluation result pending [16]
+2026-10-01 08:05:51.878 Df Stethoscore Personal[13651:ab34] [com.apple.CFNetwork:Default] Connection 1: asked to evaluate TLS Trust
+2026-10-01 08:05:51.897 Df Stethoscore Personal[13651:ab34] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> auth completion disp=1 cred=0x0
+2026-10-01 08:05:51.897 Df Stethoscore Personal[13651:ab34] [com.apple.securityd:trust] (Trust 0x116fd64c0) No pending evals, starting
+2026-10-01 08:05:51.897 A  Stethoscore Personal[13651:ab34] (Security) SecTrustEvaluateIfNecessaryFastAsync
+2026-10-01 08:05:51.897 Df Stethoscore Personal[13651:ab34] [com.apple.xpc:connection] [0x11608c500] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-10-01 08:05:51.900 Df Stethoscore Personal[13651:ab34] [com.apple.xpc:connection] [0x11608e440] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-10-01 08:05:51.901 Df Stethoscore Personal[13651:ab34] [com.apple.securityd:trust] (Trust 0x116fd64c0) Completed async eval kickoff
+2026-10-01 08:05:51.972 Df Stethoscore Personal[13651:ab32] [com.apple.securityd:trust] (Trust 0x116fd64c0) trustd returned 4
+2026-10-01 08:05:51.972 Df Stethoscore Personal[13651:ab32] [com.apple.CFNetwork:Default] System Trust Evaluation yielded status(0)
+2026-10-01 08:05:51.972 Df Stethoscore Personal[13651:ab32] [com.apple.securityd:trust] (Trust 0x116fd6580) No pending evals, starting
+2026-10-01 08:05:51.973 A  Stethoscore Personal[13651:ab32] (Security) SecTrustEvaluateIfNecessaryFastAsync
+2026-10-01 08:05:51.973 Df Stethoscore Personal[13651:ab32] [com.apple.xpc:connection] [0x11608ed00] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-10-01 08:05:51.973 Df Stethoscore Personal[13651:ab32] [com.apple.securityd:trust] (Trust 0x116fd6580) Completed async eval kickoff
+2026-10-01 08:05:51.973 Df Stethoscore Personal[13651:ab32] [com.apple.xpc:connection] [0x11608e440] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:52.013 Df Stethoscore Personal[13651:ab35] [com.apple.securityd:trust] (Trust 0x116fd6580) trustd returned 4
+2026-10-01 08:05:52.013 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Connection 1: TLS Trust result 0
+2026-10-01 08:05:52.013 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_evaluate_trust_async_external_block_invoke_3(2148) [C1.1.1.1:2][0x116093c60] Returning from external verify block with result: true
+2026-10-01 08:05:52.013 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_certificate_verify_callback(2430) [C1.1.1.1:2][0x116093c60] Certificate verification result: OK
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client read_server_finished
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client send_end_of_early_data
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client send_client_encrypted_extensions
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client send_client_certificate
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client complete_second_flight
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS 1.3 client done
+2026-10-01 08:05:52.014 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS client finish_client_handshake
+2026-10-01 08:05:52.015 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2823) [C1.1.1.1:2][0x116093c60] Client handshake state: TLS client done
+2026-10-01 08:05:52.015 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_info_handler(2812) [C1.1.1.1:2][0x116093c60] Client handshake done
+2026-10-01 08:05:52.016 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.018 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyAttributes
+2026-10-01 08:05:52.018 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.019 Df Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] nw_protocol_boringssl_signal_connected(895) [C1.1.1.1:2][0x116093c60] TLS connected [server(0) version(0x0304) ciphersuite(TLS_AES_256_GCM_SHA384) group(0x11ec) signature_alg(0x0403) alpn(h2) resumed(0) offered_ticket(0) in_early_data(0) early_data_accepted(0) false_started(0) ocsp_received(0) sct_received(1) connect_time(205ms) flight_time(22ms) rtt(21ms) write_stalls(0) read_stalls(2) pake(0x0000)]
+2026-10-01 08:05:52.019 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_flow_connected [C1.1.1.1 IPv4#10852631:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0)] Output protocol connected (CFNetworkConnection-2953905180)
+2026-10-01 08:05:52.019 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_endpoint_flow_connected_path_change [C1.1.1.1 IPv4#10852631:443 ready socket-flow (satisfied (Path is satisfied), interface: en0)] Connected path is satisfied, not viable
+2026-10-01 08:05:52.020 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] [C1.1.1.1 IPv4#10852631:443 ready socket-flow (satisfied (Path is satisfied), interface: en0)] event: flow:child_finish_connect @0.988s
+2026-10-01 08:05:52.020 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] [C1.1.1 Hostname#76412d1e:443 ready resolver (satisfied (Path is satisfied), interface: en0)] event: flow:child_finish_connect @0.989s
+2026-10-01 08:05:52.021 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] [C1.1 Hostname#76412d1e:443 ready transform (satisfied (Path is satisfied), interface: en0)] event: flow:child_finish_connect @0.989s
+2026-10-01 08:05:52.022 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_endpoint_handler_cancel [C1.1.1.2 IPv4#bc3b9189:443 initial path ((null))]
+2026-10-01 08:05:52.023 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_flow_connected [C1 IPv4#10852631:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0)] Output protocol connected (endpoint_flow)
+2026-10-01 08:05:52.023 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_endpoint_flow_connected_path_change [C1 IPv4#10852631:443 ready parent-flow (satisfied (Path is satisfied), interface: en0)] Connected path is satisfied, child is not viable
+2026-10-01 08:05:52.024 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] [C1 IPv4#10852631:443 ready parent-flow (satisfied (Path is satisfied), interface: en0)] event: flow:finish_connect @0.993s
+2026-10-01 08:05:52.028 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_connection_start_candidate_manager_if_needed_locked [C1] Checking whether to start candidate manager
+2026-10-01 08:05:52.037 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C1] reporting state ready
+2026-10-01 08:05:52.037 I  Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_new_session_handler(1748) [C1.1.1.1:2][0x116093c60] New session available
+2026-10-01 08:05:52.037 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.037 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyAttributes
+2026-10-01 08:05:52.038 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.038 I  Stethoscore Personal[13651:ab35] [com.apple.network:boringssl] boringssl_context_new_session_handler(1748) [C1.1.1.1:2][0x116093c60] New session available
+2026-10-01 08:05:52.038 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.038 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyAttributes
+2026-10-01 08:05:52.038 A  Stethoscore Personal[13651:ab35] (Security) SecKeyCopyPublicBytes
+2026-10-01 08:05:52.039 Df Stethoscore Personal[13651:ab35] [com.apple.xpc:connection] [0x11608ed00] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:52.040 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Connection 1: connected successfully
+2026-10-01 08:05:52.040 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Connection 1: TLS handshake complete
+2026-10-01 08:05:52.041 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Connection 1: ready C(N) E(N)
+2026-10-01 08:05:52.045 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] [C1] event: client:connection_reused @1.013s
+2026-10-01 08:05:52.045 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_endpoint_handler_report_connection_idle [C1 IPv4#10852631:443 ready parent-flow (satisfied (Path is satisfied), interface: en0)] Reporting connection not idle to protocols
+2026-10-01 08:05:52.045 I  Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_flow_passthrough_notify [C1.1.1.1 IPv4#10852631:443 ready socket-flow (satisfied (Path is satisfied), interface: en0)] received notification connection_idle
+2026-10-01 08:05:52.045 Df Stethoscore Personal[13651:ab35] [com.apple.network:connection] nw_protocol_socket_notify [C1.1.1.1:3] nw_protocol_notification_type_connection_idle is false
+2026-10-01 08:05:52.052 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> now using Connection 1
+2026-10-01 08:05:52.053 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> sent request, body S 2
+2026-10-01 08:05:52.134 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> received response, status 200 content U
+2026-10-01 08:05:52.134 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> done using Connection 1
+2026-10-01 08:05:52.134 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] [C1] event: client:connection_idle @1.102s
+2026-10-01 08:05:52.134 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_endpoint_handler_report_connection_idle [C1 IPv4#10852631:443 ready parent-flow (satisfied (Path is satisfied), interface: en0)] Reporting connection idle to protocols
+2026-10-01 08:05:52.134 I  Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_flow_passthrough_notify [C1.1.1.1 IPv4#10852631:443 ready socket-flow (satisfied (Path is satisfied), interface: en0)] received notification connection_idle
+2026-10-01 08:05:52.134 Df Stethoscore Personal[13651:a9a7] [com.apple.network:connection] nw_protocol_socket_notify [C1.1.1.1:3] nw_protocol_notification_type_connection_idle is true
+2026-10-01 08:05:52.134 A  Stethoscore Personal[13651:a9a7] (Security) SecTrustEvaluateIfNecessary
+2026-10-01 08:05:52.134 Df Stethoscore Personal[13651:a9a7] [com.apple.xpc:connection] [0x11608ed00] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-10-01 08:05:52.139 Df Stethoscore Personal[13651:a9a7] [com.apple.xpc:connection] [0x11608ed00] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-10-01 08:05:52.142 Df Stethoscore Personal[13651:a9a7] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> response ended
+2026-10-01 08:05:52.143 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Summary] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> summary for task success {transaction_duration_ms=1809, response_status=200, connection=1, protocol="h2", domain_lookup_duration_ms=57, connect_duration_ms=255, secure_connection_duration_ms=205, private_relay=false, request_start_ms=1719, request_duration_ms=0, response_start_ms=1800, response_duration_ms=9, request_bytes=170, request_throughput_kbps=1487, response_bytes=664, response_throughput_kbps=586, cache_hit=false}
+2026-10-01 08:05:52.143 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Task <85D01413-59BC-4CC7-ACE3-1327A22C78AB>.<1> finished successfully
+2026-10-01 08:05:52.180 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1176108c0
+2026-10-01 08:05:52.180 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:52.483 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:52.483 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:52.861 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1176108c0
+2026-10-01 08:05:52.861 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:53.054 I  Stethoscore Personal[13651:ab34] [com.apple.runningboard:assertion] Acquiring assertion: <RBSAssertionDescriptor| "com.apple.CFNetwork.StorageDB" ID:(null) target:13651>
+2026-10-01 08:05:53.142 Df Stethoscore Personal[13651:ab35] [com.apple.CFNetwork:Default] Garbage collection for alternative services
+2026-10-01 08:05:53.146 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:53.146 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:53.156 Df Stethoscore Personal[13651:a94b] [com.apple.chrono:widget] Creating WidgetCenter connection.
+2026-10-01 08:05:53.162 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11608ed00] activating connection: mach=true listener=false peer=false name=com.apple.chrono.widgetcenterconnection
+2026-10-01 08:05:53.181 Df Stethoscore Personal[13651:ab32] [com.apple.chrono:widget] reloadAllTimelines() - reloaded all timelines
+2026-10-01 08:05:53.501 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:53.501 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:53.880 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11608e440] activating connection: mach=false listener=false peer=false name=com.apple.MTLCompilerService
+2026-10-01 08:05:53.964 Df Stethoscore Personal[13651:a94b] [com.apple.xpc:connection] [0x11608cdc0] activating connection: mach=false listener=false peer=false name=com.apple.MTLCompilerService
+2026-10-01 08:05:53.965 A  Stethoscore Personal[13651:ab35] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.368 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.402 A  Stethoscore Personal[13651:ab35] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.430 A  Stethoscore Personal[13651:a9dd] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.435 F  Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] building pipeline primitive_image-hia3ea2ca8feba4 took 0.554050 seconds
+2026-10-01 08:05:54.435 A  Stethoscore Personal[13651:a94b] (libsystem_trace.dylib) Activity for state dumps
+2026-10-01 08:05:54.435 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.442 A  Stethoscore Personal[13651:ab34] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.460 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.463 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.467 A  Stethoscore Personal[13651:a9dd] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.478 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.484 A  Stethoscore Personal[13651:a9dd] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.489 A  Stethoscore Personal[13651:ab34] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.518 A  Stethoscore Personal[13651:a9dd] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.524 A  Stethoscore Personal[13651:a9dd] (Metal) Metal Compiling Shader
+2026-10-01 08:05:54.590 Sd Stethoscore Personal[13651:0] (21AB2359-DEEC-3444-94FE-B7257E43BE34) IOHIDManager State
+{
+    DispatchQueue = 0;
+    RunLoop = 1;
+    createOptions = 0;
+    isOpen = 0;
+    openOptions = 0;
+}
+2026-10-01 08:05:54.590 Sd Stethoscore Personal[13651:0] (C5DE29B6-3E2C-34DE-AA3C-32346C8FF586) UAUserActivity
+UAUserActivityManager supportsActivityContinuation=YES isEnabled=YES serverPid=0 PROJECT:UserActivity-551
+2026-10-01 08:05:54.745 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:54.745 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:54.868 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:54.869 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:55.229 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:55.229 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:55.662 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:55.662 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:55.978 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:55.979 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:56.229 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:56.229 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:56.343 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:56.343 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:56.780 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:56.780 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:57.071 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:57.071 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:57.180 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:57.180 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:57.377 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:57.377 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:57.681 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:57.681 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:58.029 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:58.029 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:58.263 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:58.263 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:58.663 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:58.663 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:58.779 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:58.779 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:59.014 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:59.014 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:59.308 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:59.308 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:59.429 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:05:59.429 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:05:59.718 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:05:59.718 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.048 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:00.049 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.150 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:00.151 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.166 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:00.166 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:00.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:00.297 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:00.481 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:00.481 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.627 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:00.627 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.746 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:00.746 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:00.997 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:00.998 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:01.382 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:01.383 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:01.490 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:01.490 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:01.493 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:01.494 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:01.510 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:01.540 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] <nw_activity 50:1 [EB75C636-E7F2-4403-9DE4-14A06E8E9B5B] (global parent) (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 17002ms
+2026-10-01 08:06:01.540 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] <nw_activity 50:2 [E8AC9415-1C32-4912-B804-3653BD70EE9E] (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 17001ms
+2026-10-01 08:06:01.540 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [EB75C636-E7F2-4403-9DE4-14A06E8E9B5B] (global parent) (reporting strategy default) complete (reason success)>
+2026-10-01 08:06:01.540 Df Stethoscore Personal[13651:a94b] [com.apple.network:activity] Unset the global parent activity
+2026-10-01 08:06:01.540 Df Stethoscore Personal[13651:a94b] [com.apple.app_launch_measurement:ApplicationLaunch] alm_release_pageins_recording_assertion: releasing pageins recording assertion
+2026-10-01 08:06:01.541 E  Stethoscore Personal[13651:a9b3] [com.apple.app_launch_measurement:General] Failed to send CA Event for app launch measurements for ca_event_type: 1 event_name: com.apple.app_launch_measurement.ExtendedLaunchMetrics
+2026-10-01 08:06:01.545 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:02.162 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:02.162 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:02.445 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:02.445 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:02.557 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:02.557 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:02.841 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:02.841 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:02.946 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:02.946 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:03.429 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:03.429 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:03.666 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:03.666 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:03.852 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:03.852 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:03.961 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:03.961 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:04.236 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:04.236 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:04.599 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:04.600 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:04.727 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:04.974 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:04.974 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:05.296 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:05.296 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:05.513 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:05.514 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:05.763 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:05.764 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:05.764 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:05.764 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:05.779 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:05.779 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:05.796 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:05.946 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:06.222 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:06.222 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:06.329 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:06.329 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:06.745 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:06.746 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:06.848 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:06.848 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:07.107 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:07.107 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:07.563 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:07.563 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:07.870 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:07.871 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:08.188 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:08.188 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:08.397 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:08.397 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:08.587 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:08.588 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:08.696 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:08.699 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:08.927 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:08.927 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:09.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:09.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:09.479 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:09.479 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:09.587 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:09.587 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:09.780 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:09.780 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:09.996 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:09.996 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:10.213 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:10.214 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:10.461 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:10.462 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:10.885 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:10.885 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:11.279 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:11.279 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:11.594 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:11.594 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:11.878 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:11.878 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:11.981 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:11.981 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:12.462 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:12.462 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:12.673 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:12.673 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:12.921 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:12.921 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:13.028 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:13.028 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:13.446 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:13.446 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:13.646 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:13.646 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:13.846 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:13.846 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:14.147 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:14.147 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:14.412 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:14.412 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:14.624 Df Stethoscore Personal[13651:a9dc] [com.apple.xpc:connection] [0x11608d180] activating connection: mach=true listener=false peer=false name=com.apple.metrickit.xpc
+2026-10-01 08:06:14.665 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:14.665 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:14.766 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:14.766 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:14.777 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:14.778 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:14.795 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:14.947 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:15.265 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:15.266 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:15.389 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:16.023 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:16.024 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:16.070 Df Stethoscore Personal[13651:a9dc] [com.apple.xpc:connection] [0x11608d180] failed to do a bootstrap look-up: xpc_error=[3: No such process]
+2026-10-01 08:06:16.073 Df Stethoscore Personal[13651:a9dc] [com.apple.xpc:connection] [0x11608d180] invalidated after a failed init
+2026-10-01 08:06:16.128 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:16.128 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:16.358 Df Stethoscore Personal[13651:a9b1] [com.apple.TextRecognition:General] CRImageReader.init(options:): options={"CRImageReaderCoreMode":true,"CRImageReaderDisableLanguageCorrection":false,"CRImageReaderDisableScriptDetection":true,"CRImageReaderKeepResourcesLoaded":false,"CRImageReaderLanguageKey":["ar-SA","ars-SA","en-US"],"CRImageReaderNumTopStringCandidates":10,"CRImageReaderRevisionKey":3,"CRImageReaderSkipVerticalText":true,"CRImageReaderTextDetector":"CRImageReaderTextDetectorCR","CRImageReaderTextRecognizer":"CRImageReaderTextRecognizerCR"}
+2026-10-01 08:06:16.412 Df Stethoscore Personal[13651:a9b1] [com.apple.TextRecognition:Recognition] Loading model: cr_tr_model_arabic_v3.mlmodelc.bundle
+2026-10-01 08:06:16.418 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] VM detected: Adjusted requested context from (eng=5 dev=-1) to (eng=0 dev=-1)
+2026-10-01 08:06:16.440 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] Creating context 4497612672 eng=0 dev=-1
+2026-10-01 08:06:16.441 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] Creating plan 4676727296
+2026-10-01 08:06:16.442 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] Creating plan 4676727296
+2026-10-01 08:06:16.443 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] espresso_plan_add_network plan=4676727296 path=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/TextRecognition.framework/cr_tr_model_arabic_v3.mlmodelc.bundle/model.espresso.net cp=65552
+2026-10-01 08:06:16.444 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] VM detected: Forcing compute path 65568
+2026-10-01 08:06:16.476 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:16.477 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:16.528 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] Loaded network: '/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/TextRecognition.framework/cr_tr_model_arabic_v3.mlmodelc.bundle/model.espresso.net' pf=100 cp=0
+2026-10-01 08:06:16.530 I  Stethoscore Personal[13651:a9b1] [com.apple.espresso:espresso] espresso_plan_add_network plan=4676727296 path=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/TextRecognition.framework/cr_tr_model_arabic_v3.mlmodelc.bundle/model.espresso.net cp=65552 Completed
+2026-10-01 08:06:16.549 Df Stethoscore Personal[13651:a9b1] (CoreVideo) Pixel format registry initialized. Constant classes enabled.
+2026-10-01 08:06:16.618 I  Stethoscore Personal[13651:a9b1] [com.apple.coreimage:api] CIRenderDestination will use Rec. 601 YCC Matrix because the CVPixelBuffer was not tagged with a kCVImageBufferYCbCrMatrixKey.
+2026-10-01 08:06:16.701 A  Stethoscore Personal[13651:a9b3] (Metal) Metal Compiling Shader
+2026-10-01 08:06:16.782 A  Stethoscore Personal[13651:ab31] (Metal) Metal Compiling Shader
+2026-10-01 08:06:16.899 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:16.900 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:16.990 Df Stethoscore Personal[13651:a9b1] [com.apple.TextRecognition:General] results(for:roi:options:withProgressHandler:): image={w:1800,h:1280} roi={x:0.000000,y:0.000000,w:1.000000,h:1.000000} options={"CRImageReaderMinimumTextHeight":0}
+2026-10-01 08:06:17.187 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:17.187 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:17.241 Df Stethoscore Personal[13651:a9b2] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/runner/Library/Developer/CoreSimulator/Devices/22452A91-4697-4369-8812-53ADB77EB73B/data/Containers/Data/Application/6DDBE881-1E14-49B8-9C8C-A18F22367129/Library/Application Support/RedPenSources
+2026-10-01 08:06:17.565 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:17.565 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:17.687 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:17.687 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:17.796 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:17.796 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:17.811 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1175eae40
+2026-10-01 08:06:17.811 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:18.177 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:18.177 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:18.280 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:18.280 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:18.645 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:18.646 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:19.164 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:19.165 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:19.546 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:19.546 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:19.846 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:19.846 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:20.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:20.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:20.300 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:20.300 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:20.577 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:20.577 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:21.130 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:21.130 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:21.247 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:21.248 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:21.593 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:21.593 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:21.872 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:21.872 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:22.195 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:22.196 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:22.309 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:22.309 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:22.546 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:22.546 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:22.730 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:22.730 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:23.080 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:23.080 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:23.346 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:23.347 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:23.713 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:23.713 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:24.232 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:24.232 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:24.666 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:24.666 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:24.980 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:24.980 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:25.297 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:25.297 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:25.658 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:25.658 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:25.762 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:25.762 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:25.987 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:25.988 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:26.245 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:26.245 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:26.478 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:26.478 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:26.785 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:26.785 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:27.028 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:27.028 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:27.311 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:27.312 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:27.612 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:27.613 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:27.896 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:27.896 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:28.197 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:28.197 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:28.466 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:28.466 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:28.584 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:28.584 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:28.828 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:28.828 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:29.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:29.180 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:29.480 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:29.480 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:29.592 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:29.593 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:29.913 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:29.913 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:30.044 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:30.045 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:30.446 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:30.446 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:30.565 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:30.565 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:30.946 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:30.947 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:31.063 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:31.063 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:31.307 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:31.308 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:31.630 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:31.631 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:31.734 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:31.735 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:32.065 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1175eae40
+2026-10-01 08:06:32.065 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:32.389 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:32.389 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:32.612 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:32.612 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:32.932 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:32.932 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:33.094 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:33.095 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:33.397 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:33.398 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:33.647 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:33.649 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:33.764 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:33.765 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:33.971 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:33.971 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:34.302 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:34.303 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:34.413 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:34.414 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:34.730 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:34.730 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:34.832 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:34.832 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:35.022 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:35.022 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:35.183 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:35.184 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:35.514 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:35.514 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:35.549 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:35.549 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:35.664 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:35.972 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:35.973 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:36.081 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:36.081 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:36.291 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:36.291 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:36.596 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:36.597 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:36.961 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:36.961 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:37.063 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:37.064 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:37.358 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:37.358 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:37.528 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:37.528 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:37.861 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:37.861 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:37.984 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac780
+2026-10-01 08:06:38.280 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:38.280 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:38.545 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:38.546 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:38.880 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:38.881 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:39.279 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:39.279 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:39.597 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:39.597 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:39.851 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:39.851 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:40.032 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:40.032 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:40.195 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:40.195 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:40.445 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:40.445 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:40.798 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:40.798 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.095 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:41.096 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.199 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:41.199 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.404 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:41.404 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.567 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:41.567 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.684 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:41.685 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:41.929 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:41.929 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:42.081 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:42.081 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:42.196 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:42.196 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:42.398 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:42.398 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:42.613 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:42.613 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:43.014 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:43.015 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:43.129 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:43.130 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:43.363 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:43.363 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:43.552 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:43.553 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:44.064 Df Stethoscore Personal[13651:a9b2] [com.apple.TextRecognition:Recognition] Loading model: cr_orientation_model_v1.mlmodelc.bundle
+2026-10-01 08:06:44.065 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] VM detected: Adjusted requested context from (eng=5 dev=-1) to (eng=0 dev=-1)
+2026-10-01 08:06:44.065 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] Creating context 4666574592 eng=0 dev=-1
+2026-10-01 08:06:44.066 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] Creating plan 4778972160
+2026-10-01 08:06:44.066 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] Creating plan 4778972160
+2026-10-01 08:06:44.104 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] espresso_plan_add_network plan=4778972160 path=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/TextRecognition.framework/cr_orientation_model_v1.mlmodelc.bundle/model.espresso.net cp=65552
+2026-10-01 08:06:44.104 I  Stethoscore Personal[13651:a9b2] [com.apple.espresso:espresso] VM detected: Forcing compute path 65568
+2026-10-01 08:06:44.211 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:44.211 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:44.497 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:44.498 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:44.729 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:44.730 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:44.849 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:44.849 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:45.057 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:45.057 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:45.163 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:45.163 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:45.164 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:45.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1177ac640
+2026-10-01 08:06:45.179 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:45.196 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1177ac640
+2026-10-01 08:06:45.544 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:45.544 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:45.659 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:45.660 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:45.922 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:45.922 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:46.030 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:46.030 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:46.397 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:46.397 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:46.410 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:46.411 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:46.431 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x1177ac640
+2026-10-01 08:06:46.432 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: stale image queue, 0x117610dc0
+2026-10-01 08:06:46.746 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:46.747 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.043 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:47.043 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.164 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:47.164 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.341 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:47.341 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.495 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:47.495 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.699 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x117610dc0
+2026-10-01 08:06:47.699 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame
+2026-10-01 08:06:47.812 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBLayer: full image queue, 0x1177ac640
+2026-10-01 08:06:47.812 Df Stethoscore Personal[13651:a94b] [com.apple.renderbox:error] RBDrawable: no surface, dropping frame

@@ -1,0 +1,3 @@
+Features/Narrate/NarrateReviewView.swift:158:25: warning: getter for property 'body' took 367ms to type-check (limit: 300ms)
+Features/Notes/Graph3DView.swift:121:25: warning: getter for property 'body' took 333ms to type-check (limit: 300ms)
+Features/Book/BookReaderView.swift:117:18: warning: instance method 'blockView' took 302ms to type-check (limit: 300ms)
