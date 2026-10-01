@@ -1,4 +1,5 @@
 import UIKit
+import Vision
 
 /// Printing a set as a flashcard deck.
 ///
@@ -27,7 +28,7 @@ enum DeckPDF {
         var cards = DeckBuilder.cards(for: set)
         guard !cards.isEmpty else { return nil }
 
-        let pictures = images(in: set)
+        let pictures = images(in: set, arabic: arabicPictures(cards))
         place(&cards, using: pictures)
 
         let palette = DeckPalette.of(set.kind)
@@ -79,18 +80,35 @@ enum DeckPDF {
     /// Decodes the set's pictures and reads whatever text is in them.
     ///
     /// Reading them is what makes the spoiler decision real rather than a
-    /// guess. It is slow - a second or so per picture - but this happens once,
+    /// guess. It takes a moment per picture, and longer for one read in
+    /// Arabic, but this happens once,
     /// when somebody deliberately exports, and it is the difference between a
     /// deck you can test yourself with and one that shows you the answers.
-    static func images(in set: StudySet) -> [Int: Picture] {
+    ///
+    /// `arabic` names the pictures worth the slower read that also sees
+    /// Arabic; every other picture gets the quick English-only one.
+    static func images(in set: StudySet, arabic: Set<Int> = []) -> [Int: Picture] {
         var out: [Int: Picture] = [:]
         for index in set.images.indices {
             autoreleasepool {
                 guard let image = decode(set.images[index]) else { return }
-                out[index] = Picture(image: image, text: readText(image))
+                out[index] = Picture(image: image,
+                                     text: readText(image, arabic: arabic.contains(index)))
             }
         }
         return out
+    }
+
+    /// The pictures whose card has an Arabic word in its answer that the
+    /// question does not - the only ones where Arabic on the picture could
+    /// give the answer away.
+    static func arabicPictures(_ cards: [DeckCard]) -> Set<Int> {
+        Set(cards.compactMap { card in
+            guard let index = card.imageIndex,
+                  ImageSpoiler.needsArabic(question: plain(card.question),
+                                           answer: plain(card.answer)) else { return nil }
+            return index
+        })
     }
 
     static func decode(_ encoded: String) -> UIImage? {
@@ -104,15 +122,24 @@ enum DeckPDF {
         return UIImage(data: data)
     }
 
-    /// Read through RedPenOCR like every other picture in the app, so an
-    /// Arabic label is read at all: Vision's .fast level and its default
-    /// languages are English-only, and a card whose Arabic answer is printed
-    /// on its picture was being placed as if the picture gave nothing away.
-    /// Only the words matter here (ImageSpoiler compares sets of them), so the
-    /// line order RedPenOCR restores changes nothing for the placement.
-    static func readText(_ image: UIImage) -> String {
+    /// One Vision request, words only. Language correction stays off so a
+    /// lead label such as "aVF" or "V1" is read as printed, and no word boxes
+    /// are asked for because only the words are compared (ImageSpoiler takes
+    /// sets of them, so line order does not matter either).
+    ///
+    /// The quick .fast read is English-only. A picture whose card could be
+    /// spoiled by an Arabic word gets an .accurate read in RedPenOCR's
+    /// languages instead, which is the only level at which Vision reads Arabic.
+    static func readText(_ image: UIImage, arabic: Bool = false) -> String {
         guard let cg = image.cgImage else { return "" }
-        return (try? RedPenOCR.readText(cg)) ?? ""
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = arabic ? .accurate : .fast
+        request.usesLanguageCorrection = false
+        if arabic { request.recognitionLanguages = RedPenOCR.languages }
+        let handler = VNImageRequestHandler(cgImage: cg, options: [:])
+        guard (try? handler.perform([request])) != nil else { return "" }
+        let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return lines.joined(separator: " ")
     }
 
     /// Settles which page each picture belongs on.
