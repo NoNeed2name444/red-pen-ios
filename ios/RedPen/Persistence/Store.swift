@@ -97,6 +97,17 @@ final class Store: ObservableObject {
     /// read, and a sweep of the files and pictures "nothing refers to" would
     /// delete every one of them (SourceFiles.sweepUnused, SyncEngine).
     private(set) var readWhole = true
+    /// Files that are on disk but could not be read when the store loaded: a
+    /// launch before the first unlock after a restart (iOS prewarms the app)
+    /// finds them still protected. Nothing of them is known, so nothing is
+    /// written over them until `reloadIfUnread()` has read them.
+    private(set) var unreadable: Set<URL> = []
+    /// True while the last write of a changed file failed (the disk is full,
+    /// the file is protected): the change stays dirty, to be written again,
+    /// and `flushed()` says so, so sync records nothing as safely here.
+    private(set) var lastWriteFailed = false
+    private var writesInFlight = 0
+    private var flushWaiters: [CheckedContinuation<Void, Never>] = []
     /// The debounced write waiting to run, if any.
     private var pendingWrite: Task<Void, Never>?
     private var lifecycleObservers: [NSObjectProtocol] = []
@@ -133,6 +144,7 @@ final class Store: ObservableObject {
     func load() {
         var libraryData: Data?
         var rewrite = false
+        unreadable = []
         if let data = try? Data(contentsOf: fileURL) {
             libraryData = data
             if let file = try? JSONDecoder.redPen.decode(LibraryFile.self, from: data) {
@@ -173,6 +185,13 @@ final class Store: ObservableObject {
                 setAside(fileURL, as: "library-unreadable", once: true)
                 readWhole = false
             }
+        } else if StoreFiles.isPresent(fileURL) {
+            // on disk, but not readable now (protected until the first unlock
+            // after a restart, which a prewarmed launch runs before): not an
+            // empty library, and nothing may be written over it - the write
+            // path holds the library back until reloadIfUnread has read it
+            readWhole = false
+            unreadable.insert(fileURL)
         }
         var migrated = false
         if let data = try? Data(contentsOf: studyURL) {
@@ -181,6 +200,8 @@ final class Store: ObservableObject {
             } else {
                 setAside(studyURL, as: "progress-unreadable", once: true)
             }
+        } else if StoreFiles.isPresent(studyURL) {
+            unreadable.insert(studyURL)
         } else if let libraryData,
                   let legacy = try? JSONDecoder.redPen.decode(StudyFile.self, from: libraryData) {
             // written before the two were split: the history is still inside
@@ -268,10 +289,46 @@ final class Store: ObservableObject {
     /// Writes anything outstanding and returns once it is on disk, without
     /// holding the main thread while it is written - for a caller about to
     /// throw away the only other copy (a cloud job forgotten on the server).
-    func flushed() async {
+    ///
+    /// False when it is not on disk: the write failed, or a file could not be
+    /// read at launch and nothing is written over it. Then the other copy
+    /// must be kept, and sync must not record the change as safely here.
+    @discardableResult
+    func flushed() async -> Bool {
         flush()
-        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
-            Self.writeQueue.async { done.resume() }
+        if writesInFlight > 0 {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                flushWaiters.append(done)
+            }
+        }
+        return !lastWriteFailed && !libraryDirty && !studyDirty
+    }
+
+    /// Reads again a file that could not be read when the store loaded, once
+    /// the app is in front (the device is unlocked by then) - only while
+    /// nothing has changed in memory, which a reload would throw away.
+    func reloadIfUnread() {
+        guard !unreadable.isEmpty, !libraryDirty, !studyDirty, writesInFlight == 0 else { return }
+        pendingWrite?.cancel()
+        pendingWrite = nil
+        readWhole = true
+        load()
+    }
+
+    /// Back on the main actor after a write: a file that did not land is
+    /// dirty again, and whoever waits in `flushed()` is let go.
+    private func writeFinished(libraryFailed: Bool, studyFailed: Bool) {
+        writesInFlight -= 1
+        if libraryFailed { libraryDirty = true }
+        if studyFailed { studyDirty = true }
+        lastWriteFailed = libraryFailed || studyFailed
+        if lastWriteFailed {
+            Diagnostics.record(.error, area: .app, message: "The library could not be written")
+        }
+        if writesInFlight == 0 {
+            let waiting = flushWaiters
+            flushWaiters = []
+            for done in waiting { done.resume() }
         }
     }
 
@@ -288,14 +345,16 @@ final class Store: ObservableObject {
     /// Takes a copy of the changed parts here (cheap: they are values) and
     /// encodes and writes them on the write queue.
     private func write() {
-        guard libraryDirty || studyDirty else { return }
+        let writeLibrary: Bool = libraryDirty && !unreadable.contains(fileURL)
+        let writeStudy: Bool = studyDirty && !unreadable.contains(studyURL)
+        guard writeLibrary || writeStudy else { return }
         var libraryFile: LibraryFile?
         var studyFile: StudyFile?
-        if libraryDirty {
+        if writeLibrary {
             libraryFile = LibraryFile(library: library, folders: folders, tombstones: tombstones,
                                       unread: unreadSets.isEmpty ? nil : unreadSets)
         }
-        if studyDirty {
+        if writeStudy {
             var study = StudyFile()
             study.quizProgress = quizProgress
             study.osceProgress = osceProgress
@@ -307,20 +366,27 @@ final class Store: ObservableObject {
             study.ruleSheet = ruleSheet
             studyFile = study
         }
-        libraryDirty = false
-        studyDirty = false
+        if writeLibrary { libraryDirty = false }
+        if writeStudy { studyDirty = false }
+        writesInFlight += 1
         let job = WriteJob(library: libraryFile, libraryURL: fileURL, study: studyFile, studyURL: studyURL)
         #if canImport(UIKit)
         // a write started just before the app is backgrounded still finishes
         let taskID = UIApplication.shared.beginBackgroundTask(withName: "Saving library", expirationHandler: nil)
-        Self.writeQueue.async {
-            job.run()
+        Self.writeQueue.async { [weak self] in
+            let failed = job.run()
             Task { @MainActor in
+                self?.writeFinished(libraryFailed: failed.library, studyFailed: failed.study)
                 if taskID != .invalid { UIApplication.shared.endBackgroundTask(taskID) }
             }
         }
         #else
-        Self.writeQueue.async { job.run() }
+        Self.writeQueue.async { [weak self] in
+            let failed = job.run()
+            Task { @MainActor in
+                self?.writeFinished(libraryFailed: failed.library, studyFailed: failed.study)
+            }
+        }
         #endif
     }
 
@@ -337,6 +403,13 @@ final class Store: ObservableObject {
             }
             lifecycleObservers.append(token)
         }
+        // a file still protected at a prewarmed launch is readable once the
+        // app is in front, so it is read then, before anything changes
+        let active = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                                            object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reloadIfUnread() }
+        }
+        lifecycleObservers.append(active)
         #endif
     }
 
@@ -770,15 +843,27 @@ private struct WriteJob: @unchecked Sendable {
     var study: StudyFile?
     var studyURL: URL
 
-    func run() {
+    /// Which of the files did not land: encoding failed, or the write did
+    /// (the disk is full, the file is protected).
+    func run() -> (library: Bool, study: Bool) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        if let library, let data = try? encoder.encode(library) {
-            try? data.write(to: libraryURL, options: .atomic)
+        var failed = (library: false, study: false)
+        if let library {
+            if let data = try? encoder.encode(library) {
+                failed.library = StoreFiles.write(data, to: libraryURL) != nil
+            } else {
+                failed.library = true
+            }
         }
-        if let study, let data = try? encoder.encode(study) {
-            try? data.write(to: studyURL, options: .atomic)
+        if let study {
+            if let data = try? encoder.encode(study) {
+                failed.study = StoreFiles.write(data, to: studyURL) != nil
+            } else {
+                failed.study = true
+            }
         }
+        return failed
     }
 }
 

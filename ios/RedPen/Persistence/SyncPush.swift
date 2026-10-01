@@ -58,7 +58,7 @@ extension SyncEngine {
                 try stillCurrent(run)
                 record(result, sent: batch, stamps: outgoing.stamps)
                 conflicts += result.conflicts
-                await store.flushed()
+                guard await store.flushed() else { throw LibraryNotSaved() }
                 await bookmarks.commit()
             }
             guard !conflicts.isEmpty else { break }

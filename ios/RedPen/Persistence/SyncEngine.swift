@@ -181,8 +181,17 @@ final class SyncEngine: ObservableObject {
     /// Whatever the run learned, kept - the library first, then the bookmarks
     /// that describe it.
     private func saveProgress() async {
-        await store.flushed()
+        // bookmarks only describe a library that reached the disk
+        guard await store.flushed() else { return }
         await bookmarks.commit()
+    }
+
+    /// The library did not reach the disk (the write failed, or a file could
+    /// not be read at launch): the run stops before any bookmark claims it did.
+    struct LibraryNotSaved: LocalizedError {
+        var errorDescription: String? {
+            "Your library couldn't be saved on this device, so sync stopped before anything was lost. Free up some space and it will try again."
+        }
     }
 
     func stillCurrent(_ run: Run) throws {
@@ -362,7 +371,7 @@ final class SyncEngine: ObservableObject {
             // were seen. The other way round, an app killed in between wakes
             // with a cursor past documents its library never got - and a kept
             // conflict copy lost while its bookmark says we agreed.
-            await store.flushed()
+            guard await store.flushed() else { throw LibraryNotSaved() }
             try stillCurrent(run)
             bookmarks.update { $0.cursor = max($0.cursor, changes.cursor) }
             await bookmarks.commit()

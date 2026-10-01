@@ -94,6 +94,9 @@ jobs:
                 $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
           suite ingest IngestTests.swift $S/SourceText.swift
           suite narrate NarrateTests.swift $S/NarratePlan.swift
+          # a library file that is there but cannot be read (a launch before the
+          # first unlock) is not empty, and a write that did not land is not a save
+          suite storefiles StoreFileTests.swift $S/StoreFiles.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

@@ -287,7 +287,8 @@ enum SampleData {
     @MainActor
     static func seedPersonalBuild(into store: Store) {
         let key = "sampleLibrary.v3"
-        guard PersonalBuild.isOn,
+        // not over a library that could not be read at this launch (Store)
+        guard PersonalBuild.isOn, store.unreadable.isEmpty,
               !UserDefaults.standard.bool(forKey: key) else { return }
         UserDefaults.standard.set(true, forKey: key)
         let folder = StudyFolder(name: "Examples - try every mode")
