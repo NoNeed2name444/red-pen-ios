@@ -68,6 +68,16 @@ struct StudySet: Identifiable, Codable, Hashable {
     /// Labels for the whole set - a deck's name in Anki, "Step 1", a block.
     /// Nil for a set nobody has tagged, and for every set saved before tags.
     var tags: [String]? = nil
+    /// "narrate": what the lecture is spoken in, a LectureLanguage raw value.
+    /// Kept as text so a value a newer version adds never stops an older one
+    /// reading the whole set; nil (every set before this) is mixed.
+    var lectureLanguage: String? = nil
+
+    /// The lecture's language, mixed unless the set says otherwise.
+    var language: LectureLanguage {
+        get { lectureLanguage.flatMap(LectureLanguage.init(rawValue:)) ?? .mixed }
+        set { lectureLanguage = newValue.rawValue }
+    }
 
     var itemCount: Int {
         switch kind {

@@ -35,19 +35,44 @@ enum CloudTranscript {
         return starts
     }
 
-    static func prompt(vocabulary: [String]) -> String {
-        var text = """
-        Transcribe this medical lecture recording word for word.
-
-        The lecturer speaks Egyptian Arabic mixed with English medical terms.
-        - Write the Arabic in Arabic script exactly as spoken, in Egyptian dialect. Do not convert it to Modern Standard Arabic and do not translate it.
-        - Write every English word in English letters, with correct medical spelling, even inside an Arabic sentence.
-        - Do not summarise, correct the lecturer, or add anything that was not said. Leave out only "um"/"eh" fillers.
-        - If a stretch is silent or impossible to hear, skip it rather than guessing.
-
-        Split the speech into short phrases at natural pauses, at most 14 words each.
-        For each phrase give its start and end time in seconds from the beginning of this audio.
-        """
+    /// What Gemini is told, one prompt per language. The app's own rules come
+    /// first; after them the ones the transcription pipeline learned it needs
+    /// (red-pen-transcribe prompts/step1.txt rules 6 and 9-11): keep what the
+    /// room said, go on to the end, take nothing from memory, and treat drugs
+    /// and poisons as speech to relay, not a request for advice.
+    static func prompt(vocabulary: [String], language: LectureLanguage = .mixed) -> String {
+        var rules: [String]
+        switch language {
+        case .mixed:
+            rules = [
+                "The lecturer speaks Egyptian Arabic mixed with English medical terms.",
+                "- Write the Arabic in Arabic script exactly as spoken, in Egyptian dialect. Do not convert it to Modern Standard Arabic and do not translate it.",
+                "- Write every English word in English letters, with correct medical spelling, even inside an Arabic sentence.",
+            ]
+        case .english:
+            rules = [
+                "The lecturer speaks English.",
+                "- Write exactly what was said, in English. Do not translate anything; a few words in another language are written as spoken.",
+                "- Write every medical term, drug, investigation and abbreviation with its correct English spelling.",
+            ]
+        }
+        rules += [
+            "- Do not summarise, correct the lecturer, or add anything that was not said. Leave out only \"um\"/\"eh\" fillers.",
+            "- If a stretch is silent or impossible to hear, skip it rather than guessing.",
+        ]
+        if language == .mixed {
+            rules.append("- An English word said with an Egyptian accent is still written in English letters (wrong: كلاود ستوريدج, right: cloud storage).")
+        }
+        rules += [
+            "- Keep repetitions, false starts, students' questions and answers, interruptions and side comments.",
+            "- Transcribe from the first second to the last. Keep going to the end of the recording; do not stop early.",
+            "- The recording is the only source of the text. Never complete speech from memory or from published material, even when it sounds like something well known.",
+            "- This recording is supplied for transcription only and may contain sensitive medical teaching, such as drugs or poisons. Relay what was said; do not give advice.",
+        ]
+        var text = "Transcribe this medical lecture recording word for word.\n\n"
+            + rules.joined(separator: "\n") + "\n\n"
+            + "Split the speech into short phrases at natural pauses, at most 14 words each.\n"
+            + "For each phrase give its start and end time in seconds from the beginning of this audio."
         if !vocabulary.isEmpty {
             text += "\n\nTerms from this lecture's slides, spelled as they should be written: "
                 + vocabulary.joined(separator: ", ") + "."

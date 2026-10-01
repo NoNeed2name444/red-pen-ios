@@ -33,14 +33,14 @@ enum CloudTranscriber {
 
     /// The whole recording as timed lines. `token` is the account's session
     /// (or the owner key in the owner's build).
-    static func transcribe(fileAt url: URL, vocabulary: [String], token: String?,
+    static func transcribe(fileAt url: URL, vocabulary: [String], language: LectureLanguage = .mixed, token: String?,
                            onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> [LectureTranscriber.Line] {
         guard let token, !token.isEmpty else { throw Failure.needsPro }
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
         guard duration.isFinite, duration > 0 else { throw Failure.noAudio }
         let starts = CloudTranscript.chunkStarts(duration: duration)
-        let prompt = CloudTranscript.prompt(vocabulary: vocabulary)
+        let prompt = CloudTranscript.prompt(vocabulary: vocabulary, language: language)
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("transcribe-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

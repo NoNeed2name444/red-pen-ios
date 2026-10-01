@@ -26,6 +26,19 @@ struct NarrateSegment: Identifiable, Codable, Hashable {
     var isTimed: Bool { start != nil && end != nil }
 }
 
+/// What a recorded lecture is spoken in, which decides what Gemini is told to
+/// expect and which on-device recogniser listens. Mixed is the default: these
+/// are Egyptian lectures that carry English terms.
+enum LectureLanguage: String, Codable, CaseIterable {
+    /// Egyptian Arabic with English medical terms inside the same sentence.
+    case mixed
+    /// English throughout.
+    case english
+
+    /// The on-device recogniser for it.
+    var locale: String { self == .english ? "en-US" : "ar-EG" }
+}
+
 /// One word's place in the recording, as the recogniser reported it.
 struct SpokenTiming: Codable, Hashable {
     var text: String

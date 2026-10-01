@@ -78,5 +78,32 @@ let prompt = CloudTranscript.prompt(vocabulary: ["hydroxychloroquine"])
 check("the prompt carries the slide terms", prompt.contains("hydroxychloroquine"))
 check("and asks for Egyptian Arabic in Arabic script, English in English",
       prompt.contains("Egyptian") && prompt.contains("English letters"))
+check("a mixed lecture is the default", prompt == CloudTranscript.prompt(vocabulary: ["hydroxychloroquine"], language: .mixed))
+check("and shows the accent example only there", prompt.contains("cloud storage") && prompt.contains("كلاود"))
+
+// the pipeline's rules, after the app's own
+for (name, said) in [("mixed", prompt), ("English", CloudTranscript.prompt(vocabulary: [], language: .english))] {
+    check("\(name): goes on to the end", said.contains("do not stop early") && said.contains("first second to the last"))
+    check("\(name): the recording is the only source", said.contains("only source") && said.contains("from memory"))
+    check("\(name): drugs and poisons are relayed, not advised on",
+          said.contains("transcription only") && said.contains("poisons") && said.contains("do not give advice"))
+    check("\(name): students' questions and repetitions are kept",
+          said.contains("students' questions") && said.contains("repetitions"))
+    let own = said.range(of: "Leave out only")?.lowerBound, added = said.range(of: "do not stop early")?.lowerBound
+    check("\(name): the app's own rules come first", own != nil && added != nil && own! < added!)
+    check("\(name): still asks for timed phrases", said.contains("start and end time"))
+}
+
+// an English lecture
+let english = CloudTranscript.prompt(vocabulary: ["hydroxychloroquine"], language: .english)
+check("an English lecture is not told to expect Egyptian Arabic",
+      !english.contains("Egyptian") && !english.contains("Arabic script") && english.contains("speaks English"))
+check("and gets no Arabic example", !english.unicodeScalars.contains { (0x0600...0x06FF).contains($0.value) })
+check("and still asks for correct English spelling of every term", english.contains("correct English spelling"))
+check("and still carries the slide terms", english.contains("hydroxychloroquine"))
+check("one prompt per language", CloudTranscript.prompt(vocabulary: [], language: .mixed)
+      != CloudTranscript.prompt(vocabulary: [], language: .english))
+check("an English lecture is heard by the English recogniser",
+      LectureLanguage.english.locale == "en-US" && LectureLanguage.mixed.locale == "ar-EG")
 
 if failures.isEmpty { print("all passed") } else { print("\(failures.count) failed"); exit(1) }

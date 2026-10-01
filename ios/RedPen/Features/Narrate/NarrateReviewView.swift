@@ -70,6 +70,9 @@ struct NarrateReviewView: View {
     @State private var importing = false
     @State private var choosingEngine = false
     @State private var engine: LectureImporter.Engine = .cloud
+    /// What the lecture is spoken in, chosen with the engine and saved on the
+    /// set with the transcript it produced.
+    @State private var language: LectureLanguage = .mixed
 
     /// The word being said in the current line, from whichever is playing:
     /// the recording, or the voice reading the lecture.
@@ -144,12 +147,14 @@ struct NarrateReviewView: View {
             // which is the shape LectureImporter.attach takes
             .fileImporter(isPresented: $importing, allowedContentTypes: [.audio],
                           allowsMultipleSelection: false) { picked in
-                Task { await importer.attach(picked, to: studySet, learned: learned, engine: engine) }
+                Task { await importer.attach(picked, to: studySet, learned: learned, engine: engine, language: language) }
             }
             .confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,
                                 titleVisibility: .visible) {
-                Button("Gemini (Pro) \u{2014} best for Arabic + English") { engine = .cloud; importing = true }
-                Button("This phone only \u{2014} offline") { engine = .device; importing = true }
+                Button("Gemini (Pro) \u{2014} Arabic + English lecture") { choose(.cloud, .mixed) }
+                Button("Gemini (Pro) \u{2014} English-only lecture") { choose(.cloud, .english) }
+                Button("This phone only \u{2014} Arabic + English, offline") { choose(.device, .mixed) }
+                Button("This phone only \u{2014} English, offline") { choose(.device, .english) }
             } message: {
                 Text("Gemini is part of Pro and runs on Google's servers: the audio goes through \(Brand.name) to Google to transcribe, and while \(Brand.name) uses Google's free service Google may use it to improve its models. Only send lectures you're allowed to record. On this phone, nothing leaves the device, but mixed Arabic and English comes out far less accurate.")
             }
@@ -232,12 +237,20 @@ struct NarrateReviewView: View {
         let current = store.library.first { $0.id == studySet.id } ?? studySet
         var updated = current
         updated.narrateSegments = made
+        updated.language = language
         store.update(updated, base: transcriptBase(current))
         savedSegments = made
         voice.stop()
         if let recording = LectureAudio.existing(for: studySet.id) { player.load(recording, title: title) }
         relayout()
         importer.produced = nil
+    }
+
+    /// The engine and the lecture's language, then the file picker.
+    private func choose(_ how: LectureImporter.Engine, _ spoken: LectureLanguage) {
+        engine = how
+        language = spoken
+        importing = true
     }
 
     // MARK: fixing a word

@@ -28,15 +28,22 @@ final class LectureImporter: ObservableObject {
     /// Who does the listening.
     enum Engine { case cloud, device }
 
+    /// What the lecture is spoken in: what Gemini is told to expect, and
+    /// which recogniser listens on the phone.
+    var language: LectureLanguage = .mixed
+
     /// Arabic first: these lectures are Egyptian Arabic carrying English terms,
     /// and an English recogniser turns the Arabic into noise. If the phone has
     /// no offline Arabic it is worth saying so rather than quietly producing a
-    /// transcript of the English words only.
-    var locale: Locale = Locale(identifier: "ar-EG")
+    /// transcript of the English words only. An English lecture gets the
+    /// English recogniser.
+    var locale: Locale { Locale(identifier: language.locale) }
 
     func attach(_ picked: Result<[URL], Error>, to set: StudySet,
-                learned: PronunciationLibrary, engine: Engine = .cloud) async {
+                learned: PronunciationLibrary, engine: Engine = .cloud,
+                language: LectureLanguage = .mixed) async {
         trouble = nil
+        self.language = language
         switch picked {
         case .failure(let error):
             trouble = error.localizedDescription
@@ -74,7 +81,7 @@ final class LectureImporter: ObservableObject {
                 defer { inCloud = false }
                 do {
                     lines = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
-                                                                  token: LocalLLMService.shared.cloudToken) { part, parts in
+                                                                  language: language, token: LocalLLMService.shared.cloudToken) { part, parts in
                         Task { @MainActor [weak self] in
                             self?.working = parts > 1 ? "Gemini is transcribing part \(part) of \(parts)"
                                                       : "Gemini is transcribing"
