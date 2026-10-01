@@ -157,10 +157,17 @@ enum NoteMarkdown {
         var rest: Substring = Substring(line)
         while let open = rest.range(of: "[["), let close = rest.range(of: "]]", range: open.upperBound..<rest.endIndex) {
             out += rest[rest.startIndex..<open.lowerBound]
-            let title: String = String(rest[open.upperBound..<close.lowerBound])
+            // [[Title|shown as]]: the page is the part before the bar, the
+            // words after it are what the reader sees (NoteStore reads the
+            // links the same way); tapping goes to the page, not to a new
+            // page named "Title|shown as"
+            let inner: String = String(rest[open.upperBound..<close.lowerBound])
+            let parts = inner.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
+            let title: String = (parts.first.map(String.init) ?? inner).trimmingCharacters(in: .whitespaces)
+            let shown: String = parts.count > 1 ? String(parts[1]).trimmingCharacters(in: .whitespaces) : title
             let allowed: CharacterSet = .urlPathAllowed.subtracting(CharacterSet(charactersIn: "()"))
             let encoded: String = title.addingPercentEncoding(withAllowedCharacters: allowed) ?? title
-            out += "[\(title)](\(scheme):///\(encoded))"
+            out += "[\(shown.isEmpty ? title : shown)](\(scheme):///\(encoded))"
             rest = rest[close.upperBound...]
         }
         out += rest

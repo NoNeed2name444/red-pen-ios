@@ -86,7 +86,11 @@ struct PaywallView: View {
     @ViewBuilder
     private var plans: some View {
         if subscriptions.products.isEmpty {
-            ProgressView().padding(.vertical, 24)
+            // the spinner only while an answer is still to come: trouble
+            // (nothing for sale, the App Store unreachable) is shown below
+            if subscriptions.trouble == nil {
+                ProgressView().padding(.vertical, 24)
+            }
         } else {
             VStack(spacing: 10) {
                 ForEach(SubscriptionPlan.allCases) { plan in
