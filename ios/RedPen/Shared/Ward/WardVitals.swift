@@ -3,15 +3,33 @@ import SwiftUI
 
 /// A readiness ring: a hairline track and the tone's arc, the number in the
 /// middle in SF Mono so it reads as an observation.
+///
+/// `centre` stands in for the percentage when the ring counts something
+/// else (Today: 18) or has nothing to show yet (a dash), and `spoken` for
+/// "68 percent" when it does.
 struct WardRing: View {
     let value: Double
     var tone: WardTone = .blue
     var label: String?
     var lineWidth: CGFloat = 8
+    var centre: String?
+    var spoken: String?
     @ScaledMetric(relativeTo: .title2) private var numeral: CGFloat = 26
+
+    init(value: Double, tone: WardTone = .blue, label: String? = nil, lineWidth: CGFloat = 8,
+         centre: String? = nil, spoken: String? = nil) {
+        self.value = value
+        self.tone = tone
+        self.label = label
+        self.lineWidth = lineWidth
+        self.centre = centre
+        self.spoken = spoken
+    }
 
     var body: some View {
         let v: Double = max(0, min(1, value))
+        let percent: Int = Int((v * 100).rounded())
+        let shown: String = centre ?? "\(percent)%"
         ZStack {
             Circle().stroke(Color.wardHairline, lineWidth: lineWidth)
             Circle()
@@ -19,12 +37,13 @@ struct WardRing: View {
                 .stroke(tone.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 0) {
-                Text("\(Int((v * 100).rounded()))%")
+                Text(shown)
                     .font(.system(size: numeral, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
+                    .lineLimit(1)
                     .contentTransition(.numericText())
                     .foregroundStyle(Color.wardInk)
-                if let label { Text(label).font(.caption2).foregroundStyle(Color.wardInkSecondary) }
+                if let label { Text(label).font(.caption2).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
             }
             .padding(lineWidth)
             .minimumScaleFactor(0.5)
@@ -33,7 +52,7 @@ struct WardRing: View {
         .animation(.easeOut(duration: 0.6), value: v)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Progress")
-        .accessibilityValue("\(Int((v * 100).rounded())) percent")
+        .accessibilityValue(spoken ?? "\(percent) percent")
     }
 }
 

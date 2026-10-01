@@ -108,6 +108,10 @@ struct WardChip: View {
 }
 
 /// A countdown pill ("Finals in 23 days") in Pager Amber.
+///
+/// White on Pager Amber is 4.2:1, enough only for large text, so the words
+/// are bold at the subheadline size (15 points and up), which counts as
+/// large; smaller would fail AA (docs/design/ward-round-rollout.md, risks).
 struct WardPill: View {
     let text: String
     var symbol: String? = "clock"
@@ -117,7 +121,7 @@ struct WardPill: View {
             if let symbol { Image(systemName: symbol).imageScale(.small) }
             Text(text)
         }
-        .font(.footnote.weight(.semibold))
+        .font(.subheadline.weight(.bold))
         .foregroundStyle(Color.wardOnPrimary)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -189,7 +193,9 @@ extension WardSectionLabel where Trailing == EmptyView {
 }
 
 /// A row: icon square, a small-caps overline ("BED 1 · Cardiology"), the
-/// title, a detail line, a chip and a chevron.
+/// title, a detail line, a chip and a chevron. At the accessibility text
+/// sizes the icon goes above the words and the chip under them, so the words
+/// keep the row's whole width.
 struct WardRow: View {
     let symbol: String
     var tone: WardTone = .blue
@@ -198,27 +204,57 @@ struct WardRow: View {
     var detail: String?
     var chip: (text: String, tone: WardTone)?
     var chevron = true
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: WardSpace.m) {
-            WardIconSquare(symbol: symbol, tone: tone)
-            VStack(alignment: .leading, spacing: 2) {
-                if let overline { Text(overline).wardSmallCaps() }
-                Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
-                if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary) }
-            }
-            Spacer(minLength: WardSpace.s)
-            if let chip { WardChip(text: chip.text, tone: chip.tone) }
-            if chevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .accessibilityHidden(true)
+        Group {
+            if typeSize.isAccessibilitySize {
+                stacked
+            } else {
+                inline
             }
         }
         .padding(.vertical, WardSpace.s)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+
+    private var inline: some View {
+        HStack(spacing: WardSpace.m) {
+            WardIconSquare(symbol: symbol, tone: tone)
+            words
+            Spacer(minLength: WardSpace.s)
+            if let chip { WardChip(text: chip.text, tone: chip.tone) }
+            if chevron { chevronMark }
+        }
+    }
+
+    private var stacked: some View {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            HStack {
+                WardIconSquare(symbol: symbol, tone: tone)
+                Spacer(minLength: WardSpace.s)
+                if chevron { chevronMark }
+            }
+            words
+            if let chip { WardChip(text: chip.text, tone: chip.tone) }
+        }
+    }
+
+    private var words: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let overline { Text(overline).wardSmallCaps() }
+            Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
+            if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary) }
+        }
+        .multilineTextAlignment(.leading)
+    }
+
+    private var chevronMark: some View {
+        Image(systemName: "chevron.right")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Color.wardInkSecondary)
+            .accessibilityHidden(true)
     }
 }
 #endif

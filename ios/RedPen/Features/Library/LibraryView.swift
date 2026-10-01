@@ -21,8 +21,11 @@ import UIKit
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
-    /// Read only, for search: notes are found here and opened in their editor.
+    /// Read only, for search: notes are found here and opened in their editor;
+    /// and counted for the home's brain map tile.
     @EnvironmentObject var noteStore: NoteStore
+    /// Who is signed in, for the home's greeting.
+    @EnvironmentObject var account: AccountStore
 
     /// New set, opened on this kind of set (the category's own, from its
     /// "+ New set").
@@ -204,8 +207,9 @@ struct LibraryView: View {
             attachingSheets(to: screen)
                 .navigationDestination(item: pushedSupport) { $0.page }
         }
-        // one accent for the whole library rather than a colour per mode
-        .tint(Color.accentColor)
+        // one accent for the whole library rather than a colour per mode:
+        // Theatre Blue
+        .tint(Color.wardPrimary)
         // "Turn into…": an instant set opens straight away, in place of
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
@@ -356,12 +360,10 @@ struct LibraryView: View {
     /// top, the account menu, the rail and the bottom bar.
     private var screen: some View {
         routedPage
-            // the shared backdrop - the deepest plane - easing into the
-            // category's colour, or Ideas' gold
-            .background(AppBackdrop(tint: backdropTint))
+            .background { backdrop }
             .navigationTitle(screenTitle)
             .diagnosticsScreen("screen:library")
-            .navigationBarTitleDisplayMode(titleMode)
+            .navigationBarTitleDisplayMode(.inline)
             // pinned in the bar's drawer at the top, so it never fights the
             // dock at the bottom for the thumb
             .searchable(text: searchText, placement: .navigationBarDrawer(displayMode: .automatic),
@@ -436,11 +438,21 @@ struct LibraryView: View {
     /// nothing while the keyboard has put the dock away.
     private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
 
-    private var backdropTint: Color { inIdeas ? IdeasPlace.tint : category.tint }
+    /// The ECG grid paper under every category's page; Ideas keeps the sky
+    /// its 3D map flies through.
+    @ViewBuilder
+    private var backdrop: some View {
+        if inIdeas {
+            AppBackdrop(tint: IdeasPlace.tint)
+        } else {
+            WardBackground()
+        }
+    }
 
-    private var screenTitle: String { inIdeas ? IdeasPlace.title : Brand.name }
-
-    private var titleMode: NavigationBarItem.TitleDisplayMode { inIdeas ? .inline : .automatic }
+    /// A category's page is titled by its own first row - the date, the
+    /// app's name with its squiggle, a greeting (WardHome) - so the bar
+    /// carries no title of its own there; Ideas keeps its name.
+    private var screenTitle: String { inIdeas ? IdeasPlace.title : "" }
 
     /// The one search field at the top searches whatever is on show.
     private var searchText: Binding<String> { inIdeas ? $ideasQuery : $query }
@@ -510,24 +522,19 @@ struct LibraryView: View {
     private var content: some View {
         ScrollViewReader { proxy in
             List {
+                // the page's title: the date, the name, a greeting and the
+                // countdown to the exam (WardHome)
+                if !searching { homeHeaderSection }
                 if store.library.isEmpty {
                     Section {
                         emptyState
                             .frostedListRow()
                     }
                 }
-                // Everything about today - the exam, the streak, what is
-                // due, the flags - in one small card at the top.
-                if showsTodayCard {
-                    Section {
-                        todayCard
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            // the card is its own raised slab; the row
-                            // under it stays clear
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    }
-                }
+                // Today's ward round - what is due, the weakest topic,
+                // something new, a station - in one card, and on Questions
+                // the Vitals and brain map tiles under it (WardHome).
+                homeRoundSections
                 // The modes first - one tile per kind of set here - where
                 // there is more than one. A category of one kind has its
                 // "See all" beside the heading over its sets instead.
@@ -536,8 +543,6 @@ struct LibraryView: View {
             }
             .listSectionSpacing(16)
             .scrollContentBackground(.hidden)
-            // the backdrop's stars drift with the scroll (parallax)
-            .skyScroll()
             // Back from a set that Turn into just made: the new set in view,
             // not somewhere below the fold.
             .onChange(of: opened.isEmpty) { _, back in
@@ -546,16 +551,6 @@ struct LibraryView: View {
                 withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
             }
         }
-    }
-
-    /// The Today card: on Questions whenever it has something to say, and on
-    /// Cards when cards are waiting.
-    private var showsTodayCard: Bool {
-        if searching { return false }
-        let onQuestions: Bool = category == .questions && hasTodayCard
-        let dueNow: Int = category == .cards ? reviews.dueAcross(store.library).count : 0
-        let onCards: Bool = category == .cards && dueNow > 0
-        return onQuestions || onCards
     }
 
     /// Everything under the Today card and the modes: the sets, then the
@@ -621,20 +616,15 @@ struct LibraryView: View {
         }
     }
 
-    /// "New set": the library's one hero, standing highest out of the glass.
+    /// "New set": the library's one main button, Theatre Blue, over the dock.
     private var newSetButton: some View {
         Button { newSetKind = category.mainKind } label: {
             Label("New set", systemImage: "plus")
-                .font(.headline)
-                .padding(.horizontal, 22)
-                .frame(minHeight: 50)
         }
-        .buttonStyle(.glassProminent)
-        // on the button itself, before the glass and the pop-out wrap it, so
-        // UI tests find the button rather than its raised surface
+        .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
+        .wardShadow()
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
-        .popOut(.hero, in: Capsule(), tint: .accentColor)
         .keyboardShortcut("n", modifiers: .command)
     }
 
@@ -655,10 +645,8 @@ struct LibraryView: View {
     private var seeAllButton: some View {
         let single: Bool = category.kinds.count == 1
         if single, let mode = category.features(in: .modes).first, !mode.shelfSets(store).isEmpty {
-            // a control, so it stands out of the glass like Make one
             Button { start(mode) } label: { headerButtonFace("See all") }
-                .buttonStyle(.glass)
-                .popOut(.raised, in: Capsule())
+                .buttonStyle(.borderless)
                 .accessibilityHint("Every one of these sets, newest first")
                 .accessibilityIdentifier("feature-\(mode.rawValue)")
         }
@@ -673,19 +661,20 @@ struct LibraryView: View {
         } label: {
             headerButtonFace(title)
         }
-        .buttonStyle(.glass)
-        .popOut(.raised, in: Capsule())
+        .buttonStyle(.borderless)
         .accessibilityHint(hint)
         .accessibilityIdentifier("selectSets")
     }
 
-    /// A sets header button's words, tall enough that with the glass
-    /// around them the button is a 44-point target.
+    /// A sets header button's words: a Theatre Blue link, in a 44-point
+    /// target.
     private func headerButtonFace(_ title: String) -> some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Color.wardPrimaryInk)
             .lineLimit(1)
-            .frame(minHeight: 30)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -704,9 +693,13 @@ struct LibraryView: View {
             .onDelete { offsets in delete(offsets.map { inside[$0].id }) }
         } header: {
             HStack {
-                Label(folder.name, systemImage: "folder.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                Label {
+                    Text(folder.name).wardSmallCaps()
+                } icon: {
+                    Image(systemName: "folder.fill").foregroundStyle(Color.wardInkSecondary)
+                }
+                .font(.caption.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Menu {
                     Button("Select sets", systemImage: "checkmark.circle") {

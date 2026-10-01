@@ -7,145 +7,10 @@ import SwiftUI
 /// because SwiftUI type-checks a whole view expression at once.
 extension LibraryView {
 
-    /// Days until the exam set in Settings → Your exam, or nil when no date
-    /// has been set.
-    var examDays: Int? {
-        let stamp = UserDefaults.standard.double(forKey: ExamTrack.dateKey)
-        guard stamp > 0 else { return nil }
-        let calendar = Calendar.current
-        return calendar.dateComponents([.day], from: calendar.startOfDay(for: Date()),
-                                        to: calendar.startOfDay(for: Date(timeIntervalSince1970: stamp))).day ?? 0
-    }
-
-    /// Whether there is anything for the Today card to say. A first launch
-    /// with nothing scheduled is not greeted by a card full of zeros.
-    var hasTodayCard: Bool {
-        examDays != nil || studyLog.streak > 0 || !store.answerLog.isEmpty
-            || store.library.contains { $0.kind == .anki } || !store.flaggedQuestions.isEmpty
-    }
-
-    /// Mission Control: today, in one card. "T-42 days · 18 due · on course",
-    /// what the student would remember if the exam were today and what it
-    /// takes to reach 90% on the day, how much is locked in, and one lift-off
-    /// button for the most useful session now (ExamWeekPlanner.mission).
-    ///
-    /// These used to be four separate strips - countdown, streak, due cards,
-    /// flagged questions - stacked above the sets, so the first screen was a
-    /// dashboard before it was a library. The count of due cards still matters
-    /// most: twenty lectures means twenty decks, and without a number on the
-    /// first screen nobody knows which of them is waiting.
-    ///
-    /// It stands a little out of the glass as one raised slab - it holds the
-    /// page's most useful button - while the rows below lie flat on it.
-    var todayCard: some View {
-        let due: Int = reviews.dueAcross(store.library).count
-        let hasDecks: Bool = store.library.contains { $0.kind == .anki }
-        let situation: ExamWeekPlanner.Situation = store.cachedSituation(dueCards: due)
-        let forecast: RetentionForecast.Forecast = reviews.examForecast(store.library,
-                                                                      libraryVersion: store.changeCount)
-        let mission: ExamWeekPlanner.Mission = ExamWeekPlanner.mission(situation)
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
-        return VStack(alignment: .leading, spacing: 8) {
-            missionHeader(situation.phase)
-            missionStatusLine(phase: situation.phase, due: due, hasDecks: hasDecks, forecast: forecast)
-            if hasDecks && forecast.studied > 0 { forecastLine(forecast, phase: situation.phase) }
-            securedLine
-            if studyLog.streak > 0 { streakLine }
-            if situation.phase.holdsNewMaterial { phaseLine(situation.phase) }
-            liftOff(mission)
-        }
-        .padding(16)
-        .background(.regularMaterial, in: shape)
-        .popOut(.raised, in: shape)
-    }
-
-    /// "Mission Control", and the way into the whole plan.
-    private func missionHeader(_ phase: ExamWeekPlanner.Phase) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("Mission Control").font(.headline)
-            Spacer(minLength: 8)
-            Button { LearnRouter.shared.open(.examPlan) } label: {
-                Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .accessibilityHint("Opens the exam plan and forecast")
-            .accessibilityIdentifier("missionPlan")
-        }
-    }
-
-    /// "T-42 days · 18 due · on course".
-    private func missionStatusLine(phase: ExamWeekPlanner.Phase, due: Int, hasDecks: Bool,
-                                   forecast: RetentionForecast.Forecast) -> some View {
-        var parts: [String] = []
-        switch phase {
-        case .examDay: parts.append("Exam day \u{2014} good luck")
-        case .after: parts.append("Your exam date has passed")
-        default:
-            if let days = phase.days {
-                let plural: String = days == 1 ? "" : "s"
-                parts.append("T-\(days) day\(plural)")
-            }
-        }
-        if hasDecks { parts.append(due > 0 ? "\(due) due" : "none due") }
-        let flagged: Int = store.flaggedQuestions.count
-        if flagged > 0 { parts.append("\(flagged) flagged") }
-        if phase.days != nil && phase != .examDay && forecast.studied > 0 {
-            parts.append(forecast.onCourse ? "on course" : "\(forecast.perDay) a day to reach 90%")
-        }
-        if parts.isEmpty { parts.append("No exam date set") }
-        let tint: Color = phase.days == nil ? .secondary : .accentColor
-        let symbol: String = phase == .noDate ? "calendar.badge.plus" : "calendar"
-        return todayLine(symbol: symbol, tint: tint, text: parts.joined(separator: " \u{00B7} "))
-    }
-
-    /// "If your exam were today you'd remember ~71%; do 140 reviews over the
-    /// next 10 days to reach 90%."
-    private func forecastLine(_ f: RetentionForecast.Forecast, phase: ExamWeekPlanner.Phase) -> some View {
-        let now: String = RetentionForecast.percent(f.today)
-        var text: String = "If your exam were today you\u{2019}d remember ~\(now) of your cards"
-        if phase.days != nil && phase != .examDay {
-            if f.reviewsNeeded > 0 {
-                let plural: String = f.days == 1 ? "" : "s"
-                text += "; do \(f.reviewsNeeded) reviews over the next \(f.days) day\(plural) to reach 90%"
-            } else {
-                text += "; on course for 90% on the day"
-            }
-        }
-        return todayLine(symbol: "brain.head.profile", tint: StudySetKind.anki.tint, text: text + ".")
-    }
-
-    /// "120 of 400 questions locked in", once anything has been answered.
-    @ViewBuilder
-    private var securedLine: some View {
-        if !store.answerLog.isEmpty {
-            let totals: SecuredRule.Ring = store.securedTotals()
-            if totals.total > 0 {
-                let text: String = "\(totals.secured) of \(totals.total) questions locked in"
-                todayLine(symbol: "lock.fill", tint: StudySetKind.mcq.tint, text: text)
-            }
-        }
-    }
-
-    private func phaseLine(_ phase: ExamWeekPlanner.Phase) -> some View {
-        todayLine(symbol: "moon.stars.fill", tint: .indigo, text: phase.headline)
-    }
-
-    /// The one lift-off button: the most useful session now.
-    @ViewBuilder
-    private func liftOff(_ mission: ExamWeekPlanner.Mission) -> some View {
-        if mission == .nothing {
-            Text("All done for now \u{2014} nothing is waiting.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
-        } else {
-            todayButton(mission.title, symbol: mission.symbol) { launch(mission) }
-                .accessibilityIdentifier("missionLiftOff")
-        }
-    }
+    // Mission Control, the card that stood here, is now today's ward round
+    // (WardHome): the beds hold what its status lines counted, its lift-off
+    // is "Start ward round", and its Plan button opens the exam plan, where
+    // the forecast and what is locked in are shown in full.
 
     /// Starts a mission: the due cards and quick quizzes on the library's own
     /// screens, everything else through LearnRouter.
@@ -183,44 +48,6 @@ extension LibraryView {
                 .accessibilityIdentifier("examplesBanner")
                 .frostedListRow()
             }
-        }
-    }
-
-    private func todayButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.glassProminent)
-        .popOut(.hero, in: Capsule(), tint: .accentColor)
-        .padding(.top, 8)
-    }
-
-    /// "5-day streak · 32 done today", or a nudge while the streak is still
-    /// yesterday's and alive until midnight.
-    private var streakLine: some View {
-        let streak = studyLog.streak
-        let today = studyLog.today
-        let text: String = today > 0 ? "\(streak)-day streak \u{00B7} \(today) done today"
-                                     : "\(streak)-day streak \u{2014} answer one to keep it"
-        let tint: Color = today > 0 ? .orange : .secondary
-        return todayLine(symbol: "flame.fill", tint: tint, text: text)
-    }
-
-    /// One line of the Today card: a symbol and a short sentence.
-    private func todayLine(symbol: String, tint: Color, text: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.body)
-                .foregroundStyle(tint)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            Text(text)
-                .font(.subheadline)
-                .monospacedDigit()
-                .lineLimit(2)
-            Spacer(minLength: 0)
         }
     }
 
@@ -503,46 +330,11 @@ extension LibraryView {
         .disabled(selected.isEmpty)
     }
 
+    /// A set's row (SetRow, in WardHome): its icon, name and size, how far
+    /// into it the student is, and the cards due for a deck.
     func setRow(_ set: StudySet) -> some View {
-        let due = set.kind == .anki ? reviews.dueCount(for: set.cards) : 0
-        let plural: String = set.itemCount == 1 ? "" : "s"
-        let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"
-        return HStack(spacing: 16) {
-            ModeTile(kind: set.kind)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(set.name).font(.body.weight(.semibold)).lineLimit(1)
-                    // the exam it was written for
-                    ExamBadge(examId: set.exam)
-                }
-                HStack(spacing: 6) {
-                    Text(set.kind.label)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text("\u{00b7}").foregroundStyle(.tertiary)
-                    Text(amount)
-                        .font(.caption).foregroundStyle(.secondary)
-                    if !set.subject.isEmpty && set.subject != "General" {
-                        Text("\u{00b7}").foregroundStyle(.tertiary)
-                        Text(set.subject).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    // flagged or to check, once anything in it is checked
-                    AccuracySetMark(set: set)
-                }
-            }
-            Spacer(minLength: 0)
-            if due > 0 {
-                Text("\(due)")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(StudySetKind.anki.tint, in: Capsule())
-                    .accessibilityLabel("\(due) due")
-            }
-        }
-        // a whole row to aim at, not only its words
-        .frame(minHeight: 56)
-        .contentShape(Rectangle())
+        let due: Int = set.kind == .anki ? reviews.dueCount(for: set.cards) : 0
+        return SetRow(set: set, due: due, progress: progress(of: set))
     }
 
     /// The ellipsis at the end of a row: rename, turn into, export, delete -
@@ -564,16 +356,15 @@ extension LibraryView {
     }
 
     /// The face of a "more" menu - a row's, a folder's: an ellipsis on a
-    /// small glass disc that stands a little out of the glass like any other
-    /// control, inside a 44-point target.
+    /// small Clean Sheet disc with a hairline edge, inside a 44-point target.
     var moreMenuFace: some View {
         let disc = Circle()
         return Image(systemName: "ellipsis")
             .font(.body.weight(.semibold))
-            .foregroundStyle(.primary)
+            .foregroundStyle(Color.wardInkSecondary)
             .frame(width: 34, height: 34)
-            .glassEffect(.regular.interactive(), in: disc)
-            .popOut(.raised, in: disc)
+            .background(Color.wardSurface, in: disc)
+            .overlay(disc.strokeBorder(Color.wardHairline, lineWidth: 1))
             .frame(width: 44, height: 44)
             .contentShape(disc)
     }

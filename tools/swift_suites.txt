@@ -293,6 +293,11 @@ suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
 # the Ward Round palette: contrast promises in light and dark, and the
 # AccentColor asset drawn from the same table
 suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift
+# today's ward round on the home: which beds and in what order, the weak
+# spots that need a consult (the weakest always has a bed), the minutes;
+# the study rhythm read from StudyLog's days; the countdown and greeting
+suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swift \
+      $S/Learn/BedPlan.swift $S/Learn/RhythmReading.swift $S/Learn/WardWords.swift
 # fault injection: what an accuracy batch and a transcription chunk do
 # with a 500, a 429, a timeout, an unreadable answer and no network
 suite faults FaultTests.swift $S/NetworkFaults.swift
