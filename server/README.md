@@ -44,6 +44,16 @@ account). The combiner's weights are trained for free by
 `bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
 from `accuracy_model`; before any training the bundled prior is used.
 
+A check runs as named stages in a fixed order - rules, lookup (the cache),
+evidence, votes, jev, verdict, cache (the write) - each with its own time
+budget and a typed result (`STAGES` and `BUDGETS` in `accuracy.js`). Each
+budget is longer than the timeout already inside its work, so it only cuts
+work that has stopped keeping its own time; a stage that runs out of time or
+fails gives its safe result - no evidence, no vote, no Jev answer, not cached
+- never a hang and never a better grade. `tests/accuracy-stages.test.mjs`
+keeps the check as it was before the stages and holds the staged one to the
+same replies, outside calls and cache on a set of fixed inputs.
+
 ## Exams
 
 `exams.js` holds the prompt side of the exam catalogue (the app's
