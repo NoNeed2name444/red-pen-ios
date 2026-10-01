@@ -319,23 +319,6 @@ struct RuleSheetView: View {
     var body: some View { NotInThisBuild(feature: "The rule sheet") }
 }
 
-struct SpokenStationView: View {
-    let station: OsceChecklist
-
-    var body: some View { NotInThisBuild(feature: "Spoken OSCE practice") }
-}
-
-struct NarrateReviewView: View {
-    let studySet: StudySet
-
-    init(set studySet: StudySet, startIndex: Int = 0, startPlaying: Bool = false,
-         startFinished: Bool = false, startFixing: Int? = nil) {
-        self.studySet = studySet
-    }
-
-    var body: some View { NotInThisBuild(feature: "Audio lectures") }
-}
-
 struct PictureFromPhotoView: View {
     let initialFiles: [URL]
 
@@ -356,47 +339,8 @@ struct HowToReachCard: View {
     static func lectureLabel(for text: String, in set: StudySet) -> String? { nil }
 }
 
-struct CaseStationClock: View {
-    var body: some View { EmptyView() }
-}
-
-/// The case's composer without the voice: the field and a Send button.
-struct CaseVoiceButtons<Field: View>: View {
-    let hasDraft: Bool
-    let onSend: () -> Void
-    private let field: Field
-
-    init(simulator: CaseSimulator, hasDraft: Bool, onSend: @escaping () -> Void,
-         @ViewBuilder field: () -> Field) {
-        self.hasDraft = hasDraft
-        self.onSend = onSend
-        self.field = field()
-    }
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            field
-            Button(action: onSend) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title)
-            }
-            .disabled(!hasDraft)
-            .accessibilityLabel("Send")
-        }
-    }
-}
-
-struct DrawFromMemoryButton: View {
-    let set: StudySet
-    let imageIndex: Int
-    let caption: String
-
-    var body: some View { EmptyView() }
-}
-
 extension View {
-    func commuteModeSheet(isPresented: Binding<Bool>) -> some View { self }
-
+    /// Guess-first on a textbook (Features/Learn): nothing here.
     func guessFirst(_ set: StudySet) -> some View { self }
 }
 
@@ -487,23 +431,6 @@ enum FigureFinder {
                      question: String = "What is labelled here?",
                      pageBands: Bool = true) -> Found? {
         nil
-    }
-}
-
-/// The recording transcriber's line shape (Shared/LectureTranscriber.swift),
-/// which the narrate segments are built from.
-enum LectureTranscriber {
-    struct Word: Equatable {
-        var text: String
-        var start: Double
-        var end: Double
-    }
-
-    struct Line: Equatable {
-        var text: String
-        var start: Double
-        var end: Double
-        var words: [Word]
     }
 }
 

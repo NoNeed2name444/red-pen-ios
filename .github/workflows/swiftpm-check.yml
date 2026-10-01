@@ -29,6 +29,10 @@ jobs:
             without: ''
           - variant: core
             without: core
+          # the core plus step 1 of the add-back order (lecture audio, the
+          # spoken modes, draw from memory, narrate), the next zip to try
+          - variant: core1
+            without: core1
     steps:
       - uses: actions/checkout@v4
         with:

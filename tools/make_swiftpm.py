@@ -75,13 +75,29 @@ CORE_DROP = [
 ]
 CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
              "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift"]
+# The add-back order (playgrounds_stubs/README.md): each step puts one part of
+# CORE_DROP back into the core, as its own chunk, to find the iPad's ceiling
+# one zip at a time. core1 = the core plus step 1: lecture audio, the spoken
+# modes, draw from memory and the narrate screens.
+STEP1_BACK = [
+    "Features/Voice", "Shared/Voice", "Features/Recall", "Features/Narrate",
+    "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
+    "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
+]
+assert all(p in CORE_DROP for p in STEP1_BACK), "STEP1_BACK names a path the core does not drop"
+CORE1_DROP = [p for p in CORE_DROP if p not in STEP1_BACK]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
     # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
     "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], ["graph3d.swift"]),
     "lens": (["Features/Lens", "Shared/Lens"], [], ["lens.swift"]),          # Study Lens (camera reads a question)
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
-    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core"]),
+    # the core shell (core/) plus the variant's own piece: stand-ins for the
+    # step-1 parts (core-audio-out) or the ways into them (core-audio-in)
+    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-out"]),
+    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in"]),
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"

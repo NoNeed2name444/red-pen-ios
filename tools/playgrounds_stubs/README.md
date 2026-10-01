@@ -26,7 +26,8 @@ limit at 36,000 lines.
 | `graph3d` | the 3D Ideas map (`Features/Notes/Graph*.swift`), about 20,000 lines of SceneKit | `graph3d.swift` |
 | `lens` | Study Lens (`Features/Lens`, `Shared/Lens`) | `lens.swift` |
 | `analytics` | the Progress screen's rings and charts | `analytics.swift` |
-| `core` | everything but the core, see below | `graph3d.swift` + `core/` |
+| `core` | everything but the core, see below | `graph3d.swift` + `core/` + `core-audio-out/` |
+| `core1` | the core's drops minus step 1 below (lecture audio, Voice, Recall, Narrate come back) | `graph3d.swift` + `core/` + `core-audio-in/` |
 
 `_common.swift` (the "not in this build" screen) goes in whenever anything
 is left out.
@@ -59,6 +60,17 @@ The core has its own shell in `core/`:
   a calm backdrop in place of the sky, haptics in place of the space cues,
   an idle sync engine, placeholder screens, and the small helpers.
 
+The shell is shared by every step of the add-back; what differs per step is
+in a folder of its own, copied in beside it:
+
+- `core-audio-out/CoreAudioStandIns.swift` (the core): the stand-ins for
+  the step-1 parts (the spoken OSCE station, the narrate reader, the case
+  voice bar, draw from memory, the transcriber's line shape, the commute
+  sheet) and the library's "not in this build" pieces.
+- `core-audio-in/CoreAudio.swift` (core1): the narrate reader is the app's
+  own, and the library gets a Spoken section (commute mode, explain it back),
+  which the full app reaches from its study categories instead.
+
 When the full app changes, a kept file may start using a new name from a
 left-out part. The package check (`swiftpm-check.yml`) builds the core on
 every push to `personal` and fails with the missing name; add it to
@@ -86,8 +98,16 @@ four zips:
 | 6 | the living sky, pop-out, diagnostics, platform, App Intents | 6,920 | about 85,100 |
 | 7 | the 3D Ideas map | 20,433 | about 105,500 |
 
-Adding a part back means taking its files out of `CORE_DROP` and deleting
-their stand-ins from `core/CoreStandIns.swift`, then letting the package
-check compile it before the zip goes out. `tools/playgrounds_cut.py --drop
-<the remaining drops> --names` lists what the remaining stand-ins must
-still provide.
+Each step is its own chunk in `make_swiftpm.py` (`core1` is step 1), so the
+core itself stays as it was sent: the step's chunk drops `CORE_DROP` minus
+the paths it brings back (`STEP1_BACK`), and the stand-ins for those parts
+move from the shared shell into the step's own folder. The package check
+(`swiftpm-check.yml`) compiles every chunk on each push to `personal`
+before a zip goes out. `tools/playgrounds_cut.py --drop <the remaining
+drops> --names` lists what the remaining stand-ins must still provide; the
+extension methods it cannot see (`guessFirst`, `commuteModeSheet`, `picks`)
+are found by the compile.
+
+Status, 1 October: step 1 is prepared as `core1` (about 42,400 lines before
+the stand-ins), waiting on the owner's result for zip 1 (the core) before it
+goes out.
