@@ -216,7 +216,7 @@ struct LensDataScanner: UIViewControllerRepresentable {
     /// it cannot, nothing is named and the scanner keeps its own default (the
     /// student's preferred languages), exactly as before.
     static var languages: [String] {
-        let supported = Set(DataScannerViewController.supportedLanguages)
+        let supported = Set(DataScannerViewController.supportedTextRecognitionLanguages)
         let arabic = RedPenOCR.languages.filter { $0.hasPrefix("ar") && supported.contains($0) }
         guard !arabic.isEmpty else { return [] }
         return arabic + RedPenOCR.languages.filter { !$0.hasPrefix("ar") && supported.contains($0) }
