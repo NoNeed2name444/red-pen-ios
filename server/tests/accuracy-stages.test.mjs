@@ -17,6 +17,7 @@ import {
   BATCH, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix,
 } from '../accuracy.js';
 import { proGate, askModel, spend } from '../ai.js';
+import { resetBreakers } from '../breakers.js';
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from '../jev.js';
 import { ruleHits, itemText, sourceMatch } from '../accuracy-rules.js';
 import { features, predict, verdict, examWeights, isOath, oathClaims } from '../accuracy-model.js';
@@ -199,6 +200,8 @@ function replyTo(model, prompt) {
 /// plan: { down, garbage, hang: Sets of model names; evidence: 'hang';
 ///         jev: 'hang'; db: trouble(sql, kind) }
 function world(extra = {}, plan = {}) {
+  // every breaker closed: a world starts with no provider remembered as failing
+  resetBreakers();
   const db = new DatabaseSync(':memory:');
   const sql = readFileSync(join(here, '..', 'schema.sql'), 'utf8').split('\n').map(l => l.replace(/--.*$/, '')).join('\n');
   for (const statement of sql.split(';')) if (statement.trim()) db.exec(statement);
