@@ -16,9 +16,9 @@
 
 /// mg ranges: [lowest dose ever sensible, highest single dose or daily total].
 export const DRUGS = {
-  paracetamol: [325, 4000], acetaminophen: [325, 4000], ibuprofen: [200, 3200], aspirin: [75, 4000],
-  naproxen: [220, 1500], amoxicillin: [125, 6000], 'co-amoxiclav': [250, 3600], ceftriaxone: [250, 4000],
-  vancomycin: [125, 4000], ciprofloxacin: [100, 1500], doxycycline: [50, 200], azithromycin: [250, 2000],
+  paracetamol: [80, 4000], acetaminophen: [80, 4000], ibuprofen: [200, 3200], aspirin: [75, 4000],
+  naproxen: [220, 1500], amoxicillin: [125, 6000], 'co-amoxiclav': [250, 3600], ceftriaxone: [50, 4000],
+  vancomycin: [125, 4000], ciprofloxacin: [100, 1500], doxycycline: [20, 200], azithromycin: [250, 2000],
   clarithromycin: [250, 1000], metronidazole: [200, 4000], nitrofurantoin: [50, 400], trimethoprim: [100, 400],
   benzylpenicillin: [300, 14400], flucloxacillin: [250, 8000], metformin: [250, 3000], gliclazide: [30, 320],
   atorvastatin: [10, 80], simvastatin: [5, 80], rosuvastatin: [5, 40], pravastatin: [10, 80],
@@ -28,7 +28,7 @@ export const DRUGS = {
   bendroflumethiazide: [1.25, 5], hydrochlorothiazide: [6.25, 100], warfarin: [0.5, 15], apixaban: [2.5, 20],
   rivaroxaban: [2.5, 30], dabigatran: [75, 300], clopidogrel: [75, 600], ticagrelor: [60, 180], digoxin: [0.0625, 1.5],
   levothyroxine: [0.0125, 0.3], carbimazole: [5, 60], propylthiouracil: [50, 1200], morphine: [1, 200],
-  oxycodone: [2.5, 160], codeine: [15, 240], tramadol: [50, 400], fentanyl: [0.012, 0.2], naloxone: [0.04, 10],
+  oxycodone: [2.5, 160], codeine: [15, 240], tramadol: [50, 400], fentanyl: [0.012, 0.8], naloxone: [0.04, 10],
   adrenaline: [0.01, 1], epinephrine: [0.01, 1], atropine: [0.1, 5], adenosine: [3, 18], amiodarone: [50, 1200],
   prednisolone: [1, 100], prednisone: [1, 100], methylprednisolone: [4, 1000], dexamethasone: [0.5, 40],
   hydrocortisone: [5, 500], diazepam: [1, 40], lorazepam: [0.25, 10], midazolam: [0.5, 20], haloperidol: [0.5, 20],
@@ -50,7 +50,7 @@ export const LABS = {
   potassium: { 'mmol/l': [1.2, 10, 3.5, 5.3], 'meq/l': [1.2, 10, 3.5, 5.3] },
   chloride: { 'mmol/l': [60, 150, 96, 107], 'meq/l': [60, 150, 96, 107] },
   bicarbonate: { 'mmol/l': [2, 55, 22, 29], 'meq/l': [2, 55, 22, 29] },
-  calcium: { 'mg/dl': [3, 20, 8.5, 10.5], 'mmol/l': [0.8, 5, 2.1, 2.6] },
+  calcium: { 'mg/dl': [3, 20, 8.5, 10.5], 'mmol/l': [0.8, 5, 2.1, 2.6], 'meq/l': [1.6, 10, 4.2, 5.2] },
   magnesium: { 'mg/dl': [0.4, 12, 1.7, 2.4], 'mmol/l': [0.15, 5, 0.7, 1.05], 'meq/l': [0.3, 10, 1.4, 2.1] },
   glucose: { 'mg/dl': [10, 2500, 70, 100], 'mmol/l': [0.5, 140, 3.9, 5.6] },
   creatinine: { 'mg/dl': [0.1, 30, 0.6, 1.3], 'µmol/l': [10, 2700, 50, 115] },
@@ -60,7 +60,7 @@ export const LABS = {
   hemoglobin: { 'g/dl': [1.5, 26, 12, 17.5], 'g/l': [15, 260, 120, 175] },
   albumin: { 'g/dl': [0.5, 7, 3.5, 5], 'g/l': [5, 70, 35, 50] },
   bilirubin: { 'mg/dl': [0.05, 60, 0.1, 1.2], 'µmol/l': [1, 1000, 3, 21] },
-  lactate: { 'mmol/l': [0.1, 35, 0.5, 2.2] },
+  lactate: { 'mmol/l': [0.1, 35, 0.5, 2.2], 'mg/dl': [0.9, 315, 4.5, 19.8] },
   tsh: { 'miu/l': [0.001, 1000, 0.4, 4.5], 'mu/l': [0.001, 1000, 0.4, 4.5] },
   hba1c: { '%': [3, 20, 4, 5.6], 'mmol/mol': [10, 200, 20, 38] },
   paco2: { mmhg: [8, 160, 35, 45], kpa: [1, 21, 4.7, 6] },
@@ -99,18 +99,34 @@ export function doses(text) {
   const t = lower(text);
   const out = [];
   const unit = '(g|mg|mcg|µg|μg|ug|ng|micrograms?|milligrams?|grams?)';
-  const perRate = /^\s*(\/|per\s+)(kg|min|minute|h|hr|hour|m2|m²)/;
+  // per kilogram, minute or hour is a rate; per mL or litre a concentration
+  const perRate = /^\s*(\/|per\s+)(kg|min|minute|h|hr|hour|m2|m²|ml|l\b|dl|litre|liter)/;
+  // "serum digoxin level, which is 3.7 ng" is a level, not a dose
+  const measured = /\b(?:level|levels|concentration|serum|plasma|blood|trough|peak)\b/;
   for (const drug of Object.keys(DRUGS)) {
     if (!t.includes(drug)) continue;
-    const after = new RegExp(`\\b${esc(drug)}\\b[^.;\\n\\d]{0,25}?(\\d+(?:[.,]\\d+)?)\\s*${unit}\\b`, 'g');
+    // no comma, "and" or other drug between the name and the number: in
+    // "metformin, and prednisone 5 mg" the 5 mg is prednisone's
+    const after = new RegExp(`\\b${esc(drug)}\\b([^.;,\\n\\d]{0,25}?)(\\d+(?:[.,]\\d+)?)\\s*${unit}\\b`, 'g');
     const before = new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*${unit}\\b\\s+(?:of\\s+)?(?:iv\\s+|oral\\s+|im\\s+)?${esc(drug)}\\b`, 'g');
     for (const re of [after, before]) {
       for (const m of t.matchAll(re)) {
         const rest = t.slice(m.index + m[0].length);
-        if (re === after && perRate.test(rest)) continue;
-        const factor = MASS[m[2]];
+        if (perRate.test(rest)) continue;
+        // a combination product's strength ("hydrocodone-acetaminophen 5 mg",
+        // "5 mg/325 mg") belongs to no one drug alone
+        if (/^\s*\/\s*\d/.test(rest)) continue;
+        const isAfter = re === after;
+        if (isAfter) {
+          if (/[-/]$/.test(t.slice(0, m.index)) || /^[-/][a-z]/.test(t.slice(m.index + drug.length))) continue;
+          const gap = m[1];
+          if (measured.test(m[0]) || /\b(?:and|or|with|plus|then|vs|versus)\b/.test(gap)) continue;
+          if (Object.keys(DRUGS).some(other => other !== drug && gap.includes(other))) continue;
+        }
+        const value = isAfter ? m[2] : m[1], u = isAfter ? m[3] : m[2];
+        const factor = MASS[u];
         if (!factor) continue;
-        out.push({ drug, mg: num(m[1]) * factor, said: m[0].trim() });
+        out.push({ drug, mg: num(value) * factor, said: m[0].trim() });
       }
     }
   }
@@ -123,7 +139,7 @@ export function labValues(text) {
   const out = [];
   const names = Object.keys(LAB_NAMES).sort((a, b) => b.length - a.length).map(esc).join('|');
   const units = Object.keys(UNIT_ALIASES).sort((a, b) => b.length - a.length).map(esc).join('|');
-  const re = new RegExp(`(?:^|[^a-z0-9])(${names})(?![a-z0-9])\\s*(?:level|concentration|of|is|was|:|=|\\s)*\\s*(\\d+(?:\\.\\d+)?)\\s*(${units})?(?![a-z0-9/])`, 'g');
+  const re = new RegExp(`(?:^|[^a-z0-9-])(${names})(?![a-z0-9])\\s*(?:level|concentration|of|is|was|:|=|\\s)*\\s*(\\d+(?:\\.\\d+)?)\\s*(${units})?(?![a-z0-9/])`, 'g');
   for (const m of t.matchAll(re)) {
     const analyte = LAB_NAMES[m[1]];
     const unit = m[3] ? UNIT_ALIASES[m[3]] : '';
@@ -131,9 +147,23 @@ export function labValues(text) {
     // analyte has no unit at all (pH, INR)
     if (!unit && !LABS[analyte]['']) continue;
     if (unit === '' && m[1].length <= 2 && analyte !== 'ph') continue;
-    out.push({ analyte, name: m[1], value: num(m[2]), unit, said: m[0].trim() });
+    out.push({ analyte, name: m[1], value: num(m[2]), unit, said: m[0].trim(), fluid: fluidBefore(t, m.index) });
   }
   return out;
+}
+
+/// The body fluid a result belongs to: the nearest fluid word before it in
+/// the last 200 characters ("Urine | Sodium 45 mEq/L", "the vaginal pH is
+/// 5.5"). The reference table is for blood, so a result from anything else
+/// is not judged against it (on real exam questions urine pH 5.7 and urine
+/// sodium 45 were flagged as impossible). '' when nothing says.
+const FLUID = /\b(serum|plasma|blood|arterial|venous|abg|urine|urinary|urinalysis|dipstick|gastric|stomach|vaginal|stool|f(?:a)?ecal|csf|cerebrospinal|lumbar puncture|spinal fluid|pleural|ascitic|peritoneal|synovial|sweat|saliva|semen|cement|dentin|enamel|solution|buffer|skin)\b/g;
+const BLOOD = new Set(['serum', 'plasma', 'blood', 'arterial', 'venous', 'abg']);
+export function fluidBefore(t, at) {
+  const words = [...t.slice(Math.max(0, at - 200), at + 1).matchAll(FLUID)];
+  if (!words.length) return '';
+  const w = words[words.length - 1][1];
+  return BLOOD.has(w) ? 'blood' : w;
 }
 
 /// "normal sodium is 125-135 mmol/L": a stated reference range to compare.
@@ -150,13 +180,29 @@ function statedRanges(text) {
 }
 
 export const NON_ANSWERS = ['all of the above', 'none of the above', 'all of these', 'none of these'];
-const norm = s => lower(s).replace(/[^a-z0-9%]+/g, ' ').trim();
+// signs kept: "CD 23+" is not "CD 23-", "Rh+ve" not "Rh-ve", "p<0.05" not
+// "p>0.05" (all false duplicates on real exam questions before)
+// and arrows and Greek letters: "↓TSH ↑T4" is not "↓TSH ↓T4", "α-synuclein"
+// not "β-synuclein" (specialist questions differ by little else). Only
+// spaces, ASCII punctuation and markdown are set aside.
+const norm = s => lower(s).replace(/[−–]/g, '-').replace(/[\s.,;:!?()[\]{}"'`|_/\\*#]+/g, ' ').trim();
 const letter = i => String.fromCharCode(65 + i);
 
 /// Which option the explanation says is right, if it says so plainly:
 /// "the answer is C", "Correct answer: (B)", "Option D is correct".
+/// The key an explanation opens with, as exam banks write it: "Ans-a.",
+/// "Answer- A.", "Ans: B.", "Ans. is 'd' i.e.", "Ans (c)". The letter must
+/// be marked off - quoted, bracketed or followed by punctuation - so "Answer
+/// is a combination" is not read as option A.
+export const KEY_LEAD = /^\W{0,3}ans(?:wer)?\b\.?\s*(?:is\b\.?)?\s*[:\-–—=]?\s*(?:is\b\.?\s*)?(?:option\s*)?(?:['"‘’“”(\[]\s*([a-j])\s*['"‘’“”)\]]|([a-j])(?=\s*[.,:;)\-–—]|\s*$))/i;
+
 export function explainedAnswer(explanation, options) {
   const e = String(explanation || '');
+  const lead = e.match(KEY_LEAD);
+  if (lead) {
+    const i = (lead[1] || lead[2]).toUpperCase().charCodeAt(0) - 65;
+    if (i >= 0 && i < options.length) return i;
+  }
   const byLetter = [...e.matchAll(/\b(?:correct\s+(?:answer|option|choice)|the\s+answer|answer)\s*(?:is|:)\s*(?:option\s*)?\(?([A-J])\)?(?![A-Za-z0-9])/g),
                     ...e.matchAll(/\b(?:option|choice)\s*\(?([A-J])\)?\s+is\s+(?:the\s+)?(?:correct|right|best)\b/gi)];
   if (byLetter.length) {
@@ -239,15 +285,25 @@ export function ruleHits(item) {
     }
   }
 
+  // what the item asserts: for a question the stem, the keyed answer and the
+  // explanation - not the distractors, which are wrong on purpose (DNA brief:
+  // strand discrimination, the template is checked and not the deliberate
+  // mismatches; on real specialist questions "Naloxone 50 mg will block
+  // heroin for 24 hours", a false option, was flagged as a dosing error)
+  const judged = assertedText(item);
   for (const said of notation(text)) add('dose-notation', 'minor', said);
-  for (const said of lookAlike(text)) add('look-alike-drug', 'severe', said);
+  for (const said of lookAlike(judged)) add('look-alike-drug', 'severe', said);
   for (const old of superseded(item)) add('outdated-practice', old.severity, old.says);
-  for (const d of doses(text)) {
+  for (const d of doses(judged)) {
     const [lo, hi] = DRUGS[d.drug];
     if (d.mg > hi * 2 || d.mg < lo / 5) add('dose-range', 'severe', `${d.said}: outside any usual dose of ${d.drug} (${fmt(lo)}–${fmt(hi)} mg).`);
     else if (d.mg > hi || d.mg < lo) add('dose-range', 'minor', `${d.said}: unusual for ${d.drug} (${fmt(lo)}–${fmt(hi)} mg).`);
   }
-  for (const v of labValues(text)) {
+  for (const v of labValues(judged)) {
+    // judged only as blood: a pH needs to be said to be blood's (urine,
+    // gastric, vaginal and dental pH are all far below 6.5)
+    if (v.fluid && v.fluid !== 'blood') continue;
+    if (v.analyte === 'ph' && v.fluid !== 'blood') continue;
     const ranges = LABS[v.analyte];
     const r = ranges[v.unit];
     if (!r) {
@@ -256,7 +312,7 @@ export function ruleHits(item) {
     }
     if (v.value < r[0] || v.value > r[1]) add('lab-implausible', 'severe', `${v.said}: not a possible ${v.analyte} in ${v.unit || 'these units'} (wrong unit?).`);
   }
-  for (const s of statedRanges(text)) {
+  for (const s of statedRanges(judged)) {
     const table = LABS[s.analyte];
     if (!table) continue;
     // a range written without a unit is right if it is right in any unit the
@@ -270,7 +326,7 @@ export function ruleHits(item) {
     add('reference-range', 'severe', `Normal ${s.analyte} is about ${should}, not ${s.lo}–${s.hi}.`);
   }
   // one analyte said to go both up and down
-  const t = lower(text);
+  const t = lower(judged);
   for (const name of new Set(Object.values(LAB_NAMES))) {
     const up = new RegExp(`\\b${esc(name)}\\s+(?:is\\s+|are\\s+|level\\s+is\\s+)?(?:increased|elevated|raised|high)\\b`).test(t);
     const down = new RegExp(`\\b${esc(name)}\\s+(?:is\\s+|are\\s+|level\\s+is\\s+)?(?:decreased|reduced|low|lowered)\\b`).test(t);
@@ -352,7 +408,7 @@ export const EXPAND = [
   ['\\bPEA\\b', 'pulseless electrical activity'], ['\\bMONA\\b', 'morphine oxygen nitrates aspirin'],
   ['\\bHES\\b', 'hydroxyethyl starch'], ['\\bACS\\b', 'acute coronary syndrome'],
   ['\\b(?:N?STE)?MI\\b', 'myocardial infarction'], ['\\bO2\\b', 'oxygen'], ['\\bICU\\b', 'intensive care'],
-  ['\\bAKI\\b', 'acute kidney injury'],
+  ['\\bAKI\\b', 'acute kidney injury'], ['\\b[Nn]ot vigorous\\b', 'non-vigorous'],
 ];
 
 /// Practice current guidance has retired, each with what replaced it and
@@ -388,7 +444,7 @@ export const SUPERSEDED = [
     unless: 'overdose|toxicity|poison',
     says: 'Dextropropoxyphene was withdrawn (EU 2009, US 2010) for fatal heart-rhythm toxicity.' },
   { id: 'tight-icu-glucose', severity: 'severe',
-    cue: '\\b8[01]\\s*(?:-|–|to)\\s*1(?:08|10)\\s*mg\\s*/\\s*dl\\b|\\b4\\.[45]\\s*(?:-|–|to)\\s*6\\.[01]\\s*mmol',
+    cue: '\\b8[01]\\s*(?:-|–|to|and)\\s*1(?:08|10)\\s*mg\\s*/\\s*dl\\b|\\b4\\.[45]\\s*(?:-|–|to|and)\\s*6\\.[01]\\s*mmol',
     context: ['intensive care|critically ill|critical illness|ventilated|septic|sepsis'],
     says: 'Tight ICU glucose targets raised deaths (NICE-SUGAR, NEJM 2009): aim for 140–180 mg/dL (7.8–10 mmol/L).' },
   { id: 'prophylactic-lidocaine', severity: 'severe',
@@ -414,7 +470,13 @@ export const SUPERSEDED = [
 ];
 
 /// A sentence that says the practice is no longer done is teaching the change.
-export const RETIRED_SAID = "\\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|instead of|rather than|unlike|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\\b|\\bno (?:role|benefit|place|evidence|use|longer)\\b";
+export const RETIRED_SAID = "\\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\\b|\\bno (?:role|benefit|place|evidence|use|longer)\\b";
+
+/// Words just before the practice that set it aside: "charcoal is preferred
+/// to ipecac", "ventilate without routine suction", "unlike atropine". After
+/// it they would promote it ("atropine rather than adrenaline"), so they
+/// only count before.
+export const SET_ASIDE_BEFORE = "\\b(?:rather than|instead of|in preference to|preferred (?:to|over)|chosen over|better than|superior to|in place of|unlike|without|not|never|no|avoid(?:ing)?)\\s+(?:[a-z0-9-]+\\s+){0,3}$";
 
 /// Sentences: at a line break, or after . ! ? ; and a space (so 0.5 mg is one).
 export const sentencesOf = text => String(text || '').split(/\n|(?<=[.!?;])\s+/).map(x => x.trim()).filter(Boolean);
@@ -432,8 +494,10 @@ export function superseded(item) {
   const found = new Map();
   const test = (cueIn, contextIn, excuseIn, severity) => {
     for (const e of SUPERSEDED) {
-      if (!has(e.cue, cueIn) || !e.context.every(c => has(c, contextIn))) continue;
+      const cue = new RegExp(e.cue).exec(cueIn);
+      if (!cue || !e.context.every(c => has(c, contextIn))) continue;
       if ((e.unless && has(e.unless, contextIn)) || has(RETIRED_SAID, excuseIn)) continue;
+      if (has(SET_ASIDE_BEFORE, cueIn.slice(0, cue.index))) continue;
       const level = severity || e.severity;
       if (found.get(e.id)?.severity !== 'severe') found.set(e.id, { id: e.id, severity: level, says: e.says });
     }
@@ -450,6 +514,15 @@ export function superseded(item) {
     for (const sentence of sentencesOf(item.text)) { const t = spelled(sentence); test(t, t, t, null); }
   }
   return [...found.values()];
+}
+
+/// What an item asserts as true: a question's stem, its keyed answer and its
+/// explanation; anything else's text.
+export function assertedText(item) {
+  if (item.kind !== 'mcq') return String(item.text || '').trim();
+  const options = item.options || [];
+  const key = Number.isInteger(item.key) && item.key >= 0 && item.key < options.length ? options[item.key] : '';
+  return `${item.stem || ''}\n${key}\n${item.explanation || ''}`.trim();
 }
 
 /// The words the checker, the cache and the rules see for an item.

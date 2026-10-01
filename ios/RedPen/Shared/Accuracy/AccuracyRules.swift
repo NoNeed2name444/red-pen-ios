@@ -28,9 +28,9 @@ enum AccuracyRules {
 
     // BEGIN DRUGS
     static let drugTable: String = """
-        paracetamol=325:4000;acetaminophen=325:4000;ibuprofen=200:3200;aspirin=75:4000;naproxen=220:1500;
-        amoxicillin=125:6000;co-amoxiclav=250:3600;ceftriaxone=250:4000;vancomycin=125:4000;
-        ciprofloxacin=100:1500;doxycycline=50:200;azithromycin=250:2000;clarithromycin=250:1000;
+        paracetamol=80:4000;acetaminophen=80:4000;ibuprofen=200:3200;aspirin=75:4000;naproxen=220:1500;
+        amoxicillin=125:6000;co-amoxiclav=250:3600;ceftriaxone=50:4000;vancomycin=125:4000;
+        ciprofloxacin=100:1500;doxycycline=20:200;azithromycin=250:2000;clarithromycin=250:1000;
         metronidazole=200:4000;nitrofurantoin=50:400;trimethoprim=100:400;benzylpenicillin=300:14400;
         flucloxacillin=250:8000;metformin=250:3000;gliclazide=30:320;atorvastatin=10:80;simvastatin=5:80;
         rosuvastatin=5:40;pravastatin=10:80;lisinopril=2.5:80;ramipril=1.25:10;enalapril=2.5:40;
@@ -39,7 +39,7 @@ enum AccuracyRules {
         spironolactone=12.5:400;bendroflumethiazide=1.25:5;hydrochlorothiazide=6.25:100;warfarin=0.5:15;
         apixaban=2.5:20;rivaroxaban=2.5:30;dabigatran=75:300;clopidogrel=75:600;ticagrelor=60:180;
         digoxin=0.0625:1.5;levothyroxine=0.0125:0.3;carbimazole=5:60;propylthiouracil=50:1200;morphine=1:200;
-        oxycodone=2.5:160;codeine=15:240;tramadol=50:400;fentanyl=0.012:0.2;naloxone=0.04:10;
+        oxycodone=2.5:160;codeine=15:240;tramadol=50:400;fentanyl=0.012:0.8;naloxone=0.04:10;
         adrenaline=0.01:1;epinephrine=0.01:1;atropine=0.1:5;adenosine=3:18;amiodarone=50:1200;
         prednisolone=1:100;prednisone=1:100;methylprednisolone=4:1000;dexamethasone=0.5:40;
         hydrocortisone=5:500;diazepam=1:40;lorazepam=0.25:10;midazolam=0.5:20;haloperidol=0.5:20;
@@ -59,13 +59,13 @@ enum AccuracyRules {
         sodium|mmol~l=95:195:135:145;sodium|meq~l=95:195:135:145;potassium|mmol~l=1.2:10:3.5:5.3;
         potassium|meq~l=1.2:10:3.5:5.3;chloride|mmol~l=60:150:96:107;chloride|meq~l=60:150:96:107;
         bicarbonate|mmol~l=2:55:22:29;bicarbonate|meq~l=2:55:22:29;calcium|mg~dl=3:20:8.5:10.5;
-        calcium|mmol~l=0.8:5:2.1:2.6;magnesium|mg~dl=0.4:12:1.7:2.4;magnesium|mmol~l=0.15:5:0.7:1.05;
+        calcium|mmol~l=0.8:5:2.1:2.6;calcium|meq~l=1.6:10:4.2:5.2;magnesium|mg~dl=0.4:12:1.7:2.4;magnesium|mmol~l=0.15:5:0.7:1.05;
         magnesium|meq~l=0.3:10:1.4:2.1;glucose|mg~dl=10:2500:70:100;glucose|mmol~l=0.5:140:3.9:5.6;
         creatinine|mg~dl=0.1:30:0.6:1.3;creatinine|µmol~l=10:2700:50:115;urea|mmol~l=0.5:120:2.5:7.8;
         urea|mg~dl=1:350:7:20;bun|mg~dl=1:350:7:20;haemoglobin|g~dl=1.5:26:12:17.5;
         haemoglobin|g~l=15:260:120:175;hemoglobin|g~dl=1.5:26:12:17.5;hemoglobin|g~l=15:260:120:175;
         albumin|g~dl=0.5:7:3.5:5;albumin|g~l=5:70:35:50;bilirubin|mg~dl=0.05:60:0.1:1.2;
-        bilirubin|µmol~l=1:1000:3:21;lactate|mmol~l=0.1:35:0.5:2.2;tsh|miu~l=0.001:1000:0.4:4.5;
+        bilirubin|µmol~l=1:1000:3:21;lactate|mmol~l=0.1:35:0.5:2.2;lactate|mg~dl=0.9:315:4.5:19.8;tsh|miu~l=0.001:1000:0.4:4.5;
         tsh|mu~l=0.001:1000:0.4:4.5;hba1c|%=3:20:4:5.6;hba1c|mmol~mol=10:200:20:38;paco2|mmhg=8:160:35:45;
         paco2|kpa=1:21:4.7:6;pao2|mmhg=15:700:75:100;pao2|kpa=2:95:10:13.3;ph|=6.5:7.9:7.35:7.45;
         inr|=0.5:20:0.8:1.2;
@@ -185,22 +185,38 @@ enum AccuracyRules {
     // MARK: reading doses and values
 
     struct Dose: Hashable { var drug: String; var mg: Double; var said: String }
-    struct LabValue: Hashable { var analyte: String; var name: String; var value: Double; var unit: String; var said: String }
+    struct LabValue: Hashable { var analyte: String; var name: String; var value: Double; var unit: String; var said: String; var fluid: String = "" }
 
     static let doseUnit: String = "(g|mg|mcg|µg|ug|ng|micrograms?|milligrams?|grams?)"
 
     static func doses(_ text: String) -> [Dose] {
         let t: String = text.lowercased().replacingOccurrences(of: "μ", with: "µ")
         var out: [Dose] = []
-        let perRate: String = "^\\s*(/|per\\s+)(kg|min|minute|h|hr|hour|m2|m²)"
+        // per kilogram, minute or hour is a rate; per mL or litre a concentration
+        let perRate: String = "^\\s*(/|per\\s+)(kg|min|minute|h|hr|hour|m2|m²|ml|l\\b|dl|litre|liter)"
+        // "serum digoxin level, which is 3.7 ng" is a level, not a dose
+        let measured: String = "\\b(?:level|levels|concentration|serum|plasma|blood|trough|peak)\\b"
         for drug in drugs.keys.sorted() where t.contains(drug) {
             let name: String = esc(drug)
-            let after: String = "\\b" + name + "\\b[^.;\\n\\d]{0,25}?(\\d+(?:[.,]\\d+)?)\\s*" + doseUnit + "\\b"
+            // no comma, "and" or other drug between the name and the number
+            let after: String = "\\b" + name + "\\b([^.;,\\n\\d]{0,25}?)(\\d+(?:[.,]\\d+)?)\\s*" + doseUnit + "\\b"
             let before: String = "(\\d+(?:[.,]\\d+)?)\\s*" + doseUnit + "\\b\\s+(?:of\\s+)?(?:iv\\s+|oral\\s+|im\\s+)?" + name + "\\b"
             for (pattern, isAfter) in [(after, true), (before, false)] {
                 for m in find(pattern, in: t) {
-                    if isAfter && matches(perRate, tail(t, from: m.end)) { continue }
-                    guard let value = m.groups[1], let unit = m.groups[2], let factor = mass[unit] else { continue }
+                    if matches(perRate, tail(t, from: m.end)) { continue }
+                    // a combination product's strength belongs to no one drug alone
+                    if matches("^\\s*/\\s*\\d", tail(t, from: m.end)) { continue }
+                    if isAfter {
+                        let ns = t as NSString
+                        let before: String = ns.substring(to: m.start)
+                        let afterName: String = tail(t, from: m.start + (drug as NSString).length)
+                        if matches("[-/]$", before) || matches("^[-/][a-z]", afterName) { continue }
+                        let gap: String = m.groups[1] ?? ""
+                        if matches(measured, m.groups[0] ?? "") || matches("\\b(?:and|or|with|plus|then|vs|versus)\\b", gap) { continue }
+                        if drugs.keys.contains(where: { $0 != drug && gap.contains($0) }) { continue }
+                    }
+                    let valueGroup: Int = isAfter ? 2 : 1
+                    guard let value = m.groups[valueGroup], let unit = m.groups[valueGroup + 1], let factor = mass[unit] else { continue }
                     let said: String = (m.groups[0] ?? "").trimmingCharacters(in: .whitespaces)
                     out.append(Dose(drug: drug, mg: number(value) * factor, said: said))
                 }
@@ -217,7 +233,7 @@ enum AccuracyRules {
         let t: String = text.lowercased().replacingOccurrences(of: "μ", with: "µ")
         let names: String = alternation(Array(labNames.keys))
         let units: String = alternation(Array(unitAliases.keys))
-        let pattern: String = "(?:^|[^a-z0-9])(" + names + ")(?![a-z0-9])\\s*(?:level|concentration|of|is|was|:|=|\\s)*\\s*(\\d+(?:\\.\\d+)?)\\s*(" + units + ")?(?![a-z0-9/])"
+        let pattern: String = "(?:^|[^a-z0-9-])(" + names + ")(?![a-z0-9])\\s*(?:level|concentration|of|is|was|:|=|\\s)*\\s*(\\d+(?:\\.\\d+)?)\\s*(" + units + ")?(?![a-z0-9/])"
         var out: [LabValue] = []
         for m in find(pattern, in: t) {
             guard let name = m.groups[1], let analyte = labNames[name], let raw = m.groups[2] else { continue }
@@ -226,9 +242,25 @@ enum AccuracyRules {
             if unit.isEmpty && !unitless { continue }
             if unit.isEmpty && name.count <= 2 && analyte != "ph" { continue }
             let said: String = (m.groups[0] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            out.append(LabValue(analyte: analyte, name: name, value: number(raw), unit: unit, said: said))
+            out.append(LabValue(analyte: analyte, name: name, value: number(raw), unit: unit, said: said,
+                                fluid: fluidBefore(t, at: m.start)))
         }
         return out
+    }
+
+    /// The body fluid a result belongs to: the nearest fluid word before it in
+    /// the last 200 characters (fluidBefore in server/accuracy-rules.js). The
+    /// reference table is for blood, so a result from anything else is not
+    /// judged against it. "" when nothing says.
+    static let fluidWords: String = #"\b(serum|plasma|blood|arterial|venous|abg|urine|urinary|urinalysis|dipstick|gastric|stomach|vaginal|stool|f(?:a)?ecal|csf|cerebrospinal|lumbar puncture|spinal fluid|pleural|ascitic|peritoneal|synovial|sweat|saliva|semen|cement|dentin|enamel|solution|buffer|skin)\b"#
+    static let bloodWords: Set<String> = ["serum", "plasma", "blood", "arterial", "venous", "abg"]
+
+    static func fluidBefore(_ t: String, at: Int) -> String {
+        let ns = t as NSString
+        let from: Int = max(0, at - 200)
+        let window: String = ns.substring(with: NSRange(location: from, length: min(ns.length, at + 1) - from))
+        guard let last = find(fluidWords, in: window).last, let w = last.groups[1] else { return "" }
+        return bloodWords.contains(w) ? "blood" : w
     }
 
     private struct StatedRange { var analyte: String; var lo: Double; var hi: Double; var unit: String }
@@ -249,7 +281,18 @@ enum AccuracyRules {
     // MARK: questions
 
     /// Which option the explanation plainly says is right, if any.
+    /// The key an explanation opens with, as exam banks write it: "Ans-a.",
+    /// "Answer- A.", "Ans: B.", "Ans. is 'd' i.e.", "Ans (c)" (KEY_LEAD in
+    /// server/accuracy-rules.js). The letter must be marked off, so "Answer
+    /// is a combination" is not read as option A.
+    static let keyLead: String = #"^\W{0,3}ans(?:wer)?\b\.?\s*(?:is\b\.?)?\s*[:\-–—=]?\s*(?:is\b\.?\s*)?(?:option\s*)?(?:['"‘’“”(\[]\s*([a-j])\s*['"‘’“”)\]]|([a-j])(?=\s*[.,:;)\-–—]|\s*$))"#
+
     static func explainedAnswer(_ explanation: String, options: [String]) -> Int? {
+        if let lead = find(keyLead, in: explanation, caseless: true).first,
+           let l = (lead.groups[1] ?? lead.groups[2])?.uppercased(), let scalar = l.unicodeScalars.first {
+            let i: Int = Int(scalar.value) - 65
+            if i >= 0 && i < options.count { return i }
+        }
         let byLetter: [Found] = find("\\b(?:correct\\s+(?:answer|option|choice)|the\\s+answer|answer)\\s*(?:is|:)\\s*(?:option\\s*)?\\(?([A-J])\\)?(?![A-Za-z0-9])", in: explanation)
             + find("\\b(?:option|choice)\\s*\\(?([A-J])\\)?\\s+is\\s+(?:the\\s+)?(?:correct|right|best)\\b", in: explanation, caseless: true)
         if let last = byLetter.last, let l = last.groups[1]?.uppercased(), let scalar = l.unicodeScalars.first {
@@ -269,11 +312,14 @@ enum AccuracyRules {
     }
 
     private static func normalised(_ s: String) -> String {
-        let lower: String = s.lowercased()
+        let lower: String = s.lowercased().replacingOccurrences(of: "−", with: "-").replacingOccurrences(of: "–", with: "-")
         var out: String = ""
         var gap = false
         for ch in lower {
-            let keep: Bool = ("a"..."z").contains(ch) || ("0"..."9").contains(ch) || ch == "%"
+            // everything but spaces, ASCII punctuation and markdown kept: signs
+            // ("CD 23+" is not "CD 23-"), arrows ("↓TSH ↑T4" is not "↓TSH ↓T4")
+            // and Greek letters ("α-synuclein" is not "β-synuclein")
+            let keep: Bool = !ch.isWhitespace && !".,;:!?()[]{}\"'`|_/\\*#".contains(ch)
             if keep {
                 if gap && !out.isEmpty { out.append(" ") }
                 out.append(ch)
@@ -295,6 +341,14 @@ enum AccuracyRules {
 
     static let negatedStem: String = "\\b(?:NOT|EXCEPT)\\b|\\bleast\\s+likely\\b|\\bis\\s+false\\b|\\bincorrect\\s+statement\\b|\\bfalse\\s+statement\\b"
 
+    /// What an item asserts as true: a question's stem, its keyed answer and
+    /// its explanation; anything else's text.
+    static func assertedText(_ item: AccuracyItem) -> String {
+        guard item.kind == .mcq else { return item.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let key: String = item.options.indices.contains(item.key) ? item.options[item.key] : ""
+        return (item.stem + "\n" + key + "\n" + item.explanation).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Every rule hit for one item.
     static func hits(_ item: AccuracyItem) -> [Hit] {
         var out: [Hit] = []
@@ -305,9 +359,12 @@ enum AccuracyRules {
         let text: String = item.checkedText
 
         for said in notation(text) { add("dose-notation", "minor", said) }
-        for said in lookAlike(text) { add("look-alike-drug", "severe", said) }
+        // what the item asserts, not a question's distractors (assertedText in
+        // server/accuracy-rules.js): they are wrong on purpose
+        let judged: String = assertedText(item)
+        for said in lookAlike(judged) { add("look-alike-drug", "severe", said) }
         for old in superseded(item) { add("outdated-practice", old.severity, old.says) }
-        for d in doses(text) {
+        for d in doses(judged) {
             guard let range = drugs[d.drug], range.count == 2 else { continue }
             let lo: Double = range[0], hi: Double = range[1]
             let span: String = fmt(lo) + "–" + fmt(hi) + " mg"
@@ -317,7 +374,10 @@ enum AccuracyRules {
                 add("dose-range", "minor", d.said + ": unusual for " + d.drug + " (" + span + ").")
             }
         }
-        for v in labValues(text) {
+        for v in labValues(judged) {
+            // judged only as blood: a pH needs to be said to be blood's
+            if !v.fluid.isEmpty && v.fluid != "blood" { continue }
+            if v.analyte == "ph" && v.fluid != "blood" { continue }
             guard let ranges = labs[v.analyte] else { continue }
             guard let r = ranges[v.unit] else {
                 if v.unit.contains("/") && v.name.count > 2 {
@@ -330,7 +390,7 @@ enum AccuracyRules {
                 add("lab-implausible", "severe", v.said + ": not a possible " + v.analyte + " in " + unitName + " (wrong unit?).")
             }
         }
-        for s in statedRanges(text) {
+        for s in statedRanges(judged) {
             guard let table = labs[s.analyte] else { continue }
             // a range written without a unit is right if it is right in any
             // unit the analyte is reported in (audit #96), as the server does
@@ -345,7 +405,7 @@ enum AccuracyRules {
             let said: String = "\(fmt(s.lo))–\(fmt(s.hi))"
             add("reference-range", "severe", "Normal \(s.analyte) is about \(should), not \(said).")
         }
-        let t: String = text.lowercased()
+        let t: String = judged.lowercased()
         for name in Set(labNames.values).sorted() {
             let n: String = esc(name)
             let up: Bool = matches("\\b" + n + "\\s+(?:is\\s+|are\\s+|level\\s+is\\s+)?(?:increased|elevated|raised|high)\\b", t)
@@ -459,6 +519,7 @@ enum AccuracyRules {
         (#"\bO2\b"#, "oxygen"),
         (#"\bICU\b"#, "intensive care"),
         (#"\bAKI\b"#, "acute kidney injury"),
+        (#"\b[Nn]ot vigorous\b"#, "non-vigorous"),
     ]
 
     struct Retired {
@@ -505,7 +566,7 @@ enum AccuracyRules {
                 unless: #"overdose|toxicity|poison"#,
                 says: "Dextropropoxyphene was withdrawn (EU 2009, US 2010) for fatal heart-rhythm toxicity."),
         Retired(id: "tight-icu-glucose", severity: "severe",
-                cue: #"\b8[01]\s*(?:-|–|to)\s*1(?:08|10)\s*mg\s*/\s*dl\b|\b4\.[45]\s*(?:-|–|to)\s*6\.[01]\s*mmol"#,
+                cue: #"\b8[01]\s*(?:-|–|to|and)\s*1(?:08|10)\s*mg\s*/\s*dl\b|\b4\.[45]\s*(?:-|–|to|and)\s*6\.[01]\s*mmol"#,
                 context: [#"intensive care|critically ill|critical illness|ventilated|septic|sepsis"#],
                 unless: nil,
                 says: "Tight ICU glucose targets raised deaths (NICE-SUGAR, NEJM 2009): aim for 140–180 mg/dL (7.8–10 mmol/L)."),
@@ -542,7 +603,13 @@ enum AccuracyRules {
     ]
 
     /// A sentence that says the practice is no longer done is teaching the change.
-    static let retiredSaid: String = #"\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|instead of|rather than|unlike|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\b|\bno (?:role|benefit|place|evidence|use|longer)\b"#
+    static let retiredSaid: String = #"\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\b|\bno (?:role|benefit|place|evidence|use|longer)\b"#
+
+    /// Words just before the practice that set it aside ("charcoal is preferred
+    /// to ipecac", "without routine suction"); after it they would promote it,
+    /// so they only count before (SET_ASIDE_BEFORE in server/accuracy-rules.js).
+    static let setAsideBefore: String = #"\b(?:rather than|instead of|in preference to|preferred (?:to|over)|chosen over|better than|superior to|in place of|unlike|without|not|never|no|avoid(?:ing)?)\s+(?:[a-z0-9-]+\s+){0,3}$"#
+
 
     /// Sentences: at a line break, or after . ! ? ; and a space (so 0.5 mg is one).
     static func sentences(_ text: String) -> [String] {
@@ -577,9 +644,10 @@ enum AccuracyRules {
         var found: [(id: String, severity: String, says: String)] = []
         func test(_ cueIn: String, _ contextIn: String, _ excuseIn: String, _ severity: String?) {
             for e in retired {
-                guard matches(e.cue, cueIn), e.context.allSatisfy({ matches($0, contextIn) }) else { continue }
+                guard let cue = find(e.cue, in: cueIn).first, e.context.allSatisfy({ matches($0, contextIn) }) else { continue }
                 if let unless = e.unless, matches(unless, contextIn) { continue }
                 if matches(retiredSaid, excuseIn) { continue }
+                if matches(setAsideBefore, (cueIn as NSString).substring(to: cue.start)) { continue }
                 let level: String = severity ?? e.severity
                 if let at = found.firstIndex(where: { $0.id == e.id }) {
                     if found[at].severity != "severe" { found[at] = (e.id, level, e.says) }
