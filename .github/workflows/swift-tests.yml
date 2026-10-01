@@ -55,7 +55,7 @@ jobs:
         run: apt-get update -qq && apt-get install -y -qq python3 zip git > /dev/null
       - uses: actions/checkout@v4
       - name: Every suite that builds on Linux
-        run: python3 tools/swift_suites.py --platform linux -O -O -j 4
+        run: python3 tools/swift_suites.py --platform linux --release -j 4
       - name: Push the logs
         if: always()
         run: |
@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: The suites that need Apple frameworks
-        run: python3 tools/swift_suites.py --platform mac -O -O -j 3
+        run: python3 tools/swift_suites.py --platform mac --release -j 3
       - name: Push the logs
         if: always()
         run: |

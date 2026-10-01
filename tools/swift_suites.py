@@ -84,7 +84,8 @@ def main():
     ap.add_argument("--classify", action="store_true", help="rewrite the mac-only list from this run's NO BUILDs")
     ap.add_argument("-j", type=int, default=os.cpu_count() or 2)
     ap.add_argument("--swiftc", default=shutil.which("swiftc") or "/opt/swift/usr/bin/swiftc")
-    ap.add_argument("-O", dest="opt", default="-Onone", help="optimisation flag (CI uses -O)")
+    ap.add_argument("--release", dest="opt", action="store_const", const="-O", default="-Onone",
+                    help="compile with -O, as CI does (default -Onone: faster to build here)")
     a = ap.parse_args()
     all_s, macs = suites(), mac_only()
     if a.list:
