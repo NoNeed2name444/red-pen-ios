@@ -260,7 +260,7 @@ struct RedPenApp: App {
             .environmentObject(sync)
             .environmentObject(gemma)
             .environmentObject(llm)
-            .tint(Color(red: 0.78, green: 0.16, blue: 0.16)) // the app's "pen" red
+            .tint(Color.wardPrimary) // Theatre Blue
             // the one motion source for the pop-out: started while the app
             // is active, stopped in the background (see PopOut.swift)
             .popOutLifecycle()
@@ -294,7 +294,7 @@ struct RedPenApp: App {
                 .environmentObject(sync)
                 .environmentObject(gemma)
                 .environmentObject(llm)
-                .tint(Color(red: 0.78, green: 0.16, blue: 0.16))
+                .tint(Color.wardPrimary)
         }
         // never the window a link or opened file lands in (it has no
         // routes): only its own openWindow requests open it

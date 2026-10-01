@@ -110,7 +110,7 @@ extension View {
     /// A list row frosted, so the backdrop shows through while the row stays
     /// easy to read - the library's own row background.
     func frostedListRow() -> some View {
-        listRowBackground(Rectangle().fill(.regularMaterial))
+        wardRowBackground()
     }
 }
 

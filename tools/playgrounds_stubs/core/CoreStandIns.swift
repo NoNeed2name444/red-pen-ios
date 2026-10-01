@@ -264,24 +264,12 @@ struct FinishScoreKey: PreferenceKey {
     }
 }
 
-/// The app's backdrop: Clean Sheet in light, Midnight navy in dark, with the
-/// mode's tint washed over the top when there is one.
+/// The app's backdrop: the Ward Round grid ground.
 struct AppBackdrop: View {
     let tint: Color?
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let ground: Color = scheme == .dark
-            ? Color(red: 10 / 255, green: 22 / 255, blue: 40 / 255)
-            : Color(red: 0.965, green: 0.973, blue: 0.98)
-        ZStack {
-            ground
-            if let tint {
-                LinearGradient(colors: [tint.opacity(scheme == .dark ? 0.18 : 0.10), Color.clear],
-                               startPoint: .top, endPoint: .center)
-            }
-        }
-        .ignoresSafeArea()
+        WardBackground()
     }
 }
 

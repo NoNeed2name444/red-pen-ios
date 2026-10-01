@@ -270,3 +270,6 @@ suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift
 # the first run: who sees the first-run pages and when, the daily
 # goal's key and range, and tips that wait for a familiar screen
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
+# the Ward Round palette: contrast promises in light and dark, and the
+# AccentColor asset drawn from the same table
+suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift

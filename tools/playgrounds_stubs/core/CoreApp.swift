@@ -96,7 +96,7 @@ struct StethoscoreCoreApp: App {
             .environmentObject(gemma)
             .environmentObject(llm)
             .coreAudioEnvironment()
-            .tint(Color(red: 0.78, green: 0.16, blue: 0.16))
+            .tint(Color.wardPrimary)
             .launchSplash()
         }
     }

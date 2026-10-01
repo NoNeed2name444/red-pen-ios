@@ -19,7 +19,10 @@ private struct GlassChip: ViewModifier {
     @Environment(\.modeTint) private var modeTint
 
     func body(content: Content) -> some View {
-        content.glassEffect(.regular.tint((tint ?? modeTint).opacity(0.35)), in: .capsule)
+        // Ward Round: a white capsule with a hairline edge
+        content
+            .background(Color.wardSurface, in: Capsule())
+            .overlay(Capsule().strokeBorder((tint ?? Color.wardHairline).opacity(tint == nil ? 1 : 0.4), lineWidth: 1))
     }
 }
 
@@ -27,10 +30,11 @@ extension View {
     /// A floating bottom control bar — matches the way iOS 26's own toolbars
     /// and tab bars sit as a rounded pane of glass over the content.
     func liquidGlassPanel(cornerRadius: CGFloat = 22, tint: Color = .clear) -> some View {
-        glassEffect(
-            tint == .clear ? .regular : .regular.tint(tint),
-            in: .rect(cornerRadius: cornerRadius)
-        )
+        // Ward Round: Clean Sheet with a hairline edge and the one shadow
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
     }
 
     /// A small glass capsule — for the score / progress chips in each mode's
