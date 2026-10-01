@@ -68,8 +68,9 @@ nonisolated enum GraphNodeStyle: String, CaseIterable, Sendable, Identifiable {
 
     /// How long a pulsar takes to turn once, in seconds. The link shader
     /// beats twice a turn (4/3 a second) and GraphShape.clockPeriod (3000 s)
-    /// is a whole number of turns, so the clock's wrap never shows.
-    static let pulsarPeriod: Float = 1.5
+    /// is a whole number of turns, so the clock's wrap never shows
+    /// (SpaceOptics, tested on Linux).
+    static let pulsarPeriod: Float = SpaceOptics.pulsarPeriod
 }
 
 /// Which look the notes take, as the owner chose it in the Space's tools:

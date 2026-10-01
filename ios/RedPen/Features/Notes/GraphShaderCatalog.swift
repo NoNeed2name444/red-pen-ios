@@ -50,6 +50,7 @@ nonisolated enum GraphShaderCatalog {
             ("cometNucleus", GraphStyleShaders.cometNucleus),
             ("cometComa", GraphStyleShaders.cometComa),
             ("cometTail", GraphStyleShaders.cometTail),
+            ("cometDust", GraphStyleShaders.cometDust),
             ("orbit", GraphStyleShaders.orbit),
             ("well", GraphStyleShaders.well)
         ]

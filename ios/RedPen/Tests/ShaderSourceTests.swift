@@ -268,5 +268,57 @@ let fine: String = "#pragma arguments\nfloat rpProbe;\n#pragma body\nfloat rp_a 
 let fineReport: ShaderReport = read(GraphShaderItem(name: "fine", entry: "surface", source: fine))
 check("S2 the same name in two sibling blocks is fine", fineReport.problems.isEmpty, "\(fineReport.problems)")
 
+// MARK: S3 the shared noise (GraphShaderKit), on the CPU as on the GPU
+
+var outside: Int = 0
+var worstJump: Float = 0
+var sum: Float = 0
+var lowest: Float = 1
+var highest: Float = 0
+var samples: Int = 0
+for k in 0..<3000 {
+    let p = SIMD3<Float>(Float(k % 37) * 0.731 - 13, Float(k % 53) * 0.419 - 11, Float(k / 37) * 0.293 - 7)
+    let v: Float = GraphShaderKit.value(p)
+    if v < 0 || v > 1 { outside += 1 }
+    sum += v
+    samples += 1
+    lowest = min(lowest, v)
+    highest = max(highest, v)
+    // either side of the lattice face just below p.x: no jump
+    let face: Float = p.x.rounded(.down)
+    let a: Float = GraphShaderKit.value(SIMD3<Float>(face - 0.0005, p.y, p.z))
+    let b: Float = GraphShaderKit.value(SIMD3<Float>(face + 0.0005, p.y, p.z))
+    worstJump = max(worstJump, abs(a - b))
+}
+let mean: Float = sum / Float(max(samples, 1))
+check("S3 value noise stays in 0...1", outside == 0, "\(outside) outside")
+check("S3 value noise is continuous across cell faces", worstJump < 0.02, "\(worstJump)")
+check("S3 value noise is varied, centred near a half", mean > 0.35 && mean < 0.65 && highest - lowest > 0.7,
+      "mean \(mean), \(lowest)...\(highest)")
+var fbmOutside: Int = 0
+for k in 0..<500 {
+    let p = SIMD3<Float>(Float(k) * 0.137, Float(k % 7) * 0.71, Float(k % 11) * 0.31)
+    let v: Float = GraphShaderKit.fbm(p, octaves: 5)
+    if v < 0 || v > 1 { fbmOutside += 1 }
+}
+check("S3 fBm stays in 0...1", fbmOutside == 0)
+check("S3 the same point gives the same noise", GraphShaderKit.value(SIMD3<Float>(1.3, -2.7, 4.1))
+      == GraphShaderKit.value(SIMD3<Float>(1.3, -2.7, 4.1)))
+// the Metal it writes: every name it declares starts with the result's
+let snippet: String = GraphShaderKit.noise("rp_q", "rp_p * 2.0") + GraphShaderKit.fbm("rp_f", "rp_p", octaves: "3")
+var strays: [String] = []
+for line in snippet.components(separatedBy: "\n") {
+    let t: [String] = tokens(line)
+    for k in 0..<max(t.count - 1, 0) where types.contains(t[k]) && t[k + 1].hasPrefix("rp_") {
+        let name: String = t[k + 1]
+        if !(name.hasPrefix("rp_q") || name.hasPrefix("rp_f")) { strays.append(name) }
+    }
+}
+check("S3 the kit's Metal names everything after its result", strays.isEmpty, "\(strays)")
+let kitShader = GraphShaderItem(name: "kit", entry: "surface", source: "#pragma arguments\nfloat rpProbe;\n#pragma body\nfloat3 rp_p = float3(1.0, 2.0, 3.0);\n"
+    + snippet + "_surface.diffuse = float4(float3(rp_q + rp_f + rpProbe), 1.0);")
+check("S3 the kit's Metal reads clean, used twice in one shader", read(kitShader).problems.isEmpty,
+      "\(read(kitShader).problems.prefix(3))")
+
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

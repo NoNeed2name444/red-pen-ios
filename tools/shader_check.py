@@ -30,7 +30,7 @@ import os, re, shutil, subprocess, sys, tempfile
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 NOTES = os.path.join(ROOT, "ios/RedPen/Features/Notes")
 # the Foundation-only files that hold shader sources, and the catalog
-SOURCES = ["GraphSpaceShaders.swift", "GraphNeuronShaders.swift", "GraphCircuitShaders.swift",
+SOURCES = ["GraphShaderKit.swift", "GraphSpaceShaders.swift", "GraphNeuronShaders.swift", "GraphCircuitShaders.swift",
            "GraphShaderCatalog.swift"]
 
 HEADER = r"""

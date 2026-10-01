@@ -26,7 +26,9 @@ nonisolated struct GraphStyleRig {
     let beam: SCNNode?
     /// A beam's half width and half length; a tail's width and length.
     let extraSize: SIMD2<Float>
+    /// A comet's ion tail, and (`dust`) its dust tail.
     let tail: SCNNode?
+    var dust: SCNNode? = nil
     /// 0 to 1, fixed for the note: phases, flares, which way a beam starts.
     let seed: Float
     /// The glowing pieces the haze dims: never the opaque body.
@@ -66,17 +68,25 @@ nonisolated struct GraphStyleFrame {
 ///   dragged on a soft spring (so it wobbles and settles when let go) and
 ///   runs hotter; the photon ring turns so its bright side is the side of
 ///   the disk coming towards the eye, and knows the disk's inclination;
-/// - sun: turns slowly; its face runs hotter when dragged (its corona
-///   swells in GraphSim, and it sheds sparks);
+/// - sun: turns slowly; its face runs hotter when dragged, and its
+///   corona's rays flare outward (the motion rides in the corona plane's z
+///   scale with its seed, SpaceOptics.coronaCode); it throws off plasma;
 /// - rocky planet: turns; its moon follows its orbit on a spring, so a
 ///   dragged planet leaves it behind and it swings back round;
 /// - gas giant: turns; dragged, its bands smear (the body's z code) and
 ///   the ring shimmers;
 /// - pulsar: the beams sweep round the spin axis once every
 ///   GraphNodeStyle.pulsarPeriod from the shaders' own clock, facing the
-///   eye; dragged, the axis nutates and the beams lengthen;
-/// - comet: the tail points away from the nearest sun (or the key light)
-///   and swings behind and stretches as it moves;
+///   eye; its wind nebula is turned square to that axis as seen
+///   (SpaceOptics.nebula); dragged, the axis nutates and the beams
+///   lengthen;
+/// - comet: the ion tail points straight away from the nearest sun (or
+///   the key light), the dust tail curves back along where the comet has
+///   been - from its true motion, orbit and drag alike (SpaceOptics
+///   .cometTails) - and both lengthen as it moves;
+/// - every style's sparks when it moves fast (GraphSim's trail emitters):
+///   a black hole's bright plume of debris thrown back along its path, a
+///   sun's plasma, a comet's icy dust (SpaceOptics.trail);
 /// - every note: glows dim with distance (haze);
 /// - the chosen note: an orbit ring, eased in.
 ///
@@ -132,10 +142,30 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     private let leanDamping: Float = 3.8
     private let moonStiffness: Float = 30
     private let moonDamping: Float = 3.8
+    /// Each body's true motion (orbit, drag and spring together), smoothed,
+    /// from where it was the frame before: GraphSim's velocity is only the
+    /// spring's, and a comet's dust tail must lag along its orbit too.
+    private var lastAt: [SIMD3<Float>]
+    private var lastSeen: [Bool]
+    private var trueVelocity: [SIMD3<Float>]
+    /// The trail emitters' size, over the original 0.2 note radius
+    /// (GraphLook.trail's scale), and which styles throw their sparks back
+    /// along the motion (SpaceOptics.trail).
+    private let trailScale: Float
+    private let trailBack: [Bool]
+    private let trailRates: [Float]
 
     init(rigs: [GraphStyleRig], suns: [Int], lit: [SCNMaterial], orbit: SCNNode?, extent: Float,
-         owned: [(SCNMaterial, Int)] = [], nearest: [(SCNMaterial, Int)] = [], lights: [Int]? = nil) {
+         owned: [(SCNMaterial, Int)] = [], nearest: [(SCNMaterial, Int)] = [], lights: [Int]? = nil,
+         trailScale: Float = 1.2) {
         self.rigs = rigs
+        self.trailScale = trailScale
+        let trails: [SpaceOptics.Trail] = rigs.map { SpaceOptics.trail(style: $0.style.code) }
+        trailBack = trails.map(\.backward)
+        trailRates = trails.map(\.rate)
+        lastAt = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: rigs.count)
+        lastSeen = [Bool](repeating: false, count: rigs.count)
+        trueVelocity = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: rigs.count)
         self.suns = Array(suns.prefix(4))
         self.lit = lit
         self.orbit = orbit
@@ -167,17 +197,62 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         orbit?.isHidden = true
     }
 
-    /// The colour of the sparks a moving note sheds.
-    func sparkColor(_ i: Int) -> UIColor {
-        guard i >= 0, i < rigs.count else { return UIColor.orange }
-        switch rigs[i].style {
-        case .blackHole: return UIColor(red: 1, green: 0.55, blue: 0.12, alpha: 1)
-        case .sun: return UIColor(red: 1, green: 0.88, blue: 0.55, alpha: 1)
-        case .rocky: return UIColor(red: 0.7, green: 0.82, blue: 1, alpha: 1)
-        case .gasGiant: return UIColor(red: 1, green: 0.82, blue: 0.55, alpha: 1)
-        case .pulsar: return UIColor(red: 0.62, green: 0.66, blue: 1, alpha: 1)
-        case .comet: return UIColor(red: 0.6, green: 1, blue: 0.92, alpha: 1)
+    /// Dresses a trail emitter in body `i`'s style as it is handed to it
+    /// (SpaceOptics.trail): a black hole's long bright plume of debris,
+    /// streaking, white-gold cooling to ember red; a sun's plasma; a
+    /// comet's icy dust; the others' dust. Render thread.
+    func dressTrail(_ system: SCNParticleSystem, note i: Int) {
+        guard i >= 0, i < rigs.count else { return }
+        let look: SpaceOptics.Trail = SpaceOptics.trail(style: rigs[i].style.code)
+        let s: Float = trailScale
+        system.particleLifeSpan = CGFloat(look.life)
+        system.particleLifeSpanVariation = CGFloat(look.life * 0.35)
+        system.particleSize = CGFloat(look.size * s)
+        system.particleSizeVariation = CGFloat(look.size * 0.5 * s)
+        system.particleVelocity = CGFloat(look.speed * s)
+        system.particleVelocityVariation = CGFloat(look.speed * 0.6 * s)
+        system.spreadingAngle = CGFloat(look.spread)
+        system.stretchFactor = CGFloat(look.stretch)
+        let colours: [UIColor] = look.colours.map {
+            UIColor(red: CGFloat($0.x), green: CGFloat($0.y), blue: CGFloat($0.z), alpha: 1)
         }
+        system.particleColor = colours.first ?? UIColor.orange
+        system.particleColorVariation = SCNVector4(x: 0.02, y: 0.06, z: 0.06, w: 0)
+        let fade = CAKeyframeAnimation()
+        fade.values = [NSNumber(value: 1.0), NSNumber(value: 0.6), NSNumber(value: 0.0)]
+        fade.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 0.4), NSNumber(value: 1.0)]
+        let shrink = CAKeyframeAnimation()
+        shrink.values = [NSNumber(value: 1.0), NSNumber(value: 0.3)]
+        shrink.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 1.0)]
+        var controllers: [SCNParticleSystem.ParticleProperty: SCNParticlePropertyController] = [
+            .opacity: SCNParticlePropertyController(animation: fade),
+            .size: SCNParticlePropertyController(animation: shrink)
+        ]
+        if colours.count > 1 {
+            let ramp = CAKeyframeAnimation()
+            ramp.values = colours
+            let last: Double = Double(colours.count - 1)
+            ramp.keyTimes = colours.indices.map { NSNumber(value: Double($0) / last) }
+            controllers[.color] = SCNParticlePropertyController(animation: ramp)
+        }
+        system.propertyControllers = controllers
+    }
+
+    /// Each frame for an emitter on body `i`: a style that throws its
+    /// sparks back along its path (a black hole's plume, a comet's dust)
+    /// aims them against the motion. Render thread.
+    func aimTrail(_ system: SCNParticleSystem, note i: Int, velocity v: SIMD3<Float>) {
+        guard i >= 0, i < rigs.count, trailBack[i] else { return }
+        let speed: Float = simd_length(v)
+        guard speed > 0.01 else { return }
+        let back: SIMD3<Float> = -v / speed
+        system.emittingDirection = SCNVector3(x: back.x, y: back.y, z: back.z)
+    }
+
+    /// How many sparks a second body `i` throws at full speed.
+    func trailRate(_ i: Int) -> Float {
+        guard i >= 0, i < trailRates.count else { return 160 }
+        return trailRates[i]
     }
 
     /// Whether note `i` is a sun (links glow whiter, and planets are lit
@@ -203,7 +278,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
             case .blackHole:
                 shapeHole(i, rig: rig, at: p, axis: n, motion: m, scale: scale, frame: f)
             case .sun:
-                let code: Float = (2 + rig.seed) / scale
+                // its seed and how hard it moves, for the corona's rays
+                let code: Float = SpaceOptics.coronaCode(seed: rig.seed, motion: m) / scale
                 rig.ringLeaf.simdScale = SIMD3<Float>(rig.ringSide, rig.ringSide, code)
             case .rocky:
                 moveMoon(i, rig: rig, at: p, axis: n, frame: f, dt: dt, scale: scale)
@@ -212,8 +288,10 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
                 rig.diskLeaf.simdScale = SIMD3<Float>(side, side, side * (1 + m))
             case .pulsar:
                 sweepBeams(rig, at: p, axis: n, motion: m, frame: f)
+                turnNebula(i, rig: rig, at: p, axis: n, scale: scale, frame: f)
             case .comet:
-                swingTail(rig, at: p, velocity: v, motion: m, frame: f, position: position)
+                let moving: SIMD3<Float> = track(i, at: p, dt: dt)
+                swingTail(rig, at: p, velocity: moving, motion: m, frame: f, position: position)
             }
             dim(i, rig: rig, at: p, eye: f.eye)
         }
@@ -337,11 +415,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         guard let beam = rig.beam else { return }
         let e1: SIMD3<Float> = rig.tilt.simdOrientation.act(SIMD3<Float>(1, 0, 0))
         let e2: SIMD3<Float> = simd_cross(n, e1)
-        let turn: Float = f.time / GraphNodeStyle.pulsarPeriod
-        let phase: Float = (turn - floor(turn)) * 6.2831853 + rig.seed * 6.2831853
-        let tilt: Float = 0.61
-        let around: SIMD3<Float> = e1 * cos(phase) + e2 * sin(phase)
-        let b: SIMD3<Float> = simd_normalize(n * cos(tilt) + around * sin(tilt))
+        let phase: Float = SpaceOptics.beamPhase(time: f.time, seed: rig.seed)
+        let b: SIMD3<Float> = SpaceOptics.beam(axis: n, e1: e1, e2: e2, phase: phase)
         let gap: SIMD3<Float> = f.eye - p
         let toEye: SIMD3<Float> = gap / max(simd_length(gap), 0.0001)
         let face: Float = abs(simd_dot(b, toEye))
@@ -351,32 +426,76 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         beam.simdScale = SIMD3<Float>(w, long, w * (1 + face))
     }
 
-    /// The tail, away from the nearest sun or the key light, swung behind
-    /// the motion and stretched by it.
+    /// The pulsar's wind nebula, on its glow's plane: turned so its +y
+    /// runs along the spin axis as seen, its z scale carrying how edge-on
+    /// the axis is (SpaceOptics.nebula), the pop scale divided out.
+    private func turnNebula(_ i: Int, rig: GraphStyleRig, at p: SIMD3<Float>, axis n: SIMD3<Float>,
+                            scale: Float, frame f: GraphStyleFrame) {
+        let gap: SIMD3<Float> = f.eye - p
+        let toEye: SIMD3<Float> = gap / max(simd_length(gap), 0.0001)
+        let seen = SpaceOptics.nebula(axis: n, toEye: toEye, right: f.right, up: f.up)
+        if simd_length_squared(f.right) > 0.000_001 { leafTurn[i] = seen.turn }
+        let code: Float = (2 + seen.edgeOn) / scale
+        rig.ringLeaf.simdScale = SIMD3<Float>(rig.ringSide, rig.ringSide, code)
+    }
+
+    /// Body `i`'s true motion this frame - orbit, drag and spring together
+    /// - from where it was the frame before, smoothed over about a fifth of
+    /// a second. Nothing while still.
+    private func track(_ i: Int, at p: SIMD3<Float>, dt: Float) -> SIMD3<Float> {
+        defer {
+            lastAt[i] = p
+            lastSeen[i] = true
+        }
+        guard dt > 0, lastSeen[i] else {
+            trueVelocity[i] = SIMD3<Float>(0, 0, 0)
+            return trueVelocity[i]
+        }
+        let now: SIMD3<Float> = (p - lastAt[i]) / dt
+        // a jump (a rebuild, the filter) is not motion
+        if simd_length_squared(now) > 400 { return trueVelocity[i] }
+        let blend: Float = 1 - exp(-dt / 0.2)
+        trueVelocity[i] += (now - trueVelocity[i]) * blend
+        return trueVelocity[i]
+    }
+
+    /// The two tails (SpaceOptics.cometTails): the ion tail straight away
+    /// from the nearest light (or the key light), the dust tail bent back
+    /// along where the comet has been, its plane's +x towards that side
+    /// (the shader curves it that way); both stretch as it moves.
     private func swingTail(_ rig: GraphStyleRig, at p: SIMD3<Float>, velocity v: SIMD3<Float>,
                            motion m: Float, frame f: GraphStyleFrame, position: [SIMD3<Float>]) {
         guard let tail = rig.tail else { return }
-        var away: SIMD3<Float> = -f.key
+        var light: SIMD3<Float>?
         var nearest: Float = Float.greatestFiniteMagnitude
         for s in tailLights where s < position.count {
-            let gap: SIMD3<Float> = p - position[s]
-            let d: Float = simd_length_squared(gap)
+            let d: Float = simd_length_squared(p - position[s])
             if d < nearest && d > 0.0001 {
                 nearest = d
-                away = gap / d.squareRoot()
+                light = position[s]
             }
         }
-        var dir: SIMD3<Float> = away
-        if f.lively { dir -= v * 0.6 }
-        let size: Float = simd_length(dir)
-        dir = size > 0.0001 ? dir / size : away
+        let moving: SIMD3<Float> = f.lively ? v : SIMD3<Float>(0, 0, 0)
+        let tails = SpaceOptics.cometTails(position: p, velocity: moving, light: light, key: f.key)
         let gap: SIMD3<Float> = f.eye - p
         let toEye: SIMD3<Float> = gap / max(simd_length(gap), 0.0001)
         let long: Float = rig.extraSize.y * (1 + 1.2 * m)
-        let wide: Float = rig.extraSize.x
-        tail.simdOrientation = Self.facing(along: dir, eye: toEye)
+        let wide: Float = rig.extraSize.x * 0.8
+        tail.simdOrientation = Self.facing(along: tails.ion, eye: toEye)
         tail.simdScale = SIMD3<Float>(wide, long, wide * (1 + m))
-        tail.simdPosition = dir * (long * 0.5)
+        tail.simdPosition = tails.ion * (long * 0.5)
+        guard let dust = rig.dust else { return }
+        let dustLong: Float = rig.extraSize.y * 0.85 * (1 + 0.9 * m)
+        let dustWide: Float = rig.extraSize.x * 1.5
+        var turn: simd_quatf = Self.facing(along: tails.dust, eye: toEye)
+        let lag: SIMD3<Float> = tails.dust - tails.ion
+        let x: SIMD3<Float> = turn.act(SIMD3<Float>(1, 0, 0))
+        if simd_dot(x, lag) < 0 {
+            turn = turn * simd_quatf(angle: Float.pi, axis: SIMD3<Float>(0, 1, 0))
+        }
+        dust.simdOrientation = turn
+        dust.simdScale = SIMD3<Float>(dustWide, dustLong, dustWide * (1 + m))
+        dust.simdPosition = tails.dust * (dustLong * 0.5)
     }
 
     /// A turn whose y is `along` and whose z leans as far towards the eye

@@ -1060,7 +1060,7 @@ enum GraphSceneBuilder {
         clocked.append(contentsOf: kit.clocked)
         suns.sort { $0.1 > $1.1 }
         let styler = GraphStyleAnimator(rigs: kit.rigs, suns: suns.map { $0.0 }, lit: kit.lit,
-                                        orbit: orbit, extent: extent)
+                                        orbit: orbit, extent: extent, trailScale: pageRadius / 0.2)
 
         // comet trails: a few emitters shared by whichever notes are moving
         // fastest; none at all with Reduce Motion
