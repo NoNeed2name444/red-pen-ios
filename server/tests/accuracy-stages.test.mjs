@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
-  checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage,
+  checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, claimsStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage,
   BATCH, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix,
 } from '../accuracy.js';
 import { proGate, askModel, spend } from '../ai.js';
@@ -395,7 +395,7 @@ function firstDifference(a, b, path = '') {
 
 // MARK: the stages, in order, with typed results
 {
-  ok(JSON.stringify(STAGES) === JSON.stringify(['rules', 'lookup', 'evidence', 'votes', 'jev', 'verdict', 'cache']), `the stages: ${STAGES.join(', ')}`);
+  ok(JSON.stringify(STAGES) === JSON.stringify(['rules', 'claims', 'lookup', 'evidence', 'votes', 'jev', 'verdict', 'cache']), `the stages: ${STAGES.join(', ')}`);
   ok(STAGES.every(s => BUDGETS[s] > 0), 'every stage has its own time budget');
   forgetWeights();
   const w = world();
@@ -408,6 +408,7 @@ function firstDifference(a, b, path = '') {
   ok(t.trace.map(s => s.stage).join() === STAGES.join() && t.trace.every(s => s.status === 'ok'), 'a fresh batch runs every stage, in order, each ending ok');
   ok(t.trace.every(s => Number.isFinite(s.ms) && s.ms >= 0 && s.budget === budgetsFor(w.env)[s.stage]), 'each stage says how long it took and what its budget was');
   ok(t.at('rules').value.length === 2 && t.at('rules').value.every(Array.isArray), 'rules: the hits of each item');
+  ok(t.at('claims').value.length === 2 && t.at('claims').value.every(g => !g.hard.length && g.complete), 'claims: the gate\'s findings for each item (none here)');
   ok(t.at('lookup').value.every(v => v === null), 'lookup: nothing cached yet');
   ok(t.at('evidence').value.length === 2 && t.at('evidence').value[1].some(e => e.url.includes('dailymed')), 'evidence: each item\'s literature, the drug\'s label among it');
   ok(t.at('votes').value.ballots.length === 2 && t.at('votes').value.failures.length === 0, 'votes: the ballots and the failures');
@@ -428,6 +429,56 @@ function firstDifference(a, b, path = '') {
   const r = await checkBatch(pro.env, 'a1', { items: [card('second')] }, pro.fetcher, { onStage: s => trace.push(s) });
   ok(r.status === 429 && trace.map(s => s.stage).join() === STAGES.join() && trace.filter(s => s.status === 'skipped').length === 4,
      'no allowance left: every stage in order, the ones that would spend it skipped');
+}
+
+// MARK: the claim gate, before the votes (plan Task 5d step 3)
+{
+  // the voters all call it right; only its own lecture says otherwise
+  const FLIP = { id: 'f1', kind: 'card', text: 'Q: First-line drug in type 2 diabetes?\nA: Metformin is not first-line in type 2 diabetes.',
+    source: 'Metformin is first-line in type 2 diabetes.' };
+  const DOSED = { id: 'f2', kind: 'fact', text: 'Aspirin reduces mortality after myocardial infarction by 50%.', source: 'Aspirin reduces mortality after myocardial infarction by 23%.' };
+  const run = async (items, opts = {}) => {
+    forgetWeights();
+    const w = world();
+    const trace = [];
+    const r = await checkBatch(w.env, 'owner', { items }, w.fetcher, { owner: true, onStage: s => trace.push(s), ...opts });
+    return { r, body: await r.json(), trace, at: name => trace.find(s => s.stage === name), w };
+  };
+  const quiet = () => ({ hard: [], soft: [], checks: 0, complete: true });
+  const open = await run([FLIP, DOSED, Q1], { gate: quiet });
+  ok(open.body.items[0].verdict === 'verified' && open.body.items[1].verdict === 'verified' && !('claims' in open.body.items[0]),
+     'without the gate, the votes alone would have Verified both');
+  const gated = await run([FLIP, DOSED, Q1]);
+  const [flip, dosed, q1] = gated.body.items;
+  ok(gated.trace.map(s => s.stage).join() === STAGES.join() && gated.at('claims').status === 'ok', 'the gate is a stage of its own, before lookup and the votes');
+  ok(flip.verdict === 'check' && flip.claims.hard.map(f => f.code).join() === 'negation', 'an item that flips its lecture\'s negation is Check this, with the finding');
+  ok(dosed.verdict === 'check' && dosed.claims.hard.map(f => f.code).join() === 'percentage', 'an item that gives another percentage is Check this, with the finding');
+  ok(flip.p === open.body.items[0].p && JSON.stringify(flip.votes) === JSON.stringify(open.body.items[0].votes), 'the votes and P(accurate) are left as they were');
+  ok(JSON.stringify(q1) === JSON.stringify(open.body.items[2]), 'an item the gate finds nothing in is told exactly what it was before');
+  ok(gated.trace.findIndex(s => s.stage === 'claims') < gated.trace.findIndex(s => s.stage === 'votes'), 'the gate runs before any vote');
+  const cachedAgain = await checkBatch(gated.w.env, 'owner', { items: [FLIP] }, gated.w.fetcher, { owner: true });
+  const again = (await cachedAgain.json()).items[0];
+  ok(again.cached && again.verdict === 'check' && again.claims.hard.length === 1, 'a cached item is gated too: it never comes back Verified');
+
+  // a gate that fails never lets an item through, and holds nothing else up
+  const broken = await run([FLIP, Q1], { gate: item => { if (item.id === 'f1') throw new Error('bug'); return quiet(); } });
+  ok(broken.r.status === 200 && broken.at('claims').status === 'error', 'a failing gate: the stage says so, and the batch still answers');
+  ok(broken.body.items[0].verdict === 'check' && broken.body.items[0].claims.hard[0].code === 'gate_failed', 'the item it failed on is held at Check this');
+  ok(broken.body.items[1].verdict === open.body.items[2].verdict && !('claims' in broken.body.items[1]), 'the others are graded as before');
+
+  // the batch shares the work budget; what one item leaves goes to the next
+  const shares = [];
+  const spy = used => (item, share) => { shares.push(share); return { ...quiet(), checks: Math.min(used, share) }; };
+  claimsStage([FLIP, DOSED, Q1, C1], 250, 120, spy(4));
+  ok(shares.join() === '30,38,56,108', `each item an even share of what is left (${shares.join()})`);
+  shares.length = 0;
+  claimsStage([FLIP, DOSED], 250, 120, spy(1000));
+  ok(shares.join() === '60,60', 'and no item more than its share when all use theirs');
+  const long = { id: 'l1', kind: 'note', text: 'Metformin is not first-line in type 2 diabetes. '.repeat(60), source: 'Metformin is first-line in type 2 diabetes. '.repeat(30) };
+  const cut = claimsStage([long], 250, 3);
+  ok(cut.value[0].checks <= 3 && cut.value[0].complete === false, 'a long page stops at the budget, saying it was cut short');
+  const partial = await run([long], { maxChecks: 0 });
+  ok(partial.body.items[0].claims?.partial === true, 'and the reply says the gate did not finish');
 }
 
 // MARK: a stage out of time gives its safe result

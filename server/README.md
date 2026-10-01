@@ -44,8 +44,8 @@ account). The combiner's weights are trained for free by
 `bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
 from `accuracy_model`; before any training the bundled prior is used.
 
-A check runs as named stages in a fixed order - rules, lookup (the cache),
-evidence, votes, jev, verdict, cache (the write) - each with its own time
+A check runs as named stages in a fixed order - rules, claims, lookup (the
+cache), evidence, votes, jev, verdict, cache (the write) - each with its own time
 budget and a typed result (`STAGES` and `BUDGETS` in `accuracy.js`). Each
 budget is longer than the timeout already inside its work, so it only cuts
 work that has stopped keeping its own time; a stage that runs out of time or
@@ -53,6 +53,21 @@ fails gives its safe result - no evidence, no vote, no Jev answer, not cached
 - never a hang and never a better grade. `tests/accuracy-stages.test.mjs`
 keeps the check as it was before the stages and holds the staged one to the
 same replies, outside calls and cache on a set of fixed inputs.
+
+The claims stage is the claim gate (`claims.js`): the deterministic guards of
+Chat-me's medical verifier (claim reasoning, independent entailment, the
+semantic and consistency guards, entity and date normalization), ported from
+its Python, run on every item before any vote. It compares what an item says
+with its own lecture, sentence by sentence: where the item restates a lecture
+sentence but flips its negation or gives another dose, frequency or
+percentage, it is never Verified - Check this at best - and the reply carries
+`claims: { hard, soft }`; what else the guards notice (a wider scope, a cause
+read from an association) is reported as soft and changes nothing. It is
+counted in work, not time (`MAX_CHECKS` judgements a batch), and a gate that
+fails holds the item at Check this. `tests/claims.test.mjs` holds the port to
+what the Python said on its 35 shared conformance vectors and on
+Stethoscore-shaped pairs (`tests/claim-vectors.json`, made by
+`bench/claim-vectors.py` from a checkout of the verifier).
 
 ## Exams
 
