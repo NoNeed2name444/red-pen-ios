@@ -9,13 +9,16 @@ import Foundation
 /// An accuracy batch's outcome, from the server's status (nil: no answer at
 /// all - offline or timed out) and its reply's limit and message.
 enum AccuracySendOutcome: Equatable {
-    case done, dayUsed, notPro(String), offline
+    /// busy: the server answered, but no checker did (it gave the day's
+    /// allowance back), so the app waits before the next batch (audit #87)
+    case done, dayUsed, notPro(String), offline, busy
 
-    static func of(status: Int?, limit: String?, message: String?) -> AccuracySendOutcome {
+    static func of(status: Int?, limit: String?, message: String?, busy: Bool = false) -> AccuracySendOutcome {
         guard let status else { return .offline }
         if status == 402 { return .notPro(message ?? "The accuracy check is part of Pro.") }
         if status == 401 { return .notPro("Sign in again to check accuracy.") }
         if status == 429 || limit == "day" { return .dayUsed }
+        if status == 200 && busy { return .busy }
         // anything else that is not a 200 is kept for the next try
         return status == 200 ? .done : .offline
     }

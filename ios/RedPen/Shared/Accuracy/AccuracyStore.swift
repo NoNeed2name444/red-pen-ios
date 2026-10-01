@@ -43,6 +43,8 @@ final class AccuracyStore: ObservableObject {
     private static let weightsCheckedKey = "accuracy.weightsChecked"
     /// A pause between background batches: the free limits are per minute too.
     static let backgroundPause: Duration = .seconds(20)
+    /// How long a "busy" reply holds that priority's batches.
+    static let busyWait: TimeInterval = 300
 
     private init() {
         let defaults = UserDefaults.standard
@@ -175,6 +177,10 @@ final class AccuracyStore: ObservableObject {
             case .offline:
                 pausedReason = "Offline: checking carries on when there is a connection."
                 return
+            case .busy:
+                // nobody checked anything: wait rather than send the next batch
+                blockedUntil[batch.priority] = now.addingTimeInterval(Self.busyWait)
+                pausedReason = "The checkers are busy. Checking carries on in a few minutes."
             }
             let pause: Duration = batch.priority == "background" ? Self.backgroundPause : .seconds(1)
             try? await Task.sleep(for: pause)
@@ -191,7 +197,7 @@ final class AccuracyStore: ObservableObject {
         let body = Body(items: batch.items, priority: batch.priority)
         guard let (data, status) = await post("/accuracy/check", body: body, token: token) else { return .offline }
         let reply = try? JSONDecoder().decode(AccuracyCheckReply.self, from: data)
-        let outcome = Outcome.of(status: status, limit: reply?.limit, message: reply?.message)
+        let outcome = Outcome.of(status: status, limit: reply?.limit, message: reply?.message, busy: reply?.busy == true)
         if outcome.records { record(reply, for: batch.items) }
         return outcome
     }
@@ -213,6 +219,7 @@ final class AccuracyStore: ObservableObject {
         case .dayUsed: return "Today's free checks are used. Try again after midnight UTC."
         case .notPro(let why): return why
         case .offline: return "Couldn't reach the server. Check your connection."
+        case .busy: return "The checkers are busy. Try again in a few minutes."
         }
     }
 

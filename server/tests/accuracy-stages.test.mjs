@@ -376,9 +376,59 @@ function firstDifference(a, b, path = '') {
       { body: { items: [card('three'), card('one')] }, opts: { owner: true } },
     ]],
   ];
+  // The old implementation is the reference for everything the staged one
+  // did not change on purpose. Intended since then, and set aside here:
+  // the families count beside the features, the blind second voter's marker
+  // and its withheld fix, the "busy" reply when nobody answered, and the
+  // allowance that reply gives back. Verdicts, P and calls must still agree.
+  const normalize = run => {
+    const votes = list => (list || []).forEach(v => { if (v && v.blind) { delete v.blind; v.fix = null; } });
+    const blindAt = {};
+    const blindModels = {};
+    let busy = false;
+    const body = (text, ri) => {
+      let j; try { j = JSON.parse(text); } catch { return text; }
+      if (j.busy) busy = true;
+      delete j.busy;
+      for (const [ii, it] of (j.items || []).entries()) {
+        if (it.features) delete it.features.families;
+        (it.votes || []).forEach((v, n) => { if (v && v.blind) { (blindAt[`${ri}:${ii}`] ||= []).push(n); (blindModels[`${ri}:${ii}`] ||= []).push(v.model); } });
+        votes(it.votes);
+      }
+      return j;
+    };
+    const replies = run.replies.map((r, ri) => ({ status: r.status, body: body(r.body, ri) }));
+    const db = JSON.parse(JSON.stringify(run.db, (k, v) => {
+      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); votes(s.votes); return JSON.stringify(s); } catch { return v; } }
+      return v;
+    }));
+    if (db && typeof db === 'object') delete db.ai_usage;
+    return { replies, log: run.log, db, blindAt, blindModels, busy };
+  };
+  const unblind = (before, staged) => {
+    // a blind voter fixes nothing: the reference's fix in that seat is set aside too
+    const strip = run => run.replies.forEach((r, ri) => (r.body?.items || []).forEach((it, ii) => (it.votes || []).forEach((v, n) => { if ((staged.blindAt[`${ri}:${ii}`] || []).includes(n) && v) v.fix = null; })));
+    strip(before); delete before.blindAt; delete staged.blindAt;
+    // a fix only a now-blind voter proposed is withheld on purpose
+    before.replies.forEach((r, ri) => (r.body?.items || []).forEach((it, ii) => {
+      const blind = staged.blindModels[`${ri}:${ii}`] || [];
+      if (it.fix && Array.isArray(it.fix.by) && it.fix.by.every(m => blind.includes(m))) it.fix = null;
+    }));
+    // a "busy" reply gave its allowance back on purpose
+    if (staged.busy) { delete before.db.usage; delete staged.db.usage; }
+    for (const run of [before, staged]) { delete run.blindModels; delete run.busy; }
+    const signals = run => JSON.parse(JSON.stringify(run.db, (k, v) => {
+      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); (s.votes || []).forEach(x => { if (x) x.fix = null; }); return JSON.stringify(s); } catch { return v; } }
+      return v;
+    }));
+    before.db = signals(before); staged.db = signals(staged);
+    run2(before); run2(staged);
+    function run2(run) { run.replies.forEach(r => (r.body?.items || []).forEach(it => (it.votes || []).forEach(v => { if (v) v.fix = v.fix ?? null; }))); }
+  };
   for (const [what, extra, plan, calls] of scenarios) {
-    const before = await play(oldCheckBatch, extra, plan, calls);
-    const staged = await play(checkBatch, extra, plan, calls);
+    const before = normalize(await play(oldCheckBatch, extra, plan, calls));
+    const staged = normalize(await play(checkBatch, extra, plan, calls));
+    unblind(before, staged);
     const d = firstDifference(before, staged);
     ok(!d, `same replies, calls and cache as before: ${what}${d ? ` - differs at ${d}` : ''}`);
   }
@@ -643,6 +693,72 @@ function firstDifference(a, b, path = '') {
   ok(budgetsFor({}).jev > JEV_TIMEOUT_MS && budgetsFor({ JEV_TIMEOUT_MS: '3000' }).jev > 3000, 'Jev\'s budget follows its own timeout');
   ok(BUDGETS.votes * MAX_CALLS < 10 * 60_000, 'and the voters together stay within ten minutes');
   ok(budgetsFor({}, { cache: 7 }).cache === 7 && budgetsFor({}).lookup === BUDGETS.lookup, 'a test may set any budget');
+}
+
+// MARK: what the briefs changed (1 Oct): a blind second voter, two families, refunds, no retractions
+{
+  // the second voter sees a question without its key or explanation
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true });
+  const body = JSON.parse(await r.text());
+  const withheld = w.prompts.filter(p => p.includes('Keyed answer and explanation withheld'));
+  const full = w.prompts.filter(p => p.includes('Keyed answer: B'));
+  ok(withheld.length === 1 && full.length === 1 && !withheld[0].includes('PCC works fastest'),
+     'the second voter is shown the question blind: no key, no explanation');
+  const votes = body.items[0].votes;
+  ok(votes.length === 2 && votes[1].blind === true && votes[1].fix === null && !votes[0].blind, 'its vote is marked blind and fixes nothing');
+  ok(body.items[0].verdict === 'verified', 'a key the blind voter also reaches, with a passing full judgment, can be Verified');
+  w.release();
+}
+{
+  // a card has no key: both voters see it whole
+  const w = world();
+  forgetWeights();
+  await checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true });
+  ok(!w.prompts.some(p => p.includes('withheld')), 'a batch with no question asks nobody blind');
+  w.release();
+}
+{
+  // after a Google vote, the next voter is from another family even when a Google model is next in line
+  const w = world({ ACCURACY_VOTERS: 'gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it,workers-ai:@cf/openai/gpt-oss-120b' });
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true });
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.votes.map(v => v.model).join() === 'gemini-3.5-flash-lite,@cf/openai/gpt-oss-120b' && item.verdict === 'verified',
+     'Gemma waits: the second voter is gpt-oss, a second family');
+  w.release();
+}
+{
+  // only one family to ask: never Verified
+  const w = world({ ACCURACY_VOTERS: 'gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it' });
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true });
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.votes.length === 2 && item.verdict === 'check', 'two Google votes pass the card but leave it Check this');
+  w.release();
+}
+{
+  // nobody answers: the batch's allowance comes back and the app is told to wait
+  const all = new Set(['gemini-3.5-flash-lite', '@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', 'gemma-4-31b-it']);
+  const w = world({}, { garbage: all });
+  forgetWeights();
+  const r = await checkBatch(w.env, 'a1', { items: [card('refund')] }, w.fetcher, { owner: false });
+  const body = JSON.parse(await r.text());
+  const used = w.db.prepare("SELECT account_id, requests FROM ai_usage WHERE account_id LIKE 'accuracy%'").all();
+  ok(body.busy === true && body.items[0].verdict === 'unchecked', 'nobody answered: "busy", and the item stays unchecked');
+  ok(used.length > 0 && used.every(u => u.requests === 0), 'and every count the batch took is given back', JSON.stringify(used));
+  w.release();
+}
+{
+  // the evidence search excludes retracted records and retraction notices
+  const w = world();
+  forgetWeights();
+  let asked = '';
+  const watch = async (url, init) => { if (url.includes('europepmc')) asked = new URL(url).searchParams.get('query'); return w.fetcher(url, init); };
+  await checkBatch(w.env, 'owner', { items: [Q1] }, watch, { owner: true });
+  ok(asked.includes('NOT (PUB_TYPE:"retracted publication" OR PUB_TYPE:"retraction of publication")'), 'Europe PMC is asked for no retracted record', asked);
+  w.release();
 }
 
 console.log(failures ? `\n${failures} STAGE TEST FAILURE(S)` : '\nALL STAGE TESTS PASS');

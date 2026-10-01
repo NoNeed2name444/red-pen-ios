@@ -193,7 +193,25 @@ enum AccuracyModel {
         f["kind_osce"] = kind == .osce ? 1 : 0
         let pageLike: Bool = kind == .page || kind == .fact || kind == .note
         f["kind_page"] = pageLike ? 1 : 0
+        // not a weighted feature: how many model families the votes that pass
+        // the item come from (the verdict needs two), as the server counts it
+        f["families"] = Double(Set(votes.filter { $0.risk < 3 }.map { familyOf($0.model) }).count)
         return f
+    }
+
+    /// The family a checker model belongs to: two models of one family share
+    /// their training and so their blind spots - two votes from one family
+    /// are one witness. server/accuracy-model.js familyOf, pattern for pattern.
+    static let families: [(family: String, pattern: String)] = [
+        ("google", "gemini|gemma"), ("openai", "gpt|openai"), ("nvidia", "nemotron|nvidia"),
+        ("meta", "llama|\\bmeta\\b"), ("alibaba", "qwen"), ("mistral", "mistral|mixtral"), ("deepseek", "deepseek"),
+        ("anthropic", "claude|anthropic"), ("baichuan", "baichuan"), ("microsoft", "\\bphi-|microsoft"), ("apple", "\\bapple\\b"),
+    ]
+
+    static func familyOf(_ model: String) -> String {
+        let m: String = model.lowercased()
+        for entry in families where m.range(of: entry.pattern, options: .regularExpression) != nil { return entry.family }
+        return m.isEmpty ? "unknown" : m
     }
 
     static func probability(_ f: [String: Double], weights w: AccuracyWeights = bundled) -> Double {
@@ -307,7 +325,8 @@ enum AccuracyModel {
         if p < w.thresholds.flagged { return .flagged }
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
         let backed: Bool = !oath || (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
-        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed { return .verified }
+        let independent: Bool = (f["families"] ?? 0) >= Double(minVerifyVoters)
+        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed && independent { return .verified }
         return .check
     }
 }

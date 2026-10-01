@@ -1,0 +1,22 @@
+[
+  {"text": "Give digoxin 1.0 mg orally now.", "has": ["dose-notation:minor"]},
+  {"text": "Start colchicine .5 mg twice daily.", "has": ["dose-notation:minor"]},
+  {"text": "Heparin 5000 U subcutaneously twice daily.", "has": ["dose-notation:minor"]},
+  {"text": "Levothyroxine 100 mcg QD.", "has": ["dose-notation:minor"]},
+  {"text": "Give 0.5 mg of colchicine, then 1 mg an hour later.", "not": ["dose-notation"]},
+  {"text": "Vitamin D 1000 IU daily.", "not": ["dose-notation"]},
+  {"text": "An albumin of 4.0 g/dL is normal.", "not": ["dose-notation"]},
+  {"text": "Hydroxyzine is used for hypertension in pregnancy.", "has": ["look-alike-drug:severe"]},
+  {"text": "Hydralazine is used for hypertension in pregnancy.", "not": ["look-alike-drug"]},
+  {"text": "Clonazepam is first-line for ADHD.", "has": ["look-alike-drug:severe"]},
+  {"text": "Metronidazole for type 2 diabetes.", "has": ["look-alike-drug:severe"]},
+  {"text": "Lamivudine is used to treat epilepsy.", "has": ["look-alike-drug:severe"]},
+  {"text": "Unlike hydralazine, hydroxyzine is used for itching.", "not": ["look-alike-drug"]},
+  {"text": "Ropinirole is used in restless legs syndrome; risperidone treats schizophrenia.", "not": ["look-alike-drug"]},
+  {"text": "Tramadol is not used for depression.", "not": ["look-alike-drug"]},
+  {"text": "Normal calcium is 2.1-2.6.", "not": ["reference-range"]},
+  {"text": "Normal calcium is 8.5-10.5.", "not": ["reference-range"]},
+  {"text": "Normal calcium is 4-6.", "has": ["reference-range:severe"]},
+  {"text": "Normal potassium is 5.5-7.5 mmol/L.", "has": ["reference-range:severe"]},
+  {"text": "Normal potassium is 3.5-5.0 mmol/L.", "not": ["reference-range"]}
+]

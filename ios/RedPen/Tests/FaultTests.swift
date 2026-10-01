@@ -33,8 +33,12 @@ check("a 401: sign in again", {
     if case .notPro(let why) = AccuracySendOutcome.of(status: 401, limit: nil, message: nil) { return why.contains("Sign in") }
     return false
 }())
+check("a 200 that says busy (nobody checked): wait, not done",
+      AccuracySendOutcome.of(status: 200, limit: nil, message: nil, busy: true) == .busy)
+check("busy only counts with a 200: a 500 is still queued",
+      AccuracySendOutcome.of(status: 500, limit: nil, message: nil, busy: true) == .offline)
 check("a refusal is not written to the ledger", !AccuracySendOutcome.notPro("x").records)
-check("every other outcome is", [AccuracySendOutcome.done, .dayUsed, .offline].allSatisfy(\.records))
+check("every other outcome is", [AccuracySendOutcome.done, .dayUsed, .offline, .busy].allSatisfy(\.records))
 
 // MARK: - Cloud transcription
 

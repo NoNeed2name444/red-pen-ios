@@ -44,6 +44,9 @@ struct AccuracyCheckReply: Decodable {
     var items: [Item]?
     var limit: String?
     var message: String?
+    /// true when no checker answered: nothing was checked (the server gave
+    /// the allowance back) and the app should wait before the next batch
+    var busy: Bool?
 
     /// The gate's code for "it failed on this item": held at Check this, and
     /// the item is asked about again later (its votes come from the cache).

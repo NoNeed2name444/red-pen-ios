@@ -304,6 +304,8 @@ enum AccuracyRules {
         if item.kind == .mcq { questionHits(item, add: add) }
         let text: String = item.checkedText
 
+        for said in notation(text) { add("dose-notation", "minor", said) }
+        for said in lookAlike(text) { add("look-alike-drug", "severe", said) }
         for d in doses(text) {
             guard let range = drugs[d.drug], range.count == 2 else { continue }
             let lo: Double = range[0], hi: Double = range[1]
@@ -328,15 +330,19 @@ enum AccuracyRules {
             }
         }
         for s in statedRanges(text) {
-            guard let ranges = labs[s.analyte] else { continue }
-            let chosen: [Double]? = ranges[s.unit] ?? (s.unit.isEmpty ? firstRange(s.analyte) : nil)
-            guard let r = chosen else { continue }
-            if off(s.lo, r[2]) || off(s.hi, r[3]) {
-                let unit: String = s.unit.isEmpty ? "" : " " + s.unit
-                let should: String = "\(fmt(r[2]))–\(fmt(r[3]))\(unit)"
-                let said: String = "\(fmt(s.lo))–\(fmt(s.hi))"
-                add("reference-range", "severe", "Normal \(s.analyte) is about \(should), not \(said).")
-            }
+            guard let table = labs[s.analyte] else { continue }
+            // a range written without a unit is right if it is right in any
+            // unit the analyte is reported in (audit #96), as the server does
+            let candidates: [(unit: String, range: [Double])] = s.unit.isEmpty
+                ? orderedRanges(s.analyte)
+                : (table[s.unit].map { [(unit: s.unit, range: $0)] } ?? [])
+            if candidates.isEmpty { continue }
+            if candidates.contains(where: { !off(s.lo, $0.range[2]) && !off(s.hi, $0.range[3]) }) { continue }
+            let named: Bool = !s.unit.isEmpty || candidates.count > 1
+            let should: String = candidates.map { "\(fmt($0.range[2]))–\(fmt($0.range[3]))" + (named ? " " + $0.unit : "") }
+                .joined(separator: " or ")
+            let said: String = "\(fmt(s.lo))–\(fmt(s.hi))"
+            add("reference-range", "severe", "Normal \(s.analyte) is about \(should), not \(said).")
         }
         let t: String = text.lowercased()
         for name in Set(labNames.values).sorted() {
@@ -348,18 +354,94 @@ enum AccuracyRules {
         return out
     }
 
-    /// A range stated with no unit is compared in the first unit the table
-    /// lists for that analyte, as the server does.
-    private static func firstRange(_ analyte: String) -> [Double]? {
+    /// Every unit an analyte is reported in, in the order the table lists
+    /// them (the server's Object.entries order).
+    private static func orderedRanges(_ analyte: String) -> [(unit: String, range: [Double])] {
+        var out: [(unit: String, range: [Double])] = []
         for line in labTable.replacingOccurrences(of: "\n", with: "").components(separatedBy: ";") {
             let entry: String = line.trimmingCharacters(in: .whitespaces)
             if entry.hasPrefix(analyte + "|"), let eq = entry.lastIndex(of: "=") {
                 let head: String = String(entry[..<eq])
                 let unit: String = String(head.dropFirst(analyte.count + 1)).replacingOccurrences(of: "~", with: "/")
-                return labs[analyte]?[unit]
+                if let r = labs[analyte]?[unit] { out.append((unit: unit, range: r)) }
             }
         }
-        return nil
+        return out
+    }
+
+    // MARK: dose notation and look-alike drugs (server/accuracy-rules.js
+    // NOTATION and LOOK_ALIKE; both held to server/tests/rule-vectors.json)
+
+    /// Notation the Joint Commission's "Do Not Use" list bans because it is
+    /// misread tenfold or as another word.
+    static let notationRules: [(pattern: String, caseless: Bool, says: String)] = [
+        (#"\b\d+\.0+\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\w/])"#, true, "drop the trailing zero (\"1.0 mg\" is read as 10 mg)"),
+        (#"(?<![\w.])\.\d+\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\w/])"#, true, "write a leading zero (\".5 mg\" is read as 5 mg)"),
+        (#"\b\d+(?:\.\d+)?\s?U(?![\w/])"#, false, "write \"units\" (\"U\" is misread as 0 or 4)"),
+        (#"(?<![A-Za-z])(?:QD|QOD|q\.d\.|q\.o\.d\.)(?![A-Za-z])"#, false, "write \"daily\" or \"every other day\" (\"QD\" is misread as QID)"),
+    ]
+
+    static func notation(_ text: String) -> [String] {
+        let ns = text as NSString
+        var out: [String] = []
+        for rule in notationRules {
+            for f in find(rule.pattern, in: text, caseless: rule.caseless) {
+                let said: String = ns.substring(with: NSRange(location: f.start, length: f.end - f.start))
+                    .trimmingCharacters(in: .whitespaces)
+                out.append("\"" + said + "\": " + rule.says + ".")
+            }
+        }
+        return out
+    }
+
+    /// Look-alike, sound-alike pairs from the ISMP list, each drug with what it
+    /// is for: a drug said to be for its partner's use, and not its own, is the
+    /// classic swap (hydroxyzine for hypertension).
+    static let lookAlikePairs: [((name: String, uses: [String]), (name: String, uses: [String]))] = [
+        (("hydralazine", ["hypertension", "high blood pressure", "pre-eclampsia", "preeclampsia", "eclampsia", "heart failure"]),
+         ("hydroxyzine", ["anxiety", "pruritus", "itch", "urticaria", "allerg", "sedation"])),
+        (("clonidine", ["hypertension", "high blood pressure", "adhd", "attention deficit", "hot flush", "hot flash"]),
+         ("clonazepam", ["seizure", "epilep", "panic"])),
+        (("metformin", ["diabetes", "diabetic", "hyperglyc", "polycystic ovar", "pcos"]),
+         ("metronidazole", ["anaerob", "bacterial vaginosis", "trichomon", "clostridi", "c. diff", "amoeb", "ameb", "giardia", "h. pylori", "helicobacter"])),
+        (("lamotrigine", ["epilep", "seizure", "bipolar"]), ("lamivudine", ["hiv", "hepatitis b", "hbv"])),
+        (("risperidone", ["schizophren", "psychos", "bipolar", "mania", "autis", "irritability"]), ("ropinirole", ["parkinson", "restless leg"])),
+        (("tramadol", ["pain", "analges"]), ("trazodone", ["depress", "insomnia", "sleep"])),
+        (("chlorpromazine", ["schizophren", "psychos", "nausea", "vomiting", "hiccup"]), ("chlorpropamide", ["diabetes", "diabetic", "hyperglyc"])),
+        (("sulfasalazine", ["ulcerative colitis", "crohn", "rheumatoid arthritis", "inflammatory bowel"]), ("sulfadiazine", ["toxoplasm", "burn"])),
+    ]
+
+    private static let useCue: String = #"\b(?:for|to treat|treats|treating|treatment of|indicated for|indicated in|used for|used in|management of)\b"#
+    private static let negated: String = #"\b(?:not|never|no)\b"#
+
+    static func lookAlike(_ text: String) -> [String] {
+        let t: String = text.lowercased()
+        let ns = t as NSString
+        var out: [String] = []
+        for (first, second) in lookAlikePairs {
+            for (me, partner) in [(first, second), (second, first)] {
+                for f in find("\\b" + esc(me.name) + "\\b", in: t) {
+                    // the rest of this sentence, at most 90 characters
+                    var end: Int = f.end
+                    while end < ns.length && end - f.start < 90 {
+                        if ".;!?\n".contains(ns.substring(with: NSRange(location: end, length: 1))) { break }
+                        end += 1
+                    }
+                    let span: String = ns.substring(with: NSRange(location: f.end, length: end - f.end))
+                    guard let cue = find(useCue, in: span).first else { continue }
+                    let sns = span as NSString
+                    let before: String = sns.substring(to: cue.start)
+                    let after: String = sns.substring(from: cue.end)
+                    if matches(negated, before) || before.contains(partner.name) || after.contains(partner.name) { continue }
+                    let mentions: (String) -> Bool = { use in matches("\\b" + esc(use), after) }
+                    if let wrong = partner.uses.first(where: mentions), !me.uses.contains(where: mentions) {
+                        let said: String = cue.groups.first.flatMap { $0 } ?? "for"
+                        out.append(me.name + " " + said + " " + wrong + "…: that is what " + partner.name + " is for; check the name (look-alike drugs).")
+                    }
+                }
+            }
+        }
+        return out
     }
 
     private static func off(_ x: Double, _ y: Double) -> Bool {

@@ -30,10 +30,10 @@
 
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
-import { proGate, askModel, spend } from './ai.js';
+import { proGate, askModel, spend, refund } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights, isOath, oathClaims } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, validWeights, examWeights, isOath, oathClaims, familyOf } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
 
@@ -139,12 +139,21 @@ const KIND_NAMES = { mcq: 'multiple-choice question', card: 'flashcard', case: '
   page: 'textbook page', fact: 'key facts from a narrated lecture', note: "a student's own note" };
 
 /// The one prompt a voter answers for a whole batch.
-export function votePrompt(entries) {
+export function votePrompt(entries, { blind = false } = {}) {
+  // blind: a multiple-choice question is shown without its key and
+  // explanation, so this voter's answer is its own and not anchored on the
+  // key (DNA brief: a second, independent discrimination - kinetic
+  // proofreading; a wrong key teaches the wrong answer)
+  const shown = e => (blind && e.item.kind === 'mcq'
+    ? `${e.item.stem || ''}\n${(e.item.options || []).map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join('\n')}\n(Keyed answer and explanation withheld: answer it yourself.)`
+    : itemText(e.item));
   const system = [
     'You are a strict medical accuracy checker for study material used by medical students.',
     'For each item, decide whether every medical fact in it is correct by CURRENT evidence and consensus - not only whether it matches its source lecture.',
     'The lecture itself can be wrong or out of date: if the item agrees with the lecture but contradicts the REFERENCE EVIDENCE or well-established current consensus, it is wrong.',
-    'For a multiple-choice question: first work out the single best answer yourself and give its letter as "answer"; then judge the keyed answer and the explanation.',
+    blind
+      ? 'For a multiple-choice question you are shown only the stem and options: work out the single best answer and give its letter as "answer"; judge only the facts in the stem and options; "fix" must be null for it.'
+      : 'For a multiple-choice question: first work out the single best answer yourself and give its letter as "answer"; then judge the keyed answer and the explanation.',
     'Risk levels: 1 = no error, 2 = minor wording issue that would not mislead, 3 = an error that could mislead a student, 4 = a clearly wrong fact, dose, key or criterion.',
     '"evidence": "supports" when the reference evidence backs the item\'s main claims, "contradicts" when any of it contradicts the item, "none" when it does not cover the item.',
     '"cites": the [Sn] ids you relied on. "issues": short sentences naming each error (empty when none).',
@@ -156,7 +165,7 @@ export function votePrompt(entries) {
     const ev = e.evidence.map(s => `[${s.id}] ${s.source}: ${s.title}\n${s.text}`).join('\n');
     return [
       `### Item ${n + 1} (${KIND_NAMES[e.item.kind]})`,
-      itemText(e.item).slice(0, SHOWN_ITEM_CHARS),
+      shown(e).slice(0, SHOWN_ITEM_CHARS),
       `SOURCE LECTURE: ${src ? src.slice(0, MAX_SOURCE_CHARS) : '(none - judge against current medical teaching)'}`,
       `REFERENCE EVIDENCE:\n${ev || '(none found)'}`,
     ].join('\n');
@@ -436,15 +445,29 @@ export async function evidenceStage(items, fetcher, budget = BUDGETS.evidence) {
 export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes) {
   const started = Date.now();
   const messages = votePrompt(entries);
+  // the second ballot solves the questions blind (key and explanation
+  // withheld); a third, called when the first two disagree, sees everything
+  const hasMcq = entries.some(e => e.item.kind === 'mcq');
+  const blindMessages = hasMcq ? votePrompt(entries, { blind: true }) : messages;
   const ballots = [];
   const failures = [];
   const statuses = [];
   let wanted = 2, calls = 0;
-  for (const use of votersFor(env, writer)) {
+  const queue = votersFor(env, writer);
+  while (queue.length) {
     if (ballots.length >= wanted || calls >= MAX_CALLS) break;
+    // once one family has voted, the next voter is from another family when
+    // there is one: two votes from one family are one witness
+    if (ballots.length) {
+      const voted = new Set(ballots.map(b => familyOf(b.model)));
+      const other = queue.findIndex(u => !voted.has(familyOf(u.slice(u.indexOf(':') + 1))));
+      if (other > 0) queue.unshift(queue.splice(other, 1)[0]);
+    }
+    const use = queue.shift();
     calls++;
+    const blind = hasMcq && ballots.length === 1;
     // room for a reasoning model to think before it answers every item
-    const asked = await within(budget, () => askModel(env, account, owner, use, messages, 500 * entries.length + 600, fetcher), null);
+    const asked = await within(budget, () => askModel(env, account, owner, use, blind ? blindMessages : messages, 500 * entries.length + 600, fetcher), null);
     statuses.push(asked.status);
     if (asked.status === 'error') console.error('accuracy voter', use, asked.error);
     if (asked.status !== 'ok') { failures.push(`${use}: ${asked.status}`); continue; }
@@ -452,7 +475,9 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     if (!r.ok) { failures.push(`${use}: ${r.status}`); continue; }
     const parsed = parseVotes(r.content, entries.length);
     if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); continue; }
-    ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed });
+    // a blind voter judged only the stem and options: it fixes nothing
+    if (blind) parsed.forEach((v, n) => { if (v && entries[n].item.kind === 'mcq') { v.fix = null; v.blind = true; } });
+    ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) });
     if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
   }
   return ended('votes', statuses, started, budget, { ballots, failures });
@@ -571,9 +596,11 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const limit = bench ? Number(env.OWNER_BENCH_DAILY_LIMIT) || 2500 : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000
     : Number(env.ACCURACY_DAILY_BATCHES) || 40;
   const background = body.priority === 'background';
+  const spent = [];
+  const take = async (key, n) => { const ok = await spend(env, key, n); if (ok) spent.push(key); return ok; };
   const allowance = async () => {
-    if (background && !owner && !await spend(env, `accuracy-bg:${account}`, Number(env.ACCURACY_BACKGROUND_BATCHES) || 20)) return false;
-    return await spend(env, `accuracy:${who}`, limit) && await spend(env, 'accuracy:all', Number(env.ACCURACY_DAILY_CEILING) || 3000);
+    if (background && !owner && !await take(`accuracy-bg:${account}`, Number(env.ACCURACY_BACKGROUND_BATCHES) || 20)) return false;
+    return await take(`accuracy:${who}`, limit) && await take('accuracy:all', Number(env.ACCURACY_DAILY_CEILING) || 3000);
   };
   if (!await allowance()) return without(unchecked('day'), { limit: 'day' }, 429);
 
@@ -596,8 +623,13 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   }
   const results = done(verdictStage(items, hashes, outcomes, rules, weights, strict, budget.verdict, claims));
   done(await cacheStage(env, writes, budget.cache));
-  if (!ballots.length) console.error('accuracy: no voter answered', failures.join(' | '));
-  return reply({ items: results, ...(owner && failures.length ? { failures } : {}) });
+  // no voter answered: nothing was checked, so the allowance comes back and
+  // the app is told to wait rather than send the next batch at once (audit #87)
+  if (!ballots.length) {
+    console.error('accuracy: no voter answered', failures.join(' | '));
+    for (const key of spent) await refund(env, key);
+  }
+  return reply({ items: results, ...(!ballots.length ? { busy: true } : {}), ...(owner && failures.length ? { failures } : {}) });
 }
 
 async function readVerdict(env, hash) {

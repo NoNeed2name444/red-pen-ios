@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ruleHits, doses, labValues, explainedAnswer, sourceMatch, itemText, DRUGS, LABS } from '../accuracy-rules.js';
-import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH } from '../accuracy-model.js';
+import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH, familyOf } from '../accuracy-model.js';
 import { DOSE_VECTORS } from './oath-vectors.mjs';
 import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights, describe } from '../accuracy.js';
 import { normaliseMedQA, normaliseMedMCQA, variants, corrupt, reportedExamples, train, reportMarkdown } from '../bench/train-accuracy.mjs';
@@ -58,9 +58,19 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(sourceMatch({ kind: 'card', text: 'Aspirin reduces mortality' }, 'aspirin reduces mortality in ACS') === 1 && sourceMatch({ kind: 'card', text: 'x' }, '') === null, 'the source match');
 }
 
+// MARK: the shared rule cases (the app's AccuracyTests runs the same file)
+{
+  const cases = JSON.parse(readFileSync(new URL('./rule-vectors.json', import.meta.url), 'utf8'));
+  for (const c of cases) {
+    const hits = ruleHits({ kind: 'card', text: c.text }).map(h => `${h.rule}:${h.severity}`);
+    for (const h of c.has || []) ok(hits.includes(h), `"${c.text}" gives ${h}`);
+    for (const n of c.not || []) ok(!hits.some(x => x.startsWith(`${n}:`)), `"${c.text}" gives no ${n}`);
+  }
+}
+
 // MARK: the model
 {
-  const pass = features({ kind: 'mcq', votes: [{ risk: 1, answer: 'A', evidence: 'supports' }, { risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const pass = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   const p1 = predict(pass);
   ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `two passing votes with support are Verified (${p1.toFixed(3)})`);
   const bad = features({ kind: 'mcq', votes: [{ risk: 4, answer: 'B', evidence: 'contradicts' }, { risk: 4, answer: 'B', evidence: 'contradicts' }], keyLetter: 'A', sourceMatch: 0.7 });
@@ -74,15 +84,24 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   const passRuled = features({ kind: 'card', rules: [{ severity: 'severe' }], votes: [{ risk: 1, evidence: 'supports' }, { risk: 1, evidence: 'supports' }], sourceMatch: 1, evidenceCount: 5 });
   ok(verdict(predict(passRuled), passRuled) !== 'verified', 'a severe rule hit is never Verified');
   ok(features({ kind: 'mcq', votes: [{ risk: 1, answer: 'C' }, { risk: 1, answer: 'A' }], keyLetter: 'A' }).key_disagree === 0.5, 'key disagreement is the share answering otherwise');
+  // two votes from one family are one witness (independence: DNA and Islamic briefs)
+  const sameFamily = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: 'gemma-4-31b-it', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(sameFamily.families === 1 && verdict(0.99, sameFamily) === 'check', 'two passing votes from one family (Gemini and Gemma) are Check this, not Verified');
+  const twoFamilies = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(twoFamilies.families === 2 && verdict(0.99, twoFamilies) === 'verified', 'two passing votes from two families can be Verified');
+  const failing = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 4, evidence: 'contradicts' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(failing.families === 1, 'a vote that flags the item does not count as a family passing it');
+  ok(familyOf('gemma-4-31b-it') === familyOf('gemini-3.1-pro-preview') && familyOf('@cf/openai/gpt-oss-120b') === 'openai' && familyOf('@cf/nvidia/nemotron-3-120b-a12b') === 'nvidia',
+     'families: Gemini and Gemma are Google; gpt-oss is OpenAI; Nemotron is NVIDIA');
   // one model's word is never enough (audit #95, #97)
   const lone = features({ kind: 'card', votes: [{ risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
   ok(verdict(0.99, lone) === 'check', 'a single vote, however sure, is Check this, never Verified');
   // the oath check (plan §22 Layer 7): a dose, a diagnosis or a treatment needs evidence behind it
-  const unbacked = features({ kind: 'card', votes: [{ risk: 1, evidence: 'none' }, { risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
+  const unbacked = features({ kind: 'card', votes: [{ model: 'gemma-4-31b-it', risk: 1, evidence: 'none' }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
   ok(verdict(0.99, unbacked) === 'verified' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check',
      'an oath item with two votes but no support from the literature or its lecture stays Check this');
-  const literature = features({ kind: 'card', votes: [{ risk: 1, evidence: 'supports' }, { risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
-  const lecture = features({ kind: 'card', votes: [{ risk: 1, evidence: 'none' }, { risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
+  const literature = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
+  const lecture = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'none' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
   ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'verified' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'verified',
      'with the literature supporting it, or its own lecture saying it, an oath item can be Verified');
   for (const [text, dose] of DOSE_VECTORS) ok(hasDose(text) === dose, `dose ${dose ? 'found' : 'not found'}: ${text}`);

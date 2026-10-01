@@ -1207,6 +1207,12 @@ export async function spend(env, accountId, limit) {
   return (result.meta?.changes ?? 0) > 0;
 }
 
+/// Give back one use counted by spend (a request that did no work).
+export async function refund(env, accountId) {
+  await env.DB.prepare('UPDATE ai_usage SET requests = requests - 1 WHERE account_id = ? AND day = ? AND requests > 0')
+    .bind(accountId, today()).run();
+}
+
 // MARK: is this account Pro?
 
 /// Owner accounts (a comma-separated list in OWNER_ACCOUNT_IDS) always are;

@@ -239,6 +239,8 @@ export function ruleHits(item) {
     }
   }
 
+  for (const said of notation(text)) add('dose-notation', 'minor', said);
+  for (const said of lookAlike(text)) add('look-alike-drug', 'severe', said);
   for (const d of doses(text)) {
     const [lo, hi] = DRUGS[d.drug];
     if (d.mg > hi * 2 || d.mg < lo / 5) add('dose-range', 'severe', `${d.said}: outside any usual dose of ${d.drug} (${fmt(lo)}–${fmt(hi)} mg).`);
@@ -254,10 +256,17 @@ export function ruleHits(item) {
     if (v.value < r[0] || v.value > r[1]) add('lab-implausible', 'severe', `${v.said}: not a possible ${v.analyte} in ${v.unit || 'these units'} (wrong unit?).`);
   }
   for (const s of statedRanges(text)) {
-    const r = LABS[s.analyte]?.[s.unit] || (!s.unit ? Object.values(LABS[s.analyte] || {})[0] : null);
-    if (!r) continue;
+    const table = LABS[s.analyte];
+    if (!table) continue;
+    // a range written without a unit is right if it is right in any unit the
+    // analyte is reported in ("normal calcium 2.1-2.6" is mmol/L, not wrong
+    // mg/dL - audit #96)
+    const candidates = s.unit ? (table[s.unit] ? [[s.unit, table[s.unit]]] : []) : Object.entries(table);
+    if (!candidates.length) continue;
     const off = (x, y) => Math.abs(x - y) > Math.max(0.2 * Math.abs(y), 1e-9);
-    if (off(s.lo, r[2]) || off(s.hi, r[3])) add('reference-range', 'severe', `Normal ${s.analyte} is about ${r[2]}–${r[3]}${s.unit ? ' ' + s.unit : ''}, not ${s.lo}–${s.hi}.`);
+    if (candidates.some(([, r]) => !off(s.lo, r[2]) && !off(s.hi, r[3]))) continue;
+    const should = candidates.map(([u, r]) => `${r[2]}–${r[3]}${s.unit || candidates.length > 1 ? ' ' + u : ''}`).join(' or ');
+    add('reference-range', 'severe', `Normal ${s.analyte} is about ${should}, not ${s.lo}–${s.hi}.`);
   }
   // one analyte said to go both up and down
   const t = lower(text);
@@ -270,6 +279,67 @@ export function ruleHits(item) {
 }
 
 const fmt = x => (x >= 1 ? String(Math.round(x * 100) / 100) : String(x));
+
+// MARK: dose notation and look-alike drugs (DNA brief: a sensor per error
+// type; these errors read as plausible, so nothing else catches them)
+
+/// Notation the Joint Commission's "Do Not Use" list bans because it is
+/// misread tenfold or as another word. Mirrored in AccuracyRules.swift; both
+/// are held to server/tests/rule-vectors.json.
+export const NOTATION = [
+  { pattern: '\\b\\d+\\.0+\\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\\w/])', caseless: true, says: 'drop the trailing zero ("1.0 mg" is read as 10 mg)' },
+  { pattern: '(?<![\\w.])\\.\\d+\\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\\w/])', caseless: true, says: 'write a leading zero (".5 mg" is read as 5 mg)' },
+  { pattern: '\\b\\d+(?:\\.\\d+)?\\s?U(?![\\w/])', caseless: false, says: 'write "units" ("U" is misread as 0 or 4)' },
+  { pattern: '(?<![A-Za-z])(?:QD|QOD|q\\.d\\.|q\\.o\\.d\\.)(?![A-Za-z])', caseless: false, says: 'write "daily" or "every other day" ("QD" is misread as QID)' },
+];
+export function notation(text) {
+  const out = [];
+  for (const n of NOTATION) {
+    for (const m of String(text).matchAll(new RegExp(n.pattern, n.caseless ? 'gi' : 'g'))) out.push(`"${m[0].trim()}": ${n.says}.`);
+  }
+  return out;
+}
+
+/// Look-alike, sound-alike pairs from the ISMP list, each drug with what it is
+/// for. A drug said to be for its partner's use, and not its own, is the
+/// classic swap (hydroxyzine for hypertension). Mirrored in AccuracyRules.swift.
+export const LOOK_ALIKE = [
+  [['hydralazine', ['hypertension', 'high blood pressure', 'pre-eclampsia', 'preeclampsia', 'eclampsia', 'heart failure']],
+   ['hydroxyzine', ['anxiety', 'pruritus', 'itch', 'urticaria', 'allerg', 'sedation']]],
+  [['clonidine', ['hypertension', 'high blood pressure', 'adhd', 'attention deficit', 'hot flush', 'hot flash']],
+   ['clonazepam', ['seizure', 'epilep', 'panic']]],
+  [['metformin', ['diabetes', 'diabetic', 'hyperglyc', 'polycystic ovar', 'pcos']],
+   ['metronidazole', ['anaerob', 'bacterial vaginosis', 'trichomon', 'clostridi', 'c. diff', 'amoeb', 'ameb', 'giardia', 'h. pylori', 'helicobacter']]],
+  [['lamotrigine', ['epilep', 'seizure', 'bipolar']], ['lamivudine', ['hiv', 'hepatitis b', 'hbv']]],
+  [['risperidone', ['schizophren', 'psychos', 'bipolar', 'mania', 'autis', 'irritability']], ['ropinirole', ['parkinson', 'restless leg']]],
+  [['tramadol', ['pain', 'analges']], ['trazodone', ['depress', 'insomnia', 'sleep']]],
+  [['chlorpromazine', ['schizophren', 'psychos', 'nausea', 'vomiting', 'hiccup']], ['chlorpropamide', ['diabetes', 'diabetic', 'hyperglyc']]],
+  [['sulfasalazine', ['ulcerative colitis', 'crohn', 'rheumatoid arthritis', 'inflammatory bowel']], ['sulfadiazine', ['toxoplasm', 'burn']]],
+];
+const USE_CUE = /\b(?:for|to treat|treats|treating|treatment of|indicated for|indicated in|used for|used in|management of)\b/;
+const NEGATED = /\b(?:not|never|no)\b/;
+const mentions = (span, word) => new RegExp(`\\b${esc(word)}`).test(span);
+export function lookAlike(text) {
+  const t = lower(text);
+  const out = [];
+  for (const [first, second] of LOOK_ALIKE) {
+    for (const [[name, own], [other, theirs]] of [[first, second], [second, first]]) {
+      for (const m of t.matchAll(new RegExp(`\\b${esc(name)}\\b`, 'g'))) {
+        // the rest of this sentence, at most 90 characters
+        let end = m.index + name.length;
+        while (end < t.length && end - m.index < 90 && !'.;!?\n'.includes(t[end])) end++;
+        const span = t.slice(m.index + name.length, end);
+        const cue = USE_CUE.exec(span);
+        if (!cue) continue;
+        const before = span.slice(0, cue.index), after = span.slice(cue.index + cue[0].length);
+        if (NEGATED.test(before) || before.includes(other) || after.includes(other)) continue;
+        const wrong = theirs.find(u => mentions(after, u));
+        if (wrong && !own.some(u => mentions(after, u))) out.push(`${name} ${cue[0]} ${wrong}…: that is what ${other} is for; check the name (look-alike drugs).`);
+      }
+    }
+  }
+  return out;
+}
 
 /// The words the checker, the cache and the rules see for an item.
 export function itemText(item) {

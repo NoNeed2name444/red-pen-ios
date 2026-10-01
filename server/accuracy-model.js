@@ -64,10 +64,26 @@ export function features({ kind, rules = [], votes = [], evidenceCount = 0, sour
     kind_osce: kind === 'osce' ? 1 : 0,
     kind_page: kind === 'page' || kind === 'fact' || kind === 'note' ? 1 : 0,
   };
+  // not a weighted feature: how many model families the votes that pass the
+  // item come from (the verdict needs two)
+  f.families = new Set(read.filter(v => v.risk < 3).map(v => familyOf(v.model))).size;
   return f;
 }
 
 export const vector = (f, names = FEATURES) => names.map(n => Number(f[n]) || 0);
+
+/// The family a checker model belongs to. Two models of one family share
+/// their training and so their blind spots: two votes from one family are one
+/// witness, not two (DNA brief: independence multiplies; Islamic brief:
+/// tawatur needs independent chains).
+const FAMILIES = [['google', /gemini|gemma/], ['openai', /gpt|openai/], ['nvidia', /nemotron|nvidia/],
+  ['meta', /llama|\bmeta\b/], ['alibaba', /qwen/], ['mistral', /mistral|mixtral/], ['deepseek', /deepseek/],
+  ['anthropic', /claude|anthropic/], ['baichuan', /baichuan/], ['microsoft', /\bphi-|microsoft/], ['apple', /\bapple\b/]];
+export function familyOf(model) {
+  const m = String(model || '').toLowerCase();
+  for (const [family, pattern] of FAMILIES) if (pattern.test(m)) return family;
+  return m || 'unknown';
+}
 const sigmoid = z => 1 / (1 + Math.exp(-Math.max(-40, Math.min(40, z))));
 
 /// P(accurate) for a feature object, with these weights.
@@ -118,7 +134,8 @@ export const isOath = text => {
   return c.dose || c.diagnosis || c.treatment;
 };
 
-/// Verified / Check this / Flagged, or unchecked when no model has looked:
+/// Verified / Check this / Flagged, or unchecked when no model has looked.
+/// Verified also needs the passing votes to come from two model families.
 /// rules alone can flag an item but never verify one, and a severe rule hit
 /// keeps an item from being Verified whatever the models said. Verified also
 /// needs two models' votes; and an oath item (a dose, a diagnosis, a
@@ -130,7 +147,8 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   if (p < t.flagged) return 'flagged';
   const enough = Math.round((Number(f.voters) || 0) * 3) >= MIN_VERIFY_VOTERS;
   const backed = !oath || (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
-  if (p >= t.verified && !f.rule_severe && enough && backed) return 'verified';
+  const independent = (Number(f.families) || 0) >= MIN_VERIFY_VOTERS;
+  if (p >= t.verified && !f.rule_severe && enough && backed && independent) return 'verified';
   return 'check';
 }
 
