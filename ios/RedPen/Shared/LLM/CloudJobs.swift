@@ -56,7 +56,7 @@ enum CloudJobs {
         init() {}
 
         /// Who stopped the generation, if it was stopped: the student, unless
-        /// the system said it was the one (GenerationCenter.stopBySystem).
+        /// the system surely was (GenerationCenter.stopAtExpiry).
         var stoppedBy: CloudJobRules.Stop {
             lock.lock(); defer { lock.unlock() }
             return stop

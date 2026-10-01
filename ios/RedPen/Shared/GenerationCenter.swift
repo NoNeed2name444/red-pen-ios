@@ -46,8 +46,9 @@ final class GenerationCenter: ObservableObject {
         // One job at a time, and the one running is never stopped to make
         // room: a cancelled cloud job is deleted on the server with what it
         // had written (GenerationRules). Only the student stops it (the
-        // card's Cancel, or closing the screen that started it), or the
-        // system, which leaves its cloud job to finish (stopBySystem).
+        // card's Cancel, closing the screen that started it, or Stop on the
+        // system's progress indicator), or the system, which leaves its cloud
+        // job to finish when the app can tell it was the system (stopAtExpiry).
         guard GenerationRules.admit(running: job?.title) == .start else { return nil }
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
@@ -104,12 +105,12 @@ final class GenerationCenter: ObservableObject {
         cancel()
     }
 
-    /// The system is ending the app's background time (BackgroundWork). The
-    /// work stops as with Cancel, but a cloud job under it is not deleted:
-    /// nobody asked, so the server finishes it and the collector makes the
-    /// set (CloudJobRules.afterStop).
-    func stopBySystem() {
-        keep?.stopped(by: .system)
+    /// The continued processing task expired (BackgroundWork). The work
+    /// stops as with Cancel; a cloud job under it is kept for the collector
+    /// only when the stop was surely the system's, not the student's Stop on
+    /// the progress indicator (CloudJobRules.stopAtExpiry, afterStop).
+    func stopAtExpiry(appActive: Bool) {
+        keep?.stopped(by: CloudJobRules.stopAtExpiry(appActive: appActive))
         cancel()
     }
 }

@@ -82,9 +82,25 @@ enum CloudJobRules {
         /// The student: Cancel on the card, or closing the screen that
         /// started it.
         case student
-        /// The system, ending the app's time in the background. The student
-        /// did not ask, and the server is still writing.
+        /// The system, ending the work while the app is on screen. The
+        /// student did not ask, and the server is still writing.
         case system
+    }
+
+    /// Who stopped a generation whose continued processing task expired.
+    ///
+    /// The expiration handler is told nothing about why. On iOS 26 it runs
+    /// when the system ends the app's background time, and also when the
+    /// student taps Stop on the system's progress indicator - a deliberate
+    /// stop the app cannot tell apart from the system's. That indicator is
+    /// shown only while the app is away, so an expiry while the app is
+    /// active is the system's alone; one while it is away may be the
+    /// student's, and is taken as theirs: a Stop is honoured, and paid work
+    /// nobody may want is not left running on the server (a stop that was
+    /// really the system's costs that one job, which the student can start
+    /// again, as before #94).
+    static func stopAtExpiry(appActive: Bool) -> Stop {
+        appActive ? .system : .student
     }
 
     /// What becomes of the job when its generation is stopped.

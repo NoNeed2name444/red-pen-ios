@@ -1,7 +1,8 @@
 // A finished cloud job's result that fails to download is asked for again,
 // with waits between, while its screen waits; given up, the job is handed to
 // the collector and the student told it is not lost (audit #93). A job whose
-// generation the system stopped is handed over too, never deleted (#94).
+// generation the system stopped is handed over too, never deleted (#94) -
+// unless the stop may have been the student's own, from the progress indicator.
 
 import Foundation
 
@@ -71,7 +72,14 @@ ok(!screen(failing: 1, status: 404).fetched, "and a job the server does not know
 
 ok(Rules.afterStop(.student) == .delete, "the student's Cancel stops the cloud job and forgets it, as asked")
 ok(Rules.afterStop(.system) == .handOver,
-   "the system ending the app's background time leaves the job to finish, for the collector")
+   "the system stopping the work leaves the job to finish, for the collector")
+// the expiration handler cannot tell the system from the student's Stop on
+// the progress indicator, which is shown only while the app is away
+ok(Rules.stopAtExpiry(appActive: true) == .system, "an expiry on screen is the system's: the job is kept")
+ok(Rules.stopAtExpiry(appActive: false) == .student,
+   "an expiry while away may be the student's Stop on the progress indicator, and is honoured as one")
+ok(Rules.afterStop(Rules.stopAtExpiry(appActive: false)) == .delete,
+   "so a set stopped from the indicator is not written on and put in the library")
 
 // MARK: what the student is told
 
