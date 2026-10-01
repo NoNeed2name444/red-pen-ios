@@ -46,12 +46,24 @@ check('score counts terms, misses and words', s.terms === 3 && s.of === 8 && s.m
 
 // the app's prompt, from its own Swift
 const swift = `enum CloudTranscript {
-    static func prompt(vocabulary: [String]) -> String {
-        var text = """
-        Line one, "quoted".
-
-          indented two
-        """
+    static func prompt(vocabulary: [String], language: LectureLanguage = .mixed) -> String {
+        var rules: [String]
+        switch language {
+        case .mixed:
+            rules = [
+                "Mixed, \\"quoted\\".",
+            ]
+        case .english:
+            rules = ["English."]
+        }
+        rules += [
+            "- shared",
+        ]
+        if language == .mixed {
+            rules.append("- mixed only")
+        }
+        var text = "Head.\\n\\n"
+            + rules.joined(separator: "\\n")
         if !vocabulary.isEmpty {
             text += "\\n\\nTerms: "
                 + vocabulary.joined(separator: ", ") + "."
@@ -59,15 +71,17 @@ const swift = `enum CloudTranscript {
         return text
     }
 }`;
-check('a literal is stripped of the closing delimiter\'s indentation',
-      promptFromSwift(swift, []) === 'Line one, "quoted".\n\n  indented two', JSON.stringify(promptFromSwift(swift, [])));
+check('the mixed prompt: its rules, the shared ones, then its own',
+      promptFromSwift(swift, []) === 'Head.\n\nMixed, "quoted".\n- shared\n- mixed only', JSON.stringify(promptFromSwift(swift, [])));
+check('the English prompt leaves the mixed rules out',
+      promptFromSwift(swift, [], 'english') === 'Head.\n\nEnglish.\n- shared', JSON.stringify(promptFromSwift(swift, [], 'english')));
 check('the vocabulary sentence is added as Swift adds it',
-      promptFromSwift(swift, ['lupus', 'malar']) === 'Line one, "quoted".\n\n  indented two\n\nTerms: lupus, malar.');
+      promptFromSwift(swift, ['lupus', 'malar']).endsWith('- mixed only\n\nTerms: lupus, malar.'));
 let threw = false;
-try { promptFromSwift(swift.replace('var text = """', 'var text = "x" + """'), []); } catch { threw = true; }
+try { promptFromSwift(swift.replace('var text = "Head', 'var text = shout("Head'), []); } catch { threw = true; }
 check('a prompt of another shape stops the benchmark rather than guessing', threw);
 threw = false;
-try { promptFromSwift(swift.replace('Line one', 'Line \\(n) one'), []); } catch { threw = true; }
+try { promptFromSwift(swift.replace('Head.', 'Head \\(n).'), []); } catch { threw = true; }
 check('an interpolated prompt stops it too', threw);
 
 // ...and against the real files, so a change to the app's prompt is noticed here
@@ -81,7 +95,7 @@ check('MedicalTerms.common is read (lupus first)', common.length >= 10 && common
 check('the real prompt ends with the common terms, as LectureImporter sends them with no slides',
       real.endsWith(common.join(', ') + '.'));
 check('every line of the real prompt is in CloudTranscript.swift',
-      real.split('\n').filter(l => l && !l.startsWith('Terms from')).every(l => cloud.includes(l)));
+      real.split('\n').filter(l => l && !l.startsWith('Terms from')).every(l => cloud.replace(/\\"/g, '"').includes(l)));
 
 // the Worker's reply
 check('phrases become one line each', transcriptFromReply({ text: '[{"start":0,"end":1,"text":" malar  rash "},{"start":1,"end":2,"text":"acute"}]' }) === 'malar rash\nacute');

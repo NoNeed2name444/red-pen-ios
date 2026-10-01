@@ -98,28 +98,57 @@ function unescapeSwift(s) {
   return s.replace(/\\(["\\nt])/g, (_, c) => ({ n: '\n', t: '\t' }[c] ?? c));
 }
 
-/// CloudTranscript.prompt(vocabulary:), rebuilt from CloudTranscript.swift:
-/// the multi-line literal with its indentation stripped as Swift strips it
-/// (by the closing delimiter's), then the vocabulary sentence. Throws when the
-/// Swift no longer has that shape, so a change there stops the benchmark
-/// rather than sending a prompt the app does not send.
-export function promptFromSwift(source, vocabulary) {
-  const fn = source.split('static func prompt(vocabulary: [String]) -> String {')[1];
-  if (!fn) throw new Error('CloudTranscript.prompt(vocabulary:) not found');
-  const lit = fn.match(/var text = """\n([\s\S]*?)\n([ \t]*)"""/);
-  if (!lit) throw new Error("the prompt's multi-line literal not found");
-  const indent = lit[2];
-  const body = lit[1].split('\n').map(line => {
-    if (line.trim() === '') return '';
-    if (!line.startsWith(indent)) throw new Error('a prompt line is indented less than its closing """');
-    return line.slice(indent.length);
-  }).join('\n');
+/// CloudTranscript.prompt(vocabulary:language:), rebuilt from
+/// CloudTranscript.swift by translating its body to JavaScript: string
+/// literals, `rules` built with = [...], += [...] and append, a switch and an
+/// if on the language, joined(separator:). Anything else in it (an
+/// interpolation, a call this does not know) throws, so a change there stops
+/// the benchmark rather than sending a prompt the app does not send.
+export function promptFromSwift(source, vocabulary, language = 'mixed') {
+  const head = source.match(/static func prompt\(vocabulary: \[String\](?:, language: LectureLanguage = \.mixed)?\) -> String \{\n/);
+  if (!head) throw new Error('CloudTranscript.prompt(vocabulary:) not found');
+  // the body: up to the brace that closes the function, skipping strings
+  const from = head.index + head[0].length;
+  let depth = 1, i = from, inStr = false;
+  for (; i < source.length && depth; i++) {
+    const c = source[i];
+    if (inStr) { if (c === '\\') i++; else if (c === '"') inStr = false; }
+    else if (c === '"') inStr = true;
+    else if (c === '{') depth++;
+    else if (c === '}') depth--;
+  }
+  const body = source.slice(from, i - 1);
   if (/\\\(/.test(body)) throw new Error('the prompt now interpolates; teach asr_bench.mjs');
-  let text = unescapeSwift(body);
-  const tail = fn.match(/text \+= "((?:[^"\\]|\\.)*)"\s*\+\s*vocabulary\.joined\(separator: "((?:[^"\\]|\\.)*)"\)\s*\+\s*"((?:[^"\\]|\\.)*)"/);
-  if (!tail) throw new Error("the prompt's vocabulary sentence not found");
-  if (vocabulary.length) text += unescapeSwift(tail[1]) + vocabulary.join(unescapeSwift(tail[2])) + unescapeSwift(tail[3]);
-  return text;
+  if (body.includes('"""')) throw new Error('the prompt uses a multi-line literal; teach asr_bench.mjs');
+  const arrays = [], cases = [];
+  const js = body.split('\n').map(line => {
+    const code = line.replace(/"(?:[^"\\]|\\.)*"/g, '""');   // strings blanked for matching
+    let m;
+    if (/^\s*var rules: \[String\]\s*$/.test(code)) return 'let rules;';
+    if ((m = code.match(/^(\s*)(?:var )?rules (\+?)= \[\s*$/))) {
+      arrays.push(m[2]); return line.replace(/(?:var )?rules \+?= \[/, m[2] ? 'rules.push(...[' : 'rules = [');
+    }
+    if ((m = code.match(/^\s*(?:var )?rules (\+?)= \[[",\s]*\]\s*$/)))
+      return line.replace(/(?:var )?rules \+?= \[(.*)\]\s*$/, m[1] ? 'rules.push(...[$1]);' : 'rules = [$1];');
+    if (/^\s*\]\s*$/.test(code)) {
+      if (!arrays.length) throw new Error('an unexpected ] in the prompt');
+      return line.replace(']', arrays.pop() ? ']);' : '];');
+    }
+    if (/^\s*switch language \{\s*$/.test(code)) { cases.push(0); return 'switch (language) {'; }
+    if ((m = code.match(/^\s*case \.(\w+):\s*$/))) return (cases[cases.length - 1]++ ? 'break; ' : '') + `case '${m[1]}':`;
+    if (/^\s*if language == \.\w+ \{\s*$/.test(code)) return line.replace(/if language == \.(\w+) \{/, "if (language === '$1') {");
+    if (/^\s*if !vocabulary\.isEmpty \{\s*$/.test(code)) return 'if (vocabulary.length) {';
+    if (/^\s*\}\s*$/.test(code)) return '}';
+    if (/^\s*return text\s*$/.test(code)) return 'return text;';
+    if (/^\s*(?:\/\/.*)?$/.test(code)) return '';
+    // a string, an append, an assignment or a continuation made only of
+    // strings, +, joined(separator:) and the two names
+    const rest = code.replace(/rules\.append\(|rules\.joined\(separator: ""\)|vocabulary\.joined\(separator: ""\)|var text \+?=|text \+=|""|\+|,|\)|\s/g, '');
+    if (rest) throw new Error(`a line of the prompt this cannot read: ${line.trim()}`);
+    return line.replace(/rules\.append\(/, 'rules.push(').replace(/\.joined\(separator: /g, '.join(').replace(/var text/, 'let text');
+  }).join('\n');
+  if (arrays.length) throw new Error('an unclosed [ in the prompt');
+  return new Function('vocabulary', 'language', js)(vocabulary, language);
 }
 
 /// MedicalTerms.common from LectureTranscriber.swift, in order.
