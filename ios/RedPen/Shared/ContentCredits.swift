@@ -52,7 +52,7 @@ enum ContentSources {
         use: "Example questions shown to the question writer, for the style of USMLE-type exams",
         licences: [mit, ccBy4],
         attribution: "MedQA by Jin et al. (2020), github.com/jind11/MedQA, MIT licence; US questions from the GBaker/MedQA-USMLE-4-options mirror on Hugging Face, CC BY 4.0.",
-        changes: "A few whole questions per topic, from the training split, with spacing tidied. They are shown to the writer only as examples of style and are never shown to you as questions.",
+        changes: "A few whole questions per topic, from the training split, with spacing tidied. They are shown to the question writer only as examples of style, not to you.",
         home: "https://github.com/jind11/MedQA")
 
     static let medmcqa = ContentSource(
@@ -60,7 +60,7 @@ enum ContentSources {
         use: "Example questions shown to the question writer, for the style of NEET-PG, INI-CET and FMGE",
         licences: [apache2],
         attribution: "MedMCQA by Pal et al. (2022), huggingface.co/datasets/openlifescienceai/medmcqa, Apache License 2.0.",
-        changes: "A few whole questions per topic, from the training split, with spacing tidied. They are shown to the writer only as examples of style and are never shown to you as questions.",
+        changes: "A few whole questions per topic, from the training split, with spacing tidied. They are shown to the question writer only as examples of style, not to you.",
         home: "https://huggingface.co/datasets/openlifescienceai/medmcqa")
 
     // MARK: public sources a check reads (server/evidence.js)
@@ -136,7 +136,7 @@ struct SetCredits: Hashable {
     }
 
     /// A public source the set's checks read, and the items that cite it.
-    struct Evidence: Hashable, Identifiable {
+    struct CheckedSource: Hashable, Identifiable {
         var source: ContentSource
         var refs: [EvidenceRef]
         var id: String { source.id }
@@ -149,7 +149,7 @@ struct SetCredits: Hashable {
     /// The exam's style bank, when the set was written for an exam.
     var style: ContentSource?
     var examName: String?
-    var evidence: [Evidence] = []
+    var evidence: [CheckedSource] = []
     /// Evidence from a source this version does not know the licence of.
     var otherEvidence: [EvidenceRef] = []
 
@@ -190,7 +190,7 @@ struct SetCredits: Hashable {
         }
         for source in ContentSources.all {
             let theirs: [EvidenceRef] = refs.filter { ContentSources.evidence($0.source)?.id == source.id }
-            if !theirs.isEmpty { out.evidence.append(Evidence(source: source, refs: theirs)) }
+            if !theirs.isEmpty { out.evidence.append(CheckedSource(source: source, refs: theirs)) }
         }
         out.otherEvidence = refs.filter { ContentSources.evidence($0.source) == nil }
         return out

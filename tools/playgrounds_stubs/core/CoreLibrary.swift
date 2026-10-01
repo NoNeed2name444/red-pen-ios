@@ -173,6 +173,9 @@ struct CoreSettingsView: View {
                 ReviewSettingsSection()
                 CoreDataSection()
                 HelpContactSection()
+                Section("About") {
+                    NavigationLink("Sources and licences") { ContentLicencesView() }
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
