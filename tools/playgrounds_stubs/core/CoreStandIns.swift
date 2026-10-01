@@ -343,6 +343,25 @@ struct WardUnitsPicker: View {
     }
 }
 
+/// The one-time tips (Features/Onboarding/StudyTips.swift): none in this build.
+enum StudyTip {
+    case turnInto, holdSet, undo, lens, ideasTheme
+}
+
+enum TipScreen {
+    case study, library, review, lens, ideas
+}
+
+@MainActor
+enum StudyTips {
+    static func used(_ tip: StudyTip) {}
+}
+
+extension View {
+    func tipSighting(_ screen: TipScreen) -> some View { self }
+    func studyTip(_ tip: StudyTip, when: Bool = true) -> some View { self }
+}
+
 /// The reasoning card under a question (Features/Reasoning): nothing here.
 struct HowToReachCard: View {
     let differential: DifferentialTiers

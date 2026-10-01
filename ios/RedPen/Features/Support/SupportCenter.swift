@@ -26,12 +26,12 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    /// Whether the account menu lists this page. The tour of examples only
-    /// in the personal build.
+    /// Whether the account menu lists this page. The tour of examples is
+    /// for everyone.
     var isListed: Bool {
         switch self {
         case .notes, .progress, .faq: return false
-        case .examples: return PersonalBuild.isOn
+        case .examples: return true
         case .analytics, .sources, .account, .settings, .help: return true
         }
     }
