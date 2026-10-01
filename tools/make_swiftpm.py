@@ -88,6 +88,22 @@ STEP1_BACK = [
 ]
 assert all(p in CORE_DROP for p in STEP1_BACK), "STEP1_BACK names a path the core does not drop"
 CORE1_DROP = [p for p in CORE_DROP if p not in STEP1_BACK]
+# core2 = core1 plus step 2: Anki packages, PDF and set-file export, backups
+# (with the Ideas store they include and the data settings that run them),
+# occlusion and picture cards, the scanner. Siri's export shortcuts and
+# files opened from other apps stay with the platform parts (step 6).
+STEP2_BACK = [
+    "Shared/ApkgImport.swift", "Shared/Zstd.swift", "Shared/AnkiNoteText.swift", "Shared/AnkiFields.swift",
+    "Shared/ApkgExporter.swift", "Shared/DeckPDF.swift", "Shared/DeckPDFBlocks.swift", "Shared/DeckPDFPages.swift",
+    "Shared/PDFExporter.swift", "Shared/LibraryBackup.swift", "Shared/LibraryBackupRunner.swift", "Shared/MiniZip.swift",
+    "Shared/OcclusionPhrases.swift", "Shared/OcclusionFilter.swift", "Shared/PhotoOcclusion.swift",
+    "Shared/PhotoOcclusionReader.swift", "Shared/PDFOcclusion.swift", "Shared/FigureFinder.swift", "Shared/FigureGrid.swift",
+    "Features/Library/PictureFromPhotoView.swift", "Features/Library/OcclusionCoverEditor.swift",
+    "Features/Library/DocumentScannerSheet.swift", "Shared/CardTags.swift", "Persistence/NoteStore.swift",
+    "Features/Support/LibraryDataSettingsSection.swift",
+]
+assert all(p in CORE1_DROP for p in STEP2_BACK), "STEP2_BACK names a path core1 does not drop"
+CORE2_DROP = [p for p in CORE1_DROP if p not in STEP2_BACK]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
     # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
@@ -96,8 +112,9 @@ CHUNKS = {
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
     # the core shell (core/) plus the variant's own piece: stand-ins for the
     # step-1 parts (core-audio-out) or the ways into them (core-audio-in)
-    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-out"]),
-    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in"]),
+    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-out", "core-exports-out"]),
+    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in", "core-exports-out"]),
+    "core2": (CORE2_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in", "core-exports-in"]),
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"

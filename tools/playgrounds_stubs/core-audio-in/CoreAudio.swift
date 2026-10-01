@@ -36,6 +36,7 @@ struct CoreLibraryExtras: View {
     }
 }
 
-enum CoreBuildNote {
-    static let text = "This is the core build plus lecture audio and the spoken modes. The 3D map, Study Lens, analytics, exports, backups and the reasoning tools are in the full app."
+/// What this build leaves out of step 1, for the note under the library.
+enum CoreAudioPart {
+    static let missing: [String] = []
 }

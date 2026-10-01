@@ -50,6 +50,7 @@ struct LibraryView: View {
                     }
                 }
                 CoreLibraryExtras()
+                CoreLibraryExports()
                 Section {
                     Text(CoreBuildNote.text)
                         .font(.footnote)
@@ -99,6 +100,7 @@ struct LibraryView: View {
                 }
             }
         }
+        .coreRowActions(set)
         .swipeActions {
             Button(role: .destructive) {
                 store.deleteSet(set.id)
@@ -139,6 +141,7 @@ struct CoreSettingsView: View {
                     NavigationLink("Exam") { ExamPickerView() }
                 }
                 ReviewSettingsSection()
+                CoreDataSection()
                 HelpContactSection()
             }
             .navigationTitle("Settings")
@@ -149,5 +152,18 @@ struct CoreSettingsView: View {
                 }
             }
         }
+    }
+}
+
+/// What this build leaves out, under the library: what every core build
+/// leaves out, and the parts its variant has not brought back.
+enum CoreBuildNote {
+    static var text: String {
+        let missing: [String] = ["the 3D map", "Study Lens", "analytics", "the reasoning tools"]
+            + CoreAudioPart.missing + CoreExportsPart.missing
+        let listed: String = missing.count > 1
+            ? missing.dropLast().joined(separator: ", ") + " and " + (missing.last ?? "")
+            : missing.joined()
+        return "This build leaves out \(listed), so Swift Playgrounds can build it on the iPad. The full app has them."
     }
 }
