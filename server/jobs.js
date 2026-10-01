@@ -26,6 +26,7 @@
 // checked too.
 import { chat, proGate } from './ai.js';
 import { fillExemplars } from './exams.js';
+import { isOff } from './switches.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
@@ -51,8 +52,17 @@ export const LIMITS = {
   // A job still "running" that nothing has touched for this long has lost its
   // alarm (the platform gave up retrying it): it ends, with what it has.
   staleHours: 24,
+  // A job kept waiting this long on providers that are all resting ends,
+  // keeping what it has written: a progress bar that stops moving for longer
+  // than this is a frozen screen to the student (older builds do not read
+  // `held`), so the job answers instead.
+  holdMinutes: 10,
 };
 const RETRY_SECONDS = 20;
+/// How often a waiting job looks again whether it may carry on.
+const HOLD_SECONDS = 300;
+const SWITCHED_OFF = 'Background writing is switched off for now. What was written is kept; start the rest again once it is back on.';
+const CHECK_OFF = 'The cloud check is switched off for now; what was not checked stays Unverified until it is back.';
 const MAX_FAILURES = 4;
 /// A reply in a job may be as long as the job asked for (checkSpec caps it at
 /// 8,000 tokens): a batch of four questions with their differentials needs
@@ -480,7 +490,26 @@ export class GenerationJobs {
 
   /// Returns how long to wait before the next call, in seconds.
   async step(job) {
-    if (job.phase === 'checking') return this.checkStep(job);
+    if (job.phase === 'checking') {
+      // the check (or all background work) switched off (switches.js): the
+      // writing is handed over now, and what was not checked stays
+      // Unverified - the app checks it once the check is back
+      if (isOff(this.env, 'check') || isOff(this.env, 'jobs')) {
+        job.status = 'done';
+        job.checkError = CHECK_OFF;
+        return 0;
+      }
+      return this.checkStep(job);
+    }
+    // writing (or all background work) switched off: no call, nothing spent,
+    // and the job ends at once with what it has - "done", partial, if
+    // anything was written, "failed" with the reason if nothing was - so the
+    // app delivers it and says why, rather than a progress bar left standing
+    // for as long as the switch stays off. A switch can stay off for days.
+    if (isOff(this.env, 'write') || isOff(this.env, 'jobs')) {
+      stop(job, SWITCHED_OFF);
+      return 0;
+    }
     const index = job.mode === 'each' ? job.done : job.round % job.stepCount;
     const step = await this.storage.get(`step:${job.id}:${index}`);
     const source = step.source >= 0 ? (await this.storage.get(`src:${job.id}:${step.source}`)) || '' : '';
@@ -508,6 +537,10 @@ export class GenerationJobs {
         stop(job, message);
         return 0;
       }
+      // every provider resting after failing (breakers.js): nothing was
+      // asked, and chat() gave the request back to the day's allowance, so
+      // it is not a failure - the job waits its turn, for holdMinutes at most
+      if (body?.busy) return this.hold(job, message, Number(body.retryAfter) || RETRY_SECONDS);
       job.failures += 1;
       job.error = message;
       return RETRY_SECONDS;
@@ -563,6 +596,8 @@ export class GenerationJobs {
     job.round += 1;
     job.failures = 0;
     job.error = null;
+    job.held = null;
+    job.heldSince = null;
     if (job.mode === 'each') {
       job.done += 1;
     } else {
@@ -617,7 +652,9 @@ export class GenerationJobs {
       }
       job.failures += 1;
       job.checkNote = message;
-      return RETRY_SECONDS;
+      // every provider resting: the next try waits until one may be asked
+      // again, so the few tries a check gets are not all spent in a minute
+      return body?.busy ? Math.max(RETRY_SECONDS, Number(body.retryAfter) || 0) : RETRY_SECONDS;
     }
     const reply = String(body?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     // the evidence the checker was shown (evidence.js), so the app can cite
@@ -634,6 +671,22 @@ export class GenerationJobs {
       if (job.unqueued) job.checkError = `${job.unqueued} item(s) were too many to check here; the app checks them.`;
     }
     return 0;
+  }
+
+  /// The job waits instead of calling: every provider is resting. No failure
+  /// is counted and nothing is spent; the job keeps its place, says why it is
+  /// waiting (`held`), and carries on from where it stopped. Kept waiting past
+  /// holdMinutes it ends, keeping what it has written - an answer, never a
+  /// job left spinning.
+  hold(job, reason, seconds) {
+    const now = Date.now();
+    job.heldSince = job.heldSince || now;
+    if (now - job.heldSince >= LIMITS.holdMinutes * 60_000) {
+      stop(job, reason);
+      return 0;
+    }
+    job.held = reason;
+    return Math.min(Math.max(seconds, RETRY_SECONDS), HOLD_SECONDS);
   }
 
   /// Item n of the check queue. A job made before the queue was stored item
@@ -707,5 +760,7 @@ function summary(job) {
     // written short of what was asked, and why (the app shows it; older
     // builds ignore both)
     partial: !!job.partial, reason: job.partial ? job.reason || error || null : null,
+    // waiting, and why (writing switched off, or the providers resting)
+    held: job.status === 'running' ? job.held || null : null,
   };
 }

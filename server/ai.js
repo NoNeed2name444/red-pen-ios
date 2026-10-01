@@ -21,6 +21,7 @@
 
 import { decodeClaims } from './tokens.js';
 import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages, answerWithEvidence } from './evidence.js';
+import { breakers, failed } from './breakers.js';
 
 const DEFAULT_BASE = 'https://router.huggingface.co/v1';
 // Hugging Face's router has one live host for Baichuan-M2 (Featherless);
@@ -98,13 +99,20 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     route.sources = [pinned];
   }
 
+  // Every provider this request could use failed just now and is resting
+  // (breakers.js): "busy, try again" at once - before the day's allowance is
+  // spent, and rather than a wait on providers already known to be down.
+  const lanes = laneNames(env, route);
+  if (lanes.length && lanes.every(lane => breakers.resting(env, lane))) return busy(breakers.retryAfter(env, lanes));
+
   // the owner's own builds get a much higher allowance, but still one: a
   // leaked owner key cannot spend without end. The benchmarks have one of
   // their own, so a long run can never leave the owner's app without cloud
   // for the rest of the day.
   const limit = bench ? Number(env.OWNER_BENCH_DAILY_LIMIT) || 2500
     : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000 : Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
-  if (!await spend(env, bench ? 'owner-bench' : owner ? 'owner' : accountId, limit)) {
+  const spender = bench ? 'owner-bench' : owner ? 'owner' : accountId;
+  if (!await spend(env, spender, limit)) {
     const message = `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`;
     // `limit: "day"` says which kind of limit, so a client need not read the words
     return json({ error: { message }, message, limit: 'day' }, 429);
@@ -119,6 +127,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // even when the lecture says it too.
   let sent = messages;
   let evidence = [];
+  // how many providers were really asked, over every call below
+  let asked = 0;
   const last = messages[messages.length - 1]?.content || '';
   // The owner's checker comparison asks for the model's own judgement
   // (ground: false); everyone else's checks are always grounded.
@@ -127,12 +137,24 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const about = checked ? checked.output : (body.ground === true ? last : '');
   if (about) {
     const picked = await complete(env, route, termsPrompt(about), 200, 0, fetcher);
+    asked += picked.calls || 0;
     if (picked.ok) {
       evidence = await gather(parseTerms(picked.content), fetcher);
       sent = checked ? groundedMessages(messages, evidence) : answerWithEvidence(messages, evidence);
     }
   }
   const result = await complete(env, route, sent, maxTokens, temperature, fetcher);
+  asked += result.calls || 0;
+  // the providers went down while this request was on its way, or the ones
+  // not resting could not be used anyway (a Gemini model out for the day,
+  // the account's free share used, a prompt too long for Workers AI): the
+  // same clean answer as above. Nothing was asked, so the request taken from
+  // the day's allowance is given back - a background job that waits on busy
+  // answers (jobs.js) must not use up the student's day doing nothing.
+  if (!result.ok && result.resting) {
+    if (!asked) await takeBack(env, spender, 1).catch(e => console.error('refund', e));
+    return busy(result.retryAfter);
+  }
   if (!result.ok) {
     console.error('upstream', result.status, result.detail);
     // the owner sees the provider's own words, so a clipped error still says
@@ -147,6 +169,30 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     // what the checker was shown, so the app can cite it
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
+}
+
+/// Every provider resting after failing (breakers.js): a 503 the app shows as
+/// a message, with how long to wait. `busy` lets a background job tell it from
+/// a provider failing, and wait instead of giving up (jobs.js).
+export function busy(retryAfter = 60) {
+  const message = 'The cloud models are busy right now. Try again in a minute, or use an on-device model.';
+  return new Response(JSON.stringify({ error: { message }, message, busy: true, retryAfter }), {
+    status: 503, headers: { 'content-type': 'application/json', 'retry-after': String(retryAfter) },
+  });
+}
+
+/// The breaker lanes (breakers.js) a route would try, in order: each Gemini
+/// model, the Workers AI model, each other host's model - a paid host only
+/// while Pro money covers it.
+export function laneNames(env, route) {
+  const lanes = [];
+  for (const source of route.sources || []) {
+    if (source.paid && !route.canPay) continue;
+    if (source.kind === 'gemini') lanes.push(...(source.models?.length ? source.models : list(env.CLOUD_MODELS || FREE_MODELS)).map(m => `gemini:${m}`));
+    else if (source.kind === 'workers-ai') lanes.push(`workers-ai:${workersModel(env, source.model)}`);
+    else lanes.push(`${source.kind}:${source.model}`);
+  }
+  return lanes;
 }
 
 /// One named free model, for the accuracy engine's votes (accuracy.js):
@@ -206,6 +252,7 @@ const PHRASES = {
            required: ['start', 'end', 'text'] },
 };
 const MAX_AUDIO_CHARS = 9_000_000; // base64 of ~6.7 MB: a ten-minute chunk is ~3.2 MB
+const TRANSCRIBE_BUSY = 'Gemini is busy or out of quota right now. Try again later, or transcribe on this phone.';
 
 /// One chunk of a lecture recording, transcribed by Gemini for a Pro account.
 ///
@@ -230,6 +277,15 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
   const paying = await canPay(env, accountId, owner, payer);
   const models = await geminiModels(env, accountId, owner, 'transcribe', paying);
   if (!models.length) return fail(429, "This month's cloud transcription is used up. This phone can still transcribe.");
+  // every model resting after failing just now (breakers.js): busy, before a
+  // chunk of today's allowance or any budget is taken
+  const lanes = models.map(m => `gemini:${m}`);
+  if (lanes.every(lane => breakers.resting(env, lane))) {
+    const retryAfter = breakers.retryAfter(env, lanes);
+    return new Response(JSON.stringify({ error: { message: TRANSCRIBE_BUSY }, message: TRANSCRIBE_BUSY, busy: true, retryAfter }), {
+      status: 429, headers: { 'content-type': 'application/json', 'retry-after': String(retryAfter) },
+    });
+  }
   const limit = owner ? 200 : Number(env.TRANSCRIBE_DAILY) || 36; // ten-minute chunks: six hours a day
   if (!await spend(env, `transcribe:${owner ? 'owner' : accountId}`, limit)) {
     return fail(429, "That's today's cloud transcription used. It resets at midnight UTC; this phone can still transcribe.");
@@ -258,8 +314,7 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
   if (!result.ok) {
     console.error('transcribe', result.status, result.detail);
     const busy = [429, 500, 502, 503, 504].includes(result.status);
-    return fail(busy ? 429 : 502, busy ? 'Gemini is busy or out of quota right now. Try again later, or transcribe on this phone.'
-                                      : `Gemini couldn't transcribe that (${result.status}).`);
+    return fail(busy ? 429 : 502, busy ? TRANSCRIBE_BUSY : `Gemini couldn't transcribe that (${result.status}).`);
   }
   return json({ text: result.content, model: result.source });
 }
@@ -286,24 +341,28 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     }
   }
   const counted = (model, usage) => { actual += costOf(env, model, usage); };
+  // which providers were really asked, and which were skipped because their
+  // breaker is open (breakers.js)
+  const trace = { calls: 0, resting: [] };
   for (const source of route.sources) {
     // a paid host (Baichuan on Novita) only while Pro money covers it
     if (source.paid && !route.canPay) continue;
-    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted, route);
-    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature, source.model, route.account || 'owner', !!route.owner);
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted, route, trace);
+    else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature, source.model, route.account || 'owner', !!route.owner, trace);
     else if (source.kind === 'anthropic') {
-      result = await askAnthropic(env, source, messages, maxTokens, fetcher);
+      result = await askAnthropic(env, source, messages, maxTokens, fetcher, trace);
       if (result.usage) counted(source.model, result.usage);
     }
     else {
-      result = await askOpenAI(source, messages, maxTokens, temperature, fetcher);
+      result = await askOpenAI(source, messages, maxTokens, temperature, fetcher, env, trace);
       if (result.usage) counted(source.model, result.usage);
     }
     if (result.ok) { result.source = result.source || source.kind; break; }
     failures.push(`${source.kind} ${result.status}: ${result.detail}`);
-    // busy, out of quota, down - or, for Gemini, locked by the Firebase
-    // project's App Check: the next source may still answer
-    const next = [408, 429, 500, 502, 503, 504].includes(result.status)
+    // busy, out of quota, down (any 5xx: Claude says "overloaded" with a
+    // 529) - or, for Gemini, locked by the Firebase project's App Check: the
+    // next source may still answer
+    const next = result.status === 429 || failed(result.status)
       || (source.kind === 'gemini' && [401, 403].includes(result.status))
       // the paid host's key refused or expired (Novita answers a bad key
       // with 403), its credit used up (402) or the model withdrawn (404):
@@ -316,9 +375,15 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   }
   // every source's reason, not just the last one's
   if (!result.ok && failures.length > 1) result.detail = failures.join(' | ');
+  // nothing was asked because every provider tried is resting: busy, with how
+  // long until the first of them may be tried again
+  if (!result.ok && !trace.calls && trace.resting.length) {
+    result = { ...result, status: 503, resting: true, retryAfter: breakers.retryAfter(env, trace.resting) };
+  }
   // a bookkeeping failure never costs the student their answer
   if (reserved) await settle(env, route.wallet, reserved, actual).catch(e => console.error('settle', e));
-  return result;
+  // how many providers were really asked (chat gives the allowance back when none was)
+  return { ...result, calls: trace.calls };
 }
 
 async function readError(response) {
@@ -329,8 +394,26 @@ async function readError(response) {
   } catch { return detail; }
 }
 
+/// A lane whose breaker is open (breakers.js) is skipped as "down", so the
+/// next source is tried without waiting on this one; null when the call may go.
+function resting(env, lane, trace, who) {
+  if (breakers.allow(env, lane)) return null;
+  trace?.resting.push(lane);
+  return { ok: false, status: 503, detail: `${who}: resting after failing just now (circuit breaker).` };
+}
+
+/// What a provider's answer tells its breaker: down or sick (a 5xx), or up.
+function judge(env, lane, status) {
+  if (failed(status)) breakers.failure(env, lane);
+  else breakers.success(env, lane);
+}
+
 /// An OpenAI-compatible server (a llama.cpp host, Hugging Face's router).
-async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
+async function askOpenAI(route, messages, maxTokens, temperature, fetcher, env = {}, trace = null) {
+  const lane = `openai:${route.model}`;
+  const skipped = resting(env, lane, trace, route.model);
+  if (skipped) return skipped;
+  if (trace) trace.calls += 1;
   let upstream;
   try {
     upstream = await fetcher(`${route.base.replace(/\/+$/, '')}/chat/completions`, {
@@ -340,9 +423,11 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
       signal: timeoutSignal(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
+    breakers.failure(env, lane);
     // timed out or unreachable: "down", so the next source is tried
     return { ok: false, status: 504, detail: `${route.model}: ${String(error?.message || error).slice(0, 200)}` };
   }
+  judge(env, lane, upstream.status);
   if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
   let answer = null;
   try { answer = await upstream.json(); } catch { /* an HTML error page with a 200 */ }
@@ -359,7 +444,7 @@ async function askOpenAI(route, messages, maxTokens, temperature, fetcher) {
 /// safety decline (stop_reason "refusal") is retried by Anthropic on its own
 /// fallback model inside the call (fallbacks: "default"); one that still
 /// comes back refused is a 451 here, so the next source answers.
-async function askAnthropic(env, source, messages, maxTokens, fetcher) {
+async function askAnthropic(env, source, messages, maxTokens, fetcher, trace = null) {
   const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const turns = [];
   for (const m of messages) {
@@ -370,6 +455,10 @@ async function askAnthropic(env, source, messages, maxTokens, fetcher) {
   }
   if (!turns.length || turns[0].role !== 'user') return { ok: false, status: 400, detail: 'Nothing to send.' };
   const effort = env.STETHOSCORE_DEFAULT_EFFORT || 'medium';
+  const lane = `anthropic:${source.model}`;
+  const skipped = resting(env, lane, trace, source.model);
+  if (skipped) return skipped;
+  if (trace) trace.calls += 1;
   let upstream;
   try {
     upstream = await fetcher(ANTHROPIC_URL, {
@@ -384,8 +473,10 @@ async function askAnthropic(env, source, messages, maxTokens, fetcher) {
       signal: timeoutSignal(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
+    breakers.failure(env, lane);
     return { ok: false, status: 504, detail: `${source.model}: ${String(error?.message || error).slice(0, 200)}` };
   }
+  judge(env, lane, upstream.status);
   if (!upstream.ok) return { ok: false, status: upstream.status, detail: await readError(upstream) };
   let answer = null;
   try { answer = await upstream.json(); } catch { /* an HTML error page with a 200 */ }
@@ -470,15 +561,16 @@ export async function appCheckToken(env, fetcher = fetch, clock = Date.now) {
 }
 export function forgetAppCheck() { appCheckCache = { token: '', until: 0 }; }
 
-async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen, onUsage, route = {}) {
+async function askGemini(env, messages, maxTokens, temperature, fetcher, chosen, onUsage, route = {}, trace = null) {
   const models = chosen?.length ? chosen : list(env.CLOUD_MODELS || FREE_MODELS);
   return generate(env, models, model => geminiBody(messages, maxTokens, temperature, model), fetcher,
-    { onUsage, rounds: route.rounds || 2, allow: await freeShare(env, route.account, !!route.owner), timeout: UPSTREAM_TIMEOUT_MS });
+    { onUsage, rounds: route.rounds || 2, allow: await freeShare(env, route.account, !!route.owner), timeout: UPSTREAM_TIMEOUT_MS, trace });
 }
 
 /// One Gemini request, trying each model in turn while the answer is "busy",
-/// "out of quota" or "not offered".
-async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rounds = 2, allow = null, timeout = UPSTREAM_TIMEOUT_MS } = {}) {
+/// "out of quota" or "not offered". A model whose breaker is open
+/// (breakers.js) is skipped like a busy one, before anything is spent on it.
+async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rounds = 2, allow = null, timeout = UPSTREAM_TIMEOUT_MS, trace = null } = {}) {
   let last = { ok: false, status: 503, detail: 'No Gemini model is set up.' };
   const appCheck = await appCheckToken(env, fetcher);
   // the free tier counts requests per minute: when every model says "too
@@ -494,12 +586,17 @@ async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rou
         last = { ok: false, status: 429, detail: `${model}: today's allowance is used (Google said so earlier today).` };
         continue;
       }
+      const lane = `gemini:${model}`;
+      const skipped = resting(env, lane, trace, model);
+      if (skipped) { last = skipped; continue; }
       // this account's share of a scarce free allowance is used up, or the
       // day's ceiling on Gemini calls is reached: the next model, as if busy
       if (allow && !await allow(model)) {
+        breakers.release(lane);
         last = { ok: false, status: 429, detail: `${model}: this account's share of today's free requests is used.` };
         continue;
       }
+      if (trace) trace.calls += 1;
       let response;
       try {
         response = await fetcher(
@@ -513,10 +610,12 @@ async function generate(env, models, bodyFor, fetcher, { onUsage = () => {}, rou
             signal: timeoutSignal(timeout),
           });
       } catch (error) {
+        breakers.failure(env, lane);
         // timed out or unreachable: like "busy", the next model may answer
         last = { ok: false, status: 504, detail: `${model}: ${String(error?.message || error).slice(0, 200)}` };
         continue;
       }
+      judge(env, lane, response.status);
       if (!response.ok) {
         const raw = await response.text();
         last = { ok: false, status: response.status, detail: `${model}: ${errorMessage(raw)}` };
@@ -969,34 +1068,49 @@ export async function giveNeurons(env, account, n, owner = false) {
 /// request may carry: a full-size prompt costs a tenth of the day's pool.
 const WORKERS_AI_MAX_CHARS = 24_000;
 
+/// The Workers AI text model a source asks: the one named, or the fallback.
+const workersModel = (env, pinned) => pinned || env.FALLBACK_MODEL || '@cf/nvidia/nemotron-3-120b-a12b';
+
 /// Cloudflare Workers AI, on the account's free daily allowance.
-async function askWorkersAI(env, messages, maxTokens, temperature, pinned, account = 'owner', owner = true) {
-  const model = pinned || env.FALLBACK_MODEL || '@cf/nvidia/nemotron-3-120b-a12b';
+async function askWorkersAI(env, messages, maxTokens, temperature, pinned, account = 'owner', owner = true, trace = null) {
+  const model = workersModel(env, pinned);
   const chars = messages.reduce((n, m) => n + m.content.length, 0);
   if (chars > finite(env.WORKERS_AI_MAX_CHARS, WORKERS_AI_MAX_CHARS)) {
     return { ok: false, status: 503, detail: 'Too long for the free fallback model.' };
   }
+  // resting after failing just now (breakers.js): skipped before any of the
+  // day's neurons are taken
+  const lane = `workers-ai:${model}`;
+  const skipped = resting(env, lane, trace, `Workers AI ${model}`);
+  if (skipped) return skipped;
   const [rateIn, rateOut] = NEURON_RATES[model] || NEURON_RATES['@cf/nvidia/nemotron-3-120b-a12b'];
   const neurons = (chars / 4) * rateIn / 1e6 + maxTokens * rateOut / 1e6;
   if (!await takeNeurons(env, account, neurons, owner)) {
+    breakers.release(lane);
     return { ok: false, status: 429, detail: "Workers AI: this account's share of today's free allowance is used." };
   }
+  if (trace) trace.calls += 1;
+  let out;
   try {
-    const out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature));
-    // what was taken assumed the whole max_tokens came back; when the model
-    // says what it used, the rest goes back to the pool, or the day's
-    // allowance runs out at a fraction of what was really spent
-    const spent = usedNeurons(out?.usage, rateIn, rateOut);
-    const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
-    if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
-    const content = workersText(out);
-    if (content) return { ok: true, content, source: model };
-    const why = out?.choices?.[0]?.finish_reason === 'length' ? ' (it ran out of tokens while thinking)' : '';
-    return { ok: false, status: 502, detail: `Workers AI sent back nothing usable${why}.` };
+    out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature));
   } catch (error) {
+    // down, over capacity, or the account's free neurons gone: all "failed"
+    // as far as the chain is concerned
+    breakers.failure(env, lane);
     await giveNeurons(env, account, neurons, owner).catch(() => {});
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
   }
+  breakers.success(env, lane);
+  // what was taken assumed the whole max_tokens came back; when the model
+  // says what it used, the rest goes back to the pool, or the day's
+  // allowance runs out at a fraction of what was really spent
+  const spent = usedNeurons(out?.usage, rateIn, rateOut);
+  const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
+  if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
+  const content = workersText(out);
+  if (content) return { ok: true, content, source: model };
+  const why = out?.choices?.[0]?.finish_reason === 'length' ? ' (it ran out of tokens while thinking)' : '';
+  return { ok: false, status: 502, detail: `Workers AI sent back nothing usable${why}.` };
 }
 
 /// What one Workers AI text model is sent. Gemma 4 thinks before it answers

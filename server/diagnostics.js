@@ -322,7 +322,9 @@ export async function diagnosticsRoute(env, accountId, body, clock = now) {
 /// Every group seen since `since` (default 60 days), with its counts per
 /// build, the devices and systems it happened on, and its newest samples;
 /// plus every build seen, so the triage knows which builds are newer.
-export async function diagnosticsSummary(env, url, clock = now) {
+/// `health`: the server's own state the owner reads alongside (worker.js:
+/// the kill switches and the circuit breakers), passed through as it is.
+export async function diagnosticsSummary(env, url, clock = now, health = null) {
   const at = clock();
   const since = Number(url.searchParams.get('since')) || at - 60 * 86400;
   const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 100));
@@ -367,6 +369,7 @@ export async function diagnosticsSummary(env, url, clock = now) {
   for (const [fp, set] of accounts) byGroup.get(fp).accounts = set.size;
   return json({
     generatedAt: at, since,
+    ...(health ? { health } : {}),
     builds: builds.map(b => ({ build: b.build, flavour: b.flavour, firstSeen: b.first_seen, lastSeen: b.last_seen, pings: b.pings })),
     groups: [...byGroup.values()],
   });

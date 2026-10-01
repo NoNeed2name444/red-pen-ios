@@ -22,6 +22,8 @@ import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.j
 import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
 import { examsRoute } from './exams.js';
 import { supportMessage, listSupportMessages, forgetSupport } from './support.js';
+import { featuresOf, featureOfModel, refuseIfOff, switchStates } from './switches.js';
+import { breakers } from './breakers.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -94,6 +96,12 @@ export default {
     }
 
     try {
+      // An AI feature switched off in the server's configuration (switches.js)
+      // is refused first: before its body is read, before anyone is signed
+      // in, and before anything is spent or queued.
+      const off = refuseIfOff(env, ...featuresOf(path, request.method));
+      if (off) return off;
+
       // Blobs are raw bytes in both directions, so they are routed before
       // anything tries to read the body as JSON.
       if (path.startsWith('/blobs/') && path !== '/blobs/missing') {
@@ -122,10 +130,13 @@ export default {
       }
 
       // crash and failure groups, for the owner and the triage workflow
-      // (diagnostics.js): anybody else is told there is no such endpoint
+      // (diagnostics.js): anybody else is told there is no such endpoint.
+      // With them, read-only: which AI features are switched off
+      // (switches.js) and this isolate's circuit breakers (breakers.js).
       if (path === '/diagnostics/summary' && request.method === 'GET') {
         if (!isOwnerKey(request, env) && !await isOwnerAccount(env, await holder(request, env))) return fail(404, 'No such endpoint.');
-        return await diagnosticsSummary(env, new URL(request.url));
+        return await diagnosticsSummary(env, new URL(request.url), undefined,
+          { switches: switchStates(env), breakers: breakers.snapshot(env) });
       }
 
       if (request.method !== 'POST') return fail(405, 'POST only.');
@@ -164,10 +175,14 @@ export default {
           env.BLOBS ? missingBlobs(env, id, body) : json({ missing: [] }));
         // CramDown Cloud: OpenAI-shaped, so the app's hosted client needs no
         // special case - the session token is the key
-        case '/v1/chat/completions':
+        case '/v1/chat/completions': {
+          // writing or checking switched off (switches.js), by the model asked for
+          const refused = refuseIfOff(env, featureOfModel(body.model));
+          if (refused) return refused;
           // the owner's benchmarks say so (x-bench), and count apart from the owner's app
           if (isOwnerKey(request, env)) return await chat(env, 'owner', body, fetch, { owner: true, bench: request.headers.get('x-bench') === '1' });
           return await guarded(request, env, id => chat(env, id, body));
+        }
         // Narrate's cloud transcription, for Pro: the audio comes here in
         // ten-minute chunks and the server asks Gemini, so the Google key
         // never reaches a phone

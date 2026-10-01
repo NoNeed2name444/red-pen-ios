@@ -131,6 +131,25 @@ OWNER_BENCH_DAILY_LIMIT = "2500"
 TTS_FREE_DAILY_CHARS = "2500"
 TTS_DAILY_LIMIT = "300"
 TTS_VOICES = "narrator:pandora,patient:draco"
+# Kill switches (switches.js): the AI features switched off, comma-separated,
+# or "all" - write (the cloud writer), check (the cloud checker), jobs
+# (background writing), accuracy (the accuracy engine), transcribe (Narrate's
+# cloud transcription), tts (the natural voice). Read on every request. A
+# switched-off feature is refused with a message the app shows, before
+# anything is spent or queued, and nothing already made is lost: a running
+# job waits, and what cannot be checked stays Unverified. From a phone: the
+# Cloudflare dashboard, the redpen-auth worker > Settings > Variables and
+# Secrets, STETHOSCORE_OFF - at once, with no code changed. The deploy
+# workflow puts back what this line says, so a switch meant to stay off goes
+# here too.
+STETHOSCORE_OFF = ""
+# Circuit breakers on the model chain's providers (breakers.js): this many
+# failures (a 5xx, a time-out) of one provider's model inside the window, and
+# the chain skips it for the cooldown, then tries it once. Kept in each
+# isolate's memory, so nothing is written per call.
+STETHOSCORE_BREAKER_FAILURES = "3"
+STETHOSCORE_BREAKER_WINDOW_SECONDS = "120"
+STETHOSCORE_BREAKER_COOLDOWN_SECONDS = "60"
 
 # Secrets are NOT in this file, and must never be added to it - it is in the
 # repository. Set each one with `wrangler secret put NAME`:
