@@ -4,11 +4,39 @@ import Foundation
 /// model writes and what a student types go through one parser.
 enum LectureWriter {
 
+    /// What a run wrote, and what it could not.
+    struct Draft: Sendable {
+        /// What goes in the editor: the lines written, or a textbook's pages
+        /// in order with a gap standing in for each one missing.
+        var text: String
+        /// A textbook's pages by part, to fill their gaps on a second try.
+        var pages: [Int: String] = [:]
+        /// What was not written; nil when everything was. Only a run on this
+        /// device or a hosted model has one: a cloud job is the server's.
+        var shortfall: BatchWriting.Shortfall? = nil
+    }
+
     static func write(kind: StudySetKind, source: String, count: Int, subject: String,
                       using backend: LLMBackend, figures: [BookFigure] = [], style: CardStyle = .mixed,
                       onProgress: @escaping (Int, Int) -> Void) async throws -> String {
+        try await draft(kind: kind, source: source, count: count, subject: subject, using: backend,
+                        figures: figures, style: style, onProgress: onProgress).text
+    }
+
+    /// Writes `count` cards, cases or pages. A batch that fails is counted
+    /// and the run carries on (BatchWriting); it throws only when nothing at
+    /// all was written, with the last failure's own error.
+    ///
+    /// A second try at what a run left out: `already`, the lines in the
+    /// draft, which are not written again; for a textbook, `parts`, the
+    /// pages to write of the `count` the lecture was cut into.
+    static func draft(kind: StudySetKind, source: String, count: Int, subject: String,
+                      using backend: LLMBackend, figures: [BookFigure] = [], style: CardStyle = .mixed,
+                      already: [String] = [], parts: [Int]? = nil,
+                      onProgress: @escaping (Int, Int) -> Void) async throws -> Draft {
         if kind == .book { return try await book(source: source, pages: count, subject: subject,
-                                                 using: backend, figures: figures, onProgress: onProgress) }
+                                                 using: backend, figures: figures, parts: parts,
+                                                 onProgress: onProgress) }
         let perCall = backend.isOnDevice ? 6 : 12
         // A long lecture is taken a window at a time, round and round, so a
         // big set covers all of it instead of the first chapter again and again.
@@ -45,37 +73,54 @@ enum LectureWriter {
             if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
                 CloudChecks.remember(worst, forOutput: written)
             }
-            return written
+            return Draft(text: written)
         }
-        var lines: [String] = []
-        var seen: Set<String> = []
-        var failures = 0
-        var round = 0
-        // no fixed ceiling: it keeps going until the count is reached, and
-        // only stops when several batches in a row bring nothing new
-        while lines.count < count && failures < max(3, windows.count + 2) {
-            try Task.checkCancellation()
-            onProgress(lines.count, count)
-            let batch = min(perCall, count - lines.count)
-            let promptSource = windows[round % windows.count]
-            round += 1
-            // what has been written, in enough words to tell two cases of the
-            // same disease apart
-            let already = lines.map { line -> String in
-                let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
-                return String((kind == .qa ? parts.prefix(3) : parts.prefix(1)).joined(separator: " | ").prefix(140))
+        // what the draft has already, never written again
+        let earlier: [String] = already.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        var seen: Set<String> = Set(earlier.map { $0.lowercased() })
+        // No fixed ceiling: it keeps going until the count is reached, and
+        // only stops when several batches in a row fail or bring nothing new.
+        // A batch that fails is counted and the next one asked for; what was
+        // written is kept whatever happens after it.
+        let run = try await BatchWriting.items(
+            wanted: count, perBatch: perCall, patience: max(3, windows.count + 2),
+            classify: failure, pause: { n in try await pause(after: n, using: backend) },
+            onProgress: onProgress) { round, batch, written in
+                let promptSource = windows[(round - 1) % windows.count]
+                // what has been written, in enough words to tell two cases of
+                // the same disease apart
+                let already = (earlier + written).map { line -> String in
+                    let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+                    return String((kind == .qa ? parts.prefix(3) : parts.prefix(1)).joined(separator: " | ").prefix(140))
+                }
+                let prompt = cardPrompt(kind: kind, count: batch, subject: subject,
+                                        already: already, source: promptSource, style: style,
+                                        presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
+                let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
+                                                       maxTokens: (kind == .qa ? 240 : 160) * batch, temperature: 0.6)
+                return freshLines(in: reply, kind: kind, seen: &seen)
             }
-            let prompt = cardPrompt(kind: kind, count: batch, subject: subject,
-                                    already: already, source: promptSource, style: style,
-                                    presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
-            let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
-                                                   maxTokens: (kind == .qa ? 240 : 160) * batch, temperature: 0.6)
-            let fresh = freshLines(in: reply, kind: kind, seen: &seen)
-            failures = fresh.isEmpty ? failures + 1 : 0
-            lines.append(contentsOf: fresh.prefix(count - lines.count))
-        }
-        guard !lines.isEmpty else { throw LLMError.emptyReply }
-        return lines.joined(separator: "\n")
+        // nothing at all: the failure itself, not "nothing usable"
+        guard !run.items.isEmpty else { throw run.lastError ?? LLMError.emptyReply }
+        return Draft(text: run.items.joined(separator: "\n"),
+                     shortfall: BatchWriting.shortfall(wanted: count, written: run.items.count, tally: run.tally))
+    }
+
+    /// A failed batch in words, and whether every later batch would fail the
+    /// same way (no key; a session refused; a model that needs Pro).
+    static func failure(_ error: Error) -> (reason: String, final: Bool) {
+        let reason: String = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        if case LLMError.missingKey = error { return (reason, true) }
+        if case LLMError.http(let status, _) = error { return (reason, BatchWriting.isFinal(status: status)) }
+        return (reason, false)
+    }
+
+    /// The wait after a failed batch: a hosted model's server may need a
+    /// moment; a model on this device does not.
+    static func pause(after failuresInARow: Int, using backend: LLMBackend) async throws {
+        guard !backend.isOnDevice else { return }
+        let seconds: TimeInterval = BatchWriting.wait(afterFailuresInARow: failuresInARow)
+        try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
     }
 
     static func cardPrompt(kind: StudySetKind, count: Int, subject: String,
@@ -151,8 +196,8 @@ enum LectureWriter {
     }
 
     static func book(source: String, pages: Int, subject: String, using backend: LLMBackend,
-                     figures: [BookFigure] = [], exam: ExamTrack = .current,
-                     onProgress: @escaping (Int, Int) -> Void) async throws -> String {
+                     figures: [BookFigure] = [], exam: ExamTrack = .current, parts: [Int]? = nil,
+                     onProgress: @escaping (Int, Int) -> Void) async throws -> Draft {
         let slices = slice(source, into: pages, maxChars: backend.promptBudgetChars)
         let placement = BookFigures.assign(figures, to: slices)
         if let cloud = CloudJobs.endpoint(for: backend) {
@@ -176,22 +221,29 @@ enum LectureWriter {
             if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
                 CloudChecks.remember(worst, forOutput: written)
             }
-            return written
+            return Draft(text: written)
         }
-        var written: [String] = []
-        for (i, part) in slices.enumerated() {
-            try Task.checkCancellation()
-            onProgress(i, slices.count)
-            let mine = placement.indices.contains(i) ? placement[i] : []
-            let prompt = bookPrompt(source: part, subject: subject, exam: exam,
-                                    figures: mine.map { (index: $0, figure: figures[$0]) })
-            let reply = try await backend.complete([.user(prompt)],
-                                                   maxTokens: backend.isOnDevice ? 1_600 : 3_000,
-                                                   temperature: 0.3)
-            written.append(BookPages.tidyPage(reply, fallbackTitle: "Part \(i + 1)", figures: mine))
-        }
-        guard !written.isEmpty else { throw LLMError.emptyReply }
-        return written.joined(separator: "\n\n")
+        // every page, or only the ones a run before this one left out
+        let wanted: [Int] = (parts ?? Array(slices.indices)).filter { slices.indices.contains($0) }
+        // A page that fails leaves a gap and the next is written; three in a
+        // row and the rest are left as gaps too, to be written again later.
+        let run = try await BatchWriting.pages(
+            wanted, patience: 3, classify: failure,
+            pause: { n in try await pause(after: n, using: backend) },
+            onProgress: onProgress) { i in
+                let mine = placement.indices.contains(i) ? placement[i] : []
+                let prompt = bookPrompt(source: slices[i], subject: subject, exam: exam,
+                                        figures: mine.map { (index: $0, figure: figures[$0]) })
+                let reply = try await backend.complete([.user(prompt)],
+                                                       maxTokens: backend.isOnDevice ? 1_600 : 3_000,
+                                                       temperature: 0.3)
+                return BookPages.tidyPage(reply, fallbackTitle: "Part \(i + 1)", figures: mine)
+            }
+        guard !run.pages.isEmpty else { throw run.lastError ?? LLMError.emptyReply }
+        let text: String = wanted.map { run.pages[$0] ?? BatchWriting.gap(part: $0) }.joined(separator: "\n\n")
+        return Draft(text: text, pages: run.pages,
+                     shortfall: BatchWriting.shortfall(wanted: wanted.count, written: run.pages.count,
+                                                       tally: run.tally, parts: run.missing))
     }
 
     static func bookPrompt(source: String, subject: String, exam: ExamTrack,

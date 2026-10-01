@@ -120,6 +120,10 @@ jobs:
           # a finished cloud job's result that fails to download: asked again
           # with waits between, then handed to the collector, never stranded
           suite cloudretry CloudJobRetryTests.swift $S/CloudJobRules.swift
+          # writing a batch at a time: a failed batch is counted and the run
+          # carries on, what was written is kept, what is missing is said and
+          # written again on its own (a textbook's pages into their gaps)
+          suite batches BatchWritingTests.swift $S/LLM/BatchWriting.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

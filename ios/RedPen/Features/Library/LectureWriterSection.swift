@@ -45,6 +45,21 @@ struct LectureWriterSection: View {
     @State private var trouble: String?
     @State private var task: Task<Void, Never>?
     @State private var showModels = false
+    /// What the last run on this device or a hosted model could not write,
+    /// offered again on its own (audit #88).
+    @State private var missing: MissingWrite?
+
+    /// What a run could not write, kept with what it was written from: a
+    /// second try fits the draft's gaps only from the same lecture, cut the
+    /// same way, by the same writer.
+    private struct MissingWrite {
+        var shortfall: BatchWriting.Shortfall
+        var kind: StudySetKind
+        var source: String
+        var writer: String
+        /// A textbook's page count, which decides how the lecture is cut.
+        var pages: Int
+    }
 
     private var sourceText: String {
         [readSource?.document.text ?? "", pastedNotes]
@@ -156,6 +171,12 @@ struct LectureWriterSection: View {
             }
             if let status, !working {
                 Text(status).font(.footnote).foregroundStyle(.secondary)
+            }
+            // what the last run could not write, and only that, again
+            if let missing, !working, canWriteMissing(missing) {
+                Button(missing.shortfall.retryTitle(noun: noun)) { writeMissing() }
+                    .buttonStyle(.bordered)
+                    .disabled(reading)
             }
             if !hasSource && !(kind == .anki && style == .image) {
                 Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
@@ -404,12 +425,49 @@ struct LectureWriterSection: View {
             trouble = busy
             return
         }
+        write(retry: nil)
+    }
+
+    /// Whether what the last run could not write can be written now: the
+    /// same kind, lecture and writer it was cut for, and a draft to add to.
+    private func canWriteMissing(_ missing: MissingWrite) -> Bool {
+        missing.kind == kind && missing.source == sourceText
+            && missing.writer == llm.writerOrApple()?.label
+            && !bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Writes only what the last run could not, into the same draft: the
+    /// missing cards, or each missing page into its gap.
+    private func writeMissing() {
+        trouble = nil
+        if let busy = GenerationCenter.shared.busy {
+            trouble = busy
+            return
+        }
+        guard let missing, canWriteMissing(missing) else { return }
+        write(retry: missing)
+    }
+
+    /// `retry`: what an earlier run left out, written on its own; nil for
+    /// the whole set.
+    private func write(retry: MissingWrite?) {
         guard let backend = llm.writerOrApple() else {
             trouble = "No model is ready to write with."
             return
         }
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let text = sourceText, wanted = count, subj = subject, mode = kind, cardStyle = style, pending = figureTask
+        let text = sourceText, subj = subject, mode = kind, cardStyle = style, pending = figureTask
+        let writer: String = backend.label
+        // a second try writes only what the first left out: the missing
+        // cards, not repeating the draft's; a textbook's missing pages, cut
+        // from the lecture as before
+        let pages: Int = retry?.pages ?? count
+        let wanted: Int = retry?.shortfall.missing ?? count
+        let parts: [Int]? = retry.flatMap { $0.shortfall.parts.isEmpty ? nil : $0.shortfall.parts }
+        let already: [String] = retry == nil ? [] : bodyText.components(separatedBy: "\n")
+        let asked: Int = mode == .book ? pages : wanted
+        // a whole new run: what the last one left out is no longer its gap
+        if retry == nil { missing = nil }
         working = true
         status = "Writing\u{2026}"
         let plural: String = wanted == 1 ? "" : "s"
@@ -449,22 +507,26 @@ struct LectureWriterSection: View {
                     let figureImages: [String]? = mode == .book ? figures.map(\.imageBase64) : nil
                     let cards: [AnkiCard]? = pictures ? diagrams.cards : nil
                     let images: [String]? = pictures ? diagrams.images : nil
-                    return CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: wanted,
+                    return CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: asked,
                                        source: readSource?.doc(), figures: figureImages,
                                        diagramCards: cards, diagramImages: images, check: check).encoded
                 }
-                let written = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
+                let result = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
                     }, delivery: delivery)) {
-                    try await LectureWriter.write(
-                        kind: mode, source: text, count: wanted, subject: subj, using: backend, figures: figures, style: cardStyle,
+                    try await LectureWriter.draft(
+                        kind: mode, source: text, count: asked, subject: subj, using: backend, figures: figures, style: cardStyle,
+                        already: already, parts: parts,
                         onProgress: { done, total in
                             GenerationCenter.shared.update(job, done: done, total: total)
                             Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
                         })
                 }
                 try Task.checkCancellation()
+                // the checker reads what was written, not the gaps
+                let written: String = result.pages.isEmpty ? result.text
+                    : result.pages.keys.sorted().compactMap { result.pages[$0] }.joined(separator: "\n\n")
                 var note = ""
                 if let checker {
                     GenerationCenter.shared.update(job, done: wanted, total: wanted, phase: "Checking with \(checker.label)")
@@ -484,10 +546,27 @@ struct LectureWriterSection: View {
                     let made: String = mode == .qa ? "cases" : "cards"
                     let finished: String = mode == .book ? "Your textbook is ready" : "Your \(made) are ready"
                     GenerationCenter.shared.end(job, finished: finished)
-                    let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    bodyText = existing.isEmpty ? written : existing + "\n" + written
+                    if mode == .book && retry != nil {
+                        // each page written again goes in its own gap
+                        var filled: String = bodyText
+                        for part in result.pages.keys.sorted() {
+                            if let page = result.pages[part] { filled = BatchWriting.fill(filled, part: part, with: page) }
+                        }
+                        bodyText = filled
+                    } else {
+                        let existing = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        bodyText = existing.isEmpty ? result.text : existing + "\n" + result.text
+                    }
                     working = false
-                    status = "Written \u{2014} check them below." + finalNote
+                    // what is still missing is said, and offered again
+                    missing = result.shortfall.map {
+                        MissingWrite(shortfall: $0, kind: mode, source: text, writer: writer, pages: pages)
+                    }
+                    if let shortfall = result.shortfall {
+                        status = shortfall.message(noun: noun) + finalNote
+                    } else {
+                        status = "Written \u{2014} check them below." + finalNote
+                    }
                 }
             } catch is CancellationError {
                 await MainActor.run { GenerationCenter.shared.end(job); working = false }
