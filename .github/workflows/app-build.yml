@@ -4,7 +4,8 @@
 name: App build
 on:
   push:
-    branches: [personal]
+    # design/<name>: a design in progress is built and tapped through before it joins personal
+    branches: [personal, 'design/**']
     paths: ['ios/**', '.github/workflows/app-build.yml']
   workflow_dispatch:
 permissions:
