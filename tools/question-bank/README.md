@@ -51,3 +51,14 @@ MedlinePlus passages carry the same core fields. Their attribution reads `<Title
 ## Tests and CI
 
 `tests/question-bank/fetch.test.mjs` runs against responses recorded from the endpoints above on 1 October 2026 (`tests/question-bank/fixtures/`, trimmed), with no network. It runs in the Server tests workflow. `.github/workflows/question-bank.yml` (run by hand) runs the tests, fetches for `topics.txt` or the topics you give, and uploads `out/` as the `question-bank-passages` artifact.
+
+## Steps 3 to 5: writing, checking, the pilot
+
+`pipeline.mjs generate` writes questions from each passage on the free chain through the Worker (`/v1/chat/completions`, the owner key, so no Google key leaves GitHub's secrets), with the prompt in `prompts/question-bank/generate.md` and two public exemplars for style. `pipeline.mjs validate` checks every item and keeps it only when all pass:
+
+- **licence:** the passage's licence is re-checked against the allowlist;
+- **quality:** five options, one valid key, no duplicates, no "all/none of the above", no NOT/EXCEPT stem, a real explanation that never names options by letter, a quote that is in the passage, and a stem that does not copy it;
+- **novelty:** at most 30% of its 5-word shingles in any public stem (MedQA, MedMCQA as `server/exam-exemplars.js` carries them);
+- **accuracy:** the accuracy engine, oath check included, says Verified.
+
+Kept items (at most 100) go to `pilot.jsonl` with their source, licence and attribution, each marked for a person's review (dosing, pregnancy, children and the like marked high stakes); dropped ones go to `pilot.dropped.jsonl` with every reason; the numbers to `pilot.metrics.json`. Nothing reaches a student. Run it from GitHub: Actions, "Question bank pilot". The rules are `bank.mjs`, tested with a fake Worker by `tests/question-bank/bank.test.mjs`.

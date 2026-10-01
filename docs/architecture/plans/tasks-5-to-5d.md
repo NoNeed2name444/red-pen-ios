@@ -30,7 +30,7 @@ apply; status lines are kept current as the work lands.
 | Fail-safe | A source whose licence cannot be read or is not on the allowlist is refused; an item that fails any step is dropped with its reason, never shown. |
 | Revenue | The question bank is what students pay for (§22b); a clean licence trail is what lets it be sold. |
 | Risks | Share-alike licences forcing the app open (refused in code); AI items' factual error rate (about 22% unreviewed per the brief), which is why the pipeline and review gate exist. |
-| Status | Steps 1 and 2 done (governance/licences with its allowlist and check; tools/question-bank/fetch.mjs keeps each passage's URL and licence). Steps 3 to 5 next. |
+| Status | Steps 1 and 2 done (governance/licences with its allowlist and check; tools/question-bank/fetch.mjs keeps each passage's URL and licence). Steps 3 to 5 built: pipeline.mjs and bank.mjs, prompts/question-bank/, tests/question-bank/, and the "Question bank pilot" workflow (results on question-bank-pilot/<run id>). |
 
 ## Task 5c: fail-safe, the §22f reduced protocol
 
