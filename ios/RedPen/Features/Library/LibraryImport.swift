@@ -36,7 +36,7 @@ enum ImportSource: String, CaseIterable, Identifiable {
         case .table:
             return "A table with a card on each row: Quizlet\u{2019}s export (term, tab, definition), a CSV from Google Sheets, Excel or Brainscape, or Anki\u{2019}s \u{201C}Notes in Plain Text\u{201D}. Columns named Front, Back, Tags \u{2014} or Question, A, B, C, D, Answer for questions \u{2014} are recognised."
         case .appFile:
-            return "A .json set exported from \(Brand.name) (formerly Vignette or CramDown) or the Red Pen web app. It goes straight into your library."
+            return "A .json set exported from \(Brand.name), or from an earlier version of it. It goes straight into your library."
         }
     }
 

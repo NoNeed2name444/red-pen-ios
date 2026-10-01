@@ -57,11 +57,15 @@ final class SubscriptionStore: ObservableObject {
 
     func loadProducts() async {
         guard products.isEmpty else { return }
+        trouble = nil
         do {
             let found = try await Product.products(for: SubscriptionPlan.allCases.map(\.rawValue))
             // cheapest first, so the yearly saving is visible rather than
             // merely stated
             products = found.sorted { $0.price < $1.price }
+            // an answer with nothing in it (the plans not yet approved, or a
+            // storefront without them) is not a reason to keep spinning
+            if found.isEmpty { trouble = "Plans aren't available right now. Please try again later." }
         } catch {
             trouble = "Couldn't reach the App Store."
         }
