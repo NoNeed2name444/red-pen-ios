@@ -73,7 +73,10 @@ jobs:
               swiftc -O "$@" build/$name/main.swift -o build/$name/run 2>&1 | head -n 40
               echo "compile rc=${PIPESTATUS[0]}"
               if [ -x build/$name/run ]; then
-                build/$name/run 2>&1 | head -n 90; echo "run rc=${PIPESTATUS[0]}"
+                rc=0; build/$name/run > build/$name/out.txt 2>&1 || rc=$?
+                # the first 90 lines, then every failure past them
+                head -n 90 build/$name/out.txt; tail -n +91 build/$name/out.txt | grep -E "^FAIL|FAILURE" | head -n 40
+                echo "run rc=$rc"
               else echo "$name was never built"; fi
             } > out/$name.log 2>&1
             cat out/$name.log
