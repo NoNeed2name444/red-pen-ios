@@ -102,10 +102,11 @@ final class Store: ObservableObject {
     /// finds them still protected. Nothing of them is known, so nothing is
     /// written over them until `reloadIfUnread()` has read them.
     private(set) var unreadable: Set<URL> = []
-    /// True while the last write of a changed file failed (the disk is full,
-    /// the file is protected): the change stays dirty, to be written again,
-    /// and `flushed()` says so, so sync records nothing as safely here.
-    private(set) var lastWriteFailed = false
+    /// Whether the last write of each file failed (the disk is full, the file
+    /// is protected): the change stays dirty, to be written again, and
+    /// `flushed()` says so, so sync records nothing as safely here.
+    private var libraryWriteFailed = false
+    private var studyWriteFailed = false
     private var writesInFlight = 0
     private var flushWaiters: [CheckedContinuation<Void, Never>] = []
     /// The debounced write waiting to run, if any.
@@ -290,9 +291,11 @@ final class Store: ObservableObject {
     /// holding the main thread while it is written - for a caller about to
     /// throw away the only other copy (a cloud job forgotten on the server).
     ///
-    /// False when it is not on disk: the write failed, or a file could not be
-    /// read at launch and nothing is written over it. Then the other copy
-    /// must be kept, and sync must not record the change as safely here.
+    /// False when the library as it stood at the call is not on disk: its
+    /// write failed, or it could not be read at launch and nothing is written
+    /// over it. Then the other copy must be kept, and sync must not record the
+    /// change as safely here. Changes other screens make while it waits (an
+    /// answer, a sample set) are theirs to save and do not count against it.
     @discardableResult
     func flushed() async -> Bool {
         flush()
@@ -301,28 +304,60 @@ final class Store: ObservableObject {
                 flushWaiters.append(done)
             }
         }
-        return !lastWriteFailed && !libraryDirty && !studyDirty
+        return !libraryWriteFailed && !unreadable.contains(fileURL)
     }
 
     /// Reads again a file that could not be read when the store loaded, once
-    /// the app is in front (the device is unlocked by then) - only while
-    /// nothing has changed in memory, which a reload would throw away.
+    /// the app is in front (the device is unlocked by then). Sets and folders
+    /// added here meanwhile (a cloud set collected in the background) are kept
+    /// on top of what is read; anything else changed meanwhile could not have
+    /// been saved, and the file read now wins.
     func reloadIfUnread() {
-        guard !unreadable.isEmpty, !libraryDirty, !studyDirty, writesInFlight == 0 else { return }
+        guard !unreadable.isEmpty else { return }
+        // a write still landing is waited for, so what is read is what is there
+        guard writesInFlight == 0 else {
+            Task { [weak self] in
+                _ = await self?.flushed()
+                self?.reloadIfUnread()
+            }
+            return
+        }
         pendingWrite?.cancel()
         pendingWrite = nil
+        let setsHere: [StudySet] = library
+        let foldersHere: [StudyFolder] = folders
         readWhole = true
         load()
+        guard !unreadable.contains(fileURL) else { return }
+        let knownSets: Set<UUID> = Set(library.map(\.id))
+        let extraSets: [StudySet] = setsHere.filter { !knownSets.contains($0.id) }
+        let knownFolders: Set<UUID> = Set(folders.map(\.id))
+        let extraFolders: [StudyFolder] = foldersHere.filter { !knownFolders.contains($0.id) }
+        if !extraFolders.isEmpty { folders += extraFolders }
+        if !extraSets.isEmpty { library += extraSets }
+        if !extraSets.isEmpty || !extraFolders.isEmpty { save() }
+    }
+
+    /// Takes back a set added in this run that could not be saved (a cloud
+    /// set, collected again later): no tombstone, since nothing else has seen it.
+    func withdraw(_ id: UUID) {
+        library.removeAll { $0.id == id }
     }
 
     /// Back on the main actor after a write: a file that did not land is
-    /// dirty again, and whoever waits in `flushed()` is let go.
-    private func writeFinished(libraryFailed: Bool, studyFailed: Bool) {
+    /// dirty again, and whoever waits in `flushed()` is let go. `nil` for a
+    /// file the write did not carry.
+    private func writeFinished(library landedLibrary: Bool?, study landedStudy: Bool?) {
         writesInFlight -= 1
-        if libraryFailed { libraryDirty = true }
-        if studyFailed { studyDirty = true }
-        lastWriteFailed = libraryFailed || studyFailed
-        if lastWriteFailed {
+        if let landed = landedLibrary {
+            libraryWriteFailed = !landed
+            if !landed { libraryDirty = true }
+        }
+        if let landed = landedStudy {
+            studyWriteFailed = !landed
+            if !landed { studyDirty = true }
+        }
+        if landedLibrary == false || landedStudy == false {
             Diagnostics.record(.error, area: .app, message: "The library could not be written")
         }
         if writesInFlight == 0 {
@@ -374,17 +409,17 @@ final class Store: ObservableObject {
         // a write started just before the app is backgrounded still finishes
         let taskID = UIApplication.shared.beginBackgroundTask(withName: "Saving library", expirationHandler: nil)
         Self.writeQueue.async { [weak self] in
-            let failed = job.run()
+            let landed = job.run()
             Task { @MainActor in
-                self?.writeFinished(libraryFailed: failed.library, studyFailed: failed.study)
+                self?.writeFinished(library: landed.library, study: landed.study)
                 if taskID != .invalid { UIApplication.shared.endBackgroundTask(taskID) }
             }
         }
         #else
         Self.writeQueue.async { [weak self] in
-            let failed = job.run()
+            let landed = job.run()
             Task { @MainActor in
-                self?.writeFinished(libraryFailed: failed.library, studyFailed: failed.study)
+                self?.writeFinished(library: landed.library, study: landed.study)
             }
         }
         #endif
@@ -843,27 +878,27 @@ private struct WriteJob: @unchecked Sendable {
     var study: StudyFile?
     var studyURL: URL
 
-    /// Which of the files did not land: encoding failed, or the write did
-    /// (the disk is full, the file is protected).
-    func run() -> (library: Bool, study: Bool) {
+    /// Which files landed: nil for a file this job does not carry, false when
+    /// encoding or the write failed (the disk is full, the file is protected).
+    func run() -> (library: Bool?, study: Bool?) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        var failed = (library: false, study: false)
+        var landed: (library: Bool?, study: Bool?) = (nil, nil)
         if let library {
             if let data = try? encoder.encode(library) {
-                failed.library = StoreFiles.write(data, to: libraryURL) != nil
+                landed.library = StoreFiles.write(data, to: libraryURL) == nil
             } else {
-                failed.library = true
+                landed.library = false
             }
         }
         if let study {
             if let data = try? encoder.encode(study) {
-                failed.study = StoreFiles.write(data, to: studyURL) != nil
+                landed.study = StoreFiles.write(data, to: studyURL) == nil
             } else {
-                failed.study = true
+                landed.study = false
             }
         }
-        return failed
+        return landed
     }
 }
 
