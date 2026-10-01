@@ -132,6 +132,11 @@ final class LensCaptureCamera: NSObject, AVCaptureVideoDataOutputSampleBufferDel
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = fast ? .fast : .accurate
         request.usesLanguageCorrection = true
+        // Arabic is read only at .accurate; .fast (the Smooth tier) stays on
+        // Vision's default. No logicalOrder here: it assumes a right-to-left
+        // line, and an English line with an Arabic word in it would lose its
+        // "1." or "B)" from the front, where QuestionDetector looks for it.
+        if !fast { request.recognitionLanguages = RedPenOCR.languages }
         request.minimumTextHeight = 0.012
         let handler = VNImageRequestHandler(cvPixelBuffer: pixels, orientation: .up, options: [:])
         do { try handler.perform([request]) } catch { return [] }
@@ -207,11 +212,21 @@ struct LensDataScanner: UIViewControllerRepresentable {
         DataScannerViewController.isSupported && DataScannerViewController.isAvailable
     }
 
+    /// Arabic as well as English, when this device's scanner can read it. If
+    /// it cannot, nothing is named and the scanner keeps its own default (the
+    /// student's preferred languages), exactly as before.
+    static var languages: [String] {
+        let supported = Set(DataScannerViewController.supportedLanguages)
+        let arabic = RedPenOCR.languages.filter { $0.hasPrefix("ar") && supported.contains($0) }
+        guard !arabic.isEmpty else { return [] }
+        return arabic + RedPenOCR.languages.filter { !$0.hasPrefix("ar") && supported.contains($0) }
+    }
+
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let quality: DataScannerViewController.QualityLevel = smooth ? .balanced : .accurate
-        let scanner = DataScannerViewController(recognizedDataTypes: [.text()],
+        let scanner = DataScannerViewController(recognizedDataTypes: [.text(languages: Self.languages)],
                                                 qualityLevel: quality,
                                                 recognizesMultipleItems: true,
                                                 isHighFrameRateTrackingEnabled: !smooth,

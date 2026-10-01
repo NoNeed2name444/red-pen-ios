@@ -1,5 +1,4 @@
 import UIKit
-import Vision
 
 /// Printing a set as a flashcard deck.
 ///
@@ -105,15 +104,15 @@ enum DeckPDF {
         return UIImage(data: data)
     }
 
+    /// Read through RedPenOCR like every other picture in the app, so an
+    /// Arabic label is read at all: Vision's .fast level and its default
+    /// languages are English-only, and a card whose Arabic answer is printed
+    /// on its picture was being placed as if the picture gave nothing away.
+    /// Only the words matter here (ImageSpoiler compares sets of them), so the
+    /// line order RedPenOCR restores changes nothing for the placement.
     static func readText(_ image: UIImage) -> String {
         guard let cg = image.cgImage else { return "" }
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .fast
-        request.usesLanguageCorrection = false
-        let handler = VNImageRequestHandler(cgImage: cg, options: [:])
-        guard (try? handler.perform([request])) != nil else { return "" }
-        let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-        return lines.joined(separator: " ")
+        return (try? RedPenOCR.readText(cg)) ?? ""
     }
 
     /// Settles which page each picture belongs on.
