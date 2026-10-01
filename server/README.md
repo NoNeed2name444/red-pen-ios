@@ -58,6 +58,26 @@ batch; `/exams/catalogue` and `/exams/exemplars` serve the same data. With
 P(accurate) to be Verified, and `bench/train-accuracy.mjs` reports the model
 per exam style and per exam.
 
+## Switching things off
+
+Every AI feature has a kill switch (`switches.js`): `STETHOSCORE_OFF` in
+`wrangler.toml` `[vars]` names the ones that are off - `write`, `check`,
+`jobs`, `accuracy`, `transcribe`, `tts`, or `all`. It is read on every
+request, so editing the variable in the Cloudflare dashboard switches a
+feature off at once without deploying code (the deploy workflow later puts
+back what `wrangler.toml` says). A switched-off feature is refused with a
+message the app shows, before anything is read, spent or queued. Nothing is
+lost: jobs can still be collected and cancelled, a running job waits and
+carries on when the switch is back, and an item that cannot be checked stays
+Unverified.
+
+The model chain's providers have circuit breakers (`breakers.js`): a
+provider's model that fails three times in two minutes (a 5xx, a time-out) is
+skipped for a minute, then tried once. When every provider a request could use
+is resting, the answer is a quick 503 "busy, try again" with Retry-After,
+before the day's allowance is spent. The breakers live in each isolate's
+memory.
+
 ## Deploying it
 
     cd server
