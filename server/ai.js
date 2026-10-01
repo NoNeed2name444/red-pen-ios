@@ -203,7 +203,11 @@ export function laneNames(env, route) {
 /// the day's Gemini ceiling, and the Workers AI neuron shares (takeNeurons).
 /// One round: a per-minute limit is the next voter's turn, not a wait.
 export async function askModel(env, account, owner, use, messages, maxTokens, fetcher = fetch) {
-  if (!/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
+  // GitHub Models only for the verification bench (tools/verification-bench,
+  // run in GitHub Actions with the run's own token): never in production,
+  // where BENCH_MODELS is never set
+  const bench = env.BENCH_MODELS === 'github' && /^github:/.test(use);
+  if (!bench && !/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
   const source = pinnedSource(env, use);
   if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
   const route = { sources: [source], account: owner ? 'owner' : account, owner, rounds: 1 };
@@ -223,6 +227,9 @@ export function pinnedSource(env, use) {
   if (kind === 'gemini' && env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) return { kind: 'gemini', models: [model] };
   if (kind === 'workers-ai' && env.AI) return { kind: 'workers-ai', model };
   if (kind === 'hf' && env.AI_API_KEY) return { kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY, model };
+  if (kind === 'github' && env.BENCH_MODELS === 'github' && env.GITHUB_MODELS_TOKEN) {
+    return { kind: 'openai', base: 'https://models.github.ai/inference', key: env.GITHUB_MODELS_TOKEN, model };
+  }
   return null;
 }
 
