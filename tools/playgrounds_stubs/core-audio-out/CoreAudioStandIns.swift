@@ -99,3 +99,9 @@ enum LectureTranscriber {
 extension View {
     func commuteModeSheet(isPresented: Binding<Bool>) -> some View { self }
 }
+
+extension View {
+    /// The spoken screens are not in this build, so nothing they read is
+    /// needed (CoreAudio.swift supplies it where they are).
+    func coreAudioEnvironment() -> some View { self }
+}

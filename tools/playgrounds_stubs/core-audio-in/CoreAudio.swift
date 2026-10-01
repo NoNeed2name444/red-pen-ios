@@ -40,3 +40,19 @@ struct CoreLibraryExtras: View {
 enum CoreAudioPart {
     static let missing: [String] = []
 }
+
+/// What the spoken screens read from the environment, which the full app
+/// hands down from RedPenApp: what this phone has learned about how a
+/// lecturer says things (PronunciationLibrary). Without it, opening a lecture
+/// stopped the app.
+struct CoreAudioEnvironment: ViewModifier {
+    @StateObject private var learned = PronunciationLibrary()
+
+    func body(content: Content) -> some View {
+        content.environmentObject(learned)
+    }
+}
+
+extension View {
+    func coreAudioEnvironment() -> some View { modifier(CoreAudioEnvironment()) }
+}
