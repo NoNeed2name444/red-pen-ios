@@ -1,5 +1,6 @@
 // The question bank's licence gate (governance/licences): what passes, and
 // that everything else is refused with a reason.
+import { readFileSync } from 'node:fs';
 import { licenceVerdict, licenceId, allowlist } from '../../governance/licences/licences.mjs';
 
 let failed = 0;
@@ -40,6 +41,17 @@ check('every allowed source names a licence that was read, with its URL and date
   allowlist.sources.filter(s => s.status === 'allowed').every(s => s.licences.every(l => allowlist.licences[l]?.url && /^\d{4}-\d{2}-\d{2}$/.test(allowlist.licences[l]?.read))));
 check('no licence on the list restricts use',
   Object.keys(allowlist.licences).every(id => !/-(NC|ND|SA)\b/.test(id)));
+
+// The attribution a pass carries is the one the app shows: the in-app
+// Sources and licences screen (ContentCredits.swift) credits MedlinePlus with
+// the same line, word for word.
+const mpPass = licenceVerdict({ source: 'medlineplus-health-topics', licence: mp, url: 'https://medlineplus.gov/asthma.html' });
+check('a pass carries its attribution line', mpPass.attribution === 'Courtesy of MedlinePlus from the National Library of Medicine', mpPass.attribution);
+check('every allowed source has an attribution line',
+  allowlist.sources.filter(s => s.status === 'allowed').every(s => typeof s.attribution === 'string' && s.attribution.length > 10));
+const credits = readFileSync(new URL('../../ios/RedPen/Shared/ContentCredits.swift', import.meta.url), 'utf8');
+check('the app credits MedlinePlus with the allowlist\'s line',
+  credits.includes(`"${allowlist.sources.find(s => s.id === 'medlineplus-health-topics').attribution}"`));
 
 console.log(failed ? `\n${failed} LICENCE TEST FAILURE(S)` : '\nALL LICENCE TESTS PASS');
 process.exit(failed ? 1 : 0);
