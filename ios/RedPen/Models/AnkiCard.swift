@@ -41,8 +41,14 @@ struct AnkiCard: Identifiable, Codable, Hashable {
     var clozeText: String = ""
     /// All types: optional 1-2 sentence "why / how" shown after reveal.
     var why: String = ""
-    /// "occlusion" only: index into the owning StudySet's images.
+    /// Index into the owning StudySet's images: an occlusion card's picture,
+    /// or one an imported basic or cloze card carried (audit #14).
     var imageIndex: Int?
+    /// A basic or cloze card's picture belongs to the answer, as it was on
+    /// the back of the Anki card it came from: shown only once revealed, so
+    /// it never gives the answer away. Nil on the front, and on cards saved
+    /// before this existed.
+    var pictureOnBack: Bool? = nil
     /// "occlusion" only: the region to hide until revealed.
     var occlusion: OcclusionBox?
     /// Where this came from, when it was made from a file - "Lupus, p.14".
@@ -93,7 +99,7 @@ struct AnkiQueueItem: Identifiable {
 /// may lack a field this one has.
 extension AnkiCard {
     private enum Keys: String, CodingKey {
-        case id, type, front, bullets, clozeText, why, imageIndex, occlusion, source, siblings, tags
+        case id, type, front, bullets, clozeText, why, imageIndex, pictureOnBack, occlusion, source, siblings, tags
     }
 
     init(from decoder: Decoder) throws {
@@ -105,10 +111,30 @@ extension AnkiCard {
         clozeText = try c.decodeIfPresent(String.self, forKey: .clozeText) ?? ""
         why = try c.decodeIfPresent(String.self, forKey: .why) ?? ""
         imageIndex = try c.decodeIfPresent(Int.self, forKey: .imageIndex)
+        pictureOnBack = try? c.decodeIfPresent(Bool.self, forKey: .pictureOnBack)
         occlusion = try c.decodeIfPresent(OcclusionBox.self, forKey: .occlusion)
         source = try c.decodeIfPresent(String.self, forKey: .source)
         siblings = (try? c.decodeIfPresent([OcclusionBox].self, forKey: .siblings)) ?? []
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
+    }
+}
+
+// MARK: - where a card's picture goes
+
+extension AnkiCard {
+    /// Whether the picture is drawn above the question: an occlusion card's
+    /// always is (its covers are the question), any other card's unless it
+    /// came from the answer side.
+    var pictureOnFront: Bool { type == .occlusion || pictureOnBack != true }
+
+    /// The picture an imported note's card shows and whether it is the
+    /// answer's: the first one on the question side that the package
+    /// carries, else the first on the answer side.
+    static func picture(front: [String], back: [String],
+                        available: (String) -> Bool) -> (name: String?, onBack: Bool) {
+        if let shown = front.first(where: available) { return (shown, false) }
+        if let shown = back.first(where: available) { return (shown, true) }
+        return (nil, false)
     }
 }
 

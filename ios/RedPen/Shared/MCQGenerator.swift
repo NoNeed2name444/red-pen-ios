@@ -131,14 +131,18 @@ enum MCQGenerator {
             }
             throw GenerationError.unavailable("On-device generation isn't available right now.")
         }
-        let promptSource = String(sourceText.prefix(maxPromptChars))
+        // a window at a time, round the whole lecture (audits #85, #90)
+        let windows: [String] = TextSlicing.windows(sourceText, maxChars: onDeviceSourceChars)
         var collected: [MCQQuestion] = []
         var asked: [MCQCoverage.Asked] = []
         var consecutiveFailures = 0
+        var call = 0
 
         while collected.count < count && consecutiveFailures < 3 {
             try Task.checkCancellation()
-            let callCount = min(maxQuestionsPerCall, count - collected.count)
+            let callCount = min(onDeviceQuestionsPerCall, count - collected.count)
+            let promptSource: String = TextSlicing.window(windows, round: call)
+            call += 1
             onProgress(collected.count, count)
 
             // one exemplar, turned over each batch: Apple's model has a small window

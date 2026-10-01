@@ -67,11 +67,19 @@ check("the tables are read", AccuracyRules.drugs.count > 100 && AccuracyRules.dr
 
 // MARK: the model
 
-let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 1, answer: "A", evidence: "supports"),
-                                                                      AccuracyVote(risk: 1, answer: "A", evidence: "supports")],
+let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports"),
+                                                                      AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports")],
                                        evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
 let p1 = AccuracyModel.probability(pass)
 check("two passing votes with support are Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+// two votes from one family are one witness (independence), as on the server
+let oneFamily = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"),
+                                                                           AccuracyVote(model: "gemma-4-31b-it", risk: 1, evidence: "supports")],
+                                            evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
+check("two passing votes from one family (Gemini and Gemma) are Check this", oneFamily["families"] == 1 && AccuracyModel.grade(0.99, oneFamily) == .check)
+check("families: Gemma and Gemini are Google, gpt-oss OpenAI, Nemotron NVIDIA",
+      AccuracyModel.familyOf("gemma-4-31b-it") == "google" && AccuracyModel.familyOf("@cf/openai/gpt-oss-120b") == "openai"
+      && AccuracyModel.familyOf("@cf/nvidia/nemotron-3-120b-a12b") == "nvidia")
 let bad = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 4, answer: "B", evidence: "contradicts"),
                                                                      AccuracyVote(risk: 4, answer: "B", evidence: "contradicts")],
                                       evidenceCount: 0, sourceMatch: 0.7, keyLetter: "A")
@@ -92,13 +100,13 @@ check("a severe rule is never Verified", AccuracyModel.grade(AccuracyModel.proba
 let lone = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports")],
                                        evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
 check("a single vote, however sure, is Check this, never Verified", AccuracyModel.grade(0.99, lone) == .check)
-let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "none"), AccuracyVote(risk: 1, evidence: "none")],
+let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "none"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
                                            evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
 check("an oath item with two votes but no support stays Check this",
       AccuracyModel.grade(0.99, unbacked) == .verified && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
-let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports"), AccuracyVote(risk: 1, evidence: "none")],
+let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
                                              evidenceCount: 2, sourceMatch: 0.2, keyLetter: nil)
-let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "none"), AccuracyVote(risk: 1, evidence: "none")],
+let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "none"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
                                           evidenceCount: 0, sourceMatch: AccuracyModel.oathSourceMatch, keyLetter: nil)
 check("with the literature or its own lecture behind it, an oath item can be Verified",
       AccuracyModel.grade(0.99, literature, oath: true) == .verified && AccuracyModel.grade(0.99, lecture, oath: true) == .verified)
@@ -289,6 +297,26 @@ let cardID = cardSet.cards[0].id.uuidString
 check("a card's answer, line by line", AccuracyFix.apply(AccuracySuggestion(field: "answer", value: "Vitamin K\n- Four-factor PCC"), toItem: cardID, in: cardSet)?.cards[0].bullets == ["Vitamin K", "Four-factor PCC"])
 check("a station's steps", AccuracyFix.apply(AccuracySuggestion(field: "text", value: "Check danger\nCheck response\nCall for help"), toItem: osceSet.osceChecklists[0].id.uuidString, in: osceSet)?.osceChecklists[0].steps.count == 3)
 check("a fix for an unknown item does nothing", AccuracyFix.apply(keyFix, toItem: "nope", in: mcqSet) == nil)
+
+// MARK: the shared rule cases (server/tests/accuracy.test.mjs runs the same file)
+var ruleRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+while !FileManager.default.fileExists(atPath: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json").path), ruleRoot.path != "/" {
+    ruleRoot.deleteLastPathComponent()
+}
+struct RuleQuestion: Decodable { var stem: String; var options: [String]; var key: Int; var explanation: String }
+struct RuleCase: Decodable { var text: String?; var mcq: RuleQuestion?; var has: [String]?; var not: [String]? }
+let ruleCases: [RuleCase] = (try? JSONDecoder().decode([RuleCase].self,
+    from: Data(contentsOf: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json")))) ?? []
+check("the shared rule cases are found", ruleCases.count >= 20, "\(ruleCases.count)")
+for c in ruleCases {
+    let item: AccuracyItem = c.mcq.map {
+        AccuracyItem(id: "x", kind: .mcq, stem: $0.stem, options: $0.options, key: $0.key, explanation: $0.explanation)
+    } ?? card(c.text ?? "")
+    let said: String = c.mcq?.stem ?? c.text ?? ""
+    let found: [String] = ids(item)
+    for h in c.has ?? [] { check("\"\(said)\" gives \(h)", found.contains(h), found.joined(separator: ", ")) }
+    for n in c.not ?? [] { check("\"\(said)\" gives no \(n)", !found.contains { $0.hasPrefix(n + ":") }, found.joined(separator: ", ")) }
+}
 
 print(failures.isEmpty ? "\nALL ACCURACY TESTS PASS" : "\n\(failures.count) ACCURACY TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

@@ -335,6 +335,20 @@ enum MedVAL {
         return note
     }
 
+    /// The status line after a long piece of writing was checked in parts
+    /// (AccuracyChecker.checkWhole). It says how much was read: "Checked"
+    /// alone only when every part was (audit #89 - the first part used to
+    /// stand for the whole under a note saying "Checked").
+    static func partsNote(_ verdict: AccuracyVerdict, checked: Int, total: Int, failed: Int = 0) -> String {
+        let risk: String = verdict.riskTitle.lowercased()
+        let finding: String = verdict.findings.first?.text ?? "read it carefully"
+        let read: String = checked >= total ? "" : " \(checked) of \(total) parts"
+        var note: String = verdict.passed ? " Checked\(read): \(risk)."
+            : " Checker\(read.isEmpty ? "" : " (" + read.dropFirst() + ")"): \(risk) \u{2014} \(finding)."
+        if failed > 0 { note += " \(failed) part\(failed == 1 ? "" : "s") could not be checked." }
+        return note
+    }
+
     /// " 3 of 10 could not be checked.", " Not checked for accuracy - the
     /// checker could not be reached." when none were, or "" when all were.
     static func uncheckedNote(_ unchecked: Int, of total: Int) -> String {
@@ -470,6 +484,56 @@ enum LLMText {
 
 /// Choosing text by overlap, and cutting it into pieces.
 enum TextSlicing {
+
+    /// A source longer than one prompt can hold, as windows that each fit,
+    /// cut at a paragraph, line or sentence end where one is near, so every
+    /// part of a lecture is read by some batch (audit #90: only the first
+    /// 40-45k characters ever were, 8-10k on a phone).
+    static func windows(_ text: String, maxChars: Int) -> [String] {
+        let limit: Int = max(500, maxChars)
+        guard text.count > limit else { return [text] }
+        var out: [String] = []
+        var rest: Substring = Substring(text)
+        while !rest.isEmpty {
+            if rest.count <= limit { out.append(String(rest)); break }
+            let hard: String.Index = rest.index(rest.startIndex, offsetBy: limit)
+            let head: Substring = rest[rest.startIndex..<hard]
+            // a paragraph end in the last third of the window, else a line
+            // or sentence end in its last fifth, else a hard cut
+            var cut: String.Index = hard
+            for (mark, share) in [("\n\n", 2), ("\n", 4), (". ", 4)] {
+                let floor: String.Index = rest.index(rest.startIndex, offsetBy: limit * share / (share + 1))
+                if let r = head.range(of: mark, options: .backwards), r.lowerBound >= floor {
+                    cut = r.upperBound
+                    break
+                }
+            }
+            out.append(String(rest[rest.startIndex..<cut]).trimmingCharacters(in: .whitespacesAndNewlines))
+            rest = rest[cut...]
+        }
+        return out.filter { !$0.isEmpty }
+    }
+
+    /// Up to `limit` of `count` windows, spread evenly from the first to the
+    /// last, for a check that cannot afford to read them all: a sample of
+    /// the whole rather than its opening.
+    static func spread(_ count: Int, upTo limit: Int) -> [Int] {
+        guard count > 0, limit > 0 else { return [] }
+        guard count > limit else { return Array(0..<count) }
+        guard limit > 1 else { return [0] }
+        var picked: [Int] = []
+        for i in 0..<limit {
+            let at = Int((Double(i) * Double(count - 1) / Double(limit - 1)).rounded())
+            if picked.last != at { picked.append(at) }
+        }
+        return picked
+    }
+
+    /// The window a batch reads: each batch the next one, round and round.
+    static func window(_ windows: [String], round: Int) -> String {
+        guard !windows.isEmpty else { return "" }
+        return windows[((round % windows.count) + windows.count) % windows.count]
+    }
 
     static func words(_ text: String) -> Set<String> {
         Set(text.lowercased().components(separatedBy: CharacterSet.alphanumerics.inverted)

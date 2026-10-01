@@ -814,7 +814,7 @@ struct LibraryView: View {
         Task {
             defer { buildingDeck = false }
             do {
-                exportURL = try await ApkgExporter.exportInBackground(restored)
+                exportURL = try await ApkgExporter.exportInBackground(restored, schedule: reviews.records)
             } catch {
                 Diagnostics.record(.error, area: .export, message: "export.apkg_failed", error: error)
                 ReviewPromptRules.noteTrouble()

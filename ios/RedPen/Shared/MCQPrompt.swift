@@ -16,6 +16,13 @@ extension MCQGenerator {
     /// call - matches the web app's MAX_PROMPT_CHARS.
     static var maxPromptChars: Int { 45_000 }
 
+    /// What a phone model can read in one call: Apple's on-device model and
+    /// Gemma have a 4,096-token window, which the rules and the questions
+    /// written back share with the source (audit #85: 45,000 characters were
+    /// sent). A long lecture is read a window at a time instead.
+    static var onDeviceSourceChars: Int { 4_000 }
+    static let onDeviceQuestionsPerCall: Int = 3
+
     /// `target` is the exam the student chose (ExamChoice): when there is
     /// one, the set is written to its format - its option count, stem length,
     /// lead-ins and units - weighted by its blueprint when no topic is given,
@@ -69,7 +76,7 @@ extension MCQGenerator {
         lines.append("3. Never use \"all of the above\" or \"none of the above\".")
         lines.append("4. CRITICAL — length is the other giveaway students report (\"the longest option is always right\"), and it's not fixed by randomizing option order, since the length travels with the answer text itself: write the best answer in its natural, complete form, then write each of the \(options - 1) distractors to that SAME level of clinical specificity and length — within about 2-3 words of it and of each other. If a distractor is coming out shorter, add real clinical detail (a mechanism, a qualifier, a specific value) to lengthen it, never vague filler; if the best answer is coming out longer, tighten the wording rather than dropping the detail that makes it correct. Before you finalize each question, look at your own \(options) options as a student would: is one option noticeably longer, more hedged, or more specific than the rest? If so, rewrite until none of them stand out — a student must not be able to shortcut the question by picking the longest, most detailed-sounding option.")
         lines.append("5. Vary the question style across the set, and deliberately mix two kinds of difficulty: (a) reasoning/application questions — brief clinical vignettes (age/sex/presentation/findings) and \"best next step / most likely diagnosis / most specific finding\" questions that require synthesizing several findings, and (b) pure memorization questions that test one specific fact, number, definition, classification, criterion, mechanism, or eponym directly, answerable only by having actually memorized it — no vignette or context clues to reason from. " + recallRule(chosen))
-        lines.append("6. In the explanation for each question: state why the best answer is best, and explicitly address at least one other option that is tempting or partially correct, explaining why it falls short of best. Never refer to options by a letter or position (\"option A\", \"the first choice\") — the order they're shown in is randomized after you write them, so a letter reference would be wrong. Refer to each option by its actual content instead (e.g. \"metformin\" or \"the biopsy finding of...\").")
+        lines.append("6. In the explanation for each question: state why the best answer is best; then give every other option its own short reason it is not the best (a clause each); and end with one line that starts \"Key point:\" and states the single fact or principle the question tests. Never refer to options by a letter or position (\"option A\", \"the first choice\") — the order they're shown in is randomized after you write them, so a letter reference would be wrong. Refer to each option by its actual content instead (e.g. \"metformin\" or \"the biopsy finding of...\").")
         lines.append("7. Every question must be answerable from the source material above — never invent facts outside it.")
         if highYield { lines.append("8. Favor the highest-yield, most exam-relevant facts in the source material.") }
 

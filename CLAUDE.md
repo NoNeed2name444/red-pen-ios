@@ -4,6 +4,10 @@ The owner has only an iPhone and an iPad. Anything needing a Mac runs in GitHub 
 The handoff and the plan live in the Chat-me repo: docs/architecture/handoff/context.md (wins on app state) and plan.md.
 The owner's design targets: docs/design/targets-2026-10-01.md (no Rank, Clerk badge or XP; the app stays Stethoscore).
 
+## Decisions
+- Build on, and decide from, the deep research and the verification layer in Chat-me: docs/architecture/research (the §22 briefs and their verdicts), the Task 4 audit, and the medical verifier (now in Chat-me's api/, agents/, orchestration/, governance/). The Worker's accuracy engine is the spine; the verifier folds in as modules. Cite the brief a decision follows.
+- Order of work: what can be checked here (Linux, node, Python) first; what changes how the app looks last, batched into Mac runs.
+
 ## Before you push: check here, let CI confirm
 - `tools/preflight.sh` (about a minute): the Swift suites your change touches, on Linux; every server test; the three Playgrounds core packages. Fix what it finds before pushing.
 - Swift 6.4 for Linux is at /opt/swift (install: swift.org release for Ubuntu 24.04 into /opt/swift if missing).

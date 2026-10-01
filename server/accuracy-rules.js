@@ -239,6 +239,9 @@ export function ruleHits(item) {
     }
   }
 
+  for (const said of notation(text)) add('dose-notation', 'minor', said);
+  for (const said of lookAlike(text)) add('look-alike-drug', 'severe', said);
+  for (const old of superseded(item)) add('outdated-practice', old.severity, old.says);
   for (const d of doses(text)) {
     const [lo, hi] = DRUGS[d.drug];
     if (d.mg > hi * 2 || d.mg < lo / 5) add('dose-range', 'severe', `${d.said}: outside any usual dose of ${d.drug} (${fmt(lo)}–${fmt(hi)} mg).`);
@@ -254,10 +257,17 @@ export function ruleHits(item) {
     if (v.value < r[0] || v.value > r[1]) add('lab-implausible', 'severe', `${v.said}: not a possible ${v.analyte} in ${v.unit || 'these units'} (wrong unit?).`);
   }
   for (const s of statedRanges(text)) {
-    const r = LABS[s.analyte]?.[s.unit] || (!s.unit ? Object.values(LABS[s.analyte] || {})[0] : null);
-    if (!r) continue;
+    const table = LABS[s.analyte];
+    if (!table) continue;
+    // a range written without a unit is right if it is right in any unit the
+    // analyte is reported in ("normal calcium 2.1-2.6" is mmol/L, not wrong
+    // mg/dL - audit #96)
+    const candidates = s.unit ? (table[s.unit] ? [[s.unit, table[s.unit]]] : []) : Object.entries(table);
+    if (!candidates.length) continue;
     const off = (x, y) => Math.abs(x - y) > Math.max(0.2 * Math.abs(y), 1e-9);
-    if (off(s.lo, r[2]) || off(s.hi, r[3])) add('reference-range', 'severe', `Normal ${s.analyte} is about ${r[2]}–${r[3]}${s.unit ? ' ' + s.unit : ''}, not ${s.lo}–${s.hi}.`);
+    if (candidates.some(([, r]) => !off(s.lo, r[2]) && !off(s.hi, r[3]))) continue;
+    const should = candidates.map(([u, r]) => `${r[2]}–${r[3]}${s.unit || candidates.length > 1 ? ' ' + u : ''}`).join(' or ');
+    add('reference-range', 'severe', `Normal ${s.analyte} is about ${should}, not ${s.lo}–${s.hi}.`);
   }
   // one analyte said to go both up and down
   const t = lower(text);
@@ -270,6 +280,177 @@ export function ruleHits(item) {
 }
 
 const fmt = x => (x >= 1 ? String(Math.round(x * 100) / 100) : String(x));
+
+// MARK: dose notation and look-alike drugs (DNA brief: a sensor per error
+// type; these errors read as plausible, so nothing else catches them)
+
+/// Notation the Joint Commission's "Do Not Use" list bans because it is
+/// misread tenfold or as another word. Mirrored in AccuracyRules.swift; both
+/// are held to server/tests/rule-vectors.json.
+export const NOTATION = [
+  { pattern: '\\b\\d+\\.0+\\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\\w/])', caseless: true, says: 'drop the trailing zero ("1.0 mg" is read as 10 mg)' },
+  { pattern: '(?<![\\w.])\\.\\d+\\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\\w/])', caseless: true, says: 'write a leading zero (".5 mg" is read as 5 mg)' },
+  { pattern: '\\b\\d+(?:\\.\\d+)?\\s?U(?![\\w/])', caseless: false, says: 'write "units" ("U" is misread as 0 or 4)' },
+  { pattern: '(?<![A-Za-z])(?:QD|QOD|q\\.d\\.|q\\.o\\.d\\.)(?![A-Za-z])', caseless: false, says: 'write "daily" or "every other day" ("QD" is misread as QID)' },
+];
+export function notation(text) {
+  const out = [];
+  for (const n of NOTATION) {
+    for (const m of String(text).matchAll(new RegExp(n.pattern, n.caseless ? 'gi' : 'g'))) out.push(`"${m[0].trim()}": ${n.says}.`);
+  }
+  return out;
+}
+
+/// Look-alike, sound-alike pairs from the ISMP list, each drug with what it is
+/// for. A drug said to be for its partner's use, and not its own, is the
+/// classic swap (hydroxyzine for hypertension). Mirrored in AccuracyRules.swift.
+export const LOOK_ALIKE = [
+  [['hydralazine', ['hypertension', 'high blood pressure', 'pre-eclampsia', 'preeclampsia', 'eclampsia', 'heart failure']],
+   ['hydroxyzine', ['anxiety', 'pruritus', 'itch', 'urticaria', 'allerg', 'sedation']]],
+  [['clonidine', ['hypertension', 'high blood pressure', 'adhd', 'attention deficit', 'hot flush', 'hot flash']],
+   ['clonazepam', ['seizure', 'epilep', 'panic']]],
+  [['metformin', ['diabetes', 'diabetic', 'hyperglyc', 'polycystic ovar', 'pcos']],
+   ['metronidazole', ['anaerob', 'bacterial vaginosis', 'trichomon', 'clostridi', 'c. diff', 'amoeb', 'ameb', 'giardia', 'h. pylori', 'helicobacter']]],
+  [['lamotrigine', ['epilep', 'seizure', 'bipolar']], ['lamivudine', ['hiv', 'hepatitis b', 'hbv']]],
+  [['risperidone', ['schizophren', 'psychos', 'bipolar', 'mania', 'autis', 'irritability']], ['ropinirole', ['parkinson', 'restless leg']]],
+  [['tramadol', ['pain', 'analges']], ['trazodone', ['depress', 'insomnia', 'sleep']]],
+  [['chlorpromazine', ['schizophren', 'psychos', 'nausea', 'vomiting', 'hiccup']], ['chlorpropamide', ['diabetes', 'diabetic', 'hyperglyc']]],
+  [['sulfasalazine', ['ulcerative colitis', 'crohn', 'rheumatoid arthritis', 'inflammatory bowel']], ['sulfadiazine', ['toxoplasm', 'burn']]],
+];
+const USE_CUE = /\b(?:for|to treat|treats|treating|treatment of|indicated for|indicated in|used for|used in|management of)\b/;
+const NEGATED = /\b(?:not|never|no)\b/;
+const mentions = (span, word) => new RegExp(`\\b${esc(word)}`).test(span);
+export function lookAlike(text) {
+  const t = lower(text);
+  const out = [];
+  for (const [first, second] of LOOK_ALIKE) {
+    for (const [[name, own], [other, theirs]] of [[first, second], [second, first]]) {
+      for (const m of t.matchAll(new RegExp(`\\b${esc(name)}\\b`, 'g'))) {
+        // the rest of this sentence, at most 90 characters
+        let end = m.index + name.length;
+        while (end < t.length && end - m.index < 90 && !'.;!?\n'.includes(t[end])) end++;
+        const span = t.slice(m.index + name.length, end);
+        const cue = USE_CUE.exec(span);
+        if (!cue) continue;
+        const before = span.slice(0, cue.index), after = span.slice(cue.index + cue[0].length);
+        if (NEGATED.test(before) || before.includes(other) || after.includes(other)) continue;
+        const wrong = theirs.find(u => mentions(after, u));
+        if (wrong && !own.some(u => mentions(after, u))) out.push(`${name} ${cue[0]} ${wrong}…: that is what ${other} is for; check the name (look-alike drugs).`);
+      }
+    }
+  }
+  return out;
+}
+
+// MARK: retired practice (Islamic brief: an abrogated ruling is cited only
+// with what replaced it; DNA brief: a sensor per error type). Older lectures
+// still teach these, and they read as fluent, settled fact.
+
+/// Abbreviations spelled out before matching, case and all, so "PEA" is the
+/// rhythm and not the vegetable. Mirrored in AccuracyRules.swift.
+export const EXPAND = [
+  ['\\bPEA\\b', 'pulseless electrical activity'], ['\\bMONA\\b', 'morphine oxygen nitrates aspirin'],
+  ['\\bHES\\b', 'hydroxyethyl starch'], ['\\bACS\\b', 'acute coronary syndrome'],
+  ['\\b(?:N?STE)?MI\\b', 'myocardial infarction'], ['\\bO2\\b', 'oxygen'], ['\\bICU\\b', 'intensive care'],
+  ['\\bAKI\\b', 'acute kidney injury'],
+];
+
+/// Practice current guidance has retired, each with what replaced it and
+/// where that was decided. `cue` names the practice (in a question, it must
+/// be the keyed answer), every `context` must be in the same sentence, and
+/// `unless` excuses it. Sources: AHA 2010 ACLS (PMID 20956224) and 2015
+/// neonatal (PMID 26473001); AACT/EAPCCT ipecac (PMID 15214617); 6S (PMID
+/// 22738085); ANZICS dopamine (PMID 11191541); NICE-SUGAR (PMID 19318384);
+/// DETO2X-AMI (PMID 28844200) and the ESC 2023 ACS guideline (PMID 37622654);
+/// EMA 2009, FDA 2010 and FDA 2020 withdrawals; NICE NG59. Mirrored in
+/// AccuracyRules.swift and held to server/tests/rule-vectors.json.
+export const SUPERSEDED = [
+  { id: 'atropine-arrest', severity: 'severe', cue: '\\batropine\\b',
+    context: ['\\basystole\\b|pulseless electrical activity|\\bnon-?shockable\\b|cardiac arrest'],
+    unless: 'bradycardi|heart block|\\bav block|organophosphate|secretions|premedicat',
+    says: 'Atropine is no longer used in asystole or PEA (AHA and ERC since 2010): adrenaline and CPR.' },
+  { id: 'adult-cpr-15-2', severity: 'severe',
+    cue: '\\b15\\s*:\\s*2\\b|\\b15 compressions? (?:to|and|:) 2 (?:rescue )?breaths\\b',
+    context: ['\\badults?\\b'], unless: 'child|infant|paediatric|pediatric|neonat|newborn|bab(?:y|ies)',
+    says: 'Adult CPR is 30 compressions to 2 breaths (AHA and ERC since 2005); 15:2 is for children with two rescuers.' },
+  { id: 'ipecac', severity: 'severe', cue: '\\bipecac(?:uanha)?\\b',
+    context: ['poison|overdose|ingest|toxic|vomit|emesis|decontaminat'],
+    says: 'Ipecac is no longer given for poisoning (AACT/EAPCCT 2004): no proven benefit, and it delays charcoal.' },
+  { id: 'starch-fluids', severity: 'severe', cue: 'hydroxy-?ethyl ?starch|\\b(?:heta|tetra|penta)starch\\b|\\bvoluven\\b',
+    context: ['resuscitat|sepsis|septic|shock|hypovol|fluid|volume|colloid'],
+    says: 'Starch fluids raised deaths and dialysis in sepsis (6S trial, NEJM 2012): use crystalloids.' },
+  { id: 'renal-dose-dopamine', severity: 'severe',
+    cue: '\\b(?:renal|low)[- ]dose dopamine\\b|\\bdopamine\\b[^.;]{0,40}\\b(?:renal|kidney) (?:protect|dose)',
+    context: ['prevent|protect|treat|\\bused\\b|\\bgiven\\b|oliguri|acute kidney injury|renal failure|management|indicated|urine output'],
+    says: 'Low-dose dopamine does not protect the kidneys (ANZICS trial, Lancet 2000).' },
+  { id: 'dextropropoxyphene', severity: 'severe', cue: '\\b(?:dextro)?propoxyphene\\b|\\bco-?proxamol\\b|\\bdistalgesic\\b',
+    context: ['analges|\\bpain\\b|prescri|\\btreat|\\bgiven\\b|\\bused\\b|indicated|drug of choice|first[- ]line'],
+    unless: 'overdose|toxicity|poison',
+    says: 'Dextropropoxyphene was withdrawn (EU 2009, US 2010) for fatal heart-rhythm toxicity.' },
+  { id: 'tight-icu-glucose', severity: 'severe',
+    cue: '\\b8[01]\\s*(?:-|–|to)\\s*1(?:08|10)\\s*mg\\s*/\\s*dl\\b|\\b4\\.[45]\\s*(?:-|–|to)\\s*6\\.[01]\\s*mmol',
+    context: ['intensive care|critically ill|critical illness|ventilated|septic|sepsis'],
+    says: 'Tight ICU glucose targets raised deaths (NICE-SUGAR, NEJM 2009): aim for 140–180 mg/dL (7.8–10 mmol/L).' },
+  { id: 'prophylactic-lidocaine', severity: 'severe',
+    cue: '\\b(?:prophylactic|routine)(?:ally)?\\s+(?:iv\\s+)?(?:lidocaine|lignocaine)\\b|\\b(?:lidocaine|lignocaine)\\b[^.;]{0,40}\\bprophyla',
+    context: ['myocardial infarction|acute coronary syndrome|heart attack'],
+    says: 'Prophylactic lidocaine after MI is not recommended: no benefit, and a trend to more deaths.' },
+  { id: 'mona', severity: 'minor', cue: '\\bmorphine,? oxygen,? nitrates?,? (?:and )?aspirin\\b', context: [],
+    says: 'MONA is outdated: oxygen only if SpO2 is under 90%, morphine with caution (ESC ACS guideline 2023).' },
+  { id: 'routine-oxygen-acs', severity: 'minor',
+    cue: '\\b(?:all|every|routine(?:ly)?|regardless)\\b[^.;]{0,60}\\boxygen\\b|\\boxygen\\b[^.;]{0,60}\\b(?:all|every|routine(?:ly)?|regardless)\\b',
+    context: ['acute coronary syndrome|myocardial infarction|chest pain|heart attack'],
+    unless: 'hypox|saturation|spo2|\\bsats\\b|below|under|less than|<|\\bif\\b|unless|\\bwhen\\b|morphine,? oxygen,? nitrates',
+    says: 'Oxygen is for ACS with SpO2 under 90%, not routinely (ESC 2023; DETO2X-AMI, NEJM 2017).' },
+  { id: 'ranitidine', severity: 'minor', cue: '\\branitidine\\b',
+    context: ['\\btreat|\\bgive\\b|\\bgiven\\b|prescri|used (?:for|in|to)|drug of choice|first[- ]line|management|indicated'],
+    says: 'Ranitidine was withdrawn in the US and EU in 2020 (NDMA impurity); famotidine is the usual H2 blocker.' },
+  { id: 'bed-rest-back-pain', severity: 'minor', cue: '\\bbed[- ]?rest\\b', context: ['back pain|lumbago|sciatica'],
+    says: 'Low back pain: stay active rather than rest in bed (NICE NG59).' },
+  { id: 'meconium-suction', severity: 'minor',
+    cue: '\\bintubat\\w*|tracheal suction\\w*|suction\\w* (?:below the cords|the trachea)',
+    context: ['meconium', '\\ball\\b|routine|every|non-?vigorous|immediately|should|must'],
+    says: 'Routine tracheal suction of non-vigorous meconium-stained babies is no longer advised: ventilate (AHA 2015).' },
+];
+
+/// A sentence that says the practice is no longer done is teaching the change.
+export const RETIRED_SAID = "\\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|instead of|rather than|unlike|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\\b|\\bno (?:role|benefit|place|evidence|use|longer)\\b";
+
+/// Sentences: at a line break, or after . ! ? ; and a space (so 0.5 mg is one).
+export const sentencesOf = text => String(text || '').split(/\n|(?<=[.!?;])\s+/).map(x => x.trim()).filter(Boolean);
+
+const spelled = s => { let t = String(s || ''); for (const [p, w] of EXPAND) t = t.replace(new RegExp(p, 'g'), w); return lower(t); };
+const has = (pattern, t) => new RegExp(pattern).test(t);
+
+/// Retired practice an item teaches, one hit per practice. A question's keyed
+/// answer is read with its stem, at the practice's severity (only the
+/// question's own sentence and the key can excuse it, so a vignette's "does
+/// not respond" does not); its explanation's sentences count as minor, since
+/// an explanation often names an old practice to set a distractor aside.
+/// Anything else is read sentence by sentence at the practice's severity.
+export function superseded(item) {
+  const found = new Map();
+  const test = (cueIn, contextIn, excuseIn, severity) => {
+    for (const e of SUPERSEDED) {
+      if (!has(e.cue, cueIn) || !e.context.every(c => has(c, contextIn))) continue;
+      if ((e.unless && has(e.unless, contextIn)) || has(RETIRED_SAID, excuseIn)) continue;
+      const level = severity || e.severity;
+      if (found.get(e.id)?.severity !== 'severe') found.set(e.id, { id: e.id, severity: level, says: e.says });
+    }
+  };
+  if (item.kind === 'mcq') {
+    const options = item.options || [];
+    if (Number.isInteger(item.key) && item.key >= 0 && item.key < options.length) {
+      const key = spelled(options[item.key]);
+      const stem = sentencesOf(item.stem);
+      test(key, spelled(item.stem) + ' ' + key, spelled(stem[stem.length - 1] || '') + ' ' + key, null);
+    }
+    for (const sentence of sentencesOf(item.explanation)) { const t = spelled(sentence); test(t, t, t, 'minor'); }
+  } else {
+    for (const sentence of sentencesOf(item.text)) { const t = spelled(sentence); test(t, t, t, null); }
+  }
+  return [...found.values()];
+}
 
 /// The words the checker, the cache and the rules see for an item.
 export function itemText(item) {

@@ -243,6 +243,22 @@ check("never twice",
 check("never just after something went wrong",
       !ReviewPromptRules.shouldAsk(.mockFinished, state: .init(asked: false, lastTrouble: now.addingTimeInterval(-60)), now: now))
 
+// MARK: Flagged by the accuracy check: held out of review until cleared
+do {
+    let held = AnkiCard(type: .qa, front: "Antidote to heparin?", bullets: ["Vitamin K"])
+    let fine = AnkiCard(type: .qa, front: "Antidote to warfarin?", bullets: ["Vitamin K and PCC"])
+    let now = Date()
+    AccuracyHolds.reset()
+    AccuracyHolds.update(held.id.uuidString, flagged: true)
+    let queue = ReviewPlan.dailyQueue(for: [held, fine], records: [:], now: now, limits: .unlimited)
+    check("a Flagged card is held out of today's queue", queue.map(\.card.id) == [fine.id])
+    check("and out of the due count", ReviewPlan.dueCount(for: [held, fine], records: [:], now: now, limits: .unlimited) == 1)
+    AccuracyHolds.update(held.id.uuidString, flagged: false)
+    check("a fix or a re-check clears it, and it comes back",
+         ReviewPlan.dailyQueue(for: [held, fine], records: [:], now: now, limits: .unlimited).count == 2)
+    AccuracyHolds.reset()
+}
+
 if failures.isEmpty {
     print("all review essentials checks passed")
 } else {

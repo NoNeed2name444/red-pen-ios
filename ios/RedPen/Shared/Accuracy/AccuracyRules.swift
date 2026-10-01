@@ -304,6 +304,9 @@ enum AccuracyRules {
         if item.kind == .mcq { questionHits(item, add: add) }
         let text: String = item.checkedText
 
+        for said in notation(text) { add("dose-notation", "minor", said) }
+        for said in lookAlike(text) { add("look-alike-drug", "severe", said) }
+        for old in superseded(item) { add("outdated-practice", old.severity, old.says) }
         for d in doses(text) {
             guard let range = drugs[d.drug], range.count == 2 else { continue }
             let lo: Double = range[0], hi: Double = range[1]
@@ -328,15 +331,19 @@ enum AccuracyRules {
             }
         }
         for s in statedRanges(text) {
-            guard let ranges = labs[s.analyte] else { continue }
-            let chosen: [Double]? = ranges[s.unit] ?? (s.unit.isEmpty ? firstRange(s.analyte) : nil)
-            guard let r = chosen else { continue }
-            if off(s.lo, r[2]) || off(s.hi, r[3]) {
-                let unit: String = s.unit.isEmpty ? "" : " " + s.unit
-                let should: String = "\(fmt(r[2]))–\(fmt(r[3]))\(unit)"
-                let said: String = "\(fmt(s.lo))–\(fmt(s.hi))"
-                add("reference-range", "severe", "Normal \(s.analyte) is about \(should), not \(said).")
-            }
+            guard let table = labs[s.analyte] else { continue }
+            // a range written without a unit is right if it is right in any
+            // unit the analyte is reported in (audit #96), as the server does
+            let candidates: [(unit: String, range: [Double])] = s.unit.isEmpty
+                ? orderedRanges(s.analyte)
+                : (table[s.unit].map { [(unit: s.unit, range: $0)] } ?? [])
+            if candidates.isEmpty { continue }
+            if candidates.contains(where: { !off(s.lo, $0.range[2]) && !off(s.hi, $0.range[3]) }) { continue }
+            let named: Bool = !s.unit.isEmpty || candidates.count > 1
+            let should: String = candidates.map { "\(fmt($0.range[2]))–\(fmt($0.range[3]))" + (named ? " " + $0.unit : "") }
+                .joined(separator: " or ")
+            let said: String = "\(fmt(s.lo))–\(fmt(s.hi))"
+            add("reference-range", "severe", "Normal \(s.analyte) is about \(should), not \(said).")
         }
         let t: String = text.lowercased()
         for name in Set(labNames.values).sorted() {
@@ -348,18 +355,256 @@ enum AccuracyRules {
         return out
     }
 
-    /// A range stated with no unit is compared in the first unit the table
-    /// lists for that analyte, as the server does.
-    private static func firstRange(_ analyte: String) -> [Double]? {
+    /// Every unit an analyte is reported in, in the order the table lists
+    /// them (the server's Object.entries order).
+    private static func orderedRanges(_ analyte: String) -> [(unit: String, range: [Double])] {
+        var out: [(unit: String, range: [Double])] = []
         for line in labTable.replacingOccurrences(of: "\n", with: "").components(separatedBy: ";") {
             let entry: String = line.trimmingCharacters(in: .whitespaces)
             if entry.hasPrefix(analyte + "|"), let eq = entry.lastIndex(of: "=") {
                 let head: String = String(entry[..<eq])
                 let unit: String = String(head.dropFirst(analyte.count + 1)).replacingOccurrences(of: "~", with: "/")
-                return labs[analyte]?[unit]
+                if let r = labs[analyte]?[unit] { out.append((unit: unit, range: r)) }
             }
         }
-        return nil
+        return out
+    }
+
+    // MARK: dose notation and look-alike drugs (server/accuracy-rules.js
+    // NOTATION and LOOK_ALIKE; both held to server/tests/rule-vectors.json)
+
+    /// Notation the Joint Commission's "Do Not Use" list bans because it is
+    /// misread tenfold or as another word.
+    static let notationRules: [(pattern: String, caseless: Bool, says: String)] = [
+        (#"\b\d+\.0+\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\w/])"#, true, "drop the trailing zero (\"1.0 mg\" is read as 10 mg)"),
+        (#"(?<![\w.])\.\d+\s?(?:mg|mcg|µg|ug|g|ml|units?)(?![\w/])"#, true, "write a leading zero (\".5 mg\" is read as 5 mg)"),
+        (#"\b\d+(?:\.\d+)?\s?U(?![\w/])"#, false, "write \"units\" (\"U\" is misread as 0 or 4)"),
+        (#"(?<![A-Za-z])(?:QD|QOD|q\.d\.|q\.o\.d\.)(?![A-Za-z])"#, false, "write \"daily\" or \"every other day\" (\"QD\" is misread as QID)"),
+    ]
+
+    static func notation(_ text: String) -> [String] {
+        let ns = text as NSString
+        var out: [String] = []
+        for rule in notationRules {
+            for f in find(rule.pattern, in: text, caseless: rule.caseless) {
+                let said: String = ns.substring(with: NSRange(location: f.start, length: f.end - f.start))
+                    .trimmingCharacters(in: .whitespaces)
+                out.append("\"" + said + "\": " + rule.says + ".")
+            }
+        }
+        return out
+    }
+
+    /// Look-alike, sound-alike pairs from the ISMP list, each drug with what it
+    /// is for: a drug said to be for its partner's use, and not its own, is the
+    /// classic swap (hydroxyzine for hypertension).
+    static let lookAlikePairs: [((name: String, uses: [String]), (name: String, uses: [String]))] = [
+        (("hydralazine", ["hypertension", "high blood pressure", "pre-eclampsia", "preeclampsia", "eclampsia", "heart failure"]),
+         ("hydroxyzine", ["anxiety", "pruritus", "itch", "urticaria", "allerg", "sedation"])),
+        (("clonidine", ["hypertension", "high blood pressure", "adhd", "attention deficit", "hot flush", "hot flash"]),
+         ("clonazepam", ["seizure", "epilep", "panic"])),
+        (("metformin", ["diabetes", "diabetic", "hyperglyc", "polycystic ovar", "pcos"]),
+         ("metronidazole", ["anaerob", "bacterial vaginosis", "trichomon", "clostridi", "c. diff", "amoeb", "ameb", "giardia", "h. pylori", "helicobacter"])),
+        (("lamotrigine", ["epilep", "seizure", "bipolar"]), ("lamivudine", ["hiv", "hepatitis b", "hbv"])),
+        (("risperidone", ["schizophren", "psychos", "bipolar", "mania", "autis", "irritability"]), ("ropinirole", ["parkinson", "restless leg"])),
+        (("tramadol", ["pain", "analges"]), ("trazodone", ["depress", "insomnia", "sleep"])),
+        (("chlorpromazine", ["schizophren", "psychos", "nausea", "vomiting", "hiccup"]), ("chlorpropamide", ["diabetes", "diabetic", "hyperglyc"])),
+        (("sulfasalazine", ["ulcerative colitis", "crohn", "rheumatoid arthritis", "inflammatory bowel"]), ("sulfadiazine", ["toxoplasm", "burn"])),
+    ]
+
+    private static let useCue: String = #"\b(?:for|to treat|treats|treating|treatment of|indicated for|indicated in|used for|used in|management of)\b"#
+    private static let negated: String = #"\b(?:not|never|no)\b"#
+
+    static func lookAlike(_ text: String) -> [String] {
+        let t: String = text.lowercased()
+        let ns = t as NSString
+        var out: [String] = []
+        for (first, second) in lookAlikePairs {
+            for (me, partner) in [(first, second), (second, first)] {
+                for f in find("\\b" + esc(me.name) + "\\b", in: t) {
+                    // the rest of this sentence, at most 90 characters
+                    var end: Int = f.end
+                    while end < ns.length && end - f.start < 90 {
+                        if ".;!?\n".contains(ns.substring(with: NSRange(location: end, length: 1))) { break }
+                        end += 1
+                    }
+                    let span: String = ns.substring(with: NSRange(location: f.end, length: end - f.end))
+                    guard let cue = find(useCue, in: span).first else { continue }
+                    let sns = span as NSString
+                    let before: String = sns.substring(to: cue.start)
+                    let after: String = sns.substring(from: cue.end)
+                    if matches(negated, before) || before.contains(partner.name) || after.contains(partner.name) { continue }
+                    let mentions: (String) -> Bool = { use in matches("\\b" + esc(use), after) }
+                    if let wrong = partner.uses.first(where: mentions), !me.uses.contains(where: mentions) {
+                        let said: String = cue.groups.first.flatMap { $0 } ?? "for"
+                        out.append(me.name + " " + said + " " + wrong + "…: that is what " + partner.name + " is for; check the name (look-alike drugs).")
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    // MARK: retired practice (SUPERSEDED in server/accuracy-rules.js; Islamic
+    // brief: an abrogated ruling is cited only with what replaced it)
+
+    /// Abbreviations spelled out before matching, case and all, so "PEA" is
+    /// the rhythm and not the vegetable.
+    static let expand: [(pattern: String, words: String)] = [
+        (#"\bPEA\b"#, "pulseless electrical activity"),
+        (#"\bMONA\b"#, "morphine oxygen nitrates aspirin"),
+        (#"\bHES\b"#, "hydroxyethyl starch"),
+        (#"\bACS\b"#, "acute coronary syndrome"),
+        (#"\b(?:N?STE)?MI\b"#, "myocardial infarction"),
+        (#"\bO2\b"#, "oxygen"),
+        (#"\bICU\b"#, "intensive care"),
+        (#"\bAKI\b"#, "acute kidney injury"),
+    ]
+
+    struct Retired {
+        let id: String
+        let severity: String
+        let cue: String
+        let context: [String]
+        let unless: String?
+        let says: String
+    }
+
+    /// Practice current guidance has retired, with what replaced it and where
+    /// that was decided; the JS table lists the sources. Both are held to
+    /// server/tests/rule-vectors.json.
+    static let retired: [Retired] = [
+        Retired(id: "atropine-arrest", severity: "severe",
+                cue: #"\batropine\b"#,
+                context: [#"\basystole\b|pulseless electrical activity|\bnon-?shockable\b|cardiac arrest"#],
+                unless: #"bradycardi|heart block|\bav block|organophosphate|secretions|premedicat"#,
+                says: "Atropine is no longer used in asystole or PEA (AHA and ERC since 2010): adrenaline and CPR."),
+        Retired(id: "adult-cpr-15-2", severity: "severe",
+                cue: #"\b15\s*:\s*2\b|\b15 compressions? (?:to|and|:) 2 (?:rescue )?breaths\b"#,
+                context: [#"\badults?\b"#],
+                unless: #"child|infant|paediatric|pediatric|neonat|newborn|bab(?:y|ies)"#,
+                says: "Adult CPR is 30 compressions to 2 breaths (AHA and ERC since 2005); 15:2 is for children with two rescuers."),
+        Retired(id: "ipecac", severity: "severe",
+                cue: #"\bipecac(?:uanha)?\b"#,
+                context: [#"poison|overdose|ingest|toxic|vomit|emesis|decontaminat"#],
+                unless: nil,
+                says: "Ipecac is no longer given for poisoning (AACT/EAPCCT 2004): no proven benefit, and it delays charcoal."),
+        Retired(id: "starch-fluids", severity: "severe",
+                cue: #"hydroxy-?ethyl ?starch|\b(?:heta|tetra|penta)starch\b|\bvoluven\b"#,
+                context: [#"resuscitat|sepsis|septic|shock|hypovol|fluid|volume|colloid"#],
+                unless: nil,
+                says: "Starch fluids raised deaths and dialysis in sepsis (6S trial, NEJM 2012): use crystalloids."),
+        Retired(id: "renal-dose-dopamine", severity: "severe",
+                cue: #"\b(?:renal|low)[- ]dose dopamine\b|\bdopamine\b[^.;]{0,40}\b(?:renal|kidney) (?:protect|dose)"#,
+                context: [#"prevent|protect|treat|\bused\b|\bgiven\b|oliguri|acute kidney injury|renal failure|management|indicated|urine output"#],
+                unless: nil,
+                says: "Low-dose dopamine does not protect the kidneys (ANZICS trial, Lancet 2000)."),
+        Retired(id: "dextropropoxyphene", severity: "severe",
+                cue: #"\b(?:dextro)?propoxyphene\b|\bco-?proxamol\b|\bdistalgesic\b"#,
+                context: [#"analges|\bpain\b|prescri|\btreat|\bgiven\b|\bused\b|indicated|drug of choice|first[- ]line"#],
+                unless: #"overdose|toxicity|poison"#,
+                says: "Dextropropoxyphene was withdrawn (EU 2009, US 2010) for fatal heart-rhythm toxicity."),
+        Retired(id: "tight-icu-glucose", severity: "severe",
+                cue: #"\b8[01]\s*(?:-|–|to)\s*1(?:08|10)\s*mg\s*/\s*dl\b|\b4\.[45]\s*(?:-|–|to)\s*6\.[01]\s*mmol"#,
+                context: [#"intensive care|critically ill|critical illness|ventilated|septic|sepsis"#],
+                unless: nil,
+                says: "Tight ICU glucose targets raised deaths (NICE-SUGAR, NEJM 2009): aim for 140–180 mg/dL (7.8–10 mmol/L)."),
+        Retired(id: "prophylactic-lidocaine", severity: "severe",
+                cue: #"\b(?:prophylactic|routine)(?:ally)?\s+(?:iv\s+)?(?:lidocaine|lignocaine)\b|\b(?:lidocaine|lignocaine)\b[^.;]{0,40}\bprophyla"#,
+                context: [#"myocardial infarction|acute coronary syndrome|heart attack"#],
+                unless: nil,
+                says: "Prophylactic lidocaine after MI is not recommended: no benefit, and a trend to more deaths."),
+        Retired(id: "mona", severity: "minor",
+                cue: #"\bmorphine,? oxygen,? nitrates?,? (?:and )?aspirin\b"#,
+                context: [],
+                unless: nil,
+                says: "MONA is outdated: oxygen only if SpO2 is under 90%, morphine with caution (ESC ACS guideline 2023)."),
+        Retired(id: "routine-oxygen-acs", severity: "minor",
+                cue: #"\b(?:all|every|routine(?:ly)?|regardless)\b[^.;]{0,60}\boxygen\b|\boxygen\b[^.;]{0,60}\b(?:all|every|routine(?:ly)?|regardless)\b"#,
+                context: [#"acute coronary syndrome|myocardial infarction|chest pain|heart attack"#],
+                unless: #"hypox|saturation|spo2|\bsats\b|below|under|less than|<|\bif\b|unless|\bwhen\b|morphine,? oxygen,? nitrates"#,
+                says: "Oxygen is for ACS with SpO2 under 90%, not routinely (ESC 2023; DETO2X-AMI, NEJM 2017)."),
+        Retired(id: "ranitidine", severity: "minor",
+                cue: #"\branitidine\b"#,
+                context: [#"\btreat|\bgive\b|\bgiven\b|prescri|used (?:for|in|to)|drug of choice|first[- ]line|management|indicated"#],
+                unless: nil,
+                says: "Ranitidine was withdrawn in the US and EU in 2020 (NDMA impurity); famotidine is the usual H2 blocker."),
+        Retired(id: "bed-rest-back-pain", severity: "minor",
+                cue: #"\bbed[- ]?rest\b"#,
+                context: [#"back pain|lumbago|sciatica"#],
+                unless: nil,
+                says: "Low back pain: stay active rather than rest in bed (NICE NG59)."),
+        Retired(id: "meconium-suction", severity: "minor",
+                cue: #"\bintubat\w*|tracheal suction\w*|suction\w* (?:below the cords|the trachea)"#,
+                context: [#"meconium"#, #"\ball\b|routine|every|non-?vigorous|immediately|should|must"#],
+                unless: nil,
+                says: "Routine tracheal suction of non-vigorous meconium-stained babies is no longer advised: ventilate (AHA 2015)."),
+    ]
+
+    /// A sentence that says the practice is no longer done is teaching the change.
+    static let retiredSaid: String = #"\b(?:not|no longer|never|avoid(?:ed)?|abandon(?:ed)?|obsolete|outdated|out of date|removed|withdrawn|discouraged|replaced|superseded|previously|formerly|historically|used to be|once used|was once|old(?:er)? (?:guidelines?|teaching|practi[cs]e)|instead of|rather than|unlike|myth|harmful|contraindicated|stopped|ineffective|banned|discontinued|dropped|abolished|(?:isn|aren|don|doesn|didn|wasn|weren)['’]t)\b|\bno (?:role|benefit|place|evidence|use|longer)\b"#
+
+    /// Sentences: at a line break, or after . ! ? ; and a space (so 0.5 mg is one).
+    static func sentences(_ text: String) -> [String] {
+        let ns = text as NSString
+        var out: [String] = []
+        var from: Int = 0
+        for cut in find(#"\n|(?<=[.!?;])\s+"#, in: text) {
+            out.append(ns.substring(with: NSRange(location: from, length: cut.start - from)))
+            from = cut.end
+        }
+        out.append(ns.substring(from: from))
+        return out.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    static func spelled(_ s: String) -> String {
+        var t: String = s
+        for (pattern, words) in expand {
+            guard let re = try? NSRegularExpression(pattern: pattern) else { continue }
+            t = re.stringByReplacingMatches(in: t, range: NSRange(location: 0, length: (t as NSString).length),
+                                            withTemplate: words)
+        }
+        return t.lowercased()
+    }
+
+    /// Retired practice an item teaches, one hit per practice - superseded()
+    /// in server/accuracy-rules.js. A question's keyed answer is read with its
+    /// stem at the practice's severity (only the question's own sentence and
+    /// the key can excuse it); its explanation's sentences count as minor,
+    /// since an explanation often names an old practice to set a distractor
+    /// aside. Anything else is read sentence by sentence.
+    static func superseded(_ item: AccuracyItem) -> [(id: String, severity: String, says: String)] {
+        var found: [(id: String, severity: String, says: String)] = []
+        func test(_ cueIn: String, _ contextIn: String, _ excuseIn: String, _ severity: String?) {
+            for e in retired {
+                guard matches(e.cue, cueIn), e.context.allSatisfy({ matches($0, contextIn) }) else { continue }
+                if let unless = e.unless, matches(unless, contextIn) { continue }
+                if matches(retiredSaid, excuseIn) { continue }
+                let level: String = severity ?? e.severity
+                if let at = found.firstIndex(where: { $0.id == e.id }) {
+                    if found[at].severity != "severe" { found[at] = (e.id, level, e.says) }
+                } else {
+                    found.append((e.id, level, e.says))
+                }
+            }
+        }
+        if item.kind == .mcq {
+            if item.options.indices.contains(item.key) {
+                let key: String = spelled(item.options[item.key])
+                let stem: [String] = sentences(item.stem)
+                test(key, spelled(item.stem) + " " + key, spelled(stem.last ?? "") + " " + key, nil)
+            }
+            for sentence in sentences(item.explanation) {
+                let t: String = spelled(sentence)
+                test(t, t, t, "minor")
+            }
+        } else {
+            for sentence in sentences(item.text) {
+                let t: String = spelled(sentence)
+                test(t, t, t, nil)
+            }
+        }
+        return found
     }
 
     private static func off(_ x: Double, _ y: Double) -> Bool {

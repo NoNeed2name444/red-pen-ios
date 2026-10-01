@@ -3,7 +3,7 @@
 //
 // Run: node server/tests/evidence.test.mjs
 
-import { medvalParts, parseTerms, gather, groundedMessages, europePMC, medlinePlus, openFDA } from '../evidence.js';
+import { medvalParts, parseTerms, gather, groundedMessages, europePMC, medlinePlus, openFDA, workKey } from '../evidence.js';
 
 let failures = 0;
 const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failures++; };
@@ -40,6 +40,15 @@ ok(fda[0].text.includes('Dosage: 200 mg to 400 mg daily.') && fda[0].url.include
 
 const evidence = await gather({ queries: ['lupus treatment'], drugs: ['hydroxychloroquine'] }, fake);
 ok(evidence.map(e => e.id).join(',') === 'S1,S2,S3', 'everything found is numbered for citing');
+const twice = async (url) => (url.includes('europepmc') ? new Response(JSON.stringify({ resultList: { result: [
+  { title: 'EULAR recommendations for SLE: 2023 update', journalTitle: 'Ann Rheum Dis', pubYear: '2024', doi: '10.1136/ard-2023', abstractText: 'Hydroxychloroquine for all.', source: 'MED', id: '1' },
+  { title: 'Eular recommendations for SLE - 2023 update.', journalTitle: 'medRxiv', pubYear: '2023', doi: '10.1101/pre-2023', abstractText: 'Hydroxychloroquine for all (preprint).', source: 'PPR', id: '2' },
+  { title: 'Lupus nephritis: a review', journalTitle: 'Lancet', pubYear: '2024', doi: '10.1016/ln', abstractText: 'Mycophenolate or cyclophosphamide.', source: 'MED', id: '3' },
+] } }), { status: 200 }) : new Response('', { status: 404 }));
+const once = await gather({ queries: ['lupus', 'lupus treatment'], drugs: [] }, twice);
+ok(once.length === 2 && once.map(e => e.url).join(' ') === 'https://doi.org/10.1136/ard-2023 https://doi.org/10.1016/ln',
+   'one work counts once: found twice, or as a preprint and as published, it is one source (' + once.length + ')');
+ok(workKey('') === '' && workKey('A Review (Lancet, 2024)') === workKey('a review.'), 'a work is known by its title, whatever the listing adds');
 const silent = await gather({ queries: ['x'], drugs: [] }, async () => { throw new Error('offline'); });
 ok(silent.length === 0, 'a source that is down gives no evidence, not an error');
 

@@ -30,7 +30,7 @@ apply; status lines are kept current as the work lands.
 | Fail-safe | A source whose licence cannot be read or is not on the allowlist is refused; an item that fails any step is dropped with its reason, never shown. |
 | Revenue | The question bank is what students pay for (§22b); a clean licence trail is what lets it be sold. |
 | Risks | Share-alike licences forcing the app open (refused in code); AI items' factual error rate (about 22% unreviewed per the brief), which is why the pipeline and review gate exist. |
-| Status | Not started. |
+| Status | Steps 1 and 2 done (governance/licences with its allowlist and check; tools/question-bank/fetch.mjs keeps each passage's URL and licence). Steps 3 to 5 built: pipeline.mjs and bank.mjs, prompts/question-bank/, tests/question-bank/, and the "Question bank pilot" workflow (results on question-bank-pilot/<run id>). |
 
 ## Task 5c: fail-safe, the §22f reduced protocol
 
@@ -40,7 +40,7 @@ apply; status lines are kept current as the work lands.
 | Verdict it follows | §22f: §22e not sound as written; adopt the reduced protocol. |
 | Steps | 1. Data integrity: the audit's data-loss P0s (done: unreadable library, failed write, recording replace, crafted zip, mock sitting); then the data P1s (#15 restore duplicates, #22 push-wins merge, #23 schedule too big, #24 restore report, #25 recovery copies). 2. Retries and timeouts: #88 a failed batch, #93 a result fetch, #94 a cancelled job (a system stop keeps the cloud job for the collector; the background task's expiry cannot be told from the student's Stop on the system progress indicator, which shows only while the app is away, so an expiry while away is taken as the student's Stop and deletes the job, as before; only one while the app is active keeps it). 3. Worker: a kill switch per AI feature in server config, read at launch; breakers on the free chain's providers. 4. CI fault injection: stubbed network (500, 429, timeout, garbage, offline) in Swift suites and the Worker's tests. |
 | Fail-safe | Closed means Unverified or queued, never a frozen screen. |
-| Status | Step 1's P0s done; P1s next. |
+| Status | Done, all four steps. 1: the P0s and the P1s #15, #22-#25. 2: #88, #93, #94. 3: switches.js (STETHOSCORE_OFF) and breakers.js on the free chain. 4: server/tests/faults.test.mjs runs chat, transcription, speech, evidence and Jev against a 500, a 429, a timeout, garbage and no network (every one an honest error, none a throw or a hang; a busy provider is waited for once, at most 30 s); the app's side is Shared/NetworkFaults.swift with the faults suite. The Worker with steps 3 and 4 is not deployed yet: that waits for the owner's word. |
 
 ## Task 5d: orchestration without LangGraph
 
@@ -57,5 +57,5 @@ apply; status lines are kept current as the work lands.
 |---|---|
 | Contract | agents/, tools/, orchestration/, prompts/, api/, governance/, evals/, tests/, docs/architecture/. |
 | Default chosen | red-pen-ios: new non-app work goes into the §3c slots at the top (docs/architecture/, governance/, prompts/, evals/); the app (ios/) and the Worker (server/) stay where they are, as deployment units whose build tools and workflows depend on their paths (the audit gives clients and infrastructure no slot). Chat-me: the medical verifier moves into the tree per the Task 4 audit's mapping table. |
-| Blocker | Chat-me is not attached with write access in this session; its part waits for that. |
-| Status | docs/architecture/ made in red-pen-ios (this file); the other slots are made as their first files land. |
+| Blocker | None (Chat-me attached with write access on 1 October). |
+| Status | Done. red-pen-ios: docs/architecture/, governance/, prompts/ and tests/ in use. Chat-me: the medical verifier is in api/, agents/, orchestration/, governance/, tools/, evals/, tests/{unit,integration}/ and clients/ios (personal d504978), all 170 tests passing. |

@@ -43,6 +43,8 @@ final class AccuracyStore: ObservableObject {
     private static let weightsCheckedKey = "accuracy.weightsChecked"
     /// A pause between background batches: the free limits are per minute too.
     static let backgroundPause: Duration = .seconds(20)
+    /// How long a "busy" reply holds that priority's batches.
+    static let busyWait: TimeInterval = 300
 
     private init() {
         let defaults = UserDefaults.standard
@@ -114,6 +116,9 @@ final class AccuracyStore: ObservableObject {
         if let hit = memo[key] { return hit }
         let a: AccuracyAssessment = ledger.assess(item, weights: weights)
         memo[key] = a
+        // a Flagged item is held back from review and mock papers until a
+        // fix or a re-check clears it (AccuracyHolds)
+        AccuracyHolds.update(item.id, flagged: a.grade == .flagged)
         return a
     }
 
@@ -175,13 +180,17 @@ final class AccuracyStore: ObservableObject {
             case .offline:
                 pausedReason = "Offline: checking carries on when there is a connection."
                 return
+            case .busy:
+                // nobody checked anything: wait rather than send the next batch
+                blockedUntil[batch.priority] = now.addingTimeInterval(Self.busyWait)
+                pausedReason = "The checkers are busy. Checking carries on in a few minutes."
             }
             let pause: Duration = batch.priority == "background" ? Self.backgroundPause : .seconds(1)
             try? await Task.sleep(for: pause)
         }
     }
 
-    enum Outcome { case done, dayUsed, notPro(String), offline }
+    typealias Outcome = AccuracySendOutcome
 
     private func send(_ batch: AccuracyBatch, token: String) async -> Outcome {
         let hashes: [String] = batch.items.map(\.contentHash)
@@ -191,11 +200,9 @@ final class AccuracyStore: ObservableObject {
         let body = Body(items: batch.items, priority: batch.priority)
         guard let (data, status) = await post("/accuracy/check", body: body, token: token) else { return .offline }
         let reply = try? JSONDecoder().decode(AccuracyCheckReply.self, from: data)
-        if status == 402 { return .notPro(reply?.message ?? "The accuracy check is part of Pro.") }
-        if status == 401 { return .notPro("Sign in again to check accuracy.") }
-        record(reply, for: batch.items)
-        if status == 429 || reply?.limit == "day" { return .dayUsed }
-        return status == 200 ? .done : .offline
+        let outcome = Outcome.of(status: status, limit: reply?.limit, message: reply?.message, busy: reply?.busy == true)
+        if outcome.records { record(reply, for: batch.items) }
+        return outcome
     }
 
     private func record(_ reply: AccuracyCheckReply?, for items: [AccuracyItem]) {
@@ -215,6 +222,7 @@ final class AccuracyStore: ObservableObject {
         case .dayUsed: return "Today's free checks are used. Try again after midnight UTC."
         case .notPro(let why): return why
         case .offline: return "Couldn't reach the server. Check your connection."
+        case .busy: return "The checkers are busy. Try again in a few minutes."
         }
     }
 

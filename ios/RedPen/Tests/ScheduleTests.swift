@@ -218,6 +218,43 @@ check("and an older one does not overwrite a newer",
 check("merging with nothing changes nothing",
       ReviewPlan.merging(morning, [:]) == morning)
 
+
+// MARK: an exported deck keeps each card's place (audit #21)
+let zero = Date(timeIntervalSince1970: 1_800_000_000)
+let fresh = AnkiScheduleRow.of(nil, position: 7, dayZero: zero)
+check("a card never rated goes as new, in its place", fresh == AnkiScheduleRow(type: 0, queue: 0, due: 7, interval: 0, factor: 0, reps: 0, lapses: 0), "\(fresh)")
+let known = ReviewRecord(due: zero.addingTimeInterval(3.5 * 86_400), intervalMin: 10 * 1_440,
+                         reviews: 6, lapses: 1, ratedAt: zero)
+let review = AnkiScheduleRow.of(known, position: 7, dayZero: zero)
+check("a reviewed card goes as a review card, due on its day, with its interval and history",
+      review == AnkiScheduleRow(type: 2, queue: 2, due: 3, interval: 10, factor: 2_500, reps: 6, lapses: 1), "\(review)")
+let late = ReviewRecord(due: zero.addingTimeInterval(-2.2 * 86_400), intervalMin: 3 * 1_440,
+                        reviews: 2, lapses: 0, ratedAt: zero)
+check("an overdue card is due on a past day", AnkiScheduleRow.of(late, position: 0, dayZero: zero).due == -3)
+let learning = ReviewRecord(due: zero.addingTimeInterval(600), intervalMin: 10, reviews: 1, lapses: 0, ratedAt: zero)
+let learningRow = AnkiScheduleRow.of(learning, position: 0, dayZero: zero)
+check("a card in its learning steps goes as a one-day review card, not new",
+      learningRow.type == 2 && learningRow.interval == 1 && learningRow.due == 0 && learningRow.reps == 1, "\(learningRow)")
+var held = known; held.suspended = true
+check("a suspended card stays suspended", AnkiScheduleRow.of(held, position: 0, dayZero: zero).queue == -1)
+var heldNew = ReviewRecord(due: zero, intervalMin: 0, reviews: 0, lapses: 0, ratedAt: zero); heldNew.suspended = true
+check("so does a suspended new one", AnkiScheduleRow.of(heldNew, position: 3, dayZero: zero) == AnkiScheduleRow(type: 0, queue: -1, due: 3, interval: 0, factor: 0, reps: 0, lapses: 0))
+
+// a basic or cloze card's picture goes out as a file, on its side
+check("picture types are read from their first bytes",
+      AnkiExportPicture.fileExtension(Data([0x89, 0x50, 0x4E, 0x47, 0, 0])) == "png"
+      && AnkiExportPicture.fileExtension(Data([0xFF, 0xD8, 0xFF])) == "jpg"
+      && AnkiExportPicture.fileExtension(Data("GIF89a".utf8)) == "gif"
+      && AnkiExportPicture.fileExtension(Data("RIFF\u{0}\u{0}\u{0}\u{0}WEBPVP8".utf8)) == "webp")
+let setID = UUID()
+check("one file per set and picture",
+      AnkiExportPicture.fileName(set: setID, index: 2, data: Data([0xFF, 0xD8]))
+      == "pic_\(setID.uuidString.prefix(8))_2.jpg")
+check("a question's picture leads the front",
+      AnkiExportPicture.fields(["Q", "A"], picture: "p.jpg", onBack: false) == ["<img src=\"p.jpg\">Q", "A"])
+check("an answer's picture leads the back",
+      AnkiExportPicture.fields(["Q", "A"], picture: "p.jpg", onBack: true) == ["Q", "<img src=\"p.jpg\">A"])
+
 print(failures.isEmpty ? "\nALL SCHEDULE TESTS PASS"
                        : "\n\(failures.count) SCHEDULE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

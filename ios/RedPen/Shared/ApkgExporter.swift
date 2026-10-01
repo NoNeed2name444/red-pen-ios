@@ -47,8 +47,8 @@ enum ApkgExporter {
 
     /// Builds the .apkg on a background thread, so a big deck does not freeze
     /// the library while its pictures are drawn.
-    static func exportInBackground(_ set: StudySet) async throws -> URL {
-        try await Task.detached(priority: .userInitiated) { try export(set) }.value
+    static func exportInBackground(_ set: StudySet, schedule: [UUID: ReviewRecord] = [:]) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) { try export(set, schedule: schedule) }.value
     }
 
     /// Picture cards whose picture is not on this phone - still a sync
@@ -70,15 +70,18 @@ enum ApkgExporter {
         }.count
     }
 
-    static func export(_ set: StudySet) throws -> URL {
+    /// `schedule`: the student's review records, so each card goes out
+    /// where it stands (AnkiScheduleRow) rather than as new.
+    static func export(_ set: StudySet, schedule: [UUID: ReviewRecord] = [:]) throws -> URL {
         let deckName = set.name.isEmpty ? Brand.name : set.name
-        return try export(decks: [(deckName, set)], fileName: set.name)
+        return try export(decks: [(deckName, set)], fileName: set.name, schedule: schedule)
     }
 
     /// Every card set in the library as ONE package, a deck per set - filed
     /// "Folder::Set" when the set is in a folder, which Anki shows as a
     /// subdeck. For "Export all as Anki" in Settings.
-    static func exportAll(_ sets: [StudySet], folders: [StudyFolder], fileName: String) throws -> URL {
+    static func exportAll(_ sets: [StudySet], folders: [StudyFolder], fileName: String,
+                          schedule: [UUID: ReviewRecord] = [:]) throws -> URL {
         let names: [UUID: String] = Dictionary(folders.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
         var decks: [(name: String, set: StudySet)] = []
         for set in sets where set.kind == .anki && !set.cards.isEmpty {
@@ -87,17 +90,19 @@ enum ApkgExporter {
             decks.append((folder.map { $0 + "::" + own } ?? own, set))
         }
         guard !decks.isEmpty else { throw ExportError() }
-        return try export(decks: decks, fileName: fileName)
+        return try export(decks: decks, fileName: fileName, schedule: schedule)
     }
 
     /// Builds every set's cards on a background thread.
-    static func exportAllInBackground(_ sets: [StudySet], folders: [StudyFolder], fileName: String) async throws -> URL {
+    static func exportAllInBackground(_ sets: [StudySet], folders: [StudyFolder], fileName: String,
+                                      schedule: [UUID: ReviewRecord] = [:]) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
-            try exportAll(sets, folders: folders, fileName: fileName)
+            try exportAll(sets, folders: folders, fileName: fileName, schedule: schedule)
         }.value
     }
 
-    private static func export(decks: [(name: String, set: StudySet)], fileName: String) throws -> URL {
+    private static func export(decks: [(name: String, set: StudySet)], fileName: String,
+                               schedule: [UUID: ReviewRecord]) throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("apkg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -105,7 +110,7 @@ enum ApkgExporter {
 
         // each picture goes to disk as it is drawn, not into memory
         var media: [(name: String, file: URL)] = []
-        try buildCollection(at: dbURL, decks: decks, mediaFolder: dir, media: &media)
+        try buildCollection(at: dbURL, decks: decks, mediaFolder: dir, media: &media, schedule: schedule)
 
         // media manifest: {"0": "file.jpg", ...}; zipped entries are named by index
         var manifest: [String: String] = [:]
@@ -139,7 +144,8 @@ enum ApkgExporter {
     """
 
     private static func buildCollection(at url: URL, decks deckList: [(name: String, set: StudySet)], mediaFolder: URL,
-                                        media: inout [(name: String, file: URL)]) throws {
+                                        media: inout [(name: String, file: URL)],
+                                        schedule: [UUID: ReviewRecord]) throws {
         var db: OpaquePointer?
         guard sqlite3_open(url.path, &db) == SQLITE_OK, let db else { throw ExportError() }
         // _v2: closes once the prepared statements below are finalized,
@@ -199,7 +205,21 @@ enum ApkgExporter {
         try collection.run([.int(now), .int(now * 1000), .int(now * 1000), .text(json(conf)),
                             .text(json(models)), .text(json(decks)), .text(json(dconf))])
         let notes = try Statement(db, "INSERT INTO notes VALUES (?, ?, ?, ?, -1, ?, ?, ?, ?, 0, '')")
-        let cardRows = try Statement(db, "INSERT INTO cards VALUES (?, ?, ?, ?, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')")
+        let cardRows = try Statement(db, "INSERT INTO cards VALUES (?, ?, ?, ?, ?, -1, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, '')")
+        let dayZero = Date(timeIntervalSince1970: TimeInterval(now))
+        // a basic or cloze card's picture, written once per set and picture
+        var written: Set<String> = []
+        func pictureFile(_ set: StudySet, _ index: Int?) throws -> String? {
+            guard let index, set.images.indices.contains(index),
+                  let data = BlobRefs.data(fromStored: set.images[index]) else { return nil }
+            let name: String = AnkiExportPicture.fileName(set: set.id, index: index, data: data)
+            if written.insert(name).inserted {
+                let file = mediaFolder.appendingPathComponent("m\(media.count)")
+                try data.write(to: file)
+                media.append((name, file))
+            }
+            return name
+        }
         // the picture drawn last, since a diagram's cards sit together:
         // decoding it once per diagram rather than once per card, without
         // holding every diagram at once
@@ -225,12 +245,19 @@ enum ApkgExporter {
                     mid = note.isCloze ? midCloze : midBasic; isCloze = note.isCloze
                     fields = note.fields
                     sort = note.sort
+                    // its picture, on the side it was on (audit #21)
+                    if let name = try pictureFile(set, card.imageIndex) {
+                        fields = AnkiExportPicture.fields(fields, picture: name, onBack: !card.pictureOnFront)
+                    }
                 case .qa:
                     let front = AnkiFields.bold(card.front)
                     let items: String = card.bullets.map { "<li>\(AnkiFields.bold($0))</li>" }.joined()
                     let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(AnkiFields.esc(why))</div>"
                     fields = [front, "<ul class=\"bullets\">" + items + "</ul>" + reason]
                     sort = AnkiFields.plain(card.front)
+                    if let name = try pictureFile(set, card.imageIndex) {
+                        fields = AnkiExportPicture.fields(fields, picture: name, onBack: !card.pictureOnFront)
+                    }
                 case .occlusion:
                     guard let idx = card.imageIndex, let occ = card.occlusion else { continue }
                     if picture?.index != idx {
@@ -272,8 +299,12 @@ enum ApkgExporter {
                                .text(flds), .text(sort), .int(checksum(fields[0]))])
                 // one card per note; cloze notes get one card per distinct cN as Anki would
                 let ords = isCloze ? AnkiFields.clozeOrdinals(card.clozeText) : [0]
+                // where the card stands in the student's schedule (audit #21)
+                let row = AnkiScheduleRow.of(schedule[card.id], position: nid % 1_000_000, dayZero: dayZero)
                 for ord in ords {
-                    try cardRows.run([.int(nextId()), .int(nid), .int(did), .int(ord), .int(now), .int(nid % 1_000_000)])
+                    try cardRows.run([.int(nextId()), .int(nid), .int(did), .int(ord), .int(now),
+                                      .int(row.type), .int(row.queue), .int(row.due), .int(row.interval),
+                                      .int(row.factor), .int(row.reps), .int(row.lapses)])
                 }
             }
         }

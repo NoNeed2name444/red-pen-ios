@@ -212,5 +212,33 @@ ok(TextSlicing.slice("", into: 3, maxChars: 1000).isEmpty, "nothing to slice, no
 ok(TextSlicing.slice("One short paragraph.", into: 5, maxChars: 1000).count == 1,
    "a short source is one page, not five empty ones")
 
+// MARK: a long lecture, a window at a time (audits #85, #90)
+let windowParagraph: String = String(repeating: "Warfarin is reversed by prothrombin complex concentrate and vitamin K. ", count: 20)
+let windowLecture: String = (0..<40).map { "Section \($0). " + windowParagraph }.joined(separator: "\n\n")
+let lectureWindows: [String] = TextSlicing.windows(windowLecture, maxChars: 4_000)
+ok(lectureWindows.count > 1 && lectureWindows.allSatisfy { $0.count <= 4_000 }, "a long lecture becomes windows that each fit (\(lectureWindows.count))")
+ok(lectureWindows.allSatisfy { $0.hasPrefix("Section") }, "each window starts at a paragraph, not mid-sentence")
+ok((0..<40).allSatisfy { n in lectureWindows.contains { $0.contains("Section \(n). ") } }, "every section is in some window: nothing past the first window is lost")
+ok(TextSlicing.windows("Short notes.", maxChars: 4_000) == ["Short notes."], "a short source is one window, unchanged")
+ok(TextSlicing.window(["a", "b", "c"], round: 0) == "a" && TextSlicing.window(["a", "b", "c"], round: 4) == "b" && TextSlicing.window([], round: 2) == "",
+   "batches take the windows in turn, round and round")
+let unbroken: String = String(repeating: "x", count: 9_000)
+ok(TextSlicing.windows(unbroken, maxChars: 4_000).map(\.count) == [4_000, 4_000, 1_000], "text with no break is cut hard, and nothing is lost")
+
+
+// a long output is checked in parts, and the note says how much was read (audit #89)
+ok(TextSlicing.spread(3, upTo: 8) == [0, 1, 2], "every part is checked when there are few enough")
+ok(TextSlicing.spread(20, upTo: 4) == [0, 6, 13, 19], "a sample runs first to last, not the opening only: \(TextSlicing.spread(20, upTo: 4))")
+ok(TextSlicing.spread(9, upTo: 1) == [0] && TextSlicing.spread(0, upTo: 4).isEmpty, "edge counts")
+let calm = AccuracyVerdict(riskLevel: 1, findings: [], reasoning: "", checkedBy: "MedVAL")
+let risky = AccuracyVerdict(riskLevel: 3, findings: [.init(category: .hallucination, text: "dose doubled")],
+                            reasoning: "", checkedBy: "MedVAL")
+ok(MedVAL.partsNote(calm, checked: 5, total: 5) == " Checked: level 1 \u{2014} no risk.", "all parts read: plain 'Checked'")
+ok(MedVAL.partsNote(calm, checked: 4, total: 23) == " Checked 4 of 23 parts: level 1 \u{2014} no risk.",
+   "a sample says it was a sample: \(MedVAL.partsNote(calm, checked: 4, total: 23))")
+ok(MedVAL.partsNote(risky, checked: 4, total: 23, failed: 1)
+   == " Checker (4 of 23 parts): level 3 \u{2014} moderate risk \u{2014} dose doubled. 1 part could not be checked.",
+   "a finding names its part count and the parts that failed: \(MedVAL.partsNote(risky, checked: 4, total: 23, failed: 1))")
+
 print(failures == 0 ? "ALL LLM TESTS PASS" : "\(failures) LLM TEST(S) FAILED")
 exit(failures == 0 ? 0 : 1)

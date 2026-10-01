@@ -26,7 +26,7 @@ struct AnkiCardFace: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tint)
 
-            picture
+            if card.pictureOnFront { picture }
 
             if card.type == .cloze {
                 // as Anki shows it: the sentence stays where it is, and the
@@ -41,6 +41,7 @@ struct AnkiCardFace: View {
 
             if revealed {
                 back
+                if !card.pictureOnFront { picture }
                 if !card.why.trimmingCharacters(in: .whitespaces).isEmpty {
                     why
                 }
@@ -79,20 +80,29 @@ struct AnkiCardFace: View {
         }
     }
 
+    /// The card's picture: an occlusion card's with its covers, any other
+    /// card's as it came (audit #14 - imported basic and cloze cards kept
+    /// theirs but never showed them).
     @ViewBuilder
     private var picture: some View {
-        if card.type == .occlusion, let idx = card.imageIndex,
+        if let idx = card.imageIndex,
            images.indices.contains(idx),
            let data = Data(base64Encoded: Self.stripDataPrefix(images[idx])),
            let uiImage = UIImage(data: data) {
-            GeometryReader { geo in
-                ZStack(alignment: .topLeading) {
-                    Image(uiImage: uiImage).resizable().scaledToFit()
-                    covers(size: geo.size)
+            if card.type == .occlusion {
+                GeometryReader { geo in
+                    ZStack(alignment: .topLeading) {
+                        Image(uiImage: uiImage).resizable().scaledToFit()
+                        covers(size: geo.size)
+                    }
                 }
+                .aspectRatio(uiImage.size, contentMode: .fit)
+                .frame(maxHeight: 280)
+            } else {
+                Image(uiImage: uiImage).resizable().scaledToFit()
+                    .frame(maxHeight: 280)
+                    .accessibilityLabel("Picture on the card")
             }
-            .aspectRatio(uiImage.size, contentMode: .fit)
-            .frame(maxHeight: 280)
         }
     }
 

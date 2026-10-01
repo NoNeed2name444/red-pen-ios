@@ -64,7 +64,10 @@ struct DiagnosticsSettingsView: View {
             }
             .disabled(sending || !enabled)
             Button("Copy report", systemImage: "doc.on.doc") {
-                UIPasteboard.general.string = DiagReportText.text(queued + recent, device: Diagnostics.center.device())
+                // copied by choice, so free space may go in (7D9E.1)
+                var device: DiagDevice = Diagnostics.center.device()
+                device.freeDiskGB = DiagnosticsDevice.freeDiskGB()
+                UIPasteboard.general.string = DiagReportText.text(queued + recent, device: device)
                 status = "Copied."
             }
             Button("Simulate a failure") {

@@ -5,6 +5,8 @@ name: Pipeline tests
 on:
   workflow_dispatch:
   push:
+    # the session branch is a copy of personal: testing it again only queues
+    branches-ignore: ['claude/**']
     paths:
       - 'pipeline/**'
 permissions:

@@ -1,53 +1,76 @@
-# Fetches licence-checked passages for the question bank (plan Task 5b step 2)
-# and keeps them as a run artifact. Run by hand only: it asks MedlinePlus and
-# NCBI for real, politely, and nothing here is secret. An NCBI_API_KEY secret,
-# if one is ever added, only raises NCBI's limit from 3 to 10 requests a second.
-name: Question bank sources
+# The question bank pilot (plan Task 5b steps 3 to 5): licence-checked
+# passages, questions written on the free chain through the Worker, every one
+# checked (licence, quality, novelty, the accuracy engine with the oath
+# check), about 100 kept for a person to review. Nothing here reaches a
+# student. Results: the run's artifact and a question-bank-pilot/<run id> branch.
+name: Question bank pilot
 on:
+  # a push to qbank/run starts it too (the run button only lists workflows on main)
+  push:
+    branches: ['qbank/run']
   workflow_dispatch:
     inputs:
       topics:
-        description: 'Comma-separated topics (empty: tools/question-bank/topics.txt)'
-        required: false
+        description: Topics, comma separated (empty = tools/question-bank/topics.txt)
         default: ''
-      pmc_per_topic:
-        description: 'PMC Open Access articles to try per topic'
-        required: false
-        default: '2'
+      passages:
+        description: At most this many passages are written from
+        default: '40'
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: question-bank
+  cancel-in-progress: false
 jobs:
-  fetch:
+  pilot:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: The licence gate and the fetcher's own tests first
-        run: |
-          node tests/governance/licences.test.mjs
-          node tests/question-bank/fetch.test.mjs
-      - name: Fetch
+      - name: Passages (licence-checked)
         env:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
           TOPICS: ${{ inputs.topics }}
-          PMC_PER_TOPIC: ${{ inputs.pmc_per_topic }}
         run: |
-          if [ -n "$TOPICS" ]; then set -- --topics "$TOPICS"; else set -- --topics-file tools/question-bank/topics.txt; fi
-          node tools/question-bank/fetch.mjs --out out/passages.jsonl --pmc-per-topic "${PMC_PER_TOPIC:-2}" "$@"
+          mkdir -p out
+          if [ -n "$TOPICS" ]; then
+            node tools/question-bank/fetch.mjs --out out/passages.jsonl --topics "$TOPICS" --pmc-per-topic 3
+          else
+            node tools/question-bank/fetch.mjs --out out/passages.jsonl --topics-file tools/question-bank/topics.txt --pmc-per-topic 3
+          fi
+      - name: Write and check
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          LIMIT: ${{ inputs.passages || '40' }}
+        run: |
+          set -eo pipefail
+          test -n "$AI_API_KEY" || { echo "::error::the AI_API_KEY secret is not set"; exit 1; }
+          QBANK_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$QBANK_KEY"
+          export QBANK_KEY
+          node tools/question-bank/pipeline.mjs generate --passages out/passages.jsonl --out out/candidates.jsonl --per 3 --limit "$LIMIT"
+          node tools/question-bank/pipeline.mjs validate --candidates out/candidates.jsonl --out out/pilot
           {
-            echo "### Question bank sources"
-            echo "Kept: $(wc -l < out/passages.jsonl) passages; refused: $(wc -l < out/passages.refused.jsonl)."
-            echo '```'
-            node -e 'const c={};for(const l of require("fs").readFileSync("out/passages.jsonl","utf8").split("\n").filter(Boolean)){const p=JSON.parse(l);c[p.source+" "+p.licence]=(c[p.source+" "+p.licence]||0)+1}for(const[k,v]of Object.entries(c))console.log(v,k)'
-            echo '```'
+            echo "## Question bank pilot"
+            echo '```json'; cat out/pilot.metrics.json; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: question-bank-passages
+          name: question-bank-pilot
           path: out/
-          if-no-files-found: warn
-          retention-days: 30
+      - name: Keep the pilot on its own branch
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir pilot && cp out/pilot.jsonl out/pilot.dropped.jsonl out/pilot.metrics.json out/passages.refused.jsonl pilot/ 2>/dev/null || true
+          cd pilot
+          b="question-bank-pilot/$GITHUB_RUN_ID"
+          git init -q && git checkout -q -b "$b"
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "question bank pilot $GITHUB_RUN_ID"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$b:$b"

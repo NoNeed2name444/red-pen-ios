@@ -631,6 +631,7 @@ enum ApkgImport {
                 }
                 let front = frontLines.joined(separator: "\n")
                 guard !front.isEmpty || !pictures.isEmpty else { continue }
+                let frontPictures: [String] = pictures
                 var answer: [String] = []
                 var why: [String] = []
                 for name in backNames {
@@ -650,7 +651,11 @@ enum ApkgImport {
                                     bullets: answer.isEmpty ? ["(see the picture)"] : answer)
                 card.why = AnkiNoteText.clipped(why.joined(separator: "\n"))
                 card.tags = tags.isEmpty ? nil : tags
-                add(card, row: row, pictures: pictures)
+                // a picture from the answer side stays hidden until revealed (audit #14)
+                let side = AnkiCard.picture(front: frontPictures, back: Array(pictures.dropFirst(frontPictures.count)),
+                                            available: { media.has($0) })
+                if side.onBack { card.pictureOnBack = true }
+                add(card, row: row, pictures: side.name.map { [$0] } ?? [])
             }
         }
 
@@ -680,20 +685,23 @@ enum ApkgImport {
             }
             let plain = AnkiNoteText.plain(named[field] ?? "")
             guard plain.text.contains("{{c"), plain.text.contains("::") else { return }
-            var pictures = plain.images
+            var extras: [String] = []
             var why: [String] = []
             let backNames = fieldNames(type, model: first.model, ord: 0).back
             for name in backNames where name != field {
                 let extra = AnkiNoteText.plain(named[name] ?? "")
-                pictures += extra.images
+                extras += extra.images
                 if !extra.text.isEmpty && why.count < 2 { why.append(extra.text) }
             }
             var card = AnkiCard(type: .cloze, clozeText: plain.text)
             card.why = AnkiNoteText.clipped(why.joined(separator: "\n"))
             card.tags = tags.isEmpty ? nil : tags
+            // a picture in the sentence is the question's; one in "Back Extra" the answer's
+            let side = AnkiCard.picture(front: plain.images, back: extras, available: { media.has($0) })
+            if side.onBack { card.pictureOnBack = true }
             // the schedule of the card Anki shows first
             let lead = cards.min { $0.ord < $1.ord } ?? first
-            add(card, row: lead, pictures: pictures)
+            add(card, row: lead, pictures: side.name.map { [$0] } ?? [])
         }
 
         // Anki's own image occlusion: a cloze number per mask

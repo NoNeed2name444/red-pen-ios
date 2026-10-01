@@ -72,6 +72,9 @@ enum MockFormat {
 }
 
 /// A question that could go into the paper: only what assembly needs.
+/// A question the paper may use. One the accuracy check has Flagged is left
+/// out by the caller (AccuracyHolds): a mock paper is not the place to sit a
+/// possibly wrong question as if it were right.
 struct MockCandidate: Hashable {
     var id: UUID
     var subject: String

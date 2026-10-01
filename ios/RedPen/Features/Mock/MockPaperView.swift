@@ -29,7 +29,9 @@ struct MockPaperView: View {
     }
 
     private var pool: [MockCandidate] {
-        store.mcqPicks { _ in true }.map { MockCandidate(id: $0.question.id, subject: Store.subjectName($0.set)) }
+        store.mcqPicks { _ in true }
+            .filter { !AccuracyHolds.isHeld($0.question.id) }
+            .map { MockCandidate(id: $0.question.id, subject: Store.subjectName($0.set)) }
     }
 
     var body: some View {
@@ -269,7 +271,8 @@ struct MockPaperView: View {
         guard let target else { return pool }
         let plan: [BlueprintArea] = ExamBlueprint.plan(primary: target, secondary: ExamChoice.currentSecondary)
         let within: Set<ExamDomain> = Set(plan.map(\.domain))
-        let filed: [(candidate: MockCandidate, domain: ExamDomain?)] = store.mcqPicks { _ in true }.map { pick in
+        let filed: [(candidate: MockCandidate, domain: ExamDomain?)] = store.mcqPicks { _ in true }
+            .filter { !AccuracyHolds.isHeld($0.question.id) }.map { pick in
             let subject: String = Store.subjectName(pick.set)
             let domain: ExamDomain? = ExamBlueprint.domain(of: subject, within: within)
                 ?? ExamBlueprint.domain(of: pick.question.stem, within: within)

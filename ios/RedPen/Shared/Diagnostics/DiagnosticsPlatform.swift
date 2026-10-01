@@ -82,7 +82,9 @@ enum DiagnosticsRuntime {
         defer { sending = false }
         lastSend = Date()
         let center = Diagnostics.center
-        let device: DiagDevice = center.device()
+        var device: DiagDevice = center.device()
+        // free space only in a report the user chose to send (7D9E.1, audit #5)
+        if force { device.freeDiskGB = DiagnosticsDevice.freeDiskGB() }
         let batch: [DiagEvent] = center.batch()
         guard !batch.isEmpty || center.pingDue(build: device.buildName) else { return note("Nothing to send.") }
         do {
@@ -165,11 +167,12 @@ enum DiagnosticsDevice {
     }
 
     /// Now, from any thread: the base plus what changes (heat, Low Power
-    /// Mode, free space, the Graphics setting).
+    /// Mode, the Graphics setting). Free space is not read here: these go
+    /// out automatically, and the manifest's reason (7D9E.1) covers free
+    /// space only in a report the user chooses to send (audit #5).
     static func now() -> DiagDevice {
         lock.lock()
         var device = base
-        let cached = disk
         lock.unlock()
         let process = ProcessInfo.processInfo
         device.thermal = DiagDevice.thermalName(process.thermalState.rawValue)
@@ -177,19 +180,23 @@ enum DiagnosticsDevice {
         // the owner's Graphics setting (SpaceQuality.swift, GraphQuality.key)
         let graphics: String = UserDefaults.standard.string(forKey: "vignette.space.graphics") ?? "automatic"
         device.graphics = ["automatic", "high", "smooth"].contains(graphics) ? graphics : "automatic"
-        if Date().timeIntervalSince(cached.at) < 300 {
-            device.freeDiskGB = cached.gb
-        } else {
-            let url = URL(fileURLWithPath: NSHomeDirectory())
-            let bytes: Int64 = (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
-                .volumeAvailableCapacityForImportantUsage ?? 0
-            let gb: Int = Int(bytes / 1_073_741_824)
-            lock.lock()
-            disk = (Date(), gb)
-            lock.unlock()
-            device.freeDiskGB = gb
-        }
         return device
+    }
+
+    /// Free space in whole GB, for a report the user sends or copies.
+    static func freeDiskGB() -> Int {
+        lock.lock()
+        let cached = disk
+        lock.unlock()
+        if Date().timeIntervalSince(cached.at) < 300 { return cached.gb }
+        let url = URL(fileURLWithPath: NSHomeDirectory())
+        let bytes: Int64 = (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+            .volumeAvailableCapacityForImportantUsage ?? 0
+        let gb: Int = Int(bytes / 1_073_741_824)
+        lock.lock()
+        disk = (Date(), gb)
+        lock.unlock()
+        return gb
     }
 
     /// Which kind of build this is, so the owner can tell a Playgrounds

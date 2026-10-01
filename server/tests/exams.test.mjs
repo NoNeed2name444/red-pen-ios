@@ -164,7 +164,7 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   ok(examWeights(DEFAULT_WEIGHTS, mgmt, 0.5).thresholds.verified === 0.92 && examWeights(DEFAULT_WEIGHTS, mech, 0.5) === DEFAULT_WEIGHTS,
      'only management items get the stricter cut-off');
   // two models voted: one vote alone is never enough for Verified (accuracy-model.js)
-  const f = { no_models: 0, rule_severe: 0, voters: 2 / 3 };
+  const f = { no_models: 0, rule_severe: 0, voters: 2 / 3, families: 2 };
   ok(verdict(0.9, f, DEFAULT_WEIGHTS) === 'verified' && verdict(0.9, f, examWeights(DEFAULT_WEIGHTS, mgmt, 0.5)) === 'check',
      'P = 0.9 is Verified for Step 1 but Check this for a Step 2 CK management question');
   const d = describe({ ...mgmt, id: 'x', source: '', explanation: '' }, 'h', null, DEFAULT_WEIGHTS, 0.5);

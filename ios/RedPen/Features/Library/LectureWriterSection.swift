@@ -535,13 +535,12 @@ struct LectureWriterSection: View {
                 if let checker {
                     GenerationCenter.shared.update(job, done: wanted, total: wanted, phase: "Checking with \(checker.label)")
                     await MainActor.run { status = "Checking with \(checker.label)\u{2026}" }
-                    if let verdict = try? await AccuracyChecker.check(
-                        instruction: "Write study material for medical students from the source.",
-                        input: AccuracyChecker.nearest(text, to: written, limit: checker.promptBudgetChars),
-                        output: written, using: checker) {
-                        let risk: String = verdict.riskTitle.lowercased()
-                        let finding: String = verdict.findings.first?.text ?? "read it carefully"
-                        note = verdict.passed ? " Checked: \(risk)." : " Checker: \(risk) \u{2014} \(finding)."
+                    // the whole of it, in parts, and the note says how much was read
+                    if let whole = await AccuracyChecker.checkWhole(
+                        instruction: AccuracyChecker.materialInstruction,
+                        source: text, output: written, using: checker) {
+                        note = MedVAL.partsNote(whole.verdict, checked: whole.checked, total: whole.total,
+                                                failed: whole.failed)
                     }
                 }
                 let finalNote = note

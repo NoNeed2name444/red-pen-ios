@@ -102,15 +102,14 @@ struct MCQSummaryView: View {
 
     private func saveMistakes() {
         let name = Self.mistakesName(for: studySet)
+        // each question brings its picture (StudySet.addMistakes)
         if var existing = store.library.first(where: { $0.kind == .mcq && $0.name == name }) {
-            let known = Set(existing.questions.map(\.stem))
-            existing.questions += mistakes.filter { !known.contains($0.stem) }
+            existing.addMistakes(mistakes, from: studySet)
             existing.updatedAt = Date()
             store.update(existing)
         } else {
             var set = StudySet(name: name, subject: studySet.subject, kind: .mcq)
-            set.questions = mistakes
-            set.sources = studySet.sources
+            set.addMistakes(mistakes, from: studySet)
             set.folderId = studySet.folderId
             store.addSet(set)
         }
