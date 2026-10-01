@@ -1,14 +1,18 @@
 import SwiftUI
 import Charts
 
-/// Analytics: where the marks are going, and what to study next.
+/// Vitals: how the studying is going, as a ward reads a patient, and what to
+/// study next.
 ///
-/// Progress (StatsView) answers "how am I doing"; this page answers "so what
-/// do I do now". It opens on a short ranked list of next steps, each one a
-/// tap that starts the right thing - a drill, a quiz, the cards waiting, the
-/// syllabus gaps - with one line saying why it is on the list. Under that sit
-/// the evidence: the readiness estimate, how accuracy and practice have moved
-/// week by week, the mistakes themselves, each subject, and the study habit.
+/// It opens on the countdown to the exam and where the readiness estimate
+/// stands, the study rhythm on a dark monitor, four rings (readiness,
+/// accuracy, syllabus, today) and the subjects that need a consult, with one
+/// button that treats the weakest (VitalsParts). Then a short ranked list of
+/// next steps, each one a tap that starts the right thing - a drill, a quiz,
+/// the cards waiting, the syllabus gaps - with one line saying why it is on
+/// the list; and the evidence: the readiness estimate, how accuracy and
+/// practice have moved week by week, the mistakes themselves, each subject,
+/// and the study habit. By subject (StatsView) has every subject in full.
 ///
 /// Everything here is read from what the app already keeps: the dated answer
 /// log, the per-question history, the reasons given for wrong answers, the
@@ -18,6 +22,8 @@ struct AnalyticsView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var reviews: ReviewStore
     @ObservedObject private var log = StudyLog.shared
+    /// One readable column on a wide iPad.
+    @Environment(\.windowSpan) private var span
 
     /// A quiz started from this page, with how it is to be sat.
     @State private var quiz: InsightQuiz?
@@ -47,16 +53,23 @@ struct AnalyticsView: View {
     var body: some View {
         let s: AnalyticsSnapshot = cached ?? snapshot()
         let items: [FocusItem] = focusItems(s)
+        let spots: [BedPlan.Topic] = BedPlan.weakSpots(s.stats.map { stats in
+            BedPlan.Topic(name: stats.subject, questions: stats.questions,
+                          answered: stats.answered, correct: stats.correct)
+        })
         ScrollViewReader { proxy in
             List {
+                vitalsSections(s, spots: spots, proxy: proxy)
                 if s.includesExamples {
                     Section {
                         Label("Includes example data", systemImage: "info.circle")
-                            .font(.footnote).foregroundStyle(.secondary)
+                            .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                     }
+                    .wardRowBackground()
                 }
-                heroSection(s, proxy: proxy)
-                focusSection(items, sparks: s.sparks)
+                // the rows below on Clean Sheet, the night-shift surface in
+                // the dark
+                focusSection(items, sparks: s.sparks).wardRowBackground()
                 Section {
                     ReadinessCard(estimate: s.readiness,
                                   answered: s.recentCount,
@@ -67,26 +80,30 @@ struct AnalyticsView: View {
                 } header: {
                     Text("Readiness")
                 }
-                trendsSection(s)
-                mistakesSection(s)
-                subjectsSection(s)
-                timeSection(s)
+                .wardRowBackground()
+                trendsSection(s).wardRowBackground()
+                mistakesSection(s).wardRowBackground()
+                subjectsSection(s).wardRowBackground()
+                timeSection(s).wardRowBackground()
             }
+            // one readable column on a wide iPad, the grid across the window
+            .frame(maxWidth: span == .broad ? 820 : nil)
+            .frame(maxWidth: .infinity)
         }
         // pushed bare from the examples hub too, so it brings its own backdrop
         .scrollContentBackground(.hidden)
-        // the backdrop's stars drift with the scroll
-        .skyScroll()
         .background(LibraryBackdrop())
-        // the best next step, under the thumb; nothing there until there is one
+        // One main button at a time: Treat weak spots now, in the consult
+        // card, while any subject needs one; otherwise the best next step,
+        // under the thumb, once there is one.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let top = items.first {
+            if spots.isEmpty, let top = items.first {
                 StudyActionBar { startButton(top) }
             }
         }
-        .navigationTitle("Analytics")
+        .navigationTitle("Vitals")
         .diagnosticsScreen("screen:analytics")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .task(id: coverageKey) { await findGaps() }
         .onAppear {
             visible = true
@@ -131,8 +148,6 @@ struct AnalyticsView: View {
     /// Opens a quiz, if it has any questions.
     private func startQuiz(_ set: StudySet, minReadSeconds: Int = 0, timed: Bool = false) {
         guard !set.questions.isEmpty else { return }
-        // a session starts: the lift-off streak (WarpEffect)
-        SpaceWarp.liftOff()
         quiz = InsightQuiz(set: set, minReadSeconds: minReadSeconds, timed: timed)
     }
 
@@ -332,7 +347,7 @@ struct AnalyticsView: View {
                                  includesExamples: store.includesExampleData)
     }
 
-    // MARK: - The rings at the top
+    // MARK: - The day's target
 
     private static func percent(_ x: Double) -> String { "\(Int((x * 100).rounded()))%" }
 
@@ -350,104 +365,111 @@ struct AnalyticsView: View {
         return (max(1, Int((Double(questions) / Double(days)).rounded(.up))), true)
     }
 
-    /// Four rings: readiness against the pass mark, accuracy this month, the
-    /// syllabus covered, and today against the day's target. Each is a
-    /// button: Readiness and Accuracy scroll to what is behind them, Syllabus
-    /// and Today open their pages.
-    private func heroSection(_ s: AnalyticsSnapshot, proxy: ScrollViewProxy) -> some View {
-        let goal = dailyTarget()
+    // MARK: - Vitals: the countdown, the monitor, the rings, the consult
+
+    /// The top of the page, above Focus next.
+    @ViewBuilder
+    private func vitalsSections(_ s: AnalyticsSnapshot, spots: [BedPlan.Topic], proxy: ScrollViewProxy) -> some View {
+        vitalsLineSection(s)
+        monitorSection(s)
+        ringsSection(s, proxy: proxy)
+        consultSection(spots, s)
+    }
+
+    /// "Finals in 23 days · on track for a pass", when there is an exam
+    /// date: where the readiness estimate's range stands against the pass
+    /// mark, in the readiness card's words.
+    @ViewBuilder
+    private func vitalsLineSection(_ s: AnalyticsSnapshot) -> some View {
+        let standing: String? = s.readiness.map { estimate in
+            WardWords.standing(low: estimate.low, high: estimate.high, passMark: estimate.passMark)
+        }
+        if let line = WardWords.vitalsLine(countdown: ExamCountdown.text(), standing: standing) {
+            Section {
+                Label {
+                    Text(line)
+                } icon: {
+                    Image(systemName: "calendar").foregroundStyle(Color.wardBeam)
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInkSecondary)
+                .listRowBackground(Color.clear)
+            }
+        }
+    }
+
+    /// The study rhythm on the monitor, from the days studied as the Time
+    /// section counts them (the study log and the dated answers).
+    private func monitorSection(_ s: AnalyticsSnapshot) -> some View {
+        let reading: RhythmReading.Reading = RhythmReading.read(days: s.dayCounts, now: Date())
+        let goal: (target: Int, fromExam: Bool) = dailyTarget()
+        let monitor = RhythmMonitor(reading: reading, readiness: s.readiness?.center,
+                                    accuracy: monthAccuracy(s), today: s.today,
+                                    target: goal.target, streak: log.streak)
+        return Section {
+            monitor
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
+        }
+    }
+
+    /// Accuracy over the last 30 days, or nil with no answers in them.
+    private func monthAccuracy(_ s: AnalyticsSnapshot) -> Double? {
+        s.lastMonth.answered > 0 ? s.lastMonth.accuracy : nil
+    }
+
+    /// Four rings: readiness, accuracy this month, the syllabus covered, and
+    /// today against the day's target. Each is a button: Readiness and
+    /// Accuracy scroll to what is behind them, Syllabus and Today open their
+    /// pages.
+    private func ringsSection(_ s: AnalyticsSnapshot, proxy: ScrollViewProxy) -> some View {
+        let goal: (target: Int, fromExam: Bool) = dailyTarget()
         let subjectsAnchor: String = s.stats.first?.id ?? AnalyticsAnchor.subjectsEmpty
         let pace: String = goal.fromExam ? "the pace that gets through your library by the exam."
                                          : "30 until you set an exam date."
-        let note: String = "Tap a ring for what is behind it. The tick on Readiness is the typical pass mark. Syllabus shows covered, thin and missing topics. Today\u{2019}s target is \(pace)"
+        let note: String = "Tap a ring for what is behind it. Syllabus is the share of your exam\u{2019}s topics your library covers. Today\u{2019}s target is \(pace)"
+        let rings = VitalsRings(readiness: s.readiness, accuracy: monthAccuracy(s),
+                                answered: s.lastMonth.answered,
+                                syllabus: syllabusShare, syllabusSpoken: syllabusSpoken,
+                                today: s.today, target: goal.target,
+                                onReadiness: { jump(proxy, to: AnalyticsAnchor.readiness) },
+                                onAccuracy: { jump(proxy, to: subjectsAnchor) },
+                                onSyllabus: { route = .coverage },
+                                onToday: { route = .due })
         return Section {
-            HStack(alignment: .top, spacing: 4) {
-                Button { jump(proxy, to: AnalyticsAnchor.readiness) } label: {
-                    readinessRing(s.readiness)
-                }
-                .accessibilityHint("Shows the readiness estimate")
-                Button { jump(proxy, to: subjectsAnchor) } label: {
-                    accuracyRing(s)
-                }
-                .accessibilityHint("Shows accuracy subject by subject")
-                Button { route = .coverage } label: {
-                    syllabusRing()
-                }
-                .accessibilityHint("Opens the syllabus")
-                Button { route = .due } label: {
-                    todayRing(s, goal: goal.target)
-                }
-                .accessibilityHint("Opens the cards due today")
-            }
-            .buttonStyle(RingButtonStyle())
-            .padding(.vertical, 6)
+            rings
+                .padding(.vertical, 6)
+                .listRowBackground(Color.clear)
         } footer: {
             Text(note)
         }
     }
 
-    private func accuracyRing(_ s: AnalyticsSnapshot) -> some View {
-        let accuracy: Double? = s.lastMonth.answered > 0 ? s.lastMonth.accuracy : nil
-        let spoken: String
-        if let accuracy {
-            spoken = "\(Self.percent(accuracy)) of \(s.lastMonth.answered) answers right"
-        } else {
-            spoken = "no answers yet"
-        }
-        let centre: String = accuracy.map { Self.percent($0) } ?? "\u{2013}"
-        return ProgressRing(value: accuracy ?? 0, label: "Accuracy, 30 days", spoken: spoken, raised: true) {
-            RingCentre(value: centre)
-        }
-        .frame(maxWidth: .infinity)
+    /// The share of the exam's topics covered, once the check has run.
+    private var syllabusShare: Double? {
+        guard let gaps, gaps.total > 0 else { return nil }
+        return Double(gaps.covered) / Double(gaps.total)
     }
 
-    private func todayRing(_ s: AnalyticsSnapshot, goal target: Int) -> some View {
-        let spoken: String = "\(s.today) of \(target) studied today"
-        return ProgressRing(value: Double(s.today), total: Double(target),
-                            tint: StudySetKind.book.tint, label: "Today",
-                            spoken: spoken, raised: true) {
-            RingCentre(value: "\(s.today)", caption: "of \(target)")
-        }
-        .frame(maxWidth: .infinity)
+    private var syllabusSpoken: String {
+        guard let gaps, gaps.total > 0 else { return "still checking" }
+        return "\(gaps.covered) topics covered, \(gaps.thin) thin, \(gaps.missing) missing, of \(gaps.total)"
     }
 
-    private func readinessRing(_ estimate: ReadinessEstimate?) -> some View {
-        let spoken: String
-        if let estimate {
-            spoken = "estimated \(Self.percent(estimate.center)), pass mark about \(Self.percent(estimate.passMark))"
-        } else {
-            spoken = "answer at least \(Readiness.minimumAnswers) questions for an estimate"
+    /// The subjects that need a consult (BedPlan.weakSpots: five answers or
+    /// more and under 75%), what the ward round does about them, and the
+    /// button that drills the weakest.
+    private func consultSection(_ spots: [BedPlan.Topic], _ s: AnalyticsSnapshot) -> some View {
+        let judged: Bool = s.stats.contains { $0.answered >= BedPlan.consultAnswers }
+        let phase: ExamWeekPlanner.Phase = ExamWeekPlanner.phase(exam: ExamCap.storedDate(), now: Date())
+        let note: String = BedPlan.consultNote(spots, phase: phase, anyJudged: judged)
+        let card = ConsultCard(spots: spots, note: note,
+                               onDrill: { subject in startQuiz(store.drill(subject: subject)) })
+        return Section {
+            card
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
         }
-        let mark: Double = estimate?.passMark ?? PassMark.typical(for: .current)
-        let centre: String = estimate.map { Self.percent($0.center) } ?? "\u{2013}"
-        return ProgressRing(value: estimate?.center ?? 0, label: "Readiness",
-                            marker: mark, spoken: spoken, raised: true) {
-            RingCentre(value: centre)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func syllabusRing() -> some View {
-        let segments: [RingSegment]
-        let centre: String
-        let spoken: String
-        if let gaps, gaps.total > 0 {
-            segments = [
-                RingSegment(value: Double(gaps.covered), color: .accentColor, label: "Covered"),
-                RingSegment(value: Double(gaps.thin), color: Color.accentColor.opacity(0.4), label: "Thin"),
-                RingSegment(value: Double(gaps.missing), color: Color.primary.opacity(0.15), label: "Missing"),
-            ]
-            centre = Self.percent(Double(gaps.covered) / Double(gaps.total))
-            spoken = "\(gaps.covered) topics covered, \(gaps.thin) thin, \(gaps.missing) missing, of \(gaps.total)"
-        } else {
-            segments = []
-            centre = "\u{2026}"
-            spoken = "still checking"
-        }
-        return ProgressRing(value: 0, segments: segments, label: "Syllabus", spoken: spoken, raised: true) {
-            RingCentre(value: centre)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 1. Focus next
@@ -556,14 +578,14 @@ struct AnalyticsView: View {
         HStack(spacing: 12) {
             Text("\(rank)")
                 .font(.caption.weight(.bold).monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.primary.opacity(0.08)))
+                .background(Circle().fill(Color.wardHairline))
             VStack(alignment: .leading, spacing: 2) {
                 Label(item.title, systemImage: item.symbol)
                     .font(.body.weight(.semibold))
                 Text(item.detail)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if spark.count >= 2 {
                     Sparkline(points: spark)
@@ -571,7 +593,7 @@ struct AnalyticsView: View {
                 }
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())
@@ -592,14 +614,14 @@ struct AnalyticsView: View {
                     Text("Accuracy by week").font(.subheadline.weight(.semibold))
                     weeklyChart(s.weeks)
                     Text("The last 8 weeks. The dashed line is the typical pass mark.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .padding(.vertical, 4)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Studied per day").font(.subheadline.weight(.semibold))
                     dailyChart(s.days)
                     Text("The last 30 days: questions answered and cards reviewed.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .padding(.vertical, 4)
             }
@@ -614,14 +636,14 @@ struct AnalyticsView: View {
             ForEach(weeks) { week in
                 LineMark(x: .value("Week", week.start), y: .value("Accuracy", week.accuracy * 100))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.wardPrimary)
                 PointMark(x: .value("Week", week.start), y: .value("Accuracy", week.accuracy * 100))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.wardPrimary)
                     .symbolSize(30)
             }
             RuleMark(y: .value("Pass mark", passMark))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                .foregroundStyle(Color.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .chartYScale(domain: 0.0...100.0)
         .chartYAxis {
@@ -638,7 +660,7 @@ struct AnalyticsView: View {
     private func dailyChart(_ days: [DayPoint]) -> some View {
         Chart(days) { day in
             BarMark(x: .value("Day", day.day, unit: .day), y: .value("Studied", day.count))
-                .foregroundStyle(Color.accentColor.opacity(0.7))
+                .foregroundStyle(Color.wardPrimary.opacity(0.7))
         }
         .frame(height: 120)
     }
@@ -661,7 +683,7 @@ struct AnalyticsView: View {
                         Text("Why you lose marks").font(.subheadline.weight(.semibold))
                         ReasonDonut(shares: s.shares)
                         Text("The last \(Store.reasonWindowDays) days, from the reason picked after each wrong answer. Your commonest one has its fix under Focus next.")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 4)
                 }
@@ -670,7 +692,7 @@ struct AnalyticsView: View {
                         Text("Right by confidence").font(.subheadline.weight(.semibold))
                         CalibrationChart(rows: s.calibration)
                         Text("Bars are how often each was right; the dashed line is roughly where it should be. \u{201C}Sure\u{201D} well under the line means facts learned wrongly.")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 4)
                 }
@@ -680,8 +702,8 @@ struct AnalyticsView: View {
                             Label("Confident but wrong", systemImage: "exclamationmark.triangle")
                             Spacer(minLength: 8)
                             Text("\(s.confidentWrong)")
-                                .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                                .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
                         }
                         .contentShape(Rectangle())
                     }
@@ -731,13 +753,13 @@ struct AnalyticsView: View {
                     Text(q.stem).font(.subheadline).lineLimit(3)
                     if !chosen.isEmpty {
                         Label(chosen, systemImage: "xmark.circle")
-                            .font(.caption).foregroundStyle(.red)
+                            .font(.caption).foregroundStyle(Color.wardDanger)
                     }
                     if !right.isEmpty {
                         Label(right, systemImage: "checkmark.circle")
-                            .font(.caption.weight(.semibold)).foregroundStyle(.green)
+                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardSuccess)
                     }
-                    Text(line).font(.caption).foregroundStyle(.secondary)
+                    Text(line).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -745,16 +767,17 @@ struct AnalyticsView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens this question on its own")
             if store.ruleSheet[q.id] != nil {
-                // a frosted disc standing out of the row, sinking under the
-                // finger; 22 points of corner on a 44-point face is a circle
+                // a Clean Sheet disc with a hairline edge, giving a little
+                // under the finger
                 Button { route = .rules } label: {
                     Image(systemName: "list.bullet.rectangle")
                         .font(.body)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(Color.wardPrimaryInk)
                         .frame(width: 44, height: 44)
-                        .background(.regularMaterial, in: Circle())
+                        .background(Color.wardSurface, in: Circle())
+                        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 }
-                .buttonStyle(PopTileStyle(cornerRadius: 22))
+                .buttonStyle(.pressableRow)
                 .accessibilityLabel("Rule sheet")
                 .help("Rule sheet")
             }
@@ -787,21 +810,19 @@ struct AnalyticsView: View {
             HStack {
                 Text("Subjects")
                 Spacer(minLength: 8)
-                // a glass chip standing out of the header; the finger's
-                // worth of target is taller than the chip
+                // a Theatre Blue link; the finger's worth of target is
+                // taller than the words
                 Button { route = .bySubject } label: {
                     Label("By subject", systemImage: "chart.bar.doc.horizontal")
                         .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.wardPrimaryInk)
                         .textCase(nil)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .liquidGlassChip(tint: nil, plane: .raised)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .hoverEffect(.highlight)
-                .accessibilityHint("Opens Progress, subject by subject")
+                .accessibilityHint("Opens your accuracy, subject by subject")
             }
         } footer: {
             if !s.stats.isEmpty {
@@ -816,7 +837,7 @@ struct AnalyticsView: View {
         return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
-                Text("\(s.answered) answered").font(.caption).foregroundStyle(.secondary)
+                Text("\(s.answered) answered").font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             if let trend {
@@ -834,7 +855,7 @@ struct AnalyticsView: View {
                 .frame(minWidth: 40, alignment: .trailing)
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
         .padding(.vertical, 2)
@@ -852,11 +873,11 @@ struct AnalyticsView: View {
         return Section {
             HStack(spacing: 0) {
                 figure("\(log.streak)", log.streak == 1 ? "day streak" : "days streak",
-                       symbol: "flame.fill", color: .orange)
+                       symbol: "flame.fill", color: Color.wardBeam)
                 figure("\(s.studiedThisMonth)", "days this month",
-                       symbol: "calendar", color: .accentColor)
+                       symbol: "calendar", color: Color.wardPrimaryInk)
                 figure(active.isEmpty ? "\u{2013}" : "\(average)", "a day studied",
-                       symbol: "chart.bar.fill", color: .green)
+                       symbol: "chart.bar.fill", color: Color.wardSuccess)
             }
             .padding(.vertical, 4)
             StudyHeatmap(counts: s.dayCounts)
@@ -872,7 +893,7 @@ struct AnalyticsView: View {
         VStack(spacing: 3) {
             Image(systemName: symbol).font(.caption).foregroundStyle(color)
             Text(value).font(.title2.weight(.bold).monospacedDigit())
-            Text(caption).font(.caption2).foregroundStyle(.secondary)
+            Text(caption).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
@@ -960,9 +981,9 @@ private enum Trend {
 
     var color: Color {
         switch self {
-        case .up: return .green
-        case .down: return .red
-        case .flat: return .secondary
+        case .up: return Color.wardSuccess
+        case .down: return Color.wardDanger
+        case .flat: return Color.wardInkSecondary
         }
     }
 

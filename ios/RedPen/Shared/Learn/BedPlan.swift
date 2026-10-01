@@ -188,6 +188,24 @@ enum BedPlan {
         }
     }
 
+    /// The line under the weak spots on the Vitals screen: what the ward
+    /// round does about them, said only as far as `beds` makes it true (the
+    /// weakest spot has a bed on every round but exam day's; BedPlanTests
+    /// checks the sentence against the round).
+    static func consultNote(_ spots: [Topic], phase: ExamWeekPlanner.Phase, anyJudged: Bool) -> String {
+        let line: Int = Int((consultBelow * 100).rounded())
+        guard let first = spots.first else {
+            if anyJudged {
+                return "Nothing needs a consult: every subject with \(consultAnswers) or more answers is at \(line)% or better."
+            }
+            return "A subject shows here once it has \(consultAnswers) answers and is under \(line)%."
+        }
+        if phase == .examDay {
+            return "Exam day: today\u{2019}s ward round is your kit alone, so these can wait."
+        }
+        return "\(first.name), the weakest, is on today\u{2019}s ward round automatically."
+    }
+
     /// Today's beds, numbered from 1.
     static func beds(_ input: Input) -> [Bed] {
         var kinds: [Kind] = []

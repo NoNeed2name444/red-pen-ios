@@ -196,6 +196,35 @@ for mission in priorities {
 // a quiet library: no beds
 check("nothing waiting, no beds", BedPlan.beds(BedPlan.Input()).isEmpty)
 
+// the Vitals screen's consult line says only what the round does
+let phases: [ExamWeekPlanner.Phase] = [.noDate, .building(days: 40), .mockWindow(days: 9), .examWeek(days: 3),
+                                       .examDay, .after]
+for phase in phases {
+    var input = full
+    input.phase = phase
+    input.mission = phase == .examDay ? .examKit : .lockIn(3)
+    let spotsNow = BedPlan.weakSpots(input.topics)
+    let note = BedPlan.consultNote(spotsNow, phase: phase, anyJudged: true)
+    let named: Bool = note.hasPrefix(spotsNow[0].name + ", the weakest, is on today")
+    let onRound: Bool = BedPlan.beds(input).contains { bed in
+        if case .weakest(let topic) = bed.kind { return topic.name == spotsNow[0].name }
+        return false
+    }
+    check("the consult line names the weakest only when the round holds it (\(phase))", named == onRound,
+          "\(note) / on round: \(onRound)")
+}
+check("the consult line on exam day says why they wait",
+      BedPlan.consultNote(spots, phase: .examDay, anyJudged: true).hasPrefix("Exam day"))
+check("the consult line names the weakest",
+      BedPlan.consultNote(spots, phase: .building(days: 20), anyJudged: true)
+        == "Renal, the weakest, is on today\u{2019}s ward round automatically.")
+check("no weak spot, but subjects judged",
+      BedPlan.consultNote([], phase: .noDate, anyJudged: true)
+        == "Nothing needs a consult: every subject with 5 or more answers is at 75% or better.")
+check("no subject judged yet",
+      BedPlan.consultNote([], phase: .noDate, anyJudged: false)
+        == "A subject shows here once it has 5 answers and is under 75%.")
+
 // minutes
 check("minutes round up", BedPlan.minutes(seconds: 61) == 2 && BedPlan.minutes(seconds: 60) == 1)
 check("and never fall under one", BedPlan.minutes(seconds: 0) == 1)

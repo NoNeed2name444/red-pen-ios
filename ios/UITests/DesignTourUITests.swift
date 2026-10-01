@@ -282,13 +282,14 @@ final class DesignTourUITests: XCTestCase {
         goHome()
     }
 
-    /// 24-25: Progress, from the menu - or, failing that, from the
-    /// category's "Across the app" row.
+    /// 24-25: Vitals (once called Progress), from the menu - or, failing
+    /// that, from the category's "Across the app" row.
     private func progress() {
         goHome()
         var opened = false
         if openMenu() {
-            let item = menuItem("Progress")
+            var item = menuItem("Vitals")
+            if !item.exists { item = menuItem("Progress") }
             if item.exists && item.isHittable {
                 item.tap()
                 sleep(2)
