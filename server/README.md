@@ -76,7 +76,8 @@ provider's model that fails three times in two minutes (a 5xx, a time-out) is
 skipped for a minute, then tried once. When every provider a request could use
 is resting, the answer is a quick 503 "busy, try again" with Retry-After,
 before the day's allowance is spent. The breakers live in each isolate's
-memory.
+memory. `GET /diagnostics/summary` (owner only) shows the switches and this
+isolate's breakers under `health`.
 
 ## Deploying it
 

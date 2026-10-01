@@ -22,7 +22,8 @@ import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.j
 import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
 import { examsRoute } from './exams.js';
 import { supportMessage, listSupportMessages, forgetSupport } from './support.js';
-import { featuresOf, featureOfModel, refuseIfOff } from './switches.js';
+import { featuresOf, featureOfModel, refuseIfOff, switchStates } from './switches.js';
+import { breakers } from './breakers.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -129,10 +130,13 @@ export default {
       }
 
       // crash and failure groups, for the owner and the triage workflow
-      // (diagnostics.js): anybody else is told there is no such endpoint
+      // (diagnostics.js): anybody else is told there is no such endpoint.
+      // With them, read-only: which AI features are switched off
+      // (switches.js) and this isolate's circuit breakers (breakers.js).
       if (path === '/diagnostics/summary' && request.method === 'GET') {
         if (!isOwnerKey(request, env) && !await isOwnerAccount(env, await holder(request, env))) return fail(404, 'No such endpoint.');
-        return await diagnosticsSummary(env, new URL(request.url));
+        return await diagnosticsSummary(env, new URL(request.url), undefined,
+          { switches: switchStates(env), breakers: breakers.snapshot(env) });
       }
 
       if (request.method !== 'POST') return fail(405, 'POST only.');
