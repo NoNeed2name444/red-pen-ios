@@ -105,6 +105,20 @@ check("bold still works inside a cloze",
       AnkiFields.cloze("{{c1::**aorta**}}") == "{{c1::<b>aorta</b>}}")
 check("each cN is one card", AnkiFields.clozeOrdinals("{{c1::a}} {{c2::b}} {{c1::c}}") == [0, 1])
 check("a c0 is not a card at ordinal -1", AnkiFields.clozeOrdinals("{{c0::a}}") == [0])
+// a cloze whose braces were edited away is a basic note, not an empty card
+let lostBraces = AnkiFields.clozeNote("The aorta carries oxygenated blood", why: "Left ventricle out")
+check("a cloze with no deletion becomes a basic note", !lostBraces.isCloze, "\(lostBraces)")
+check("its sentence is the front and the why the back",
+      lostBraces.fields == ["The aorta carries oxygenated blood",
+                            "<div class=\"why\"><b>Why / how</b>Left ventricle out</div>"]
+        && lostBraces.ordinals == [0], "\(lostBraces.fields)")
+check("a half-deleted cloze is not a cloze", !AnkiFields.clozeNote("The {{c1::aorta carries blood", why: "").isCloze)
+check("an empty deletion is not a cloze", !AnkiFields.clozeNote("The {{c1::}} carries blood", why: "").isCloze)
+check("a c0 alone is not a cloze", !AnkiFields.clozeNote("The {{c0::aorta}} carries blood", why: "").isCloze)
+let kept = AnkiFields.clozeNote("The {{c1::aorta}} carries {{c2::oxygenated}} blood", why: "**LV**")
+check("a real cloze stays a cloze note",
+      kept.isCloze && kept.ordinals == [0, 1]
+        && kept.fields == ["The {{c1::aorta}} carries {{c2::oxygenated}} blood", "<b>LV</b>"], "\(kept)")
 check("Anki's checksum reads the text, not the escaping",
       AnkiFields.stripped("<b>Na</b> &lt; 135 &amp;") == "Na < 135 &")
 

@@ -36,7 +36,11 @@ struct CardEditSheet: View {
                     } header: {
                         Text("Sentence")
                     } footer: {
-                        Text("Wrap the tested words in {{c1::...}}.")
+                        // Done waits for one, as the question sheet waits for
+                        // a key: a cloze with nothing deleted has nothing to ask
+                        Text(clozeHasNoDeletion
+                             ? "Nothing is hidden yet \u{2014} wrap the tested words in {{c1::...}}."
+                             : "Wrap the tested words in {{c1::...}}.")
                     }
                 case .qa:
                     Section("Question") {
@@ -89,9 +93,17 @@ struct CardEditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Done", action: commit) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: commit).disabled(clozeHasNoDeletion)
+                }
             }
         }
+    }
+
+    /// A cloze sentence whose braces were edited away: it would study as a
+    /// card with nothing to recall, and export to Anki as a plain note.
+    private var clozeHasNoDeletion: Bool {
+        working.type == .cloze && CardQuality.clozeHoles(working.clozeText).isEmpty
     }
 
     private func commit() {

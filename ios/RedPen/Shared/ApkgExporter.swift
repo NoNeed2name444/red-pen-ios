@@ -217,12 +217,14 @@ enum ApkgExporter {
                 let guid = guidFor(card.id.uuidString)
                 switch card.type {
                 case .cloze:
-                    mid = midCloze; isCloze = true
-                    let extra = why.isEmpty ? "" : AnkiFields.bold(why)
                     // escaped like every other field: a cloze from a shared set
-                    // or a model is HTML to Anki, and runs as HTML if left raw
-                    fields = [AnkiFields.cloze(card.clozeText), extra]
-                    sort = AnkiFields.plain(card.clozeText)
+                    // or a model is HTML to Anki, and runs as HTML if left raw.
+                    // One that lost its braces goes as a basic note, since a
+                    // cloze note with no deletion shows an empty card.
+                    let note = AnkiFields.clozeNote(card.clozeText, why: why)
+                    mid = note.isCloze ? midCloze : midBasic; isCloze = note.isCloze
+                    fields = note.fields
+                    sort = note.sort
                 case .qa:
                     let front = AnkiFields.bold(card.front)
                     let items: String = card.bullets.map { "<li>\(AnkiFields.bold($0))</li>" }.joined()
