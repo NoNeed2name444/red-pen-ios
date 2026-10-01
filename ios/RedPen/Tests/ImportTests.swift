@@ -151,6 +151,25 @@ do {
 check("more entries than a zip can count is an error, not a crash", refused)
 try? FileManager.default.removeItem(at: folderURL)
 
+// A Narrate set keeps what its lecture is spoken in across a save and a
+// load, or a sync: the set is read by its own tolerant decoder, which has
+// to name the field or the choice is lost on the next launch.
+var spoken = StudySet(name: "Cardiology lecture", kind: .narrate)
+spoken.language = .english
+let spokenBack = (try? JSONEncoder().encode(spoken))
+    .flatMap { try? JSONDecoder().decode(StudySet.self, from: $0) }
+check("a set's lecture language survives a save and a load",
+      spokenBack?.language == .english && spokenBack?.lectureLanguage == "english",
+      "\(String(describing: spokenBack?.lectureLanguage))")
+let olderJSON = Data(#"{"name":"Old lecture","kind":"narrate"}"#.utf8)
+let older = try? JSONDecoder().decode(StudySet.self, from: olderJSON)
+check("a set saved before the language was kept reads as mixed",
+      older != nil && older?.lectureLanguage == nil && older?.language == .mixed)
+let oddJSON = Data(#"{"name":"Odd","kind":"narrate","lectureLanguage":7}"#.utf8)
+let odd = try? JSONDecoder().decode(StudySet.self, from: oddJSON)
+check("a language that is not text loses only the language, not the set",
+      odd?.name == "Odd" && odd?.language == .mixed)
+
 print(failures.isEmpty ? "\nALL IMPORT TESTS PASS"
                        : "\n\(failures.count) IMPORT TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

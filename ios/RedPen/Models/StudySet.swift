@@ -68,6 +68,16 @@ struct StudySet: Identifiable, Codable, Hashable {
     /// Labels for the whole set - a deck's name in Anki, "Step 1", a block.
     /// Nil for a set nobody has tagged, and for every set saved before tags.
     var tags: [String]? = nil
+    /// "narrate": what the lecture is spoken in, a LectureLanguage raw value.
+    /// Kept as text so a value a newer version adds never stops an older one
+    /// reading the whole set; nil (every set before this) is mixed.
+    var lectureLanguage: String? = nil
+
+    /// The lecture's language, mixed unless the set says otherwise.
+    var language: LectureLanguage {
+        get { lectureLanguage.flatMap(LectureLanguage.init(rawValue:)) ?? .mixed }
+        set { lectureLanguage = newValue.rawValue }
+    }
 
     var itemCount: Int {
         switch kind {
@@ -147,7 +157,8 @@ struct StudyFolder: Identifiable, Codable, Hashable {
 extension StudySet {
     private enum Keys: String, CodingKey {
         case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
-             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags
+             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags,
+             lectureLanguage
     }
 
     init(from decoder: Decoder) throws {
@@ -169,6 +180,7 @@ extension StudySet {
         sources = try c.decodeIfPresent([SourceDoc].self, forKey: .sources) ?? []
         exam = try c.decodeIfPresent(String.self, forKey: .exam)
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
+        lectureLanguage = (try? c.decodeIfPresent(String.self, forKey: .lectureLanguage)) ?? nil
     }
 }
 

@@ -20,7 +20,7 @@ suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift
 suite transcriber TranscriberTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
       $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
       $S/LectureTranscriber.swift $S/Brand.swift
-suite cloudtranscript CloudTranscriptTests.swift $S/CloudTranscript.swift \
+suite cloudtranscript CloudTranscriptTests.swift $S/CloudTranscript.swift $M/NarrateSegment.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
 suite ingest IngestTests.swift $S/SourceText.swift
