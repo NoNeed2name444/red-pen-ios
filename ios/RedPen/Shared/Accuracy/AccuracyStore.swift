@@ -181,7 +181,7 @@ final class AccuracyStore: ObservableObject {
         }
     }
 
-    enum Outcome { case done, dayUsed, notPro(String), offline }
+    typealias Outcome = AccuracySendOutcome
 
     private func send(_ batch: AccuracyBatch, token: String) async -> Outcome {
         let hashes: [String] = batch.items.map(\.contentHash)
@@ -191,11 +191,9 @@ final class AccuracyStore: ObservableObject {
         let body = Body(items: batch.items, priority: batch.priority)
         guard let (data, status) = await post("/accuracy/check", body: body, token: token) else { return .offline }
         let reply = try? JSONDecoder().decode(AccuracyCheckReply.self, from: data)
-        if status == 402 { return .notPro(reply?.message ?? "The accuracy check is part of Pro.") }
-        if status == 401 { return .notPro("Sign in again to check accuracy.") }
-        record(reply, for: batch.items)
-        if status == 429 || reply?.limit == "day" { return .dayUsed }
-        return status == 200 ? .done : .offline
+        let outcome = Outcome.of(status: status, limit: reply?.limit, message: reply?.message)
+        if outcome.records { record(reply, for: batch.items) }
+        return outcome
     }
 
     private func record(_ reply: AccuracyCheckReply?, for items: [AccuracyItem]) {
