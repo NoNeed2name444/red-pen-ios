@@ -97,6 +97,10 @@ enum LibraryBackup {
         var folders: [StudyFolder]
         /// Sets a newer version of the app wrote, kept as their JSON.
         var unread: [String]?
+        /// Where in the backup's `library` the sets this version could not
+        /// decode were, so their JSON can be kept (unreadSets(in:at:)) instead
+        /// of dropped. Found on reading; never written.
+        var skippedAt: [Int] = []
 
         init(library: [StudySet], folders: [StudyFolder], unread: [String]? = nil) {
             self.library = library
@@ -112,6 +116,7 @@ enum LibraryBackup {
             let c = try decoder.container(keyedBy: Keys.self)
             let raw = (try? c.decode([Tolerant<StudySet>].self, forKey: .library)) ?? []
             library = raw.compactMap { $0.value }
+            skippedAt = raw.indices.filter { raw[$0].value == nil }
             folders = ((try? c.decodeIfPresent([Tolerant<StudyFolder>].self, forKey: .folders)) ?? nil)?
                 .compactMap { $0.value } ?? []
             unread = (try? c.decodeIfPresent([String].self, forKey: .unread)) ?? nil
@@ -128,6 +133,64 @@ enum LibraryBackup {
     struct Tolerant<T: Decodable>: Decodable {
         let value: T?
         init(from decoder: Decoder) throws { value = try? T(from: decoder) }
+    }
+
+    /// The sets at `indices` of a backup's library part, as the JSON they
+    /// were written in: sets this version could not read, kept for a version
+    /// that can (Store.unreadSets) rather than dropped by the restore.
+    static func unreadSets(in data: Data, at indices: [Int]) -> [String] {
+        guard !indices.isEmpty,
+              let top = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let list = top["library"] as? [Any] else { return [] }
+        return indices.compactMap { index -> String? in
+            guard list.indices.contains(index), JSONSerialization.isValidJSONObject(list[index]),
+                  let one = try? JSONSerialization.data(withJSONObject: list[index]) else { return nil }
+            return String(data: one, encoding: .utf8)
+        }
+    }
+
+    /// What a restore brought in, for the message afterwards.
+    struct Report {
+        var added = 0
+        var returned = 0
+        var copies = 0
+        var unchanged = 0
+        var schedules = 0
+        var notes = 0
+        var files = 0
+        var settings = 0
+        /// Sets this version cannot open, kept as they were written until an
+        /// update can (Store.keepUnread).
+        var unread = 0
+        /// Sets in the backup that could not be read or kept at all.
+        var lost = 0
+
+        var summary: String {
+            var parts: [String] = []
+            let sets: Int = added + returned
+            if sets > 0 { parts.append("\(sets) set\(sets == 1 ? "" : "s") added") }
+            if copies > 0 { parts.append("\(copies) that differ kept beside yours as \u{201C}(from backup)\u{201D}") }
+            if unchanged > 0 { parts.append("\(unchanged) already here") }
+            if schedules > 0 { parts.append("\(schedules) card schedules") }
+            if notes > 0 { parts.append("\(notes) notes") }
+            if files > 0 { parts.append("\(files) lecture files") }
+            if settings > 0 { parts.append("\(settings) settings") }
+            if unread > 0 {
+                parts.append(unread == 1 ? "1 set kept until an app update can open it"
+                                         : "\(unread) sets kept until an app update can open them")
+            }
+            var text: String
+            if parts.isEmpty {
+                text = lost > 0 ? "Nothing new was added." : "Everything in that backup is already on this phone."
+            } else {
+                text = parts.joined(separator: ", ") + ". Nothing on this phone was replaced."
+            }
+            if lost > 0 {
+                text += lost == 1 ? " 1 set in the backup couldn\u{2019}t be read."
+                                  : " \(lost) sets in the backup couldn\u{2019}t be read."
+            }
+            return text
+        }
     }
 
     static func counts(of library: [StudySet], notes: Int, scheduled: Int, studyDays: Int, files: Int) -> Counts {

@@ -70,10 +70,31 @@ enum SyncRules {
     /// of its own - is tried again after a day, or as soon as it changes.
     static func stillRefused(_ refused: RefusedDoc?, updatedAt: Date?, now: Date = Date()) -> Bool {
         guard let refused, let updatedAt, refused.updatedAt == updatedAt else { return false }
-        return refused.tooLarge || now.timeIntervalSince(refused.at) < retryRefusedAfter
+        if refused.tooLarge { return true }
+        // The server had used its share for the day. It counts that share by
+        // the UTC day, so the first run of the next one tries again.
+        if refused.resting == true { return serverDay(refused.at) == serverDay(now) }
+        return now.timeIntervalSince(refused.at) < retryRefusedAfter
     }
 
     static let retryRefusedAfter: TimeInterval = 86_400
+
+    /// The day the server counts its daily share by: the UTC date
+    /// (server/limits.js, today()).
+    static func serverDay(_ date: Date) -> Int {
+        Int((date.timeIntervalSince1970 / 86_400).rounded(.down))
+    }
+
+    /// What to say about sets whose changes the server did not keep, for a
+    /// reason other than their size. Resting: the server had synced all it can
+    /// for the day, which is nothing the student did and nothing they can fix.
+    static func notSavedMessage(sets: Int, resting: Bool) -> String {
+        let what: String = sets == 1 ? "Changes to 1 set" : "Changes to \(sets) sets"
+        if resting {
+            return "\(what) will sync tomorrow \u{2014} the server has synced all it can for today."
+        }
+        return "\(what) were not saved on the server \u{2014} the account may be full. They will be tried again tomorrow."
+    }
 
     // MARK: pictures the server does not have
 
@@ -192,4 +213,7 @@ struct RefusedDoc: Codable, Equatable {
     var at: Date
     /// Over the server's size limit, rather than refused for some other reason.
     var tooLarge: Bool
+    /// Left for tomorrow because the server had synced all it can for the day
+    /// (server/sync.js answers `resting`). Nil from versions before it.
+    var resting: Bool?
 }
