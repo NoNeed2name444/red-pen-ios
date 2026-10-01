@@ -57,7 +57,7 @@ struct MockSittingView: View {
     }
 
     /// What changes as the paper is sat: kept on disk whenever it does.
-    private struct Progress: Equatable {
+    private struct SittingState: Equatable {
         var section: Int
         var current: Int
         var selected: [UUID: Int]
@@ -68,8 +68,8 @@ struct MockSittingView: View {
         var sectionEndsAt: Date?
     }
 
-    private var progress: Progress {
-        Progress(section: section, current: current, selected: selected, flagged: flagged, struck: struck,
+    private var saved: SittingState {
+        SittingState(section: section, current: current, selected: selected, flagged: flagged, struck: struck,
                  highlights: highlights, onBreak: onBreak, sectionEndsAt: sectionEndsAt)
     }
 
@@ -119,7 +119,7 @@ struct MockSittingView: View {
         }
         // on disk after every answer, flag, move and section, and as the app
         // leaves the screen: iOS may end it in the background at any time
-        .onChange(of: progress) { _, _ in persist() }
+        .onChange(of: saved) { _, _ in persist() }
         .onChange(of: phase) { _, new in
             if new != .active {
                 if sectionEndsAt != nil { noteTime() }
