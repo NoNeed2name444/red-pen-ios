@@ -99,6 +99,8 @@ struct AccuracySetSummary: View {
 /// one tap to accept it - and Report an error.
 struct AccuracyWhySheet: View {
     let item: AccuracyItem
+    /// Opened from Check accuracy: an item never checked is checked at once.
+    var checksWhenUnchecked: Bool = false
     @EnvironmentObject private var store: Store
     @ObservedObject private var accuracy = AccuracyStore.shared
     @Environment(\.dismiss) private var dismiss
@@ -128,6 +130,10 @@ struct AccuracyWhySheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .task {
+            guard checksWhenUnchecked, assessment.grade == .unchecked, !accuracy.isChecking(item) else { return }
+            await checkNow()
+        }
     }
 
     private var resultSection: some View {

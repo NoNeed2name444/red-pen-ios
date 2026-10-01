@@ -457,7 +457,9 @@ struct LectureWriterSection: View {
             trouble = "No model is ready to write with."
             return
         }
-        let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
+        // what is written is checked by the verification layer once it is
+        // saved (AccuracyStore watches the library): nothing to wait on here
+        let verify: Bool = llm.checkGenerated
         let text = sourceText, subj = subject, mode = kind, cardStyle = style, pending = figureTask
         let writer: String = backend.label
         // a second try writes only what the first left out: the missing
@@ -502,10 +504,10 @@ struct LectureWriterSection: View {
                     await pending.value
                 }
                 let figures = await MainActor.run { bookFigures }
-                let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
+                let onServer: Bool = false
                 // kept with a cloud job, so the set is still made if the app
                 // is closed before the server finishes
-                let check: String? = LectureWriterSection.checkPlace(checker != nil, onServer: onServer)
+                let check: String? = nil
                 let recipe: Data? = await MainActor.run { () -> Data? in
                     let pictures: Bool = mode == .anki && diagrams.included
                     let figureImages: [String]? = mode == .book ? figures.map(\.imageBase64) : nil
@@ -528,21 +530,10 @@ struct LectureWriterSection: View {
                         })
                 }
                 try Task.checkCancellation()
-                // the checker reads what was written, not the gaps
-                let written: String = result.pages.isEmpty ? result.text
-                    : result.pages.keys.sorted().compactMap { result.pages[$0] }.joined(separator: "\n\n")
-                var note = ""
-                if let checker {
-                    GenerationCenter.shared.update(job, done: wanted, total: wanted, phase: "Checking with \(checker.label)")
-                    await MainActor.run { status = "Checking with \(checker.label)\u{2026}" }
-                    // the whole of it, in parts, and the note says how much was read
-                    if let whole = await AccuracyChecker.checkWhole(
-                        instruction: AccuracyChecker.materialInstruction,
-                        source: text, output: written, using: checker) {
-                        note = MedVAL.partsNote(whole.verdict, checked: whole.checked, total: whole.total,
-                                                failed: whole.failed)
-                    }
-                }
+                // checked by the verification layer once saved: its sensors
+                // at once, then two model families solving blind, the
+                // literature and the verdict, shown on each card's badge
+                let note: String = verify ? " The verification layer checks every card once the set is saved." : ""
                 let finalNote = note
                 try Task.checkCancellation()
                 await MainActor.run {

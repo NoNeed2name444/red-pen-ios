@@ -188,7 +188,9 @@ struct OsceGenerateSection: View {
         status = "Writing 0 of \(wanted)\u{2026}"
         // a writer chosen in AI models goes first; otherwise Apple's model
         let writer = llm.backend(for: .writer)
-        let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
+        // the verification layer checks what is made (VerificationScreen now,
+        // the independent checkers once the set is saved)
+        let verify: Bool = llm.checkGenerated
         let plural: String = wanted == 1 ? "" : "s"
         let jobTitle: String = "Writing \(wanted) station\(plural)"
         // A cloud job's replies stay kept - on this device and on the
@@ -218,11 +220,9 @@ struct OsceGenerateSection: View {
                 }
                 var stations: [OsceChecklist]
                 if let writer {
-                    let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
-                    let check: String? = OsceGenerateSection.checkPlace(checker != nil, onServer: onServer)
                     let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil,
-                                             check: check).encoded
-                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
+                                             check: nil).encoded
+                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: false,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
                     }, delivery: delivery)) {
@@ -236,19 +236,10 @@ struct OsceGenerateSection: View {
                 }
                 try Task.checkCancellation()
                 var checkNote = ""
-                if let checker {
-                    let screened = await AccuracyChecker.screen(
-                        stations, source: text, using: checker,
-                        onProgress: { done, total in
-                            GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking with \(checker.label)")
-                            Task { @MainActor in status = "Checking \(done) of \(total) with \(checker.label)\u{2026}" }
-                        })
-                    let screenedTotal: Int = stations.count
+                if verify {
+                    let screened = VerificationScreen.stations(stations)
                     stations = screened.kept
-                    // a station the checker never graded is not a checked one
-                    checkNote += MedVAL.uncheckedNote(screened.unchecked, of: screenedTotal)
-                    if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
-                    if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk." }
+                    checkNote = VerificationScreen.note(screened)
                 }
                 guard !stations.isEmpty else { throw OsceGenerator.Trouble.nothingUsable }
                 let finalStations = stations

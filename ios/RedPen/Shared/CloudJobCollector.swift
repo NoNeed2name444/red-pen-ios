@@ -170,10 +170,9 @@ enum CloudJobCollector {
             ? "Written in the cloud; the app was closed before it was saved."
             : "Written in the cloud while the app was closed."
         if let recipe, var set = recipe.set(from: outputs, extra: pending.extra) {
-            // the accuracy check is never skipped: the server's
-            // verdicts, and this device's checker for anything the
-            // server could not check
-            let note = recipe.check == nil ? "" : await screen(&set, recipe: recipe)
+            // the verification layer is never skipped: its on-device checks
+            // now, its independent checkers once the set is saved
+            let note = await screen(&set, recipe: recipe)
             body += note
             made = set
         } else if let kept = asText(outputs, pending: pending, recipe: recipe) {
@@ -220,62 +219,29 @@ enum CloudJobCollector {
         return set
     }
 
-    /// Drops what the checker grades high risk (questions, stations), as the
-    /// screens do; returns a note of what it did.
+    /// The verification layer's first stage on what a cloud job wrote, as the
+    /// screens run it (VerificationScreen): a broken question is removed with
+    /// its reason, a red flag is held; the independent checkers take the set
+    /// once it is saved. Returns the note of what it did.
     private static func screen(_ set: inout StudySet, recipe: CloudRecipe) async -> String {
-        let source = recipe.source?.pages.map(\.text).joined(separator: "\n\n") ?? ""
-        let checker = LocalLLMService.shared.backend(for: .checker)
-        let risk: (String) -> Int = { AccuracyChecker.parse($0, checkedBy: "").riskLevel }
-        var removed = 0, flagged = 0, unchecked = 0
-        var total = 0
         switch set.kind {
         case .mcq:
             set.questions = CloudChecks.cite(set.questions)
-            total = set.questions.count
-            for q in set.questions {
-                if let reply = CloudChecks.reply(forKey: CloudChecks.same(q.stem)) {
-                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(q))
-                }
-            }
-            if let checker {
-                let screened = await AccuracyChecker.screen(set.questions, source: source, using: checker, onProgress: { _, _ in })
-                (set.questions, removed, flagged) = (screened.kept, screened.removed, screened.flagged)
-                // one the checker could not reach is kept, and is not a checked one
-                unchecked = screened.unchecked
-            } else {
-                let before = set.questions.count
-                set.questions.removeAll { q in CloudChecks.reply(forKey: CloudChecks.same(q.stem)).map { risk($0) >= 4 } ?? false }
-                removed = before - set.questions.count
-                // only the server's verdicts to go on: one it gave none for was not checked
-                unchecked = set.questions.filter { q in CloudChecks.reply(forKey: CloudChecks.same(q.stem)) == nil }.count
-            }
+            let screened = VerificationScreen.questions(set.questions)
+            set.questions = screened.kept
+            return VerificationScreen.note(screened)
         case .osce:
-            total = set.osceChecklists.count
-            for station in set.osceChecklists {
-                if let reply = CloudChecks.reply(forKey: CloudChecks.same(station.title)) {
-                    CloudChecks.remember(reply, forOutput: AccuracyChecker.checkText(station))
-                }
-            }
-            if let checker {
-                let screened = await AccuracyChecker.screen(set.osceChecklists, source: source, using: checker, onProgress: { _, _ in })
-                (set.osceChecklists, removed, flagged) = (screened.kept, screened.removed, screened.flagged)
-                unchecked = screened.unchecked
-            } else {
-                let before = set.osceChecklists.count
-                set.osceChecklists.removeAll { s in CloudChecks.reply(forKey: CloudChecks.same(s.title)).map { risk($0) >= 4 } ?? false }
-                removed = before - set.osceChecklists.count
-                unchecked = set.osceChecklists.filter { s in CloudChecks.reply(forKey: CloudChecks.same(s.title)) == nil }.count
-            }
+            let screened = VerificationScreen.stations(set.osceChecklists)
+            set.osceChecklists = screened.kept
+            return VerificationScreen.note(screened)
+        case .anki:
+            let screened = VerificationScreen.cards(set.cards)
+            set.cards = screened.kept
+            return VerificationScreen.note(screened)
         default:
-            // cards, cases and pages: the riskiest part is reported, as on the screens
-            if let worst = AccuracyChecker.riskiest(CloudChecks.allReplies) {
-                let verdict = AccuracyChecker.parse(worst, checkedBy: "")
-                return verdict.passed ? " Checked: \(verdict.riskTitle.lowercased())." : " Checker: \(verdict.riskTitle.lowercased()) \u{2014} read it carefully."
-            }
-            return ""
+            // cases and pages: checked by the layer once saved
+            return " The verification layer checks it once the set is saved."
         }
-        // "Accuracy checked" only for what a checker actually graded
-        return MedVAL.screenNote(total: total, removed: removed, flagged: flagged, unchecked: unchecked)
     }
 
     // MARK: while the app is away
