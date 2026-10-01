@@ -1,0 +1,73 @@
+import XCTest
+
+/// The personal build's "Try every feature" page: every row opens its worked
+/// example without crashing, with a screenshot of each for a person to look at.
+final class ExamplesUITests: XCTestCase {
+    private let rows = ["ideas", "reasoning", "howToReach", "progress", "analytics", "rules", "coverage",
+                        "commute", "explain", "explain-live", "osce-bbn", "osce-history", "draw"]
+
+    func testEveryExampleOpens() {
+        let app = XCUIApplication()
+        // a still sky: this checks what each tap opens, and a simulator busy
+        // drawing the moving one on its CPU can drop a tap
+        app.launchArguments += ["-personalBuild", "-stillSky"]
+        app.launch()
+
+        let door = app.buttons["localSignIn"]
+        if door.waitForExistence(timeout: 20) { door.tap() }
+        let accept = app.buttons["acceptRecordingTerms"]
+        if accept.waitForExistence(timeout: 15) {
+            expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: accept)
+            waitForExpectations(timeout: 12)
+            accept.tap()
+        }
+        // then, once, "Which exam are you preparing for?" - skipped here
+        let skipExam = app.buttons["examOnboardingSkip"]
+        if skipExam.waitForExistence(timeout: 8) { skipExam.tap() }
+
+        // at the bottom of the library page
+        let banner = app.buttons["examplesBanner"]
+        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 20), "the library didn't open")
+        var scrolls = 0
+        while !(banner.exists && banner.isHittable) && scrolls < 16 { app.swipeUp(); scrolls += 1 }
+        XCTAssertTrue(banner.exists, "the 'Try every feature' link isn't at the bottom of the library")
+        banner.tap()
+        snap(app, "hub")
+
+        let hub = app.collectionViews["examplesHub"]
+        for id in rows {
+            let row = app.buttons["example-\(id)"]
+            // lower rows may need a scroll to come on screen
+            var tries = 0
+            while !row.isHittable && tries < 6 { app.swipeUp(); tries += 1 }
+            XCTAssertTrue(row.exists, "no row for \(id)")
+            row.tap()
+            // it opened when the list has gone; a tap the simulator dropped is
+            // tried once more, and one that still opens nothing is a failure
+            let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: row)
+            if XCTWaiter.wait(for: [gone], timeout: 6) != .completed,
+               row.exists && row.isHittable {
+                row.tap()
+            }
+            sleep(3)
+            XCTAssertEqual(app.state, .runningForeground, "the app stopped opening \(id)")
+            XCTAssertFalse(row.exists && row.isHittable, "tapping \(id) opened nothing")
+            snap(app, id)
+            // back to the list - one step only, never past it to the library
+            if !hub.exists {
+                let back = app.navigationBars.buttons.firstMatch
+                if back.exists { back.tap() }
+                sleep(1)
+            }
+            XCTAssertTrue(hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
+            while app.buttons["example-ideas"].exists && !app.buttons["example-ideas"].isHittable { app.swipeDown() }
+        }
+    }
+
+    private func snap(_ app: XCUIApplication, _ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+}

@@ -1,0 +1,160 @@
+# A simulator you can actually tap, from an iPad, with no Mac anywhere.
+#
+# A GitHub macOS runner IS a Mac. This one boots the simulator, installs the
+# app, turns on screen sharing, and joins a private network you also belong to.
+# You connect with any VNC client and drive the app by hand until the session
+# runs out.
+#
+# Over Tailscale rather than a public tunnel, and that choice is not incidental:
+# this repository is public, so anything printed in a job log is readable by
+# anyone. A forwarded VNC port with the address in the log would be an open
+# screen-sharing session on the internet. A tailnet has no public endpoint at
+# all - the machine is reachable only by devices already on your network.
+#
+# What you need, once:
+#   1. A Tailscale account (free), with an auth key from
+#      Settings -> Keys -> Generate auth key. Tick Ephemeral, so the runner
+#      removes itself from your tailnet when the job ends.
+#   2. That key saved as the repository secret TS_AUTHKEY.
+#   3. A password of your choosing saved as the secret VNC_PASSWORD.
+#      macOS screen sharing truncates it to 8 characters, which is its
+#      limitation rather than a choice made here - the tailnet is what actually
+#      keeps the session private.
+#   4. On the iPad: the Tailscale app, and any VNC client.
+#
+# Then run this workflow, wait for the "Connect to" line in the log, and open
+# that address in the VNC client.
+name: Live simulator
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: how long to hold the session open
+        required: false
+        default: '45'
+      screen:
+        description: which screen to open the app on
+        required: false
+        default: 'library'
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the session can be private
+        run: |
+          if [ -z "${{ secrets.TS_AUTHKEY }}" ]; then
+            echo "::error::TS_AUTHKEY is not set. Without it this job would have to"
+            echo "::error::expose the screen-sharing port publicly, and this repository"
+            echo "::error::is public, so the address would be readable by anyone."
+            exit 1
+          fi
+          if [ -z "${{ secrets.VNC_PASSWORD }}" ]; then
+            echo "::error::VNC_PASSWORD is not set."
+            exit 1
+          fi
+
+      - name: Tools
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name),
+                                     d["udid"], name))
+          candidates.sort()
+          _, udid, name = candidates[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          PY
+
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Open the app in the simulator
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -e
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+            --batteryState charged --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          # Simulator.app rather than simctl launch: this session is for a
+          # person, and a person needs the window with the device frame in it.
+          open -a Simulator --args -CurrentDeviceUDID "$UDID"
+          sleep 10
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "${{ inputs.screen }}" || true
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          args: --hostname=red-pen-sim --accept-routes
+
+      - name: Turn on screen sharing
+        env:
+          VNC_PASSWORD: ${{ secrets.VNC_PASSWORD }}
+        run: |
+          set -e
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on \
+            -clientopts -setvnclegacy -vnclegacy yes \
+            -setvncpw -vncpw "$VNC_PASSWORD" \
+            -restart -agent -privs -all
+          sudo defaults write /var/db/launchd.db/com.apple.launchd/overrides.plist \
+            com.apple.screensharing -dict Disabled -bool false 2>/dev/null || true
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          ADDRESS=$(tailscale ip -4 | head -n1)
+          echo "::notice::Connect to vnc://${ADDRESS}:5900 with the VNC password you set."
+          {
+            echo "## Live simulator"
+            echo
+            echo "Connect a VNC client to **${ADDRESS}:5900** while on your tailnet."
+            echo
+            echo "Device: ${{ steps.sim.outputs.name }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hold the session open
+        run: |
+          MINUTES="${{ inputs.minutes }}"
+          echo "Holding for ${MINUTES} minutes. Cancel the run when you are done."
+          # A heartbeat rather than one long sleep, so the log shows the session
+          # is alive and how much of it is left.
+          for i in $(seq 1 "$MINUTES"); do
+            sleep 60
+            echo "$((MINUTES - i)) minutes left"
+          done

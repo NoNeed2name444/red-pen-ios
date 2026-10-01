@@ -1,0 +1,66 @@
+# The Swift Playgrounds package itself, built the way Playgrounds builds it:
+# tools/make_swiftpm.py turns ios/RedPen into "Stethoscore Personal.swiftpm"
+# (the same script that makes the zip sent to the phone), then Xcode builds
+# that package - not the Xcode project App build uses, whose settings
+# (language mode, packages, plist) can hide what only the package gets wrong.
+name: Playgrounds package
+on:
+  push:
+    # design/lanes: the owner's lanes stacked for personal, each one's core
+    # stand-ins compiled before it gets there
+    branches: [personal, design/lanes]
+    paths: ['ios/**', 'tools/make_swiftpm.py', 'tools/playgrounds_stubs/**', '.github/workflows/swiftpm-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: swiftpm-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # the whole app, and the lighter packages for an iPad whose Swift
+          # Playgrounds cannot build the whole app at once (--without, see
+          # tools/make_swiftpm.py CHUNKS)
+          - variant: full
+            without: ''
+          - variant: core
+            without: core
+          # the core plus step 1 of the add-back order (lecture audio, the
+          # spoken modes, draw from memory, narrate), the next zip to try
+          - variant: core1
+            without: core1
+          # and step 2 (imports and exports, backups, picture cards)
+          - variant: core2
+            without: core2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Make the package (${{ matrix.variant }})
+        env:
+          WITHOUT: ${{ matrix.without }}
+        run: |
+          python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "$PWD/out/Stethoscore.zip" ${WITHOUT:+--without "$WITHOUT"}
+          cd out && unzip -q Stethoscore.zip && ls
+          find "Stethoscore Personal.swiftpm" -name '*.swift' | wc -l | xargs echo "swift files:"
+      - name: Build it as Playgrounds would
+        working-directory: out/Stethoscore Personal.swiftpm
+        run: |
+          set -o pipefail
+          xcodebuild -list 2>&1 | tail -20 || true
+          xcodebuild -scheme "Stethoscore Personal" -destination 'generic/platform=iOS' \
+            -skipMacroValidation -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning: .*(deprecated|Swift 6)|BUILD " | head -150 || true
+          { echo '### Playgrounds package (${{ matrix.variant }}) errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -80 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swiftpm-build-log-${{ matrix.variant }}
+          path: out/build.log

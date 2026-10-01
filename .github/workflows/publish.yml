@@ -1,0 +1,121 @@
+# Artifacts, republished where a phone can actually get at them.
+#
+# A GitHub Actions artifact can only be downloaded by a signed-in browser
+# session, which is no use to somebody holding a phone - and no use to an agent
+# working on their behalf either. So a finished run's artifacts are put in two
+# places that need no login: a release (a plain URL, and an MP4 plays in place)
+# and an orphan branch (fetchable with git, which is how they reach the chat).
+name: Publish artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: the run whose artifacts should be published
+        required: true
+      tag:
+        description: release tag and branch name (reused, not accumulated)
+        required: false
+        default: preview
+      height:
+        description: shrink any video to this height (0 keeps the original)
+        required: false
+        default: '900'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dl out
+          gh run download "${{ inputs.run_id }}" -R "$GITHUB_REPOSITORY" -D dl
+          # Flattened, because an artifact's folders mean nothing once the
+          # files are assets on a release.
+          # The list is explicit rather than "everything", because an
+          # artifact can carry a whole build directory. .ipa was missing from
+          # it, which is how a successful build published a log and no app.
+          find dl -type f \( -name '*.mp4' -o -name '*.png' -o -name '*.log' \
+                             -o -name '*.json' -o -name '*.txt' \
+                             -o -name '*.ipa' -o -name '*.apkg' -o -name '*.pdf' \) -print0 |
+            while IFS= read -r -d '' f; do
+              cp "$f" "out/$(echo "${f#dl/}" | tr '/' '-')"
+            done
+          ls -la out
+
+      - name: Shrink the video
+        if: inputs.height != '0'
+        run: |
+          set -euo pipefail
+          # A simulator records at the device's full 3x resolution, which for a
+          # ten-minute tour is a couple of hundred megabytes - most of those
+          # pixels being a screenshot of a screenshot. Re-encoded at a sensible
+          # height it is watchable and a fraction of the size.
+          shopt -s nullglob
+          for f in out/*.mp4; do
+            ffmpeg -nostdin -loglevel error -i "$f" \
+              -vf "scale=-2:${{ inputs.height }}" -r 24 \
+              -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p \
+              -movflags +faststart -an "${f%.mp4}-small.mp4"
+            mv "${f%.mp4}-small.mp4" "$f"
+          done
+          ls -la out
+
+      - name: Split what git will not take
+        run: |
+          set -euo pipefail
+          # GitHub refuses a file over 100 MB, so anything near that is cut
+          # into numbered pieces and put back together on the other side:
+          #     cat NAME.part* > NAME
+          shopt -s nullglob
+          for f in out/*; do
+            size=$(stat -c%s "$f")
+            if [ "$size" -gt 90000000 ]; then
+              split -b 80M -d -a 2 "$f" "$f.part"
+              rm -f "$f"
+              echo "split $(basename "$f") into $(ls "$f".part* | wc -l) pieces"
+            fi
+          done
+          ls -la out
+
+      - name: Drop on a branch
+        run: |
+          set -euo pipefail
+          BRANCH="drop-${{ inputs.tag }}"
+          git config user.name "red-pen-bot"
+          git config user.email "bot@users.noreply.github.com"
+          # Orphan and force-pushed: this branch is a drop box, not a history,
+          # and a repository does not need every past recording in its objects.
+          git checkout --orphan "$BRANCH"
+          git rm -rq --cached . || true
+          find . -maxdepth 1 -mindepth 1 ! -name out ! -name .git ! -name dl -exec rm -rf {} +
+          mv out/* . && rmdir out
+          rm -rf dl
+          git add -A
+          git commit -qm "artifacts from run ${{ inputs.run_id }}"
+          git push -f origin "HEAD:refs/heads/$BRANCH"
+          echo "dropped on $BRANCH"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p rel
+          git fetch -q origin "drop-${{ inputs.tag }}"
+          git --work-tree=rel checkout FETCH_HEAD -- . || true
+          if ls rel/*.png >/dev/null 2>&1; then
+            (cd rel && zip -q screens.zip ./*.png && rm -f ./*.png)
+          fi
+          ls -la rel
+          gh release delete "${{ inputs.tag }}" -y --cleanup-tag || true
+          gh release create "${{ inputs.tag }}" rel/* \
+            -t "CramDown preview" \
+            -n "Artifacts from run ${{ inputs.run_id }}. Tap an asset to download; the MP4 plays in place."
+          gh release view "${{ inputs.tag }}" --json url -q .url

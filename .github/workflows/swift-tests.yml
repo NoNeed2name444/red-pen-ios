@@ -1,0 +1,102 @@
+# The app's pure-Swift logic, compiled and RUN - not just type-checked. A suite
+# that compiles and never executes is a suite that passes forever.
+#
+# Swift allows top-level statements only in a file named main.swift, and only
+# one per binary, so each suite is copied to its own build directory under that
+# name. Copying it to any other name is what made an earlier suite silently
+# never compile.
+#
+# Only UIKit-free files can be listed, and most suites now run on Linux
+# (Swift 6.4 in a container: fast to start, about twenty at once, and off the
+# five macOS machines the app build and screenshots need). The few suites
+# that need Apple's Compression or CryptoKit run on macOS
+# (tools/swift_suites_mac_only.txt). The list of suites is
+# tools/swift_suites.txt; tools/swift_suites.py runs it, here and locally.
+name: Swift tests
+on:
+  workflow_dispatch:
+  push:
+    # the session branch is a copy of personal: testing it again only queues
+    branches-ignore: ['claude/**']
+    paths:
+      - 'ios/RedPen/Shared/**'
+      - 'ios/RedPen/Models/**'
+      - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
+      - 'ios/RedPen/Features/Notes/GraphUniverse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLinkCurve.swift'
+      - 'ios/RedPen/Features/Notes/GraphThemePlan.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeurons.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronImpulses.swift'
+      - 'ios/RedPen/Features/Notes/GraphTheme.swift'
+      - 'ios/RedPen/Features/Notes/GraphCircuit.swift'
+      - 'ios/RedPen/Features/Notes/GraphDeath.swift'
+      - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
+      - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
+      - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
+      - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
+      - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
+      - 'ios/RedPen/Tests/**'
+      - '.github/workflows/swift-tests.yml'
+      - 'tools/swift_suites*'
+permissions:
+  contents: write
+# a newer push to the same branch supersedes the run before it
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.4-noble
+    timeout-minutes: 20
+    outputs:
+      mac: ${{ steps.mac.outputs.run }}
+    steps:
+      - name: Tools
+        run: apt-get update -qq && apt-get install -y -qq python3 zip git > /dev/null
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Every suite that builds on Linux
+        run: python3 tools/swift_suites.py --platform linux --release -j 4
+      # the Apple-only suites wait for a macOS machine, so they run only when a
+      # change touches their files (or by hand)
+      - name: Whether the macOS suites are needed
+        if: always()
+        id: mac
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          n=$(python3 tools/swift_suites.py --platform mac --affected "$before" --list-chosen | grep -c . || true)
+          echo "run=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Push the logs
+        if: always()
+        run: |
+          cd out
+          git init -q && git checkout -q -b swift-tests
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
+  mac:
+    needs: linux
+    if: ${{ always() && needs.linux.outputs.mac == 'true' }}
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: The suites that need Apple frameworks
+        run: python3 tools/swift_suites.py --platform mac --release -j 3
+      - name: Push the logs
+        if: always()
+        run: |
+          cd out
+          git init -q && git checkout -q -b swift-tests-mac
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (mac) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests-mac:swift-tests-mac

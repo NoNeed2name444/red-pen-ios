@@ -1,0 +1,1622 @@
+[
+ {
+  "id": "medxpertqa:Text-1153#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4433#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-572#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:e07f595e-83b9-4224-8edc-6002abe79485#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4947#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4397#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:412479da-a41f-4746-90c5-4863d77e15c6#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4840#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5061#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1525#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4376#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5240#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2027#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:a1c31b3c-38a4-407b-8a99-e9aee9f9f8ef#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:7735e3cf-4a2e-4671-a594-d00cd784cf7e#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:a1c31b3c-38a4-407b-8a99-e9aee9f9f8ef#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1905#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b20d7eaf-f49a-4838-9488-5fe15e7ef6b0#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4717#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:428f4b21-6158-4605-88fd-2474869a9e19#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1648#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4716#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5031#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:af033753-acfa-4da4-923d-b0e9ad10d34a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:a079d7bd-1a5d-41d3-ad0c-607dca85b53d#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4602#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9f90986c-b95d-4887-b807-39d4bf932107#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1330#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:dad16bf8-663d-4b9d-8e29-da568386a585#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1349#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4477#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1153#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1418#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9f4eb879-2b71-4186-b509-1ca144710203#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4376#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:8a8f6b15-cb83-41af-b208-af90e03f982e#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4972#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4988#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5132#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1097#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5623#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1648#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-572#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5538#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1097#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-858#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5240#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-858#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4773#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:e07f595e-83b9-4224-8edc-6002abe79485#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1418#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-447#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1330#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5132#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:bdbaebc7-737c-4cfd-8600-85d84f867dfa#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:5388b7ec-779f-4795-9e54-71c6992372d8#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4618#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1287#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9f90986c-b95d-4887-b807-39d4bf932107#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5375#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-231#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-973#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4602#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5001#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:dbd055f7-f013-4ed4-951e-5f955744203b#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5015#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:57f0a163-389c-4088-b2bc-9216e5e5b6a2#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4962#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-442#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4947#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4685#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:57f0a163-389c-4088-b2bc-9216e5e5b6a2#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5623#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:412479da-a41f-4746-90c5-4863d77e15c6#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:d2cc7dce-97e2-49f2-a721-3f0148416a6a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4587#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:c0b5e935-1e52-4156-88d3-45f058d8113a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2136#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:8796704d-1692-4c9a-b816-898d8609b76d#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1201#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2016#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4962#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-161#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4685#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2136#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1460#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4988#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1467#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5617#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9524b877-0270-4de4-8865-e0e4b1255ff5#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:dad16bf8-663d-4b9d-8e29-da568386a585#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b5e9067c-dd83-46d2-9b2f-816eef7f4368#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5375#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1460#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:c0b5e935-1e52-4156-88d3-45f058d8113a#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4836#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-161#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:7f1493c9-fad8-467a-9eb1-c11d5cfc5fe5#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:0aa17acd-1557-4e90-a43d-d46582312c33#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1014#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-271#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4618#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4716#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4433#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:0aa17acd-1557-4e90-a43d-d46582312c33#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-353#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5015#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4652#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-271#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1525#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2027#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:dbd055f7-f013-4ed4-951e-5f955744203b#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:8a8f6b15-cb83-41af-b208-af90e03f982e#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:1bd21e7f-cd0d-4b55-a583-64a9efb9962c#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1665#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1390#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5288#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1349#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-472#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1665#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:bdbaebc7-737c-4cfd-8600-85d84f867dfa#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-442#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5061#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4477#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:7735e3cf-4a2e-4671-a594-d00cd784cf7e#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1014#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1201#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5617#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1921#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-2016#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-447#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-973#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1655#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1287#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9f4eb879-2b71-4186-b509-1ca144710203#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5280#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4836#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5288#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:7f1493c9-fad8-467a-9eb1-c11d5cfc5fe5#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1921#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:8796704d-1692-4c9a-b816-898d8609b76d#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4840#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b22c3a0b-fe62-4767-b008-e6f0431a2103#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1655#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5001#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b5e9067c-dd83-46d2-9b2f-816eef7f4368#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:af033753-acfa-4da4-923d-b0e9ad10d34a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4587#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:d2cc7dce-97e2-49f2-a721-3f0148416a6a#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4397#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1905#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b20d7eaf-f49a-4838-9488-5fe15e7ef6b0#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4652#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-353#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:9524b877-0270-4de4-8865-e0e4b1255ff5#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-472#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:1bd21e7f-cd0d-4b55-a583-64a9efb9962c#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:a079d7bd-1a5d-41d3-ad0c-607dca85b53d#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1390#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4717#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4972#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-1467#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medxpertqa:Text-231#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5538#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:4773#right",
+  "source": "MedQA",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:428f4b21-6158-4605-88fd-2474869a9e19#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:b22c3a0b-fe62-4767-b008-e6f0431a2103#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "careqa:5388b7ec-779f-4795-9e54-71c6992372d8#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5031#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ },
+ {
+  "id": "medqa:5280#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "verdict": "unchecked",
+  "p": 0.818,
+  "rules": [],
+  "votes": []
+ }
+]

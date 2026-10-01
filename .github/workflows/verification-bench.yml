@@ -1,0 +1,80 @@
+# The verification layer measured on real exam questions (docs/verification):
+# the sensors on every question as published and with errors planted, and the
+# whole layer - literature, checker models of different families, the blind
+# re-solve, the verdict - on hard questions (MedXpertQA, MedQA, CareQA), each
+# with its true key and with a wrong key planted. The checkers are GitHub
+# Models, free for this repository's runs, called with the run's own token
+# (permission models: read); production never uses them (ai.js refuses
+# github: voters without BENCH_MODELS). Results: the run summary, and
+# runs/<run id>/ on the verification-bench-results branch.
+name: Verification bench
+on:
+  push:
+    branches: ['bench/verification']
+  workflow_dispatch:
+    inputs:
+      per_source:
+        description: 'Questions per source (each checked twice)'
+        required: false
+        default: '30'
+      voters:
+        description: 'Checkers, github:<model>,... (empty: one per family from the catalog)'
+        required: false
+        default: ''
+permissions:
+  contents: write
+  models: read
+concurrency:
+  group: verification-bench
+  cancel-in-progress: false
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Questions
+        run: tools/verification-bench/fetch.sh data
+      - name: Sensors on every question
+        run: node tools/verification-bench/sensors.mjs data/*.json --out out/sensors > /dev/null
+      - name: Pick the checkers
+        id: pick
+        env:
+          MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -sf -H "Authorization: Bearer $MODELS_TOKEN" -H "Accept: application/json" \
+            https://models.github.ai/catalog/models -o catalog.json || echo '[]' > catalog.json
+          node tools/verification-bench/pick-voters.mjs catalog.json "${{ inputs.voters }}" >> "$GITHUB_OUTPUT"
+      - name: The whole layer on hard questions
+        env:
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node tools/verification-bench/layer.mjs --data data --out out/layer \
+            --per-source "${{ inputs.per_source || '30' }}" --voters "${{ steps.pick.outputs.voters }}"
+      - name: Summary
+        if: always()
+        run: |
+          [ -f out/layer/report.md ] && cat out/layer/report.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f out/sensors/report.md ] && sed -n '1,40p' out/sensors/report.md >> "$GITHUB_STEP_SUMMARY"
+          true
+      - name: Publish
+        if: always()
+        run: |
+          [ -d out ] || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dest="$RUNNER_TEMP/results"
+          if git fetch -q origin verification-bench-results; then
+            git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B verification-bench-results
+          else
+            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results && git -C "$dest" rm -rq . || true
+          fi
+          mkdir -p "$dest/runs/${{ github.run_id }}"
+          cp out/layer/report.md out/layer/results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
+          cp out/sensors/report.md "$dest/runs/${{ github.run_id }}/sensors.md" 2>/dev/null || true
+          git -C "$dest" add -A
+          git -C "$dest" commit -q -m "Verification bench run ${{ github.run_id }} (${{ github.sha }})" || exit 0
+          git -C "$dest" push -q origin verification-bench-results

@@ -1,0 +1,287 @@
+name: RedPen
+options:
+  bundleIdPrefix: com.cramdown
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+packages:
+  # Gemma-4-E2B fallback path for devices that can't run Apple's on-device
+  # model (older hardware, Apple Intelligence off) - see GemmaModel.swift.
+  # Pinned to one reviewed commit (main as of 26 Aug 2026), not "branch:
+  # main": every build runs this package's code, macros and plugins
+  # (xcodebuild is given -skipMacroValidation), so whatever landed on its
+  # main branch would otherwise run in the next CI build and ship in the next
+  # .ipa unseen. Move the pin on purpose, after reading what changed.
+  LocalLLMClient:
+    url: https://github.com/tattn/LocalLLMClient.git
+    revision: b68f71244baf308469a190cce4f54edf2fde4887
+targets:
+  RedPen:
+    type: application
+    platform: iOS
+    sources:
+      - path: RedPen
+        # RedPen/Tests holds standalone suites: each one is top-level code that
+        # swift-tests.yml copies to main.swift and RUNS. Swift allows top-level
+        # statements only in a file called main.swift, so sweeping them into the
+        # app target fails the whole build with "expressions are not allowed at
+        # the top level" - which is exactly what happened the first time a test
+        # suite landed in this folder.
+        excludes:
+          - "Tests/**"
+      # The privacy manifest (required-reason APIs; no tracking). Outside
+      # RedPen/ so the Playgrounds package, which copies RedPen/, never sees it.
+      - path: AppResources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - package: LocalLLMClient
+        product: LocalLLMClient
+      - package: LocalLLMClient
+        product: LocalLLMClientLlama
+      # Home and Lock Screen widgets, the Review due control and the exam-day
+      # Live Activity (Xcode build only; ios/StethoscoreWidgets)
+      - target: StethoscoreWidgets
+        embed: true
+    entitlements:
+      path: RedPen/RedPen.entitlements
+      properties:
+        # Sign in with Apple needs the capability, not just the button. Without
+        # it the sheet appears and then fails with an unhelpful error.
+        com.apple.developer.applesignin:
+          - Default
+        # The widgets read the digest the app writes here (GlanceShelf).
+        com.apple.security.application-groups:
+          - $(RED_PEN_APP_GROUP)
+        # Settings > "Log focus rounds to Health": writes mindful minutes only.
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        # Asked only before a community feature opens (AgeGate).
+        com.apple.developer.declared-age-range: true
+    info:
+      path: RedPen/Info.plist
+      properties:
+        CFBundleDisplayName: Stethoscore
+        # The first frame, before any Swift runs: the Midnight Enamel mark and
+        # the wordmark on Midnight navy. LaunchSplash draws the same picture
+        # for its first frame, so the hand-over is invisible.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
+        # The phone stays upright - a card deck held one-handed has no reason
+        # to rotate - but an iPad is used on a desk, in a stand, on a keyboard
+        # case, and refusing to turn there is simply broken.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        ITSAppUsesNonExemptEncryption: false
+        # A self-hosted model server on the home network (llama.cpp, Ollama)
+        # is usually plain http; this allows that and nothing else.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # iOS terminates an app that reaches for either of these without a
+        # stated reason, so these two strings are load-bearing, not paperwork.
+        # They also say the honest thing: the recognition happens here, because
+        # LectureTranscriber forces requiresOnDeviceRecognition and refuses
+        # rather than falling back to a server.
+        NSSpeechRecognitionUsageDescription: Stethoscore turns lecture recordings and your spoken answers into text, on this device where it can.
+        CADisableMinimumFrameDurationOnPhone: true
+        NSMicrophoneUsageDescription: Stethoscore uses the microphone to record lectures, and to hear your answers in commute mode, explain-it-back and spoken OSCE practice.
+        # Only for Settings > "Pop-out with face tracking" (off by default):
+        # ARKit face tracking follows where the head is so the pop-out lines
+        # up with the eyes. PopOutMotion.faceTrackingAvailable is false
+        # without this string, so a build missing it never reaches the camera.
+        NSCameraUsageDescription: Stethoscore uses the front camera to follow where your head is, so the pop-out effect lines up with your eyes, and the camera to scan pages you choose to turn into picture cards. Nothing is recorded or sent.
+        # A lecture should keep playing with the screen off.
+        UIBackgroundModes:
+          - audio
+          # a look now and then at cloud jobs, to say when one is done
+          - fetch
+        # Generation carries on when the student leaves the app (iOS 26
+        # continued processing): each job is <bundle id>.generate.<uuid>.
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).generate.*
+          - $(PRODUCT_BUNDLE_IDENTIFIER).jobs
+        # Google's sign-in comes back to redpen://auth. The scheme has to be
+        # declared or the system browser has nowhere to return to.
+        # The same scheme carries the app's own links (AppLink: redpen://due,
+        # redpen://set/<id>, redpen://quiz?subject=...), which widgets,
+        # Spotlight and shared links open; stethoscore:// is the name people see.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.redpen.app.auth
+            CFBundleURLSchemes:
+              - redpen
+              - stethoscore
+        # "Open in Stethoscore" from Files, Mail, WhatsApp and AirDrop. The
+        # file is copied and shown in the import preview (ImportRouter);
+        # nothing is added to the library until the student taps.
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Anki deck
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.ankiweb.apkg
+              - com.ankiweb.colpkg
+          - CFBundleTypeName: Spreadsheet of cards
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.comma-separated-values-text
+              - public.tab-separated-values-text
+          - CFBundleTypeName: Stethoscore set
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.cramdown.stethoscore.set
+              - com.cramdown.stethoscore.backup
+        # Anki's own formats, declared as Anki's (imported, not ours)
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.ankiweb.apkg
+            UTTypeDescription: Anki deck
+            UTTypeConformsTo:
+              - public.data
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - apkg
+          - UTTypeIdentifier: com.ankiweb.colpkg
+            UTTypeDescription: Anki collection
+            UTTypeConformsTo:
+              - public.data
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - colpkg
+        # Stethoscore's own: one shared set (JSON) and a whole-library backup
+        # (a zip) - see ImportKind
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.cramdown.stethoscore.set
+            UTTypeDescription: Stethoscore set
+            UTTypeConformsTo:
+              - public.json
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - stethoscore
+              public.mime-type:
+                - application/vnd.stethoscore+json
+          - UTTypeIdentifier: com.cramdown.stethoscore.backup
+            UTTypeDescription: Stethoscore backup
+            UTTypeConformsTo:
+              - public.zip-archive
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - stethoscorebackup
+        # iPad: a set in a second window beside a lecture (SetWindow). The
+        # window not in use draws a still sky.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        # The exam-day Live Activity (ExamDayActivity).
+        NSSupportsLiveActivities: true
+        # Settings > "Lock with Face ID" (AppLock). Without this string iOS
+        # ends the app the moment Face ID is asked for.
+        NSFaceIDUsageDescription: Stethoscore uses Face ID to unlock the app when you have turned on the app lock.
+        # Settings > "Log focus rounds to Health" (MindfulMinutes).
+        NSHealthUpdateUsageDescription: Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on.
+        NSHealthShareUsageDescription: Stethoscore does not read anything from Health.
+        # The widgets' shared container, read by GlanceShelf (never spelled in
+        # Swift, so a fork's team can change it here alone).
+        RedPenAppGroup: $(RED_PEN_APP_GROUP)
+        # Configuration rather than source, so a build can point at a local
+        # worker and a real client id without editing Swift. Both are filled in
+        # per build; empty means the app says sign-in is not set up rather than
+        # opening a broken page.
+        RedPenAuthBaseURL: $(RED_PEN_AUTH_URL)
+        RedPenGoogleClientID: $(RED_PEN_GOOGLE_CLIENT_ID)
+        # Personal builds only: the owner key for CramDown Cloud, worked out
+        # on GitHub from the AI_API_KEY secret. Empty everywhere else.
+        RedPenOwnerKey: $(RED_PEN_OWNER_KEY)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Empty by default: a build that has not been given these says so.
+        RED_PEN_AUTH_URL: "https://redpen-auth.vv7sh4rnnw.workers.dev"
+        RED_PEN_OWNER_KEY: ""
+        RED_PEN_GOOGLE_CLIENT_ID: ""
+        RED_PEN_APP_GROUP: group.com.cramdown.app
+        # LocalLLMClientLlamaC's own header hard-errors ("needs to be
+        # compiled in C++ interoperability mode") unless the CONSUMING
+        # target - this app, not just the package's own target - also
+        # builds with Swift/C++ interop on. The package sets this for
+        # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
+        # doesn't propagate to a plain .xcodeproj app target automatically.
+        OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
+  # Widgets, the Control and the exam-day Live Activity. Xcode build only:
+  # the Playgrounds package copies ios/RedPen and nothing else, so it never
+  # sees this target. The few app files it shares are Foundation or
+  # AppIntents only; WIDGET_EXTENSION compiles out their app-side halves.
+  StethoscoreWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: StethoscoreWidgets
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+      - path: RedPen/Shared/Platform/GlanceDigest.swift
+      - path: RedPen/Shared/Platform/AppLink.swift
+      # AppLink.openItem carries a NoteSource (Foundation only)
+      - path: RedPen/Shared/Ideas/SaveToIdeas.swift
+      - path: RedPen/Shared/Platform/ExamDayAttributes.swift
+      - path: RedPen/Shared/Platform/ReviewDueIntent.swift
+    entitlements:
+      path: StethoscoreWidgets/StethoscoreWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(RED_PEN_APP_GROUP)
+    info:
+      path: StethoscoreWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Stethoscore
+        RedPenAppGroup: $(RED_PEN_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.app.widgets
+        RED_PEN_APP_GROUP: group.com.cramdown.app
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
+        SKIP_INSTALL: YES
+  RedPenUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: RedPen
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: RedPen
+        PRODUCT_BUNDLE_IDENTIFIER: com.cramdown.uitests
+schemes:
+  RedPen:
+    build:
+      targets:
+        RedPen: all
+        RedPenUITests: [test]
+    test:
+      targets:
+        - RedPenUITests
+    run:
+      config: Debug
+      # Products come from this file until they exist in App Store Connect, so
+      # the paywall can be opened, bought from and cancelled on a simulator
+      # with no developer account attached.
+      storeKitConfiguration: RedPen/RedPen.storekit

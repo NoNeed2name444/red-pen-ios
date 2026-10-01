@@ -1,0 +1,66 @@
+{
+  "identifier" : "B6A1F2C4",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21431869",
+      "localizations" : [],
+      "name" : "Red Pen Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6740001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Read any lecture, generate questions and cards on this phone.",
+              "displayName" : "Red Pen Pro, monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.redpen.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro monthly",
+          "subscriptionGroupID" : "21431869",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6740002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Read any lecture, generate questions and cards on this phone. Two months free against monthly.",
+              "displayName" : "Red Pen Pro, yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.redpen.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro yearly",
+          "subscriptionGroupID" : "21431869",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

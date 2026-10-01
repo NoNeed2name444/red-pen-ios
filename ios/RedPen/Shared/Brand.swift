@@ -1,0 +1,89 @@
+#if canImport(SwiftUI)
+import SwiftUI
+#else
+import Foundation
+#endif
+
+/// The app's own identity, kept in one place.
+///
+/// The app is Stethoscore (formerly Vignette, and before that CramDown).
+///
+/// The name was CramDown, and it was about compression rather than panic: a
+/// term's worth of lectures pressed down into the few hundred things that
+/// actually fit in a head on the morning of a final. The app's whole method -
+/// spacing the work so it peaks on the day - is the opposite of an all-nighter,
+/// and the identity should say "compressed", not "frantic".
+///
+/// Which is why the brand itself is quiet. The six modes already carry strong
+/// colours, and a seventh strong colour competing with them is what made the
+/// old identity feel scattered: the app's own red sat on top of a green OSCE
+/// station. So the brand is graphite and paper, and the colour on any given
+/// screen belongs to the mode you are in. The one exception is `signal`, used
+/// for the count-down to exam day - the only thing that should ever shout.
+enum Brand {
+    /// Every user-visible mention of the app reads this, so a rename is one
+    /// line. (Storage keys, URL schemes and file names keep their old
+    /// "vignette" / "redpen" spellings on purpose: renaming them would strand
+    /// data already on phones.)
+    static let name = "Stethoscore"
+
+    /// The tagline, where there is room for one.
+    static let line = "Listen \u{00B7} Learn \u{00B7} Score"
+
+    /// Near-black with a trace of blue: ink on paper, not a pure grey.
+    // the look (SwiftUI only; the name and line above also build on Linux,
+    // where the test suites run)
+    #if canImport(SwiftUI)
+    static let ink = Color(red: 0.08, green: 0.09, blue: 0.11)
+
+    /// The page. Warm rather than white, so long reading is easy on the eye.
+    static let paper = Color(red: 0.97, green: 0.96, blue: 0.93)
+
+    /// The icon's scarlet, and the colour of the one thing that should ever
+    /// shout: how long is left.
+    static let signal = Color(red: 0.886, green: 0.243, blue: 0.188)
+
+    /// The cool mark struck through the icon's page. The only other colour the
+    /// brand owns, kept for the answer to whatever the signal is counting down
+    /// to - and deliberately the opposite of scarlet, so the two never blur.
+    static let mark = Color(red: 0.549, green: 0.784, blue: 0.941)
+
+    /// The mark: three stacked rules pressed down into one.
+    ///
+    /// Drawn rather than shipped as an image so it stays sharp at any size and
+    /// picks up whatever colour the screen it sits on is using.
+    struct Mark: View {
+        var size: CGFloat = 28
+        var tint: Color = Brand.ink
+
+        var body: some View {
+            Canvas { context, canvasSize in
+                let w = canvasSize.width, h = canvasSize.height
+                // Three bars, each shorter and closer to the one below it:
+                // material being compressed towards a single line.
+                let widths: [CGFloat] = [1.0, 0.74, 0.48]
+                let tops: [CGFloat] = [0.10, 0.34, 0.54]
+                for (i, ratio) in widths.enumerated() {
+                    let barWidth: CGFloat = w * ratio
+                    let barX: CGFloat = (w - barWidth) / 2
+                    let barY: CGFloat = h * tops[i]
+                    let barHeight: CGFloat = h * 0.11
+                    let bar = CGRect(x: barX, y: barY, width: barWidth, height: barHeight)
+                    context.fill(Path(roundedRect: bar, cornerRadius: h * 0.055),
+                                 with: .color(tint.opacity(1 - Double(i) * 0.22)))
+                }
+                // and the point they are pressed into
+                var arrow = Path()
+                arrow.move(to: CGPoint(x: w * 0.30, y: h * 0.74))
+                arrow.addLine(to: CGPoint(x: w * 0.50, y: h * 0.94))
+                arrow.addLine(to: CGPoint(x: w * 0.70, y: h * 0.74))
+                context.stroke(arrow, with: .color(tint),
+                               style: StrokeStyle(lineWidth: h * 0.11,
+                                                  lineCap: .round, lineJoin: .round))
+            }
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+        }
+    }
+    #endif
+}
