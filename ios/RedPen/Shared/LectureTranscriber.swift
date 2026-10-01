@@ -37,6 +37,9 @@ enum LectureTranscriber {
         var start: Double
         var end: Double
         var words: [SpokenWord]
+        /// The cloud model that heard it (such as gemini-3.5-flash); nil on
+        /// the phone.
+        var model: String? = nil
     }
 
     enum Failure: LocalizedError {

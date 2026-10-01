@@ -93,6 +93,7 @@ enum LectureTranscriber {
         var start: Double
         var end: Double
         var words: [Word]
+        var model: String? = nil
     }
 }
 

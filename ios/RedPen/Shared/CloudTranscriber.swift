@@ -45,6 +45,9 @@ enum CloudTranscriber {
         var phrases: [CloudTranscript.Phrase]
         /// A loop was cut out of it, or it was cut off part way.
         var trimmed = false
+        /// The model that answered, as the server reports it (gemini-3.5-flash,
+        /// or gemini-3.5-flash-lite once Flash's day is spent).
+        var model: String? = nil
     }
 
     /// The whole recording as timed lines. `token` is the account's session
@@ -90,8 +93,9 @@ enum CloudTranscriber {
                 answer = try await ask(audio: audio, prompt: prompt, token: token)
                 done?.keep(answer, start: start, length: end - start)
             }
-            parts.append(CloudTranscript.PartNote(number: i + 1, trimmed: answer.trimmed))
-            lines += CloudTranscript.lines(from: answer.phrases, offset: start, length: end - start)
+            parts.append(CloudTranscript.PartNote(number: i + 1, trimmed: answer.trimmed, model: answer.model))
+            lines += CloudTranscript.lines(from: answer.phrases, offset: start, length: end - start,
+                                           model: answer.model)
         }
         done?.clear()
         return Outcome(lines: lines, parts: parts, total: starts.count)
@@ -183,18 +187,19 @@ enum CloudTranscriber {
             switch code {
             case 200:
                 let text = object?["text"] as? String ?? ""
+                let model = object?["model"] as? String
                 if let phrases = CloudTranscript.phrases(fromReply: text) {
                     let guarded = CloudTranscript.cutLoops(phrases)
                     if guarded.removed > 0 { Diagnostics.record(.warning, area: .transcribe, message: "transcribe.loop_cut") }
                     return Answer(phrases: guarded.phrases,
-                                  trimmed: guarded.removed >= CloudTranscript.loopWorthMentioning)
+                                  trimmed: guarded.removed >= CloudTranscript.loopWorthMentioning, model: model)
                 }
                 Diagnostics.record(.warning, area: .transcribe, message: "transcribe.unreadable_reply")
                 if let start = CloudTranscript.salvage(fromReply: text) {
                     let guarded = CloudTranscript.cutLoops(start)
                     if !guarded.phrases.isEmpty, guarded.removed > 0 || attempt == 1 {
                         Diagnostics.record(.warning, area: .transcribe, message: "transcribe.cut_off_kept")
-                        return Answer(phrases: guarded.phrases, trimmed: true)
+                        return Answer(phrases: guarded.phrases, trimmed: true, model: model)
                     }
                 }
                 lastError = .failed("Gemini's answer couldn't be read.")

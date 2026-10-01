@@ -105,6 +105,26 @@ check("a one-part lecture is the lecture", one.contains("the lecture") && !one.c
 check("parts are listed as a person would", CloudTranscript.partNames([1, 2, 6]) == "parts 1, 2 and 6"
       && CloudTranscript.partNames([4]) == "part 4")
 
+// which model heard each part
+let flash = CloudTranscript.PartNote(number: 1, model: "gemini-3.5-flash")
+let lite = CloudTranscript.PartNote(number: 2, model: "gemini-3.5-flash-lite")
+check("every part from 3.5 Flash needs no note", CloudTranscript.notice(for: [flash, flash], of: 2) == nil)
+check("a part whose model is not known is not called a downgrade",
+      !CloudTranscript.fellBack(.init(number: 1)) && CloudTranscript.fellBack(lite) && !CloudTranscript.fellBack(flash))
+let downgraded = CloudTranscript.notice(for: [flash, lite], of: 2) ?? ""
+check("a part Flash-Lite heard is named, never a silent downgrade",
+      downgraded.contains("Part 2 went to gemini-3.5-flash-lite"), downgraded)
+let both = CloudTranscript.notice(for: [flash, .init(number: 2, trimmed: true, model: "gemini-3.5-flash-lite")], of: 2) ?? ""
+check("a loop and a downgrade are both told", both.contains("repeating itself") && both.contains("flash-lite"), both)
+let heard = CloudTranscript.lines(from: phrases ?? [], offset: 0, length: 600, model: "gemini-3.5-flash-lite")
+check("each line keeps the model that heard it", !heard.isEmpty && heard.allSatisfy { $0.model == "gemini-3.5-flash-lite" })
+let kept = NarrateScheduler.segments(from: heard, lang: "ar")
+check("and so does the saved transcript", kept.allSatisfy { $0.model == "gemini-3.5-flash-lite" })
+let saved = try? JSONDecoder().decode(NarrateSegment.self, from: Data(#"{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","text":"hi","lang":"en"}"#.utf8))
+check("a line saved before models were kept still opens", saved?.text == "hi" && saved?.model == nil)
+let again = try? JSONDecoder().decode(NarrateSegment.self, from: JSONEncoder().encode(kept[0]))
+check("and the model is saved with the line", again?.model == "gemini-3.5-flash-lite")
+
 // timing, from times that can be trusted
 let lines = CloudTranscript.lines(from: phrases ?? [], offset: 600, length: 600)
 check("lines sit on the recording's clock, not the chunk's", lines.first?.start == 600.4, "\(lines.first?.start ?? -1)")

@@ -281,16 +281,40 @@ enum CloudTranscript {
         var number: Int
         /// A loop was cut out of it, so a little of the speech may be missing.
         var trimmed: Bool = false
+        /// The model that answered, as the server names it; nil when it
+        /// did not say.
+        var model: String? = nil
+    }
+
+    /// The model transcription is meant to use: the only one measured keeping
+    /// every English term in these lectures.
+    static let preferredModel = "gemini-3.5-flash"
+
+    /// True when a part was answered by a model other than the preferred one
+    /// (the server falls back to Flash-Lite once Flash's day is spent).
+    static func fellBack(_ part: PartNote) -> Bool {
+        guard let model = part.model else { return false }
+        return model != preferredModel
     }
 
     /// What the student is told once the transcript is ready, or nil when
     /// every part came back whole.
     static func notice(for parts: [PartNote], of total: Int) -> String? {
+        var said: [String] = []
         let trimmed = parts.filter(\.trimmed).map(\.number).sorted()
-        guard !trimmed.isEmpty else { return nil }
-        let which = total > 1 ? " in " + partNames(trimmed) : ""
-        return "Gemini got stuck repeating itself\(which), so the repeats were cut and a little of "
-            + (total > 1 ? (trimmed.count > 1 ? "those parts" : "that part") : "the lecture") + " may be missing."
+        if !trimmed.isEmpty {
+            let which = total > 1 ? " in " + partNames(trimmed) : ""
+            said.append("Gemini got stuck repeating itself\(which), so the repeats were cut and a little of "
+                + (total > 1 ? (trimmed.count > 1 ? "those parts" : "that part") : "the lecture") + " may be missing.")
+        }
+        // no silent downgrades: a part the lighter model heard is named
+        let lighter = parts.filter(fellBack)
+        if !lighter.isEmpty {
+            let models = Set(lighter.compactMap(\.model)).sorted().joined(separator: ", ")
+            let which = total > 1 ? partNames(lighter.map(\.number).sorted()).capitalizedFirst + " went" : "It went"
+            said.append("\(which) to \(models), because Gemini 3.5 Flash was busy or out of requests for today; it may spell some English terms less well.")
+        }
+        return said.isEmpty ? nil : said.joined(separator: "\n\n")
     }
 
     /// "part 3", "parts 2 and 5", "parts 1, 2 and 6".
@@ -309,7 +333,8 @@ enum CloudTranscript {
     /// has, which is how long it took to say to within a second or two.
     /// Word times inside a line are shared out the same way, so the highlight
     /// moves a word at a time rather than a line at a time.
-    static func lines(from phrases: [Phrase], offset: Double, length: Double) -> [LectureTranscriber.Line] {
+    static func lines(from phrases: [Phrase], offset: Double, length: Double,
+                      model: String? = nil) -> [LectureTranscriber.Line] {
         guard !phrases.isEmpty, length > 0 else { return [] }
         let times = trustworthy(phrases, length: length) ? clamped(phrases, length: length)
                                                          : spread(phrases, length: length)
@@ -317,7 +342,7 @@ enum CloudTranscript {
             let text = phrase.text.split { $0.isWhitespace }.joined(separator: " ")
             let words = share(text, from: offset + span.start, to: offset + span.end)
             return LectureTranscriber.Line(text: text, start: offset + span.start,
-                                           end: offset + span.end, words: words)
+                                           end: offset + span.end, words: words, model: model)
         }
     }
 
@@ -384,4 +409,9 @@ enum CloudTranscript {
         }
         return arabic >= latin && arabic > 0 ? "ar" : "en"
     }
+}
+
+private extension String {
+    /// "parts 2 and 5" as the start of a sentence.
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }
