@@ -49,7 +49,7 @@ apply; status lines are kept current as the work lands.
 | Goal | The verification pipeline as an explicit state machine with typed stage results and a time budget per stage. |
 | Verdict it follows | §22g: no LangGraph now. Task 4's audit: the Worker's accuracy engine is the spine; the Python verifier folds in as modules. |
 | Steps | 1. accuracy.js checkBatch as named stages (rules, evidence, votes, Jev, verdict, cache), each with a timeout and a result type, the same output as today (tests unchanged). 2. Background verification stays on the jobs Durable Object (already durable and resumable); Cloudflare Workflows only if a run ever needs more than its alarm loop gives. 3. Port the Python verifier's deterministic guards as a pre-vote claim gate (audit §10). |
-| Status | Not started. |
+| Status | Steps 1 and 3 built on design/plan-5d-stages. The gate's hold reaches the student: the reply's `claims.hard` is kept on the device (AccuracyRecord.claimHolds) and AccuracyLedger.assess re-grades from it, so a contradicted item, or one the gate failed on, is never Verified there either; a gate failure is asked about again later (from the cache). The gate's CPU is counted in work (MAX_WORK a batch): about 3 ms warm and 15 ms cold for the worst batch, within the free plan's 10 ms a request once an isolate is warm. Step 2 needs no change. |
 
 ## The §3c folder migration
 

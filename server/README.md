@@ -70,7 +70,11 @@ plan gives a request about 10 ms of CPU: the worst batch the server takes
 costs about 3 ms warm and 15 ms in a fresh isolate (where Python's Unicode
 `\b` would have cost 100 ms to compile, so each pattern also has an ASCII
 form used for text without letters beyond ASCII). A page cut short says so
-(`partial`), and a gate that fails holds the item at Check this. `tests/claims.test.mjs` holds the port to
+(`partial`), and a gate that fails holds the item at Check this. The app keeps
+the hard findings with the item's votes (`AccuracyRecord.claimHolds`) and
+re-grades from them on the phone, so the hold reaches the student; an item the
+gate failed on is asked about again later, and its votes then come from the
+cache. `tests/claims.test.mjs` holds the port to
 what the Python said on its 35 shared conformance vectors and on
 Stethoscore-shaped pairs (`tests/claim-vectors.json`, made by
 `bench/claim-vectors.py` from a checkout of the verifier).
