@@ -31,10 +31,26 @@ enum CloudTranscriber {
         }
     }
 
+    /// The whole recording: its timed lines, and a note on each part that
+    /// did not come back whole.
+    struct Outcome {
+        var lines: [LectureTranscriber.Line]
+        var parts: [CloudTranscript.PartNote]
+        /// How many parts the recording was sent in.
+        var total: Int
+    }
+
+    /// One part as Gemini answered it.
+    struct Answer: Codable {
+        var phrases: [CloudTranscript.Phrase]
+        /// A loop was cut out of it, or it was cut off part way.
+        var trimmed = false
+    }
+
     /// The whole recording as timed lines. `token` is the account's session
     /// (or the owner key in the owner's build).
     static func transcribe(fileAt url: URL, vocabulary: [String], language: LectureLanguage = .mixed, token: String?,
-                           onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> [LectureTranscriber.Line] {
+                           onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }) async throws -> Outcome {
         guard let token, !token.isEmpty else { throw Failure.needsPro }
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration).seconds
@@ -59,24 +75,26 @@ enum CloudTranscriber {
         // never finish in the cloud at all.
         let done = ChunkCache(recording: url)
         var lines: [LectureTranscriber.Line] = []
+        var parts: [CloudTranscript.PartNote] = []
         for (i, start) in starts.enumerated() {
             try Task.checkCancellation()
             onProgress(i + 1, starts.count)
             let end = i + 1 < starts.count ? starts[i + 1] : duration
-            let phrases: [CloudTranscript.Phrase]
-            if let kept = done?.phrases(start: start, length: end - start) {
-                phrases = kept
+            let answer: Answer
+            if let kept = done?.answer(start: start, length: end - start) {
+                answer = kept
             } else {
                 let piece = folder.appendingPathComponent("\(i).m4a")
                 try await exportChunk(of: asset, start: start, length: end - start, to: piece)
                 let audio = try Data(contentsOf: piece)
-                phrases = try await ask(audio: audio, prompt: prompt, token: token)
-                done?.keep(phrases, start: start, length: end - start)
+                answer = try await ask(audio: audio, prompt: prompt, token: token)
+                done?.keep(answer, start: start, length: end - start)
             }
-            lines += CloudTranscript.lines(from: phrases, offset: start, length: end - start)
+            parts.append(CloudTranscript.PartNote(number: i + 1, trimmed: answer.trimmed))
+            lines += CloudTranscript.lines(from: answer.phrases, offset: start, length: end - start)
         }
         done?.clear()
-        return lines
+        return Outcome(lines: lines, parts: parts, total: starts.count)
     }
 
     /// The chunks of one recording already transcribed, on disk in Caches,
@@ -104,13 +122,16 @@ enum CloudTranscriber {
             folder.appendingPathComponent("\(Int((start * 1000).rounded()))-\(Int((length * 1000).rounded())).json")
         }
 
-        func phrases(start: Double, length: Double) -> [CloudTranscript.Phrase]? {
+        /// A part kept by an earlier run; one kept before answers carried
+        /// anything but their phrases is read as it was.
+        func answer(start: Double, length: Double) -> Answer? {
             guard let data = try? Data(contentsOf: file(start: start, length: length)) else { return nil }
-            return try? JSONDecoder().decode([CloudTranscript.Phrase].self, from: data)
+            if let answer = try? JSONDecoder().decode(Answer.self, from: data) { return answer }
+            return (try? JSONDecoder().decode([CloudTranscript.Phrase].self, from: data)).map { Answer(phrases: $0) }
         }
 
-        func keep(_ phrases: [CloudTranscript.Phrase], start: Double, length: Double) {
-            guard let data = try? JSONEncoder().encode(phrases) else { return }
+        func keep(_ answer: Answer, start: Double, length: Double) {
+            guard let data = try? JSONEncoder().encode(answer) else { return }
             try? data.write(to: file(start: start, length: length), options: .atomic)
         }
 
@@ -147,15 +168,35 @@ enum CloudTranscriber {
 
     /// One chunk. An unreadable answer or a server hiccup gets one more try;
     /// anything the server says in words is passed on as it is.
-    static func ask(audio: Data, prompt: String, token: String) async throws -> [CloudTranscript.Phrase] {
+    ///
+    /// A reply that went round in circles has the loop cut out (see
+    /// CloudTranscript.cutLoops). One that ran on to the token limit has no
+    /// end to its JSON: what it wrote before the loop is kept rather than the
+    /// whole lecture going back to the phone - at once when a loop shows in
+    /// it, since at temperature 0 another try would most likely loop again,
+    /// otherwise after the second try.
+    static func ask(audio: Data, prompt: String, token: String) async throws -> Answer {
         var lastError: Failure = .failed("Gemini's answer couldn't be read.")
         for attempt in 0..<2 {
             let (code, object) = try await post(audio: audio, prompt: prompt, token: token)
             let message = object?["message"] as? String
             switch code {
             case 200:
-                if let text = object?["text"] as? String, let phrases = CloudTranscript.phrases(fromReply: text) { return phrases }
+                let text = object?["text"] as? String ?? ""
+                if let phrases = CloudTranscript.phrases(fromReply: text) {
+                    let guarded = CloudTranscript.cutLoops(phrases)
+                    if guarded.removed > 0 { Diagnostics.record(.warning, area: .transcribe, message: "transcribe.loop_cut") }
+                    return Answer(phrases: guarded.phrases,
+                                  trimmed: guarded.removed >= CloudTranscript.loopWorthMentioning)
+                }
                 Diagnostics.record(.warning, area: .transcribe, message: "transcribe.unreadable_reply")
+                if let start = CloudTranscript.salvage(fromReply: text) {
+                    let guarded = CloudTranscript.cutLoops(start)
+                    if !guarded.phrases.isEmpty, guarded.removed > 0 || attempt == 1 {
+                        Diagnostics.record(.warning, area: .transcribe, message: "transcribe.cut_off_kept")
+                        return Answer(phrases: guarded.phrases, trimmed: true)
+                    }
+                }
                 lastError = .failed("Gemini's answer couldn't be read.")
             case 401: throw Failure.failed("Please sign in again to use cloud transcription.")
             case 402: throw Failure.needsPro

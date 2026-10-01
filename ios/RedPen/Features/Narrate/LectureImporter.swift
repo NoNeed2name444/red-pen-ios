@@ -80,13 +80,15 @@ final class LectureImporter: ObservableObject {
                 inCloud = true
                 defer { inCloud = false }
                 do {
-                    lines = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
+                    let outcome = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
                                                                   language: language, token: LocalLLMService.shared.cloudToken) { part, parts in
                         Task { @MainActor [weak self] in
                             self?.working = parts > 1 ? "Gemini is transcribing part \(part) of \(parts)"
                                                       : "Gemini is transcribing"
                         }
                     }
+                    lines = outcome.lines
+                    notice = CloudTranscript.notice(for: outcome.parts, of: outcome.total)
                     byLine = true
                 } catch is CancellationError {
                     working = nil

@@ -53,6 +53,58 @@ check("a fenced answer is read too",
       CloudTranscript.phrases(fromReply: "```json\n" + reply + "\n```")?.count == 2)
 check("prose is not a transcript", CloudTranscript.phrases(fromReply: "Here is the transcript: hello") == nil)
 
+// a reply cut off at the token limit keeps what came before
+let cutOff = """
+[{"start": 0.4, "end": 3.1, "text": "الـ malar rash بتاعة الـ SLE"},
+ {"start": 3.3, "end": 6.0, "text": "spares the nasolabial folds"},
+ {"start": 6.2, "end": 9.8, "text": "skin skin skin sk
+"""
+check("a cut-off reply is not read as a whole one", CloudTranscript.phrases(fromReply: cutOff) == nil)
+check("but its complete phrases are kept", CloudTranscript.salvage(fromReply: cutOff)?.map(\.text)
+      == ["الـ malar rash بتاعة الـ SLE", "spares the nasolabial folds"],
+      "\(String(describing: CloudTranscript.salvage(fromReply: cutOff)))")
+check("a fenced cut-off reply too", CloudTranscript.salvage(fromReply: "```json\n" + cutOff)?.count == 2)
+check("prose has nothing to keep", CloudTranscript.salvage(fromReply: "Here is the transcript: {hello}") == nil)
+check("nor does a reply cut off in its first phrase", CloudTranscript.salvage(fromReply: "[{\"start\": 0, \"end\": 2, \"te") == nil)
+
+// the runaway-loop guard
+check("a word said over and over is cut back to once",
+      CloudTranscript.cutRepeats(in: "the rash " + Array(repeating: "skin", count: 400).joined(separator: " ")) == "the rash skin")
+check("so is a looping line of several words",
+      CloudTranscript.cutRepeats(in: String(repeating: "the malar rash spares the folds ", count: 30))
+          == "the malar rash spares the folds")
+check("a lecturer repeating a term is left alone",
+      CloudTranscript.cutRepeats(in: "malar rash, malar rash, the malar rash") == "malar rash, malar rash, the malar rash")
+check("three times in a row is still speech", CloudTranscript.cutRepeats(in: "no no no") == "no no no")
+check("Arabic loops are cut the same way",
+      CloudTranscript.cutRepeats(in: Array(repeating: "يعني كده", count: 10).joined(separator: " ")) == "يعني كده")
+let normal = (0..<150).map { Phrase(start: Double($0) * 4, end: Double($0) * 4 + 3.5, text: "phrase number \($0) about lupus") }
+let unchanged = CloudTranscript.cutLoops(normal)
+check("a normal chunk passes untouched", unchanged.removed == 0 && unchanged.phrases == normal)
+let block = [Phrase(start: 600, end: 601, text: "and the kidney"), Phrase(start: 601, end: 602, text: "is involved.")]
+let looped = Array(normal.prefix(20)) + Array(Array(repeating: block, count: 40).joined())
+let guarded = CloudTranscript.cutLoops(looped)
+check("the same two phrases forty times keep one round",
+      guarded.phrases.count == 22 && guarded.phrases.suffix(2).map(\.text) == ["and the kidney", "is involved."],
+      "\(guarded.phrases.count)")
+check("and count what was cut", guarded.removed == 39 * 5, "\(guarded.removed)")
+check("enough to tell the student", guarded.removed >= CloudTranscript.loopWorthMentioning)
+let echo = [Phrase(start: 0, end: 1, text: "Malar rash."), Phrase(start: 1, end: 2, text: "malar rash"),
+            Phrase(start: 2, end: 3, text: "Malar rash!"), Phrase(start: 3, end: 4, text: "the cheeks")]
+check("a phrase said three times running is speech", CloudTranscript.cutLoops(echo).removed == 0)
+let fourEchoes = [echo[0], echo[1], echo[2], echo[1], echo[3]]
+check("four times, whatever the punctuation, is a loop", CloudTranscript.cutLoops(fourEchoes).phrases.count == 2)
+
+// what the student is told
+check("whole parts need no note",
+      CloudTranscript.notice(for: [.init(number: 1), .init(number: 2)], of: 2) == nil)
+let told = CloudTranscript.notice(for: [.init(number: 1), .init(number: 2, trimmed: true), .init(number: 3, trimmed: true)], of: 3) ?? ""
+check("trimmed parts are named", told.contains("parts 2 and 3") && told.contains("those parts"), told)
+let one = CloudTranscript.notice(for: [.init(number: 1, trimmed: true)], of: 1) ?? ""
+check("a one-part lecture is the lecture", one.contains("the lecture") && !one.contains("part 1"), one)
+check("parts are listed as a person would", CloudTranscript.partNames([1, 2, 6]) == "parts 1, 2 and 6"
+      && CloudTranscript.partNames([4]) == "part 4")
+
 // timing, from times that can be trusted
 let lines = CloudTranscript.lines(from: phrases ?? [], offset: 600, length: 600)
 check("lines sit on the recording's clock, not the chunk's", lines.first?.start == 600.4, "\(lines.first?.start ?? -1)")

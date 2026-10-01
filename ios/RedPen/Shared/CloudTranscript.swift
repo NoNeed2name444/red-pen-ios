@@ -181,6 +181,125 @@ enum CloudTranscript {
         return phrases.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
+    /// The complete phrases at the start of a reply that was cut off part way,
+    /// or nil when there are none. A model that starts repeating itself runs
+    /// on to the token limit and leaves JSON with no end; what it wrote before
+    /// the loop is still a transcript.
+    static func salvage(fromReply reply: String) -> [Phrase]? {
+        var body = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if body.hasPrefix("```") { body = body.components(separatedBy: "\n").dropFirst().joined(separator: "\n") }
+        guard body.hasPrefix("[") else { return nil }
+        var end = body.endIndex
+        // back from the end, one closing brace at a time: the last complete
+        // phrase is usually the first one tried
+        for _ in 0..<64 {
+            guard let close = body.range(of: "}", options: .backwards, range: body.startIndex..<end) else { return nil }
+            if let data = (body[..<close.upperBound] + "]").data(using: .utf8),
+               let phrases = try? JSONDecoder().decode([Phrase].self, from: data) {
+                let kept = phrases.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                return kept.isEmpty ? nil : kept
+            }
+            end = close.lowerBound
+        }
+        return nil
+    }
+
+    // MARK: a reply that went round in circles
+
+    /// A run said this many times in a row, or more, is a model stuck in a
+    /// loop rather than a lecturer repeating a point.
+    static let loopRepeats = 4
+    /// The longest run looked for: words inside a phrase, phrases in a reply.
+    static let loopLongestRun = 6
+
+    /// One phrase with any run of one to six words said four or more times in
+    /// a row cut back to once - the transcription pipeline's guard
+    /// (red-pen-transcribe transcribe.yml), on Gemini's own phrases. A
+    /// lecturer saying "malar rash" twice is left alone.
+    static func cutRepeats(in text: String) -> String {
+        let padded = text + " "
+        guard let loop = try? NSRegularExpression(pattern: "(\\b(?:\\S+\\s+){1,\(loopLongestRun)}?)(?:\\1){\(loopRepeats - 1),}") else { return text }
+        let whole = NSRange(padded.startIndex..., in: padded)
+        let cut = loop.stringByReplacingMatches(in: padded, range: whole, withTemplate: "$1")
+        return cut == padded ? text : cut.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// The phrases with runaway repetition taken out, and how many words that
+    /// removed (none: nothing was a loop).
+    ///
+    /// The pipeline's own test (cohere_asr.py degenerate: one word at least
+    /// 30% of a window) was tuned for 30-second windows and almost never
+    /// fires on ten minutes of speech: "skin" said 400 times inside a normal
+    /// chunk is only a fifth of its words, and a looping line of four
+    /// different words can never reach the share at all. A loop is a run
+    /// coming round again and again in a row, so that is what is looked for:
+    /// inside each phrase, and as the same one to six phrases repeated.
+    static func cutLoops(_ phrases: [Phrase]) -> (phrases: [Phrase], removed: Int) {
+        func words(_ text: String) -> Int { text.split { $0.isWhitespace }.count }
+        let cleaned = phrases.map { phrase -> Phrase in
+            var phrase = phrase
+            phrase.text = cutRepeats(in: phrase.text)
+            return phrase
+        }
+        let keys = cleaned.map { $0.text.lowercased().split { $0.isWhitespace || $0.isPunctuation }.joined(separator: " ") }
+        var kept: [Phrase] = []
+        var i = 0
+        while i < cleaned.count {
+            var skipTo: Int?
+            for period in 1...loopLongestRun where i + period * loopRepeats <= cleaned.count {
+                let block = keys[i..<(i + period)]
+                guard block.contains(where: { !$0.isEmpty }) else { continue }
+                var times = 1
+                while i + (times + 1) * period <= keys.count,
+                      keys[(i + times * period)..<(i + (times + 1) * period)].elementsEqual(block) { times += 1 }
+                if times >= loopRepeats {
+                    kept += cleaned[i..<(i + period)]
+                    skipTo = i + times * period
+                    break
+                }
+            }
+            if let skipTo {
+                i = skipTo
+            } else {
+                kept.append(cleaned[i])
+                i += 1
+            }
+        }
+        let before = phrases.reduce(0) { $0 + words($1.text) }
+        let after = kept.reduce(0) { $0 + words($1.text) }
+        return (kept, before - after)
+    }
+
+    /// Words cut from one part before the student is told about it: a
+    /// lecturer's "no, no, no, no" cut back to one is not worth an alert.
+    static let loopWorthMentioning = 20
+
+    /// One part of a lecture as Gemini answered it, for the note shown when
+    /// the transcript is ready.
+    struct PartNote: Codable, Equatable {
+        /// 1 for the first ten minutes.
+        var number: Int
+        /// A loop was cut out of it, so a little of the speech may be missing.
+        var trimmed: Bool = false
+    }
+
+    /// What the student is told once the transcript is ready, or nil when
+    /// every part came back whole.
+    static func notice(for parts: [PartNote], of total: Int) -> String? {
+        let trimmed = parts.filter(\.trimmed).map(\.number).sorted()
+        guard !trimmed.isEmpty else { return nil }
+        let which = total > 1 ? " in " + partNames(trimmed) : ""
+        return "Gemini got stuck repeating itself\(which), so the repeats were cut and a little of "
+            + (total > 1 ? (trimmed.count > 1 ? "those parts" : "that part") : "the lecture") + " may be missing."
+    }
+
+    /// "part 3", "parts 2 and 5", "parts 1, 2 and 6".
+    static func partNames(_ numbers: [Int]) -> String {
+        let names = numbers.map(String.init)
+        guard names.count > 1 else { return "part " + (names.first ?? "") }
+        return "parts " + names.dropLast().joined(separator: ", ") + " and " + names.last!
+    }
+
     /// Phrases as timed lines on the recording's own clock.
     ///
     /// Gemini's times are close but not exact, and now and then nonsense - all
