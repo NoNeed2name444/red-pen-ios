@@ -7,9 +7,10 @@ import UserNotifications
 /// iOS 26's continued processing task: work a person started - writing forty
 /// questions, a textbook - carries on in the background with the system's own
 /// progress indicator, whether it runs on this device's model or asks the
-/// cloud. The system may stop it under pressure (and the expiration handler
-/// then cancels the job cleanly); swiping the app away ends it, as it ends
-/// every app's work.
+/// cloud. The system may stop it under pressure, or the student with Stop on
+/// its progress indicator (the expiration handler cannot tell which, so one
+/// while the app is away is taken as the student's); swiping the app away
+/// ends it, as it ends every app's work.
 @MainActor
 enum BackgroundWork {
     private static var running: [UUID: BGContinuedProcessingTask] = [:]
@@ -44,7 +45,15 @@ enum BackgroundWork {
                 task.progress.totalUnitCount = 100
                 task.expirationHandler = {
                     Task { @MainActor in
-                        if GenerationCenter.shared.job?.id == id { GenerationCenter.shared.cancel() }
+                        // The handler is not told why: the system ending the
+                        // work, or the student's Stop on the progress
+                        // indicator, which is shown only while the app is
+                        // away. Only an expiry on screen is surely the
+                        // system's, and keeps the cloud job under it
+                        // (CloudJobRules.stopAtExpiry).
+                        guard GenerationCenter.shared.job?.id == id else { return }
+                        let active = UIApplication.shared.applicationState == .active
+                        GenerationCenter.shared.stopAtExpiry(appActive: active)
                     }
                 }
             }

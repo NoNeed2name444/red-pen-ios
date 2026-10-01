@@ -22,17 +22,39 @@ final class GenerationCenter: ObservableObject {
 
     @Published private(set) var job: Job?
     private var stop: (() -> Void)?
+    /// The running job's cloud deliveries, told who stopped it.
+    private var keep: CloudJobs.Delivery?
+    /// The screen that started the running job (New set), if any.
+    private var owner: UUID?
 
-    /// Starts showing a job. `onCancel` must cancel the work's Task and put
-    /// the screen that started it back to idle; it runs on the main actor.
+    /// Why a new generation cannot start now, in words for the student; nil
+    /// when nothing is running. Asked before a screen starts anything.
+    var busy: String? {
+        if case .refuse(let why) = GenerationRules.admit(running: job?.title) { return why }
+        return nil
+    }
+
+    /// Starts showing a job, or refuses with nil while another one runs.
+    /// `onCancel` must cancel the work's Task and put the screen that
+    /// started it back to idle; it runs on the main actor. `delivery`: the
+    /// generation's cloud deliveries, if it may run a cloud job. `owner`:
+    /// the screen it is started under (`generationOwner`), which stops it
+    /// when it closes.
     @discardableResult
-    func begin(_ title: String, total: Int, onCancel: @escaping () -> Void) -> UUID {
-        // one job at a time: whatever was running is stopped, not orphaned
-        // to finish later into a draft that has moved on
-        if job != nil { cancel() }
+    func begin(_ title: String, total: Int, owner: UUID? = nil, keeping delivery: CloudJobs.Delivery? = nil,
+               onCancel: @escaping () -> Void) -> UUID? {
+        // One job at a time, and the one running is never stopped to make
+        // room: a cancelled cloud job is deleted on the server with what it
+        // had written (GenerationRules). Only the student stops it (the
+        // card's Cancel, closing the screen that started it, or Stop on the
+        // system's progress indicator), or the system, which leaves its cloud
+        // job to finish when the app can tell it was the system (stopAtExpiry).
+        guard GenerationRules.admit(running: job?.title) == .start else { return nil }
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
         stop = onCancel
+        keep = delivery
+        self.owner = owner
         // carries on if the student leaves the app, and says when it is done
         BackgroundWork.begin(id, title: title)
         Task { await AppNotifications.requestIfNeeded() }
@@ -60,6 +82,8 @@ final class GenerationCenter: ObservableObject {
         let title = job?.title
         job = nil
         stop = nil
+        keep = nil
+        owner = nil
         BackgroundWork.end(id, success: finished != nil)
         if let finished { AppNotifications.generationFinished(finished, body: title.map { "Done: \($0.lowercased())." } ?? "Done.") }
     }
@@ -69,7 +93,25 @@ final class GenerationCenter: ObservableObject {
         if let id = job?.id { BackgroundWork.end(id, success: false) }
         job = nil
         stop = nil
+        keep = nil
+        owner = nil
         stopping?()
+    }
+
+    /// A screen is closing (New set): what it started stops, as with Cancel,
+    /// and nothing else does (GenerationRules.closingStops).
+    func cancel(startedBy screen: UUID) {
+        guard job != nil, GenerationRules.closingStops(running: owner, closing: screen) else { return }
+        cancel()
+    }
+
+    /// The continued processing task expired (BackgroundWork). The work
+    /// stops as with Cancel; a cloud job under it is kept for the collector
+    /// only when the stop was surely the system's, not the student's Stop on
+    /// the progress indicator (CloudJobRules.stopAtExpiry, afterStop).
+    func stopAtExpiry(appActive: Bool) {
+        keep?.stopped(by: CloudJobRules.stopAtExpiry(appActive: appActive))
+        cancel()
     }
 }
 
@@ -168,6 +210,19 @@ private struct GenerationLines: View {
                 Text(phase).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
         }
+    }
+}
+
+/// The screen that generations started under here belong to: New set gives
+/// everything in it one, so closing it stops only what it started.
+private struct GenerationOwnerKey: EnvironmentKey {
+    static let defaultValue: UUID? = nil
+}
+
+extension EnvironmentValues {
+    var generationOwner: UUID? {
+        get { self[GenerationOwnerKey.self] }
+        set { self[GenerationOwnerKey.self] = newValue }
     }
 }
 

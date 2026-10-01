@@ -49,6 +49,15 @@ struct StethoscoreCoreApp: App {
                         .task { await SampleLectures.seed(into: store) }
                         // sets the cloud finished while the app was closed
                         .task { await CloudJobCollector.collect(into: store) }
+                        // a finished cloud job whose result its screen could
+                        // not download: asked for again every minute while
+                        // the app is open, not left for a relaunch
+                        .task {
+                            while !Task.isCancelled {
+                                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                                if CloudJobs.handedOver { await CloudJobCollector.collect(into: store) }
+                            }
+                        }
                         // the accuracy engine checks new and edited content
                         .task { AccuracyStore.shared.attach(store) }
                         .task {

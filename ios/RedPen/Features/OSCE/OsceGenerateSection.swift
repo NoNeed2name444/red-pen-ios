@@ -23,6 +23,8 @@ struct OsceGenerateSection: View {
     var presetText: String = ""
     var presetName: String = ""
     @EnvironmentObject private var llm: LocalLLMService
+    /// The New set this is in: closing it stops what this started, and only that.
+    @Environment(\.generationOwner) private var generationOwner
 
     @State private var picking = false
     @State private var working = false
@@ -176,6 +178,11 @@ struct OsceGenerateSection: View {
 
     private func start() {
         trouble = nil
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            trouble = busy
+            return
+        }
         working = true
         let wanted = stationCount, subj = subject, text = sourceText
         status = "Writing 0 of \(wanted)\u{2026}"
@@ -184,18 +191,25 @@ struct OsceGenerateSection: View {
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
         let plural: String = wanted == 1 ? "" : "s"
         let jobTitle: String = "Writing \(wanted) station\(plural)"
-        let job = GenerationCenter.shared.begin(jobTitle, total: wanted) {
+        // A cloud job's replies stay kept - on this device and on the
+        // server - until this generation is done with them, however it
+        // ends: an app closed while they are checked or saved finds them
+        // again on its next launch (CloudJobs.Delivery). Made before the
+        // card, which tells it when the system stopped the generation.
+        let delivery = CloudJobs.Delivery()
+        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, owner: generationOwner,
+                                                      keeping: delivery, onCancel: {
             task?.cancel()
             task = nil
             working = false
             status = "Cancelled."
+        }) else {
+            working = false
+            status = nil
+            trouble = GenerationCenter.shared.busy
+            return
         }
         task = Task {
-            // A cloud job's replies stay kept - on this device and on the
-            // server - until this generation is done with them, however it
-            // ends: an app closed while they are checked or saved finds them
-            // again on its next launch (CloudJobs.Delivery).
-            let delivery = CloudJobs.Delivery()
             defer { CloudJobs.finish(delivery) }
             do {
                 let progress: (Int, Int) -> Void = { done, total in

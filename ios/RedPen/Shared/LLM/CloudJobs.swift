@@ -51,8 +51,21 @@ enum CloudJobs {
         private var byKey: [String: String] = [:]
         private var evidence: [String: [EvidenceRef]] = [:]
         private var held: [(id: String, base: URL, bearer: String)] = []
+        private var stop: CloudJobRules.Stop = .student
 
         init() {}
+
+        /// Who stopped the generation, if it was stopped: the student, unless
+        /// the system surely was (GenerationCenter.stopAtExpiry).
+        var stoppedBy: CloudJobRules.Stop {
+            lock.lock(); defer { lock.unlock() }
+            return stop
+        }
+
+        func stopped(by who: CloudJobRules.Stop) {
+            lock.lock(); defer { lock.unlock() }
+            stop = who
+        }
 
         func receive(_ verdicts: [Verdict]) {
             lock.lock(); defer { lock.unlock() }
@@ -86,7 +99,15 @@ enum CloudJobs {
     /// ends (a `defer`), so nothing waits for it.
     static func finish(_ delivery: Delivery?) {
         guard let delivery else { return }
+        let fate = CloudJobRules.afterStop(delivery.stoppedBy)
         for job in delivery.takeHeld() {
+            if fate == .handOver {
+                // stopped by the system before the screen was done with the
+                // replies: kept, replies and all, for the collector to make
+                // into a set
+                handOver(job.id)
+                continue
+            }
             remove(job.id)
             // from a task of its own: the generation's may be cancelled
             let endpoint: (base: URL, bearer: String) = (base: job.base, bearer: job.bearer)
@@ -237,7 +258,25 @@ enum CloudJobs {
                 }
                 switch status.status {
                 case "done":
-                    let fetched = try await self.result(id, at: endpoint)
+                    let fetched: (outputs: [String], checks: [Verdict])
+                    do {
+                        fetched = try await resultRetrying(id, at: endpoint)
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        // a stop that came while it was asking is a stop,
+                        // however the request reports it
+                        try Task.checkCancellation()
+                        // Finished, and kept on the server: handed to the
+                        // collector, which makes the set while the app is
+                        // open (every minute, RedPenApp) or at the next
+                        // launch. It used to wait for a relaunch, the
+                        // student told only that something went wrong.
+                        pending.launch = nil
+                        save(pending)
+                        Diagnostics.record(.warning, area: .cloudJobs, message: "cloud_job.result_handed_over")
+                        throw LLMError.notReady(CloudJobRules.handedOverMessage(pending.what))
+                    }
                     // this generation's verdicts, not a global another job
                     // could replace while it is still reading them
                     CloudChecks.server(fetched.checks)
@@ -267,9 +306,17 @@ enum CloudJobs {
                 }
             }
         } catch is CancellationError {
-            remove(id)
-            // from a task of its own: this one is cancelled, and its requests with it
-            await Task.detached { await CloudJobs.forget(id, at: endpoint) }.value
+            switch CloudJobRules.afterStop(context?.delivery?.stoppedBy ?? .student) {
+            case .handOver:
+                // the system stopped it, not the student: the server finishes
+                // it and the collector makes the set
+                pending.launch = nil
+                save(pending)
+            case .delete:
+                remove(id)
+                // from a task of its own: this one is cancelled, and its requests with it
+                await Task.detached { await CloudJobs.forget(id, at: endpoint) }.value
+            }
             throw CancellationError()
         }
     }
@@ -288,6 +335,31 @@ enum CloudJobs {
     static func result(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> (outputs: [String], checks: [Verdict]) {
         let fetched: Fetched = try await call("GET", "jobs/\(id)?outputs=1", at: endpoint)
         return (fetched.outputs ?? [], fetched.checks ?? [])
+    }
+
+    /// A finished job's result, asked for again after a failed request, with
+    /// waits between (CloudJobRules.afterFailedFetch), while the screen
+    /// waits. Throws the last failure once the rules hand the job over.
+    static func resultRetrying(_ id: String, at endpoint: (base: URL, bearer: String)) async throws -> (outputs: [String], checks: [Verdict]) {
+        var failed = 0
+        while true {
+            do {
+                return try await result(id, at: endpoint)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+                failed += 1
+                var code: Int?
+                if case LLMError.http(let status, _) = error { code = status }
+                switch CloudJobRules.afterFailedFetch(failed: failed, status: code) {
+                case .after(let seconds):
+                    try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                case .handOver:
+                    throw error
+                }
+            }
+        }
     }
 
     /// Stops a job, or clears a collected one off the server.
@@ -333,6 +405,23 @@ enum CloudJobs {
 
     static func remove(_ id: String) {
         try? FileManager.default.removeItem(at: folder.appendingPathComponent(id + ".json"))
+    }
+
+    /// Hands a kept job to the collector: its record no longer names this
+    /// run of the app, so the next collection makes it into a set.
+    static func handOver(_ id: String) {
+        let file = folder.appendingPathComponent(id + ".json")
+        guard let data = try? Data(contentsOf: file),
+              var current = try? JSONDecoder().decode(Pending.self, from: data) else { return }
+        current.launch = nil
+        save(current)
+    }
+
+    /// Whether a job of this run was handed to the collector (its screen
+    /// stopped waiting for it): asked about every minute while the app is
+    /// open, rather than only when it next comes to the front.
+    static var handedOver: Bool {
+        pending().contains { $0.launch == nil }
     }
 
     static func pending() -> [Pending] {

@@ -11,6 +11,8 @@ struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
     @EnvironmentObject var subscriptions: SubscriptionStore
+    /// The New set this is in: closing it stops what this started, and only that.
+    @Environment(\.generationOwner) private var generationOwner
 
     @Binding var sourceText: String
     @Binding var questionCount: Int
@@ -217,6 +219,11 @@ struct MCQGenerateForm: View {
         // then the paywall opens instead of the work starting - nothing is
         // generated and then taken away, which is the version people hate.
         if llm.needsPro(.writer) { showPaywall = true; return }
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            generationStatus = busy
+            return
+        }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true
@@ -225,18 +232,24 @@ struct MCQGenerateForm: View {
         let cite = readSource
         let writer = llm.backend(for: .writer)
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count) {
+        // A cloud job's replies stay kept - on this device and on the
+        // server - until this generation is done with them, however it
+        // ends: an app closed while they are checked or saved finds them
+        // again on its next launch (CloudJobs.Delivery). Made before the
+        // card, which tells it when the system stopped the generation.
+        let delivery = CloudJobs.Delivery()
+        guard let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count, owner: generationOwner,
+                                                      keeping: delivery, onCancel: {
             generationTask?.cancel()
             generationTask = nil
             isGenerating = false
             generationStatus = "Cancelled."
+        }) else {
+            isGenerating = false
+            generationStatus = GenerationCenter.shared.busy
+            return
         }
         generationTask = Task {
-            // A cloud job's replies stay kept - on this device and on the
-            // server - until this generation is done with them, however it
-            // ends: an app closed while they are checked or saved finds them
-            // again on its next launch (CloudJobs.Delivery).
-            let delivery = CloudJobs.Delivery()
             defer { CloudJobs.finish(delivery) }
             do {
                 let progress: (Int, Int) -> Void = { done, total in
