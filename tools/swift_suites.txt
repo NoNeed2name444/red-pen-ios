@@ -139,6 +139,11 @@ suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
 # the Graphics setting (Automatic / High quality / Smooth), even
 # frame steps, and every link one smooth curve
 suite graphics GraphicsTests.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
+# every shader modifier of the 3D map read as Metal's compiler would:
+# declared before use, arguments declared and used, brackets, Metal only
+# (tools/shader_check.py compiles them against a stand-in for Metal)
+suite shaders ShaderSourceTests.swift $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift \
+      $F/Notes/GraphCircuitShaders.swift $F/Notes/GraphShaderCatalog.swift
 # the Neurons theme: folders as brain regions and relays down the
 # pathway, notes as neurons, glia and receptors - the ladder, no
 # overlaps, pathways running outward, impulses at random times
