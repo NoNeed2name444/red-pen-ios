@@ -81,6 +81,7 @@ def main():
     ap.add_argument("--platform", choices=["linux", "mac", "any"], default="any",
                     help="linux: skip mac-only suites; mac: only mac-only suites")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--list-chosen", action="store_true", help="print the suites that would run, and stop")
     ap.add_argument("--classify", action="store_true", help="rewrite the mac-only list from this run's NO BUILDs")
     ap.add_argument("-j", type=int, default=os.cpu_count() or 2)
     ap.add_argument("--swiftc", default=shutil.which("swiftc") or "/opt/swift/usr/bin/swiftc")
@@ -103,6 +104,8 @@ def main():
             chosen = [n for n in chosen if ("ios/RedPen/Tests/" + all_s[n][0]) in changed or set(all_s[n][1]) & changed]
     if a.platform == "linux": chosen = [n for n in chosen if n not in macs]
     if a.platform == "mac": chosen = [n for n in chosen if n in macs]
+    if a.list_chosen:
+        print("\n".join(chosen)); return 0
     if not chosen:
         print("no suites to run"); return 0
     fixtures()

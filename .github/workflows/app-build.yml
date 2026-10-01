@@ -37,7 +37,10 @@ jobs:
           # the errors, where they can be read without downloading anything
           { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
+      # The simulator tap-through takes most of the run; a design branch gets the
+      # compile check only, and the full suite runs when it reaches personal.
       - name: Tap through sign-in and the terms on a simulator
+        if: ${{ !startsWith(github.ref_name, 'design/') }}
         working-directory: ios
         run: |
           set -o pipefail

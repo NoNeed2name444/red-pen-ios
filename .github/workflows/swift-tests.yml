@@ -50,12 +50,29 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.4-noble
     timeout-minutes: 20
+    outputs:
+      mac: ${{ steps.mac.outputs.run }}
     steps:
       - name: Tools
         run: apt-get update -qq && apt-get install -y -qq python3 zip git > /dev/null
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Every suite that builds on Linux
         run: python3 tools/swift_suites.py --platform linux --release -j 4
+      # the Apple-only suites wait for a macOS machine, so they run only when a
+      # change touches their files (or by hand)
+      - name: Whether the macOS suites are needed
+        if: always()
+        id: mac
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          n=$(python3 tools/swift_suites.py --platform mac --affected "$before" --list-chosen | grep -c . || true)
+          echo "run=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Push the logs
         if: always()
         run: |
@@ -65,6 +82,8 @@ jobs:
           git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
           git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
   mac:
+    needs: linux
+    if: ${{ always() && needs.linux.outputs.mac == 'true' }}
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
