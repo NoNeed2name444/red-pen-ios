@@ -29,30 +29,7 @@ enum LibraryBackupRunner {
     }
 
     /// What a restore brought in, for the message afterwards.
-    struct Report {
-        var added = 0
-        var returned = 0
-        var copies = 0
-        var unchanged = 0
-        var schedules = 0
-        var notes = 0
-        var files = 0
-        var settings = 0
-
-        var summary: String {
-            var parts: [String] = []
-            let sets: Int = added + returned
-            if sets > 0 { parts.append("\(sets) set\(sets == 1 ? "" : "s") added") }
-            if copies > 0 { parts.append("\(copies) that differ kept beside yours as \u{201C}(from backup)\u{201D}") }
-            if unchanged > 0 { parts.append("\(unchanged) already here") }
-            if schedules > 0 { parts.append("\(schedules) card schedules") }
-            if notes > 0 { parts.append("\(notes) notes") }
-            if files > 0 { parts.append("\(files) lecture files") }
-            if settings > 0 { parts.append("\(settings) settings") }
-            if parts.isEmpty { return "Everything in that backup is already on this phone." }
-            return parts.joined(separator: ", ") + ". Nothing on this phone was replaced."
-        }
-    }
+    typealias Report = LibraryBackup.Report
 
     /// The notes file inside a backup.
     struct NoteBackup: Codable {
@@ -200,7 +177,14 @@ enum LibraryBackupRunner {
 
     struct Loaded: @unchecked Sendable {
         var manifest: LibraryBackup.Manifest
+        /// The backup's library as read, for planning again (restore).
+        var library: LibraryBackup.Library
         var plan: LibraryBackup.Plan
+        /// Sets this version cannot open, as written: the backup's own and
+        /// those it could not decode now.
+        var unread: [String]
+        /// Sets that could be neither read nor kept.
+        var lost: Int
         var records: [UUID: ReviewRecord]
         var notes: NoteBackup?
         var days: [String: Int]
@@ -216,11 +200,22 @@ enum LibraryBackupRunner {
         let current = store.library
         let folders = store.folders
         let deleted = Set(store.tombstones.keys)
-        let loaded = try await Task.detached(priority: .userInitiated) { () throws -> Loaded in
+        var loaded = try await Task.detached(priority: .userInitiated) { () throws -> Loaded in
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             return try load(url, current: current, folders: folders, deleted: deleted)
         }.value
+
+        // The library may have moved on while the backup was read - a sync
+        // can bring in the very set the plan was about to add, under the same
+        // id. Planned again against the library as it is now, so nothing goes
+        // in twice and a set that differs is kept beside this one, as always.
+        // (A recording already put back stays with the set of its id.)
+        if store.library != current || store.folders != folders || Set(store.tombstones.keys) != deleted {
+            loaded.plan = LibraryBackup.plan(backup: loaded.library, library: store.library, folders: store.folders,
+                                             deleted: Set(store.tombstones.keys),
+                                             samePictures: BlobRefs.samePictures)
+        }
 
         var report = Report()
         report.added = loaded.plan.added
@@ -228,6 +223,8 @@ enum LibraryBackupRunner {
         report.copies = loaded.plan.copies
         report.unchanged = loaded.plan.unchanged
         report.files = loaded.files
+        report.unread = store.keepUnread(loaded.unread)
+        report.lost = loaded.lost
         let haveFolders = Set(store.folders.map(\.id))
         let newFolders = loaded.plan.folders.filter { !haveFolders.contains($0.id) }
         if !newFolders.isEmpty { store.folders.append(contentsOf: newFolders) }
@@ -250,16 +247,21 @@ enum LibraryBackupRunner {
     nonisolated static func load(_ url: URL, current: [StudySet], folders: [StudyFolder],
                                  deleted: Set<UUID>) throws -> Loaded {
         let archive = try LibraryBackup.Archive(url: url)
-        guard let library = archive.decode(LibraryBackup.Library.self, LibraryBackup.Name.library) else {
+        guard let raw = archive.part(LibraryBackup.Name.library),
+              let library = try? LibraryBackup.decoder.decode(LibraryBackup.Library.self, from: raw) else {
             throw LibraryBackup.Failure.unreadable
         }
+        // what this version cannot read is kept as written, not dropped
+        let undecoded = LibraryBackup.unreadSets(in: raw, at: library.skippedAt)
         let plan = LibraryBackup.plan(backup: library, library: current, folders: folders, deleted: deleted,
                                       samePictures: BlobRefs.samePictures)
         let records = archive.decode([UUID: ReviewRecord].self, LibraryBackup.Name.reviews) ?? [:]
         let notes = archive.decode(NoteBackup.self, LibraryBackup.Name.notes)
         let days = archive.decode([String: Int].self, LibraryBackup.Name.studyLog) ?? [:]
         let files = restoreFiles(archive, plan: plan)
-        return Loaded(manifest: archive.manifest, plan: plan, records: records, notes: notes, days: days,
+        return Loaded(manifest: archive.manifest, library: library, plan: plan,
+                      unread: (library.unread ?? []) + undecoded, lost: library.skippedAt.count - undecoded.count,
+                      records: records, notes: notes, days: days,
                       progress: archive.part(LibraryBackup.Name.progress),
                       settings: archive.part(LibraryBackup.Name.settings, limit: 8 << 20), files: files)
     }

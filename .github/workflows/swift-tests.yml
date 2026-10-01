@@ -30,10 +30,17 @@ on:
       - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
       - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
       - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
+      - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
 permissions:
   contents: write
+# a newer push to the same branch supersedes the run before it: every push
+# queued its own run, and five of them once held every macOS runner while a
+# package check waited behind them
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
 env:
   GH_TOKEN: ${{ github.token }}
 jobs:
@@ -66,7 +73,10 @@ jobs:
               swiftc -O "$@" build/$name/main.swift -o build/$name/run 2>&1 | head -n 40
               echo "compile rc=${PIPESTATUS[0]}"
               if [ -x build/$name/run ]; then
-                build/$name/run 2>&1 | head -n 90; echo "run rc=${PIPESTATUS[0]}"
+                rc=0; build/$name/run > build/$name/out.txt 2>&1 || rc=$?
+                # the first 90 lines, then every failure past them
+                head -n 90 build/$name/out.txt; tail -n +91 build/$name/out.txt | grep -E "^FAIL|FAILURE" | head -n 40
+                echo "run rc=$rc"
               else echo "$name was never built"; fi
             } > out/$name.log 2>&1
             cat out/$name.log
@@ -97,6 +107,13 @@ jobs:
           # a library file that is there but cannot be read (a launch before the
           # first unlock) is not empty, and a write that did not land is not a save
           suite storefiles StoreFileTests.swift $S/StoreFiles.swift
+          # a store's file read one record at a time, and the copies put aside
+          suite recovery RecoveryTests.swift $S/RecoveryFiles.swift
+          # a replaced lecture recording: the old one goes only once the new one is in
+          suite lectureaudio LectureAudioTests.swift $S/LectureAudio.swift
+          # a mock paper left part way comes back as it was left
+          suite mocksave MockSittingSaveTests.swift $F/Mock/MockSittingSave.swift $S/Exam/MockPaper.swift \
+                $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

@@ -251,13 +251,63 @@ enum AccuracyModel {
         return isManagement(text) ? s : 0
     }
 
+    // MARK: the oath check (plan §22 Layer 7: regex first, fail closed)
+
+    /// The fewest checker models whose votes an item needs before it can be
+    /// Verified: one free model's word is never enough. server/accuracy-model.js
+    /// MIN_VERIFY_VOTERS.
+    static let minVerifyVoters: Int = 2
+
+    /// How much of an oath item its own lecture must contain to stand for the
+    /// evidence behind it (OATH_SOURCE_MATCH).
+    static let oathSourceMatch: Double = 0.5
+
+    /// A specific dose: an amount in a dose unit beside a route or a
+    /// frequency, or per kilogram, day or dose; lab values in a case are not
+    /// doses. server/accuracy-model.js DOSE_PATTERN, character for character.
+    static let dosePattern: String = #"\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|μg|micrograms?|milligrams?|g|grams?|units?|iu|ml)\b[^.\n]{0,30}\b(?:iv|po|im|sc|sl|oral|orally|intravenous|intravenously|daily|once|twice|bd|bid|tds|tid|qds|qid|nocte|stat|hourly|weekly|per day|a day|every \d+ ?(?:h|hours?))\b"#
+        + #"|\b(?:iv|po|im|sc|oral|orally|intravenous|intravenously)\b[^.\n]{0,20}?\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|μg|g|units?|iu|ml)\b"#
+        + #"|\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|μg|g|units?|iu|ml)\s?/\s?(?:kg|day|d|dose|m2|m²)\b"#
+
+    private static let doseExpression: NSRegularExpression? = try? NSRegularExpression(pattern: dosePattern, options: [.caseInsensitive])
+
+    /// Words that make an item a diagnosis - the same list as
+    /// server/accuracy-model.js DIAGNOSIS_CUES.
+    static let diagnosisCues: [String] = [
+        "most likely diagnosis", "most probable diagnosis", "likely diagnosis is", "the diagnosis is",
+        "diagnosis of choice", "is diagnosed with", "is diagnostic of", "confirms the diagnosis", "pathognomonic",
+    ]
+
+    static func hasDose(_ text: String) -> Bool {
+        guard let doseExpression else { return true }  // fail closed: an unreadable pattern holds every item
+        return doseExpression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+
+    static func isDiagnosis(_ text: String) -> Bool {
+        let t: String = text.lowercased()
+        return diagnosisCues.contains { t.contains($0) }
+    }
+
+    /// Does this item give a dose, name a diagnosis or recommend a treatment?
+    /// Then the oath check holds it to more than the models' word.
+    static func isOath(_ text: String) -> Bool {
+        hasDose(text) || isDiagnosis(text) || isManagement(text)
+    }
+
     /// Rules alone can flag an item but never verify one; a severe rule hit
-    /// keeps an item from Verified whatever the models said.
-    static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled) -> AccuracyGrade {
+    /// keeps an item from Verified whatever the models said. Verified also
+    /// needs two models' votes; and an oath item needs evidence behind it -
+    /// the literature the voters were shown supporting it, or its own
+    /// lecture saying it - or it stays Check this. server/accuracy-model.js
+    /// verdict, rule for rule.
+    static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled,
+                      oath: Bool = false) -> AccuracyGrade {
         let severe: Bool = (f["rule_severe"] ?? 0) > 0
         if (f["no_models"] ?? 1) > 0 { return severe ? .flagged : .unchecked }
         if p < w.thresholds.flagged { return .flagged }
-        if p >= w.thresholds.verified && !severe { return .verified }
+        let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
+        let backed: Bool = !oath || (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
+        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed { return .verified }
         return .check
     }
 }

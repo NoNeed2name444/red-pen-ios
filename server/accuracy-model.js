@@ -76,14 +76,61 @@ export function predict(f, model = DEFAULT_WEIGHTS) {
   return sigmoid(x.reduce((s, xi, i) => s + xi * (model.weights[i] || 0), 0));
 }
 
+// MARK: the oath check (plan §22 Layer 7: regex first, fail closed)
+
+/// The fewest checker models whose votes an item needs before it can be
+/// Verified: one free model's word is never enough (audit #95, #97).
+export const MIN_VERIFY_VOTERS = 2;
+
+/// How much of an oath item its own lecture must contain to stand for the
+/// evidence behind it.
+export const OATH_SOURCE_MATCH = 0.5;
+
+/// A specific dose: an amount in a dose unit beside a route or a frequency,
+/// or per kilogram, day or dose. Lab values in a case ("potassium 6.8
+/// mmol/L") are not doses. The app's AccuracyModel.dosePattern, character
+/// for character.
+export const DOSE_PATTERN = '\\b\\d+(?:\\.\\d+)?\\s?(?:mg|mcg|µg|μg|micrograms?|milligrams?|g|grams?|units?|iu|ml)\\b[^.\\n]{0,30}\\b(?:iv|po|im|sc|sl|oral|orally|intravenous|intravenously|daily|once|twice|bd|bid|tds|tid|qds|qid|nocte|stat|hourly|weekly|per day|a day|every \\d+ ?(?:h|hours?))\\b'
+  + '|\\b(?:iv|po|im|sc|oral|orally|intravenous|intravenously)\\b[^.\\n]{0,20}?\\b\\d+(?:\\.\\d+)?\\s?(?:mg|mcg|µg|μg|g|units?|iu|ml)\\b'
+  + '|\\b\\d+(?:\\.\\d+)?\\s?(?:mg|mcg|µg|μg|g|units?|iu|ml)\\s?/\\s?(?:kg|day|d|dose|m2|m²)\\b';
+const DOSE = new RegExp(DOSE_PATTERN, 'i');
+
+/// Words that make an item a diagnosis - the same list as the app's
+/// AccuracyModel.diagnosisCues.
+export const DIAGNOSIS_CUES = [
+  'most likely diagnosis', 'most probable diagnosis', 'likely diagnosis is', 'the diagnosis is',
+  'diagnosis of choice', 'is diagnosed with', 'is diagnostic of', 'confirms the diagnosis', 'pathognomonic',
+];
+
+export const hasDose = text => DOSE.test(String(text || ''));
+export const isDiagnosis = text => {
+  const t = String(text || '').toLowerCase();
+  return DIAGNOSIS_CUES.some(c => t.includes(c));
+};
+
+/// Does this item give a dose, name a diagnosis or recommend a treatment?
+/// Then the oath check holds it to more than the models' word.
+export function oathClaims(text) {
+  return { dose: hasDose(text), diagnosis: isDiagnosis(text), treatment: isManagement(text) };
+}
+export const isOath = text => {
+  const c = oathClaims(text);
+  return c.dose || c.diagnosis || c.treatment;
+};
+
 /// Verified / Check this / Flagged, or unchecked when no model has looked:
 /// rules alone can flag an item but never verify one, and a severe rule hit
-/// keeps an item from being Verified whatever the models said.
-export function verdict(p, f, model = DEFAULT_WEIGHTS) {
+/// keeps an item from being Verified whatever the models said. Verified also
+/// needs two models' votes; and an oath item (a dose, a diagnosis, a
+/// treatment) needs evidence behind it - the literature the voters were shown
+/// supporting it, or its own lecture saying it - or it stays Check this.
+export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   if (f.no_models) return f.rule_severe > 0 ? 'flagged' : 'unchecked';
   if (p < t.flagged) return 'flagged';
-  if (p >= t.verified && !f.rule_severe) return 'verified';
+  const enough = Math.round((Number(f.voters) || 0) * 3) >= MIN_VERIFY_VOTERS;
+  const backed = !oath || (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
+  if (p >= t.verified && !f.rule_severe && enough && backed) return 'verified';
   return 'check';
 }
 

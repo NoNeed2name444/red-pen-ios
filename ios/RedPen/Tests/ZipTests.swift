@@ -294,6 +294,77 @@ check("a slide left unread does not renumber the rest",
       numbered.count == 3 && numbered[2].number == 3 && numbered[2].text == "three",
       "\(numbered.map { "\($0.number):\($0.text)" })")
 
+// MARK: zip64 values no file could hold
+
+func le64(_ value: UInt64) -> [UInt8] { (0..<8).map { UInt8((value >> (8 * UInt64($0))) & 0xff) } }
+
+/// What a zip64 extra field says: the entry's real value, or a number of our choosing.
+enum Wide { case real, value(UInt64) }
+
+/// Two stored entries, the second written as zip64: its central directory
+/// record says 0xFFFFFFFF for the fields given here and carries their values
+/// in a zip64 extra field. The values can be the real ones, or numbers no file
+/// could hold, which the reader must refuse rather than add to: an overflow
+/// there ended the app on a crafted handout, slide deck or Anki package.
+func zip64Archive(compressed: Wide? = nil, localOffset: Wide? = nil) -> Data {
+    let honest = stored("ppt/slides/slide1.xml", "<a:t>still here</a:t>")
+    let honestName = Array(honest.name.utf8)
+    let name = Array("word/document.xml".utf8)
+    let body = Array("<w:t>hello</w:t>".utf8)
+    var out: [UInt8] = []
+    out += bytes(le32(0x0403_4b50), le16(20), le16(0), le16(0), le16(0), le16(0))
+    out += bytes(le32(0), le32(honest.body.count), le32(honest.body.count))
+    out += bytes(le16(honestName.count), le16(0), honestName, Array(honest.body))
+    let wideAt = out.count
+    out += bytes(le32(0x0403_4b50), le16(45), le16(0), le16(0), le16(0), le16(0))
+    out += bytes(le32(0), le32(body.count), le32(body.count))
+    out += bytes(le16(name.count), le16(0), name, body)
+    func resolve(_ wide: Wide, real: Int) -> UInt64 {
+        switch wide {
+        case .real: return UInt64(real)
+        case .value(let value): return value
+        }
+    }
+    var values: [UInt8] = []
+    if let compressed { values += le64(resolve(compressed, real: body.count)) }
+    if let localOffset { values += le64(resolve(localOffset, real: wideAt)) }
+    let extra: [UInt8] = values.isEmpty ? [] : bytes(le16(0x0001), le16(values.count), values)
+    var central: [UInt8] = []
+    central += bytes(le32(0x0201_4b50), le16(20), le16(20), le16(0), le16(0))
+    central += bytes(le16(0), le16(0), le32(0), le32(honest.body.count), le32(honest.body.count))
+    central += bytes(le16(honestName.count), le16(0), le16(0), le16(0), le16(0), le32(0), le32(0))
+    central += honestName
+    central += bytes(le32(0x0201_4b50), le16(45), le16(45), le16(0), le16(0))
+    central += bytes(le16(0), le16(0), le32(0), le32(compressed == nil ? body.count : 0xFFFF_FFFF), le32(body.count))
+    central += bytes(le16(name.count), le16(extra.count), le16(0), le16(0), le16(0), le32(0),
+                     le32(localOffset == nil ? wideAt : 0xFFFF_FFFF))
+    central += bytes(name, extra)
+    let start = out.count
+    out += central
+    out += bytes(le32(0x0605_4b50), le16(0), le16(0), le16(2), le16(2))
+    out += bytes(le32(central.count), le32(start), le16(0))
+    return Data(out)
+}
+
+let wideHonest = Zip.entries(in: zip64Archive(compressed: .real, localOffset: .real))
+check("a zip64 entry with its real size and offset opens",
+      wideHonest["word/document.xml"].map { String(decoding: $0, as: UTF8.self) } == "<w:t>hello</w:t>",
+      "\(wideHonest.keys.sorted())")
+let wideOffset = Zip.entries(in: zip64Archive(localOffset: .value(UInt64(Int.max) - 10)))
+check("a zip64 offset no file could hold is refused, not added to",
+      wideOffset["word/document.xml"] == nil, "\(wideOffset.keys.sorted())")
+check("and the entry beside it is still read",
+      wideOffset["ppt/slides/slide1.xml"] != nil, "\(wideOffset.keys.sorted())")
+let wideSize = Zip.entries(in: zip64Archive(compressed: .value(UInt64(Int.max))))
+check("a zip64 size no file could hold is refused, not added to",
+      wideSize["word/document.xml"] == nil, "\(wideSize.keys.sorted())")
+check("and the entry beside it is still read",
+      wideSize["ppt/slides/slide1.xml"] != nil, "\(wideSize.keys.sorted())")
+let wideBoth = Zip.directory(of: zip64Archive(compressed: .value(UInt64(Int.max) - 1),
+                                              localOffset: .value(UInt64(Int.max) - 29)))
+check("the directory leaves such an entry out too",
+      wideBoth.map(\.name) == ["ppt/slides/slide1.xml"], "\(wideBoth.map(\.name))")
+
 print(failures.isEmpty ? "\nALL ZIP TESTS PASS"
                        : "\n\(failures.count) ZIP TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

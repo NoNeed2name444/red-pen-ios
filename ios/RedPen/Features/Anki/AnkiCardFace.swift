@@ -28,8 +28,16 @@ struct AnkiCardFace: View {
 
             picture
 
-            Text(front)
-                .font(.title3.weight(.semibold))
+            if card.type == .cloze {
+                // as Anki shows it: the sentence stays where it is, and the
+                // answer appears in the gap it was hidden in
+                Text(Self.clozeSentence(card.clozeText, revealed: revealed))
+                    .font(.title3.weight(.semibold))
+                    .accessibilityLabel(Self.clozeSpoken(card.clozeText, revealed: revealed))
+            } else {
+                Text(front)
+                    .font(.title3.weight(.semibold))
+            }
 
             if revealed {
                 back
@@ -145,10 +153,8 @@ struct AnkiCardFace: View {
                 }
             }
         case .cloze:
-            // the same regex as the front face, with the term shown in bold
-            Text(Self.highlighted(card.clozeText.replacingOccurrences(
-                of: #"\{\{c\d+::([^}:]+)(::[^}]*)?\}\}"#,
-                with: "**$1**", options: .regularExpression)))
+            // filled in where it stood, in the sentence above: nothing to repeat
+            EmptyView()
         case .occlusion:
             // the mask simply disappears from the picture above; the answer is
             // the label it was covering, which is now readable
@@ -170,12 +176,8 @@ struct AnkiCardFace: View {
         .padding(.top, 4)
     }
 
-    private var front: String {
-        guard card.type == .cloze else { return card.displayFront }
-        return card.clozeText.replacingOccurrences(
-            of: #"\{\{c\d+::([^}:]+)(::[^}]*)?\}\}"#,
-            with: "\u{25A2}\u{25A2}\u{25A2}", options: .regularExpression)
-    }
+    /// A question card's front (a cloze is drawn by clozeSentence).
+    private var front: String { card.displayFront }
 
     private var badge: String {
         switch card.type {
@@ -183,6 +185,32 @@ struct AnkiCardFace: View {
         case .cloze: return "Fill in the gap"
         case .occlusion: return "What is hidden?"
         }
+    }
+
+    /// A cloze sentence with its gaps as Anki draws them: "[...]" (or the
+    /// hint) in blue until revealed, then the answer, bold and blue, in the
+    /// same place.
+    static func clozeSentence(_ text: String, revealed: Bool) -> AttributedString {
+        var out = AttributedString()
+        for piece in AnkiCard.clozePieces(text) {
+            guard piece.isGap else {
+                out += AttributedString(piece.text)
+                continue
+            }
+            var gap = AttributedString(revealed ? piece.text : AnkiCard.clozeGap(piece))
+            gap.foregroundColor = Color.blue
+            gap.inlinePresentationIntent = .stronglyEmphasized
+            out += gap
+        }
+        return out
+    }
+
+    /// The sentence as VoiceOver reads it: "blank" (or the hint) for a gap.
+    static func clozeSpoken(_ text: String, revealed: Bool) -> String {
+        AnkiCard.clozePieces(text).map { piece in
+            guard piece.isGap, !revealed else { return piece.text }
+            return piece.hint.map { "blank, hint: \($0)" } ?? "blank"
+        }.joined()
     }
 
     /// `**term**` markers become real bold; SwiftUI's Text reads Markdown.

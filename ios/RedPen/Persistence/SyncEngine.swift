@@ -311,11 +311,23 @@ final class SyncEngine: ObservableObject {
             let more: String = tooLarge.count > 1 ? " and \(tooLarge.count - 1) more are" : " is"
             return .failed("\u{201C}\(first.name)\u{201D}\(more) too large to sync \u{2014} everything else is up to date.")
         }
+        // A deck's schedule travels as a document of its own, and can be too
+        // large on its own: a big imported deck with years of reviews.
+        func schedule(_ set: StudySet) -> RefusedDoc? { state.refused[SyncDocuments.reviewDocID(forSet: set.id)] }
+        let largeSchedules = store.library.filter { schedule($0)?.tooLarge == true }
+        if let first = largeSchedules.first {
+            let more: String = largeSchedules.count > 1 ? " and \(largeSchedules.count - 1) more are" : " is"
+            return .failed("The review schedule of \u{201C}\(first.name)\u{201D}\(more) too large to sync \u{2014} everything else is up to date.")
+        }
         if let pictureTrouble { return .failed(pictureTrouble) }
-        let notTaken = store.library.filter { state.refused[$0.id.uuidString]?.tooLarge == false }.count
-        if notTaken > 0 {
-            let sets: String = notTaken == 1 ? "1 set was" : "\(notTaken) sets were"
-            return .failed("\(sets) not saved on the server \u{2014} the account may be full. Tried again tomorrow.")
+        // per set: it, its schedule or both, kept back for a reason other than size
+        let notTaken: [[RefusedDoc]] = store.library.compactMap { (set: StudySet) -> [RefusedDoc]? in
+            let kept = [state.refused[set.id.uuidString], schedule(set)].compactMap { $0 }.filter { !$0.tooLarge }
+            return kept.isEmpty ? nil : kept
+        }
+        if !notTaken.isEmpty {
+            let resting: Bool = notTaken.joined().contains { $0.resting == true }
+            return .failed(SyncRules.notSavedMessage(sets: notTaken.count, resting: resting))
         }
         if heldForNewer > 0 {
             return .failed("Some sets were last changed by a newer version of \(Brand.name). Update this one to sync your changes to them.")
@@ -395,7 +407,14 @@ final class SyncEngine: ObservableObject {
             // Ours is the later edit and will go up, but theirs was real work
             // on another device. Keeping it here is the only way that device
             // ever learns it lost.
-            keepCopy(of: remote)
+            if remote.kind == .review {
+                // A schedule is never kept as a copy: theirs is merged into
+                // ours card by card, and the merged one is what goes up. A
+                // copy would be ignored, and their ratings lost.
+                reviews.merge(SyncDocuments.records(from: remote))
+            } else {
+                keepCopy(of: remote)
+            }
             // And we now agree about where the server is, even though we are
             // about to disagree about the contents. Without this the push that
             // follows would still quote the revision from before their edit,

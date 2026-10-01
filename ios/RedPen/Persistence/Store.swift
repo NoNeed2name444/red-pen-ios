@@ -700,6 +700,21 @@ extension Store {
         save()
     }
 
+    /// Sets a restore brought that this version cannot open, kept as written
+    /// beside those of the library file (unreadSets): saved with the library,
+    /// and taken in by a version that can read them (load). Returns how many
+    /// were new here.
+    @discardableResult
+    func keepUnread(_ texts: [String]) -> Int {
+        var have = Set(unreadSets)
+        let fresh = texts.filter { have.insert($0).inserted }
+        guard !fresh.isEmpty else { return 0 }
+        unreadSets += fresh
+        libraryDirty = true
+        save()
+        return fresh.count
+    }
+
     /// Everything about how the studying is going, as the progress file
     /// holds it - for a backup (LibraryBackupRunner).
     func studyBackup() -> Data? {

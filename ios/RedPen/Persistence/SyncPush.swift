@@ -52,12 +52,21 @@ extension SyncEngine {
             // the next goes: a first sync of a big library is many requests the
             // server can take, not one it refuses on every run.
             var conflicts: [SyncDoc] = []
+            var resting = false
             for batch in SyncRules.batches(ready) {
+                // The server has synced all it can for today: the rest wait
+                // for tomorrow, without a request apiece to be told so.
+                if resting {
+                    for doc in batch { refuse(doc, tooLarge: false, resting: true) }
+                    await bookmarks.commit()
+                    continue
+                }
                 try stillCurrent(run)
                 let result = try await SyncAPI.push(batch, token: run.token)
                 try stillCurrent(run)
                 record(result, sent: batch, stamps: outgoing.stamps)
                 conflicts += result.conflicts
+                resting = result.resting == true
                 guard await store.flushed() else { throw LibraryNotSaved() }
                 await bookmarks.commit()
             }
@@ -89,18 +98,19 @@ extension SyncEngine {
         store.forgetTombstones(result.accepted.filter(\.deleted)
                                 .compactMap { UUID(uuidString: $0.id) })
         // Neither taken nor refused as stale: the server would not keep it -
-        // the account's share is used up, or it had a reason of its own. Noted,
-        // so it is not sent again every minute; tried again tomorrow, or as
-        // soon as it changes.
+        // the account's share is used up, the server synced all it can for
+        // the day, or it had a reason of its own. Noted, so it is not sent
+        // again every minute; tried again tomorrow, or as soon as it changes.
         let answered = Set(result.accepted.map(\.id) + result.conflicts.map(\.id))
         for doc in sent where !answered.contains(doc.id) {
-            refuse(doc, tooLarge: !SyncRules.fitsServer(doc))
+            refuse(doc, tooLarge: !SyncRules.fitsServer(doc), resting: result.resting == true)
         }
     }
 
-    private func refuse(_ doc: SyncDoc, tooLarge: Bool) {
+    private func refuse(_ doc: SyncDoc, tooLarge: Bool, resting: Bool = false) {
         bookmarks.update { state in
-            state.refused[doc.id] = RefusedDoc(updatedAt: doc.updatedAt, at: Date(), tooLarge: tooLarge)
+            state.refused[doc.id] = RefusedDoc(updatedAt: doc.updatedAt, at: Date(), tooLarge: tooLarge,
+                                               resting: resting ? true : nil)
         }
     }
 

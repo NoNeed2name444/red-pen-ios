@@ -17,7 +17,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: design-preview
+  # one run per preview branch, so two designs in progress never cancel each other
+  group: design-preview-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   shots:
@@ -223,4 +224,7 @@ jobs:
           git init -q && git checkout -q -b design-preview
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
           git add -A && git commit -q -m "design preview $GITHUB_RUN_ID"
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" design-preview:design-preview
+          # preview/graph keeps its old home; any other preview/<name> lands on shots/<name>
+          target=design-preview
+          case "$GITHUB_REF_NAME" in preview/graph|"") ;; preview/*) target="shots/${GITHUB_REF_NAME#preview/}" ;; esac
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "design-preview:$target"

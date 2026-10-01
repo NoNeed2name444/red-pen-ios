@@ -19,8 +19,9 @@ struct CoreLibraryExtras: View {
     var body: some View { EmptyView() }
 }
 
-enum CoreBuildNote {
-    static let text = "This is the core build. The 3D map, Study Lens, analytics, audio lectures, spoken OSCE practice and the reasoning tools are in the full app."
+/// What this build leaves out of step 1, for the note under the library.
+enum CoreAudioPart {
+    static let missing: [String] = ["audio lectures", "spoken OSCE practice", "commute mode", "explain it back", "draw from memory"]
 }
 
 struct SpokenStationView: View {
@@ -97,4 +98,10 @@ enum LectureTranscriber {
 
 extension View {
     func commuteModeSheet(isPresented: Binding<Bool>) -> some View { self }
+}
+
+extension View {
+    /// The spoken screens are not in this build, so nothing they read is
+    /// needed (CoreAudio.swift supplies it where they are).
+    func coreAudioEnvironment() -> some View { self }
 }

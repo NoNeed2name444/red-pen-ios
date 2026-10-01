@@ -9,6 +9,12 @@ struct LibraryView: View {
     @EnvironmentObject private var store: Store
     @State private var makingSet = false
     @State private var showingSettings = false
+    #if targetEnvironment(simulator)
+    /// CI only (swiftpm-launch.yml, `-launchTestOpenSets`): the set the launch
+    /// test has open. Never compiled for a device, so never in the owner's
+    /// app on the iPad.
+    @State private var launchTestSet: StudySet?
+    #endif
 
     private var loose: [StudySet] {
         store.library.filter { $0.folderId == nil }
@@ -50,6 +56,7 @@ struct LibraryView: View {
                     }
                 }
                 CoreLibraryExtras()
+                CoreLibraryExports()
                 Section {
                     Text(CoreBuildNote.text)
                         .font(.footnote)
@@ -79,8 +86,32 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $makingSet) { NewSetView() }
             .sheet(isPresented: $showingSettings) { CoreSettingsView() }
+            #if targetEnvironment(simulator)
+            .navigationDestination(item: $launchTestSet) { CoreSetScreen(set: $0) }
+            .task { await openEverySetForLaunchTest() }
+            #endif
         }
     }
+
+    #if targetEnvironment(simulator)
+    /// Opens every set in turn, a few seconds each, so a screen that reads
+    /// something the core app does not supply (an environment object, say)
+    /// stops the launch test - as the example lecture once stopped the app on
+    /// the owner's iPad - instead of passing because nothing was opened.
+    private func openEverySetForLaunchTest() async {
+        guard ProcessInfo.processInfo.arguments.contains("-launchTestOpenSets") else { return }
+        // the examples, and the lectures that become examples, arrive first
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        for set in store.library {
+            print("LaunchTest: opening", set.kind.rawValue, "-", set.name)
+            launchTestSet = set
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            launchTestSet = nil
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        }
+        print("LaunchTest: opened all", store.library.count, "sets")
+    }
+    #endif
 
     private func row(_ set: StudySet) -> some View {
         NavigationLink {
@@ -99,6 +130,7 @@ struct LibraryView: View {
                 }
             }
         }
+        .coreRowActions(set)
         .swipeActions {
             Button(role: .destructive) {
                 store.deleteSet(set.id)
@@ -139,6 +171,7 @@ struct CoreSettingsView: View {
                     NavigationLink("Exam") { ExamPickerView() }
                 }
                 ReviewSettingsSection()
+                CoreDataSection()
                 HelpContactSection()
             }
             .navigationTitle("Settings")
@@ -149,5 +182,18 @@ struct CoreSettingsView: View {
                 }
             }
         }
+    }
+}
+
+/// What this build leaves out, under the library: what every core build
+/// leaves out, and the parts its variant has not brought back.
+enum CoreBuildNote {
+    static var text: String {
+        let missing: [String] = ["the 3D map", "Study Lens", "analytics", "the reasoning tools"]
+            + CoreAudioPart.missing + CoreExportsPart.missing
+        let listed: String = missing.count > 1
+            ? missing.dropLast().joined(separator: ", ") + " and " + (missing.last ?? "")
+            : missing.joined()
+        return "This build leaves out \(listed), so Swift Playgrounds can build it on the iPad. The full app has them."
     }
 }

@@ -26,6 +26,8 @@
 // GET /diagnostics/summary, and a GitHub workflow turns each group into an
 // issue (server/triage/diagnostics-triage.mjs).
 
+import { takeToday, ceiling, DIAGNOSTICS_PER_DAY } from './limits.js';
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
 });
@@ -280,6 +282,10 @@ export async function diagnosticsRoute(env, accountId, body, clock = now) {
   if (!left) return json({ accepted: 0, dropped: raw.length, retryAfter: 86400 }, 429);
   const taking = offered.slice(0, left);
   dropped += offered.length - taking.length;
+  // and all accounts together (limits.js), for the reports this request keeps
+  if (!await takeToday(env, 'diagnostics:all', taking.length, ceiling(env.DIAGNOSTICS_DAILY_ALL, DIAGNOSTICS_PER_DAY))) {
+    return json({ accepted: 0, dropped: raw.length, retryAfter: 86400 }, 429);
+  }
 
   let accepted = 0;
   for (const rawEvent of taking) {

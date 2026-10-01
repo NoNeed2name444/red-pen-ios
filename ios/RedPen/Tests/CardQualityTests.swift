@@ -219,6 +219,21 @@ check("an ordinary first word is still lower-cased",
       QuizFromCards.lowercasingFirstWord("Lowers flares.") == "lowers flares."
       && QuizFromCards.lowercasingFirstWord("A diuretic.") == "a diuretic.")
 
+// a cloze shown as Anki shows it: the sentence in pieces, its gaps in place
+let clozeRun = AnkiCard.clozePieces("EF {{c1::≤ 40%}} is HFrEF; {{c2::≥ 50%::a percentage}} is HFpEF.")
+check("cloze: the sentence splits at its gaps, in order",
+      clozeRun.map(\.text) == ["EF ", "≤ 40%", " is HFrEF; ", "≥ 50%", " is HFpEF."]
+      && clozeRun.map(\.isGap) == [false, true, false, true, false], "\(clozeRun)")
+check("cloze: a hint is kept apart from its answer", clozeRun[3].hint == "a percentage" && clozeRun[1].hint == nil)
+check("cloze: a gap reads [...] or its hint, as in Anki",
+      AnkiCard.clozeGap(clozeRun[1]) == "[...]" && AnkiCard.clozeGap(clozeRun[3]) == "[a percentage]")
+check("cloze: an answer with a colon or a ratio survives",
+      AnkiCard.clozePieces("The ratio is {{c1::1:2}}.").map(\.text) == ["The ratio is ", "1:2", "."])
+check("cloze: a sentence with no gap is one plain piece",
+      AnkiCard.clozePieces("No gap here.") == [AnkiCard.ClozePiece(text: "No gap here.", isGap: false)])
+check("cloze: put back together, the answers make the whole sentence",
+      clozeRun.map(\.text).joined() == "EF ≤ 40% is HFrEF; ≥ 50% is HFpEF.")
+
 print(failures.isEmpty ? "\nALL CARD QUALITY TESTS PASS"
                        : "\n\(failures.count) CARD QUALITY TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

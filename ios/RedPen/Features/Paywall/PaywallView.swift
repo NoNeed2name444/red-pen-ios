@@ -169,8 +169,9 @@ struct PaywallView: View {
         HStack(spacing: 16) {
             Button("Restore") { Task { await subscriptions.restore() } }
                 .disabled(subscriptions.busy)
-            Link("Terms", destination: URL(string: "https://redpen.app/terms")!)
-            Link("Privacy", destination: URL(string: "https://redpen.app/privacy")!)
+            // served by our own server (server/legal.js), not the retired redpen.app
+            Link("Terms", destination: AuthAPI.baseURL.appendingPathComponent("terms"))
+            Link("Privacy", destination: AuthAPI.baseURL.appendingPathComponent("privacy"))
         }
         .font(.footnote)
         .buttonStyle(.borderless)

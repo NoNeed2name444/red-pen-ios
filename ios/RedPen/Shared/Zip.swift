@@ -92,7 +92,9 @@ enum Zip {
     static func contents(of entry: Entry, in data: Data, limits: Limits = .standard,
                          budget: Int) -> (body: Data?, cost: Int) {
         data.withUnsafeBytes { raw -> (body: Data?, cost: Int) in
-            guard entry.dataStart >= 0, entry.dataEnd <= raw.count else { return (nil, 0) }
+            // compared without adding, so an entry made by hand cannot overflow
+            guard entry.dataStart >= 0, entry.dataStart <= raw.count, entry.compressed >= 0,
+                  entry.compressed <= raw.count - entry.dataStart else { return (nil, 0) }
             return contents(of: entry, in: raw, limits: limits, budget: budget)
         }
     }
@@ -202,11 +204,17 @@ enum Zip {
             // rather than the central directory's: the two disagree in real
             // archives, and trusting the wrong one lands the read a few bytes
             // into the middle of the data.
-            guard localOffset + 30 <= raw.count,
+            //
+            // Each value is compared before anything is added to it: a zip64
+            // field can hold any number up to Int.max, and an offset or a size
+            // no file could have must be refused, not overflow on the way
+            // (which ends the app on a crafted handout or deck).
+            guard localOffset >= 0, localOffset <= raw.count - 30,
                   read32(raw, localOffset) == 0x0403_4b50 else { continue }
             let dataStart = localOffset + 30 + Int(read16(raw, localOffset + 26))
                 + Int(read16(raw, localOffset + 28))
-            guard dataStart + compressed <= raw.count else { continue }
+            guard compressed >= 0, uncompressed >= 0, dataStart <= raw.count,
+                  compressed <= raw.count - dataStart else { continue }
             entries.append(Entry(name: name, method: method, compressed: compressed,
                                  uncompressed: uncompressed, localOffset: localOffset,
                                  dataStart: dataStart))

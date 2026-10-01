@@ -33,6 +33,9 @@ jobs:
           # spoken modes, draw from memory, narrate), the next zip to try
           - variant: core1
             without: core1
+          # and step 2 (imports and exports, backups, picture cards)
+          - variant: core2
+            without: core2
     steps:
       - uses: actions/checkout@v4
         with:

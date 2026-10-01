@@ -86,7 +86,8 @@ struct DueTodayView: View {
                              revealed: revealed, deck: deck(for: due))
             }
             .contentCard()
-            .cardFlip(revealed: revealed)
+            // a cloze is not turned over: its answer fills the gap in place
+            .cardFlip(revealed: revealed, enabled: due.card.type != .cloze)
             .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
             .padding(.horizontal, 16)
             .padding(.top, 8)

@@ -9,6 +9,10 @@ struct MockPaperView: View {
     @State private var paperId: String = ""
     @State private var usmleBlocks: Int = 2
     @State private var sitting: MockSitting?
+    /// A sitting left part way (MockSittingStore), offered to resume.
+    @State private var saved: MockSittingSave?
+    /// The saved state the sitting being opened starts from, when resuming.
+    @State private var resuming: MockSittingSave?
 
     private var track: ExamTrack { ExamTrack.current }
 
@@ -32,6 +36,7 @@ struct MockPaperView: View {
         let available: Int = MockAssembler.dedupe(pool).count
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if let saved { resumeCard(saved) }
                 intro
                 paperChoice
                 libraryNote(available)
@@ -47,10 +52,58 @@ struct MockPaperView: View {
         .modeScreen(.mcq)
         .navigationTitle("Mock paper")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(item: $sitting) { made in
-            MockSittingView(sitting: made)
+        .fullScreenCover(item: $sitting, onDismiss: { saved = MockSittingStore.load() }) { made in
+            MockSittingView(sitting: made, resumed: resuming)
                 .environmentObject(store)
         }
+        .onAppear { saved = MockSittingStore.load() }
+    }
+
+    /// The sitting left part way: where it was, and the way back to it.
+    private func resumeCard(_ save: MockSittingSave) -> some View {
+        let part: String = save.onBreak
+            ? "between sections"
+            : "section \(min(save.section + 1, save.specs.count)) of \(save.specs.count)"
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("\(save.title), unfinished")
+                .font(.headline)
+            Text("\(save.answered) of \(save.total) answered, \(part). The clock waits until you go back.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Button {
+                    resume(save)
+                } label: {
+                    Label("Resume", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Discard", role: .destructive) {
+                    MockSittingStore.clear()
+                    saved = nil
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    /// The saved sitting, with its questions found again in the library. A
+    /// question deleted since is left out; with none left there is nothing to
+    /// resume.
+    private func resume(_ save: MockSittingSave) {
+        var byId: [UUID: QuestionPick] = [:]
+        for p in store.mcqPicks({ _ in true }) { byId[p.question.id] = p }
+        let sections: [[QuestionPick]] = save.questionIds.map { ids in ids.compactMap { byId[$0] } }
+        guard sections.contains(where: { !$0.isEmpty }) else {
+            MockSittingStore.clear()
+            saved = nil
+            return
+        }
+        resuming = save
+        sitting = MockSitting(title: save.title, specs: save.specs, picks: sections, wanted: save.wanted,
+                              track: ExamTrack(rawValue: save.track) ?? .general, passMark: save.passMark)
     }
 
     private var intro: some View {
@@ -201,6 +254,10 @@ struct MockPaperView: View {
         var byId: [UUID: QuestionPick] = [:]
         for p in picks { byId[p.question.id] = p }
         let sections: [[QuestionPick]] = made.questionIds.map { ids in ids.compactMap { byId[$0] } }
+        // a new paper replaces one left part way
+        MockSittingStore.clear()
+        saved = nil
+        resuming = nil
         sitting = MockSitting(title: spec.title, specs: made.sections, picks: sections,
                               wanted: made.wanted, track: track, passMark: target?.passMark)
     }

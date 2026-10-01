@@ -36,6 +36,23 @@ struct CoreLibraryExtras: View {
     }
 }
 
-enum CoreBuildNote {
-    static let text = "This is the core build plus lecture audio and the spoken modes. The 3D map, Study Lens, analytics, exports, backups and the reasoning tools are in the full app."
+/// What this build leaves out of step 1, for the note under the library.
+enum CoreAudioPart {
+    static let missing: [String] = []
+}
+
+/// What the spoken screens read from the environment, which the full app
+/// hands down from RedPenApp: what this phone has learned about how a
+/// lecturer says things (PronunciationLibrary). Without it, opening a lecture
+/// stopped the app.
+struct CoreAudioEnvironment: ViewModifier {
+    @StateObject private var learned = PronunciationLibrary()
+
+    func body(content: Content) -> some View {
+        content.environmentObject(learned)
+    }
+}
+
+extension View {
+    func coreAudioEnvironment() -> some View { modifier(CoreAudioEnvironment()) }
 }

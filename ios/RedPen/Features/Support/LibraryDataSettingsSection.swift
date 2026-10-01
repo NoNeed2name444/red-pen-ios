@@ -25,6 +25,10 @@ struct LibraryDataSettingsSection: View {
     @State private var restoring = false
     @State private var pendingRestore: URL?
     @State private var message: (title: String, body: String)?
+    /// Copies the stores put aside before writing over a file they could not
+    /// fully read (RecoveryFiles), found when the section shows.
+    @State private var recovery: [URL] = []
+    @State private var sharingRecovery = false
 
     enum Work: String {
         case backup = "Backing up\u{2026}"
@@ -33,6 +37,33 @@ struct LibraryDataSettingsSection: View {
     }
 
     var body: some View {
+        Group {
+            dataSection
+            if !recovery.isEmpty { recoverySection }
+        }
+        .onAppear { recovery = RecoveryFiles.copies() }
+        .sheet(isPresented: $sharingRecovery) { ShareSheet(items: recovery) }
+    }
+
+    /// Only there when a store had to put a copy aside: without this row the
+    /// copies sat in folders the Files app does not show.
+    private var recoverySection: some View {
+        Section {
+            Button {
+                sharingRecovery = true
+            } label: {
+                Label(recovery.count == 1 ? "Share the recovery copy" : "Share the \(recovery.count) recovery copies",
+                      systemImage: "lifepreserver")
+            }
+            .accessibilityIdentifier("shareRecoveryCopies")
+        } header: {
+            Text("Recovery copies")
+        } footer: {
+            Text("Copies of files this version of the app couldn\u{2019}t fully read, kept before anything was saved over them. Save them to Files, or send them with a message from Help, so nothing in them is lost.")
+        }
+    }
+
+    private var dataSection: some View {
         Section {
             lastBackupRow
             Toggle(isOn: $includeFiles) {

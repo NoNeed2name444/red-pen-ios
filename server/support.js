@@ -9,6 +9,7 @@
 //   POST /support/messages  { limit? }                     owner key
 
 import { spend } from './ai.js';
+import { takeToday, ceiling, SUPPORT_PER_DAY } from './limits.js';
 
 export const TOPICS = ['problem', 'idea', 'account', 'other'];
 export const MAX_MESSAGE = 4000;
@@ -28,6 +29,11 @@ export async function supportMessage(env, account, body) {
   const version = str(body?.version, 40);
   if (!await spend(env, `support:${account}`, Number(env.SUPPORT_DAILY) || DAILY)) {
     return fail(429, "That's today's messages sent. We'll read them - try again tomorrow.");
+  }
+  // and all accounts together (limits.js): the app keeps the message and
+  // sends it again later
+  if (!await takeToday(env, 'support:all', 1, ceiling(env.SUPPORT_DAILY_ALL, SUPPORT_PER_DAY))) {
+    return fail(429, 'Messages are paused for the rest of today. Yours is kept and sent tomorrow.');
   }
   const at = Math.floor(Date.now() / 1000);
   const row = await env.DB.prepare(

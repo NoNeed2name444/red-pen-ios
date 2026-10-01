@@ -50,6 +50,9 @@ enum SyncAPI {
         /// error: one document being stale must not throw away the other
         /// nineteen in the batch.
         var conflicts: [SyncDoc]
+        /// The server had synced all it can for the day and kept the rest of
+        /// the batch for tomorrow (server/sync.js). Nil from a server before it.
+        var resting: Bool?
     }
 
     static func push(_ docs: [SyncDoc], token: String) async throws -> PushResult {

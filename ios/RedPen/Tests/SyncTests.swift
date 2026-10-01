@@ -264,6 +264,31 @@ check("and is tried again after it",
       !SyncRules.stillRefused(notTaken, updatedAt: stamp, now: at(200 + 86_401)))
 check("nothing refused is nothing held", !SyncRules.stillRefused(nil, updatedAt: stamp))
 
+// the server synced all it can for the day: tried again on the next UTC day,
+// not a full day later (t0 is 22:13 UTC, so at(7_200) is just past midnight)
+let resting = RefusedDoc(updatedAt: stamp, at: at(200), tooLarge: false, resting: true)
+check("a set the server left for tomorrow waits for the rest of the day",
+      SyncRules.stillRefused(resting, updatedAt: stamp, now: at(200 + 3_600)))
+check("and goes on the first run of the next UTC day",
+      !SyncRules.stillRefused(resting, updatedAt: stamp, now: at(7_200)))
+check("or as soon as it changes",
+      !SyncRules.stillRefused(resting, updatedAt: at(300), now: at(400)))
+check("the server's day is the UTC date",
+      SyncRules.serverDay(at(0)) == SyncRules.serverDay(at(6_399))
+      && SyncRules.serverDay(at(6_400)) == SyncRules.serverDay(at(0)) + 1)
+let older = try! JSONDecoder().decode(RefusedDoc.self,
+    from: Data(#"{"updatedAt": 0, "at": 0, "tooLarge": false}"#.utf8))
+check("a refusal saved by an earlier version still reads, as not resting",
+      older.resting == nil && !older.tooLarge)
+check("one set kept back is said so",
+      SyncRules.notSavedMessage(sets: 1, resting: false).hasPrefix("Changes to 1 set were not saved"))
+check("several, with the account named as the likely reason",
+      SyncRules.notSavedMessage(sets: 3, resting: false).contains("3 sets")
+      && SyncRules.notSavedMessage(sets: 3, resting: false).contains("account may be full"))
+check("a day's share used up is not blamed on the account",
+      SyncRules.notSavedMessage(sets: 2, resting: true).contains("tomorrow")
+      && !SyncRules.notSavedMessage(sets: 2, resting: true).contains("account"))
+
 // MARK: a document from a newer version
 
 func json(_ text: String) -> Data { Data(text.utf8) }

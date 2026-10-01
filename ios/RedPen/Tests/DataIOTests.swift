@@ -361,6 +361,45 @@ check("restore: a folder deleted here comes back under a new id", folderGone.fol
       && returnedFolder?.name == "Block 1" && returnedFolder?.id != folder.id)
 check("restore: its sets follow the returned folder",
       returnedFolder != nil && folderGone.sets.first { $0.name == "New" }?.folderId == returnedFolder?.id)
+// a set this version cannot read (a kind from a newer version) is kept as
+// written, not dropped, and the report says what happened
+let writtenBackup = try! LibraryBackup.encoder.encode(LibraryBackup.Library(library: [here, fresh], folders: []))
+var backupTop = try! JSONSerialization.jsonObject(with: writtenBackup) as! [String: Any]
+var backupSets = backupTop["library"] as! [[String: Any]]
+backupSets[1]["kind"] = "hologram"
+backupTop["library"] = backupSets
+let futureBackup = try! JSONSerialization.data(withJSONObject: backupTop)
+let readBack = try! LibraryBackup.decoder.decode(LibraryBackup.Library.self, from: futureBackup)
+check("restore: a set this version cannot read is noted, the rest read",
+      readBack.library.map(\.id) == [here.id] && readBack.skippedAt == [1], "\(readBack.skippedAt)")
+let keptTexts = LibraryBackup.unreadSets(in: futureBackup, at: readBack.skippedAt)
+let keptJSON = keptTexts.first.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }
+check("restore: and is kept as the JSON it was written in",
+      keptTexts.count == 1 && keptJSON?["kind"] as? String == "hologram"
+      && keptJSON?["id"] as? String == fresh.id.uuidString)
+check("restore: a backup that reads whole has nothing to keep",
+      LibraryBackup.unreadSets(in: writtenBackup, at: []).isEmpty
+      && (try! LibraryBackup.decoder.decode(LibraryBackup.Library.self, from: writtenBackup)).skippedAt.isEmpty)
+check("restore: where it was is never written into a backup",
+      !(String(data: try! LibraryBackup.encoder.encode(readBack), encoding: .utf8) ?? "").contains("skippedAt"))
+var kept = LibraryBackup.Report()
+kept.added = 2
+kept.unread = 1
+check("restore: a set kept for an update is said so",
+      kept.summary == "2 sets added, 1 set kept until an app update can open it. Nothing on this phone was replaced.",
+      kept.summary)
+var lostOne = LibraryBackup.Report()
+lostOne.lost = 1
+check("restore: and one that could not be kept is not hidden",
+      lostOne.summary == "Nothing new was added. 1 set in the backup couldn\u{2019}t be read.", lostOne.summary)
+check("restore: nothing new, nothing lost",
+      LibraryBackup.Report().summary == "Everything in that backup is already on this phone.")
+// sync brought the backup's set in while the backup was read: planned again
+// against the library as it is now, it is never added under the same id twice
+let synced = LibraryBackup.plan(backup: LibraryBackup.Library(library: [here, changed], folders: []),
+                                library: [here], folders: [], deleted: [])
+check("restore: a set already here by the time it lands is not added twice",
+      !synced.sets.contains { $0.id == here.id } && synced.unchanged + synced.copies == 2, "\(synced.sets.map(\.name))")
 check("restore: study logs keep the bigger day", LibraryBackup.mergeDays(["d1": 3, "d2": 1], ["d1": 1, "d3": 4]) == ["d1": 3, "d2": 1, "d3": 4])
 check("settings: this app's kept, sign-in and keys never",
       LibraryBackup.keepsSetting("exam.date") && LibraryBackup.keepsSetting("reminder.bedtime")

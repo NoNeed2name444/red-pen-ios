@@ -109,6 +109,12 @@ final class NoteStore: ObservableObject {
         var folders: [NoteFolder]?
     }
 
+    /// The same file, read a note at a time.
+    private struct LossySnapshot: Decodable {
+        var notes: [RecoveryFiles.Kept<Note>]?
+        var folders: [RecoveryFiles.Kept<NoteFolder>]?
+    }
+
     init(fileURL: URL? = nil) {
         if let fileURL {
             self.fileURL = fileURL
@@ -124,17 +130,20 @@ final class NoteStore: ObservableObject {
 
     func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        guard let snapshot = try? JSONDecoder.redPen.decode(Snapshot.self, from: data) else {
+        guard let snapshot = try? JSONDecoder.redPen.decode(LossySnapshot.self, from: data) else {
             // the next save would otherwise write an empty list over notes this
             // version could not read; put the file aside first so they can be
             // recovered
-            let aside = fileURL.deletingLastPathComponent()
-                .appendingPathComponent("notes-unreadable-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.copyItem(at: fileURL, to: aside)
+            RecoveryFiles.putAside(fileURL, as: "notes-unreadable")
             return
         }
-        notes = snapshot.notes ?? []
-        folders = snapshot.folders ?? []
+        // a note this version cannot read costs only itself, and survives in
+        // a copy (Settings > Your data)
+        let read = RecoveryFiles.list(snapshot.notes)
+        let shelves = RecoveryFiles.list(snapshot.folders)
+        if read.skipped + shelves.skipped > 0 { RecoveryFiles.putAside(fileURL, as: "notes-partly-unreadable") }
+        notes = read.values
+        folders = shelves.values
     }
 
     private func save() {
