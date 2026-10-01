@@ -115,7 +115,8 @@ jobs:
           suite mocksave MockSittingSaveTests.swift $F/Mock/MockSittingSave.swift $S/Exam/MockPaper.swift \
                 $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift
           # a new generation never stops the one running (and with it a cloud
-          # job's finished work): it is refused, saying what runs and how to stop it
+          # job's finished work): it is refused, saying what runs and how to
+          # stop it; and closing New set stops only what that New set started
           suite generation GenerationRulesTests.swift $S/GenerationRules.swift
           # a finished cloud job's result that fails to download: asked again
           # with waits between, then handed to the collector, never stranded;

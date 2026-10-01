@@ -116,6 +116,9 @@ struct NewSetView: View {
     @State private var bookFigures: [BookFigure] = []
     @State private var diagrams = DiagramCards()
     @ObservedObject private var generation = GenerationCenter.shared
+    /// What this sheet starts is its own: closing it stops that, and not a
+    /// generation another window started (GenerationRules.closingStops).
+    @State private var generationOwner = UUID()
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
     /// Set when a set is being turned into another mode by the writer, or
@@ -166,7 +169,7 @@ struct NewSetView: View {
                     FloatingAction.shared.clear()
                     // closing New set stops what it started, so nothing keeps
                     // running unseen or turns up as a stray card next time
-                    GenerationCenter.shared.cancel()
+                    GenerationCenter.shared.cancel(startedBy: generationOwner)
                     // and the same for a lecture file still being read or
                     // scanned for diagrams
                     FileReads.cancelAll()
@@ -177,6 +180,8 @@ struct NewSetView: View {
                 // as much as for the backdrop
                 .tint(kind.tint)
                 .environment(\.modeTint, kind.tint)
+                // what the sections start belongs to this sheet
+                .environment(\.generationOwner, generationOwner)
                 .navigationTitle("New set")
                 .diagnosticsScreen("screen:new_set")
                 .navigationBarTitleDisplayMode(.inline)
@@ -190,7 +195,7 @@ struct NewSetView: View {
                     if !Self.paths(for: now).contains(path) { path = Self.paths(for: now)[0] }
                     // each mode's draft is in its own format: Anki lines are not
                     // textbook pages, so a draft never carries over to another mode
-                    GenerationCenter.shared.cancel()
+                    GenerationCenter.shared.cancel(startedBy: generationOwner)
                     bodyText = ""
                     bookFigures = []
                     diagrams = DiagramCards()

@@ -1,5 +1,6 @@
 // A new generation never stops the one running: it is refused, with words
-// that say what is running and how to stop it (audit #94).
+// that say what is running and how to stop it; and closing a screen stops
+// only what that screen started (audit #94).
 
 import Foundation
 
@@ -41,6 +42,15 @@ ok(!bare.isEmpty && !bare.contains("Still writing \u{2014}"), "a bare \"Writing\
 
 // the same running job refuses every time: nothing about asking changes it
 ok(GenerationRules.admit(running: "Writing 40 questions") == questions, "asking twice gives the same answer")
+
+// MARK: closing a screen stops only what it started
+
+let mine = UUID(), other = UUID()
+ok(GenerationRules.closingStops(running: mine, closing: mine), "closing New set stops the generation it started")
+ok(!GenerationRules.closingStops(running: other, closing: mine),
+   "but not one another window's New set started (its cloud job would be deleted)")
+ok(!GenerationRules.closingStops(running: nil, closing: mine),
+   "nor one started outside New set, or nothing at all")
 
 print(failures == 0 ? "\nALL GENERATION RULES TESTS PASS" : "\n\(failures) GENERATION RULES TEST FAILURE(S)")
 exit(failures == 0 ? 0 : 1)

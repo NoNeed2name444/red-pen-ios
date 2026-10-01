@@ -29,6 +29,8 @@ struct LectureWriterSection: View {
     @State private var style: CardStyle = .mixed
 
     @EnvironmentObject private var llm: LocalLLMService
+    /// The New set this is in: closing it stops what this started, and only that.
+    @Environment(\.generationOwner) private var generationOwner
     @State private var picking = false
     @State private var pastedNotes = ""
     @State private var showMore = false
@@ -478,7 +480,8 @@ struct LectureWriterSection: View {
         // again on its next launch (CloudJobs.Delivery). Made before the
         // card, which tells it when the system stopped the generation.
         let delivery = CloudJobs.Delivery()
-        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, keeping: delivery, onCancel: {
+        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, owner: generationOwner,
+                                                      keeping: delivery, onCancel: {
             task?.cancel()
             task = nil
             working = false

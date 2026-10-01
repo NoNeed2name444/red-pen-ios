@@ -36,4 +36,14 @@ enum GenerationRules {
         }
         return .refuse(what + " \u{2014} wait for it to finish, or tap Cancel on its card, then try again.")
     }
+
+    /// Whether closing a screen stops the generation running: only when
+    /// that screen started it. `running`: the screen that started the
+    /// running generation (nil for none, or one started outside any such
+    /// screen); `closing`: the screen being closed. A New set that started
+    /// nothing - its Make was refused, or it is in another window - used to
+    /// stop whatever ran, and a cloud job's work with it.
+    static func closingStops(running: UUID?, closing: UUID) -> Bool {
+        running == closing
+    }
 }

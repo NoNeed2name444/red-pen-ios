@@ -11,6 +11,8 @@ struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
     @EnvironmentObject var subscriptions: SubscriptionStore
+    /// The New set this is in: closing it stops what this started, and only that.
+    @Environment(\.generationOwner) private var generationOwner
 
     @Binding var sourceText: String
     @Binding var questionCount: Int
@@ -236,7 +238,8 @@ struct MCQGenerateForm: View {
         // again on its next launch (CloudJobs.Delivery). Made before the
         // card, which tells it when the system stopped the generation.
         let delivery = CloudJobs.Delivery()
-        guard let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count, keeping: delivery, onCancel: {
+        guard let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count, owner: generationOwner,
+                                                      keeping: delivery, onCancel: {
             generationTask?.cancel()
             generationTask = nil
             isGenerating = false
