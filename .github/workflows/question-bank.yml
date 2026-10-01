@@ -5,6 +5,9 @@
 # student. Results: the run's artifact and a question-bank-pilot/<run id> branch.
 name: Question bank pilot
 on:
+  # a push to qbank/run starts it too (the run button only lists workflows on main)
+  push:
+    branches: ['qbank/run']
   workflow_dispatch:
     inputs:
       topics:
@@ -41,7 +44,7 @@ jobs:
       - name: Write and check
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          LIMIT: ${{ inputs.passages }}
+          LIMIT: ${{ inputs.passages || '40' }}
         run: |
           set -eo pipefail
           test -n "$AI_API_KEY" || { echo "::error::the AI_API_KEY secret is not set"; exit 1; }
