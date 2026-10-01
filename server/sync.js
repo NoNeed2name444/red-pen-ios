@@ -18,6 +18,8 @@
 // three decks is stored once, an upload can be retried without duplicating
 // anything, and a device that already has a picture asks for nothing.
 
+import { takeToday, ceiling, ROWS_PER_DOC, SYNC_ROWS_PER_DAY } from './limits.js';
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
 });
@@ -199,6 +201,7 @@ export async function push(env, account, body) {
   // is sent without knowing what it was a tombstone FOR, and must not relabel
   // a folder as a set on its way out.
   let full = false;
+  let resting = false;
   for (let i = 0; i < writes.length; i += WRITE_CHUNK) {
     const part = [];
     for (const w of writes.slice(i, i + WRITE_CHUNK)) {
@@ -207,6 +210,15 @@ export async function push(env, account, body) {
       part.push(w);
     }
     if (!part.length) continue;
+    // Sync's share of the day's rows written (limits.js), taken for the whole
+    // transaction before it runs. Once it is spent, what is left of the batch
+    // is not answered: the device keeps it and sends it again tomorrow, and
+    // sign-in and everything else still have the rest of the day.
+    if (!await takeToday(env, 'd1-rows:sync', ROWS_PER_DOC * part.length,
+                         ceiling(env.SYNC_ROWS_DAILY, SYNC_ROWS_PER_DAY))) {
+      resting = true;
+      break;
+    }
     const statements = [];
     for (const w of part) {
       const kind = w.doc.kind || null;
@@ -255,6 +267,9 @@ export async function push(env, account, body) {
     if (current) conflicts.push(conflictOf(id, current));
   }
 
+  // The day's budget ran out: nothing was refused for its size, so no "too
+  // large" - what was not answered is sent again tomorrow.
+  if (resting) return json({ accepted, conflicts, resting: true });
   // Nothing could be kept for want of room: say so, rather than answer as if
   // the device had sent nothing.
   if (refused && !accepted.length && !conflicts.length) {

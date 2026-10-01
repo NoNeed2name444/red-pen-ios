@@ -22,6 +22,7 @@
 //   POST /accuracy/model/set  { weights }                            owner key
 //   POST /accuracy/reports    { limit }                              owner key (training)
 
+import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
 import { proGate, askModel, spend } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
@@ -345,6 +346,10 @@ export async function report(env, account, body) {
   item.source = (item.source || '').trim().slice(0, MAX_SOURCE_CHARS);
   if (!await spend(env, `accuracy-report:${account}`, Number(env.ACCURACY_REPORTS_DAILY) || 60)) {
     return fail(429, "That's today's reports sent. Thank you - try again tomorrow.", { limit: 'day' });
+  }
+  // and all accounts together (limits.js)
+  if (!await takeToday(env, 'accuracy-report:all', 1, ceiling(env.ACCURACY_REPORTS_DAILY_ALL, REPORTS_PER_DAY))) {
+    return fail(429, 'Reports are paused for the rest of today. Thank you - try again tomorrow.', { limit: 'day' });
   }
   const hash = await itemHash(item);
   const note = str(body?.note, 1000);

@@ -10,6 +10,8 @@
 // The sync half is in sync.js. The shape of it - documents with revisions, a
 // changes feed, and pictures stored under the hash of their own bytes - is
 // explained there.
+import { legalPage } from './legal.js';
+import { pruneStores } from './limits.js';
 import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
@@ -84,6 +86,12 @@ export async function transcribeConfig() {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+
+    // the Terms of use and the Privacy policy (legal.js), plain pages
+    if (request.method === 'GET') {
+      const legal = legalPage(path);
+      if (legal) return legal;
+    }
 
     try {
       // Blobs are raw bytes in both directions, so they are routed before
@@ -216,6 +224,8 @@ export default {
     ctx.waitUntil(sweepDeleted(env).catch(error => console.error('sweep', error)));
     // crash and failure reports past their time (diagnostics.js)
     ctx.waitUntil(pruneDiagnostics(env).catch(error => console.error('diagnostics', error)));
+    // support messages, question reports and old daily counters (limits.js)
+    ctx.waitUntil(pruneStores(env).catch(error => console.error('prune', error)));
   },
 };
 
