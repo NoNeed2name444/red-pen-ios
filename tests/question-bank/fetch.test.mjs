@@ -69,6 +69,27 @@ check('PMC CC BY: attribution names authors, title, journal, DOI and licence',
   /^Cagatay Karaaslan, .*et al\. \(2026\)\. Bioassays in Allergy/.test(p0.attribution) && p0.attribution.includes('doi:10.1002/clt2.70210') && p0.attribution.includes('CC BY 4.0'), p0.attribution);
 check('PMC CC BY: the publisher\'s licence statement is kept as read', /open access article under the terms/.test(p0.licenceStatement));
 check('PMC CC BY: citation markers, figures and tables are left out of the text', ccBy.every(p => !/[<>]/.test(p.text)) && !/Figure \d+\s*$/.test(ccBy[1].text));
+// Captions, table notes and supplementary material are often reproduced from
+// elsewhere "with permission", which the article's CC BY does not cover.
+const allCcBy = parsePmcArticles(fixture('pmc-cc-by-4.0.xml'), { retrieved, maxPassages: 1000 });
+check('PMC CC BY: no figure caption reaches a passage (FIGURE 2, FIGURE 3)',
+  allCcBy.length > 0 && allCcBy.every(p => !p.text.includes('Schematic representation of histological staining') && !p.text.includes('Graphical summary of major molecular biological assays')));
+check('PMC CC BY: the prose around the figure is still kept', allCcBy.some(p => p.text.includes('In allergy research, histological methods assess epithelial barrier integrity')));
+{
+  const synthetic = `<article><front><article-meta><article-id pub-id-type="pmc">PMC2</article-id><title-group><article-title>T</article-title></title-group>
+    <permissions><license xlink:href="https://creativecommons.org/licenses/by/4.0/"><license-p>CC BY.</license-p></license></permissions></article-meta></front>
+    <body><sec><title>Results</title><p>Own prose that the article's licence covers, long enough to keep as a passage.</p>
+      <fig><caption><p>Reproduced with permission from Elsevier, copyright 2019 (figure).</p></caption></fig>
+      <table-wrap><caption><p>Reproduced with permission (table caption).</p></caption><table><tr><td><p>cell paragraph</p></td></tr></table>
+        <table-wrap-foot><fn><p>Reproduced with permission (table footnote).</p></fn></table-wrap-foot></table-wrap>
+      <supplementary-material><caption><p>Reproduced with permission (supplement).</p></caption></supplementary-material>
+      <boxed-text><p>Reproduced with permission (box).</p></boxed-text>
+      <sec><title>Nested</title><p>A nested section's own paragraph is still read as part of the section.</p></sec></sec></body></article>`;
+  const ps = parsePmcArticles(synthetic, { retrieved, maxPassages: 50 });
+  const all = ps.map(p => p.text).join(' ');
+  check('PMC: paragraphs inside figures, tables, footnotes, supplements and boxes are not collected', !/Reproduced with permission|cell paragraph/.test(all), all);
+  check('PMC: the section\'s own and nested paragraphs are kept', all.includes('Own prose that the article') && all.includes('A nested section\'s own paragraph'), all);
+}
 check('PMC: passages stay a question\'s size', ccBy.every(p => p.text.length <= 4000 || !p.text.includes('\n')));
 check('every kept passage passes the licence gate on its own', [p0, mpKept.passage].every(p => licenceVerdict({ source: p.source, licence: p.licence, url: p.url }).ok));
 

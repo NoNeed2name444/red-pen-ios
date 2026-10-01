@@ -91,9 +91,14 @@ const local = name => name.includes(':') ? name.slice(name.indexOf(':') + 1) : n
 const isNode = n => n && typeof n === 'object';
 export function children(node, name) { return (node?.children ?? []).filter(c => isNode(c) && (!name || local(c.name) === name)); }
 export function child(node, name) { return children(node, name)[0] ?? null; }
-/// Every descendant with this (namespace-free) name, in document order.
-export function findAll(node, name, out = []) {
-  for (const c of node?.children ?? []) if (isNode(c)) { if (local(c.name) === name) out.push(c); findAll(c, name, out); }
+/// Every descendant with this (namespace-free) name, in document order,
+/// not looking inside any element named in `skip`.
+export function findAll(node, name, out = [], skip = null) {
+  for (const c of node?.children ?? []) if (isNode(c)) {
+    if (skip?.has(local(c.name))) continue;
+    if (local(c.name) === name) out.push(c);
+    findAll(c, name, out, skip);
+  }
   return out;
 }
 export function find(node, name) { return findAll(node, name)[0] ?? null; }
@@ -152,6 +157,11 @@ export function parseMedlinePlus(xml, { retrieved }) {
 // ---------------------------------------------------------------- PMC ----
 
 const SKIP = new Set(['fig', 'table-wrap', 'table', 'disp-formula', 'inline-formula', 'graphic', 'media', 'supplementary-material', 'xref', 'fn', 'label', 'alternatives', 'tex-math', 'math']);
+/// Where a section's paragraphs are not looked for: captions, table notes,
+/// supplementary material, boxes and reference lists. These often hold
+/// material reproduced "with permission" from elsewhere, which the
+/// article's own licence does not cover, so they never reach the bank.
+const PARA_SKIP = new Set([...SKIP, 'boxed-text', 'fn-group', 'ref-list', 'table-wrap-foot', 'caption']);
 
 /// An article's licence as JATS states it: the ALI licence_ref or the
 /// <license> link first, then a Creative Commons URL in its text. Anything
@@ -238,7 +248,7 @@ export function parsePmcArticles(xml, { retrieved, maxPassages = 8, maxChars = 4
     if (!sections.length) { out.push({ ...base, meta, section: null, text: '' }); continue; }
     let made = 0;
     for (const { section, node } of sections) {
-      const paras = findAll(node, 'p').map(p => squash(textOf(p, SKIP))).filter(Boolean);
+      const paras = findAll(node, 'p', [], PARA_SKIP).map(p => squash(textOf(p, SKIP))).filter(Boolean);
       for (const text of chunk(paras, maxChars)) {
         if (made++ >= maxPassages) break;
         out.push({ ...base, meta, section, text });
