@@ -181,7 +181,7 @@ struct LibraryDataSettingsSection: View {
         working = .anki
         Task {
             do {
-                shareURL = try await LibraryBackupRunner.exportAllAsAnki(store: store)
+                shareURL = try await LibraryBackupRunner.exportAllAsAnki(store: store, schedule: reviews.records)
             } catch {
                 ReviewPromptRules.noteTrouble()
                 message = ("Couldn\u{2019}t export", "Something went wrong building the Anki file.")

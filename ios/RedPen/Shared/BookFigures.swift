@@ -68,6 +68,16 @@ enum BookFigures {
     /// The reference a page uses for picture `index` of the set.
     static func reference(_ index: Int) -> String { "image:\(index)" }
 
+    /// `markdown` with every picture reference moved on by `offset`, for a
+    /// book joined after another whose pictures now come first (audit #19).
+    static func rebased(_ markdown: String, by offset: Int) -> String {
+        guard offset != 0 else { return markdown }
+        return markdown.components(separatedBy: "\n").map { line -> String in
+            guard let (index, caption) = parse(line.trimmingCharacters(in: .whitespaces)) else { return line }
+            return "![\(caption)](\(reference(index + offset)))"
+        }.joined(separator: "\n")
+    }
+
     /// `![caption](image:3)` - the picture's index into StudySet.images and
     /// its caption, or nil for any other line.
     static func parse(_ line: String) -> (index: Int, caption: String)? {

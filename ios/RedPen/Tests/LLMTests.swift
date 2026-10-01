@@ -225,5 +225,20 @@ ok(TextSlicing.window(["a", "b", "c"], round: 0) == "a" && TextSlicing.window(["
 let unbroken: String = String(repeating: "x", count: 9_000)
 ok(TextSlicing.windows(unbroken, maxChars: 4_000).map(\.count) == [4_000, 4_000, 1_000], "text with no break is cut hard, and nothing is lost")
 
+
+// a long output is checked in parts, and the note says how much was read (audit #89)
+ok(TextSlicing.spread(3, upTo: 8) == [0, 1, 2], "every part is checked when there are few enough")
+ok(TextSlicing.spread(20, upTo: 4) == [0, 6, 13, 19], "a sample runs first to last, not the opening only: \(TextSlicing.spread(20, upTo: 4))")
+ok(TextSlicing.spread(9, upTo: 1) == [0] && TextSlicing.spread(0, upTo: 4).isEmpty, "edge counts")
+let calm = AccuracyVerdict(riskLevel: 1, findings: [], reasoning: "", checkedBy: "MedVAL")
+let risky = AccuracyVerdict(riskLevel: 3, findings: [.init(category: .hallucination, text: "dose doubled")],
+                            reasoning: "", checkedBy: "MedVAL")
+ok(MedVAL.partsNote(calm, checked: 5, total: 5) == " Checked: level 1 \u{2014} no risk.", "all parts read: plain 'Checked'")
+ok(MedVAL.partsNote(calm, checked: 4, total: 23) == " Checked 4 of 23 parts: level 1 \u{2014} no risk.",
+   "a sample says it was a sample: \(MedVAL.partsNote(calm, checked: 4, total: 23))")
+ok(MedVAL.partsNote(risky, checked: 4, total: 23, failed: 1)
+   == " Checker (4 of 23 parts): level 3 \u{2014} moderate risk \u{2014} dose doubled. 1 part could not be checked.",
+   "a finding names its part count and the parts that failed: \(MedVAL.partsNote(risky, checked: 4, total: 23, failed: 1))")
+
 print(failures == 0 ? "ALL LLM TESTS PASS" : "\(failures) LLM TEST(S) FAILED")
 exit(failures == 0 ? 0 : 1)

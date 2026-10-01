@@ -315,7 +315,7 @@ enum LibraryBackupRunner {
     /// Only the list is taken on the main thread; every picture file is read
     /// in the background, so a library full of pictures does not freeze the
     /// screen while it is gathered.
-    static func exportAllAsAnki(store: Store) async throws -> URL {
+    static func exportAllAsAnki(store: Store, schedule: [UUID: ReviewRecord] = [:]) async throws -> URL {
         let cache = BlobCache()
         let decks: [StudySet] = store.library.filter { $0.kind == .anki && !$0.cards.isEmpty }
         let folders: [StudyFolder] = store.folders
@@ -323,6 +323,6 @@ enum LibraryBackupRunner {
         let sets: [StudySet] = await Task.detached(priority: .userInitiated) { () -> [StudySet] in
             decks.map { set in set.images.contains(where: BlobRefs.isRef) ? cache.restore(set) : set }
         }.value
-        return try await ApkgExporter.exportAllInBackground(sets, folders: folders, fileName: name)
+        return try await ApkgExporter.exportAllInBackground(sets, folders: folders, fileName: name, schedule: schedule)
     }
 }

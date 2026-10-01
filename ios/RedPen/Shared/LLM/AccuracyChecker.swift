@@ -31,6 +31,35 @@ enum AccuracyChecker {
     }
 
 
+    /// Grades all of a long `output` - a deck, a set of cases, a textbook -
+    /// a window at a time, each against the part of `source` nearest it
+    /// (audit #89: only the first promptBudget/2 characters were read). At
+    /// most `maxParts` windows are sent, spread through the whole; the
+    /// riskiest window's verdict stands for it, and the counts say how much
+    /// was read. Nil when no part could be checked.
+    static func checkWhole(instruction: String, source: String, output: String, using backend: LLMBackend,
+                           maxParts: Int? = nil) async
+        -> (verdict: AccuracyVerdict, checked: Int, total: Int, failed: Int)? {
+        // already checked on the server as part of a cloud job
+        if let reply = CloudChecks.take(forOutput: output) { return (parse(reply, checkedBy: backend.label), 1, 1, 0) }
+        let budget: Int = backend.promptBudgetChars
+        let parts: [String] = TextSlicing.windows(output, maxChars: max(500, budget / 2))
+        let limit: Int = maxParts ?? (backend.isOnDevice ? 4 : 8)
+        var worst: AccuracyVerdict? = nil
+        var checked = 0, failed = 0
+        for at in TextSlicing.spread(parts.count, upTo: limit) {
+            if Task.isCancelled { break }
+            let part: String = parts[at]
+            guard let verdict = try? await check(instruction: instruction,
+                                                 input: nearest(source, to: part, limit: budget),
+                                                 output: part, using: backend) else { failed += 1; continue }
+            checked += 1
+            if worst == nil || verdict.riskLevel > (worst?.riskLevel ?? 0) { worst = verdict }
+        }
+        guard let worst else { return nil }
+        return (worst, checked, parts.count, failed)
+    }
+
     // MARK: the same check, on the server
 
     static let mcqInstruction = "Write a single-best-answer medical exam question, with its answer and explanation, from the source."

@@ -131,7 +131,9 @@ enum DeckExport {
     static func file(for set: StudySet) async throws -> IntentFile {
         let url: URL?
         if set.kind == .anki {
-            url = try? await ApkgExporter.exportInBackground(BlobCache().restore(set))
+            // the schedule as saved, read only, so each card keeps its place
+            url = try? await ApkgExporter.exportInBackground(BlobCache().restore(set),
+                                                             schedule: ReviewStore().records)
         } else {
             url = DeckPDF.export(set)
         }

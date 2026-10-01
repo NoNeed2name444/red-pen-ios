@@ -596,36 +596,12 @@ final class Store: ObservableObject {
     // MARK: combine — mirrors the library's "Combine N selected" flow
 
     /// Merges two or more sets of the same kind into one new set named
-    /// `name`, re-basing every image index into the combined image pool.
-    /// The originals are left untouched, as in the web app.
+    /// `name` (StudySet.combined: pictures, book figures and sources come
+    /// along). The originals are left untouched, as in the web app.
     @discardableResult
     func combine(_ ids: [UUID], name: String) -> StudySet? {
         let members = ids.compactMap { id in library.first { $0.id == id } }
-        guard let first = members.first, members.count >= 2,
-              members.allSatisfy({ $0.kind == first.kind }) else { return nil }
-        var out = StudySet(name: name, subject: first.subject, kind: first.kind)
-        for m in members {
-            let base = out.images.count
-            out.images.append(contentsOf: m.images)
-            switch m.kind {
-            case .mcq:
-                out.questions.append(contentsOf: m.questions.map { q in
-                    var q = q; q.id = UUID(); if let i = q.imageIndex { q.imageIndex = i + base }; return q
-                })
-            case .anki:
-                out.cards.append(contentsOf: m.cards.map { c in
-                    var c = c; c.id = UUID(); if let i = c.imageIndex { c.imageIndex = i + base }; return c
-                })
-            case .book:
-                out.bookMarkdown += (out.bookMarkdown.isEmpty ? "" : "\n\n") + m.bookMarkdown
-            case .qa:
-                out.qaCards.append(contentsOf: m.qaCards.map { var c = $0; c.id = UUID(); return c })
-            case .osce:
-                out.osceChecklists.append(contentsOf: m.osceChecklists.map { var c = $0; c.id = UUID(); return c })
-            case .narrate:
-                out.narrateSegments.append(contentsOf: m.narrateSegments.map { var s = $0; s.id = UUID(); return s })
-            }
-        }
+        guard let out = StudySet.combined(members, name: name) else { return nil }
         library.append(out)
         save()
         return out

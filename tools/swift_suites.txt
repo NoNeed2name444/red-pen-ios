@@ -63,7 +63,7 @@ suite imports ImportTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/An
       $S/AnkiFields.swift $S/MiniZip.swift $S/Zip.swift
 suite coverage CoverageTests.swift $S/MCQCoverage.swift
 suite schedule ScheduleTests.swift $M/AnkiCard.swift \
-      $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift
+      $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/AnkiExportSchedule.swift
 suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift $M/Differential.swift \
       $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
       $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
@@ -93,6 +93,16 @@ suite deck DeckTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCar
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
       $S/Explanation.swift
+# pictures travel with what shows them: Mistakes, combined sets and books, Anki sides
+suite pictures PictureTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
+      $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+      $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
+      $S/LectureTranscriber.swift $S/Brand.swift $S/PlainTextImport.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
+      $S/Explanation.swift \
+      $S/SetPictures.swift
 suite occlusion OcclusionFilterTests.swift $M/AnkiCard.swift $S/FigureGrid.swift $S/OcclusionFilter.swift \
       $S/OcclusionPhrases.swift
 # one cover per label phrase, and the answer is what is under it
