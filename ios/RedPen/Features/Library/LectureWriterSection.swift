@@ -388,11 +388,6 @@ struct LectureWriterSection: View {
 
     private func start() {
         trouble = nil
-        // something else is being written: said here, and left running
-        if let busy = GenerationCenter.shared.busy {
-            trouble = busy
-            return
-        }
         // image occlusion alone needs no model: the diagrams are the cards
         if kind == .anki {
             diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty
@@ -403,6 +398,11 @@ struct LectureWriterSection: View {
                 if found == 0 { trouble = "No labelled diagrams were found in this file." }
                 return
             }
+        }
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            trouble = busy
+            return
         }
         guard let backend = llm.writerOrApple() else {
             trouble = "No model is ready to write with."
