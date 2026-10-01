@@ -127,14 +127,17 @@ struct WardPill: View {
 }
 
 /// An exam timer in SF Mono: Resus Red once it is under `warnBelow`, "Time"
-/// at zero.
+/// at zero; hours shown for a paper over an hour (1:05:00).
 struct WardTimerPill: View {
     let seconds: Int
     var warnBelow = 60
 
     var body: some View {
         let low: Bool = seconds < warnBelow
-        let text: String = seconds <= 0 ? "Time" : String(format: "%d:%02d", seconds / 60, seconds % 60)
+        let h: Int = seconds / 3600
+        let clock: String = h > 0 ? String(format: "%d:%02d:%02d", h, seconds % 3600 / 60, seconds % 60)
+            : String(format: "%d:%02d", seconds / 60, seconds % 60)
+        let text: String = seconds <= 0 ? "Time" : clock
         Label(text, systemImage: "timer")
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
