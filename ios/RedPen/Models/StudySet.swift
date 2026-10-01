@@ -157,7 +157,8 @@ struct StudyFolder: Identifiable, Codable, Hashable {
 extension StudySet {
     private enum Keys: String, CodingKey {
         case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
-             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags
+             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags,
+             lectureLanguage
     }
 
     init(from decoder: Decoder) throws {
@@ -179,6 +180,7 @@ extension StudySet {
         sources = try c.decodeIfPresent([SourceDoc].self, forKey: .sources) ?? []
         exam = try c.decodeIfPresent(String.self, forKey: .exam)
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? nil
+        lectureLanguage = (try? c.decodeIfPresent(String.self, forKey: .lectureLanguage)) ?? nil
     }
 }
 
