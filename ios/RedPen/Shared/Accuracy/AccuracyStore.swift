@@ -116,6 +116,9 @@ final class AccuracyStore: ObservableObject {
         if let hit = memo[key] { return hit }
         let a: AccuracyAssessment = ledger.assess(item, weights: weights)
         memo[key] = a
+        // a Flagged item is held back from review and mock papers until a
+        // fix or a re-check clears it (AccuracyHolds)
+        AccuracyHolds.update(item.id, flagged: a.grade == .flagged)
         return a
     }
 

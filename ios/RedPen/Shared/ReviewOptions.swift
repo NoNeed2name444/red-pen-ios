@@ -52,6 +52,40 @@ enum ReviewSettings {
 
 /// A study day, as Anki counts one: it turns over at 4 in the morning, so a
 /// late night's reviews still count for the day they were started.
+/// What the accuracy check has graded Flagged (possibly wrong), by item id.
+///
+/// Held back from daily review and from mock papers, so a wrong fact is not
+/// drilled in by spaced repetition, the thing that makes it stick (DNA brief:
+/// quarantine, not deletion - the item stays in its set, with its flag and its
+/// fix, and comes back the moment a fix or a re-check clears it). Filled by
+/// AccuracyStore as it grades; empty where no check has run, so nothing is
+/// held for want of one.
+enum AccuracyHolds {
+    private static let lock = NSLock()
+    private static var flagged: Set<String> = []
+
+    static func update(_ id: String, flagged isFlagged: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        if isFlagged { flagged.insert(id) } else { flagged.remove(id) }
+    }
+
+    /// The flagged ids, read once for a whole queue.
+    static func snapshot() -> Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+        return flagged
+    }
+
+    static func isHeld(_ id: UUID) -> Bool { snapshot().contains(id.uuidString) }
+
+    static func reset() {
+        lock.lock()
+        defer { lock.unlock() }
+        flagged.removeAll()
+    }
+}
+
 enum ReviewDay {
     static let rolloverHours: Double = 4
 
@@ -153,7 +187,9 @@ extension ReviewPlan {
                            today: DayCounts? = nil) -> [AnkiQueueItem] {
         var budget: Allowance = Self.allowance(limits, records: records, now: now, today: today)
         var due: [(item: AnkiQueueItem, stage: Stage)] = []
+        let held: Set<String> = AccuracyHolds.snapshot()
         for card in cards {
+            if held.contains(card.id.uuidString) { continue }
             let stored: ReviewRecord? = records[card.id]
             if isHeld(stored, now: now) { continue }
             let kept: ReviewRecord = record(for: card, in: records, now: now)
@@ -178,7 +214,9 @@ extension ReviewPlan {
         var learning: Int = 0
         var fresh: Int = 0
         var reviewing: Int = 0
+        let held: Set<String> = AccuracyHolds.snapshot()
         for card in cards {
+            if held.contains(card.id.uuidString) { continue }
             let stored: ReviewRecord? = records[card.id]
             if isHeld(stored, now: now) { continue }
             let kept: ReviewRecord = record(for: card, in: records, now: now)
@@ -212,8 +250,10 @@ extension ReviewPlan {
                                         cap: Int = 500, today: DayCounts? = nil) -> [Due] {
         var budget: Allowance = Self.allowance(limits, records: records, now: now, today: today)
         var found: [(due: Due, stage: Stage)] = []
+        let held: Set<String> = AccuracyHolds.snapshot()
         for deck in decks {
             for card in deck.deckCards {
+                if held.contains(card.id.uuidString) { continue }
                 let stored: ReviewRecord? = records[card.id]
                 if isHeld(stored, now: now) { continue }
                 let kept: ReviewRecord = record(for: card, in: records, now: now)
