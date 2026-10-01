@@ -175,6 +175,7 @@ struct MCQSummaryView: View {
             .readableColumn()
         }
         .studyBar { barButtons }
+        .saveToIdeasHost()
         .reviewPromptAfterStreak(true)
         .modeScreen(.mcq)
         .navigationTitle("Results")
@@ -281,25 +282,31 @@ struct MCQSummaryView: View {
         .contentCard()
     }
 
+    /// A question's mark and stem, read as one; beside it, Save to Ideas.
     private func reviewRow(_ i: Int) -> some View {
         let q = studySet.questions[i]
         let correct = isRight(i)
+        let idea: IdeaClip = SaveToIdeas.clip(question: q, in: studySet, library: store.library)
         return HStack(alignment: .top, spacing: 12) {
-            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundStyle(correct ? Color.green : Color.red)
-                .font(.title3)
-                .accessibilityLabel(correct ? "Right" : "Wrong")
-            VStack(alignment: .leading, spacing: 4) {
-                Text(q.stem).font(.body).lineSpacing(2)
-                if !correct, q.options.indices.contains(q.correctIndex) {
-                    Text("Answer: \(q.options[q.correctIndex])")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.green)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(correct ? Color.green : Color.red)
+                    .font(.title3)
+                    .accessibilityLabel(correct ? "Right" : "Wrong")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(q.stem).font(.body).lineSpacing(2)
+                    if !correct, q.options.indices.contains(q.correctIndex) {
+                        Text("Answer: \(q.options[q.correctIndex])")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.green)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            SaveToIdeasButton(clip: idea, compact: true)
         }
         .padding(.vertical, 12)
-        .accessibilityElement(children: .combine)
     }
 
     /// Saves the mistakes as their own set, then opens it straight away - the

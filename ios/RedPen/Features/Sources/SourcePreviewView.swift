@@ -41,6 +41,8 @@ struct SourcePreviewView: View {
     /// False while the whole document is in Quick Look, which cannot be sent
     /// to a page - so no page list is offered there.
     @State private var documentFollowsPage = true
+    /// This reader, for the slip a passage saved to Ideas shows.
+    @State private var ideaHost = UUID()
 
     init(source: SourceDoc, set: StudySet? = nil, openAt: Int = 1) {
         self.source = source
@@ -92,6 +94,21 @@ struct SourcePreviewView: View {
                 }
                 .sheet(isPresented: $showingPages) { pageSheet }
                 .task { file = SourceFiles.url(for: source) }
+                // a passage selected on a page: Save to Ideas in its menu
+                .environment(\.ideaPassage, passageSaver)
+                .saveToIdeasHost(ideaHost)
+        }
+    }
+
+    /// Keeps a passage in the lecture's note in Ideas, filed under its set's
+    /// subject; nil when the lecture's set is not known.
+    private var passageSaver: IdeaPassageSaver? {
+        guard let set else { return nil }
+        let lecture: SourceDoc = source
+        let host: UUID = ideaHost
+        return IdeaPassageSaver { text, page in
+            let clip: IdeaClip = SaveToIdeas.clip(passage: text, page: page, of: lecture, in: set)
+            IdeaSaver.shared.save(clip, host: host)
         }
     }
 

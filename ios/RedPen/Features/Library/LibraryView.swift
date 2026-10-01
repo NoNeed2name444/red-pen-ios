@@ -228,7 +228,7 @@ struct LibraryView: View {
         .sheet(item: $foundCard) { found in
             FoundCardSheet(found: found) { set in opened.append(set) }
         }
-        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id) }
+        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id).noteSourceChip(noteID: found.id) }
         // decks, tables and backups opened from other apps: the import preview
         // (waiting while one of the library's own sheets is up)
         .incomingImportPreview(busy: presentingSheet)
@@ -236,6 +236,13 @@ struct LibraryView: View {
         .onReceive(PlatformNotice.publisher(PlatformNotice.search)) { note in
             openSearch(note.userInfo?["text"] as? String)
         }
+        // Save to Ideas: the study screens' store, and a saved note's way
+        // back to where it came from (LibrarySavedIdeas)
+        .onAppear { attachIdeaSaver() }
+        .onReceive(PlatformNotice.publisher(PlatformNotice.openItem)) { note in
+            if let source = note.userInfo?["source"] as? NoteSource { openSaved(source) }
+        }
+        .appLinksInPlace()
     }
 
     /// Whether one of the library's own sheets is up.

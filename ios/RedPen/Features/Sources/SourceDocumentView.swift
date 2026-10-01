@@ -76,8 +76,10 @@ struct PDFDocumentView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(page: $page) }
 
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+    func makeUIView(context: Context) -> IdeaPDFView {
+        // "Save to Ideas" in the menu over a selection, when the reader can
+        let view = IdeaPDFView()
+        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
         view.backgroundColor = .secondarySystemBackground
         view.document = PDFDocument(url: url)
@@ -89,7 +91,8 @@ struct PDFDocumentView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: PDFView, context: Context) {
+    func updateUIView(_ view: IdeaPDFView, context: Context) {
+        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         context.coordinator.page = $page
         if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
         go(view, to: page)
@@ -171,7 +174,7 @@ struct TextPagesView: View {
                 Label(blank, systemImage: "photo")
                     .font(.footnote).foregroundStyle(.secondary)
             } else {
-                Text(p.text).font(.body).textSelection(.enabled)
+                LecturePassageText(text: p.text, page: p.number)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }

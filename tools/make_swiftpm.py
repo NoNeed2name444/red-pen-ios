@@ -41,6 +41,7 @@ CORE_DROP = [
     "Shared/Exam/ExamFormats.swift",
     "Features/Exam/WardPocketView.swift", "Shared/WardPocket.swift", "Shared/WardPocketScores.swift",  # ward pocket
     "Features/Onboarding", "Shared/FirstRunRules.swift",          # first-run pages and the one-time tips
+    "Shared/Ideas/SaveToIdeasUI.swift", "Features/Library/LibrarySavedIdeas.swift",  # save to Ideas (what a note keeps of its source stays)
     "Shared/Space", "Shared/AppBackdrop.swift",                   # the living sky
     "Shared/PopOut.swift", "Shared/PopOutMotion.swift", "Shared/HeadTracker.swift",
     "Shared/Diagnostics", "Features/Support/DiagnosticsSettingsView.swift",
