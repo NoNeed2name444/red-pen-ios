@@ -118,7 +118,8 @@ jobs:
           # job's finished work): it is refused, saying what runs and how to stop it
           suite generation GenerationRulesTests.swift $S/GenerationRules.swift
           # a finished cloud job's result that fails to download: asked again
-          # with waits between, then handed to the collector, never stranded
+          # with waits between, then handed to the collector, never stranded;
+          # and a job whose generation the system stopped is handed over too
           suite cloudretry CloudJobRetryTests.swift $S/CloudJobRules.swift
           # writing a batch at a time: a failed batch is counted and the run
           # carries on, what was written is kept, what is missing is said and

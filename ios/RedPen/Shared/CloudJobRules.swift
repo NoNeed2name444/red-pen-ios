@@ -75,6 +75,31 @@ enum CloudJobRules {
         return .after(fetchWaits[failed - 1])
     }
 
+    // MARK: a generation stopped part way
+
+    /// Who stopped the generation a job was running under.
+    enum Stop: Equatable {
+        /// The student: Cancel on the card, or closing the screen that
+        /// started it.
+        case student
+        /// The system, ending the app's time in the background. The student
+        /// did not ask, and the server is still writing.
+        case system
+    }
+
+    /// What becomes of the job when its generation is stopped.
+    enum StopFate: Equatable {
+        /// Stopped on the server and forgotten here, as the student asked.
+        case delete
+        /// Left to finish on the server and handed to the collector, which
+        /// makes the set: work nobody asked to stop is never thrown away.
+        case handOver
+    }
+
+    static func afterStop(_ stop: Stop) -> StopFate {
+        stop == .system ? .handOver : .delete
+    }
+
     /// What the student is told when the screen stops waiting for a finished
     /// job's result. `what`: "Your 40 questions" (CloudJobs.Pending.what).
     static func handedOverMessage(_ what: String) -> String {

@@ -22,6 +22,8 @@ final class GenerationCenter: ObservableObject {
 
     @Published private(set) var job: Job?
     private var stop: (() -> Void)?
+    /// The running job's cloud deliveries, told who stopped it.
+    private var keep: CloudJobs.Delivery?
 
     /// Why a new generation cannot start now, in words for the student; nil
     /// when nothing is running. Asked before a screen starts anything.
@@ -32,17 +34,21 @@ final class GenerationCenter: ObservableObject {
 
     /// Starts showing a job, or refuses with nil while another one runs.
     /// `onCancel` must cancel the work's Task and put the screen that
-    /// started it back to idle; it runs on the main actor.
+    /// started it back to idle; it runs on the main actor. `delivery`: the
+    /// generation's cloud deliveries, if it may run a cloud job.
     @discardableResult
-    func begin(_ title: String, total: Int, onCancel: @escaping () -> Void) -> UUID? {
+    func begin(_ title: String, total: Int, keeping delivery: CloudJobs.Delivery? = nil,
+               onCancel: @escaping () -> Void) -> UUID? {
         // One job at a time, and the one running is never stopped to make
         // room: a cancelled cloud job is deleted on the server with what it
-        // had written (GenerationRules). Only the student stops it: the
-        // card's Cancel, or closing the screen that started it.
+        // had written (GenerationRules). Only the student stops it (the
+        // card's Cancel, or closing the screen that started it), or the
+        // system, which leaves its cloud job to finish (stopBySystem).
         guard GenerationRules.admit(running: job?.title) == .start else { return nil }
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
         stop = onCancel
+        keep = delivery
         // carries on if the student leaves the app, and says when it is done
         BackgroundWork.begin(id, title: title)
         Task { await AppNotifications.requestIfNeeded() }
@@ -70,6 +76,7 @@ final class GenerationCenter: ObservableObject {
         let title = job?.title
         job = nil
         stop = nil
+        keep = nil
         BackgroundWork.end(id, success: finished != nil)
         if let finished { AppNotifications.generationFinished(finished, body: title.map { "Done: \($0.lowercased())." } ?? "Done.") }
     }
@@ -79,7 +86,17 @@ final class GenerationCenter: ObservableObject {
         if let id = job?.id { BackgroundWork.end(id, success: false) }
         job = nil
         stop = nil
+        keep = nil
         stopping?()
+    }
+
+    /// The system is ending the app's background time (BackgroundWork). The
+    /// work stops as with Cancel, but a cloud job under it is not deleted:
+    /// nobody asked, so the server finishes it and the collector makes the
+    /// set (CloudJobRules.afterStop).
+    func stopBySystem() {
+        keep?.stopped(by: .system)
+        cancel()
     }
 }
 

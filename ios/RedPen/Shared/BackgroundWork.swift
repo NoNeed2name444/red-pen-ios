@@ -44,7 +44,9 @@ enum BackgroundWork {
                 task.progress.totalUnitCount = 100
                 task.expirationHandler = {
                     Task { @MainActor in
-                        if GenerationCenter.shared.job?.id == id { GenerationCenter.shared.cancel() }
+                        // stopped, but a cloud job under it is kept: the
+                        // student did not ask for it to go
+                        if GenerationCenter.shared.job?.id == id { GenerationCenter.shared.stopBySystem() }
                     }
                 }
             }

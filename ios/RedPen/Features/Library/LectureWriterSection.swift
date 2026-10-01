@@ -472,7 +472,13 @@ struct LectureWriterSection: View {
         status = "Writing\u{2026}"
         let plural: String = wanted == 1 ? "" : "s"
         let jobTitle: String = "Writing \(wanted) \(noun)\(plural)"
-        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, onCancel: {
+        // A cloud job's replies stay kept - on this device and on the
+        // server - until this generation is done with them, however it
+        // ends: an app closed while they are checked or saved finds them
+        // again on its next launch (CloudJobs.Delivery). Made before the
+        // card, which tells it when the system stopped the generation.
+        let delivery = CloudJobs.Delivery()
+        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, keeping: delivery, onCancel: {
             task?.cancel()
             task = nil
             working = false
@@ -484,11 +490,6 @@ struct LectureWriterSection: View {
             return
         }
         task = Task {
-            // A cloud job's replies stay kept - on this device and on the
-            // server - until this generation is done with them, however it
-            // ends: an app closed while they are checked or saved finds them
-            // again on its next launch (CloudJobs.Delivery).
-            let delivery = CloudJobs.Delivery()
             defer { CloudJobs.finish(delivery) }
             do {
                 // a textbook places the lecture's diagrams, so it waits for the

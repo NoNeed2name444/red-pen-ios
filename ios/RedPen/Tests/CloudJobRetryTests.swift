@@ -1,6 +1,7 @@
 // A finished cloud job's result that fails to download is asked for again,
 // with waits between, while its screen waits; given up, the job is handed to
-// the collector and the student told it is not lost (audit #93).
+// the collector and the student told it is not lost (audit #93). A job whose
+// generation the system stopped is handed over too, never deleted (#94).
 
 import Foundation
 
@@ -65,6 +66,12 @@ ok(screen(failing: 3, status: 502).fetched, "a server that blinks for a few seco
 ok(screen(failing: Rules.fetchWaits.count, status: nil).fetched, "so is a lift with no signal, up to the last wait")
 ok(!screen(failing: Rules.fetchWaits.count + 1, status: nil).fetched, "longer than that, the collector takes over")
 ok(!screen(failing: 1, status: 404).fetched, "and a job the server does not know is handed over at once")
+
+// MARK: a generation stopped part way
+
+ok(Rules.afterStop(.student) == .delete, "the student's Cancel stops the cloud job and forgets it, as asked")
+ok(Rules.afterStop(.system) == .handOver,
+   "the system ending the app's background time leaves the job to finish, for the collector")
 
 // MARK: what the student is told
 
