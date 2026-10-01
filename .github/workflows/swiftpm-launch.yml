@@ -51,20 +51,11 @@ jobs:
             src: ''
             tool: ''
             lecture: true
-          - id: personal-d1b0d69
-            src: d1b0d69
-            tool: d1b0d69
-          # personal at 09:30 UTC on 25 Sep (4fced95), made with the first
-          # committed make_swiftpm.py (da8b1bd, 11:11)
-          - id: old-0930
-            src: 4fced95
-            tool: da8b1bd
-          - id: old-1111
-            src: da8b1bd
-            tool: da8b1bd
-          - id: old-1242
-            src: 8f271f3
-            tool: 8f271f3
+          # The earlier commits launched here (d1b0d69, and 4fced95, da8b1bd,
+          # 8f271f3 from 25 Sep) asked whether old zips already failed to
+          # launch; the core building on the iPad on 1 Oct answered it (the
+          # size is the cause), so they are no longer run. Add one back with
+          # its src and tool commits to test an old zip again.
     steps:
       - uses: actions/checkout@v4
         with:
