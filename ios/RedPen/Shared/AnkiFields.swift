@@ -46,6 +46,38 @@ enum AnkiFields {
         return ords.isEmpty ? [0] : ords
     }
 
+    /// Whether a cloze sentence still has a deletion Anki can make a card
+    /// from: a closed {{c1::...}} (or higher) with something inside it. A
+    /// half-deleted "{{c1::aorta" or an empty "{{c1::}}" is not one.
+    static func hasDeletion(_ text: String) -> Bool {
+        text.range(of: #"\{\{c[1-9][0-9]*::[\s\S]+?\}\}"#, options: .regularExpression) != nil
+    }
+
+    /// What one cloze card becomes in the package.
+    struct ClozeNote: Equatable {
+        /// A "Red Pen Cloze" note when true, a "Red Pen Basic" one when false.
+        var isCloze: Bool
+        var fields: [String]
+        var sort: String
+        /// The cards the note makes, one per ordinal.
+        var ordinals: [Int]
+    }
+
+    /// A cloze card as an Anki note. Every way a cloze is MADE checks for a
+    /// deletion, but an edit can save a sentence whose braces are gone, and
+    /// a one-tap accuracy fix replaces the text with the corrected wording.
+    /// A cloze note with no deletion is a card with an empty front in Anki,
+    /// so that sentence goes as a basic note instead: the sentence on the
+    /// front, the why on the back - still something to review.
+    static func clozeNote(_ text: String, why: String) -> ClozeNote {
+        let reason: String = why.isEmpty ? "" : "<div class=\"why\"><b>Why / how</b>\(esc(why))</div>"
+        guard hasDeletion(text) else {
+            return ClozeNote(isCloze: false, fields: [bold(text), reason], sort: plain(text), ordinals: [0])
+        }
+        return ClozeNote(isCloze: true, fields: [cloze(text), why.isEmpty ? "" : bold(why)],
+                         sort: plain(text), ordinals: clozeOrdinals(text))
+    }
+
     /// A field as Anki reads it for its duplicate check: the HTML gone and
     /// the entities turned back into the characters they stand for. Checksums
     /// taken over the escaped form would never match the ones Anki takes.

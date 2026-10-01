@@ -158,10 +158,12 @@ enum MCQGenerator {
                     guard !MCQCoverage.isRepeat(stem: generated.stem, key: key, of: asked),
                           !ExamExemplars.copies(generated.stem)
                     else { continue }
-                    collected.append(MCQQuestion(stem: generated.stem,
-                                                 options: generated.options,
-                                                 correctIndex: generated.correctIndex,
-                                                 explanation: generated.explanation))
+                    // "option B" in the explanation names the option by
+                    // its words: the options are shown shuffled
+                    collected.append(MCQRepair.repaired(MCQQuestion(stem: generated.stem,
+                                                                    options: generated.options,
+                                                                    correctIndex: generated.correctIndex,
+                                                                    explanation: generated.explanation)))
                     asked.append(MCQCoverage.Asked(stem: generated.stem, key: key))
                     kept += 1
                     if collected.count >= count { break }
