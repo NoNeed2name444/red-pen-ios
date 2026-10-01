@@ -45,6 +45,12 @@ jobs:
             src: ''
             tool: ''
             without: core1
+          # core1 plus step 2 (Anki packages, PDF and set-file export,
+          # backups, picture cards from photos): the zip the owner has now
+          - id: current-core2
+            src: ''
+            tool: ''
+            without: core2
           # the owner's kind of zip: a lecture PDF bundled in Samples, which
           # the app reads into examples a few seconds after the library shows
           - id: current-lecture
@@ -188,7 +194,7 @@ jobs:
             local dev="$1" udid="$2" name="$3" sc="$4" app="$5" keep="$6"; shift 6
             local D="$R/$dev/$sc"
             mkdir -p "$D"; echo "$name" > "$D/device.txt"
-            KEEP="$keep" bash "$RUNNER_TEMP/sim_launch.sh" "$app" "$udid" "$D" 30 "$@"; local rc=$?
+            KEEP="$keep" bash "$RUNNER_TEMP/sim_launch.sh" "$app" "$udid" "$D" "${DUR:-30}" "$@"; local rc=$?
             echo "$dev/$sc=$rc" >> "$R/status.txt"
             { echo "### ${{ matrix.id }}: $name, $sc - $([ $rc = 0 ] && echo ALIVE || echo NOT RUNNING)"; echo '```'; head -c 40000 "$D/key.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
             [ $rc = 0 ] || fails=$((fails + 1))
@@ -205,6 +211,12 @@ jobs:
             run "$dev" "$udid" "$name" 2-signed-in "$APP" 1 -launchTestSignedIn
             # opened again on the data that launch left
             run "$dev" "$udid" "$name" 3-relaunch "$APP" 1
+            if [ -n "${{ matrix.without }}" ]; then
+              # every set opened in turn (CoreLibrary, -launchTestOpenSets):
+              # a mode screen missing something it needs stops the app here,
+              # not on the owner's iPad
+              DUR=60 run "$dev" "$udid" "$name" 6-open-every-set "$APP" 1 -launchTestSignedIn -launchTestOpenSets
+            fi
             if [ -n "${CUR_APP:-}" ]; then
               # the current package installed over this old one's data
               run "$dev" "$udid" "$name" 4-upgrade-to-current "$CUR_APP" 1
