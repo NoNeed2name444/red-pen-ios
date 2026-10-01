@@ -1,0 +1,95 @@
+# How well does the app's cloud transcription hear a lecture? The benchmark
+# window of the SLE lecture (90 s + 30 s), cut as CloudTranscriber cuts it
+# (16 kHz mono AAC, 32 kbps), sent through the Worker's /transcribe/chunk with
+# the app's own CloudTranscript prompt and the owner key, and scored against
+# the checked reference: the window's 8 key terms in English letters, and the
+# word error rate. Scores go to the run page; the lecture's words do not,
+# unless show_text is set (this repository is public).
+#
+# Started by hand only, never a gate: Gemini can be busy, the Worker can fall
+# back to flash-lite, and each run uses one of the owner's 200 chunks a day.
+# A 429 is reported as skipped, not failed.
+#
+# NEEDS ONE SECRET it does not have yet: TRANSCRIBE_READ_TOKEN, a fine-grained
+# GitHub token with read-only Contents on NoNeed2name444/red-pen-transcribe,
+# which holds the lecture audio (release parts) and the reference transcript.
+# They stay in that private repository and are fetched for each run. Without
+# the token the job runs the scorer's tests and says it skipped the live call.
+# The owner key is built from AI_API_KEY, as accuracy-bench.yml builds it.
+name: Transcription benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release in red-pen-transcribe holding the lecture parts
+        required: false
+        default: rp-mtx4iqt6-sle-and-anti-phosphi
+      start:
+        description: Window start (seconds) - the reference covers 90
+        required: false
+        default: '90'
+      length:
+        description: Window length (seconds) - the reference covers 30
+        required: false
+        default: '30'
+      show_text:
+        description: Also put the transcript on the run page (public)
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The scorer's own tests
+        run: node tests/asr/asr-bench.test.mjs
+      - name: The audio and the reference, from red-pen-transcribe
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.TRANSCRIBE_READ_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          START: ${{ inputs.start }}
+          LEN: ${{ inputs.length }}
+        run: |
+          set -eo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            printf '# Transcription benchmark\n\n**Skipped the live call:** this repository has no `TRANSCRIBE_READ_TOKEN` secret yet (a fine-grained token with read-only Contents on red-pen-transcribe, where the lecture audio and the reference live). The scorer'"'"'s tests ran.\n' >> "$GITHUB_STEP_SUMMARY"
+            echo "live=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
+          mkdir -p job
+          gh release download "$TAG" -R NoNeed2name444/red-pen-transcribe -p 'part-*' -D job
+          ls job/part-* | sort | xargs cat > job/audio.bin
+          ffmpeg -hide_banner -loglevel error -y -ss "$START" -t "$LEN" -i job/audio.bin -vn \
+            -c:a aac -b:a 32k -ar 16000 -ac 1 job/window.m4a
+          rm -f job/part-* job/audio.bin
+          gh api repos/NoNeed2name444/red-pen-transcribe/contents/reference/gemini-3.5-flash-step1.txt \
+            -H 'Accept: application/vnd.github.raw' > job/reference.txt
+          test -s job/window.m4a && test -s job/reference.txt
+          echo "live=true" >> "$GITHUB_OUTPUT"
+      - name: Through the Worker with the app's prompt, scored
+        if: steps.fetch.outputs.live == 'true'
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          START: ${{ inputs.start }}
+          LEN: ${{ inputs.length }}
+          SHOW: ${{ inputs.show_text }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -eo pipefail
+          if [ -n "$AI_API_KEY" ]; then
+            ASR_BENCH_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+            echo "::add-mask::$ASR_BENCH_KEY"
+            export ASR_BENCH_KEY
+          fi
+          FLAGS=""; [ "$SHOW" = "true" ] && FLAGS="--show-text"
+          node tools/asr_bench.mjs run --audio job/window.m4a --reference job/reference.txt \
+            --window "${START} s + ${LEN} s of $TAG" $FLAGS > /dev/null
