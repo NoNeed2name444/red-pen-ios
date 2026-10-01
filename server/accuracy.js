@@ -460,14 +460,12 @@ export async function evidenceStage(items, fetcher, budget = BUDGETS.evidence) {
 export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes) {
   const started = Date.now();
   const messages = votePrompt(entries);
-  // the second ballot solves the questions blind (key and explanation
-  // withheld); a third, called when the first two disagree, sees everything
   const hasMcq = entries.some(e => e.item.kind === 'mcq');
   const blindMessages = hasMcq ? votePrompt(entries, { blind: true }) : messages;
   const ballots = [];
   const failures = [];
   const statuses = [];
-  let wanted = 2, calls = 0;
+  let calls = 0;
   const queue = votersFor(env, writer);
   // a batch of questions is solved blind by two families first (DNA brief:
   // kinetic proofreading - independent discriminations before any is shown
@@ -486,37 +484,85 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     const key = e.item.key >= 0 ? String.fromCharCode(65 + e.item.key) : null;
     return answers.length >= 2 && (new Set(answers).size > 1 || answers.some(a => a !== key) && answers.some(a => a === key));
   });
-  while (queue.length) {
-    if (ballots.length >= wanted || calls >= MAX_CALLS) break;
-    // once one family has voted, the next voter is from another family when
-    // there is one: two votes from one family are one witness
-    if (ballots.length) {
-      const voted = new Set(ballots.map(b => familyOf(b.model)));
-      const other = queue.findIndex(u => !voted.has(familyOf(u.slice(u.indexOf(':') + 1))));
-      if (other > 0) queue.unshift(queue.splice(other, 1)[0]);
-    }
-    const use = queue.shift();
+  const wanted = () => (hasMcq
+    ? (blindCount() >= 2 && blindSplit() ? 3 : 2) + (explained || otherSplit() ? 1 : 0)
+    : (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed) ? 3 : 2));
+  // the next voter from a family that has neither voted nor been asked, when
+  // there is one: two votes from one family are one witness
+  const asking = new Set();
+  const nextVoter = () => {
+    const used = new Set([...ballots.map(b => familyOf(b.model)), ...asking]);
+    const other = queue.findIndex(u => !used.has(familyOf(u.slice(u.indexOf(':') + 1))));
+    if (other > 0) queue.unshift(queue.splice(other, 1)[0]);
+    return queue.shift() || null;
+  };
+  const ask = async (use, blind) => {
     calls++;
-    // questions: blind until two blind solves stand (three when they split)
-    const blindWanted = !hasMcq ? 0 : (blindCount() >= 2 && blindSplit() ? 3 : 2);
-    const blind = hasMcq && blindCount() < blindWanted;
+    const family = familyOf(use.slice(use.indexOf(':') + 1));
+    asking.add(family);
     // room for a reasoning model to think before it answers every item
     const asked = await within(budget, () => askModel(env, account, owner, use, blind ? blindMessages : messages, 500 * entries.length + 600, fetcher), null);
+    asking.delete(family);
     statuses.push(asked.status);
     if (asked.status === 'error') console.error('accuracy voter', use, asked.error);
-    if (asked.status !== 'ok') { failures.push(`${use}: ${asked.status}`); continue; }
+    if (asked.status !== 'ok') { failures.push(`${use}: ${asked.status}`); return null; }
     const r = asked.value;
-    if (!r.ok) { failures.push(`${use}: ${r.status}`); continue; }
+    if (!r.ok) { failures.push(`${use}: ${r.status}`); return null; }
     const parsed = parseVotes(r.content, entries.length);
-    if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); continue; }
+    if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); return null; }
     // a blind voter judged only the stem and options: it fixes nothing
     if (blind) parsed.forEach((v, n) => { if (v && entries[n].item.kind === 'mcq') { v.fix = null; v.blind = true; } });
-    ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) });
-    if (hasMcq) {
-      // two blind solves, a third when they split, then one shown the key
-      // when an explanation needs judging or a card was disputed
-      wanted = (blindCount() >= 2 && blindSplit() ? 3 : 2) + (explained || otherSplit() ? 1 : 0);
-    } else if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
+    return { model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) };
+  };
+
+  // round one: two voters at once, from two families (for questions, both
+  // blind), so the wait is the slower of two calls rather than their sum. A
+  // failed call is replaced at once; a slow one is hedged - after
+  // ACCURACY_HEDGE_MS a third family is asked too, and the first two
+  // answers stand (Dean and Barroso, The Tail at Scale, 2013)
+  const hedgeMs = Number(env.ACCURACY_HEDGE_MS) || 8000;
+  const got = [];
+  await new Promise(resolve => {
+    let inFlight = 0, order = 0, hedged = false, finished = false;
+    const finish = () => { if (!finished) { finished = true; resolve(); } };
+    const launch = () => {
+      if (calls >= MAX_CALLS) return false;
+      const use = nextVoter();
+      if (!use) return false;
+      const mine = order++;
+      inFlight++;
+      ask(use, hasMcq).then(b => {
+        inFlight--;
+        if (finished) return;
+        if (b) got.push({ ...b, order: mine });
+        if (got.length >= 2) return finish();
+        // a failure is replaced at once, while the other is still out
+        if (!b && got.length + inFlight < 2) launch();
+        if (inFlight === 0) finish();
+      });
+      return true;
+    };
+    launch();
+    launch();
+    if (inFlight === 0) return finish();
+    const timer = setTimeout(() => {
+      if (finished || hedged || got.length >= 2) return;
+      hedged = true;
+      launch();
+    }, hedgeMs);
+    timer?.unref?.();
+  });
+  // in the order they were asked, so a reply reads the same however the race went
+  ballots.push(...got.sort((a, b) => a.order - b.order).slice(0, 2).map(({ order, ...b }) => b));
+
+  // then one at a time, only while something is left to settle: a split
+  // between the blind solves, a disputed card, an explanation to judge
+  while (calls < MAX_CALLS && ballots.length < wanted()) {
+    const use = nextVoter();
+    if (!use) break;
+    const blind = hasMcq && blindCount() < (blindCount() >= 2 && blindSplit() ? 3 : 2);
+    const b = await ask(use, blind);
+    if (b) ballots.push(b);
   }
   return ended('votes', statuses, started, budget, { ballots, failures });
 }

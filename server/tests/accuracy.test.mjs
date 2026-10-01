@@ -292,7 +292,7 @@ const items = [
   r = await checkBatch(env, 'owner', { items }, fetcher, { owner: true });
   let body = await r.json();
   ok(r.status === 200 && body.items.length === 2 && body.items[0].id === 'q1', 'a batch is checked');
-  ok(calls.join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/openai/gpt-oss-120b', `two free voters, one call each for the whole batch (${calls.join()})`);
+  ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/openai/gpt-oss-120b', `two free voters, asked at once, one call each for the whole batch (${calls.join()})`);
   ok(body.items[0].votes.length === 2 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with both votes and the evidence they were shown');
   ok(body.items[0].verdict === 'verified' && body.items[0].p > 0.85, `agreeing votes with support: Verified (${body.items[0].p})`);
   ok(body.items[1].verdict === 'check' || body.items[1].verdict === 'verified', 'the card is scored too');

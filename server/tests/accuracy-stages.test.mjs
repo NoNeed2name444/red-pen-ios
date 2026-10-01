@@ -393,6 +393,7 @@ function firstDifference(a, b, path = '') {
       let j; try { j = JSON.parse(text); } catch { return text; }
       if (j.busy) busy = true;
       delete j.busy;
+      if (Array.isArray(j.failures)) j.failures.sort();
       for (const [ii, it] of (j.items || []).entries()) {
         if (it.features) delete it.features.families;
         delete it.reasons;
@@ -402,12 +403,24 @@ function firstDifference(a, b, path = '') {
       return j;
     };
     const replies = run.replies.map((r, ri) => ({ status: r.status, body: body(r.body, ri) }));
+    // the first two voters are asked at once now (1 Oct): which of the two
+    // reaches the network first, and fails first, is a race, so calls made
+    // together are compared as a set (a change in which calls are made
+    // still shows)
+    const together = log => {
+      const out = [];
+      let block = [];
+      const flush = () => { out.push(...block.sort()); block = []; };
+      for (const e of log) { if (/^(gemini|workers):/.test(e)) block.push(e); else { flush(); out.push(e); } }
+      flush();
+      return out;
+    };
     const db = JSON.parse(JSON.stringify(run.db, (k, v) => {
       if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); votes(s.votes); delete s.kind; return JSON.stringify(s); } catch { return v; } }
       return v;
     }));
     if (db && typeof db === 'object') delete db.ai_usage;
-    return { replies, log: run.log, db, blindAt, blindModels, busy };
+    return { replies, log: together(run.log), db, blindAt, blindModels, busy };
   };
   const unblind = (before, staged) => {
     // a blind voter fixes nothing: the reference's fix in that seat is set aside too
@@ -815,6 +828,37 @@ function firstDifference(a, b, path = '') {
   const watch = async (url, init) => { if (url.includes('europepmc')) asked = new URL(url).searchParams.get('query'); return w.fetcher(url, init); };
   await checkBatch(w.env, 'owner', { items: [Q1] }, watch, { owner: true });
   ok(asked.includes('NOT (PUB_TYPE:"retracted publication" OR PUB_TYPE:"retraction of publication")'), 'Europe PMC is asked for no retracted record', asked);
+  w.release();
+}
+
+// MARK: less waiting (1 Oct): the first two voters at once, a slow one hedged
+{
+  // each checker takes 300 ms: asked one after another the batch would take 600 ms or more
+  const w = world();
+  forgetWeights();
+  const slow = async (url, init) => {
+    if (url.includes('firebasevertexai')) await sleep(300);
+    return w.fetcher(url, init);
+  };
+  const env = { ...w.env, AI: { run: async (model, input) => { await sleep(300); return w.env.AI.run(model, input); } } };
+  const t0 = Date.now();
+  const r = await checkBatch(env, 'owner', { items: [C1] }, slow, { owner: true });
+  const took = Date.now() - t0;
+  const item = JSON.parse(await r.text()).items[0];
+  ok(item.votes.length === 2 && took < 550, `two checkers asked at once: about one call's wait, not two (${took} ms)`);
+  w.release();
+}
+{
+  // one checker hangs: after the hedge delay a third family is asked, and the first two answers stand
+  const w = world({ ACCURACY_HEDGE_MS: '100' }, { hang: new Set(['gemini-3.5-flash-lite']) });
+  forgetWeights();
+  const t0 = Date.now();
+  const r = await Promise.race([checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true }), sleep(3000).then(() => null)]);
+  const took = Date.now() - t0;
+  const item = r ? JSON.parse(await r.text()).items[0] : null;
+  ok(item && item.votes.length === 2 && !item.votes.some(v => v.model === 'gemini-3.5-flash-lite') && took < 1500,
+     `a hung checker is hedged: two others answer and the batch goes on (${took} ms)`);
+  ok(w.log.some(c => c.includes('nemotron')), 'the hedge asked a third family');
   w.release();
 }
 
