@@ -244,6 +244,44 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
   ok(!r.ok && r.status === 503 && r.resting === true && asked === 0, 'a resting voter is not asked: its ballot is missing (the item stays Unverified)');
 }
 
+// One model resting, the others unusable for another reason (out for the
+// day, a prompt too long for Workers AI): busy, and still free - the request
+// taken from the day's allowance is given back, so a background job waiting
+// on these answers cannot use up the student's day without asking anyone
+{
+  resetBreakers(clock);
+  let workersAsked = 0;
+  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemma-4-31b-it,gemini-3.5-flash', WORKERS_AI_MAX_CHARS: '1',
+                         AI: { run: async () => { workersAsked++; return { response: 'x' }; } } });
+  env.db.prepare('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, 1)')
+    .run('gemini-dayout:gemma-4-31b-it', new Date().toISOString().slice(0, 10));
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  let asked = 0;
+  const never = async () => { asked++; return answer('x'); };
+  const before = used(env, 'a1');
+  const answers = [];
+  for (let i = 0; i < 5; i++) {
+    const r = await chat(env, 'a1', request, never, { rounds: 1, maxTokensCap: 8000 });
+    answers.push(r.status === 503 && (await r.json()).busy === true);
+  }
+  ok(answers.every(Boolean), 'a model out for the day, the other resting, Workers AI too small: busy each time');
+  ok(asked === 0 && workersAsked === 0, 'no provider is asked');
+  ok(used(env, 'a1') === before, "five busy answers: none of today's allowance is used");
+
+  // the resting model back: an answer, and that one is counted
+  later(60);
+  const r = await chat(env, 'a1', request, async url => { asked++; return answer('back'); });
+  ok(r.status === 200 && asked === 1 && used(env, 'a1') === before + 1, 'once a model is asked, the request counts as before');
+
+  // a model really asked and failing is not given back, even when the rest
+  // of the chain is resting by the end of the request
+  resetBreakers(clock);
+  for (let i = 0; i < 2; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  const spent = used(env, 'a1');
+  const f = await chat(env, 'a1', request, async () => down(503), { rounds: 1 });
+  ok(f.status === 502 && used(env, 'a1') === spent + 1, 'a request that reached a provider stays spent');
+}
+
 // Cloud transcription: every Gemini model resting is "busy" before a chunk of
 // today's allowance is used
 {

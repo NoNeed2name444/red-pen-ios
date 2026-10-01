@@ -111,7 +111,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // for the rest of the day.
   const limit = bench ? Number(env.OWNER_BENCH_DAILY_LIMIT) || 2500
     : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000 : Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
-  if (!await spend(env, bench ? 'owner-bench' : owner ? 'owner' : accountId, limit)) {
+  const spender = bench ? 'owner-bench' : owner ? 'owner' : accountId;
+  if (!await spend(env, spender, limit)) {
     const message = `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`;
     // `limit: "day"` says which kind of limit, so a client need not read the words
     return json({ error: { message }, message, limit: 'day' }, 429);
@@ -126,6 +127,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // even when the lecture says it too.
   let sent = messages;
   let evidence = [];
+  // how many providers were really asked, over every call below
+  let asked = 0;
   const last = messages[messages.length - 1]?.content || '';
   // The owner's checker comparison asks for the model's own judgement
   // (ground: false); everyone else's checks are always grounded.
@@ -134,15 +137,24 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const about = checked ? checked.output : (body.ground === true ? last : '');
   if (about) {
     const picked = await complete(env, route, termsPrompt(about), 200, 0, fetcher);
+    asked += picked.calls || 0;
     if (picked.ok) {
       evidence = await gather(parseTerms(picked.content), fetcher);
       sent = checked ? groundedMessages(messages, evidence) : answerWithEvidence(messages, evidence);
     }
   }
   const result = await complete(env, route, sent, maxTokens, temperature, fetcher);
-  // the providers went down while this request was on its way: the same
-  // clean answer as above
-  if (!result.ok && result.resting) return busy(result.retryAfter);
+  asked += result.calls || 0;
+  // the providers went down while this request was on its way, or the ones
+  // not resting could not be used anyway (a Gemini model out for the day,
+  // the account's free share used, a prompt too long for Workers AI): the
+  // same clean answer as above. Nothing was asked, so the request taken from
+  // the day's allowance is given back - a background job that waits on busy
+  // answers (jobs.js) must not use up the student's day doing nothing.
+  if (!result.ok && result.resting) {
+    if (!asked) await takeBack(env, spender, 1).catch(e => console.error('refund', e));
+    return busy(result.retryAfter);
+  }
   if (!result.ok) {
     console.error('upstream', result.status, result.detail);
     // the owner sees the provider's own words, so a clipped error still says
@@ -370,7 +382,8 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   }
   // a bookkeeping failure never costs the student their answer
   if (reserved) await settle(env, route.wallet, reserved, actual).catch(e => console.error('settle', e));
-  return result;
+  // how many providers were really asked (chat gives the allowance back when none was)
+  return { ...result, calls: trace.calls };
 }
 
 async function readError(response) {
