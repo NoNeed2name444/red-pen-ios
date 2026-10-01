@@ -49,8 +49,9 @@ struct LibraryView: View {
                         row(set)
                     }
                 }
+                CoreLibraryExtras()
                 Section {
-                    Text("This is the core build. The 3D map, Study Lens, analytics, audio lectures, spoken OSCE practice and the reasoning tools are in the full app.")
+                    Text(CoreBuildNote.text)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -108,7 +109,8 @@ struct LibraryView: View {
     }
 }
 
-/// A set opened in its own mode; the modes this build leaves out say so.
+/// A set opened in its own mode; a narrate set opens what the variant has
+/// (core-audio-out or core-audio-in).
 struct CoreSetScreen: View {
     let set: StudySet
 
@@ -119,7 +121,7 @@ struct CoreSetScreen: View {
         case .book: BookReaderView(set: set)
         case .qa: QACardsView(set: set)
         case .osce: OsceReviewView(set: set)
-        case .narrate: NotInThisBuild(feature: "Audio lectures")
+        case .narrate: CoreNarrateScreen(set: set)
         }
     }
 }

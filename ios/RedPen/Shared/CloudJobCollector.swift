@@ -184,13 +184,17 @@ enum CloudJobCollector {
             body = "Kept as text \u{2014} it could not be turned into \(meant)."
             made = kept
         }
+        var onDisk = true
         if let made {
             store.addSet(made)
             // on disk before the server's copy is forgotten below: the
             // library saves on a short delay, and this is the only copy
-            await store.flushed()
+            onDisk = await store.flushed()
             AppNotifications.generationFinished("\(made.name) is ready", body: body)
         }
+        // not on disk (the write failed, or the library could not be read at
+        // launch): the server's copy stays, to be collected again
+        guard onDisk else { return }
         CloudJobs.remove(pending.id)
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["job-" + pending.id])
         // the server's copy, where this device can still reach it; otherwise
