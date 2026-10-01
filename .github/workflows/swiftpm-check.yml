@@ -6,7 +6,9 @@
 name: Playgrounds package
 on:
   push:
-    branches: [personal]
+    # design/lanes: the owner's lanes stacked for personal, each one's core
+    # stand-ins compiled before it gets there
+    branches: [personal, design/lanes]
     paths: ['ios/**', 'tools/make_swiftpm.py', 'tools/playgrounds_stubs/**', '.github/workflows/swiftpm-check.yml']
   workflow_dispatch:
 permissions:

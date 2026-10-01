@@ -236,6 +236,8 @@ targets:
           - "*.entitlements"
       - path: RedPen/Shared/Platform/GlanceDigest.swift
       - path: RedPen/Shared/Platform/AppLink.swift
+      # AppLink.openItem carries a NoteSource (Foundation only)
+      - path: RedPen/Shared/Ideas/SaveToIdeas.swift
       - path: RedPen/Shared/Platform/ExamDayAttributes.swift
       - path: RedPen/Shared/Platform/ReviewDueIntent.swift
     entitlements:

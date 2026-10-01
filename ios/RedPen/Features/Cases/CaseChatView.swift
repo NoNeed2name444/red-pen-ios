@@ -9,6 +9,9 @@ import SwiftUI
 struct CaseChatView: View {
     let card: QACard
     let subject: String
+    /// The case's note in Ideas, which the debrief can add to; nil where
+    /// the case has no set to go back to.
+    var idea: IdeaClip? = nil
 
     @EnvironmentObject private var llm: LocalLLMService
     @Environment(\.dismiss) private var dismiss
@@ -42,7 +45,7 @@ struct CaseChatView: View {
         Group {
             if let simulator {
                 CaseSession(simulator: simulator, draft: $draft, assessment: $assessment,
-                            onClose: { dismiss() })
+                            idea: idea, onClose: { dismiss() })
             } else {
                 notReady
             }
@@ -79,6 +82,8 @@ private struct CaseSession: View {
     @ObservedObject var simulator: CaseSimulator
     @Binding var draft: String
     @Binding var assessment: String
+    /// The case's note in Ideas, for the debrief's Save to Ideas.
+    let idea: IdeaClip?
     /// Closes the consultation, from the debrief's Done.
     let onClose: () -> Void
     @FocusState private var typing: Bool
@@ -271,11 +276,24 @@ private struct CaseSession: View {
         .disabled(grading)
     }
 
+    /// The diagnosis and the points missed, added to the case's note.
+    private var debriefIdea: IdeaClip? {
+        guard let idea else { return nil }
+        let list: [ChecklistItem] = simulator.caseFile.checklist
+        let missed: [String] = list.filter { !$0.covered }.map(\.text)
+        return SaveToIdeas.caseDebrief(diagnosis: simulator.caseFile.diagnosis, missed: missed,
+                                       covered: simulator.coveredCount, total: list.count, of: idea)
+    }
+
     private var debrief: some View {
         List {
             Section {
                 LabeledContent("Diagnosis", value: simulator.caseFile.diagnosis)
                 LabeledContent("Checklist", value: "\(simulator.coveredCount) of \(simulator.caseFile.checklist.count) covered")
+                if let debriefIdea {
+                    SaveToIdeasButton(clip: debriefIdea)
+                        .listRowBackground(Color.clear)
+                }
             }
             ForEach(ChecklistItem.Section.allCases, id: \.self) { section in
                 let items = simulator.caseFile.checklist.filter { $0.section == section }
@@ -309,5 +327,6 @@ private struct CaseSession: View {
                 .buttonStyle(.bigPrimary)
                 .keyboardShortcut(.return, modifiers: [])
         }
+        .saveToIdeasHost()
     }
 }

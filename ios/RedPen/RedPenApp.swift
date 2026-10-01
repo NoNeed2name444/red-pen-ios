@@ -24,6 +24,8 @@ struct RedPenApp: App {
     /// Whether "Which exam are you preparing for?" has been answered or
     /// skipped (ExamOnboardingView, once, after the terms).
     @StateObject private var examQuestion = ExamQuestionStore()
+    /// Who has finished the first-run pages (FirstRunView, once per account).
+    @StateObject private var firstRun = FirstRunStore()
     // GemmaModel is a true singleton (its download must survive view
     // teardown), so it's observed here rather than owned by @StateObject.
     @ObservedObject private var gemma = GemmaModel.shared
@@ -105,7 +107,7 @@ struct RedPenApp: App {
     private var libraryShowing: Bool {
         if GraphPreview.isOn || !account.isSignedIn || !examQuestion.asked { return false }
         guard let signedIn = account.account else { return true }
-        return terms.hasAgreed(signedIn.id)
+        return terms.hasAgreed(signedIn.id) && !firstRun.isDue(signedIn.id, terms: terms)
     }
 
     var body: some Scene {
@@ -127,6 +129,10 @@ struct RedPenApp: App {
                     // once per account, before anything else: recordings are
                     // only transcribed with the speakers' permission
                     RecordingTermsView { terms.agree(signedIn.id) }
+                } else if let signedIn = account.account, firstRun.isDue(signedIn.id, terms: terms) {
+                    // once per account, every page skippable: exam, date,
+                    // daily goal, reminders, an example set
+                    FirstRunView(accountId: signedIn.id) { firstRun.finish(signedIn.id); examQuestion.done() }
                 } else if account.isSignedIn && !examQuestion.asked {
                     // once, skippable: the exam everything will put first
                     ExamOnboardingView { examQuestion.done() }

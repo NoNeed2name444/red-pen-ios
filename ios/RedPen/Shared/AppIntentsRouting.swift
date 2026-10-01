@@ -21,6 +21,9 @@ enum PlatformNotice {
     /// A focus round finished: `userInfo["start"]` and `["end"]` are Dates.
     /// Posted by the focus timer; MindfulMinutes logs it to Health.
     static let focusRoundEnded = Notification.Name("stethoscore.focusRoundEnded")
+    /// A note's backlink chip / redpen://item: `userInfo["source"]` is the
+    /// NoteSource; the library opens the item in its set.
+    static let openItem = Notification.Name("stethoscore.openItem")
 
     static func post(_ name: Notification.Name, _ info: [String: Any] = [:]) {
         NotificationCenter.default.post(name: name, object: nil, userInfo: info)
@@ -105,6 +108,9 @@ final class AppRouter: ObservableObject {
             PlatformNotice.post(PlatformNotice.search, ["text": text])
         case .examPlan:
             LearnRouter.shared.open(.examPlan)
+        case .openItem(let source):
+            sheetRequests.send(nil)
+            PlatformNotice.post(PlatformNotice.openItem, ["source": source])
         }
     }
 

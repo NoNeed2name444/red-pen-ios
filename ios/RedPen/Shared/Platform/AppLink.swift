@@ -22,6 +22,9 @@ enum AppLink: Equatable {
     case newSet
     /// The exam plan (the countdown widget's tap).
     case examPlan
+    /// A question, card, case, station or lecture page in its set - where a
+    /// note saved to Ideas came from (NoteSource, SaveToIdeas.swift).
+    case openItem(NoteSource)
 
     /// The schemes the app answers to. `redpen` is the one declared since the
     /// first build (Google sign-in returns to it); `stethoscore` is the name
@@ -60,6 +63,8 @@ enum AppLink: Equatable {
             return .newSet
         case "exam", "countdown":
             return .examPlan
+        case NoteSource.host:
+            return NoteSource(url: url).map { .openItem($0) }
         default:
             return nil
         }
@@ -85,6 +90,8 @@ enum AppLink: Equatable {
             components.host = "new"
         case .examPlan:
             components.host = "exam"
+        case .openItem(let source):
+            return source.url
         }
         return components.url ?? URL(string: "redpen://due")!
     }
