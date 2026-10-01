@@ -176,6 +176,11 @@ struct OsceGenerateSection: View {
 
     private func start() {
         trouble = nil
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            trouble = busy
+            return
+        }
         working = true
         let wanted = stationCount, subj = subject, text = sourceText
         status = "Writing 0 of \(wanted)\u{2026}"
@@ -184,11 +189,16 @@ struct OsceGenerateSection: View {
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
         let plural: String = wanted == 1 ? "" : "s"
         let jobTitle: String = "Writing \(wanted) station\(plural)"
-        let job = GenerationCenter.shared.begin(jobTitle, total: wanted) {
+        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, onCancel: {
             task?.cancel()
             task = nil
             working = false
             status = "Cancelled."
+        }) else {
+            working = false
+            status = nil
+            trouble = GenerationCenter.shared.busy
+            return
         }
         task = Task {
             // A cloud job's replies stay kept - on this device and on the

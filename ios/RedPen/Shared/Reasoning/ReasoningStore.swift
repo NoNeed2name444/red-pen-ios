@@ -140,6 +140,11 @@ final class ReasoningStore: ObservableObject {
             trouble[key] = "Something else is being written \u{2014} wait for it to finish."
             return
         }
+        // another screen's generation, running: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            trouble[key] = busy
+            return
+        }
         guard let backend = LocalLLMService.shared.writerOrApple() else {
             trouble[key] = "No model is ready to write with. Choose one in AI models."
             return
@@ -151,12 +156,16 @@ final class ReasoningStore: ObservableObject {
         }
         let setId = set.id, subject = set.subject == "General" ? "" : set.subject
         let exam = ExamTrack.current
-        writing = (setId: setId, tool: tool)
-        let job = GenerationCenter.shared.begin("Writing \(count) \(tool.noun)\(count == 1 ? "" : "s")", total: count) {
+        let title: String = "Writing \(count) \(tool.noun)\(count == 1 ? "" : "s")"
+        guard let job = GenerationCenter.shared.begin(title, total: count, onCancel: {
             self.running?.cancel()
             self.running = nil
             self.writing = nil
+        }) else {
+            trouble[key] = GenerationCenter.shared.busy
+            return
         }
+        writing = (setId: setId, tool: tool)
         let progress: (Int, Int) -> Void = { done, total in
             GenerationCenter.shared.update(job, done: done, total: total)
         }

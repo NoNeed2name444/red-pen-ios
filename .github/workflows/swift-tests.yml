@@ -114,6 +114,9 @@ jobs:
           # a mock paper left part way comes back as it was left
           suite mocksave MockSittingSaveTests.swift $F/Mock/MockSittingSave.swift $S/Exam/MockPaper.swift \
                 $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift
+          # a new generation never stops the one running (and with it a cloud
+          # job's finished work): it is refused, saying what runs and how to stop it
+          suite generation GenerationRulesTests.swift $S/GenerationRules.swift
           suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
           suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
           # hostile archives built byte by byte: size fields that lie, one

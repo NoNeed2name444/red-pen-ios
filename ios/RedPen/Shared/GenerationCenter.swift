@@ -23,13 +23,23 @@ final class GenerationCenter: ObservableObject {
     @Published private(set) var job: Job?
     private var stop: (() -> Void)?
 
-    /// Starts showing a job. `onCancel` must cancel the work's Task and put
-    /// the screen that started it back to idle; it runs on the main actor.
+    /// Why a new generation cannot start now, in words for the student; nil
+    /// when nothing is running. Asked before a screen starts anything.
+    var busy: String? {
+        if case .refuse(let why) = GenerationRules.admit(running: job?.title) { return why }
+        return nil
+    }
+
+    /// Starts showing a job, or refuses with nil while another one runs.
+    /// `onCancel` must cancel the work's Task and put the screen that
+    /// started it back to idle; it runs on the main actor.
     @discardableResult
-    func begin(_ title: String, total: Int, onCancel: @escaping () -> Void) -> UUID {
-        // one job at a time: whatever was running is stopped, not orphaned
-        // to finish later into a draft that has moved on
-        if job != nil { cancel() }
+    func begin(_ title: String, total: Int, onCancel: @escaping () -> Void) -> UUID? {
+        // One job at a time, and the one running is never stopped to make
+        // room: a cancelled cloud job is deleted on the server with what it
+        // had written (GenerationRules). Only the student stops it: the
+        // card's Cancel, or closing the screen that started it.
+        guard GenerationRules.admit(running: job?.title) == .start else { return nil }
         let id = UUID()
         job = Job(id: id, title: title, done: 0, total: total, phase: nil)
         stop = onCancel

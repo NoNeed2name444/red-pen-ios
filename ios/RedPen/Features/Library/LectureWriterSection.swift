@@ -388,6 +388,11 @@ struct LectureWriterSection: View {
 
     private func start() {
         trouble = nil
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            trouble = busy
+            return
+        }
         // image occlusion alone needs no model: the diagrams are the cards
         if kind == .anki {
             diagrams.included = style.usesDiagrams && !diagrams.cards.isEmpty
@@ -409,11 +414,16 @@ struct LectureWriterSection: View {
         status = "Writing\u{2026}"
         let plural: String = wanted == 1 ? "" : "s"
         let jobTitle: String = "Writing \(wanted) \(noun)\(plural)"
-        let job = GenerationCenter.shared.begin(jobTitle, total: wanted) {
+        guard let job = GenerationCenter.shared.begin(jobTitle, total: wanted, onCancel: {
             task?.cancel()
             task = nil
             working = false
             status = "Cancelled."
+        }) else {
+            working = false
+            status = nil
+            trouble = GenerationCenter.shared.busy
+            return
         }
         task = Task {
             // A cloud job's replies stay kept - on this device and on the

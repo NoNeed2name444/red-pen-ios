@@ -217,6 +217,11 @@ struct MCQGenerateForm: View {
         // then the paywall opens instead of the work starting - nothing is
         // generated and then taken away, which is the version people hate.
         if llm.needsPro(.writer) { showPaywall = true; return }
+        // something else is being written: said here, and left running
+        if let busy = GenerationCenter.shared.busy {
+            generationStatus = busy
+            return
+        }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let backend = activeBackend else { return }
         isGenerating = true
@@ -225,11 +230,15 @@ struct MCQGenerateForm: View {
         let cite = readSource
         let writer = llm.backend(for: .writer)
         let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
-        let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count) {
+        guard let job = GenerationCenter.shared.begin("Writing \(count) questions", total: count, onCancel: {
             generationTask?.cancel()
             generationTask = nil
             isGenerating = false
             generationStatus = "Cancelled."
+        }) else {
+            isGenerating = false
+            generationStatus = GenerationCenter.shared.busy
+            return
         }
         generationTask = Task {
             // A cloud job's replies stay kept - on this device and on the
