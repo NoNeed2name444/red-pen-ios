@@ -34,6 +34,12 @@ on:
       - '.github/workflows/swift-tests.yml'
 permissions:
   contents: write
+# a newer push to the same branch supersedes the run before it: every push
+# queued its own run, and five of them once held every macOS runner while a
+# package check waited behind them
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
 env:
   GH_TOKEN: ${{ github.token }}
 jobs:
