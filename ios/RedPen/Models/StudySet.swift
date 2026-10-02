@@ -3,7 +3,7 @@ import Foundation
 /// Which study mode a saved set belongs to. The web app's `state.library`
 /// holds both kinds together, distinguished by a `kind` field the same way.
 enum StudySetKind: String, Codable, CaseIterable, Identifiable {
-    case mcq, anki, book, osce, narrate
+    case mcq, anki, book, osce, narrate, cases
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -12,6 +12,7 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .book: return "Textbook"
         case .osce: return "OSCE"
         case .narrate: return "Narrate"
+        case .cases: return "Cases"
         }
     }
     var emoji: String {
@@ -21,10 +22,12 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .book: return "📖"
         case .osce: return "✅"
         case .narrate: return "🎙️"
+        case .cases: return "🩺"
         }
     }
 
-    /// Kinds this app removed, as sets save them: "qa", the old Cases. A set
+    /// Kinds this app removed, as sets save them: "qa", the old Cases (the
+    /// new Cases are "cases", a different kind with a different shape). A set
     /// of one is not from a newer version, so no update will read it: sync
     /// leaves it on the server without asking for one (SyncEngine.adopt).
     static let retired: Set<String> = ["qa"]
@@ -63,6 +66,8 @@ struct StudySet: Identifiable, Codable, Hashable {
     var osceChecklists: [OsceChecklist] = []
     /// "narrate": a lecture transcript read line by line at a reading pace.
     var narrateSegments: [NarrateSegment] = []
+    /// "cases": the patients, worked through one at a time.
+    var caseFiles: [CaseFile] = []
     /// Base64-encoded image data (`data:` URI payloads), indexed the same
     /// way `state.images` / `state.ankiImages` are in the web app.
     var images: [String] = []
@@ -94,6 +99,7 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .book: return BookPages.pageCount(bookMarkdown)
         case .osce: return osceChecklists.reduce(0) { $0 + $1.steps.count }
         case .narrate: return narrateSegments.count
+        case .cases: return caseFiles.count
         }
     }
     var itemNoun: String {
@@ -102,6 +108,7 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .mcq: return "question"
         case .osce: return "step"
         case .narrate: return "line"
+        case .cases: return "patient"
         default: return "card"
         }
     }
@@ -133,6 +140,7 @@ extension StudySet {
         out.cards = cards.map { var c = $0; c.id = fresh(c.id); return c }
         out.osceChecklists = osceChecklists.map { var c = $0; c.id = fresh(c.id); return c }
         out.narrateSegments = narrateSegments.map { var s = $0; s.id = fresh(s.id); return s }
+        out.caseFiles = caseFiles.map { var c = $0; c.id = fresh(c.id); return c }
         return out
     }
 
@@ -143,6 +151,7 @@ extension StudySet {
         ids.formUnion(cards.map(\.id))
         ids.formUnion(osceChecklists.map(\.id))
         ids.formUnion(narrateSegments.map(\.id))
+        ids.formUnion(caseFiles.map(\.id))
         return ids
     }
 }
@@ -163,7 +172,7 @@ extension StudySet {
     private enum Keys: String, CodingKey {
         case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
              bookMarkdown, osceChecklists, narrateSegments, images, sources, exam, tags,
-             lectureLanguage
+             lectureLanguage, caseFiles
     }
 
     init(from decoder: Decoder) throws {
@@ -183,6 +192,7 @@ extension StudySet {
         bookMarkdown = try c.decodeIfPresent(String.self, forKey: .bookMarkdown) ?? ""
         osceChecklists = try c.decodeIfPresent([OsceChecklist].self, forKey: .osceChecklists) ?? []
         narrateSegments = try c.decodeIfPresent([NarrateSegment].self, forKey: .narrateSegments) ?? []
+        caseFiles = (try? c.decodeIfPresent([CaseFile].self, forKey: .caseFiles)) ?? []
         images = try c.decodeIfPresent([String].self, forKey: .images) ?? []
         sources = try c.decodeIfPresent([SourceDoc].self, forKey: .sources) ?? []
         exam = try c.decodeIfPresent(String.self, forKey: .exam)

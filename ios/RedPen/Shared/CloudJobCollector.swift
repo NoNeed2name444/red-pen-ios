@@ -57,6 +57,10 @@ struct CloudRecipe: Codable {
             set.images = kept.images
         case .narrate:
             return nil
+        case .cases:
+            let written: [CaseFile] = CaseWriting.collect(replies, count: count, lecture: source?.name ?? "")
+            set.caseFiles = written
+            guard !written.isEmpty else { return nil }
         }
         set.sources = source.map { [$0] } ?? []
         return set
@@ -71,6 +75,7 @@ private extension StudySetKind {
         case .anki: return "cards"
         case .book: return "textbook"
         case .narrate: return "lecture"
+        case .cases: return "cases"
         }
     }
 }
@@ -234,6 +239,11 @@ enum CloudJobCollector {
             let screened = VerificationScreen.cards(set.cards)
             set.cards = screened.kept
             return VerificationScreen.note(screened)
+        case .cases:
+            // the structure checks and the rules, as New set runs them
+            let screened = CaseChecks.screen(set.caseFiles)
+            set.caseFiles = screened.kept
+            return CaseChecks.note(kept: screened.kept.count, dropped: screened.dropped.count)
         default:
             // pages: checked by the layer once saved
             return " The verification layer checks it once the set is saved."

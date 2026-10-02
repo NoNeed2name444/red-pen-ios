@@ -56,7 +56,7 @@ suite zip ZipTests.swift $S/Zip.swift $S/DocxText.swift $S/PptxText.swift
 # pasted text with Windows line endings, answer letters, a set
 # shared from another phone, Anki's fields and the .apkg's zip
 suite imports ImportTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/PlainTextImport.swift $S/SetImport.swift $S/BookFigures.swift $S/BookPages.swift \
@@ -87,7 +87,7 @@ suite llm LLMTests.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift
 suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift $S/BookFigures.swift
 suite deck DeckTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
-      $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+      $M/StudySet.swift $S/Cases/CaseFile.swift $S/SoundKey.swift $S/PronunciationStore.swift \
       $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
       $S/LectureTranscriber.swift $S/Brand.swift $S/PlainTextImport.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -96,7 +96,7 @@ suite deck DeckTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCar
 # pictures travel with what shows them: Mistakes, combined sets and books, Anki sides
 suite pictures PictureTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
-      $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+      $M/StudySet.swift $S/Cases/CaseFile.swift $S/SoundKey.swift $S/PronunciationStore.swift \
       $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
       $S/LectureTranscriber.swift $S/Brand.swift $S/PlainTextImport.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -109,13 +109,13 @@ suite occlusion OcclusionFilterTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
 suite phrases OcclusionPhraseTests.swift $M/AnkiCard.swift $S/OcclusionFilter.swift \
       $S/OcclusionPhrases.swift
 suite modeconversion ModeConversionTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift
 suite answers AnswerCheckingTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -127,7 +127,7 @@ suite answers AnswerCheckingTests.swift $M/MCQQuestion.swift $M/Differential.swi
 # grade reads the reasoning checks; and a library holding a set of the
 # removed "qa" kind still loads
 suite differential DifferentialTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -196,7 +196,7 @@ suite graphperf GraphPerfTests.swift $F/Notes/GraphPerfGraph.swift $F/Notes/Grap
 # cases as the server's), the accuracy model's grades, the cache key,
 # the order background checks run in, and one-tap corrections
 suite accuracy AccuracyTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -205,7 +205,7 @@ suite accuracy AccuracyTests.swift $M/MCQQuestion.swift $M/Differential.swift $M
 # the verification layer's first stage on generated material: broken items
 # removed with their reason, red flags held, the status line
 suite verifyscreen VerificationScreenTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -215,7 +215,7 @@ suite verifyscreen VerificationScreenTests.swift $M/MCQQuestion.swift $M/Differe
 # a question stem read as a patient chart: chips, vitals, results flagged
 # from the accuracy check's own ranges, the story and the question
 suite chart PatientChartTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -226,7 +226,7 @@ suite chart PatientChartTests.swift $M/MCQQuestion.swift $M/Differential.swift $
 # shows of a stem, the highlighter across story and question, how options
 # are marked (never in a timed paper), the bar's words, what VoiceOver hears
 suite chartquiz ChartQuizTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -248,7 +248,7 @@ suite diagnostics DiagnosticsTests.swift $S/Diagnostics/DiagnosticsModel.swift \
 # set's topics by quota, the exemplars and each exam's prompt, its
 # mock papers, a blueprint-weighted mock, stricter accuracy cut-offs
 suite examcatalog ExamCatalogTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -266,7 +266,7 @@ suite examcatalog ExamCatalogTests.swift $M/MCQQuestion.swift $M/Differential.sw
 # question in its set; and custom sessions - missed this week, due,
 # subject, tag, accuracy flags - sat as a quiz or a review
 suite librarysearch LibrarySearchTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -276,7 +276,7 @@ suite librarysearch LibrarySearchTests.swift $M/MCQQuestion.swift $M/Differentia
 # included) written by Anki itself, Quizlet / Sheets / Anki text
 # tables, tags and their search filter, the backup's format and merge
 suite dataio DataIOTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/PlainTextImport.swift \
@@ -296,7 +296,7 @@ suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceD
 # question as the camera moves, each type's answer read, and a
 # capture turned into every mode
 suite lens LensTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -308,7 +308,7 @@ suite lens LensTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCar
 # options are shown shuffled - and a key it contradicts left to flag
 suite mcqrepair MCQRepairTests.swift \
       $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -322,7 +322,7 @@ suite ocr OCRTests.swift $S/RedPenOCR.swift
 # read, and every licence the app's own content carries
 suite credits ContentCreditsTests.swift \
       $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
@@ -349,3 +349,22 @@ suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swi
 # fault injection: what an accuracy batch and a transcription chunk do
 # with a 500, a 429, a timeout, an unreadable answer and no network
 suite faults FaultTests.swift $S/NetworkFaults.swift
+# Cases: the case file read tolerantly and kept in a set, the structure
+# checks and the chart's H/L flags, the run and its ladder history, the
+# score and its cap, the debrief, and a writer's JSON read back
+suite cases CasesTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+      $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/ExamTrack.swift \
+      $S/Insight/InsightModels.swift $S/Learn/RetentionForecast.swift $S/Learn/SecuredRule.swift \
+      $S/Learn/ExamWeekPlanner.swift $S/Learn/SymptomBlocks.swift $S/Learn/Pretest.swift $S/Learn/StudyRhythm.swift \
+      $S/Exam/MockPaper.swift $S/Coverage/Syllabus.swift $S/Coverage/CoverageEngine.swift \
+      $S/MCQCoverage.swift $S/MCQGenerator.swift $S/MCQPrompt.swift $S/MCQRepair.swift \
+      $S/Exam/ExamCatalog.swift $S/Exam/ExamChoice.swift $S/Exam/ExamBlueprint.swift $S/Exam/ExamExemplarData.swift \
+      $S/Exam/ExamExemplars.swift $S/Exam/ExamPrompt.swift $S/Exam/ExamFormats.swift \
+      $S/Cases/CaseFile.swift $S/Cases/CaseNames.swift $S/Cases/CaseRun.swift $S/Cases/CaseScore.swift $S/Cases/CaseChecks.swift \
+      $S/Cases/CaseDebrief.swift $S/Cases/CaseWriting.swift $S/Cases/CaseSamples.swift $S/PatientChart.swift

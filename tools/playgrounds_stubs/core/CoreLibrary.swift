@@ -153,6 +153,7 @@ struct CoreSetScreen: View {
         case .book: BookReaderView(set: set)
         case .osce: OsceReviewView(set: set)
         case .narrate: CoreNarrateScreen(set: set)
+        case .cases: NotInThisBuild(feature: "Cases")
         }
     }
 }

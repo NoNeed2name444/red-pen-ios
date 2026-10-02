@@ -119,6 +119,11 @@ extension AccuracyItem {
                      text: String((title + "\n" + markdown).prefix(3400)), source: String(source.prefix(sourceLimit)))
     }
 
+    /// A patient case: what it asserts (CaseFile.assertedText), as one item.
+    static func caseFile(_ f: CaseFile, source: String = "") -> AccuracyItem {
+        AccuracyItem(id: f.id.uuidString, kind: .case, text: f.assertedText, source: String(source.prefix(sourceLimit)))
+    }
+
     /// A student's own note, checked only when they ask.
     static func note(id: UUID, title: String, body: String) -> AccuracyItem {
         AccuracyItem(id: id.uuidString, kind: .note, text: String((title + "\n" + body).prefix(3400)))
@@ -149,6 +154,8 @@ extension AccuracyItem {
             }
         case .narrate:
             return facts(in: set)
+        case .cases:
+            return set.caseFiles.map { f in caseFile(f, source: src(f.assertedText)) }
         }
     }
 

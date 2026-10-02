@@ -153,7 +153,7 @@ struct NewSetView: View {
     init(kind: StudySetKind, startingAt start: NewSetStep) {
         self.init(kind: kind)
         _step = State(initialValue: start)
-        _path = State(initialValue: .type)
+        _path = State(initialValue: Self.paths(for: kind).contains(.type) ? .type : Self.paths(for: kind)[0])
     }
 
     var body: some View {
@@ -471,8 +471,14 @@ struct NewSetView: View {
     }
 
     /// Narrate's lecture path is recording, which lives in Narrate itself.
+    /// A case is written from a lecture, or comes in a shared set; there is
+    /// no line format to type one in.
     static func paths(for kind: StudySetKind) -> [Path] {
-        kind == .narrate ? [.type, .importFile] : Path.allCases
+        switch kind {
+        case .narrate: return [.type, .importFile]
+        case .cases: return [.lecture, .importFile]
+        default: return Path.allCases
+        }
     }
 
     /// The kind's name in plain words, for the tiles: "Practice questions"
@@ -484,6 +490,7 @@ struct NewSetView: View {
         case .book: return "Textbook"
         case .osce: return "OSCE checklists"
         case .narrate: return "Narrate"
+        case .cases: return "Patient cases"
         }
     }
 
@@ -494,6 +501,7 @@ struct NewSetView: View {
         case .book: return "Your lecture as easy pages to read"
         case .osce: return "Step-by-step checklists for practical exams"
         case .narrate: return "Your lecture written out to read along"
+        case .cases: return "Patients to work up against the clock"
         }
     }
 
@@ -507,6 +515,7 @@ struct NewSetView: View {
         case (.lecture, .mcq): generator = "mcq"
         case (.lecture, .osce): generator = "osce"
         case (.lecture, .anki), (.lecture, .book): generator = "writer"
+        case (.lecture, .cases): generator = "cases"
         default: generator = nil
         }
         if showsCreate && (generator == nil || !bodyText.isEmpty || diagrams.included) { return "create" }
@@ -555,6 +564,14 @@ struct NewSetView: View {
                 if step == .make && !bodyText.isEmpty { draftSection(title: "Check and edit") }
             case .narrate:
                 if step == .material { draftSection(title: "Type or paste") }
+            case .cases:
+                CaseMakeSection(subject: $subject, name: name, step: step,
+                                presetText: preset?.text ?? "", presetName: preset?.name ?? "") { set in
+                    var made = set
+                    made.folderId = preset?.folderId
+                    store.addSet(made)
+                    dismiss()
+                }
             }
         case .type:
             if step == .material { draftSection(title: "Type or paste") }
@@ -650,6 +667,7 @@ struct NewSetView: View {
         case .book: return "Markdown. Every # or ## heading starts a new page."
         case .osce: return "## Station title, then one step per line. Blank line or the next ## starts a new station."
         case .narrate: return "One line per phrase. Prefix with \"ar|\" for Arabic reading pace, otherwise it reads at English pace."
+        case .cases: return "Cases are written from a lecture file, or come in a set shared from another phone."
         }
     }
 
@@ -658,7 +676,7 @@ struct NewSetView: View {
     /// MCQ generation saves from its own quiz screen, and an import adds the
     /// set as it is: neither has anything for Create to do.
     private var showsCreate: Bool {
-        path != .importFile && !(kind == .mcq && path == .lecture)
+        path != .importFile && !((kind == .mcq || kind == .cases) && path == .lecture)
     }
 
     private var itemCount: Int {
@@ -673,6 +691,7 @@ struct NewSetView: View {
             return BookPages.split(bodyText).count
         case .osce: return PlainTextImport.parseOsce(bodyText).count
         case .narrate: return PlainTextImport.parseNarrate(bodyText).count
+        case .cases: return 0
         }
     }
 
@@ -689,6 +708,7 @@ struct NewSetView: View {
         case .book: noun = "page"
         case .osce: noun = "station"
         case .narrate: noun = "line"
+        case .cases: noun = "patient"
         }
         if count == 0 { return "Nothing readable yet \u{2014} open \u{201C}How to lay it out\u{201D} to see what each line needs." }
         let plural: String = count == 1 ? "" : "s"
@@ -717,6 +737,7 @@ struct NewSetView: View {
             set.images = kept.images
         case .osce: set.osceChecklists = PlainTextImport.parseOsce(bodyText)
         case .narrate: set.narrateSegments = PlainTextImport.parseNarrate(bodyText)
+        case .cases: return
         }
         // the lecture it was written from goes with it: page citations and
         // the accuracy check both read it

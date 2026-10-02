@@ -107,7 +107,7 @@ enum LensConversion {
             let made: [NarrateSegment] = narration(q, a)
             guard !made.isEmpty else { return nil }
             out.narrateSegments.append(contentsOf: made)
-        case .book:
+        case .book, .cases:
             return nil
         }
         var tags: [String] = out.tags ?? []
