@@ -1,0 +1,108 @@
+{
+  "color-space-for-untagged-svg-colors": "srgb",
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.35686,0.74118,0.97647,1.00000",
+      "srgb:0.09412,0.28627,0.83137,1.00000"
+    ],
+    "orientation": {
+      "start": {
+        "x": 0.32,
+        "y": 0
+      },
+      "stop": {
+        "x": 0.68,
+        "y": 1
+      }
+    }
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "5-a-plus.svg",
+          "name": "a-plus"
+        },
+        {
+          "glass": true,
+          "image-name": "4-chest-piece.svg",
+          "name": "chest-piece"
+        }
+      ],
+      "name": "Chest piece",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "3-earpieces.svg",
+          "name": "earpieces"
+        }
+      ],
+      "name": "Earpieces",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "2-tubing.svg",
+          "name": "tubing"
+        }
+      ],
+      "name": "Tubing",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "1-metal.svg",
+          "name": "metal"
+        }
+      ],
+      "name": "Metal",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

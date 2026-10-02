@@ -349,3 +349,6 @@ suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swi
 # fault injection: what an accuracy batch and a transcription chunk do
 # with a 500, a 429, a timeout, an unreadable answer and no network
 suite faults FaultTests.swift $S/NetworkFaults.swift
+# the layered app icon: SVGs parse, layers stack back to front, icon.json
+# names every asset (tools/icon_layers.py writes them)
+suite iconlayers IconLayersTests.swift $S/Brand/IconLayerSpec.swift

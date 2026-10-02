@@ -4,6 +4,12 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+  # An Icon Composer .icon is a folder Xcode treats as one file; without this
+  # an older XcodeGen adds icon.json and the SVGs inside it one by one.
+  fileTypes:
+    icon:
+      file: true
+      buildPhase: resources
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -36,6 +42,13 @@ targets:
       # The privacy manifest (required-reason APIs; no tracking). Outside
       # RedPen/ so the Playgrounds package, which copies RedPen/, never sees it.
       - path: AppResources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      # The layered iOS 26 icon (Icon Composer; tools/icon_layers.py). Named
+      # like the AppIcon set in Assets.xcassets, so Xcode 26 uses this one and
+      # the set stays the fallback. Outside RedPen/, so the Playgrounds
+      # package (which copies RedPen/) keeps the set alone.
+      - path: AppResources/AppIcon.icon
+        type: file
         buildPhase: resources
     dependencies:
       - package: LocalLLMClient
