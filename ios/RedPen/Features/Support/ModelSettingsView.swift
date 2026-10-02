@@ -97,7 +97,7 @@ struct ModelSettingsView: View {
         } header: {
             Text("Use")
         } footer: {
-            Text("The writer writes questions, OSCE stations, cards and textbook pages. Everything it writes is checked by the verification layer: safety checks on this device at once, then two model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge.")
+            Text("The writer writes questions, OSCE stations, cards and textbook pages. Everything it writes is checked by the verification layer: safety checks on this device at once, then three model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge. Verified means all three agree, nothing raised a concern and no safety check fired; anything less says Check this.")
         }
     }
 
@@ -147,7 +147,7 @@ struct ModelSettingsView: View {
     private var cloudSection: some View {
         Section {
             LabeledContent("Writer", value: "Gemini 3.5 Flash")
-            LabeledContent("Verification", value: "Two model families solving blind, the literature, a calibrated verdict")
+            LabeledContent("Verification", value: "Three model families solving blind, the literature, a calibrated verdict")
             LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
         } header: {
             Text("\(Brand.name) Cloud \u{00B7} Pro")

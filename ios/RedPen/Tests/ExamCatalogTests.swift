@@ -283,7 +283,7 @@ check("Step 2 CK: a management question is judged stricter", near(AccuracyModel.
 check("Step 2 CK: a mechanism question is not", AccuracyModel.examStrictness(for: mechItem, defaults: accDefaults) == 0)
 accDefaults.set("plab", forKey: ExamTrack.storageKey)
 check("once the track moves on, the strictness goes", AccuracyModel.examStrictness(for: mgmtItem, defaults: accDefaults) == 0)
-let f: [String: Double] = ["no_models": 0, "rule_severe": 0, "voters": 2.0 / 3, "families": 2]
+let f: [String: Double] = ["no_models": 0, "rule_severe": 0, "voters": 1, "families": 3]
 var plainWeights: AccuracyWeights = AccuracyModel.bundled
 plainWeights.thresholds = base
 var strictWeights: AccuracyWeights = plainWeights

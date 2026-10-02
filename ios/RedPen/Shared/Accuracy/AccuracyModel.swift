@@ -198,7 +198,7 @@ enum AccuracyModel {
         let pageLike: Bool = kind == .page || kind == .fact || kind == .note
         f["kind_page"] = pageLike ? 1 : 0
         // not a weighted feature: how many model families the votes that pass
-        // the item come from (the verdict needs two), as the server counts it
+        // the item come from (the verdict needs three), as the server counts it
         f["families"] = Double(Set(votes.filter { $0.risk < 3 }.map { familyOf($0.model) }).count)
         // the blind solves of a question, counted by family (features() in
         // server/accuracy-model.js): agreeing with the key, the most agreeing
@@ -211,7 +211,11 @@ enum AccuracyModel {
             f["blind_agree"] = Double(byLetter[keyLetter]?.count ?? 0)
             f["blind_against"] = Double(byLetter.filter { $0.key != keyLetter }.map { $0.value.count }.max() ?? 0)
             f["blind_split"] = byLetter.count > 1 ? 1 : 0
+            // every family that solved it blind and reached anything but the key
+            f["blind_dissent"] = Double(Set(byLetter.filter { $0.key != keyLetter }.flatMap { $0.value }).count)
         }
+        // the families that flagged it
+        f["flag_families"] = Double(Set(votes.filter { $0.risk >= 3 }.map { familyOf($0.model) }).count)
         return f
     }
 
@@ -287,10 +291,12 @@ enum AccuracyModel {
 
     // MARK: the oath check (plan §22 Layer 7: regex first, fail closed)
 
-    /// The fewest checker models whose votes an item needs before it can be
-    /// Verified: one free model's word is never enough. server/accuracy-model.js
+    /// The fewest model families an item needs, each passing it (a question:
+    /// each solving it blind and reaching its key), before it can be Verified,
+    /// and the fewest agreeing on another answer before a question is Flagged.
+    /// Three, for the owner's 99.999% (1 Oct). server/accuracy-model.js
     /// MIN_VERIFY_VOTERS.
-    static let minVerifyVoters: Int = 2
+    static let minVerifyVoters: Int = 3
 
     /// How much of an oath item its own lecture must contain to stand for the
     /// evidence behind it (OATH_SOURCE_MATCH).
@@ -328,26 +334,36 @@ enum AccuracyModel {
         hasDose(text) || isDiagnosis(text) || isManagement(text)
     }
 
-    /// Rules alone can flag an item but never verify one; a severe rule hit
-    /// keeps an item from Verified whatever the models said. Verified also
-    /// needs two models' votes; and an oath item needs evidence behind it -
-    /// the literature the voters were shown supporting it, or its own
-    /// lecture saying it - or it stays Check this. server/accuracy-model.js
-    /// verdict, rule for rule.
+    /// Verified needs three model families passing the item with no concern
+    /// raised and no sensor firing; and an oath item needs evidence behind it
+    /// - the literature the voters were shown supporting it, or its own
+    /// lecture saying it. Flagged needs proof from two directions; rules
+    /// alone flag an item only before any model has looked. Everything else
+    /// is Check this. server/accuracy-model.js verdict, rule for rule.
     static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled,
                       oath: Bool = false) -> AccuracyGrade {
         let severe: Bool = (f["rule_severe"] ?? 0) > 0
         if (f["no_models"] ?? 1) > 0 { return severe ? .flagged : .unchecked }
-        // two families solving it blind agree on another answer: the key is wrong
+        let need: Double = Double(minVerifyVoters)
         let question: Bool = (f["kind_mcq"] ?? 0) == 1
-        if question && (f["blind_against"] ?? 0) >= Double(minVerifyVoters) { return .flagged }
-        if p < w.thresholds.flagged { return .flagged }
+        // three families solving it blind agree on one other answer and none
+        // reaches the key: the key is wrong
+        if question && (f["blind_against"] ?? 0) >= need && (f["blind_agree"] ?? 0) == 0 { return .flagged }
+        // a severe safety rule that the models also judge likely wrong
+        if severe && p < w.thresholds.flagged { return .flagged }
+        // every voter, from three families, judged it wrong
+        if !question && (f["flag_families"] ?? 0) >= need && (f["flag_frac"] ?? 0) == 1 && p < w.thresholds.flagged { return .flagged }
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
         let backed: Bool = !oath || (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
-        let independent: Bool = (f["families"] ?? 0) >= Double(minVerifyVoters)
-        // a question is Verified only when two independent blind solves reach its key
-        let solved: Bool = !question || (f["blind_agree"] ?? 0) >= Double(minVerifyVoters)
-        if p >= w.thresholds.verified && !severe && voters >= minVerifyVoters && backed && independent && solved { return .verified }
+        let independent: Bool = (f["families"] ?? 0) >= need
+        // no voter raised a concern or read the literature against it, and
+        // no sensor fired, however mildly
+        let unanimous: Bool = (f["flag_frac"] ?? 0) == 0 && (f["ev_contradict"] ?? 0) == 0
+        let clean: Bool = !severe && (f["rule_minor"] ?? 0) == 0
+        // a question is Verified only when three independent blind solves
+        // reach its key and no family solving it blind went elsewhere
+        let solved: Bool = !question || ((f["blind_agree"] ?? 0) >= need && (f["blind_dissent"] ?? 0) == 0)
+        if p >= w.thresholds.verified && clean && voters >= minVerifyVoters && backed && independent && unanimous && solved { return .verified }
         return .check
     }
 }

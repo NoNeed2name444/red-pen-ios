@@ -1,10 +1,11 @@
 // The accuracy check as named stages (accuracy.js, plan Task 5d step 1).
 //
-// The stages run in a fixed order; a stage that runs out of time or fails
-// gives its safe result (an unanswered vote is no vote, an evidence timeout
-// is no evidence, a cache failure never blocks a verdict); and on a set of
-// fixed inputs the staged check gives exactly what the check gave before it
-// was split into stages - kept below, as it was at 52514d3, as the reference.
+// The stages run in a fixed order, and a stage that runs out of time or
+// fails gives its safe result: an unanswered vote is no vote, an evidence
+// timeout is no evidence, a cache failure never blocks a verdict. (The split
+// into stages was shown to change nothing against the check as it was at
+// 52514d3; the three-family bar of 1 Oct changes every reply on purpose, so
+// that copy is no longer the reference and is gone.)
 //
 // Run: node server/tests/accuracy-stages.test.mjs
 
@@ -14,136 +15,17 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, claimsStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage,
-  BATCH, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix, staleSignals } from '../accuracy.js';
-import { proGate, askModel, spend } from '../ai.js';
+  BATCH, MAX_CALLS, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix, staleSignals } from '../accuracy.js';
+import { spend } from '../ai.js';
 import { resetBreakers } from '../breakers.js';
-import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from '../jev.js';
-import { ruleHits, itemText, sourceMatch } from '../accuracy-rules.js';
-import { features, predict, verdict, examWeights, isOath, oathClaims, familyOf } from '../accuracy-model.js';
-import { exam as examById } from '../exams.js';
+import { jevOath, TIMEOUT_MS as JEV_TIMEOUT_MS } from '../jev.js';
+import { sourceMatch } from '../accuracy-rules.js';
+import { verdict, familyOf, MIN_VERIFY_VOTERS } from '../accuracy-model.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
 const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failures++; };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// MARK: the reference - checkBatch as it was before the stages (52514d3),
-// word for word but for its private helpers, which are copied beside it.
-
-const MAX_SOURCE_CHARS = 1400;
-const MAX_CALLS = 4;
-const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-const fail = (status, message, extra = {}) => json({ error: { message }, message, ...extra }, status);
-const now = () => Math.floor(Date.now() / 1000);
-const letter = i => String.fromCharCode(65 + i);
-
-function oldDescribe(item, hash, signals, weights, strictness = 0) {
-  const rules = ruleHits(item);
-  const votes = signals?.votes || [];
-  const keyLetter = item.kind === 'mcq' && item.key >= 0 ? letter(item.key) : null;
-  const f = features({ kind: item.kind, rules, votes, evidenceCount: (signals?.evidence || []).length,
-                       sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter });
-  const p = predict(f, weights);
-  // the oath check: a dose, a diagnosis or a treatment needs evidence behind
-  // it; Jev's yes (jev.js, recorded with the votes) can only add one
-  const text = itemText(item);
-  const oath = oathWithJev(isOath(text), signals?.jevOath);
-  return {
-    id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: verdict(p, f, examWeights(weights, item, strictness), oath), modelVersion: weights.version,
-    features: f, rules, votes, evidence: signals?.evidence || [], fix: suggestedFix(item, votes),
-    ...(oath ? { oath: oathClaims(text) } : {}),
-  };
-}
-
-async function oldCheckBatch(env, account, body, fetcher = fetch, { owner = false, bench = false } = {}) {
-  if (!owner) {
-    const refused = await proGate(env, account, fetcher, 'The accuracy check is part of Pro.');
-    if (refused) return refused;
-  }
-  const raw = Array.isArray(body?.items) ? body.items : [];
-  if (!raw.length || raw.length > BATCH) return fail(400, `Send 1 to ${BATCH} items.`);
-  const items = raw.map(cleanItem);
-  if (items.some(i => !i)) return fail(400, 'An item could not be read.');
-  // the source is cut to the part the checker is shown, so the hash is of
-  // what was actually checked
-  for (const item of items) item.source = (item.source || '').trim().slice(0, MAX_SOURCE_CHARS);
-  const weights = await currentWeights(env);
-  const strict = examById(body?.exam)?.strict || 0;
-  const hashes = await Promise.all(items.map(itemHash));
-
-  const cached = await Promise.all(hashes.map(h => oldReadVerdict(env, h)));
-  const todo = items.map((_, i) => i).filter(i => !cached[i]);
-  const results = items.map((item, i) => (cached[i] ? { ...oldDescribe(item, hashes[i], cached[i], weights, strict), cached: true } : null));
-  if (!todo.length) return json({ items: results });
-
-  // the day's allowance, per batch: background checks have a smaller share of
-  // their own, so a library being checked never leaves the student without
-  // the checks they ask for
-  const who = bench ? 'owner-bench' : owner ? 'owner' : account;
-  const limit = bench ? Number(env.OWNER_BENCH_DAILY_LIMIT) || 2500 : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000
-    : Number(env.ACCURACY_DAILY_BATCHES) || 40;
-  const background = body.priority === 'background';
-  const unchecked = reason => items.map((item, i) => results[i] || { ...oldDescribe(item, hashes[i], null, weights, strict), reason });
-  if (background && !owner && !await spend(env, `accuracy-bg:${account}`, Number(env.ACCURACY_BACKGROUND_BATCHES) || 20)) {
-    return json({ items: unchecked('day'), limit: 'day' }, 429);
-  }
-  if (!await spend(env, `accuracy:${who}`, limit) || !await spend(env, 'accuracy:all', Number(env.ACCURACY_DAILY_CEILING) || 3000)) {
-    return json({ items: unchecked('day'), limit: 'day' }, 429);
-  }
-
-  const seen = new Map();
-  const entries = await Promise.all(todo.map(async i => ({ i, item: items[i], evidence: await evidenceFor(items[i], fetcher, seen) })));
-  const messages = votePrompt(entries);
-  const ballots = [];
-  const failures = [];
-  let wanted = 2, calls = 0;
-  for (const use of votersFor(env, body.writer)) {
-    if (ballots.length >= wanted || calls >= MAX_CALLS) break;
-    calls++;
-    // room for a reasoning model to think before it answers every item
-    const r = await askModel(env, account, owner, use, messages, 500 * entries.length + 600, fetcher);
-    if (!r.ok) { failures.push(`${use}: ${r.status}`); continue; }
-    const parsed = parseVotes(r.content, entries.length);
-    if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); continue; }
-    ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed });
-    if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
-  }
-
-  for (const [n, e] of entries.entries()) {
-    const votes = ballots.map(b => (b.parsed[n] ? { model: b.model, ...b.parsed[n] } : null)).filter(Boolean);
-    const signals = {
-      votes, sourceMatch: sourceMatch(e.item, e.item.source),
-      evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
-    };
-    // Jev, where paid calls are on: asked only about items the patterns did not hold
-    if (votes.length && !isOath(itemText(e.item))) {
-      const jevP = await jevOath(env, itemText(e.item), fetcher);
-      if (jevP !== null) signals.jevOath = Math.round(jevP * 1000) / 1000;
-    }
-    if (votes.length) await oldWriteVerdict(env, hashes[e.i], signals);
-    results[e.i] = { ...oldDescribe(e.item, hashes[e.i], votes.length ? signals : null, weights, strict),
-                     ...(votes.length ? {} : { reason: 'busy' }) };
-  }
-  if (!ballots.length) console.error('accuracy: no voter answered', failures.join(' | '));
-  return json({ items: results, ...(owner && failures.length ? { failures } : {}) });
-}
-
-async function oldReadVerdict(env, hash) {
-  try {
-    const row = await env.DB.prepare('SELECT signals, created_at FROM accuracy_verdicts WHERE hash = ?').bind(hash).first();
-    if (!row) return null;
-    const days = Number(env.ACCURACY_CACHE_DAYS) || 365;
-    if (row.created_at < now() - days * 86_400) return null;
-    return JSON.parse(row.signals);
-  } catch { return null; }
-}
-
-async function oldWriteVerdict(env, hash, signals) {
-  try {
-    await env.DB.prepare('INSERT OR REPLACE INTO accuracy_verdicts (hash, signals, created_at) VALUES (?, ?, ?)')
-      .bind(hash, JSON.stringify(signals), now()).run();
-  } catch (error) { console.error('accuracy cache', error); }
-}
 
 // MARK: a world to check in - a real SQLite, and every outside service faked
 // deterministically: the checker models, the literature and Jev.
@@ -310,146 +192,9 @@ async function play(check, extra, plan, calls) {
   return { replies, log: w.log, db: dump(w.db) };
 }
 
-/// The first place two runs differ, for the failure message.
-function firstDifference(a, b, path = '') {
-  if (JSON.stringify(a) === JSON.stringify(b)) return null;
-  if (a && b && typeof a === 'object' && typeof b === 'object') {
-    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-      const d = firstDifference(a[k], b[k], `${path}.${k}`);
-      if (d) return d;
-    }
-    return `${path}: key order`;
-  }
-  return `${path}: ${JSON.stringify(a)?.slice(0, 300)} | ${JSON.stringify(b)?.slice(0, 300)}`;
-}
-
-// MARK: the same answers as before the stages, on fixed inputs
+// MARK: the scenarios do what they say
 {
   const jevOn = { JEV_API_KEY: 'k', PRO_PAYS: 'on' };
-  const scenarios = [
-    ['refusals: not Pro, too many items, an unreadable item, none', {}, {}, [
-      { account: 'a2', body: { items: [Q1] }, opts: {} },
-      { body: { items: [Q1, C1, DOSE, MGMT, NOTE] } },
-      { body: { items: [Q1, { kind: 'nope', text: 'x' }] } },
-      { body: { items: [] } },
-      { body: null },
-    ]],
-    ['a fresh batch, then the same from the cache, then one item edited', {}, {}, [
-      { body: { items: [C1, DOSE, NOTE, TREAT] } },
-      { body: { items: [C1, DOSE, NOTE, TREAT] } },
-      { body: { items: [NOTE, { ...C1, text: `${C1.text} (edited)` }] } },
-    ]],
-    ['the writer never votes; a split asks a third voter', {}, {}, [
-      { body: { items: [CARDSPLIT], writer: 'gemini-3.5-flash-lite' } },
-      { body: { items: [{ ...CARDSPLIT, text: `${CARDSPLIT.text} Again.` }] } },
-      { body: { items: [WRONG, C1] } },
-    ]],
-    ['voters down or unreadable: failures for the owner, unchecked when nobody answers', {}, {
-      down: new Set(['gemini-3.5-flash-lite']), garbage: new Set(['@cf/openai/gpt-oss-120b']) }, [
-      { body: { items: [C1, SEVERE] } },
-      { body: { items: [C1] } },
-    ]],
-    ['nobody answers: busy, nothing kept, asked again next time', {}, {
-      garbage: new Set(['gemini-3.5-flash-lite', '@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', 'gemma-4-31b-it']) }, [
-      { body: { items: [card('fresh'), SEVERE] } },
-      { body: { items: [card('fresh')] } },
-    ]],
-    ['a voter that skips an item, and the same item twice in a batch', {}, {}, [
-      { body: { items: [MUTE, C1] } },
-      { body: { items: [NOTE, NOTE, DOSE] } },
-    ]],
-    ['Jev on: asked only about what the patterns did not hold', jevOn, {}, [
-      { body: { items: [TREAT, DOSE, C1, NOTE] } },
-      { body: { items: [TREAT, NOTE] } },
-    ]],
-    ['a Pro account: background share, the day\'s batches, cached items free', { ACCURACY_BACKGROUND_BATCHES: '1', ACCURACY_DAILY_BATCHES: '3' }, {}, [
-      { account: 'a1', body: { items: [card('a')], priority: 'background' }, opts: {} },
-      { account: 'a1', body: { items: [card('b'), card('a')], priority: 'background' }, opts: {} },
-      { account: 'a1', body: { items: [card('c')] }, opts: {} },
-      { account: 'a1', body: { items: [card('d')] }, opts: {} },
-      { account: 'a1', body: { items: [card('e'), card('a')] }, opts: {} },
-      { account: 'a1', body: { items: [card('a')] }, opts: {} },
-    ]],
-    ['the owner\'s bench and the global ceiling', { ACCURACY_DAILY_CEILING: '2' }, {}, [
-      { body: { items: [card('one')] }, opts: { owner: true, bench: true } },
-      { body: { items: [card('two')] }, opts: { owner: true } },
-      { body: { items: [card('three'), card('one')] }, opts: { owner: true } },
-    ]],
-  ];
-  // The old implementation is the reference for everything the staged one
-  // did not change on purpose. Intended since then, and set aside here:
-  // the families count beside the features, the blind voter's marker and its
-  // withheld fix, the "busy" reply when nobody answered, the allowance that
-  // reply gives back, and the reasons now sent with each verdict. Batches
-  // with questions are not compared: they are solved blind by two families
-  // first (1 Oct, the briefs), tested on their own below. Verdicts, P and
-  // calls must still agree.
-  const normalize = run => {
-    const votes = list => (list || []).forEach(v => { if (v && v.blind) { delete v.blind; v.fix = null; } });
-    const blindAt = {};
-    const blindModels = {};
-    let busy = false;
-    const body = (text, ri) => {
-      let j; try { j = JSON.parse(text); } catch { return text; }
-      if (j.busy) busy = true;
-      delete j.busy;
-      if (Array.isArray(j.failures)) j.failures.sort();
-      for (const [ii, it] of (j.items || []).entries()) {
-        if (it.features) delete it.features.families;
-        delete it.reasons;
-        (it.votes || []).forEach((v, n) => { if (v && v.blind) { (blindAt[`${ri}:${ii}`] ||= []).push(n); (blindModels[`${ri}:${ii}`] ||= []).push(v.model); } });
-        votes(it.votes);
-      }
-      return j;
-    };
-    const replies = run.replies.map((r, ri) => ({ status: r.status, body: body(r.body, ri) }));
-    // the first two voters are asked at once now (1 Oct): which of the two
-    // reaches the network first, and fails first, is a race, so calls made
-    // together are compared as a set (a change in which calls are made
-    // still shows)
-    const together = log => {
-      const out = [];
-      let block = [];
-      const flush = () => { out.push(...block.sort()); block = []; };
-      for (const e of log) { if (/^(gemini|workers):/.test(e)) block.push(e); else { flush(); out.push(e); } }
-      flush();
-      return out;
-    };
-    const db = JSON.parse(JSON.stringify(run.db, (k, v) => {
-      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); votes(s.votes); delete s.kind; return JSON.stringify(s); } catch { return v; } }
-      return v;
-    }));
-    if (db && typeof db === 'object') delete db.ai_usage;
-    return { replies, log: together(run.log), db, blindAt, blindModels, busy };
-  };
-  const unblind = (before, staged) => {
-    // a blind voter fixes nothing: the reference's fix in that seat is set aside too
-    const strip = run => run.replies.forEach((r, ri) => (r.body?.items || []).forEach((it, ii) => (it.votes || []).forEach((v, n) => { if ((staged.blindAt[`${ri}:${ii}`] || []).includes(n) && v) v.fix = null; })));
-    strip(before); delete before.blindAt; delete staged.blindAt;
-    // a fix only a now-blind voter proposed is withheld on purpose
-    before.replies.forEach((r, ri) => (r.body?.items || []).forEach((it, ii) => {
-      const blind = staged.blindModels[`${ri}:${ii}`] || [];
-      if (it.fix && Array.isArray(it.fix.by) && it.fix.by.every(m => blind.includes(m))) it.fix = null;
-    }));
-    // a "busy" reply gave its allowance back on purpose
-    if (staged.busy) { delete before.db.usage; delete staged.db.usage; }
-    for (const run of [before, staged]) { delete run.blindModels; delete run.busy; }
-    const signals = run => JSON.parse(JSON.stringify(run.db, (k, v) => {
-      if (k === 'signals' && typeof v === 'string') { try { const s = JSON.parse(v); (s.votes || []).forEach(x => { if (x) x.fix = null; }); return JSON.stringify(s); } catch { return v; } }
-      return v;
-    }));
-    before.db = signals(before); staged.db = signals(staged);
-    run2(before); run2(staged);
-    function run2(run) { run.replies.forEach(r => (r.body?.items || []).forEach(it => (it.votes || []).forEach(v => { if (v) v.fix = v.fix ?? null; }))); }
-  };
-  for (const [what, extra, plan, calls] of scenarios) {
-    const before = normalize(await play(oldCheckBatch, extra, plan, calls));
-    const staged = normalize(await play(checkBatch, extra, plan, calls));
-    unblind(before, staged);
-    const d = firstDifference(before, staged);
-    ok(!d, `same replies, calls and cache as before: ${what}${d ? ` - differs at ${d}` : ''}`);
-  }
-  // the scenarios do reach what they are about
   const seen = await play(checkBatch, {}, {}, [{ body: { items: [SPLIT], writer: 'gemini-3.5-flash-lite' } }]);
   const split = JSON.parse(seen.replies[0].body).items[0];
   ok(split.votes.length === 3 && !seen.log.includes('gemini:gemini-3.5-flash-lite'), 'the split scenario does bring in a third voter, and not the writer');
@@ -481,7 +226,7 @@ function firstDifference(a, b, path = '') {
   ok(t.at('claims').value.length === 2 && t.at('claims').value.every(g => !g.hard.length && g.complete), 'claims: the gate\'s findings for each item (none here)');
   ok(t.at('lookup').value.every(v => v === null), 'lookup: nothing cached yet');
   ok(t.at('evidence').value.length === 2 && t.at('evidence').value[1].some(e => e.url.includes('dailymed')), 'evidence: each item\'s literature, the drug\'s label among it');
-  ok(t.at('votes').value.ballots.length === 2 && t.at('votes').value.failures.length === 0, 'votes: the ballots and the failures');
+  ok(t.at('votes').value.ballots.length === 3 && t.at('votes').value.failures.length === 0, 'votes: the ballots (three families) and the failures');
   ok(t.at('jev').value.every(v => v === null), 'jev: no answer while Jev is not set up');
   ok(t.at('verdict').value.map(v => v.id).join() === 'q1,d1' && t.at('verdict').value.every(v => typeof v.verdict === 'string'), 'verdict: what each item is told');
   ok(t.at('cache').value.join() === 'true,true', 'cache: each verdict kept');
@@ -572,8 +317,8 @@ function firstDifference(a, b, path = '') {
     const body = await r.json();
     const ev = trace.find(s => s.stage === 'evidence');
     ok(Date.now() - started < 3000 && ev.status === 'timeout' && ev.value.every(e => e.length === 0), 'evidence that never comes: out of time, no evidence');
-    ok(r.status === 200 && body.items.every(i => i.evidence.length === 0 && i.votes.length === 2), 'and the items are still voted on, shown none');
-    ok(w.prompts.length === 2 && w.prompts.every(p => p.includes('(none found)')), 'the voters are told no evidence was found');
+    ok(r.status === 200 && body.items.every(i => i.evidence.length === 0 && i.votes.length === 3), 'and the items are still voted on, shown none');
+    ok(w.prompts.length === 3 && w.prompts.every(p => p.includes('(none found)')), 'the voters are told no evidence was found');
     ok(body.stages?.[0]?.stage === 'evidence' && body.stages[0].status === 'timeout', 'the owner is told which stage ran out of time');
     w.release();
   }
@@ -588,8 +333,8 @@ function firstDifference(a, b, path = '') {
     const body = await r.json();
     const v = trace.find(s => s.stage === 'votes');
     ok(Date.now() - started < 3000 && v.status === 'timeout', 'a voter that never answers: the votes stage says it ran out of time');
-    ok(body.failures?.includes('gemini:gemini-3.5-flash-lite: timeout') && body.items[0].votes.map(x => x.model).join() === '@cf/openai/gpt-oss-120b,@cf/nvidia/nemotron-3-120b-a12b',
-       'that voter is no vote, and the next two are asked');
+    ok(body.failures?.includes('gemini:gemini-3.5-flash-lite: timeout') && body.items[0].votes.map(x => x.model).join() === '@cf/openai/gpt-oss-120b,@cf/nvidia/nemotron-3-120b-a12b,gemma-4-31b-it',
+       'that voter is no vote, and Gemma stands in for Google');
     ok(dump(w.db).verdicts.length === 1, 'the votes that came are kept');
     w.release();
 
@@ -601,7 +346,7 @@ function firstDifference(a, b, path = '') {
     const b2 = await r2.json();
     ok(Date.now() - started < 3000 && b2.items[0].verdict === 'unchecked' && b2.items[0].reason === 'busy' && b2.items[0].votes.length === 0,
        'no voter answers in time: unchecked and busy, never a verdict without votes');
-    ok(b2.failures.length === MAX_CALLS && b2.failures.every(f => f.endsWith(': timeout')), `at most ${MAX_CALLS} voters asked`);
+    ok(b2.failures.length === 4 && b2.failures.length <= MAX_CALLS && b2.failures.every(f => f.endsWith(': timeout')), `each of the four voters asked once, never more than ${MAX_CALLS} calls`);
     ok(dump(quiet.db).verdicts.length === 0, 'and nothing is kept, so the item is checked again next time');
     quiet.release();
 
@@ -614,7 +359,7 @@ function firstDifference(a, b, path = '') {
     };
     const r3 = await checkBatch(broken.env, 'owner', { items: [Q1] }, throwing, { owner: true });
     const b3 = await r3.json();
-    ok(r3.status === 200 && b3.items[0].votes.length === 2, 'a voter whose call fails is no vote, and others still decide');
+    ok(r3.status === 200 && b3.items[0].votes.length === 3 && b3.items[0].votes.some(v => v.model === 'gemma-4-31b-it'), 'a voter whose call fails is no vote, and another of its family stands in');
   }
 
   // jev: out of time, no answer - the patterns' answer stands
@@ -650,10 +395,10 @@ function firstDifference(a, b, path = '') {
     const r = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true, budgets: { lookup: 40 }, onStage: s => trace.push(s) });
     const body = await r.json();
     ok(Date.now() - started < 3000 && trace.find(s => s.stage === 'lookup').status === 'timeout', 'a cache read that never answers: out of time');
-    ok(!body.items[0].cached && body.items[0].votes.length === 2 && w.log.length > calls, 'the item is checked afresh, never left without a verdict');
+    ok(!body.items[0].cached && body.items[0].votes.length === 3 && w.log.length > calls, 'the item is checked afresh, never left without a verdict');
     trouble = 'throw';
     const r2 = await (await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true })).json();
-    ok(!r2.items[0].cached && r2.items[0].votes.length === 2, 'a cache read that fails: the same');
+    ok(!r2.items[0].cached && r2.items[0].votes.length === 3, 'a cache read that fails: the same');
   }
 
   // cache: a cache failure never blocks a verdict
@@ -661,19 +406,17 @@ function firstDifference(a, b, path = '') {
     forgetWeights();
     let trouble = 'hang';
     const w = world({}, { db: (sql, kind) => (sql.includes('INTO accuracy_verdicts') && kind === 'run' ? trouble : null) });
-    const before = await Promise.race([oldCheckBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true }).then(() => 'answered'), sleep(300).then(() => 'still waiting')]);
-    ok(before === 'still waiting', 'before the stages, a cache write that never ended held the verdict back for good');
     const trace = [];
     started = Date.now();
     const r = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true, budgets: { cache: 40 }, onStage: s => trace.push(s) });
     const body = await r.json();
-    ok(Date.now() - started < 3000 && r.status === 200 && body.items[0].votes.length === 2 && ['verified', 'check', 'flagged'].includes(body.items[0].verdict),
+    ok(Date.now() - started < 3000 && r.status === 200 && body.items[0].votes.length === 3 && ['verified', 'check', 'flagged'].includes(body.items[0].verdict),
        'now the verdict comes back when the write never ends');
     ok(trace.find(s => s.stage === 'cache').status === 'timeout' && trace.find(s => s.stage === 'cache').value[0] === false, 'the cache stage says the write ran out of time');
     trouble = 'throw';
     const trace2 = [];
     const r2 = await checkBatch(w.env, 'owner', { items: [DOSE] }, w.fetcher, { owner: true, onStage: s => trace2.push(s) });
-    ok(r2.status === 200 && (await r2.json()).items[0].votes.length === 2 && trace2.find(s => s.stage === 'cache').status === 'error',
+    ok(r2.status === 200 && (await r2.json()).items[0].votes.length === 3 && trace2.find(s => s.stage === 'cache').status === 'error',
        'and when the write fails');
     trouble = null;
     const calls = w.log.length;
@@ -691,7 +434,7 @@ function firstDifference(a, b, path = '') {
     const ev = await evidenceStage([cleanItem(DOSE)], w.fetcher, 2000);
     ok(ev.status === 'ok' && ev.value[0][0].id === 'S1', 'evidenceStage: numbered evidence per item');
     const votes = await votesStage(w.env, 'owner', true, '', [{ item: cleanItem(C1), evidence: [] }], w.fetcher, 2000);
-    ok(votes.value.ballots.length === 2, 'votesStage: two ballots');
+    ok(votes.value.ballots.length === 3, 'votesStage: three ballots, from three families');
     const jev = await jevStage({}, [{ item: cleanItem(TREAT) }], [[{ risk: 1 }]], w.fetcher, 40);
     ok(jev.status === 'ok' && jev.value[0] === null, 'jevStage: no key, no question');
     const kept = await cacheStage(w.env, [{ hash: 'h1', signals: { votes: [] } }], 2000);
@@ -708,25 +451,27 @@ function firstDifference(a, b, path = '') {
   ok(upstream > 0 && BUDGETS.votes > upstream, `a voter's budget (${BUDGETS.votes} ms) outlasts ai.js's own model timeout (${upstream} ms)`);
   ok(lookups > 0 && BUDGETS.evidence > lookups, `the evidence budget (${BUDGETS.evidence} ms) outlasts evidence.js's per-source timeout (${lookups} ms)`);
   ok(budgetsFor({}).jev > JEV_TIMEOUT_MS && budgetsFor({ JEV_TIMEOUT_MS: '3000' }).jev > 3000, 'Jev\'s budget follows its own timeout');
-  ok(BUDGETS.votes * MAX_CALLS < 10 * 60_000, 'and the voters together stay within ten minutes');
+  // three at once, then the rest one after another: a call and the ones
+  // replacing it, end to end, are at most MAX_CALLS - 2 budgets
+  ok(BUDGETS.votes * (MAX_CALLS - MIN_VERIFY_VOTERS + 1) < 10 * 60_000, 'and the voters together stay within ten minutes');
   ok(budgetsFor({}, { cache: 7 }).cache === 7 && budgetsFor({}).lookup === BUDGETS.lookup, 'a test may set any budget');
 }
 
-// MARK: what the briefs changed (1 Oct): a blind second voter, two families, refunds, no retractions
+// MARK: what the briefs changed (1 Oct): blind solvers, three families, refunds, no retractions
 {
-  // a question is solved blind by two families before anyone sees its key
+  // a question is solved blind by three families before anyone sees its key
   const w = world();
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true });
   const body = JSON.parse(await r.text());
   const withheld = w.prompts.filter(p => p.includes('Keyed answer and explanation withheld'));
   const full = w.prompts.filter(p => p.includes('Keyed answer: B'));
-  ok(withheld.length === 2 && full.length === 0 && !withheld.some(p => p.includes('PCC works fastest')),
-     'the first two voters solve the question blind: no key, no explanation (a short explanation needs no third look)');
+  ok(withheld.length === 3 && full.length === 0 && !withheld.some(p => p.includes('PCC works fastest')),
+     'the first three voters solve the question blind: no key, no explanation (a short explanation needs no review)');
   const votes = body.items[0].votes;
-  ok(votes.length === 2 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
-  ok(new Set(votes.map(v => familyOf(v.model))).size === 2, 'and come from two model families');
-  ok(body.items[0].verdict === 'verified', 'two independent blind solves reaching the key, passing it: Verified');
+  ok(votes.length === 3 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
+  ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and come from three model families');
+  ok(body.items[0].verdict === 'verified', 'three independent blind solves reaching the key, passing it: Verified');
   w.release();
 }
 {
@@ -739,8 +484,12 @@ function firstDifference(a, b, path = '') {
   w.db.prepare('UPDATE accuracy_verdicts SET signals = ? WHERE hash = ?').run(JSON.stringify(old), hash);
   const calls = w.prompts.length;
   const again = JSON.parse(await (await checkBatch(w.env, 'owner', { items: [Q1] }, w.fetcher, { owner: true })).text()).items[0];
-  ok(!again.cached && w.prompts.length === calls + 2 && again.votes.filter(v => v.blind).length === 2, 'old question votes are stale: asked again, blind');
+  ok(!again.cached && w.prompts.length === calls + 3 && again.votes.filter(v => v.blind).length === 3, 'old question votes are stale: asked again, blind');
   ok(staleSignals(old) && !staleSignals(again) && !staleSignals({ votes: [{ risk: 1, answer: null }] }), 'stale means a question with fewer than two blind solves');
+  const short = { kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'B', blind: true }, { model: 'gpt-oss-120b', risk: 1, answer: 'B', blind: true }] };
+  ok(!staleSignals(short, 3600) && staleSignals(short, 90_000), 'a check that reached only two families is tried again once a day has passed');
+  ok(!staleSignals({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 4 }, { model: 'gpt-oss-120b', risk: 1 }, { model: 'nemotron', risk: 1 }] }, 90_000),
+     'a card read by three families is not, whatever they said');
   w.release();
 }
 {
@@ -749,12 +498,12 @@ function firstDifference(a, b, path = '') {
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [EXPLAINED] }, w.fetcher, { owner: true });
   const item = JSON.parse(await r.text()).items[0];
-  ok(item.votes.length === 3 && item.votes.filter(v => v.blind).length === 2 && !item.votes[2].blind
-     && w.prompts.some(p => p.includes('vitamin K takes hours')), 'two blind solves, then a review shown the key and the explanation');
+  ok(item.votes.length === 4 && item.votes.filter(v => v.blind).length === 3 && !item.votes[3].blind
+     && w.prompts.some(p => p.includes('vitamin K takes hours')), 'three blind solves, then a review shown the key and the explanation');
   w.release();
 }
 {
-  // a wrong key: both families, solving blind, choose another answer
+  // a wrong key: all three families, solving blind, choose another answer
   const w = world();
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [KEYWRONG] }, w.fetcher, { owner: true });
@@ -764,21 +513,21 @@ function firstDifference(a, b, path = '') {
   w.release();
 }
 {
-  // blind solves that split: a third family breaks the tie
+  // blind solves that split: no fourth family to ask, so Check this
   const w = world();
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [SPLIT] }, w.fetcher, { owner: true });
   const item = JSON.parse(await r.text()).items[0];
-  ok(item.votes.length === 3 && item.votes.every(v => v.blind), 'a split between the blind solves asks a third, also blind');
+  ok(item.votes.length === 3 && item.votes.every(v => v.blind) && item.verdict === 'check', 'a split between three blind solves is Check this');
   w.release();
 }
 {
-  // a question beside a card: the card still gets two full votes, and the question its blind solves
+  // a question beside a card: the card still gets three full votes, and the question its blind solves
   const w = world();
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [Q1, C1] }, w.fetcher, { owner: true });
   const items = JSON.parse(await r.text()).items;
-  ok(items[0].verdict === 'verified' && items[1].verdict === 'verified' && items[1].votes.length === 2, 'a mixed batch verifies both kinds');
+  ok(items[0].verdict === 'verified' && items[1].verdict === 'verified' && items[1].votes.length === 3, 'a mixed batch verifies both kinds');
   w.release();
 }
 {
@@ -795,17 +544,18 @@ function firstDifference(a, b, path = '') {
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true });
   const item = JSON.parse(await r.text()).items[0];
-  ok(item.votes.map(v => v.model).join() === 'gemini-3.5-flash-lite,@cf/openai/gpt-oss-120b' && item.verdict === 'verified',
-     'Gemma waits: the second voter is gpt-oss, a second family');
+  ok(item.votes.map(v => v.model).join() === 'gemini-3.5-flash-lite,@cf/openai/gpt-oss-120b' && !w.log.includes('gemini:gemma-4-31b-it'),
+     'Gemma is not asked: the second voter is gpt-oss, a second family, and Google has answered');
+  ok(item.verdict === 'check' && item.reasons.includes('Not yet passed by three model families.'), 'two families are not enough: Check this, saying so');
   w.release();
 }
 {
-  // only one family to ask: never Verified
+  // only one family to ask: one vote, never Verified
   const w = world({ ACCURACY_VOTERS: 'gemini:gemini-3.5-flash-lite,gemini:gemma-4-31b-it' });
   forgetWeights();
   const r = await checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true });
   const item = JSON.parse(await r.text()).items[0];
-  ok(item.votes.length === 2 && item.verdict === 'check', 'two Google votes pass the card but leave it Check this');
+  ok(item.votes.length === 1 && item.verdict === 'check', 'one family: Gemma adds no witness and is not asked; Check this');
   w.release();
 }
 {
@@ -831,9 +581,9 @@ function firstDifference(a, b, path = '') {
   w.release();
 }
 
-// MARK: less waiting (1 Oct): the first two voters at once, a slow one hedged
+// MARK: less waiting (1 Oct): the first three voters at once, a slow one hedged
 {
-  // each checker takes 300 ms: asked one after another the batch would take 600 ms or more
+  // each checker takes 300 ms: asked one after another the batch would take 900 ms or more
   const w = world();
   forgetWeights();
   const slow = async (url, init) => {
@@ -845,20 +595,20 @@ function firstDifference(a, b, path = '') {
   const r = await checkBatch(env, 'owner', { items: [C1] }, slow, { owner: true });
   const took = Date.now() - t0;
   const item = JSON.parse(await r.text()).items[0];
-  ok(item.votes.length === 2 && took < 550, `two checkers asked at once: about one call's wait, not two (${took} ms)`);
+  ok(item.votes.length === 3 && took < 550, `three checkers asked at once: about one call's wait, not three (${took} ms)`);
   w.release();
 }
 {
-  // one checker hangs: after the hedge delay a third family is asked, and the first two answers stand
+  // one checker hangs: after the hedge delay another of its family is asked, and the first answer from each family stands
   const w = world({ ACCURACY_HEDGE_MS: '100' }, { hang: new Set(['gemini-3.5-flash-lite']) });
   forgetWeights();
   const t0 = Date.now();
   const r = await Promise.race([checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true }), sleep(3000).then(() => null)]);
   const took = Date.now() - t0;
   const item = r ? JSON.parse(await r.text()).items[0] : null;
-  ok(item && item.votes.length === 2 && !item.votes.some(v => v.model === 'gemini-3.5-flash-lite') && took < 1500,
-     `a hung checker is hedged: two others answer and the batch goes on (${took} ms)`);
-  ok(w.log.some(c => c.includes('nemotron')), 'the hedge asked a third family');
+  ok(item && item.votes.length === 3 && !item.votes.some(v => v.model === 'gemini-3.5-flash-lite') && took < 1500,
+     `a hung checker is hedged: three families answer and the batch goes on (${took} ms)`);
+  ok(item?.votes.some(v => v.model === 'gemma-4-31b-it'), 'the hedge asked Gemma, standing in for the slow Google voter');
   w.release();
 }
 

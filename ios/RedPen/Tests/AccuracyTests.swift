@@ -67,41 +67,72 @@ check("the tables are read", AccuracyRules.drugs.count > 100 && AccuracyRules.dr
 
 // MARK: the model
 
-let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports", blind: true),
-                                                                      AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports", blind: true)],
+check("Verified needs three model families", AccuracyModel.minVerifyVoters == 3)
+func solve(_ model: String, _ answer: String, evidence: String = "supports") -> AccuracyVote {
+    AccuracyVote(model: model, risk: 1, answer: answer, evidence: evidence, blind: true)
+}
+let gModel = "gemini-3.5-flash-lite", gmModel = "gemma-4-31b-it", oModel = "@cf/openai/gpt-oss-120b", nModel = "@cf/nvidia/nemotron-3-120b-a12b"
+let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A")],
                                        evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
 let p1 = AccuracyModel.probability(pass)
-check("two blind solves from two families reach the key, with support: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+check("three blind solves from three families reach the key, with support: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
 // the briefs' rules for questions, as the server has them (server/accuracy-model.js verdict)
-func mcqVotes(_ votes: [AccuracyVote]) -> [String: Double] {
-    AccuracyModel.featureValues(kind: .mcq, rules: [], votes: votes, evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+func mcqVotes(_ votes: [AccuracyVote], rules: [AccuracyRules.Hit] = []) -> [String: Double] {
+    AccuracyModel.featureValues(kind: .mcq, rules: rules, votes: votes, evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
 }
-let anchoredF = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports"),
-                          AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "A", evidence: "supports")])
+let twoBlindF = mcqVotes([solve(gModel, "A"), solve(oModel, "A")])
+check("two blind families on the key are no longer enough", AccuracyModel.grade(AccuracyModel.probability(twoBlindF), twoBlindF) == .check)
+let dissentF = mcqVotes([solve(gModel, "A"), solve(gmModel, "C"), solve(oModel, "A"), solve(nModel, "A")])
+check("a family whose blind solve went elsewhere keeps it from Verified", dissentF["blind_agree"] == 3 && dissentF["blind_dissent"] == 1
+      && AccuracyModel.grade(0.99, dissentF) == .check)
+let concernF = mcqVotes([solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A"), AccuracyVote(model: oModel, risk: 3, answer: "A", evidence: "none")])
+check("a concern from any checker keeps it from Verified", AccuracyModel.grade(0.99, concernF) == .check)
+let contradictedF = mcqVotes([solve(gModel, "A", evidence: "contradicts"), solve(oModel, "A"), solve(nModel, "A")])
+check("literature read against it keeps it from Verified", AccuracyModel.grade(0.99, contradictedF) == .check)
+let anchoredF = mcqVotes([AccuracyVote(model: gModel, risk: 1, answer: "A", evidence: "supports"),
+                          AccuracyVote(model: oModel, risk: 1, answer: "A", evidence: "supports"),
+                          AccuracyVote(model: nModel, risk: 1, answer: "A", evidence: "supports")])
 check("votes that saw the key do not verify a question", AccuracyModel.grade(AccuracyModel.probability(anchoredF), anchoredF) == .check)
-let againstF = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "C", blind: true),
-                         AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, answer: "C", blind: true),
-                         AccuracyVote(model: "@cf/nvidia/nemotron-3-120b-a12b", risk: 1, answer: "A", evidence: "supports")])
-check("two families solving it blind agree on another answer: Flagged", againstF["blind_against"] == 2
+let againstF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none"), solve(nModel, "C", evidence: "none"),
+                         AccuracyVote(model: gmModel, risk: 1, answer: "A", evidence: "supports")])
+check("three families solving it blind agree on another answer, none on the key: Flagged", againstF["blind_against"] == 3
       && AccuracyModel.grade(AccuracyModel.probability(againstF), againstF) == .flagged)
-let oneFamilyBlind = mcqVotes([AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, answer: "A", evidence: "supports", blind: true),
-                               AccuracyVote(model: "gemma-4-31b-it", risk: 1, answer: "A", evidence: "supports", blind: true)])
+let twoAgainstF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none")])
+check("two families on another answer are not proof enough to flag", AccuracyModel.grade(AccuracyModel.probability(twoAgainstF), twoAgainstF) == .check)
+let outvotedF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none"), solve(nModel, "A")])
+check("two families on another answer and one on the key: Check this", AccuracyModel.grade(AccuracyModel.probability(outvotedF), outvotedF) == .check)
+let oneFamilyBlind = mcqVotes([solve(gModel, "A"), solve(gmModel, "A")])
 check("two blind solves from one family are one witness", oneFamilyBlind["blind_agree"] == 1
       && AccuracyModel.grade(AccuracyModel.probability(oneFamilyBlind), oneFamilyBlind) == .check)
+let cardBad = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 4, evidence: "contradicts"),
+                                                                         AccuracyVote(model: oModel, risk: 4, evidence: "contradicts"),
+                                                                         AccuracyVote(model: nModel, risk: 4, evidence: "contradicts")],
+                                          evidenceCount: 0, sourceMatch: 0.7, keyLetter: nil)
+check("three families judging a card wrong: Flagged", cardBad["flag_families"] == 3 && AccuracyModel.grade(AccuracyModel.probability(cardBad), cardBad) == .flagged)
+let cardBad2 = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 4, evidence: "contradicts"),
+                                                                          AccuracyVote(model: oModel, risk: 4, evidence: "contradicts")],
+                                           evidenceCount: 0, sourceMatch: 0.7, keyLetter: nil)
+check("two families judging it wrong: Check this", AccuracyModel.grade(AccuracyModel.probability(cardBad2), cardBad2) == .check)
+let threeCards = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"),
+                                                                            AccuracyVote(model: oModel, risk: 1, evidence: "supports"),
+                                                                            AccuracyVote(model: nModel, risk: 1, evidence: "supports")],
+                                             evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
+check("three passing families verify a card", threeCards["families"] == 3 && AccuracyModel.grade(0.99, threeCards) == .verified)
 let decodedBlind = try? JSONDecoder().decode(AccuracyVote.self, from: Data(#"{"model":"m","risk":1,"answer":"A","blind":true}"#.utf8))
 check("the blind mark comes from the server's reply", decodedBlind?.blind == true)
 // two votes from one family are one witness (independence), as on the server
 let oneFamily = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"),
-                                                                           AccuracyVote(model: "gemma-4-31b-it", risk: 1, evidence: "supports")],
+                                                                           AccuracyVote(model: "gemma-4-31b-it", risk: 1, evidence: "supports"),
+                                                                           AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "supports")],
                                             evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
-check("two passing votes from one family (Gemini and Gemma) are Check this", oneFamily["families"] == 1 && AccuracyModel.grade(0.99, oneFamily) == .check)
+check("three passing votes from two families (Gemini and Gemma are one) are Check this", oneFamily["families"] == 2 && AccuracyModel.grade(0.99, oneFamily) == .check)
 check("families: Gemma and Gemini are Google, gpt-oss OpenAI, Nemotron NVIDIA",
       AccuracyModel.familyOf("gemma-4-31b-it") == "google" && AccuracyModel.familyOf("@cf/openai/gpt-oss-120b") == "openai"
       && AccuracyModel.familyOf("@cf/nvidia/nemotron-3-120b-a12b") == "nvidia")
 let bad = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 4, answer: "B", evidence: "contradicts"),
                                                                      AccuracyVote(risk: 4, answer: "B", evidence: "contradicts")],
                                       evidenceCount: 0, sourceMatch: 0.7, keyLetter: "A")
-check("two flagging votes are Flagged", AccuracyModel.grade(AccuracyModel.probability(bad), bad) == .flagged)
+check("checkers shown the key calling it wrong, with no blind solve: Check this, not proof", AccuracyModel.grade(AccuracyModel.probability(bad), bad) == .check)
 let split = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 1, answer: "A"), AccuracyVote(risk: 3, answer: "A")],
                                         evidenceCount: 0, sourceMatch: 0.5, keyLetter: "A")
 check("a split vote is Check this", AccuracyModel.grade(AccuracyModel.probability(split), split) == .check)
@@ -118,13 +149,16 @@ check("a severe rule is never Verified", AccuracyModel.grade(AccuracyModel.proba
 let lone = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports")],
                                        evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
 check("a single vote, however sure, is Check this, never Verified", AccuracyModel.grade(0.99, lone) == .check)
-let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "none"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
+let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gmModel, risk: 1, evidence: "none"), AccuracyVote(model: nModel, risk: 1, evidence: "none"),
+                                                                          AccuracyVote(model: oModel, risk: 1, evidence: "none")],
                                            evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
-check("an oath item with two votes but no support stays Check this",
+check("an oath item passed by three families but with no support stays Check this",
       AccuracyModel.grade(0.99, unbacked) == .verified && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
-let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
+let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                            AccuracyVote(model: nModel, risk: 1, evidence: "none")],
                                              evidenceCount: 2, sourceMatch: 0.2, keyLetter: nil)
-let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "none"), AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "none")],
+let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "none"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                         AccuracyVote(model: nModel, risk: 1, evidence: "none")],
                                           evidenceCount: 0, sourceMatch: AccuracyModel.oathSourceMatch, keyLetter: nil)
 check("with the literature or its own lecture behind it, an oath item can be Verified",
       AccuracyModel.grade(0.99, literature, oath: true) == .verified && AccuracyModel.grade(0.99, lecture, oath: true) == .verified)
@@ -153,8 +187,8 @@ check("key disagreement is a share", AccuracyModel.featureValues(kind: .mcq, rul
                                                                  evidenceCount: 0, sourceMatch: nil, keyLetter: "A")["key_disagree"] == 0.5)
 check("the bundled weights decode and are valid", AccuracyModel.bundled.version == "prior-1" && AccuracyModel.bundled.isValid
       && AccuracyModel.bundled.features == AccuracyModel.features)
-// the same numbers as the server's predict() for the passing case: logit 3 + 0.3*(2/3) + 0.8 + 0.1*0.6 + 0.8*0.7
-let voterTerm: Double = 0.3 * (2.0 / 3.0)
+// the same numbers as the server's predict() for the passing case: logit 3 + 0.3*(3/3) + 0.8 + 0.1*0.6 + 0.8*0.7
+let voterTerm: Double = 0.3 * (3.0 / 3.0)
 let evidenceTerm: Double = 0.8 + 0.1 * 0.6
 let sourceTerm: Double = 0.8 * 0.7
 let logit: Double = 3 + voterTerm + evidenceTerm + sourceTerm
@@ -208,15 +242,23 @@ check("a note is its own kind", AccuracyItem.note(id: UUID(), title: "T", body: 
 var ledger = AccuracyLedger()
 let item0 = AccuracyItem.items(in: mcqSet)[0]
 check("an unchecked item with no rule hits is Not checked yet", ledger.assess(item0).grade == .unchecked)
-ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)],
+ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true),
+                   AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports", blind: true)],
            evidence: [AccuracyEvidence(id: "S1", source: "MedlinePlus", title: "t", url: "https://medlineplus.gov")], sourceMatch: 0.8, for: item0.contentHash)
-check("blind solves make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
+check("three families' blind solves make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
+let checkTime = Date(timeIntervalSince1970: 2_000_000)
+var shortLedger = AccuracyLedger()
+shortLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)],
+                sourceMatch: 0.8, for: item0.contentHash, at: checkTime)
+check("a check that reached only two families is Check this, and asked again once a day has passed",
+      shortLedger.assess(item0).grade == .check && shortLedger.isChecked(item0.contentHash, question: true, now: checkTime.addingTimeInterval(3600))
+      && !shortLedger.isChecked(item0.contentHash, question: true, now: checkTime.addingTimeInterval(90_000)))
 var anchoredLedger = AccuracyLedger()
 anchoredLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")], sourceMatch: 0.8, for: item0.contentHash)
 check("a question checked before blind solving is asked about again", !anchoredLedger.isChecked(item0.contentHash, question: true)
       && anchoredLedger.isChecked(item0.contentHash) && anchoredLedger.assess(item0).grade == .check)
 ledger.add(votes: [AccuracyVote(model: "a", risk: 4, answer: "B", evidence: "contradicts", issues: ["Wrong"])], for: item0.contentHash)
-check("a model's new vote replaces its old one", ledger.records[item0.contentHash]?.votes.count == 2 && ledger.assess(item0).grade != .verified)
+check("a model's new vote replaces its old one", ledger.records[item0.contentHash]?.votes.count == 3 && ledger.assess(item0).grade != .verified)
 check("and its concern is a reason", ledger.assess(item0).reasons.contains("a: Wrong"))
 var reported = AccuracyLedger()
 reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)], sourceMatch: 0.8, for: item0.contentHash)
@@ -227,7 +269,8 @@ func gateReply(_ claims: String) -> AccuracyCheckReply? {
     let json: String = """
     {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
       "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
-                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true}],
+                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
+                          {"model":"c","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true}],
       "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)}]}
     """
     return try? JSONDecoder().decode(AccuracyCheckReply.self, from: Data(json.utf8))
@@ -248,7 +291,7 @@ gated.add(votes: [AccuracyVote(model: "d", risk: 1, answer: "A", evidence: "supp
 check("a vote from elsewhere, with no gate, leaves the findings as they were", gated.records[hash0]?.claimHolds == ["negation"] && gated.assess(item0).grade == .check)
 var broken = AccuracyLedger()
 broken.record(gateReply(#","claims":{"hard":[{"code":"gate_failed","claim":"","source":""}],"soft":[]}"#), for: [hash0], at: gateTime)
-check("a gate that failed holds the item at Check this, with its votes kept", broken.assess(item0).grade == .check && broken.records[hash0]?.votes.count == 2)
+check("a gate that failed holds the item at Check this, with its votes kept", broken.assess(item0).grade == .check && broken.records[hash0]?.votes.count == 3)
 check("and it is asked about again later, not at once", !broken.isChecked(hash0) && !broken.mayRetry(hash0, now: gateTime.addingTimeInterval(60))
       && broken.mayRetry(hash0, now: gateTime.addingTimeInterval(7 * 3600)))
 broken.record(gateReply(""), for: [hash0], at: gateTime.addingTimeInterval(7 * 3600))

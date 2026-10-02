@@ -531,7 +531,7 @@ struct LectureWriterSection: View {
                 }
                 try Task.checkCancellation()
                 // checked by the verification layer once saved: its sensors
-                // at once, then two model families solving blind, the
+                // at once, then three model families solving blind, the
                 // literature and the verdict, shown on each card's badge
                 let note: String = verify ? " The verification layer checks every card once the set is saved." : ""
                 let finalNote = note

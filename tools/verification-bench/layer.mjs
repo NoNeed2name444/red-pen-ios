@@ -21,7 +21,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { checkBatch } from '../../server/accuracy.js';
 import { resetBreakers } from '../../server/breakers.js';
 import { familyOf } from '../../server/accuracy-model.js';
-import { loadQuestions, seeded } from './datasets.mjs';
+import { loadQuestions, benchCases } from './datasets.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -42,22 +42,8 @@ mkdirSync(outDir, { recursive: true });
 
 // MARK: the questions, right and wrong
 
-const rand = seeded(seed);
 const all = loadQuestions(readdirSync(dataDir).filter(f => f.endsWith('.json')).map(f => join(dataDir, f)));
-const chosen = [];
-for (const src of wanted) {
-  const pool = all.filter(q => q.source === src);
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  chosen.push(...pool.slice(0, perSource));
-}
-const cases = [];
-for (const q of chosen) {
-  cases.push({ truth: 'right', item: { ...q, id: `${q.id}#right` } });
-  const others = q.options.map((_, i) => i).filter(i => i !== q.key);
-  const wrong = others[Math.floor(rand() * others.length)];
-  cases.push({ truth: 'wrong', item: { ...q, id: `${q.id}#wrong`, key: wrong } });
-}
-for (let i = cases.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [cases[i], cases[j]] = [cases[j], cases[i]]; }
+const { chosen, cases } = benchCases(all, { wanted, perSource, seed });
 
 // MARK: the Worker's world: an in-memory database, the bench's voters
 
@@ -215,6 +201,8 @@ for (const [m, p] of Object.entries(per).sort((a, b) => b[1].answered - a[1].ans
   lines.push(`| ${m} | ${p.family} | ${p.answered} | ${pct(p.right, p.answered)} | ${pct(p.blindRight, p.blind)} |`);
 }
 writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
+// everything policy.mjs needs to replay a check under other verdict rules
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(results.map(r => ({ id: r.item.id, source: r.item.source, truth: r.truth,
-  verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons, rules: r.result?.rules, votes: r.result?.votes })), null, 1));
+  keyLetter: String.fromCharCode(65 + r.item.key), verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons,
+  rules: r.result?.rules, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix })), null, 1));
 console.log(lines.join('\n'));

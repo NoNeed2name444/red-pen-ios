@@ -40,3 +40,26 @@ export function seeded(seed) {
   let s = seed >>> 0 || 1;
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
+
+/// The bench's checks, in a seeded order: `perSource` questions from each
+/// source, each once with its true key and once with a distractor keyed
+/// instead. layer.mjs runs them; policy.mjs rebuilds them to know each
+/// check's keyed letter.
+export function benchCases(all, { wanted, perSource, seed }) {
+  const rand = seeded(seed);
+  const chosen = [];
+  for (const src of wanted) {
+    const pool = all.filter(q => q.source === src);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    chosen.push(...pool.slice(0, perSource));
+  }
+  const cases = [];
+  for (const q of chosen) {
+    cases.push({ truth: 'right', item: { ...q, id: `${q.id}#right` } });
+    const others = q.options.map((_, i) => i).filter(i => i !== q.key);
+    const wrong = others[Math.floor(rand() * others.length)];
+    cases.push({ truth: 'wrong', item: { ...q, id: `${q.id}#wrong`, key: wrong } });
+  }
+  for (let i = cases.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [cases[i], cases[j]] = [cases[j], cases[i]]; }
+  return { chosen, cases };
+}
