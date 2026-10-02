@@ -71,8 +71,12 @@ jobs:
           if git fetch -q origin verification-bench-results; then
             git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B verification-bench-results
           else
-            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results && git -C "$dest" rm -rq . || true
+            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results
           fi
+          # results only: nothing of the repository rides along (an earlier
+          # publish committed the whole tree beside the runs)
+          git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
+          find "$dest" -mindepth 1 -maxdepth 1 ! -name .git ! -name runs -exec rm -rf {} +
           mkdir -p "$dest/runs/${{ github.run_id }}"
           cp out/layer/report.md out/layer/results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
           cp out/sensors/report.md "$dest/runs/${{ github.run_id }}/sensors.md" 2>/dev/null || true

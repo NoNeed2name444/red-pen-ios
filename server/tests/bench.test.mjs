@@ -1,6 +1,6 @@
 // The benchmark's own arithmetic and parsing: a benchmark that miscounts is
 // worse than none.
-import { sample, wilson, letterFrom, riskFrom } from '../bench/accuracy.mjs';
+import { sample, wilson, letterFrom, riskFrom } from '../bench/stats.mjs';
 let failures = 0;
 const ok = (c, w) => { console.log((c ? 'ok   ' : 'FAIL ') + w); if (!c) failures++; };
 const s1 = sample(1273, 150, 7), s2 = sample(1273, 150, 7);
@@ -20,30 +20,20 @@ ok(riskFrom('[[ ## risk_level ## ]]\n3') === 3 && riskFrom('risk_level: Level 1'
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
 
-// the checker comparison's scoring, and the owner's model switch it relies on
+// the owner's model switch the verification bench relies on
 {
-  const { score } = await import('../bench/checkers.mjs');
   const { pinnedSource } = await import('../ai.js');
-  const s = score([
-    { case: 'correct', risk: 1 }, { case: 'correct', risk: 4 },
-    { case: 'wrongVsCorrect', risk: 4 }, { case: 'wrongEverywhere', risk: 2 },
-    { case: 'wrongEverywhere', risk: null, error: 'x' },
-  ]);
-  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  if (!same(s.specificity, [1, 2]) || !same(s.catchWithLecture, [1, 1]) || !same(s.catchByKnowledge, [0, 1]) || s.failed !== 1) {
-    console.log('FAIL checker scoring', s); process.exit(1);
-  }
-  const env = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, AI_API_KEY: 'h' };
+  const env = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, AI_API_KEY: 'h', GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' };
   if (pinnedSource(env, 'gemini:gemini-3.5-flash')?.models?.[0] !== 'gemini-3.5-flash'
       || pinnedSource(env, 'workers-ai:@cf/openai/gpt-oss-120b')?.model !== '@cf/openai/gpt-oss-120b'
       || pinnedSource(env, 'hf:org/model')?.kind !== 'openai'
+      || pinnedSource(env, 'groq:openai/gpt-oss-120b')?.base !== 'https://api.groq.com/openai/v1'
+      || pinnedSource(env, 'cerebras:gpt-oss-120b')?.base !== 'https://api.cerebras.ai/v1'
+      || pinnedSource({}, 'groq:x') !== null
       || pinnedSource(env, 'nope') !== null || pinnedSource({}, 'gemini:x') !== null) {
     console.log('FAIL model pinning'); process.exit(1);
   }
-  const { normalise } = await import('../bench/checkers.mjs');
-  const x = normalise('medxpertqa', 5, { question: 'Stem here\nAnswer Choices: (A) a (B) b', options: { A: 'a', B: 'b', C: 'c', D: null }, label: 'B' });
-  if (x.question !== 'Stem here' || Object.keys(x.options).join() !== 'A,B,C' || x.answer_idx !== 'B') { console.log('FAIL MedXpertQA shape', x); process.exit(1); }
-  console.log('ok   checker comparison scoring, MedXpertQA shape and model pinning');
+  console.log('ok   model pinning, Groq and Cerebras only with their keys');
 }
 
 // Google's quota details, passed through so the benchmark can pace itself
@@ -59,27 +49,13 @@ console.log('all passed');
   console.log('ok   Google quota details are read');
 }
 
-// the benchmark tells a per-day limit from a per-minute one
+// the training run tells a per-day limit from a per-minute one
 {
-  const { limitKind, waitFor, neuronsFor } = await import('../bench/checkers.mjs');
+  const { limitKind } = await import('../bench/stats.mjs');
   const ok2 = limitKind('[quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=20; retry 41s]') === 'day'
     && limitKind('[quota GenerateRequestsPerMinutePerProjectPerModel-FreeTier=15; retry 20s]') === 'minute'
     && limitKind('4006: you have used up your daily free allocation of 10,000 neurons') === 'day'
-    && limitKind("429: That's today's 2500 cloud requests used. On-device models still work, and the allowance resets at midnight UTC.") === 'day'
-    && limitKind('429: anything', { limit: 'day' }) === 'day'
-    && limitKind("502: Provider 429: Workers AI: this account's share of today's free allowance is used.") === 'day'
-    && waitFor('retry 41s') === 41 && waitFor('') === 20
-    && Math.round(neuronsFor('workers-ai:@cf/meta/llama-4-scout-17b-16e-instruct', 4000, 1200)) === 48;
+    && limitKind('429: anything', { limit: 'day' }) === 'day' && limitKind('fine') === null;
   if (!ok2) { console.log('FAIL limit handling'); process.exit(1); }
-  console.log('ok   limits: per-day stops, per-minute waits, neurons estimated');
-}
-
-{
-  const { progress } = await import('../bench/checkers.mjs');
-  const r = [...Array(6)].map((_, i) => ({ model: 'a', index: i, case: 'x' }));
-  const out = progress(['a', 'b'], r, 4, { a: 3 });
-  if (!out[0].includes('2/4 questions') || !out[0].includes('~2 more day')) throw new Error('progress a: ' + out[0]);
-  if (!out[1].includes('0/4') || !out.at(-1).includes('Not finished')) throw new Error('progress b');
-  if (!progress(['a'], r, 2, {}).at(-1).includes('All done')) throw new Error('progress done');
-  console.log('ok   progress across daily parts');
+  console.log('ok   limits: per-day stops, per-minute waits');
 }

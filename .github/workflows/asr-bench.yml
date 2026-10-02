@@ -15,7 +15,7 @@
 # which holds the lecture audio (release parts) and the reference transcript.
 # They stay in that private repository and are fetched for each run. Without
 # the token the job runs the scorer's tests and says it skipped the live call.
-# The owner key is built from AI_API_KEY, as accuracy-bench.yml builds it.
+# The owner key is built from AI_API_KEY, as verification-bench.yml builds it.
 name: Transcription benchmark
 on:
   workflow_dispatch:
