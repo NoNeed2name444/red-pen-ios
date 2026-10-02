@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 /// Reasoning: practice at thinking like a clinician rather than recalling
-/// facts. Every set in the library, each with its three tools - cases told a
-/// clue at a time, duels between lookalikes, and one-screen disease scripts.
+/// facts. Every set in the library, each with its two tools - duels between
+/// lookalikes, and one-screen disease scripts.
 struct ReasoningView: View {
     @EnvironmentObject private var store: Store
     @ObservedObject private var reasoning = ReasoningStore.shared
@@ -26,7 +26,7 @@ struct ReasoningView: View {
             : "No set matches."
         List {
             Section {
-                Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise committing early, telling lookalikes apart, and holding a whole disease on one screen.")
+                Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise telling lookalikes apart and holding a whole disease on one screen.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -65,9 +65,8 @@ struct ReasoningView: View {
 
     private func setRow(_ set: StudySet) -> some View {
         let pack = reasoning.pack(for: set.id)
-        let made: [Int] = ReasoningTool.allCases.map { tool in pack.count(of: tool) }
-        let anyMade: Bool = made.contains(where: { $0 > 0 })
-        let counts: String = "\(made[0]) cases \u{00B7} \(made[1]) duels \u{00B7} \(made[2]) scripts"
+        let anyMade: Bool = ReasoningTool.allCases.contains { tool in pack.count(of: tool) > 0 }
+        let counts: String = "\(pack.count(of: .duels)) duels \u{00B7} \(pack.count(of: .scripts)) scripts"
         return VStack(alignment: .leading, spacing: 3) {
             Text(set.name).font(.body.weight(.medium)).lineLimit(2)
             HStack(spacing: 10) {
@@ -84,9 +83,8 @@ struct ReasoningView: View {
     }
 }
 
-/// The three tools for one set: three tiles that stand out of the glass,
-/// stacked under the thumb on a phone and three across on a wide iPad, with
-/// how the cases have gone in a quiet card below.
+/// The two tools for one set: two tiles that stand out of the glass,
+/// stacked under the thumb on a phone and side by side on a wide iPad.
 ///
 /// It measures its own width rather than trusting the window's: it is also
 /// opened in a sheet (the library row's menu), which on an iPad is far
@@ -136,10 +134,6 @@ private struct ReasoningSetBody: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
-                if let stats = caseStats(pack) {
-                    ReasoningStatsCard(played: stats.played, right: stats.right,
-                                       average: stats.average, premature: stats.premature)
-                }
             }
             .padding(16)
             .frame(maxWidth: 820)
@@ -154,21 +148,9 @@ private struct ReasoningSetBody: View {
     @ViewBuilder
     private func destination(_ tool: ReasoningTool) -> some View {
         switch tool {
-        case .cases: ClueCasesView(set: set)
         case .duels: DuelsView(set: set)
         case .scripts: ScriptsView(set: set)
         }
-    }
-
-    private func caseStats(_ pack: ReasoningPack) -> (played: Int, right: Int, average: Double, premature: Int)? {
-        let ids = Set(pack.cases.map(\.id))
-        let plays = reasoning.casePlays.filter { ids.contains($0.caseId) }
-        guard !plays.isEmpty else { return nil }
-        let total: Double = plays.reduce(0.0) { $0 + $1.score }
-        let average: Double = total / Double(plays.count)
-        let right: Int = plays.filter(\.correct).count
-        let premature: Int = plays.filter(\.prematureClosure).count
-        return (plays.count, right, average, premature)
     }
 }
 
@@ -177,7 +159,7 @@ private struct ReasoningSetBody: View {
 private struct ReasoningToolTile: View {
     let tool: ReasoningTool
     let count: Int
-    /// Three across on a wide iPad: the tiles share one height.
+    /// Side by side on a wide iPad: the tiles share one height.
     let tall: Bool
 
     private var line: String {
@@ -214,36 +196,6 @@ private struct ReasoningToolTile: View {
         .multilineTextAlignment(.leading)
         .padding(16)
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
-        .background(.regularMaterial, in: shape)
-    }
-}
-
-/// How the clue-by-clue cases have gone: read, not pressed, so it lies flat
-/// on the glass.
-private struct ReasoningStatsCard: View {
-    let played: Int
-    let right: Int
-    let average: Double
-    let premature: Int
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        let averageText: String = String(format: "%.2f of 2", average)
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Clue-by-clue so far")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            LabeledContent("Cases played", value: "\(played)")
-            LabeledContent("Right", value: "\(right)")
-            LabeledContent("Average score", value: averageText)
-            if premature > 0 {
-                LabeledContent("Premature closures", value: "\(premature)")
-            }
-        }
-        .font(.subheadline)
-        .monospacedDigit()
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: shape)
     }
 }
@@ -340,13 +292,13 @@ struct ReasoningWriteBar: View {
     }
 }
 
-/// One choice in the count menu: "5 cases".
+/// One choice in the count menu: "4 duels".
 private struct ReasoningCountOption: Identifiable {
     let id: Int
     let title: String
 }
 
-/// The "5 cases" chooser at the leading end of the write slab: a menu of
+/// The "4 duels" chooser at the leading end of the write slab: a menu of
 /// 1 to 10, with the writer model named inside it.
 private struct ReasoningCountMenu: View {
     @Binding var count: Int

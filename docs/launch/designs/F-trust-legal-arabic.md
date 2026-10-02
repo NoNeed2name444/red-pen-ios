@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS error_reports (
   account_id   TEXT,                        -- NULL once the reporter deletes their account
   created_at   INTEGER NOT NULL,
   reason       TEXT NOT NULL,               -- wrong_answer|wrong_explanation|outdated|unsafe|unclear|typo|offensive|other
-  item_kind    TEXT NOT NULL,               -- mcq|card|qa|case|osce|book|narrate|clue|script|reasoning
+  item_kind    TEXT NOT NULL,               -- mcq|card|osce|book|narrate|script|reasoning
   set_id       TEXT,
   item_id      TEXT,
   share_id     TEXT,                        -- group A shared/class set, when the item came from one
@@ -282,7 +282,7 @@ The server never trusts client percentages. It accepts only counts and recompute
   - `enum Reason` has localised titles; `enum ItemKind`; `enum Origin`.
   - `static let limits`, identical to the server's.
   - `func validated() -> ErrorReport?` truncates exactly like the server.
-  - Adapters: `ReportSnapshot.init(_ q: MCQQuestion)`, `init(_ c: AnkiCard)`, `init(_ c: QACard)`, `init(kind:prompt:answer:extra:)`.
+  - Adapters: `ReportSnapshot.init(_ q: MCQQuestion)`, `init(_ c: AnkiCard)`, `init(kind:prompt:answer:extra:)`.
   - `func fingerprint() -> String` (CryptoKit SHA-256). This is the same normalisation as the server, and it is also used to decide whether a correction may still be applied (the local item is unchanged since it was reported).
 - **`Shared/ReportOutbox.swift`:**
   - A pure queue: `enqueue`, `due(now:)` with backoff of 1 min, 5 min, 30 min, 3 h, then 12 h; `markSent`; `drop` for items older than 30 days; a cap of 200 items.
@@ -323,7 +323,6 @@ The server never trusts client percentages. It accepts only counts and recompute
   - It is called at the top of `HostedLLMClient`, `CloudTranscriber`, `CloudVoice` and `CloudJobs` request paths. Declining throws `CloudConsentError.declined`, which the existing callers already surface as a failed generation, with the message "Cloud AI is off. Turn it on in Settings, or use the on-device model."
 - **`Features/Support/EducationNotice.swift`:**
   - `EducationFootnote()` is one line: "For study only, not for clinical decisions. AI can be wrong." It links to `/medical`.
-  - `.simulatedPatientBanner()` is for case screens.
 - **`ReportStore`** (`@Observable`, in `Shared/ReportStore.swift`) owns the outbox, `flush(token:)`, `mine(token:)`, and the owner review calls (via `Shared/ReportsAPI.swift`, which wraps `AuthAPI.send`). There is no debug stub. UI tests use the launch argument `-reportsDryRun`, which makes `ReportsAPI` succeed locally.
 - **Resources:**
   - `Localizable.xcstrings` (source language en, plus ar).
@@ -339,8 +338,7 @@ The server never trusts client percentages. It accepts only counts and recompute
   - `AccuracyAsk` gains `var report: (() -> ReportTarget?)? = nil`, where `ReportTarget = {kind, setId, itemId, origin, model, source, snapshot}`.
   - `StudyMoreMenu` adds `Label("Report an error", systemImage: "exclamationmark.bubble")` with `.accessibilityIdentifier("reportError")` and a `.sheet(item:)` that presents `ReportErrorSheet`.
 - **Report targets per screen:**
-  - Supply `report:` in `MCQQuizView` (current question), `AnkiReviewView` (current card), `QACardsView`, `OsceReviewView`, `BookReaderView` (page text, kind `book`), `NarrateReviewView`.
-  - Add the menu item directly in `CaseChatView` and `ClueCaseView`, which have their own toolbars.
+  - Supply `report:` in `MCQQuizView` (current question), `AnkiReviewView` (current card), `OsceReviewView`, `BookReaderView` (page text, kind `book`), `NarrateReviewView`.
   - Add a context-menu "Report an error" on each question row in `MCQSummaryView` and on cards in `DueTodayView`.
   - `origin` and `model` come from the set's generation metadata where the set records it. Otherwise `origin = typed` or `imported`.
 - **`Features/Account/RecordingTermsView.swift`:**
@@ -532,7 +530,7 @@ The server never trusts client percentages. It accepts only counts and recompute
 ### Swift (in `swift-tests.yml`)
 
 ```
-suite trust TrustTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+suite trust TrustTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $S/ErrorReport.swift $S/ReportOutbox.swift $S/LegalTerms.swift $S/LegalLinks.swift $S/AuthAPI.swift \
       $M/Account.swift $S/AuthRules.swift
 suite language LanguageTests.swift $S/AppLanguage.swift $S/TextDirection.swift $S/ServerMessages.swift

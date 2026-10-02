@@ -334,7 +334,7 @@ private struct PlatformSheetView: View {
 /// The menu a hardware keyboard shows when ⌘ is held, for what no screen
 /// already offers: search, due cards and a set in its own window.
 ///
-/// ⌘N (New set, LibraryView), ⌘1–⌘5 (the dock, StudyCategory) and ⌘Z
+/// ⌘N (New set, LibraryView), ⌘1–⌘4 (the dock, StudyCategory) and ⌘Z
 /// (the undo chip after a rating, ReviewCardActions) are already on the
 /// screens that own them, and a second binding for the same keys would leave
 /// which one fires to chance - so they are not repeated here.

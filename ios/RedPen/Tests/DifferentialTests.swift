@@ -1,6 +1,6 @@
 // "How to reach it": the differential in three tiers (most likely, expanded,
-// can't miss) that a case, a clue-by-clue case or a question's explanation
-// now carries, and the reasoning checks added to MedVAL's.
+// can't miss) that a question's explanation now carries, and the reasoning
+// checks added to MedVAL's.
 //
 // Two things matter most. A library saved before the field existed must open
 // exactly as before - a decoding change that refuses an old set loses a
@@ -26,17 +26,40 @@ check("a question saved before the field decodes", q != nil)
 check("with no differential", q?.differential == nil)
 check("and everything else as it was", q?.source == "Hernia, p. 4" && q?.correctIndex == 0)
 
+// Tolerant decoding: every set saved while the old Cases existed carries a
+// "qaCards" key, which is passed over.
 let oldCard: String = #"{"id":"5EA50000-0000-4000-8000-000000000002","topic":"Hernia","type":"case","stem":"A 70-year-old woman with a tender groin lump.","answer":["**Femoral hernia**"]}"#
-let card: QACard? = try? decoder.decode(QACard.self, from: Data(oldCard.utf8))
-check("a Cases card saved before the field decodes", card != nil && card?.differential == nil)
-
-let oldCase: String = #"{"id":"5EA50000-0000-4000-8000-000000000003","clues":["A 24-year-old man.","A groin lump."],"diagnosis":"Indirect inguinal hernia","differentials":["Direct inguinal hernia","Femoral hernia","Hydrocele"],"teachingPoint":"Lateral means indirect.","decisiveClue":2}"#
-let clue: ClueCase? = try? decoder.decode(ClueCase.self, from: Data(oldCase.utf8))
-check("a clue-by-clue case saved before the field decodes", clue != nil && clue?.differential == nil)
-
 let oldSet: String = "{\"name\":\"Old\",\"kind\":\"mcq\",\"questions\":[" + oldQuestion + "],\"qaCards\":[" + oldCard + "]}"
 let set: StudySet? = try? decoder.decode(StudySet.self, from: Data(oldSet.utf8))
-check("a whole old set still opens", set?.questions.count == 1 && set?.qaCards.count == 1)
+check("a whole old set still opens", set?.questions.count == 1)
+
+// MARK: - a library with a set of the removed kind
+//
+// Tolerant decoding: "qa", the old Cases, is a kind this version does not
+// have. A library file holding one such set and an MCQ set loads without
+// throwing: the MCQ set is kept, and the "qa" set is skipped but kept as it
+// was written (LibraryFile.entries), so Store saves it on with the library.
+
+let oldCasesSet: String = #"{"id":"5EA50000-0000-4000-8000-0000000000a1","name":"Respiratory","kind":"qa","qaCards":[{"id":"5EA50000-0000-4000-8000-0000000000a2","topic":"Asthma","type":"recall","stem":"Features of life-threatening asthma?","answer":["PEF < 33% of best"]}]}"#
+let mcqSet: String = "{\"name\":\"Hernia\",\"kind\":\"mcq\",\"questions\":[" + oldQuestion + "]}"
+let libraryData = Data(("{\"library\":[" + oldCasesSet + "," + mcqSet + "],\"folders\":[]}").utf8)
+var libraryFile: LibraryFile?
+var libraryError: String = ""
+do {
+    libraryFile = try decoder.decode(LibraryFile.self, from: libraryData)
+} catch {
+    libraryError = "\(error)"
+}
+check("a library holding a qa set and an MCQ set decodes without throwing", libraryFile != nil, libraryError)
+check("the MCQ set is kept", libraryFile?.library.count == 1 && libraryFile?.library.first?.kind == .mcq
+      && libraryFile?.library.first?.questions.count == 1)
+check("the qa set is skipped, its place noted", libraryFile?.skipped == 1 && libraryFile?.skippedAt == [0])
+let keptAside: [String] = LibraryFile.entries(of: libraryData, at: libraryFile?.skippedAt ?? [])
+let keptObject: [String: Any]? = keptAside.first.flatMap { (try? JSONSerialization.jsonObject(with: Data($0.utf8))) as? [String: Any] }
+check("and kept as it was written", keptAside.count == 1 && keptObject?["kind"] as? String == "qa"
+      && keptAside.first?.contains("life-threatening asthma") == true)
+check("sync knows the qa kind as removed, not newer", StudySetKind.isRetired(Data(oldCasesSet.utf8))
+      && !StudySetKind.isRetired(Data(mcqSet.utf8)))
 
 // a differential saved with some tiers missing still reads
 let partial: String = #"{"mostLikely":[{"name":"Femoral hernia","supporting":["older woman"]}]}"#
@@ -50,29 +73,23 @@ withTiers.differential = ReasoningExamples.herniaDifferential
 let saved: Data? = try? encoder.encode(withTiers)
 let back: MCQQuestion? = saved.flatMap { try? decoder.decode(MCQQuestion.self, from: $0) }
 check("a question with a differential keeps it through a save", back?.differential == ReasoningExamples.herniaDifferential)
-let savedCase: Data? = try? encoder.encode(ReasoningExamples.cases[0])
-let backCase: ClueCase? = savedCase.flatMap { try? decoder.decode(ClueCase.self, from: $0) }
-check("so does a clue-by-clue case", backCase?.differential == ReasoningExamples.herniaDifferential)
 
 // MARK: - the tiers out of a model's JSON reply
 
 let reply: String = """
-Here is the case.
+Here is the differential.
 ```json
-{"cases":[{"clues":["A 71-year-old woman.","Two days of colicky abdominal pain and vomiting.","A small, firm, tender lump in the right groin.","It lies below and lateral to the pubic tubercle and will not reduce.","Abdominal X-ray: dilated small-bowel loops."],
- "differential":{
+{"differential":{
    "mostLikely":[{"name":"Strangulated femoral hernia","for":["older woman","below and lateral to the pubic tubercle","irreducible and tender"],"against":[],"test":"CT: bowel in the femoral canal"}],
    "expanded":[{"name":"Inguinal hernia","for":["groin lump"],"against":["below and lateral to the tubercle"],"test":"ultrasound"},
                {"name":"Inguinal lymphadenopathy","for":"firm lump","against":"bowel obstruction","test":"ultrasound"}],
    "cant_miss":[{"diagnosis":"Femoral artery aneurysm","supporting":["groin lump"],"against":["not pulsatile"],"discriminatingTest":"duplex ultrasound"}]
  },
- "diagnosis":"Strangulated femoral hernia","differentials":["Inguinal hernia","Inguinal lymphadenopathy","Femoral artery aneurysm"],
- "teachingPoint":"A femoral hernia in an older woman presents as obstruction.","decisiveClue":4}]}
+ "diagnosis":"Strangulated femoral hernia"}
 ```
 """
-let parsed: [ClueCase] = ReasoningWriter.parseCases(reply)
-let tiers: DifferentialTiers? = parsed.first?.differential
-check("a written case keeps its differential", tiers != nil)
+let tiers: DifferentialTiers? = DifferentialTiers.parse(reply: reply)
+check("a written differential is read", tiers != nil)
 check("most likely is read", tiers?.mostLikely.map(\.name) == ["Strangulated femoral hernia"])
 check("with its findings for and its test", tiers?.mostLikely.first?.supporting.count == 3
       && tiers?.mostLikely.first?.test == "CT: bowel in the femoral canal")
@@ -81,10 +98,6 @@ check("a finding written as a string rather than a list is still read",
       tiers?.expanded.last?.supporting == ["firm lump"] && tiers?.expanded.last?.against == ["bowel obstruction"])
 check("can't miss under another key spelling and other field names is read",
       tiers?.cantMiss.first?.name == "Femoral artery aneurysm" && tiers?.cantMiss.first?.test == "duplex ultrasound")
-check("the case itself is read as before", parsed.first?.diagnosis == "Strangulated femoral hernia" && parsed.first?.decisiveClue == 4)
-
-let noTiers: [ClueCase] = ReasoningWriter.parseCases(#"{"cases":[{"clues":["a","b","c","d"],"diagnosis":"X","differentials":["A","B","C"],"teachingPoint":"t","decisiveClue":3}]}"#)
-check("a case written without a differential has none", noTiers.count == 1 && noTiers.first?.differential == nil)
 
 // a reply that is only the differential, nested or bare, or as a tier-labelled list
 let nested: DifferentialTiers? = DifferentialTiers.parse(reply: #"{"differential":{"Most Likely":["Hydrocele"],"Can't Miss":["Testicular tumour"]}}"#)
@@ -120,12 +133,7 @@ check("a vignette's differential is read in full", perItem.first??.mostLikely.fi
 check("a recall question has none", perItem.count > 1 && perItem[1] == nil)
 check("a malformed one is none, and costs nothing else", perItem.count > 2 && perItem[2] == nil)
 
-// a question turned into a Cases card keeps its route to the answer
-let converted: QACard? = ModeConversion.caseCard(from: withTiers, topic: "Groin")
-check("a question turned into a Cases card keeps its differential",
-      converted?.differential == ReasoningExamples.herniaDifferential)
-
-// MARK: - the one-line form a Cases line carries
+// MARK: - the one-line form
 
 let line: String = "Most likely: Femoral hernia (for: older woman, below and lateral to the pubic tubercle; against: none of note; test: groin ultrasound) / Expanded: Inguinal hernia (for: groin lump; against: below the ligament; test: ultrasound); Saphena varix (for: cough impulse; against: does not empty on lying; test: duplex) / Can't miss: Incarcerated/strangulated hernia (for: tender, irreducible; test: urgent surgical review)"
 let fromLine: DifferentialTiers? = DifferentialTiers.parse(line: line)
@@ -137,12 +145,6 @@ check("a name with a slash in it stays whole", fromLine?.cantMiss.first?.name ==
       "\(String(describing: fromLine?.cantMiss.first?.name))")
 check("the test is kept", fromLine?.expanded.last?.test == "duplex")
 
-let qa: [QACard] = PlainTextImport.parseQA("Groin | case | A 70-year-old woman with a tender, irreducible lump below and lateral to the pubic tubercle. Diagnosis? | **Femoral hernia**; urgent repair | " + line
-                                           + "\nGroin | recall | Where does a femoral hernia emerge? | Below and lateral to the **pubic tubercle**")
-check("a Cases line keeps its differential", qa.first?.differential?.mostLikely.first?.name == "Femoral hernia")
-check("and its answer points as before", qa.first?.answer == ["**Femoral hernia**", "urgent repair"])
-check("a recall line has none", qa.count == 2 && qa.last?.differential == nil)
-
 // MARK: - what the checker is shown
 
 let text: String = ReasoningExamples.herniaDifferential.checkText
@@ -153,9 +155,9 @@ check("the checker sees each tier on its own line", text.hasPrefix("- Most likel
 
 let example: DifferentialTiers = ReasoningExamples.herniaDifferential
 check("the hernia example has all three tiers", !example.mostLikely.isEmpty && !example.expanded.isEmpty && !example.cantMiss.isEmpty)
-check("its most likely is the case's diagnosis", example.mostLikely.first?.name == ReasoningExamples.cases[0].diagnosis)
-check("its expanded tier holds the case's differentials",
-      ReasoningExamples.cases[0].differentials.allSatisfy { d in example.expanded.contains { $0.name == d } })
+check("its most likely is an indirect inguinal hernia", example.mostLikely.first?.name == "Indirect inguinal hernia")
+check("its expanded tier holds the hernia's lookalikes",
+      ["Direct inguinal hernia", "Femoral hernia", "Hydrocele"].allSatisfy { d in example.expanded.contains { $0.name == d } })
 let cantMissNames: [String] = example.cantMiss.map(\.name)
 check("its can't-miss tier names strangulation, torsion and a femoral aneurysm",
       cantMissNames.contains { $0.contains("strangulated") } && cantMissNames.contains("Testicular torsion")

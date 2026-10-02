@@ -26,8 +26,6 @@ check("Narrate lines split on CRLF",
       PlainTextImport.parseNarrate("en|One\r\nar|اثنان\r\nThree").count == 3)
 check("Cards split on CRLF",
       PlainTextImport.parseAnkiQA("Front | a; b\r\n{{c1::Aorta}} carries blood | why").count == 2)
-check("Cases split on CRLF",
-      PlainTextImport.parseQA("Topic | case | Stem one? | ans\r\nTopic | recall | Stem two? | ans").count == 2)
 
 // MARK: the answer letter
 

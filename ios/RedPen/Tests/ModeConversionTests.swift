@@ -49,14 +49,6 @@ if let deck {
 }
 check("the original is untouched", quiz.questions.count == 3 && quiz.cards.isEmpty)
 
-// MCQ -> Cases
-let cases = ModeConversion.convert(quiz, to: .qa)
-check("MCQ turns into Cases instantly", cases?.qaCards.count == 2, "\(cases?.qaCards.count ?? -1)")
-check("a long stem is a clinical case", cases?.qaCards.first?.type == .case)
-check("a short stem is recall", cases?.qaCards.last?.type == .recall)
-check("the answer leads, then why", cases?.qaCards.first?.answer.first == "Segmental sclerosis"
-      && cases?.qaCards.first?.answer.count == 2)
-
 // MCQ -> anything else is written, not rearranged
 check("MCQ into OSCE needs writing", ModeConversion.convert(quiz, to: .osce) == nil)
 check("MCQ into Textbook needs writing", ModeConversion.convert(quiz, to: .book) == nil)
@@ -92,28 +84,12 @@ var thin = cardsSet
 thin.cards = Array(cardsSet.cards.prefix(2))
 check("too thin a deck is written instead", ModeConversion.convert(thin, to: .mcq) == nil)
 
-// Cards -> Cases, Cases -> Cards
-let cardCases = ModeConversion.convert(cardsSet, to: .qa)
-check("cards turn into Cases", cardCases?.qaCards.count == answers.count)
+// a cloze card and a picture card, for the writer's material below
 var cloze = StudySet(name: "HF", kind: .anki)
 cloze.cards = [AnkiCard(type: .cloze, clozeText: "An ejection fraction of {{c1::40% or less}} defines HFrEF."),
                AnkiCard(type: .occlusion, imageIndex: 0)]
-let clozeCases = ModeConversion.convert(cloze, to: .qa)
-check("a cloze card asks its first gap", clozeCases?.qaCards.first?.answer == ["40% or less"],
-      "\(clozeCases?.qaCards.first?.answer ?? [])")
-check("a picture card is left out", clozeCases?.qaCards.count == 1)
 
-var casesSet = StudySet(name: "Resp", kind: .qa)
-casesSet.qaCards = [QACard(topic: "Asthma", type: .recall, stem: "Features of life-threatening asthma?",
-                           answer: ["PEF < 33%", "Silent chest"]),
-                    QACard(stem: "Nothing to say", answer: [])]
-let casesDeck = ModeConversion.convert(casesSet, to: .anki)
-check("Cases turn into cards", casesDeck?.cards.count == 1)
-check("the answer points are the bullets", casesDeck?.cards.first?.bullets == ["PEF < 33%", "Silent chest"])
-check("the topic already in the question is not repeated",
-      casesDeck?.cards.first?.front == "Features of life-threatening asthma?")
-
-// OSCE -> Cards, OSCE -> Cases
+// OSCE -> Cards
 var osce = StudySet(name: "Skills", kind: .osce)
 osce.osceChecklists = [OsceChecklist(title: "Venepuncture",
                                      steps: ["Wash hands", "Confirm identity", "Apply tourniquet"])]
@@ -124,13 +100,11 @@ check("the first card asks for the first step",
 check("later cards ask what comes next",
       drill?.cards.last?.front == "Venepuncture: what comes after \u{201C}Confirm identity\u{201D}?"
           && drill?.cards.last?.bullets == ["Apply tourniquet"])
-let talk = ModeConversion.convert(osce, to: .qa)
-check("a station turns into one talk-through case", talk?.qaCards.first?.answer == osce.osceChecklists[0].steps)
 
 // Textbook: always written
 var book = StudySet(name: "Thyroid", kind: .book)
 book.bookMarkdown = "# Thyroid\nHashimoto's is the commonest cause of hypothyroidism."
-for kind in [StudySetKind.mcq, .anki, .qa, .osce] {
+for kind in [StudySetKind.mcq, .anki, .osce] {
     check("a textbook into \(kind.label) is written", ModeConversion.convert(book, to: kind) == nil)
 }
 

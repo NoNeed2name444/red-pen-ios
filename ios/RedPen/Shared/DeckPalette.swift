@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Derived from a single base colour per mode - the same tint the mode's
 /// screens use - rather than hand-picked per element, so a deck printed from
-/// Cases looks like Cases and a deck printed from OSCE looks like OSCE, and
+/// MCQ looks like MCQ and a deck printed from OSCE looks like OSCE, and
 /// adding a mode later cannot produce a palette nobody chose.
 ///
 /// Three shades come out of the base: the base itself for the header bar and
@@ -29,7 +29,6 @@ struct DeckPalette: Equatable {
         case .mcq:     return DeckPalette(red: 0.78, green: 0.16, blue: 0.16)
         case .anki:    return DeckPalette(red: 0.31, green: 0.36, blue: 0.86)
         case .book:    return DeckPalette(red: 0.10, green: 0.55, blue: 0.50)
-        case .qa:      return DeckPalette(red: 0.90, green: 0.49, blue: 0.13)
         case .osce:    return DeckPalette(red: 0.20, green: 0.62, blue: 0.35)
         case .narrate: return DeckPalette(red: 0.55, green: 0.32, blue: 0.80)
         }

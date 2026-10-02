@@ -2,8 +2,8 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// The app's one screen at the top: the floating dock's five categories -
-/// Questions, Cards, Cases, OSCE, Audio - and Ideas beside them. For the
+/// The app's one screen at the top: the floating dock's four categories -
+/// Questions, Cards, OSCE, Audio - and Ideas beside them. For the
 /// category chosen it shows its sets (tap to open, swipe to delete or export,
 /// hold or tap the ellipsis for the rest), a tile for each of its modes above
 /// them when it has more than one, and every way to practise them underneath.
@@ -106,7 +106,7 @@ struct LibraryView: View {
     @State private var forward = true
     /// The set whose "Turn into…" picker is up.
     @State var turning: StudySet?
-    /// The set whose reasoning practice (cases, duels, scripts) is open.
+    /// The set whose reasoning practice (duels, scripts) is open.
     @State var reasoningFor: StudySet?
     /// The set whose sources and licences are open.
     @State var creditsFor: StudySet?
@@ -333,7 +333,7 @@ struct LibraryView: View {
         })
     }
 
-    /// Ideas in place of the category's page. It sits after the five
+    /// Ideas in place of the category's page. It sits after the four
     /// categories, so it always slides in from the trailing side.
     func goToIdeas() {
         withAnimation(.snappy(duration: 0.3)) {

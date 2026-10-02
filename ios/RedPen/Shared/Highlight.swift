@@ -2,7 +2,7 @@ import Foundation
 
 /// `**term**` emphasis, and nothing else.
 ///
-/// Cases cards are not Markdown. They are typed as "Question | answer; answer"
+/// Cards are not Markdown. They are typed as "Question | answer; answer"
 /// with the key term wrapped in asterisks, which is all the web app ever did
 /// with them. Handing that text to a full Markdown reader interprets a great
 /// deal more than was ever meant: a pair of underscores in "T_max_" becomes

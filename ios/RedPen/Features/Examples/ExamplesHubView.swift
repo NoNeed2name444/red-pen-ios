@@ -106,7 +106,7 @@ struct ExamplesHubView: View {
         let ideasDetail: String = ideas + " \u{2014} switch List / Board / Space with the switcher at the bottom"
         row("Ideas: dump, board and 3D map", "point.3.connected.trianglepath.dotted",
             ideasDetail, id: "ideas") { IdeasView() }
-        row("Clue-by-clue cases, lookalike duels, disease scripts", "brain.head.profile",
+        row("Lookalike duels, disease scripts", "brain.head.profile",
             "Open \u{201C}Examples\u{201D} under your sets", id: "reasoning") { ReasoningView() }
         row("How to reach it \u{2014} a groin lump", "signpost.right",
             "Most likely, expanded and can\u{2019}t-miss diagnoses, tap one for why", id: "howToReach") {
@@ -178,7 +178,7 @@ struct ExamplesHubView: View {
         }
         Label("Hold any set and choose \u{201C}Turn into\u{2026}\u{201D} to make it another mode.",
               systemImage: "arrow.triangle.2.circlepath")
-        Label("Hold any set and choose \u{201C}Reasoning practice\u{2026}\u{201D} for its cases, duels and scripts.",
+        Label("Hold any set and choose \u{201C}Reasoning practice\u{2026}\u{201D} for its duels and scripts.",
               systemImage: "brain")
     }
 

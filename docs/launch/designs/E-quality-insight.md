@@ -216,7 +216,7 @@ Request:
 ```
 app_active 1, onboarding_done 1, set_created 50, set_imported 50, generation_started 50,
 generation_succeeded 50, generation_failed 50, ondevice_model_used 200, quiz_completed 100,
-questions_answered 2000, cards_reviewed 2000, case_completed 100, osce_station_completed 100,
+questions_answered 2000, cards_reviewed 2000, osce_station_completed 100,
 narrate_session 50, voice_session 50, ideas_opened 50, analytics_opened 50, accuracy_check_run 50,
 paywall_shown 20, purchase_started 10, purchase_completed 5, share_link_created 50,
 class_joined 5, widget_answer 200, intent_run 200, error_report_sent 50, sync_conflict 100,
@@ -418,7 +418,6 @@ If group D ships remote config, the app also honours the flags `telemetry.crash`
 | `cards_reviewed` | `Features/Anki/AnkiReviewView.swift` |
 | `set_created` | `Features/Library/NewSetView.swift` |
 | `generation_*` | `Features/Library/MCQGenerateForm.swift`, `LectureWriterSection.swift`, `Features/OSCE/OsceGenerateSection.swift` |
-| `case_completed` | `Features/Cases/CaseChatView.swift` |
 | `osce_station_completed` | `Features/OSCE/OsceReviewView.swift` |
 | `narrate_session` | `Features/Narrate/NarrateReviewView.swift` |
 | `voice_session` | `Features/Voice/CommuteModeView.swift`, `SpokenStationView.swift` |
@@ -502,7 +501,7 @@ There are 26 `ObservableObject` classes and no `@AppStorage` inside any of them.
 - A binding site uses `@Bindable var s = s`.
 
 **Waves:**
-1. **Leaf, view-owned classes:** `CoverageChecker`, `LectureImporter`, `ModeSwitch`, `CommuteSession`, `SpokenStationSession`, `CaseSimulator`, `FloatingAction`, `RecordingTermsStore`, and **`LectureClock`**. `LectureClock` publishes playback time many times a second, so it is the hottest invalidation after `Store`.
+1. **Leaf, view-owned classes:** `CoverageChecker`, `LectureImporter`, `ModeSwitch`, `CommuteSession`, `SpokenStationSession`, `FloatingAction`, `RecordingTermsStore`, and **`LectureClock`**. `LectureClock` publishes playback time many times a second, so it is the hottest invalidation after `Store`.
 2. **Singletons:** `GemmaModel` and `LocalLLMService` (13 environment sites), plus `VoiceSpeaker`, `VoiceListener`, `NarrateVoice`, `LecturePlayer`, `VoiceHistory`, `GenerationCenter`, `StudyLog`, `PronunciationLibrary`, `ReasoningStore`.
 3. **Shared stores:** `AccountStore`, `SubscriptionStore`, `NoteStore`, `SyncEngine`.
 4. **`Store` and `ReviewStore` (the biggest win).** 32 views observe `Store` today, and every answer (`answerLog`) redraws all of them.

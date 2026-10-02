@@ -139,20 +139,4 @@ struct HowToReachCard: View {
             Label(ref.label, systemImage: "link").font(.caption).lineLimit(2)
         }
     }
-
-    // MARK: which lecture page
-
-    /// The lecture page a card's text shares the most words with, as
-    /// Provenance cites a question - matched, never asked of the model.
-    static func lectureLabel(for text: String, in set: StudySet) -> String? {
-        for doc in set.sources {
-            let pages: [SourceText.Page] = doc.pages.map {
-                SourceText.Page(number: $0.number, text: $0.text, recognised: $0.recognised)
-            }
-            if let number = Provenance.page(for: text, in: pages) {
-                return Provenance.label(doc.name, page: number)
-            }
-        }
-        return nil
-    }
 }

@@ -4,8 +4,8 @@ import SwiftUI
 /// Everything behind the account menu: the pages that belong to no one
 /// category.
 ///
-/// The studying itself is in the library's dock - Questions, Cards, Cases,
-/// OSCE, Audio, and Ideas beside them. What is left is visited now and then
+/// The studying itself is in the library's dock - Questions, Cards, OSCE,
+/// Audio, and Ideas beside them. What is left is visited now and then
 /// rather than worked in: how it is going, the lectures, the tour of
 /// examples, and the account, settings and help. They push onto the
 /// library's stack. One definition, one way in.
@@ -504,7 +504,6 @@ struct HelpPage: View {
         case .mcq: return "Single best answer questions, with the reasoning for and against each option."
         case .anki: return "Spaced repetition. Rate a card and it comes back when you are about to forget it."
         case .book: return "Your material as a textbook you read straight through, a page at a time."
-        case .qa: return "Open questions with a model answer \u{2014} say it aloud, then check."
         case .osce: return "A clinical skill broken into steps, marked the way an examiner would."
         case .narrate: return "A recorded lecture written out, so you can study what was actually said."
         }

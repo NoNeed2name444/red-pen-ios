@@ -14,7 +14,6 @@ extension StudySetKind {
         case .mcq: return Color(red: 0.78, green: 0.16, blue: 0.16)     // pen red
         case .anki: return Color(red: 0.31, green: 0.36, blue: 0.86)    // indigo
         case .book: return Color(red: 0.10, green: 0.55, blue: 0.50)    // teal
-        case .qa: return Color(red: 0.90, green: 0.49, blue: 0.13)      // amber
         case .osce: return Color(red: 0.20, green: 0.62, blue: 0.35)    // green
         case .narrate: return Color(red: 0.55, green: 0.32, blue: 0.80) // violet
         }
@@ -25,7 +24,6 @@ extension StudySetKind {
         case .mcq: return "checklist.checked"
         case .anki: return "rectangle.on.rectangle.angled"
         case .book: return "book.pages"
-        case .qa: return "stethoscope"
         case .osce: return "list.clipboard"
         case .narrate: return "waveform"
         }
@@ -401,7 +399,7 @@ extension View {
 
 // MARK: - One layout for every study screen
 //
-// Quiz, cards, cases, OSCE, textbook and narrate all used to arrange
+// Quiz, cards, OSCE, textbook and narrate all used to arrange
 // themselves a little differently: the main button was on the right in one,
 // in the middle in another, and small everywhere; each screen had two or three
 // icons of its own in the top corner. Somebody who had learned one screen had

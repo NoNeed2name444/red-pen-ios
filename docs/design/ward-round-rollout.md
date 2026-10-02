@@ -150,7 +150,7 @@ The batches, in priority order (what a student sees most comes first):
 | B2 | **Cards review** | `Features/Anki/AnkiReviewView.swift`, `AnkiCardFace.swift` (with `AnkiFooter`, `AnkiRatingBar`), `DueTodayView.swift`, `ReviewCardActions.swift` | B0 |
 | B3 | **Library pages and search** | `Features/Library/CategoryShelves.swift`, `CategoryPages.swift`, `TurnIntoPicker.swift`, `LibrarySearchResults.swift`, `LibrarySearchModel.swift`, `CustomSessionSheet.swift`, `LibrarySheets.swift`, `LibraryChrome.swift` (NameSheet) | B0. Uses Lane W's `SetRow` once it lands; until then, `WardRow`. |
 | B4 | **New set (the admission flow)** | `Features/Library/NewSetView.swift`, `NewSetDock.swift`, `MCQGenerateForm.swift`, `LecturePDFSection.swift`, `LectureWriterSection.swift`, `ImportPreviewSheet.swift`, `LibraryImport.swift`, `IncomingImport.swift`, `Features/OSCE/OsceGenerateSection.swift`, `Shared/GenerationCenter.swift` (`GenerationHUD`), `Shared/ImportRouter.swift` (`ImportInboxSheet`) | B0 |
-| B5 | **Cases and OSCE** | `Features/QA/QACardsView.swift`, `Features/Cases/CaseChatView.swift`, `Features/OSCE/OsceReviewView.swift`, `Features/Voice/CaseVoiceBar.swift`, `SpokenStationView.swift`, `VoiceParts.swift`, and the new `ConsultParts.swift` | B0 |
+| B5 | **OSCE** | `Features/OSCE/OsceReviewView.swift`, `SpokenStationView.swift`, `VoiceParts.swift`, and the new `ConsultParts.swift` | B0 |
 | B6 | **Questions after the question screen** | `Features/MCQ/MCQSummaryView.swift`, `Features/Mock/MockPaperView.swift`, `MockSittingView.swift`, `MockResultsView.swift` | B0 + Lane W's `WardOptionRow` |
 | B7 | **Book and sources** | `Features/Book/BookReaderView.swift` (with `FlowchartView`), `Features/Sources/*` | B0 |
 | B8 | **Audio, spoken drills, drawing** | `Features/Narrate/*`, `Features/Voice/CommuteModeView.swift`, `ExplainBackView.swift`, `VoiceEntryPoints.swift`, `Features/Recall/DrawRecallView.swift` | B0. B5 owns `VoiceParts.swift` and `ConsultParts.swift`; B8 only calls them. Start after B5 if B8 needs changes to either. |
@@ -198,7 +198,7 @@ The owner's iPad zip is `--without core`, so what the owner sees is mostly the s
    - `Shared/Ward/*` is copied into the zip automatically.
    - `Theme.swift`, `LiquidGlass.swift`, `LibraryChrome.swift`, `FloatingSwitcher.swift`, `FloatingAction.swift` and `AccuracyBadge.swift` are already kept files.
    - The colorsets travel with `Assets.xcassets`.
-   - So every kept study screen (MCQ, Anki, Book, QA, OSCE, Sources, New set, sign-in, terms, exam) turns Ward Round with no stand-in work.
+   - So every kept study screen (MCQ, Anki, Book, OSCE, Sources, New set, sign-in, terms, exam) turns Ward Round with no stand-in work.
    - In the stand-ins, `AppBackdrop` draws `WardBackground` and `PopTileStyle` is flat (Batch 0).
 2. **B1 restyles `core/CoreLibrary.swift` as a small Ward home:**
    - the date line in small caps, `Brand.name` with `EcgSquiggle`, the Finals `WardPill` from the exam store, and `WardAvatar` opening `CoreSettingsView`;

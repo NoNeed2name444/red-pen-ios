@@ -3,14 +3,13 @@ import Foundation
 /// Which study mode a saved set belongs to. The web app's `state.library`
 /// holds both kinds together, distinguished by a `kind` field the same way.
 enum StudySetKind: String, Codable, CaseIterable, Identifiable {
-    case mcq, anki, book, qa, osce, narrate
+    case mcq, anki, book, osce, narrate
     var id: String { rawValue }
     var label: String {
         switch self {
         case .mcq: return "MCQ"
         case .anki: return "Cards"
         case .book: return "Textbook"
-        case .qa: return "Cases"
         case .osce: return "OSCE"
         case .narrate: return "Narrate"
         }
@@ -20,10 +19,21 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .mcq: return "📝"
         case .anki: return "🗂️"
         case .book: return "📖"
-        case .qa: return "🩺"
         case .osce: return "✅"
         case .narrate: return "🎙️"
         }
+    }
+
+    /// Kinds this app removed, as sets save them: "qa", the old Cases. A set
+    /// of one is not from a newer version, so no update will read it: sync
+    /// leaves it on the server without asking for one (SyncEngine.adopt).
+    static let retired: Set<String> = ["qa"]
+
+    /// Whether a set's JSON is of a retired kind.
+    static func isRetired(_ json: Data) -> Bool {
+        guard let object = (try? JSONSerialization.jsonObject(with: json)) as? [String: Any],
+              let kind = object["kind"] as? String else { return false }
+        return retired.contains(kind)
     }
 }
 
@@ -49,8 +59,6 @@ struct StudySet: Identifiable, Codable, Hashable {
     /// "book": the whole textbook as Markdown; split into pages at headings
     /// the way `splitBookIntoPages()` does in the web app.
     var bookMarkdown: String = ""
-    /// "qa": the Cases cards.
-    var qaCards: [QACard] = []
     /// "osce": one or more station checklists, worked through in order.
     var osceChecklists: [OsceChecklist] = []
     /// "narrate": a lecture transcript read line by line at a reading pace.
@@ -84,7 +92,6 @@ struct StudySet: Identifiable, Codable, Hashable {
         case .mcq: return questions.count
         case .anki: return cards.count
         case .book: return BookPages.pageCount(bookMarkdown)
-        case .qa: return qaCards.count
         case .osce: return osceChecklists.reduce(0) { $0 + $1.steps.count }
         case .narrate: return narrateSegments.count
         }
@@ -124,7 +131,6 @@ extension StudySet {
         var out = self
         out.questions = questions.map { var q = $0; q.id = fresh(q.id); return q }
         out.cards = cards.map { var c = $0; c.id = fresh(c.id); return c }
-        out.qaCards = qaCards.map { var c = $0; c.id = fresh(c.id); return c }
         out.osceChecklists = osceChecklists.map { var c = $0; c.id = fresh(c.id); return c }
         out.narrateSegments = narrateSegments.map { var s = $0; s.id = fresh(s.id); return s }
         return out
@@ -135,7 +141,6 @@ extension StudySet {
         var ids = Set<UUID>()
         ids.formUnion(questions.map(\.id))
         ids.formUnion(cards.map(\.id))
-        ids.formUnion(qaCards.map(\.id))
         ids.formUnion(osceChecklists.map(\.id))
         ids.formUnion(narrateSegments.map(\.id))
         return ids
@@ -157,12 +162,15 @@ struct StudyFolder: Identifiable, Codable, Hashable {
 extension StudySet {
     private enum Keys: String, CodingKey {
         case id, name, subject, kind, createdAt, updatedAt, folderId, questions, cards,
-             bookMarkdown, qaCards, osceChecklists, narrateSegments, images, sources, exam, tags,
+             bookMarkdown, osceChecklists, narrateSegments, images, sources, exam, tags,
              lectureLanguage
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
+        // A kind this version does not know - a newer one's, or "qa", the old
+        // Cases, now removed - fails this set alone: the library file keeps
+        // it as written (LibraryFile) and the rest of the library loads.
         self.init(name: try c.decodeIfPresent(String.self, forKey: .name) ?? "Untitled",
                   kind: try c.decode(StudySetKind.self, forKey: .kind))
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? id
@@ -173,7 +181,6 @@ extension StudySet {
         questions = try c.decodeIfPresent([MCQQuestion].self, forKey: .questions) ?? []
         cards = try c.decodeIfPresent([AnkiCard].self, forKey: .cards) ?? []
         bookMarkdown = try c.decodeIfPresent(String.self, forKey: .bookMarkdown) ?? ""
-        qaCards = try c.decodeIfPresent([QACard].self, forKey: .qaCards) ?? []
         osceChecklists = try c.decodeIfPresent([OsceChecklist].self, forKey: .osceChecklists) ?? []
         narrateSegments = try c.decodeIfPresent([NarrateSegment].self, forKey: .narrateSegments) ?? []
         images = try c.decodeIfPresent([String].self, forKey: .images) ?? []

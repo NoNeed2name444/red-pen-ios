@@ -137,7 +137,7 @@ struct RedPenApp: App {
                     // once, skippable: the exam everything will put first
                     ExamOnboardingView { examQuestion.done() }
                 } else if account.isSignedIn {
-                    // the library, with the five categories and Ideas in its
+                    // the library, with the four categories and Ideas in its
                     // dock and the pages about the app in its account menu
                     LibraryView()
                         // a personal build's bundled lecture becomes examples,

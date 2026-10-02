@@ -404,9 +404,8 @@ Everything derives from this text: gate v3, the consent sheet, the `/medical` pa
 
 > Vignette is a study tool for medical students and doctors preparing for exams. It is not a medical device and it does not give medical advice.
 > - Do not use anything in Vignette to diagnose, treat or manage a real patient, or to choose a drug or a dose. Follow your supervisor, current local guidelines and the product information.
-> - Questions, cards, cases, stations, explanations and accuracy checks are written by AI from the material you add. They can be wrong or out of date. "Check accuracy" and the source page are one tap away; use them.
+> - Questions, cards, stations, explanations and accuracy checks are written by AI from the material you add. They can be wrong or out of date. "Check accuracy" and the source page are one tap away; use them.
 > - Never enter a real patient's name, record number, images or any other detail that could identify them.
-> - Patients in Cases are simulated. They are not real people and are not clinical advice.
 > - Exam styles follow the published formats of USMLE, PLAB, MRCP(UK) and MRCS. Vignette is not affiliated with or endorsed by the FSMB, NBME, GMC or the Royal Colleges.
 
 ### 10.2 Where it must appear (and who puts it there)
@@ -444,7 +443,7 @@ The 2025 questionnaire (ratings 4+, 9+, 13+, 16+, 18+) is required for every sub
 - Medical or Treatment Information: **Frequent**. This alone gives **16+**.
 - Alcohol, Tobacco or Drug Use or References: **Infrequent** (pharmacology).
 - Health or Wellness Topics: **Yes**.
-- Messaging and Chat: **No**. Cases is a chat with a simulated patient, not with people; say so in the notes.
+- Messaging and Chat: **No**.
 - Advertising: **No**. Unrestricted Web Access: **No**. Contests: **None**. Gambling and loot boxes: **No**.
 - **User-Generated Content:** answer for the binary being submitted.
   - **No** if share links and classes (P2.1/P2.2) are not in 1.0.
@@ -480,7 +479,7 @@ The 2025 questionnaire (ratings 4+, 9+, 13+, 16+, 18+) is required for every sub
 
 **TestFlight smoke test** (about 15 minutes, on the iPhone and then the iPad; the list goes into the P6.2 run summary):
 - [ ] Fresh install → "Start without an account" → terms gate v3 → the library opens. No consent sheet at launch.
-- [ ] Try every feature is listed in this (non-personal) build (GAP 5). In it, an MCQ, a card, an OSCE station, a Case and occlusion all open with no model and no network (test in Airplane Mode).
+- [ ] Try every feature is listed in this (non-personal) build (GAP 5). In it, an MCQ, a card, an OSCE station and occlusion all open with no model and no network (test in Airplane Mode).
 - [ ] New set from a sample lecture on the device (Apple Intelligence on). With Apple Intelligence off: the Gemma download offer shows its size (about 3.4 GB) and starts only after a tap.
 - [ ] The first cloud action shows the consent sheet naming the providers. "Keep everything on this device" works.
 - [ ] Paywall: yearly first with "1 week free", then monthly, then the Exam Pass. The Terms and Privacy links open the Worker pages. Restore and Redeem code are present. A sandbox purchase unlocks Pro, and `/owner/billing/notifications` shows a sandbox row.
@@ -530,7 +529,7 @@ The draft to paste (agents upload it through `appStoreReviewDetails`):
 
 ```text
 WHAT VIGNETTE IS
-Vignette is a study tool for medical students and doctors preparing for exams (USMLE, PLAB, MRCP, MRCS, university finals). A student adds their own lecture notes, slides or recordings and gets exam-style practice questions, flashcards, OSCE stations and simulated patient cases. It is education only: it is not a medical device, gives no medical advice, and has no diagnosis, treatment or dosing features. We have declared it not a regulated medical device. The primary category is Education.
+Vignette is a study tool for medical students and doctors preparing for exams (USMLE, PLAB, MRCP, MRCS, university finals). A student adds their own lecture notes, slides or recordings and gets exam-style practice questions, flashcards and OSCE stations. It is education only: it is not a medical device, gives no medical advice, and has no diagnosis, treatment or dosing features. We have declared it not a regulated medical device. The primary category is Education.
 
 NO ACCOUNT NEEDED
 On the first screen tap "Start without an account". A one-time terms screen follows (recording consent, sources, education-only, no patient data); its button unlocks after 5 seconds. To see every feature without adding material, open the account menu > "Try every feature": ready-made examples of every mode that need no AI model and no network.
@@ -542,9 +541,6 @@ WHERE THE AI RUNS
 
 ACCURACY SAFEGUARDS
 Every item has "Check accuracy", which compares it with the matching pages of the student's own lecture. Cloud-written items are checked by a second medical model first. Measured accuracy, with 95% confidence intervals and the method, is at https://redpen-auth.vv7sh4rnnw.workers.dev/accuracy; the metadata makes no accuracy claim. Every study screen has "Report an error" in its More (…) menu.
-
-SIMULATED PATIENTS
-"Cases" is a conversation with an AI-simulated patient for history-taking practice, marked against an OSCE checklist. It is not a chat with other people and not clinical advice.
 
 PURCHASES
 Pro is sold only by in-app purchase: monthly, or yearly with a 1-week free trial (one auto-renewing group), and a 3-month Exam Pass, a non-renewing subscription ("one payment, never renews"). The paywall links the Terms (Apple's EULA plus /terms) and the privacy policy.

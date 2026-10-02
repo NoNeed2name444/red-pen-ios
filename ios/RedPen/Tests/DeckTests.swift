@@ -110,9 +110,9 @@ ok(DeckPalette(red: 2, green: -1, blue: 0.5) == DeckPalette(red: 1, green: 0, bl
 ok(DeckPalette(red: 0, green: 0, blue: 0).hex == "#000000"
    && DeckPalette(red: 1, green: 1, blue: 1).hex == "#FFFFFF", "hex is hex")
 
-// Amber is the bright one: white on it is close to unreadable in print, so its
-// bar has to darken rather than carry white text as drawn.
-let amber = DeckPalette.of(.qa)
+// A bright amber: white on it is close to unreadable in print, so its bar has
+// to darken rather than carry white text as drawn.
+let amber = DeckPalette(red: 0.90, green: 0.49, blue: 0.13)
 ok(!amber.carriesWhiteText, "a bright tint is not asked to carry white text")
 ok(amber.barFill.luminance < amber.luminance, "so its bar is filled with a darker shade")
 ok(DeckPalette.of(.mcq).carriesWhiteText, "a dark tint carries white text as it is")

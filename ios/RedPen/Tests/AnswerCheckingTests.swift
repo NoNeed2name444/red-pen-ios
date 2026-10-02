@@ -137,35 +137,6 @@ let backToCard = ModeConversion.convert(mcqSet, to: .anki)?.cards.first
 check("a question turned into a card has the right answer on the back",
       backToCard?.bullets == ["Carbamazepine"], "\(backToCard?.bullets ?? [])")
 
-// MARK: - clue-by-clue cases
-
-let dup = ClueCase(clues: ["a", "b", "c", "d"], diagnosis: "NSTEMI",
-                   differentials: ["nstemi", "Unstable angina", "NSTEMI.", "Aortic dissection", "Unstable Angina"],
-                   teachingPoint: "", decisiveClue: 4)
-check("the diagnosis is offered once, however the differentials repeat it",
-      dup.choices.filter { ClueCase.normalized($0) == "nstemi" }.count == 1, "\(dup.choices)")
-check("a differential repeated in another case is offered once",
-      dup.choices.filter { ClueCase.normalized($0) == "unstable angina" }.count == 1, "\(dup.choices)")
-check("the diagnosis is among the choices", dup.choices.contains { dup.isDiagnosis($0) })
-check("choosing the diagnosis is right", dup.isDiagnosis("NSTEMI"))
-check("the diagnosis with different case or spacing is right", dup.isDiagnosis("  nstemi "))
-check("a differential is wrong", !dup.isDiagnosis("Unstable angina"))
-check("nothing is not the diagnosis", !dup.isDiagnosis(""))
-for item in ReasoningExamples.cases {
-    let choices = item.choices
-    check("example case \(item.diagnosis): exactly one right choice among four",
-          choices.count == 4 && choices.filter { item.isDiagnosis($0) }.count == 1, "\(choices)")
-    check("example case \(item.diagnosis): the decisive clue is one of its clues",
-          (1...item.clues.count).contains(item.decisiveClue))
-}
-check("the hernia case is settled by the vessels at operation, not the deep-ring test",
-      ReasoningExamples.cases.first { $0.diagnosis == "Indirect inguinal hernia" }?.decisiveClue == 7)
-// a play scored from a case: a right answer scores, a wrong one does not
-let early = CasePlay(caseId: UUID(), setId: UUID(), cluesSeen: 2, totalClues: 7, chosen: "NSTEMI", correct: true)
-let wrongEarly = CasePlay(caseId: UUID(), setId: UUID(), cluesSeen: 2, totalClues: 7, chosen: "PE", correct: false)
-check("a right answer on clue 2 of 7 scores 1 + 5/7", abs(early.score - (1 + 5.0 / 7.0)) < 0.0001)
-check("a wrong answer scores nothing", wrongEarly.score == 0 && wrongEarly.prematureClosure)
-
 // MARK: - lookalike duels: the side swiped or tapped is the side marked
 
 check("the buttons run first condition, both, second", LookalikeSide.buttonOrder == [.a, .both, .b])

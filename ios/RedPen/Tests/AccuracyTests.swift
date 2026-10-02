@@ -223,11 +223,9 @@ var cardSet = StudySet(name: "Cards", kind: .anki)
 cardSet.cards = [AnkiCard(type: .qa, front: "Antidote to warfarin?", bullets: ["Vitamin K", "PCC"], why: "Reverses it."),
                  AnkiCard(type: .occlusion)]
 check("cards (not a wordless occlusion)", AccuracyItem.items(in: cardSet).count == 1 && AccuracyItem.items(in: cardSet)[0].text.contains("A: Vitamin K; PCC"))
-var caseSet = StudySet(name: "Cases", kind: .qa)
-caseSet.qaCards = [QACard(type: .case, stem: "A 30-year-old with fever", answer: ["Malaria"])]
 var osceSet = StudySet(name: "OSCE", kind: .osce)
 osceSet.osceChecklists = [OsceChecklist(title: "BLS", steps: ["Check response", "Call for help"])]
-check("cases and stations", AccuracyItem.items(in: caseSet).first?.kind == .case && AccuracyItem.items(in: osceSet).first?.text == "BLS\n- Check response\n- Call for help")
+check("stations", AccuracyItem.items(in: osceSet).first?.text == "BLS\n- Check response\n- Call for help")
 var book = StudySet(name: "Book", kind: .book)
 book.bookMarkdown = "# Heart\nThe heart has four chambers.\n# Lungs\nThe right lung has three lobes."
 check("a textbook's pages", AccuracyItem.items(in: book).count == 2 && AccuracyItem.items(in: book)[1].kind == .page)

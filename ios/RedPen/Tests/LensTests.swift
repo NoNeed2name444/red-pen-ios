@@ -364,8 +364,6 @@ if let mcqA {
     let deck = LensConversion.cards(mcqQ, mcqA)
     check("into Cards: one card with the right answer", deck.count == 1 && deck.first?.bullets == ["Intramuscular adrenaline"])
     check("into Cards: tagged", deck.first?.tags == ["Lens"])
-    let caseCard = LensConversion.caseCard(mcqQ, mcqA, topic: "Emergency")
-    check("into Cases", caseCard?.answer.first == "Intramuscular adrenaline")
     let note = LensConversion.note(mcqQ, mcqA)
     check("into Ideas: linked to the hub note", note.body.contains("[[Lens captures]]") && note.body.contains("**Answer:** Intramuscular adrenaline"))
     let script = LensConversion.narration(mcqQ, mcqA)
@@ -402,8 +400,8 @@ if let calcA {
     check("calc into OSCE: its steps as a station", LensConversion.station(calcQ, calcA)?.steps.count == 3)
 }
 if let caseA {
-    let card = LensConversion.caseCard(caseQ, caseA, topic: "General")
-    check("case into Cases: a clinical case with its differential", card?.type == .case && card?.differential != nil && card?.topic == "")
+    check("case into Cards: the diagnosis on the back",
+          LensConversion.cards(caseQ, caseA).first?.bullets.first == "**Meningococcal septicaemia**")
     check("case into Questions: diagnosis among distractors", LensConversion.question(caseQ, caseA)?.options.contains("Meningococcal septicaemia") == true)
 }
 if let osceA {
@@ -414,7 +412,7 @@ if let osceA {
     check("OSCE cannot be a question", LensConversion.question(osceQ, osceA) == nil)
     check("the picker knows it", !LensConversion.can(osceQ, osceA, goTo: .questions) && LensConversion.can(osceQ, osceA, goTo: .osce))
 }
-check("suggested destinations", LensDestination.suggested(for: .clinicalCase) == .cases && LensDestination.suggested(for: .cloze) == .cards)
+check("suggested destinations", LensDestination.suggested(for: .clinicalCase) == .cards && LensDestination.suggested(for: .cloze) == .cards)
 check("sentences keep 'E. coli' whole", LensConversion.sentences("E. coli causes it. Treat early.").count == 2)
 
 // MARK: reading the chosen option (audit #92)

@@ -1,4 +1,4 @@
-// What a Cases card's emphasis means, and how a textbook page is broken up.
+// What a card's emphasis means, and how a textbook page is broken up.
 
 import Foundation
 

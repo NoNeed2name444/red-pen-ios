@@ -14,7 +14,7 @@ on:
         required: false
         default: both
       only:
-        description: comma-separated parts (mcq,osce,anki,cases,book,check,patient); empty = all
+        description: comma-separated parts (mcq,osce,anki,book,check); empty = all
         required: false
         default: ''
 permissions:
@@ -34,7 +34,7 @@ jobs:
           mkdir -p build/live out
           cp ios/RedPen/Tests/LiveModelTests.swift build/live/main.swift
           swiftc -O -DNO_FOUNDATION_MODELS build/live/main.swift -o build/live/run \
-            $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift $M/OsceChecklist.swift \
+            $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/OsceChecklist.swift \
             $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
             $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
             $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
@@ -43,9 +43,9 @@ jobs:
             $S/MCQGenerator.swift $S/MCQPrompt.swift $S/ExamTrack.swift $S/MCQCoverage.swift $S/MCQRepair.swift \
             $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
             $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
-            $S/OsceGenerator.swift $S/OsceStations.swift $S/CaseSimulator.swift \
+            $S/OsceGenerator.swift $S/OsceStations.swift \
             $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/LLM/AccuracyChecker.swift \
-            $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift $S/LLM/CaseVariety.swift $S/LLM/CloudJobs.swift $S/CardStyle.swift \
+            $S/LLM/MedicalGenerate.swift $S/LLM/LectureWriter.swift $S/LLM/CloudJobs.swift $S/CardStyle.swift \
             $S/LLM/BatchWriting.swift $S/CloudJobRules.swift 2>&1 | tee out/compile.log | grep -E "error" | head -40 || true
           test -x build/live/run
           printf '# Live model test\n\nRun %s on %s (UTC).\n' "$GITHUB_RUN_ID" "$(date -u '+%Y-%m-%d %H:%M')" > out/live-report.md
@@ -85,7 +85,7 @@ jobs:
             LIVE_LABEL="$1" LIVE_ON_DEVICE=1 LIVE_ONLY="$2" LIVE_REPORT=out/live-report.md \
             build/live/run 2>&1 | tee -a out/on-device.log
           }
-          serve doctor && run "On-device Doctor-R1 (Q3_K_M, the 8 GB-phone build) on Metal" "mcq,osce,anki,cases,book"
+          serve doctor && run "On-device Doctor-R1 (Q3_K_M, the 8 GB-phone build) on Metal" "mcq,osce,anki,book"
           grep -hE "eval time|prompt eval" out/doctor-server.log | tail -3 >> out/speed.txt || true
           serve medval && run "On-device MedVAL-4B (Q3_K_M) on Metal" "check"
           grep -hE "eval time|prompt eval" out/medval-server.log | tail -3 >> out/speed.txt || true

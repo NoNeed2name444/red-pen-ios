@@ -133,24 +133,6 @@ check("station steps are numbered", station.text.hasPrefix("1. Wash hands\n2. In
 check("a weak step is marked", station.text.contains("started over here"))
 check("an OSCE station takes an", SaveToIdeas.fromPhrase(whole) == "an OSCE station")
 
-let theCase = SaveToIdeas.caseCard(topic: "Pneumothorax", stem: "A tall man, sudden breathlessness.",
-                                   answer: ["Chest drain"], source: whole, subject: "Resp")
-check("case titled from its topic", theCase.title == "Pneumothorax")
-check("case body has the stem and answer", theCase.text.contains("sudden breathlessness") && theCase.text.contains("- Chest drain"))
-
-let debrief = SaveToIdeas.caseDebrief(diagnosis: "Tension pneumothorax", missed: ["Ask about trauma", " "],
-                                      covered: 7, total: 9, of: theCase)
-check("a debrief goes in the case's note", debrief.title == theCase.title && debrief.source == theCase.source)
-check("a debrief says the score", debrief.text.hasPrefix("**Pretend patient:** 7 of 9"), debrief.text)
-check("a debrief lists what was missed", debrief.text.hasSuffix("Missed:\n- Ask about trauma"), debrief.text)
-let caseNote = SaveToIdeas.body(for: theCase)
-let withDebrief = SaveToIdeas.appending(debrief, to: caseNote)
-check("a debrief adds to the case note, above its from line",
-      withDebrief?.hasPrefix(SaveToIdeas.entry(for: theCase)) == true
-      && withDebrief?.hasSuffix(SaveToIdeas.fromLine(whole)) == true
-      && withDebrief?.contains("Missed:") == true, withDebrief ?? "nil")
-check("the same debrief twice adds nothing", withDebrief.flatMap { SaveToIdeas.appending(debrief, to: $0) } == nil)
-
 // MARK: the backlink
 
 check("chip label", q1.chipLabel == "Question \u{00B7} Cardiology", q1.chipLabel)

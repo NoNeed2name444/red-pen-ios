@@ -187,11 +187,6 @@ enum LibrarySearch {
                                  detail: detail, setName: set.name,
                                  tags: CardTags.combined(c.tags, set.tags)))
         }
-        for c in set.qaCards {
-            let detail: String = c.answer.joined(separator: "\n") + "\n" + c.topic
-            entries.append(entry(.card, set: set.id, item: c.id, title: c.stem,
-                                 detail: detail, setName: set.name, tags: setTags))
-        }
     }
 
     private static func entry(_ kind: Kind, set: UUID?, item: UUID?, title: String,

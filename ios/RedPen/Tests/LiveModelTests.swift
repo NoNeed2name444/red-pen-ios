@@ -136,23 +136,6 @@ if wanted("anki") {
     }
 }
 
-// MARK: Cases
-var caseCards: [QACard] = []
-if wanted("cases") || wanted("patient") {
-    let (result, seconds) = await timed {
-        try await LectureWriter.write(kind: .qa, source: lecture, count: 4, subject: "Rheumatology",
-                                      using: writer, onProgress: { _, _ in })
-    }
-    switch result {
-    case .success(let text):
-        caseCards = PlainTextImport.parseQA(text)
-        let shown = caseCards.map { "- [\($0.badge)] *\($0.topic)* — \($0.stem)\n  → \($0.answer.joined(separator: "; "))" }.joined(separator: "\n")
-        record("Cases", !caseCards.isEmpty, "\(caseCards.count) card(s) parsed by the app's own importer.\n\n" + shown, seconds: seconds)
-    case .failure(let error):
-        record("Cases", false, "Error: \(error.localizedDescription)", seconds: seconds)
-    }
-}
-
 // MARK: Textbook
 if wanted("book") {
     let (result, seconds) = await timed {
@@ -191,38 +174,6 @@ if wanted("check") {
     record("Accuracy check (MedVAL rubric)", okGood && okBad,
            "Faithful statement → \(line(good))\n\nPlanted error → \(line(bad))\n\n(Pass means the faithful one passed AND the planted error was graded level 3–4.)",
            seconds: s1 + s2)
-}
-
-// MARK: Cases - the simulated patient, with every reply checked
-if wanted("patient"), let card = caseCards.first(where: { $0.type == .case }) ?? caseCards.first {
-    let start = Date()
-    let sim = await CaseSimulator(card: card, subject: "Rheumatology", writer: writer, checker: checker)
-    await sim.prepare()
-    var transcript = ""
-    if case .failed(let why) = await sim.phase {
-        record("Simulated patient", false, "Case file failed: \(why)", seconds: Date().timeIntervalSince(start))
-    } else {
-        let file = await sim.caseFile
-        transcript += "Case written from: *\(card.stem)*\n\nHidden diagnosis: **\(file.diagnosis)** · checklist items: \(file.checklist.count)\n\n"
-        for question in ["Hello, I'm a medical student. What brings you in today?",
-                         "Have you noticed any rash, joint pain or mouth ulcers?",
-                         "I'd like to examine your skin and joints."] {
-            await sim.send(question)
-            let messages = await sim.messages
-            if let reply = messages.last {
-                let v = reply.verdict.map { " _(\($0.riskTitle)\(reply.regenerations > 0 ? ", rewritten \(reply.regenerations)×" : ""))_" } ?? ""
-                transcript += "**Doctor:** \(question)\n\n**\(reply.speaker == .examiner ? "Examiner" : "Patient"):** \(reply.text)\(v)\n\n"
-            }
-        }
-        await sim.endInterview()
-        await sim.finish(assessment: "Most likely SLE. Differentials: dermatomyositis, rosacea. Check ANA, anti-dsDNA, C3/C4, FBC, urinalysis. Start hydroxychloroquine and sun protection.")
-        let covered = await sim.coveredCount
-        let total = await sim.caseFile.checklist.count
-        let missed = await sim.missed.prefix(6).map { "- [\($0.section.title)] \($0.text)" }.joined(separator: "\n")
-        transcript += "Marking: **\(covered) of \(total)** checklist items covered. Missed (first 6):\n\(missed)"
-        let replies = await sim.messages.filter { $0.speaker != .doctor }.count
-        record("Simulated patient", replies >= 3 && total > 0, transcript, seconds: Date().timeIntervalSince(start))
-    }
 }
 
 report += "**\(passed) passed, \(failed) failed.**\n"

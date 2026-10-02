@@ -382,9 +382,6 @@ struct ExplainBackView: View {
             }.joined(separator: "\n\n")
         case .book:
             return set.bookMarkdown
-        case .qa:
-            return set.qaCards.map { ([$0.topic, $0.stem] + $0.answer).map(Highlight.plain).joined(separator: "\n") }
-                .joined(separator: "\n\n")
         case .osce:
             return set.osceChecklists.map { AccuracyChecker.checkText($0) }.joined(separator: "\n\n")
         case .narrate:

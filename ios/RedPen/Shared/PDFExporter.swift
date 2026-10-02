@@ -104,13 +104,6 @@ enum PDFExporter {
                 out.append(body(page.markdown))
                 out.append(spacer())
             }
-        case .qa:
-            for (i, card) in set.qaCards.enumerated() {
-                out.append(heading("\(i + 1). \(card.topic.isEmpty ? card.badge : card.topic) — \(card.badge)"))
-                out.append(body(card.stem))
-                for a in card.answer { out.append(bullet(a, emphasize: false)) }
-                out.append(spacer())
-            }
         case .osce:
             for checklist in set.osceChecklists {
                 out.append(heading(checklist.title))

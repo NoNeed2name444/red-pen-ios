@@ -36,7 +36,7 @@ final class Store: ObservableObject {
     /// mid-sentence. Losing the position and starting the station again is the
     /// difference between a tool somebody revises with and one they open once.
     @Published var osceProgress: [UUID: OsceProgress] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
-    /// Where the student had got to in a Cases deck or a textbook, keyed by
+    /// Where the student had got to in a textbook, keyed by
     /// set id.
     ///
     /// The textbook is the mode this matters most in: it is the longest thing
@@ -166,7 +166,7 @@ final class Store: ObservableObject {
                 // taking the whole library with it - kept as it was written,
                 // so the next save carries it along instead of dropping it.
                 if file.skipped > 0 {
-                    let kept = Self.entries(of: data, at: file.skippedAt)
+                    let kept = LibraryFile.entries(of: data, at: file.skippedAt)
                     unread += kept
                     // Rewritten straight away, so the file stops being "partly
                     // unreadable" and is not copied aside again every launch -
@@ -213,19 +213,6 @@ final class Store: ObservableObject {
         libraryDirty = rewrite
         studyDirty = migrated
         if migrated || rewrite { scheduleWrite() }
-    }
-
-    /// Entries of the library file's `library` list, as JSON text - the ones
-    /// this version could not read, to be kept as they are.
-    private static func entries(of data: Data, at indices: [Int]) -> [String] {
-        guard !indices.isEmpty,
-              let top = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let list = top["library"] as? [Any] else { return [] }
-        return indices.compactMap { index -> String? in
-            guard list.indices.contains(index), JSONSerialization.isValidJSONObject(list[index]),
-                  let one = try? JSONSerialization.data(withJSONObject: list[index]) else { return nil }
-            return String(data: one, encoding: .utf8)
-        }
     }
 
     /// Pictures named by sets this version could not read, so a sweep of the
@@ -633,11 +620,11 @@ final class Store: ObservableObject {
         save()
     }
 
-    // MARK: where they had got to in a textbook or a Cases deck
+    // MARK: where they had got to in a textbook
 
     /// Remembers a position, and only writes when it really moved.
     ///
-    /// Both readers save on every turn of the page, and the library file holds
+    /// The reader saves on every turn of the page, and the library file holds
     /// the whole of everything; rewriting it to record the page it already
     /// knew about would be a disk write per tap.
     func saveReading(at position: Int, for setId: UUID) {
@@ -772,43 +759,7 @@ extension Store {
 
 // MARK: - the two files
 
-/// The library file. Read tolerantly: a set this version cannot decode is
-/// skipped (and counted) instead of failing the whole library.
-private struct LibraryFile: Codable {
-    var library: [StudySet]
-    var folders: [StudyFolder]
-    var tombstones: [UUID: Date]?
-    /// Sets an earlier run could not read, kept as the JSON they were written
-    /// in (Store.unreadSets).
-    var unread: [String]?
-    /// Sets left out on reading because they could not be decoded.
-    var skipped = 0
-    /// Where in `library` they were, so they can be kept as written.
-    var skippedAt: [Int] = []
-
-    enum CodingKeys: String, CodingKey {
-        case library, folders, tombstones, unread
-    }
-
-    init(library: [StudySet], folders: [StudyFolder], tombstones: [UUID: Date]?, unread: [String]?) {
-        self.library = library
-        self.folders = folders
-        self.tombstones = tombstones
-        self.unread = unread
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        let sets = try c.decode([Lossy<StudySet>].self, forKey: .library)
-        library = sets.compactMap { $0.value }
-        skipped = sets.count - library.count
-        skippedAt = sets.indices.filter { sets[$0].value == nil }
-        unread = (try? c.decodeIfPresent([String].self, forKey: .unread)) ?? nil
-        let kept = (try? c.decodeIfPresent([Lossy<StudyFolder>].self, forKey: .folders)) ?? nil
-        folders = (kept ?? []).compactMap { $0.value }
-        tombstones = (try? c.decodeIfPresent([UUID: Date].self, forKey: .tombstones)) ?? nil
-    }
-}
+// The library file is LibraryFile (Shared/LibraryFile.swift).
 
 /// The progress file: everything about how the studying is going. Each part
 /// is read on its own, so one that cannot be read costs only itself.
@@ -893,7 +844,7 @@ private struct WriteJob: @unchecked Sendable {
     }
 }
 
-/// How far into a textbook or a Cases deck somebody had read.
+/// How far into a textbook somebody had read.
 struct ReadingProgress: Codable, Hashable {
     var position: Int
     var savedAt: Date = Date()

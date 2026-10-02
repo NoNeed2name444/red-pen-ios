@@ -169,7 +169,7 @@ The en-GB description uses the en-US text unchanged. P6.1 must add a `metadata/e
 ```text
 Stethoscore turns your own lectures into exam questions.
 
-Drop in a lecture and get single-best-answer questions with an explanation for every option, spaced-repetition cards, OSCE stations and patient cases you can interview. Everything comes from your material, not someone else's question bank, so you revise exactly what you were taught.
+Drop in a lecture and get single-best-answer questions with an explanation for every option, spaced-repetition cards and OSCE stations. Everything comes from your material, not someone else's question bank, so you revise exactly what you were taught.
 
 Built for medical students, and for doctors preparing for USMLE Step 1 and Step 2 CK, PLAB 1 and 2, MRCP(UK) and MRCS.
 
@@ -181,21 +181,20 @@ STUDY MODES
 • Cards: spaced repetition that brings each card back just before you'd forget it. Basic, cloze and image-occlusion cards.
 • Due today: one list of everything waiting for review.
 • OSCE: checklist stations with a timer. Practise them out loud.
-• Cases: take a history from a patient who answers, then see your consultation marked against an OSCE checklist.
 • Narrate: record a lecture and follow the transcript word by word, in Arabic or English.
 
 WAYS TO MAKE IT STICK
 • Commute mode: hear your due cards and questions and answer out loud, hands-free.
 • Explain it back: explain a topic aloud and see what you missed, compared with the lecture.
 • Draw from memory: sketch a diagram, then lay the real one over it. Works with a finger or Apple Pencil.
-• Clinical reasoning: lookalike conditions side by side, clue-by-clue cases and disease scripts.
+• Clinical reasoning: lookalike conditions side by side and disease scripts.
 
 KNOW WHERE YOU STAND
 • Syllabus coverage: see which parts of your exam's syllabus you haven't covered, and fill the gaps in one tap.
 • Analytics: an estimated score range, your recurring mistakes, and a ranked list of what to study next.
 
 ACCURACY YOU CAN CHECK
-Tap Check accuracy on any question, card, station or case to compare it with the matching lecture pages. Cloud-written questions pass a medical checking model before you see them. AI can still be wrong, so the source is always one tap away.
+Tap Check accuracy on any question, card or station to compare it with the matching lecture pages. Cloud-written questions pass a medical checking model before you see them. AI can still be wrong, so the source is always one tap away.
 
 YOURS TO KEEP
 Export any deck as an .apkg file, or print sets as PDF. No account is needed to start.
@@ -206,7 +205,7 @@ The free version writes questions on your iPhone or iPad with Apple's on-device 
 VIGNETTE PRO
 • Read PDF, Word and PowerPoint handouts.
 • Medical models on the device (Doctor-R1 and MedVAL) where your device has the memory.
-• Stethoscore Cloud: Google's Gemini writes and checks questions, stations and cases on any device, even after you close the app.
+• Stethoscore Cloud: Google's Gemini writes and checks questions and stations on any device, even after you close the app.
 • Turn labelled diagrams into occlusion cards.
 • Cloud transcription of recorded lectures, in Arabic or English, and a natural reading voice.
 • Your library synced between your iPhone and iPad.
@@ -297,7 +296,7 @@ First release:
 
 <!-- field: en-US/release_notes.txt -->
 ```text
-Welcome to Stethoscore. Turn your lectures into exam-style questions, spaced-repetition cards, OSCE stations and patient cases, on your iPhone and iPad. Tell us what to build next from Settings > Support.
+Welcome to Stethoscore. Turn your lectures into exam-style questions, spaced-repetition cards and OSCE stations, on your iPhone and iPad. Tell us what to build next from Settings > Support.
 ```
 
 <!-- field: ar-SA/release_notes.txt -->
@@ -345,13 +344,12 @@ Rules:
 | 3 | `anki-revealed` | Remember it on exam day | Spaced repetition brings each card back just in time | تذكّرها يوم الامتحان | التكرار المتباعد يعيد كل كارت في وقته |
 | 4 | `occlusion-example` | Label any diagram from memory | Image occlusion for anatomy, pathways and slides | سمِّ أجزاء أي رسمة من ذاكرتك | إخفاء أجزاء الصور للتشريح والمسارات والشرائح |
 | 5 | `osce-revealed` | Walk into your OSCE rehearsed | Timed stations with the full checklist | ادخل الـ OSCE وأنت متدرّب | محطات بمؤقت وقائمة تقييم كاملة |
-| 6 | **new screen needed:** `case-chat` (a Cases interview in progress) | Take a history. The patient answers. | Then see what you missed, marked like an OSCE | خذ التاريخ المرضي والمريض يرد عليك | ثم اعرف ما فاتك بتقييم مثل الـ OSCE |
-| 7 | `narrate-finished` | Missed the lecture? Read it. | Recordings become transcripts, Arabic or English | فاتتك المحاضرة؟ اقرأها | التسجيل يتحول لنص بالعربي أو الإنجليزي |
-| 8 | **new screen needed:** `analytics` (next steps and score range), or `summary` until then | Know exactly what to study next | Your gaps, ranked against the exam syllabus | اعرف بالضبط ماذا تذاكر بعد ذلك | نقاط ضعفك مرتبة حسب منهج الامتحان |
+| 6 | `narrate-finished` | Missed the lecture? Read it. | Recordings become transcripts, Arabic or English | فاتتك المحاضرة؟ اقرأها | التسجيل يتحول لنص بالعربي أو الإنجليزي |
+| 7 | **new screen needed:** `analytics` (next steps and score range), or `summary` until then | Know exactly what to study next | Your gaps, ranked against the exam syllabus | اعرف بالضبط ماذا تذاكر بعد ذلك | نقاط ضعفك مرتبة حسب منهج الامتحان |
 
 Screen notes:
-- `case-chat` and `analytics` are not in today's list in `.github/workflows/ios-preview.yml`, so P3.2's screenshot UI test has to add them. Until then, use `qa-revealed` for #6 and `summary` for #8.
-- Caption #7 is a Pro feature (cloud transcription). On-device transcription also exists (`LectureTranscriber`, on-device only), so the caption holds either way.
+- `analytics` is not in today's list in `.github/workflows/ios-preview.yml`, so P3.2's screenshot UI test has to add it. Until then, use `summary` for #7.
+- Caption #6 is a Pro feature (cloud transcription). On-device transcription also exists (`LectureTranscriber`, on-device only), so the caption holds either way.
 - On iPad, #4 and the drawing recall screen show best in landscape.
 
 <!-- captions: P6.1 builds metadata/screenshot-captions.json from the table above -->
@@ -369,7 +367,7 @@ These are the answers to the questionnaire as it stands after Apple's 2025 updat
 | Capabilities | Unrestricted Web Access | No | Links open specific pages (sources, legal) in Safari. There is no in-app browser. |
 | | User-Generated Content | **No today. Yes once P2.1 or P2.2 ships** (shared sets, class sets, display names). | Today every set is private to its account (`schema.sql`: "Nothing here is shared with anybody else"). |
 | | Social Media | No | |
-| | Messaging and Chat | No | Cases is a chat with an AI patient, not with other people. Say so in the review notes. |
+| | Messaging and Chat | No | |
 | | Advertising | No | |
 | Mature themes | Profanity or Crude Humor | None | |
 | | Horror/Fear Themes | None | |
@@ -423,7 +421,7 @@ For each type the answer is: **Data Linked to You**, purpose **App Functionality
 Other User Content comes from these paths:
 - the synced library in `docs` (sets, folders, review schedule, learned pronunciations);
 - lecture text and prompts in cloud generation jobs (`jobs.js`, kept up to 7 days);
-- text sent for accuracy checks, syllabus-coverage checks and the Cases patient (`/v1/chat/completions`), forwarded to Gemini, Workers AI, Novita or Hugging Face;
+- text sent for accuracy checks, and syllabus-coverage checks (`/v1/chat/completions`), forwarded to Gemini, Workers AI, Novita or Hugging Face;
 - lines read aloud (`/tts`, cached in R2 by hash).
 
 ### 10.2 Not collected (answer "No")
@@ -524,7 +522,7 @@ These business steps come before the steps above: the Developer Program, the Tea
   - The education-only wording appears in the description, and the category is Education.
   - Keep the accuracy numbers out of the listing unless they link to `/accuracy` (plan P6.1).
 - **5.1.2(i) third-party AI.** The description names Gemini and Workers AI. The in-app consent (P2.9) must name the same providers and must come before the first upload.
-- **2.3.1 accuracy of the listing.** Remove every `[ship-gated]` line whose package has not shipped. Screenshot #6 and #8 need the new preview screens.
+- **2.3.1 accuracy of the listing.** Remove every `[ship-gated]` line whose package has not shipped. Screenshot #7 needs the new preview screen.
 - **Arabic rendering.** P3.2's caption renderer must use `arabic-reshaper` and `python-bidi`. Check that "OSCE" and "Qbank" inside Arabic captions are not reversed.
 
 ---

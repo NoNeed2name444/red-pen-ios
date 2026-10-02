@@ -6,7 +6,7 @@ import Vision
 /// One question to a page, its answer on the very next page, so nothing is
 /// spoiled while you test yourself - which is the entire reason the layout is
 /// this rigid. Every page carries the mode's own colour, so a deck printed from
-/// Cases is recognisably Cases.
+/// OSCE is recognisably OSCE.
 ///
 /// The contents index is made of real PDF links. That is what makes the file
 /// usable on a phone: six hundred cards is unnavigable by scrolling, and a

@@ -37,13 +37,13 @@ is left out.
 `make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip --without core`
 
 About 34,000 lines. It keeps the library, the study modes (questions, cards,
-textbook, cases, OSCE), Sources, New set with the whole generation pipeline
+textbook, OSCE), Sources, New set with the whole generation pipeline
 and the accuracy engine, sign-in, the recording terms, the exam question,
 and Settings for the account, the exam, reviews and help.
 
 It leaves out: the Ideas map (2D and 3D), Study Lens, analytics, audio
 lectures and the transcriber, spoken OSCE practice, commute mode and
-explain-it-back, the reasoning tools (clue cases, duels, scripts), draw
+explain-it-back, the reasoning tools (duels, scripts), draw
 from memory, coverage, the exam plan and reminders, the examples hub, the
 mistake-insight screens, mock papers, the living sky and the pop-out effect
 (flat here), diagnostics, App Intents and Spotlight, sync (the personal
@@ -64,8 +64,8 @@ The shell is shared by every step of the add-back; what differs per step is
 in a folder of its own, copied in beside it:
 
 - `core-audio-out/CoreAudioStandIns.swift` (the core): the stand-ins for
-  the step-1 parts (the spoken OSCE station, the narrate reader, the case
-  voice bar, draw from memory, the transcriber's line shape, the commute
+  the step-1 parts (the spoken OSCE station, the narrate reader, draw
+  from memory, the transcriber's line shape, the commute
   sheet) and the library's "not in this build" pieces.
 - `core-audio-in/CoreAudio.swift` (core1): the narrate reader is the app's
   own, and the library gets a Spoken section (commute mode, explain it back),

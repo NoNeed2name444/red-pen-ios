@@ -585,13 +585,13 @@ extension LibraryView {
     var emptyState: some View {
         VStack(spacing: 14) {
             HStack(spacing: -10) {
-                ForEach([StudySetKind.mcq, .anki, .qa], id: \.self) { kind in
+                ForEach([StudySetKind.mcq, .anki, .osce], id: \.self) { kind in
                     fannedTile(kind)
                 }
             }
             .accessibilityHidden(true)
             Text("Make your first set").font(.title2.weight(.bold))
-            Text("Add a lecture and \(Brand.name) turns it into questions, flashcards or cases to study.")
+            Text("Add a lecture and \(Brand.name) turns it into questions or flashcards to study.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -642,8 +642,8 @@ extension LibraryView {
             .zIndex(layer)
     }
 
-    /// The fan: questions to the left, cards upright in the middle, cases to
-    /// the right.
+    /// The fan: questions to the left, cards upright in the middle, stations
+    /// to the right.
     static func fanAngle(_ kind: StudySetKind) -> Double {
         switch kind {
         case .anki: return 0
@@ -656,7 +656,7 @@ extension LibraryView {
     static func fanPlane(_ kind: StudySetKind) -> PopOutPlane {
         switch kind {
         case .anki: return .hero
-        case .qa: return .floating
+        case .osce: return .floating
         default: return .raised
         }
     }

@@ -41,9 +41,6 @@ struct CloudRecipe: Codable {
         case .osce:
             guard let stations = try? MedicalGenerate.collectStations(replies, count: count) else { return nil }
             set.osceChecklists = stations
-        case .qa:
-            set.qaCards = PlainTextImport.parseQA(LectureWriter.collectLines(replies, kind: .qa, count: count).joined(separator: "\n"))
-            guard !set.qaCards.isEmpty else { return nil }
         case .anki:
             set.cards = PlainTextImport.parseAnkiQA(LectureWriter.collectLines(replies, kind: .anki, count: count).joined(separator: "\n"))
             guard !set.cards.isEmpty else { return nil }
@@ -71,7 +68,6 @@ private extension StudySetKind {
         switch self {
         case .mcq: return "questions"
         case .osce: return "OSCE stations"
-        case .qa: return "cases"
         case .anki: return "cards"
         case .book: return "textbook"
         case .narrate: return "lecture"
@@ -239,7 +235,7 @@ enum CloudJobCollector {
             set.cards = screened.kept
             return VerificationScreen.note(screened)
         default:
-            // cases and pages: checked by the layer once saved
+            // pages: checked by the layer once saved
             return " The verification layer checks it once the set is saved."
         }
     }

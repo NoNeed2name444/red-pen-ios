@@ -26,7 +26,7 @@ enum MedicalModel: String, CaseIterable, Identifiable, Hashable {
 
     var purpose: String {
         switch self {
-        case .doctorR1: return "Writes questions and stations, and plays the patient in Cases."
+        case .doctorR1: return "Writes questions and stations."
         case .medval: return "Checks generated text for hallucinations, omissions and overconfidence, with a risk level from 1 to 4."
         }
     }

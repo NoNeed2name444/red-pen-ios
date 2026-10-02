@@ -4,7 +4,7 @@ import SwiftUI
 /// writing of new material.
 ///
 /// A file of its own in Application Support rather than part of the library:
-/// cases and scripts are practice made from a set, not part of it, and they
+/// duels and scripts are practice made from a set, not part of it, and they
 /// should not travel with every sync of the deck.
 ///
 /// Writing lives here rather than in a screen, so leaving the screen does not
@@ -14,7 +14,6 @@ final class ReasoningStore: ObservableObject {
     static let shared = ReasoningStore()
 
     @Published private(set) var packs: [UUID: ReasoningPack] = [:]
-    @Published private(set) var casePlays: [CasePlay] = []
     @Published private(set) var duelPlays: [DuelPlay] = []
     /// What is being written now, if anything.
     @Published private(set) var writing: (setId: UUID, tool: ReasoningTool)?
@@ -27,7 +26,6 @@ final class ReasoningStore: ObservableObject {
 
     private struct Snapshot: Codable {
         var packs: [ReasoningPack]?
-        var casePlays: [CasePlay]?
         var duelPlays: [DuelPlay]?
     }
 
@@ -45,12 +43,11 @@ final class ReasoningStore: ObservableObject {
         var byId: [UUID: ReasoningPack] = [:]
         for pack in snapshot.packs ?? [] { byId[pack.setId] = pack }
         packs = byId
-        casePlays = snapshot.casePlays ?? []
         duelPlays = snapshot.duelPlays ?? []
     }
 
     private func save() {
-        let snapshot = Snapshot(packs: Array(packs.values), casePlays: casePlays, duelPlays: duelPlays)
+        let snapshot = Snapshot(packs: Array(packs.values), duelPlays: duelPlays)
         guard let data = try? JSONEncoder.redPen.encode(snapshot) else { return }
         let url = fileURL
         writer.async { try? data.write(to: url, options: .atomic) }
@@ -74,25 +71,11 @@ final class ReasoningStore: ObservableObject {
         setId.uuidString + "." + tool.rawValue
     }
 
-    /// The best score on a case so far, or nil if it has never been played.
-    func bestScore(for caseId: UUID) -> Double? {
-        casePlays.filter { $0.caseId == caseId }.map(\.score).max()
-    }
-
-    func lastPlay(of caseId: UUID) -> CasePlay? {
-        casePlays.filter { $0.caseId == caseId }.max { $0.date < $1.date }
-    }
-
     func lastDuel(of pairId: UUID) -> DuelPlay? {
         duelPlays.filter { $0.pairId == pairId }.max { $0.date < $1.date }
     }
 
     // MARK: changing
-
-    func record(_ play: CasePlay) {
-        casePlays.append(play)
-        save()
-    }
 
     func record(_ play: DuelPlay) {
         duelPlays.append(play)
@@ -103,10 +86,6 @@ final class ReasoningStore: ObservableObject {
     func clear(_ tool: ReasoningTool, for setId: UUID) {
         var pack = self.pack(for: setId)
         switch tool {
-        case .cases:
-            let ids = Set(pack.cases.map(\.id))
-            casePlays.removeAll { ids.contains($0.caseId) }
-            pack.cases = []
         case .duels:
             let ids = Set(pack.duels.map(\.id))
             duelPlays.removeAll { ids.contains($0.pairId) }
@@ -172,11 +151,6 @@ final class ReasoningStore: ObservableObject {
         running = Task {
             do {
                 switch tool {
-                case .cases:
-                    let made = try await ReasoningWriter.cases(source: source, count: count, subject: subject,
-                                                               exam: exam, using: backend, onProgress: progress)
-                    try Task.checkCancellation()
-                    self.add({ $0.cases += made }, to: setId)
                 case .duels:
                     let made = try await ReasoningWriter.duels(source: source, count: count, subject: subject,
                                                                exam: exam, using: backend, onProgress: progress)

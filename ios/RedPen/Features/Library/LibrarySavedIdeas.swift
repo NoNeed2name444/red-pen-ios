@@ -60,7 +60,7 @@ extension LibraryView {
         case .question: kind = .question
         case .card: kind = .card
         case .lecture: kind = .lecture
-        case .caseCard, .osce: kind = .set
+        case .osce: kind = .set
         }
         let page: Int? = source.kind == .lecture ? (source.page ?? 1) : nil
         return LibrarySearch.Hit(kind: kind, setID: set.id, itemID: source.itemID, page: page,

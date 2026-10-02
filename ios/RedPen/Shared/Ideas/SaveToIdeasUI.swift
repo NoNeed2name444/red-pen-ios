@@ -152,7 +152,6 @@ final class IdeaSaver: ObservableObject {
     private nonisolated static func holds(_ set: StudySet, _ id: UUID) -> Bool {
         if set.questions.contains(where: { $0.id == id }) { return true }
         if set.cards.contains(where: { $0.id == id }) { return true }
-        if set.qaCards.contains(where: { $0.id == id }) { return true }
         if set.osceChecklists.contains(where: { $0.id == id }) { return true }
         return set.sources.contains { $0.id == id }
     }
@@ -607,13 +606,6 @@ extension SaveToIdeas {
         let front: String = item.type == .cloze ? "" : (hidden.isEmpty ? item.displayFront : hidden)
         return card(front: front, cloze: item.clozeText, bullets: item.bullets, why: item.why,
                     source: at.source, subject: at.subject)
-    }
-
-    /// A Cases card: its topic or stem, and the answer points.
-    static func clip(caseCard item: QACard, in set: StudySet, library: [StudySet]) -> IdeaClip {
-        let at = origin(.caseCard, item: item.id, in: set, library: library)
-        return caseCard(topic: item.topic, stem: item.stem, answer: item.answer,
-                        source: at.source, subject: at.subject)
     }
 
     /// An OSCE station worked through, the steps started over at marked.

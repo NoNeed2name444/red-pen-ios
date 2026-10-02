@@ -167,7 +167,7 @@ Branch `growth/<package-id>` from the integration branch `growth/main`. Merge at
 | R15 | Feature switches as env vars (A `SHARES_*`, B `REFERRALS`/`GROUP_*`, E `TELEMETRY*`, F `REPORTS`/`AI_CONSENT_ENFORCED`) against D's remote config. | All of them are keys in `config-defaults.json`, read through `flag()` and `limit()`. The env vars remain fallbacks (the `_env` map). |
 | R16 | Account deletion: A `wipeSocial`, B's batch, D `wipeCache`, F `forgetTrustData`. | Each module exports `onAccountDelete` for its own tables. `worker.js` runs them in a fixed order after `wipe()`. `account-delete.test.mjs` keeps the total within 50 statements. |
 | R17 | `worker.js`, `schema.sql`, `wrangler.toml`, `worker-deploy.yml` and `server-tests.yml` are edited by every design. | W0 only (P0.1). W1 modules self-register routes, cron tasks and delete hooks. Tests are picked up by glob. Schema changes after W0 go into `server/migrations/`. |
-| R18 | The study screens (MCQ, cards, cases, OSCE, book, narrate, summaries, due) are edited by C, D, E and F. | P0.4 adds: the `report:` menu item and its sheet, `AssistSlot` placements, `AppEvents` calls, and C's `startAt` (P0.2). W2 packages fill only their own stub files. |
+| R18 | The study screens (MCQ, cards, OSCE, book, narrate, summaries, due) are edited by C, D, E and F. | P0.4 adds: the `report:` menu item and its sheet, `AssistSlot` placements, `AppEvents` calls, and C's `startAt` (P0.2). W2 packages fill only their own stub files. |
 | R19 | `RedPenApp.swift`, `AuthAPI.swift` and `AccountStore.swift` are touched by all six designs. | P0.2 only. It adds lifecycle fan-out through `AppHooks`, URL routing through `AppRouter`, root extras and the networking changes. Features use `@Observable` singletons and never inject from `RedPenApp`. |
 | R20 | `AccountView`, `SupportCenter`, `ModelSettingsView` and `LibraryView` are touched by several designs. | Slots (P0.4) for account sections, settings rows, the owner hub and the cloud-allowance section. `LibraryView` is P0.2's in W0 and P2.1's in W2. `ModelSettingsView` is P2.4's in W2 and P3.3's in W3. |
 | R21 | `project.yml`, `make_swiftpm.py` and `PrivacyInfo.xcprivacy` are touched by A, B, C, D, E and F. | P3.1 owns all three in W3; P5.0 owns `project.yml` and `make_swiftpm.py` in W5. `make_swiftpm.py` moves into the repo as `tools/make_swiftpm.py` (P0.3). |
@@ -796,12 +796,9 @@ edit ios/RedPen/Features/MCQ/MCQSummaryView.swift
 edit ios/RedPen/Features/Anki/AnkiReviewView.swift
 edit ios/RedPen/Features/Anki/AnkiCardFace.swift
 edit ios/RedPen/Features/Anki/DueTodayView.swift
-edit ios/RedPen/Features/QA/QACardsView.swift
 edit ios/RedPen/Features/OSCE/OsceReviewView.swift
 edit ios/RedPen/Features/Book/BookReaderView.swift
 edit ios/RedPen/Features/Narrate/NarrateReviewView.swift
-edit ios/RedPen/Features/Cases/CaseChatView.swift
-edit ios/RedPen/Features/Reasoning/ClueCaseView.swift
 edit ios/RedPen/Features/Voice/CommuteModeView.swift
 edit ios/RedPen/Features/Voice/SpokenStationView.swift
 edit ios/RedPen/Features/Notes/IdeasView.swift
@@ -828,13 +825,11 @@ edit ios/RedPen/Shared/PreviewExtras.swift
    - The menu item "Report an error" (`exclamationmark.bubble`, identifier `reportError`) shows only when `ReportErrorSheet.isAvailable` is true and `report?()` is non-nil.
    - The modifier owns `@State var reporting: StudyItemRef?` and `.sheet(item:) { ReportErrorSheet(item: $0) }`.
 3. **Study screens.**
-   - Pass `report:` for the item currently on screen in MCQQuizView, AnkiReviewView, QACardsView, OsceReviewView, BookReaderView and NarrateReviewView.
-   - CaseChatView and ClueCaseView get the item and its sheet in their own toolbars.
+   - Pass `report:` for the item currently on screen in MCQQuizView, AnkiReviewView, OsceReviewView, BookReaderView and NarrateReviewView.
    - MCQSummaryView rows and DueTodayView cards get a context-menu item.
    - Place `AssistSlot(item:phase:)`:
      - under the MCQ stem (`.beforeAnswer`) and under the explanation (`.afterAnswer`);
-     - on the AnkiCardFace front and back;
-     - on the QACardsView back.
+     - on the AnkiCardFace front and back.
 4. **`AppEvents` calls.** One line at each completion point:
 
    | Event | Where |
@@ -843,7 +838,6 @@ edit ios/RedPen/Shared/PreviewExtras.swift
    | `cards_reviewed` | each rating in AnkiReview |
    | `set_created` | NewSet |
    | `generation_started`, `generation_succeeded`, `generation_failed` | the three generate forms |
-   | `case_completed` | CaseChat |
    | `osce_station_completed` | OsceReview |
    | `narrate_session` | NarrateReview |
    | `voice_session` | Commute, SpokenStation |
@@ -1927,8 +1921,8 @@ edit .github/workflows/app-build.yml
 | Package | Folder globs (edit only these) |
 |---|---|
 | P5.1 | `ios/RedPen/Features/{Library,Examples,Sources,Coverage,Insight}/**` |
-| P5.2 | `ios/RedPen/Features/{MCQ,Anki,QA,OSCE,Book}/**` |
-| P5.3 | `ios/RedPen/Features/{Narrate,Voice,Cases,Reasoning,Recall}/**` |
+| P5.2 | `ios/RedPen/Features/{MCQ,Anki,OSCE,Book}/**` |
+| P5.3 | `ios/RedPen/Features/{Narrate,Voice,Reasoning,Recall}/**` |
 | P5.4 | `ios/RedPen/Features/{Notes,Analytics,Intents,Assist,Groups,Share}/**` |
 | P5.5 | `ios/RedPen/Features/{Auth,Account,Paywall,Support,Owner}/**`, **except** `Features/Support/AppLanguageRow.swift` |
 | P5.6 | `ios/RedPen/Shared/**`, `ios/RedPen/Models/**`, `ios/RedPen/Persistence/**`, `ios/RedPenWidgets/**/*.swift`, **except** P5.0's three new Shared files, and except the prompt files `Shared/LLM/**`, `Shared/Reasoning/*Writer.swift`, `Shared/MCQPrompt.swift` and the `@Guide` strings in `Shared/MCQGenerator.swift` |
@@ -2117,7 +2111,7 @@ This is the single list for `AppEvent` (P0.2), the server allow-list (P1.7) and 
 | `generation_started` | 50 | `generation_succeeded` | 50 |
 | `generation_failed` | 50 | `ondevice_model_used` | 200 |
 | `quiz_completed` | 100 | `questions_answered` | 2000 |
-| `cards_reviewed` | 2000 | `case_completed` | 100 |
+| `cards_reviewed` | 2000 | | |
 | `osce_station_completed` | 100 | `narrate_session` | 50 |
 | `voice_session` | 50 | `ideas_opened` | 50 |
 | `analytics_opened` | 50 | `accuracy_check_run` | 50 |

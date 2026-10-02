@@ -83,7 +83,7 @@ enum AccuracyFix {
     static func canApply(_ s: AccuracySuggestion, to item: AccuracyItem) -> Bool {
         switch (item.kind, s.field) {
         case (.mcq, "key"): return keyIndex(s.value, count: item.options.count) != nil
-        case (.mcq, "explanation"), (.card, "explanation"), (.card, "answer"), (.case, "answer"): return true
+        case (.mcq, "explanation"), (.card, "explanation"), (.card, "answer"): return true
         case (.osce, "text"), (.osce, "answer"): return lines(s.value).count >= 2
         default: return false
         }
@@ -127,11 +127,6 @@ enum AccuracyFix {
                 if out.cards[i].type == .cloze { out.cards[i].clozeText = value } else { out.cards[i].bullets = lines(value) }
             default: return nil
             }
-            return out
-        }
-        if let i = out.qaCards.firstIndex(where: { $0.id.uuidString == itemID }) {
-            guard s.field == "answer" else { return nil }
-            out.qaCards[i].answer = lines(value)
             return out
         }
         if let i = out.osceChecklists.firstIndex(where: { $0.id.uuidString == itemID }) {

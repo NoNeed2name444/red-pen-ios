@@ -345,7 +345,7 @@ struct NewSetView: View {
     }
 
     /// Whether step 2 has something to go on with. The lecture sections for
-    /// cards, cases, textbooks and OSCE keep their file to themselves, so for
+    /// cards, textbooks and OSCE keep their file to themselves, so for
     /// those step 3 says what is missing instead.
     private var canGoOn: Bool {
         switch (path, kind) {
@@ -482,7 +482,6 @@ struct NewSetView: View {
         case .mcq: return "Practice questions (MCQ)"
         case .anki: return "Flashcards"
         case .book: return "Textbook"
-        case .qa: return "Cases"
         case .osce: return "OSCE checklists"
         case .narrate: return "Narrate"
         }
@@ -493,7 +492,6 @@ struct NewSetView: View {
         case .mcq: return "Multiple-choice questions, like the exam"
         case .anki: return "Cards that come back just before you forget"
         case .book: return "Your lecture as easy pages to read"
-        case .qa: return "Patient cases to talk through"
         case .osce: return "Step-by-step checklists for practical exams"
         case .narrate: return "Your lecture written out to read along"
         }
@@ -508,7 +506,7 @@ struct NewSetView: View {
         switch (path, kind) {
         case (.lecture, .mcq): generator = "mcq"
         case (.lecture, .osce): generator = "osce"
-        case (.lecture, .anki), (.lecture, .qa), (.lecture, .book): generator = "writer"
+        case (.lecture, .anki), (.lecture, .book): generator = "writer"
         default: generator = nil
         }
         if showsCreate && (generator == nil || !bodyText.isEmpty || diagrams.included) { return "create" }
@@ -549,7 +547,7 @@ struct NewSetView: View {
                 OsceGenerateSection(bodyText: $bodyText, subject: $subject, step: step,
                                     presetText: preset?.text ?? "", presetName: preset?.name ?? "")
                 if step == .make && !bodyText.isEmpty { draftSection(title: "Check and edit") }
-            case .anki, .qa, .book:
+            case .anki, .book:
                 LectureWriterSection(kind: kind, bodyText: $bodyText, readSource: $readSource,
                                      suggestedName: $name, bookFigures: $bookFigures, diagrams: $diagrams,
                                      subject: $subject, step: step,
@@ -650,7 +648,6 @@ struct NewSetView: View {
         case .mcq: return "One question per line: Stem | OptA; OptB; OptC; OptD | correctLetter | Explanation. A table pasted from a spreadsheet works too: Question, A, B, C, D, Answer."
         case .anki: return "One card per line: Front | bullet1; bullet2 | why (optional). A table pasted from Quizlet or a spreadsheet works too: term, tab, definition."
         case .book: return "Markdown. Every # or ## heading starts a new page."
-        case .qa: return "One card per line: Topic | case or recall | Question | answer1; answer2"
         case .osce: return "## Station title, then one step per line. Blank line or the next ## starts a new station."
         case .narrate: return "One line per phrase. Prefix with \"ar|\" for Arabic reading pace, otherwise it reads at English pace."
         }
@@ -674,7 +671,6 @@ struct NewSetView: View {
         case .book:
             if bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return 0 }
             return BookPages.split(bodyText).count
-        case .qa: return PlainTextImport.parseQA(bodyText).count
         case .osce: return PlainTextImport.parseOsce(bodyText).count
         case .narrate: return PlainTextImport.parseNarrate(bodyText).count
         }
@@ -689,7 +685,7 @@ struct NewSetView: View {
         let noun: String
         switch kind {
         case .mcq: noun = "question"
-        case .anki, .qa: noun = "card"
+        case .anki: noun = "card"
         case .book: noun = "page"
         case .osce: noun = "station"
         case .narrate: noun = "line"
@@ -719,7 +715,6 @@ struct NewSetView: View {
             let kept = BookFigures.compact(bodyText, images: bookFigures.map(\.imageBase64))
             set.bookMarkdown = kept.markdown
             set.images = kept.images
-        case .qa: set.qaCards = PlainTextImport.parseQA(bodyText)
         case .osce: set.osceChecklists = PlainTextImport.parseOsce(bodyText)
         case .narrate: set.narrateSegments = PlainTextImport.parseNarrate(bodyText)
         }

@@ -116,7 +116,6 @@ extension CategoryFeature {
         case .flashcards: return "flashcard deck"
         case .textbooks: return "textbook"
         case .pictures: return "picture card deck"
-        case .qaCases: return "set of cases"
         case .stations: return "OSCE station"
         case .lectures: return "narrated lecture"
         default: return "set"
@@ -183,21 +182,16 @@ struct ShelfSetRow: View {
     }
 }
 
-// MARK: - Cases: one reasoning tool
+// MARK: - Cards: one reasoning tool
 
-/// One reasoning tool - clue-by-clue cases, lookalike duels or disease
-/// scripts - and the sets to use it on, so each is its own tile rather than
-/// three levels down.
+/// One reasoning tool - lookalike duels or disease scripts - and the sets to
+/// use it on, so each is its own tile rather than three levels down.
 struct ReasoningToolPicker: View {
     let feature: CategoryFeature
     @EnvironmentObject private var store: Store
 
     private var tool: ReasoningTool {
-        switch feature {
-        case .duels: return .duels
-        case .scripts: return .scripts
-        default: return .cases
-        }
+        feature == .scripts ? .scripts : .duels
     }
 
     var body: some View {
@@ -234,7 +228,7 @@ struct ReasoningToolPicker: View {
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: StudySetKind.qa.tint))
+        .background(AppBackdrop(tint: StudySetKind.anki.tint))
         .navigationTitle(tool.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -244,7 +238,7 @@ struct ReasoningToolPicker: View {
             destination(set)
         } label: {
             CategoryRowLabel(title: set.name, symbol: tool.symbol,
-                             detail: set.subject, tint: StudySetKind.qa.tint)
+                             detail: set.subject, tint: StudySetKind.anki.tint)
         }
         .frostedListRow()
     }
@@ -252,7 +246,6 @@ struct ReasoningToolPicker: View {
     @ViewBuilder
     private func destination(_ set: StudySet) -> some View {
         switch tool {
-        case .cases: ClueCasesView(set: set)
         case .duels: DuelsView(set: set)
         case .scripts: ScriptsView(set: set)
         }
@@ -275,7 +268,7 @@ struct TurnIntoListView: View {
         List {
             Section {
                 if sets.isEmpty {
-                    Text("Make a set here first. Then any of them can become questions, flashcards, cases, an OSCE station or a textbook.")
+                    Text("Make a set here first. Then any of them can become questions, flashcards, an OSCE station or a textbook.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .listRowBackground(Color.clear)
