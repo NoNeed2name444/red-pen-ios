@@ -152,8 +152,8 @@ check("a single vote, however sure, is Check this, never Verified", AccuracyMode
 let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gmModel, risk: 1, evidence: "none"), AccuracyVote(model: nModel, risk: 1, evidence: "none"),
                                                                           AccuracyVote(model: oModel, risk: 1, evidence: "none")],
                                            evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
-check("an oath item passed by three families but with no support stays Check this",
-      AccuracyModel.grade(0.99, unbacked) == .verified && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
+check("any item passed by three families but with nothing in the literature or its lecture stays Check this",
+      AccuracyModel.grade(0.99, unbacked) == .check && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
 let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
                                                                             AccuracyVote(model: nModel, risk: 1, evidence: "none")],
                                              evidenceCount: 2, sourceMatch: 0.2, keyLetter: nil)

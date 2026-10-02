@@ -377,7 +377,7 @@ async function play(check, extra, plan, calls) {
     ok(a.items[0].oath && a.items[0].verdict === 'check', 'Jev answering yes adds the oath check (no evidence behind it: Check this)');
     ok(Date.now() - started < 3000 && trace.find(s => s.stage === 'jev').status === 'timeout' && trace.find(s => s.stage === 'jev').value[0] === null,
        'Jev never answering: out of time, no answer');
-    ok(!body.items[0].oath && body.items[0].verdict === 'verified' && !JSON.parse(dump(w.db).verdicts[0].signals).jevOath,
+    ok(!body.items[0].oath && body.items[0].verdict === 'check' && !JSON.parse(dump(w.db).verdicts[0].signals).jevOath,
        'and the patterns\' answer stands, as when Jev is not set up');
     w.release();
   }

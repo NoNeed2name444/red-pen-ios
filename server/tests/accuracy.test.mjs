@@ -137,8 +137,9 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(verdict(0.99, lone) === 'check', 'a single vote, however sure, is Check this, never Verified');
   // the oath check (plan §22 Layer 7): a dose, a diagnosis or a treatment needs evidence behind it
   const unbacked = features({ kind: 'card', votes: [{ model: GM, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
-  ok(verdict(0.99, unbacked) === 'verified' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check',
-     'an oath item passed by three families but with no support from the literature or its lecture stays Check this');
+  ok(verdict(0.99, unbacked) === 'check' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check'
+     && reasonsFor('check', 0.99, unbacked).includes('Nothing in the literature or its lecture backs it yet.'),
+     'any item passed by three families but with nothing in the literature or its lecture behind it stays Check this, and says so');
   const literature = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
   const lecture = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
   ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'verified' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'verified',
@@ -252,11 +253,9 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(votes[1].risk === 4 && votes[1].answer === 'C' && votes[1].cites.join() === 'S1' && votes[1].fix.value === 'C' && votes[0].risk === 1 && votes[0].evidence === 'none', 'votes are parsed item by item');
   ok(parseVotes('no json', 2).every(v => v === null), 'an unreadable reply is no vote');
   ok(disagree([{ risk: 1 }], [{ risk: 4 }]) && !disagree([{ risk: 1, answer: 'A' }], [{ risk: 2, answer: 'A' }]) && disagree([{ risk: 1, answer: 'A' }], [{ risk: 1, answer: 'B' }]), 'disagreement');
-  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' };
-  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 7, 'the writing model never votes');
-  ok(votersFor({}, '').length === 0 && votersFor({ FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} }, '').every(v => /^(gemini|workers-ai):/.test(v)),
-     'a voter whose provider has no key here is left out');
-  ok(votersFor(keyed, '').slice(0, 3).map(v => familyOf(v.slice(v.indexOf(':') + 1))).join() === 'google,openai,meta', 'the first three asked are three families, Groq before Workers AI');
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} };
+  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 4, 'the writing model never votes');
+  ok(votersFor({}, '').length === 0 && votersFor({ AI: {} }, '').every(v => /^workers-ai:/.test(v)), 'a voter whose provider is not set up here is left out');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'A', risk: 3 }])?.value === 'A', 'voters agreeing on another answer suggest it as the key');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'B', risk: 1 }]) === null, 'a split does not');
   ok((await itemHash(mcq)) === (await itemHash({ ...mcq, id: 'other' })) && (await itemHash(mcq)) !== (await itemHash({ ...mcq, key: 0 })), 'the hash is of the content, not the id');

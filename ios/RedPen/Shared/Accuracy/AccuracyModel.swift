@@ -354,7 +354,8 @@ enum AccuracyModel {
         // every voter, from three families, judged it wrong
         if !question && (f["flag_families"] ?? 0) >= need && (f["flag_frac"] ?? 0) == 1 && p < w.thresholds.flagged { return .flagged }
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
-        let backed: Bool = !oath || (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
+        // every item needs the literature or its own lecture behind it
+        let backed: Bool = (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
         let independent: Bool = (f["families"] ?? 0) >= need
         // no voter raised a concern or read the literature against it, and
         // no sensor fired, however mildly

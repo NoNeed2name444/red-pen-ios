@@ -39,14 +39,13 @@ import { claimGate, MAX_WORK, remembering } from './claims.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
-/// Llama 3.3 70B on Groq's free tier, gpt-oss-120b on Cerebras' free tier,
-/// gpt-oss-120b and Nemotron on Workers AI, Gemma 4 31B as the slower backup.
-/// Workers AI's free pool covers only about thirty checks a day (the live
-/// bench, 1 Oct: every call refused once it was spent), so Groq and Cerebras
-/// come first. A voter whose provider has no key here is left out. Not Llama
-/// 4 Scout (it passed only half the correct answers); not 3.1 Pro (no free tier).
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,groq:openai/gpt-oss-120b,groq:llama-3.3-70b-versatile,cerebras:gpt-oss-120b,'
-  + 'workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+/// Nemotron on Workers AI, Gemma 4 31B as the slower backup. Workers AI's free
+/// pool covers only about thirty checks a day (the live bench, 1 Oct), so on
+/// a busy day most items wait at Check this for the next day's pool; the
+/// owner chose that over adding other providers (2 Oct). A voter whose
+/// provider is not set up here is left out. Not Llama 4 Scout (it passed only
+/// half the correct answers); not 3.1 Pro (no free tier).
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;

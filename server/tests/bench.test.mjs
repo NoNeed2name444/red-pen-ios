@@ -23,17 +23,14 @@ console.log('all passed');
 // the owner's model switch the verification bench relies on
 {
   const { pinnedSource } = await import('../ai.js');
-  const env = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, AI_API_KEY: 'h', GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' };
+  const env = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, AI_API_KEY: 'h' };
   if (pinnedSource(env, 'gemini:gemini-3.5-flash')?.models?.[0] !== 'gemini-3.5-flash'
       || pinnedSource(env, 'workers-ai:@cf/openai/gpt-oss-120b')?.model !== '@cf/openai/gpt-oss-120b'
       || pinnedSource(env, 'hf:org/model')?.kind !== 'openai'
-      || pinnedSource(env, 'groq:openai/gpt-oss-120b')?.base !== 'https://api.groq.com/openai/v1'
-      || pinnedSource(env, 'cerebras:gpt-oss-120b')?.base !== 'https://api.cerebras.ai/v1'
-      || pinnedSource({}, 'groq:x') !== null
       || pinnedSource(env, 'nope') !== null || pinnedSource({}, 'gemini:x') !== null) {
     console.log('FAIL model pinning'); process.exit(1);
   }
-  console.log('ok   model pinning, Groq and Cerebras only with their keys');
+  console.log('ok   model pinning');
 }
 
 // Google's quota details, passed through so the benchmark can pace itself

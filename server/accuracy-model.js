@@ -182,7 +182,10 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   // every voter, from three families, judged it wrong
   if (!question && (Number(f.flag_families) || 0) >= need && Number(f.flag_frac) === 1 && p < t.flagged) return 'flagged';
   const enough = Math.round((Number(f.voters) || 0) * 3) >= need;
-  const backed = !oath || (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
+  // every item, not only a dose, diagnosis or treatment, needs the
+  // literature or its own lecture behind it: a witness no model shares
+  // (the owner: 99.999% even if it takes a lot of time, 2 Oct)
+  const backed = (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
   const independent = (Number(f.families) || 0) >= need;
   // no voter raised a concern, none read the literature against it, and no
   // sensor fired, however mildly (0.5% of real questions; almost all real)
@@ -219,8 +222,8 @@ export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = fa
   if ((Number(f.families) || 0) < need && verdictName !== 'flagged') out.push(`Not yet passed by ${words[need]} model families.`);
   if (Number(f.flag_frac) > 0 && verdictName !== 'flagged' && !(question && against >= 2)) out.push('A checker raised a concern.');
   if (Number(f.ev_contradict) > 0) out.push('A checker found literature against it.');
-  if (oath && !((Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH)) {
-    out.push('A dose, diagnosis or treatment without evidence behind it.');
+  if (verdictName !== 'verified' && !((Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH)) {
+    out.push(oath ? 'A dose, diagnosis or treatment without evidence behind it.' : 'Nothing in the literature or its lecture backs it yet.');
   }
   if (p < t.flagged) out.push('The checkers judged it likely wrong.');
   else if (p < t.verified && verdictName !== 'verified') out.push('The checkers were not confident enough.');

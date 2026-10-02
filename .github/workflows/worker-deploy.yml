@@ -12,8 +12,6 @@
 #   NOVITA_API_KEY         Novita (novita.ai): Baichuan-M2-32B for CramDown Cloud
 #   FIREBASE_API_KEY, FIREBASE_PROJECT_ID   Gemini, for Narrate and CramDown Cloud
 #   APPCHECK_DEBUG_TOKEN, FIREBASE_APP_ID   App Check for those Gemini calls (a registered debug token)
-#   GROQ_API_KEY           Groq's free tier (console.groq.com/keys, no card): checker models
-#   CEREBRAS_API_KEY       Cerebras' free tier (cloud.cerebras.ai, no card): checker models
 # SESSION_SECRET is generated on the first deploy and never changed after.
 name: Deploy the worker
 on:
@@ -111,8 +109,6 @@ jobs:
           NOVITA_API_KEY: ${{ secrets.NOVITA_API_KEY }}
           APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -144,7 +140,7 @@ jobs:
           fi
           # Novita's key is the writer's key (Baichuan-M2-32B)
           if [ -n "${NOVITA_API_KEY:-}" ]; then printf '%s' "$NOVITA_API_KEY" | $W secret put AI_WRITER_KEY; else echo "(NOVITA_API_KEY not set - CramDown Cloud starts at Gemini)"; fi
-          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID GROQ_API_KEY CEREBRAS_API_KEY; do
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
           done
