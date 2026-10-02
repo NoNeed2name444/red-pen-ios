@@ -1,0 +1,70 @@
+
+compile rc=0
+ok   title is the first sentence
+ok   a decimal does not end the sentence
+ok   e.g. does not end the sentence
+ok   a lone capital ends the sentence
+ok   St. does not end the sentence
+ok   a question alone is kept whole
+ok   bold markers come out
+ok   cloze shows its term
+ok   lines are folded
+ok   empty text takes the fallback
+ok   wiki brackets are defused
+ok   a long title is cut at a word
+ok   same question, any set, same key
+ok   a card is not the question with the same id
+ok   a lecture is one note whatever the page
+ok   no item: the set is the key
+ok   subject names the folder
+ok   no subject: General
+ok   top-level match wins
+ok   a nested one is used when that is all there is
+ok   accents and spacing are ignored
+ok   no match: make one
+ok   question clip title from stem
+ok   question clip has the answer
+ok   body starts with the idea, not the link
+ok   body ends saying where it came from
+ok   the from line names the set
+ok   the from line links back to the question
+ok   the from link routes to the same item
+ok   body holds the explanation
+ok   a hand-written line is not the from line
+ok   saving the same again adds nothing
+ok   an excerpt is quoted line by line
+ok   an excerpt keeps the note's title
+ok   an excerpt already in the note adds nothing
+ok   a new passage goes above the from line
+ok   a note whose from line was taken out grows at its end
+ok   an empty note takes just the entry
+ok   a passage names the lecture
+ok   a passage carries its page
+ok   a lecture is from a lecture
+ok   a lecture note starts with the quote
+ok   the same passage again adds nothing
+ok   cloze card titled from its sentence
+ok   cloze card body has the why
+ok   card bullets become a list
+ok   station steps are numbered
+ok   a weak step is marked
+ok   an OSCE station takes an
+ok   chip label
+ok   chip label with page
+ok   link round trip question
+ok   link round trip card
+ok   link round trip osce
+ok   link round trip lecture
+ok   link uses the scheme people see
+ok   another host is not a source
+ok   an unknown kind is not a source
+ok   a bad page is dropped
+ok   stored source reads back
+ok   an old note has none
+ok   a kind from a newer version does not read
+ok   a note with a newer source still loads
+ok   a note with a damaged source still loads
+ok   a note's own source reads back
+all save-to-ideas checks passed
+
+run rc=0

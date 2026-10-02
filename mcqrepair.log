@@ -1,0 +1,46 @@
+
+compile rc=0
+ok   option C is Oxygen
+ok   choice B is B, not the c of choice
+ok   the option B is B, not the e of the
+ok   answer B is B, not the a of answer
+ok   the correct answer is A keeps its words
+ok   Answer: (A)
+ok   the answer is option A
+ok   options B and C
+ok   options B, C or D
+ok   option 2 counts from 1
+ok   option 3 before a comma
+ok   the second option
+ok   the last option
+ok   several in one explanation
+ok   the drug of choice a decade ago
+ok   option 0 is not the last option
+ok   the answer 2 hours later
+ok   the drug of choice 2 weeks after
+ok   the second choice after metformin
+ok   the first option for hypertension
+ok   the first choice drug
+ok   a letter the question does not have
+ok   a list with a letter the question does not have
+ok   C. difficile is not option C
+ok   vitamin B12 and hepatitis B
+ok   a hyphenated word after option
+ok   a decimal after option
+ok   an explanation already by content
+ok   a four-option question has no option E
+ok   a clause is cut off the name
+ok   with as a word, not inside withdrawal
+ok   never ends on a dangling word
+ok   a full stop is not part of the name
+ok   look-alike options keep their whole words
+ok   so a reference to one is not a reference to both
+ok   an explanation naming another answer is left as written
+ok   and the accuracy rules still flag it
+ok   an explanation agreeing with the key is rewritten
+ok   a repaired question keeps everything but the explanation
+ok   an empty explanation stays empty
+
+ALL MCQ REPAIR TESTS PASS
+
+run rc=0

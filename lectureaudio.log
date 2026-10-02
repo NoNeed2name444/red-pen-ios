@@ -1,0 +1,24 @@
+/__w/red-pen-ios/red-pen-ios/build/lectureaudio/main.swift:30:23: warning: result of call to 'store(imported:for:in:)' is unused [#NoUsage]
+28 | let gone = dir.appendingPathComponent("picked-then-deleted.m4a")
+29 | var threw = false
+30 | do { try LectureAudio.store(imported: gone, for: set, in: dir) } catch { threw = true }
+   |                       `- warning: result of call to 'store(imported:for:in:)' is unused [#NoUsage]
+31 | ok(threw, "a recording that cannot be copied in says so")
+32 | ok(text(old) == "the old lecture", "and the old recording is still there, whole")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+
+compile rc=0
+ok   a recording that cannot be copied in says so
+ok   and the old recording is still there, whole
+ok   with nothing half-copied left beside it
+ok   a new recording takes the old one's place
+ok   and is the only one for the set
+ok   with nothing left beside it
+ok   a recording in another container replaces the earlier one, under its own lower-case extension
+ok   with what was picked
+ok   another set's recording is left alone
+
+ALL LECTURE AUDIO TESTS PASS
+
+run rc=0

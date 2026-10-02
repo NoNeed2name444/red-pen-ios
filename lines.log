@@ -1,0 +1,42 @@
+
+compile rc=0
+PASS L1 nothing stored: Curved, today's look
+PASS L1 true is Straight, false Curved
+PASS L1 the key
+PASS L1 the words
+PASS L1 -ideasLines straight forces it for a run
+PASS L1 no flag, or a bad one: the stored choice
+PASS L1 in force: the stored Bool without the flag
+PASS L2 as many points as the curve's sampling
+PASS L2 the ends match exactly
+PASS L2 the length is the segment's
+PASS L2 every sample on the one line (collinear)
+PASS L2 evenly spaced
+PASS L2 the length coordinate is the true distance along, rising from 0
+PASS L2 half grown: half the length
+PASS L2 half grown: runs from the start to the middle
+PASS L2 growing keeps every point where the grown link will have it
+PASS L2 the length grows smoothly with the link
+PASS L2 buffers are reused, never shrunk
+PASS L2 a zero-length link is a point, no NaN
+PASS L2 grow is clamped to the whole link
+PASS L3 the curve's ends are the card centres
+PASS L3 the bow is symmetric end to end
+PASS L3 a gentle bow: its middle a ninth of the length off the line (today's)
+PASS L3 it leans to the left of p-to-q, always
+PASS L3 a vertical link leans the same way, relative to its travel
+PASS L4 two parallel links 30 apart stay apart all along
+PASS L4 lanes per pair
+PASS L4 one link: today's bow
+PASS L4 three links between one pair fan out, their middles well apart
+PASS L4 fanned curves meet only at the cards
+PASS L4 straight lanes side by side, a lane's gap apart
+PASS L4 one straight link: exactly centre to centre
+PASS L5 straight: evenly along the segment
+PASS L5 an arrowhead on a straight link points along it
+PASS L5 an arrowhead on a curved link follows the curve in
+PASS L5 a hit test finds the curve where it is drawn
+PASS L5 and the straight line where it is drawn
+all passed
+
+run rc=0

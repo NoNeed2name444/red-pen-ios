@@ -1,0 +1,32 @@
+
+compile rc=0
+ok   a missed question keeps its picture
+ok   one without a picture stays without
+ok   only the pictures needed are copied
+ok   the lecture comes along, so citations still open
+ok   a top-up adds only new questions
+ok   and a picture already here is not copied again
+ok   the new question points at its own picture
+ok   and the lecture is not listed twice
+ok   a picture index past the end carries nothing
+ok   the books are joined with every picture
+ok   the second book's figure points at its own picture, not the first book's
+ok   the first book's figures are untouched
+ok   words that only mention image:0 in a sentence are left alone
+ok   both books' sources are kept
+ok   a card's picture is re-based into the joined pool
+ok   sets of different kinds are not combined
+ok   one set is not a combination
+ok   rebasing by nothing changes nothing
+ok   a question-side picture is the card's, on the front
+ok   one only on the answer side is the answer's
+ok   none the package carries: none
+ok   an answer's picture waits for the reveal
+ok   a card's picture shows on the front by default
+ok   an occlusion card's picture is always the question
+ok   the side is saved with the card
+ok   a card saved before the side existed reads as a front picture
+
+ALL PICTURE TESTS PASS
+
+run rc=0

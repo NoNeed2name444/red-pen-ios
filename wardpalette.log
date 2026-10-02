@@ -1,0 +1,37 @@
+
+compile rc=0
+ok   every token has a value
+ok   white on black is 21
+ok   Theatre Blue on Clean Sheet is about 6.3
+ok   light: ink on surface at least 4.5
+ok   light: ink on background at least 4.5
+ok   light: inkSecondary on surface at least 4.5
+ok   light: inkSecondary on background at least 4.5
+ok   light: primaryInk on surface at least 4.5
+ok   light: primaryInk on background at least 4.5
+ok   light: onPrimary on primary at least 4.5
+ok   light: ecg on surface at least 4.5
+ok   light: success on surface at least 4.5
+ok   light: warning on surface at least 4.5
+ok   light: danger on surface at least 4.5
+ok   light: beam on surface at least 3.0
+ok   dark: ink on surface at least 4.5
+ok   dark: ink on background at least 4.5
+ok   dark: inkSecondary on surface at least 4.5
+ok   dark: inkSecondary on background at least 4.5
+ok   dark: primaryInk on surface at least 4.5
+ok   dark: primaryInk on background at least 4.5
+ok   dark: onPrimary on primary at least 4.5
+ok   dark: ecg on surface at least 4.5
+ok   dark: success on surface at least 4.5
+ok   dark: warning on surface at least 4.5
+ok   dark: danger on surface at least 4.5
+ok   dark: beam on surface at least 3.0
+ok   the monitor card is dark in both modes
+ok   the AccentColor asset is found
+ok   AccentColor (light) is Theatre Blue
+ok   AccentColor (dark) is the night-shift primary
+
+ALL WARD PALETTE TESTS PASS
+
+run rc=0

@@ -1,0 +1,204 @@
+
+compile rc=0
+ok   paracetamol 10 g is a severe dose error
+ok   metformin 500 mg is fine
+ok   digoxin 25 mg is severe
+ok   adrenaline 0.5 mg IM is fine
+ok   a per-kg dose is left alone
+ok   a dose before the drug is read
+ok   micrograms are converted
+ok   atorvastatin 800 mg is severe
+ok   glucose 5.5 mg/dL is impossible
+ok   sodium 128 mmol/L is fine
+ok   sodium in mg/dL is the wrong unit
+ok   a wrong reference range is severe
+ok   the right reference range passes
+ok   pH and PaCO2 are read
+ok   one analyte raised and lowered
+ok   vitamin K is not potassium
+ok   a clean question has no hits
+ok   an explanation naming another letter
+ok   or another option's words
+ok   an explanation calling the key wrong
+ok   a duplicate of the key is severe
+ok   all of the above not last
+ok   all of the above keyed beside none of the above
+ok   a key outside the options
+ok   stem and explanation disagree on a value
+ok   an EXCEPT question whose explanation calls the key true
+ok   the explanation's letter is read
+ok   the source match
+ok   the tables are read
+ok   Verified needs three model families
+ok   three blind solves from three families reach the key, with support: Verified
+ok   two blind families on the key are no longer enough
+ok   a family whose blind solve went elsewhere keeps it from Verified
+ok   a concern from any checker keeps it from Verified
+ok   literature read against it keeps it from Verified
+ok   votes that saw the key do not verify a question
+ok   three families solving it blind agree on another answer, none on the key: Flagged
+ok   two families on another answer are not proof enough to flag
+ok   two families on another answer and one on the key: Check this
+ok   two blind solves from one family are one witness
+ok   three families judging a card wrong: Flagged
+ok   two families judging it wrong: Check this
+ok   three passing families verify a card
+ok   the blind mark comes from the server's reply
+ok   three passing votes from two families (Gemini and Gemma are one) are Check this
+ok   families: Gemma and Gemini are Google, gpt-oss OpenAI, Nemotron NVIDIA
+ok   checkers shown the key calling it wrong, with no blind solve: Check this, not proof
+ok   a split vote is Check this
+ok   rules alone never verify
+ok   a severe rule with no model is Flagged
+ok   a severe rule is never Verified
+ok   a single vote, however sure, is Check this, never Verified
+ok   any item passed by three families but with nothing in the literature or its lecture stays Check this
+ok   with the literature or its own lecture behind it, an oath item can be Verified
+ok   dose found: Give amoxicillin 500 mg PO three times a day
+ok   dose found: Start IV ceftriaxone 2 g once daily
+ok   dose found: Paracetamol 15 mg/kg every 6 hours
+ok   dose found: Enoxaparin 1 mg/kg twice daily
+ok   dose found: Adrenaline IM 0.5 mg
+ok   dose found: Insulin 10 units at night nocte
+ok   dose found: Give 1 g stat
+ok   dose not found: Potassium 6.8 mmol/L, glucose 250 mg/dL
+ok   dose not found: A 45-year-old man weighing 80 kg presents
+ok   dose not found: Haemoglobin 9 g/dL with low MCV
+ok   dose not found: What is the most likely diagnosis?
+ok   dose not found: The mechanism of aspirin
+ok   a diagnosis, a treatment or a dose makes an oath item; a mechanism does not
+ok   key disagreement is a share
+ok   the bundled weights decode and are valid
+ok   inference is the logistic of the weighted sum
+ok   new weights re-score without a new check
+ok   weights with crossed cut-offs are invalid
+ok   the hash is stable and 32 hex
+ok   it is of the content, not the id
+ok   any edit changes it
+ok   FNV-1a of the empty string is its offset basis
+ok   the checker text matches the server's
+ok   a question becomes an item
+ok   with its lecture excerpt
+ok   cards (not a wordless occlusion)
+ok   stations
+ok   a textbook's pages
+ok   a narration's key facts, not its chatter
+ok   a note is its own kind
+ok   an unchecked item with no rule hits is Not checked yet
+ok   three families' blind solves make it Verified
+ok   a check that reached only two families is Check this, and asked again once a day has passed
+ok   a question checked before blind solving is asked about again
+ok   a model's new vote replaces its old one
+ok   and its concern is a reason
+ok   a reported item is never shown as Verified again
+ok   a reply the gate found nothing in: Verified on the votes, as before
+ok   an item that contradicts its own lecture is never Verified, whatever the votes
+ok   and the finding is a reason, in words
+ok   a later reply's findings replace the earlier ones
+ok   a vote from elsewhere, with no gate, leaves the findings as they were
+ok   a gate that failed holds the item at Check this, with its votes kept
+ok   and it is asked about again later, not at once
+ok   asked again and the gate works: graded on the votes
+ok   a finding without a code still holds the item
+ok   no vote: failed, unless the day's checks ran out
+ok   a record saved before the gate still loads, with no findings
+ok   a set's summary
+ok   nothing checked: no summary line
+ok   a failed check waits before it is tried again
+ok   records of edited or deleted items are pruned
+ok   just-made content first, in the foreground
+ok   in batches of four
+ok   then this week's, then most-studied, then the rest, in the background
+ok   checked items are never sent again, failed ones wait
+ok   the day's limit is kept
+ok   the same content in two sets is checked once
+ok   a key correction moves the key
+ok   and the edit means a new check
+ok   a key outside the options is not offered
+ok   an explanation correction
+ok   a card's answer, line by line
+ok   a station's steps
+ok   a fix for an unknown item does nothing
+ok   the shared rule cases are found
+ok   "Give digoxin 1.0 mg orally now." gives dose-notation:minor
+ok   "Start colchicine .5 mg twice daily." gives dose-notation:minor
+ok   "Heparin 5000 U subcutaneously twice daily." gives dose-notation:minor
+ok   "Levothyroxine 100 mcg QD." gives dose-notation:minor
+ok   "Give 0.5 mg of colchicine, then 1 mg an hour later." gives no dose-notation
+ok   "Vitamin D 1000 IU daily." gives no dose-notation
+ok   "An albumin of 4.0 g/dL is normal." gives no dose-notation
+ok   "Hydroxyzine is used for hypertension in pregnancy." gives look-alike-drug:severe
+ok   "Hydralazine is used for hypertension in pregnancy." gives no look-alike-drug
+ok   "Clonazepam is first-line for ADHD." gives look-alike-drug:severe
+ok   "Metronidazole for type 2 diabetes." gives look-alike-drug:severe
+ok   "Lamivudine is used to treat epilepsy." gives look-alike-drug:severe
+ok   "Unlike hydralazine, hydroxyzine is used for itching." gives no look-alike-drug
+ok   "Ropinirole is used in restless legs syndrome; risperidone treats schizophrenia." gives no look-alike-drug
+ok   "Tramadol is not used for depression." gives no look-alike-drug
+ok   "Normal calcium is 2.1-2.6." gives no reference-range
+ok   "Normal calcium is 8.5-10.5." gives no reference-range
+ok   "Normal calcium is 12-15." gives reference-range:severe
+ok   "Normal calcium is 4-6." gives no reference-range
+ok   "Normal potassium is 5.5-7.5 mmol/L." gives reference-range:severe
+ok   "Normal potassium is 3.5-5.0 mmol/L." gives no reference-range
+ok   "In asystole give adrenaline 1 mg and atropine 3 mg IV." gives outdated-practice:severe
+ok   "Give 0.5 mg atropine for asystole." gives outdated-practice:severe
+ok   "Atropine is no longer recommended in asystole or PEA." gives no outdated-practice
+ok   "Atropine is used for symptomatic bradycardia; adrenaline for asystole." gives no outdated-practice
+ok   "The adult CPR ratio is 15:2." gives outdated-practice:severe
+ok   "For a child with two rescuers use 15:2." gives no outdated-practice
+ok   "Syrup of ipecac induces vomiting after poisoning." gives outdated-practice:severe
+ok   "Resuscitate septic shock with HES 6% 500 ml." gives outdated-practice:severe
+ok   "Renal-dose dopamine is used to prevent AKI." gives outdated-practice:severe
+ok   "Low-dose dopamine causes renal vasodilation via D1 receptors." gives no outdated-practice
+ok   "Co-proxamol is used for moderate pain." gives outdated-practice:severe
+ok   "Co-proxamol overdose causes arrhythmia." gives no outdated-practice
+ok   "In ICU keep glucose 80-110 mg/dL." gives outdated-practice:severe
+ok   "Normal fasting glucose is 80-110 mg/dL." gives no outdated-practice
+ok   "Give prophylactic lidocaine after MI." gives outdated-practice:severe
+ok   "Initial management of ACS is MONA." gives outdated-practice:minor
+ok   "Give oxygen to all patients with MI." gives outdated-practice:minor
+ok   "Give oxygen to MI patients if SpO2 is below 90%." gives no outdated-practice
+ok   "Ranitidine 150 mg is given for GERD." gives outdated-practice:minor
+ok   "Ranitidine is an H2 blocker." gives no outdated-practice
+ok   "Advise bed rest for acute low back pain." gives outdated-practice:minor
+ok   "Avoid bed rest in low back pain." gives no outdated-practice
+ok   "Non-vigorous meconium-stained babies should be intubated and suctioned." gives outdated-practice:minor
+ok   "A 60-year-old collapses. The monitor shows asystole. CPR is started. Which drug should be given next?" gives outdated-practice:severe
+ok   "A 60-year-old collapses. The monitor shows asystole. CPR is started. Which drug should be given next?" gives no outdated-practice
+ok   "He does not respond to voice. The monitor shows asystole. Which drug should be given next?" gives outdated-practice:severe
+ok   "The monitor shows asystole. Which drug is NOT recommended?" gives no outdated-practice
+ok   "Which fluid is best for septic shock?" gives outdated-practice:minor
+ok   "Which immunophenotype is typical of CLL?" gives no duplicate-option
+ok   "Which result rejects the null hypothesis?" gives no duplicate-option
+ok   "Which thyroid profile fits?" gives no duplicate-option
+ok   "Which protein aggregates in Parkinson disease?" gives no duplicate-option
+ok   "Which infection?" gives duplicate-option:severe
+ok   "What distinguishes naloxone from naltrexone?" gives no dose-range
+ok   "Which drug and dose?" gives dose-range:severe
+ok   "Which tissue?" gives key-explanation-conflict:severe
+ok   "Which tissue?" gives no key-explanation-conflict
+ok   "Which drug?" gives no key-explanation-conflict
+ok   "Urine pH 5.7 and specific gravity 1.020." gives no lab-implausible
+ok   "The vaginal pH is 5.5." gives no lab-implausible
+ok   "Arterial blood gas: pH 6.2, PaCO2 30 mmHg." gives lab-implausible:severe
+ok   "Urine | Sodium 45 mEq/L" gives no lab-implausible
+ok   "Serum sodium 45 mEq/L." gives lab-implausible:severe
+ok   "In the CSF obtained after a lumbar puncture, a xanthochromic fluid is observed, with the following data: opening pressure 22 cm of H2O; cells 98, 100% mononuclear; glucose 5 mg/dL." gives no lab-implausible
+ok   "Serum pre-albumin of 0.03 g/L (normal 0.2-0.4)." gives no lab-implausible
+ok   "Albumin: 2.3 g/L." gives lab-implausible:severe
+ok   "Hemoglobin 16 mg/dL." gives lab-unit:minor
+ok   "The serum digoxin level, which is 3.7 ng/mL, is high." gives no dose-range
+ok   "She takes hydrocodone-acetaminophen 5 mg/325 mg tablets." gives no dose-range
+ok   "Her medicines include amlodipine, metformin, and prednisone 5 mg twice daily." gives no dose-range
+ok   "Fentanyl 600 mcg sublingual tablets." gives no dose-range
+ok   "Doxycycline 20 mg twice daily is the sub-antimicrobial dose." gives no dose-range
+ok   "Use atropine rather than adrenaline in asystole." gives outdated-practice:severe
+ok   "Activated charcoal is preferred to ipecac for gastric decontamination." gives no outdated-practice
+ok   "In ventilated ICU patients, blood glucose should be kept between 80 and 110 mg/dl." gives outdated-practice:severe
+ok   "All meconium-stained babies who are not vigorous should be intubated immediately and suctioned." gives outdated-practice:minor
+ok   "Non-vigorous meconium-stained newborns should receive ventilation without routine tracheal suction." gives no outdated-practice
+
+ALL ACCURACY TESTS PASS
+
+run rc=0

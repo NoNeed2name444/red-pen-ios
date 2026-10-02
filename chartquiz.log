@@ -1,0 +1,57 @@
+
+compile rc=0
+ok   the title is the set's subject
+ok   no subject: the set's name
+ok   neither: Questions
+ok   a question is a patient
+ok   a timed paper says only how many are answered
+ok   a saved place asks first
+ok   before the first answer, a nudge
+ok   then the running score
+ok   the strip starts empty and fills with the paper
+ok   the chip says best answer, or second try on a re-test
+ok   the clock in minutes
+ok   and in hours for a long paper
+ok   VoiceOver hears minutes and seconds
+ok   a stem with observations is charted
+ok   chips for who the patient is
+ok   the vitals grid and the results table
+ok   the story, without the lines the chart shows
+ok   the question on its own
+ok   a stem with nothing to chart is plain text, whole
+ok   with no chips, grid or table
+ok   who the patient is alone is not a chart
+ok   results alone: a table and no empty grid
+ok   vitals alone: a grid and no empty table
+ok   the story's marks
+ok   the question's marks, from 0
+ok   marking the question leaves the story's
+ok   clearing the story leaves the question's
+ok   a plain stem's marks are the story's
+ok   before checking: chosen and idle
+ok   nothing chosen: nothing blue
+ok   checked: the right one green, the wrong pick red, the rest past
+ok   a right pick is right, not wrong
+ok   a timed paper never shows right or wrong
+ok   a question with no key paints no option right
+ok   a crossed-out option is dimmed
+ok   except the right answer once shown
+ok   and nothing else is
+ok   VoiceOver hears right and wrong, not only colour
+ok   nothing picked says so
+ok   the slow reading drill holds
+ok   then Check answer
+ok   checked: Next patient
+ok   and See results on the last
+ok   a paper answers and moves on
+ok   Explain once checked
+ok   not before, nor in a paper
+ok   a flagged reading is drawn as danger
+ok   a vital sign is read out in words
+ok   saturation by name
+ok   a result with its unit and flag
+ok   a normal reading has no flag word
+
+ALL CHART QUIZ TESTS PASS
+
+run rc=0

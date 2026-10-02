@@ -1,0 +1,32 @@
+
+compile rc=0
+PASS L1 default 1, range 0.6 to 1.8
+PASS L1 stored under vignette.space.linkLength
+PASS L1 missing or broken values read as standard
+PASS L1 clamped and snapped
+PASS L1 words
+PASS L1 the footer is live
+PASS L1 the signature changes with it
+PASS L1 the input defaults to 1
+PASS L1 the planners clamp too
+PASS L1 at 1 the plan is exactly as before
+PASS U at 0.6, 0.8, 1, 1.4 and 1.8: ladder, containment, no overlaps (also x1.5), envelope, determinism
+PASS U body sizes never change with the link length
+PASS U linked bodies stand further apart as it grows
+PASS U above 1 every drawn link is exactly the setting times as long
+PASS U orbits tighten and widen
+PASS U galaxies stand closer and further apart
+PASS U the summary and the roles do not change
+PASS N at 0.6 to 1.8: dendrites clear, cells never meet, ladder, pathways outward, envelope, determinism
+PASS N cell sizes never change
+PASS N linked cells stand further apart as it grows
+PASS N above 1 every drawn axon is exactly the setting times as long
+PASS N pathways shorten and lengthen
+PASS C at 0.6 to 1.8: closed loops, footprints clear, flat on their boards, boards apart, ladder, envelope, determinism
+PASS C part sizes never change
+PASS C linked parts stand further apart as it grows
+PASS C boards grow with the setting
+PASS C the same circuit at every length
+all passed
+
+run rc=0

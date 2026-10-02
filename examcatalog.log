@@ -1,0 +1,439 @@
+
+compile rc=0
+ok   at least twenty exams
+ok   ids are unique
+ok   every exam asked for is there
+ok   step1: the blueprint sums to 100%
+ok   step1: raw weights are near 100% (or out of 200 / 300)
+ok   step1: no area twice
+ok   step1: every weight positive
+ok   step1: four or five options
+ok   step1: a paper to sit
+ok   step1: a sane pace
+ok   step1: a sane pass mark
+ok   step1: strictness 0-1
+ok   step1: a stem range
+ok   step1: cites its blueprint
+ok   step1: not both blockwise and separate
+ok   step2ck: the blueprint sums to 100%
+ok   step2ck: raw weights are near 100% (or out of 200 / 300)
+ok   step2ck: no area twice
+ok   step2ck: every weight positive
+ok   step2ck: four or five options
+ok   step2ck: a paper to sit
+ok   step2ck: a sane pace
+ok   step2ck: a sane pass mark
+ok   step2ck: strictness 0-1
+ok   step2ck: a stem range
+ok   step2ck: cites its blueprint
+ok   step2ck: not both blockwise and separate
+ok   step3: the blueprint sums to 100%
+ok   step3: raw weights are near 100% (or out of 200 / 300)
+ok   step3: no area twice
+ok   step3: every weight positive
+ok   step3: four or five options
+ok   step3: a paper to sit
+ok   step3: a sane pace
+ok   step3: a sane pass mark
+ok   step3: strictness 0-1
+ok   step3: a stem range
+ok   step3: cites its blueprint
+ok   step3: not both blockwise and separate
+ok   comlex1: the blueprint sums to 100%
+ok   comlex1: raw weights are near 100% (or out of 200 / 300)
+ok   comlex1: no area twice
+ok   comlex1: every weight positive
+ok   comlex1: four or five options
+ok   comlex1: a paper to sit
+ok   comlex1: a sane pace
+ok   comlex1: a sane pass mark
+ok   comlex1: strictness 0-1
+ok   comlex1: a stem range
+ok   comlex1: cites its blueprint
+ok   comlex1: not both blockwise and separate
+ok   comlex2: the blueprint sums to 100%
+ok   comlex2: raw weights are near 100% (or out of 200 / 300)
+ok   comlex2: no area twice
+ok   comlex2: every weight positive
+ok   comlex2: four or five options
+ok   comlex2: a paper to sit
+ok   comlex2: a sane pace
+ok   comlex2: a sane pass mark
+ok   comlex2: strictness 0-1
+ok   comlex2: a stem range
+ok   comlex2: cites its blueprint
+ok   comlex2: not both blockwise and separate
+ok   plab1: the blueprint sums to 100%
+ok   plab1: raw weights are near 100% (or out of 200 / 300)
+ok   plab1: no area twice
+ok   plab1: every weight positive
+ok   plab1: four or five options
+ok   plab1: a paper to sit
+ok   plab1: a sane pace
+ok   plab1: a sane pass mark
+ok   plab1: strictness 0-1
+ok   plab1: a stem range
+ok   plab1: cites its blueprint
+ok   plab1: not both blockwise and separate
+ok   mrcp1: the blueprint sums to 100%
+ok   mrcp1: raw weights are near 100% (or out of 200 / 300)
+ok   mrcp1: no area twice
+ok   mrcp1: every weight positive
+ok   mrcp1: four or five options
+ok   mrcp1: a paper to sit
+ok   mrcp1: a sane pace
+ok   mrcp1: a sane pass mark
+ok   mrcp1: strictness 0-1
+ok   mrcp1: a stem range
+ok   mrcp1: cites its blueprint
+ok   mrcp1: not both blockwise and separate
+ok   mrcsA: the blueprint sums to 100%
+ok   mrcsA: raw weights are near 100% (or out of 200 / 300)
+ok   mrcsA: no area twice
+ok   mrcsA: every weight positive
+ok   mrcsA: four or five options
+ok   mrcsA: a paper to sit
+ok   mrcsA: a sane pace
+ok   mrcsA: a sane pass mark
+ok   mrcsA: strictness 0-1
+ok   mrcsA: a stem range
+ok   mrcsA: cites its blueprint
+ok   mrcsA: not both blockwise and separate
+ok   mccqe1: the blueprint sums to 100%
+ok   mccqe1: raw weights are near 100% (or out of 200 / 300)
+ok   mccqe1: no area twice
+ok   mccqe1: every weight positive
+ok   mccqe1: four or five options
+ok   mccqe1: a paper to sit
+ok   mccqe1: a sane pace
+ok   mccqe1: a sane pass mark
+ok   mccqe1: strictness 0-1
+ok   mccqe1: a stem range
+ok   mccqe1: cites its blueprint
+ok   mccqe1: not both blockwise and separate
+ok   amc: the blueprint sums to 100%
+ok   amc: raw weights are near 100% (or out of 200 / 300)
+ok   amc: no area twice
+ok   amc: every weight positive
+ok   amc: four or five options
+ok   amc: a paper to sit
+ok   amc: a sane pace
+ok   amc: a sane pass mark
+ok   amc: strictness 0-1
+ok   amc: a stem range
+ok   amc: cites its blueprint
+ok   amc: not both blockwise and separate
+ok   neetpg: the blueprint sums to 100%
+ok   neetpg: raw weights are near 100% (or out of 200 / 300)
+ok   neetpg: no area twice
+ok   neetpg: every weight positive
+ok   neetpg: four or five options
+ok   neetpg: a paper to sit
+ok   neetpg: a sane pace
+ok   neetpg: a sane pass mark
+ok   neetpg: strictness 0-1
+ok   neetpg: a stem range
+ok   neetpg: cites its blueprint
+ok   neetpg: not both blockwise and separate
+ok   inicet: the blueprint sums to 100%
+ok   inicet: raw weights are near 100% (or out of 200 / 300)
+ok   inicet: no area twice
+ok   inicet: every weight positive
+ok   inicet: four or five options
+ok   inicet: a paper to sit
+ok   inicet: a sane pace
+ok   inicet: a sane pass mark
+ok   inicet: strictness 0-1
+ok   inicet: a stem range
+ok   inicet: cites its blueprint
+ok   inicet: not both blockwise and separate
+ok   fmge: the blueprint sums to 100%
+ok   fmge: raw weights are near 100% (or out of 200 / 300)
+ok   fmge: no area twice
+ok   fmge: every weight positive
+ok   fmge: four or five options
+ok   fmge: a paper to sit
+ok   fmge: a sane pace
+ok   fmge: a sane pass mark
+ok   fmge: strictness 0-1
+ok   fmge: a stem range
+ok   fmge: cites its blueprint
+ok   fmge: not both blockwise and separate
+ok   smle: the blueprint sums to 100%
+ok   smle: raw weights are near 100% (or out of 200 / 300)
+ok   smle: no area twice
+ok   smle: every weight positive
+ok   smle: four or five options
+ok   smle: a paper to sit
+ok   smle: a sane pace
+ok   smle: a sane pass mark
+ok   smle: strictness 0-1
+ok   smle: a stem range
+ok   smle: cites its blueprint
+ok   smle: not both blockwise and separate
+ok   dha: the blueprint sums to 100%
+ok   dha: raw weights are near 100% (or out of 200 / 300)
+ok   dha: no area twice
+ok   dha: every weight positive
+ok   dha: four or five options
+ok   dha: a paper to sit
+ok   dha: a sane pace
+ok   dha: a sane pass mark
+ok   dha: strictness 0-1
+ok   dha: a stem range
+ok   dha: cites its blueprint
+ok   dha: not both blockwise and separate
+ok   doh: the blueprint sums to 100%
+ok   doh: raw weights are near 100% (or out of 200 / 300)
+ok   doh: no area twice
+ok   doh: every weight positive
+ok   doh: four or five options
+ok   doh: a paper to sit
+ok   doh: a sane pace
+ok   doh: a sane pass mark
+ok   doh: strictness 0-1
+ok   doh: a stem range
+ok   doh: cites its blueprint
+ok   doh: not both blockwise and separate
+ok   mohap: the blueprint sums to 100%
+ok   mohap: raw weights are near 100% (or out of 200 / 300)
+ok   mohap: no area twice
+ok   mohap: every weight positive
+ok   mohap: four or five options
+ok   mohap: a paper to sit
+ok   mohap: a sane pace
+ok   mohap: a sane pass mark
+ok   mohap: strictness 0-1
+ok   mohap: a stem range
+ok   mohap: cites its blueprint
+ok   mohap: not both blockwise and separate
+ok   qchp: the blueprint sums to 100%
+ok   qchp: raw weights are near 100% (or out of 200 / 300)
+ok   qchp: no area twice
+ok   qchp: every weight positive
+ok   qchp: four or five options
+ok   qchp: a paper to sit
+ok   qchp: a sane pace
+ok   qchp: a sane pass mark
+ok   qchp: strictness 0-1
+ok   qchp: a stem range
+ok   qchp: cites its blueprint
+ok   qchp: not both blockwise and separate
+ok   omsb: the blueprint sums to 100%
+ok   omsb: raw weights are near 100% (or out of 200 / 300)
+ok   omsb: no area twice
+ok   omsb: every weight positive
+ok   omsb: four or five options
+ok   omsb: a paper to sit
+ok   omsb: a sane pace
+ok   omsb: a sane pass mark
+ok   omsb: strictness 0-1
+ok   omsb: a stem range
+ok   omsb: cites its blueprint
+ok   omsb: not both blockwise and separate
+ok   emle: the blueprint sums to 100%
+ok   emle: raw weights are near 100% (or out of 200 / 300)
+ok   emle: no area twice
+ok   emle: every weight positive
+ok   emle: four or five options
+ok   emle: a paper to sit
+ok   emle: a sane pace
+ok   emle: a sane pass mark
+ok   emle: strictness 0-1
+ok   emle: a stem range
+ok   emle: cites its blueprint
+ok   emle: not both blockwise and separate
+ok   ifom: the blueprint sums to 100%
+ok   ifom: raw weights are near 100% (or out of 200 / 300)
+ok   ifom: no area twice
+ok   ifom: every weight positive
+ok   ifom: four or five options
+ok   ifom: a paper to sit
+ok   ifom: a sane pace
+ok   ifom: a sane pass mark
+ok   ifom: strictness 0-1
+ok   ifom: a stem range
+ok   ifom: cites its blueprint
+ok   ifom: not both blockwise and separate
+ok   anatomy has syllabus subtopics
+ok   physiology has syllabus subtopics
+ok   biochemistry has syllabus subtopics
+ok   pathology has syllabus subtopics
+ok   pharmacology has syllabus subtopics
+ok   microbiology has syllabus subtopics
+ok   immunology has syllabus subtopics
+ok   genetics has syllabus subtopics
+ok   multisystem has syllabus subtopics
+ok   biostatistics has syllabus subtopics
+ok   ethics has syllabus subtopics
+ok   forensic has syllabus subtopics
+ok   community has syllabus subtopics
+ok   cardio has syllabus subtopics
+ok   resp has syllabus subtopics
+ok   gi has syllabus subtopics
+ok   endocrine has syllabus subtopics
+ok   renal has syllabus subtopics
+ok   neuro has syllabus subtopics
+ok   msk has syllabus subtopics
+ok   heme has syllabus subtopics
+ok   id has syllabus subtopics
+ok   derm has syllabus subtopics
+ok   psychiatry has syllabus subtopics
+ok   peds has syllabus subtopics
+ok   obstetrics has syllabus subtopics
+ok   gynaecology has syllabus subtopics
+ok   ent has syllabus subtopics
+ok   ophthalmology has syllabus subtopics
+ok   oncology has syllabus subtopics
+ok   surgery has syllabus subtopics
+ok   orthopaedics has syllabus subtopics
+ok   anaesthesia has syllabus subtopics
+ok   radiology has syllabus subtopics
+ok   emergency has syllabus subtopics
+ok   geriatrics has syllabus subtopics
+ok   palliative has syllabus subtopics
+ok   sexualHealth has syllabus subtopics
+ok   omm has syllabus subtopics
+ok   the picker's regions hold every exam
+ok   Step 1: cardiovascular 8% (6-10%)
+ok   Step 1: multisystem 10% (8-12%)
+ok   Step 1: biostatistics 5% (4-6%)
+ok   Step 1: respiratory + renal 13% (11-15%)
+ok   Step 1 is 7 blocks of 40 in an hour
+ok   Step 2 CK: normalised from the published midpoints
+ok   MRCP Part 1 is out of 200
+ok   NEET-PG: four options, negative marking
+ok   FMGE passes at 50%
+ok   Step 2 CK and 3 are stricter than Step 1
+ok   the exams with unpublished formats say so
+ok   families: UK exams keep their track
+ok   nothing chosen, nothing asked
+ok   choosing moves the track to the exam's family
+ok   the choice is effective under its track
+ok   the second exam comes with it
+ok   the accuracy engine is told
+ok   answered once chosen
+ok   another track lets go of it
+ok   the UK tracks fall back to their own exam
+ok   the same exam twice is one exam
+ok   clearing forgets the exam and the strictness
+ok   the plan follows the blueprint, heaviest first
+ok   area names are unique
+ok   alone, weight is share
+ok   a second exam adds its own areas
+ok   combined weights still add to 100
+ok   the second exam's share is 30%
+ok   step1 + PLAB: unique area names
+ok   step2ck + PLAB: unique area names
+ok   step3 + PLAB: unique area names
+ok   comlex1 + PLAB: unique area names
+ok   comlex2 + PLAB: unique area names
+ok   plab1 + PLAB: unique area names
+ok   mrcp1 + PLAB: unique area names
+ok   mrcsA + PLAB: unique area names
+ok   mccqe1 + PLAB: unique area names
+ok   amc + PLAB: unique area names
+ok   neetpg + PLAB: unique area names
+ok   inicet + PLAB: unique area names
+ok   fmge + PLAB: unique area names
+ok   smle + PLAB: unique area names
+ok   dha + PLAB: unique area names
+ok   doh + PLAB: unique area names
+ok   mohap + PLAB: unique area names
+ok   qchp + PLAB: unique area names
+ok   omsb + PLAB: unique area names
+ok   emle + PLAB: unique area names
+ok   ifom + PLAB: unique area names
+ok   quotas add up to the set
+ok   the heaviest area gets the most
+ok   one question goes to the heaviest
+ok   no questions, no quotas
+ok   200 questions follow NEET-PG's 200-question distribution
+ok   coverage: covered 1, thin a half
+ok   readiness leans on the answers
+ok   an unassessed area starts at the prior
+ok   study next: a heavy uncovered area first
+ok   study next: a well-known light area is not in it
+ok   predicted score is a weighted readiness
+ok   blueprint coverage is weighted by share
+ok   a question on asthma is respiratory
+ok   atrial fibrillation is cardiovascular
+ok   within a blueprint only
+ok   nothing matches, nothing returned
+ok   the bundled exemplars decode
+ok   three style sources
+ok   filed under known topics
+ok   every exam has exemplars
+ok   NEET-PG's are four-option one-liners
+ok   the topic's own first
+ok   turned over each round (as the server does)
+ok   a topic with none borrows
+ok   never more than three
+ok   another exam's source gives none
+ok   the block: stem, options, key, warning
+ok   the placeholder for a cloud job
+ok   a stem that lifts an exemplar is caught
+ok   a fresh stem is not
+ok   NEET-PG: four options
+ok   NEET-PG: its own opening, not NBME's
+ok   NEET-PG: the JSON shape has four slots
+ok   NEET-PG: three distractors
+ok   NEET-PG: recall-heavy
+ok   NEET-PG: negative marking noted
+ok   NEET-PG: weighted by blueprint with no topic
+ok   NEET-PG: exemplars shown
+ok   Step 2 CK: the family's style names the exam
+ok   Step 2 CK: exemplars left for the server, on the topic
+ok   Step 2 CK: a topic set is not blueprint-weighted
+ok   Step 2 CK: management emphasis
+ok   Step 2 CK: five options
+ok   an exam from another track is ignored
+ok   no exam: the prompt as before
+ok   PLAB + MRCP: combined weighting
+ok   four or five options are valid, three are not
+ok   step1: prompt asks for its option count and names it
+ok   step2ck: prompt asks for its option count and names it
+ok   step3: prompt asks for its option count and names it
+ok   comlex1: prompt asks for its option count and names it
+ok   comlex2: prompt asks for its option count and names it
+ok   plab1: prompt asks for its option count and names it
+ok   mrcp1: prompt asks for its option count and names it
+ok   mrcsA: prompt asks for its option count and names it
+ok   mccqe1: prompt asks for its option count and names it
+ok   amc: prompt asks for its option count and names it
+ok   neetpg: prompt asks for its option count and names it
+ok   inicet: prompt asks for its option count and names it
+ok   fmge: prompt asks for its option count and names it
+ok   smle: prompt asks for its option count and names it
+ok   dha: prompt asks for its option count and names it
+ok   doh: prompt asks for its option count and names it
+ok   mohap: prompt asks for its option count and names it
+ok   qchp: prompt asks for its option count and names it
+ok   omsb: prompt asks for its option count and names it
+ok   emle: prompt asks for its option count and names it
+ok   ifom: prompt asks for its option count and names it
+ok   Step 1: three blocks of 40 in an hour
+ok   never more blocks than the exam
+ok   MRCP: two papers sat apart
+ok   NEET-PG: one paper, 200 in 210 minutes
+ok   Step 3's blocks are named for the day
+ok   exam-day kit: a Step 2 CK block
+ok   exam-day kit: all of NEET-PG
+ok   exam-day kit: an unconfirmed format is not called published
+ok   pass mark: the exam's, else the track's
+ok   the mock is the size asked
+ok   areas short of questions give their places away
+ok   surgery and paediatrics share the rest evenly
+ok   a small library gives what it has
+ok   half strict: 0.92 / 0.45, as the server
+ok   fully strict: 0.99 with a gap
+ok   no strictness, no change
+ok   management lead-ins
+ok   Step 2 CK: a management question is judged stricter
+ok   Step 2 CK: a mechanism question is not
+ok   once the track moves on, the strictness goes
+ok   P = 0.9: Verified for Step 1, Check this for a Step 2 CK management question
+
+ALL EXAM CATALOGUE TESTS PASS
+
+run rc=0

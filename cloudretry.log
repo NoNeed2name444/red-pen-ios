@@ -1,0 +1,37 @@
+
+compile rc=0
+ok   no signal: asked again in two seconds
+ok   a server error is asked again 7 times, then handed over
+ok   with the waits in order: [2.0, 4.0, 8.0, 15.0, 30.0, 30.0, 30.0]
+ok   each wait no shorter than the one before
+ok   about two minutes in all while the screen waits (119 s)
+ok   past the last wait, handed over to the collector
+ok   HTTP 429 is worth asking again
+ok   HTTP 500 is worth asking again
+ok   HTTP 502 is worth asking again
+ok   HTTP 503 is worth asking again
+ok   HTTP 504 is worth asking again
+ok   HTTP 401 is handed over at once, not retried
+ok   HTTP 403 is handed over at once, not retried
+ok   HTTP 404 is handed over at once, not retried
+ok   a count of nothing failed is not a reason to wait
+ok   a fetch that works is not delayed
+ok   not by a second
+ok   one dropped request no longer loses the wait
+ok   a server that blinks for a few seconds is waited out
+ok   so is a lift with no signal, up to the last wait
+ok   longer than that, the collector takes over
+ok   and a job the server does not know is handed over at once
+ok   the student's Cancel stops the cloud job and forgets it, as asked
+ok   the system stopping the work leaves the job to finish, for the collector
+ok   an expiry on screen is the system's: the job is kept
+ok   an expiry while away may be the student's Stop on the progress indicator, and is honoured as one
+ok   so a set stopped from the indicator is not written on and put in the library
+ok   the message names what was written: Your 40 questions finished in the cloud but could not be downloaded yet. Nothing is lost: the set will be in your library as soon as the cloud can be reached.
+ok   says nothing is lost
+ok   and where it will be
+ok   without calling it an error
+
+ALL CLOUD JOB RETRY TESTS PASS
+
+run rc=0

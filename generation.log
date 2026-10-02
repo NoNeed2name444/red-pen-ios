@@ -1,0 +1,22 @@
+
+compile rc=0
+ok   with nothing running, a generation starts
+ok   with a generation running, a new one is refused, not started over it
+ok   and the student is told what is running: Still writing 40 questions — wait for it to finish, or tap Cancel on its card, then try again.
+ok   and how to stop it
+ok   the title is not repeated
+ok   Writing 12 cards: Still writing 12 cards — wait for it to finish, or tap Cancel on its card, then try again.
+ok   Writing 1 page: Still writing 1 page — wait for it to finish, or tap Cancel on its card, then try again.
+ok   Writing 3 stations: Still writing 3 stations — wait for it to finish, or tap Cancel on its card, then try again.
+ok   Writing 5 duels: Still writing 5 duels — wait for it to finish, or tap Cancel on its card, then try again.
+ok   a title that is not writing is still named: Still busy: checking 40 questions — wait for it to finish, or tap Cancel on its card, then try again.
+ok   an empty title still refuses, in plain words
+ok   a bare "Writing" title does not leave a gap: Still busy: writing — wait for it to finish, or tap Cancel on its card, then try again.
+ok   asking twice gives the same answer
+ok   closing New set stops the generation it started
+ok   but not one another window's New set started (its cloud job would be deleted)
+ok   nor one started outside New set, or nothing at all
+
+ALL GENERATION RULES TESTS PASS
+
+run rc=0
