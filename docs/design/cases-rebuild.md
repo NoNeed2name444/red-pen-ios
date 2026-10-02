@@ -20,14 +20,16 @@ practising on patient cases. So the rebuild shares no expression with the old on
 - New names throughout. None of QACard, QACardsView, CaseSimulator, CaseChatView, CaseVoiceBar,
   ClueCaseView or CaseVariety comes back. New prompts, new wording, new layout.
 - Every commit body says "Cases rebuild (clean room)".
-- The owner names the features that belonged to the other person. Until then, the first build
-  leaves out free conversation with the patient (typed or spoken) and clue-by-clue reveal scoring.
+- The owner named the other person's feature (2 Oct): "the cases where you ask a question and the
+  patient answers accordingly". So nothing here lets the student question the patient and get the
+  patient's answer: no conversation, typed or spoken, and no history-question chips either. The
+  history comes already written, as the clerking note on arrival.
 
 ## What a case is
 
 A patient the student works up against the clock, from arrival to a decision, and then a debrief
 that shows what mattered. It trains what exam MCQs cannot:
-- choosing what to ask, examine and test, and in what order;
+- choosing what to examine and test, and in what order, from a written history;
 - noticing the finding that should change your mind;
 - not missing what kills.
 It follows the key-features approach (Page & Bordage) and illness scripts (Schmidt & Rikers).
@@ -38,12 +40,14 @@ It follows the key-features approach (Page & Bordage) and illness scripts (Schmi
    - initials avatar, age and sex, setting, and the complaint in a few words;
    - a state: New, Seen (a run in progress), or Discharged with the last score.
 2. **Arrival.**
+   - The clerking note: the history as a doctor wrote it on admission (presenting complaint,
+     history of it, past history, drugs, social), read, not asked for.
    - A triage strip: chips for age, sex and setting, then the arrival vitals in the ChartQuiz vitals
      grid, flagged by AccuracyRules ranges.
    - The complaint in the patient's own words, in quotation marks.
    - A clock pill: the time budget for the case (for example "20 min").
-3. **Work-up.** Three action groups:
-   - **Ask** (history), **Examine**, **Test**.
+3. **Work-up.** Two action groups (the history is already in the clerking note, never asked for):
+   - **Examine**, **Test**.
    - Each action is a chip with its cost in minutes. Tapping one spends the minutes and adds its
      finding to a running clinical note under the triage strip, newest first, with test values in
      the ChartQuiz results table (H/L flags).
@@ -89,11 +93,11 @@ It follows the key-features approach (Page & Bordage) and illness scripts (Schmi
 
 ```
 CaseFile        id, title, specialty, setting (emergency | ward | clinic | community),
-                patient (age, sex, a few words about them), complaint (their words),
+                patient (age, sex, a few words about them), complaint (their words), clerking (the written history),
                 arrival [Obs], budgetMinutes, steps [CaseStep], diagnosis (name, accepted names),
                 differentials [Differential], turningStep (a step id), nextStep (options, key, why),
                 teaching [String] (three), source (lecture and pages), verification state
-CaseStep        id, group (ask | examine | test), label, finding, minutes,
+CaseStep        id, group (examine | test), label, finding, minutes,
                 value (key | useful | low), redFlag, mustNotMiss, results [LabResult]
 Differential    name, accepted names, supportedBy [step id], againstBy [step id]
 CaseRun         case id, started, taken [(step id, at)], ladders [[name]] (one after each step),
@@ -109,7 +113,7 @@ A new set kind `cases`, raw value "cases". The removed kind's "qa" sets are skip
   the case file, Gemma when Apple's model is unavailable, the cloud writer for Pro. The prompt is
   written new for this spec.
 - **Structure checks** (Foundation only, unit-tested) before a case can be played:
-  - 8 to 20 steps, covering all three groups;
+  - 8 to 20 steps, covering both groups;
   - at least two key steps;
   - the diagnosis is among the differentials, and every differential has a supporting step;
   - the turning step is a key step;
@@ -135,8 +139,8 @@ A new set kind `cases`, raw value "cases". The removed kind's "qa" sets are skip
 
 ## Not in the first build
 
-- Free conversation with the patient (typed or spoken) and clue-by-clue reveal scoring: these wait
-  for the owner's word on what belonged to the other person.
+- Never: questioning the patient and getting answers, in any form (the other person's feature).
+- Clue-by-clue reveal scoring: not planned.
 - On-call sessions with several patients at once.
 
 ## Sources (methods and ideas, not text)
