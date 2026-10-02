@@ -163,10 +163,11 @@ suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Gra
 # the Circuit theme: folders as processors and module chips on their
 # sub-boards, notes as capacitors, resistors, LEDs, diodes, headers
 # and edge fingers - the ladder, no overlapping footprints, flat on
-# the board, and every trace routed square with rounded 45° corners
+# the board, every trace routed square with rounded 45° corners, the
+# chips' markings and the parts' dressing clear of every part
 suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
-      $F/Notes/GraphTheme.swift
+      $F/Notes/GraphTheme.swift $F/Notes/GraphCircuitDress.swift
 # removing a note: how each body dies (stars, planets, black holes;
 # apoptosis; a short circuit), link buffers never rewritten in flight,
 # and the synapse's terminal arbor

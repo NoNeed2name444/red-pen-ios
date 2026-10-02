@@ -290,7 +290,7 @@ extension GraphLegendContent {
     private static let boardGreen: Color = Color(red: 0.10, green: 0.42, blue: 0.26)
     private static let chipBlack: Color = Color(white: 0.1)
     private static let chipEdge: Color = Color(white: 0.8)
-    private static let canDark: Color = Color(red: 0.16, green: 0.18, blue: 0.2)
+    private static let canDark: Color = Color(red: 0.10, green: 0.24, blue: 0.62)
     private static let canStripe: Color = Color(white: 0.8)
     private static let ledAmber: Color = Color(red: 1.0, green: 0.70, blue: 0.22)
     private static let padGold: Color = Color(red: 1.0, green: 0.78, blue: 0.36)
@@ -307,14 +307,14 @@ extension GraphLegendContent {
 
     private static let circuitRows: [GraphLegendRow] = [
         GraphLegendRow(symbol: "cpu", name: "Chip",
-                       text: "A collection (a top-level folder): its own circuit board, the chip its controller. Bigger holds more.",
+                       text: "A collection (a top-level folder): its own circuit board, the chip its controller, marked with the folder\u{2019}s name. Bigger holds more.",
                        tint: silkWhite, how: "Make a folder: + \u{203A} New folder \u{2192} a new circuit board."),
         GraphLegendRow(symbol: "memorychip", name: "Smaller chip",
                        text: "A folder inside a folder: a smaller chip on its own sub-board, on a branch of its chip's bus.",
                        tint: silkWhite, how: "In the List, a folder\u{2019}s menu \u{203A} New folder inside."),
         GraphLegendRow(symbol: "cylinder.fill", name: "Capacitor",
-                       text: "A page, on its chip's bus. Bigger is longer.", tint: canStripe,
-                       how: "Add a page: + \u{203A} New page."),
+                       text: "A page, on its chip's bus: a blue capacitor, or a copper-wound inductor once it is over 250 words. Bigger is longer.",
+                       tint: canStripe, how: "Add a page: + \u{203A} New page."),
         GraphLegendRow(symbol: "lightbulb.fill", name: "LED",
                        text: "An idea, on a branch off the page it links to; its linked ideas follow it in a row. Lit when it has links.",
                        tint: ledAmber, how: "Add an idea: + \u{203A} New idea, or type it in the bar."),
@@ -322,11 +322,14 @@ extension GraphLegendContent {
                        text: "Power (VCC) along each board's top, ground (GND) along its bottom: every part sits on a loop from one to the other.",
                        tint: copper),
         GraphLegendRow(symbol: "point.topleft.down.to.point.bottomright.curvepath.fill", name: "Traces",
-                       text: "Links inside a board: copper, now and then carrying a packet of current down from the power rail. The LED it reaches lights.",
+                       text: "Links inside a board: copper, now and then carrying a packet of current - sometimes a burst - down from the power rail. The pad flashes as it lands and the LED there lights.",
                        tint: current, how: "Link two notes: type [[ and a note\u{2019}s title in a note."),
         GraphLegendRow(symbol: "rectangle.connected.to.line.below", name: "Connectors",
                        text: "A link to another collection leaves its board at a gold edge connector and runs as a thin bus to the other board.",
                        tint: padGold, how: "Link notes in two different folders."),
+        GraphLegendRow(symbol: "minus.plus.batteryblock", name: "Small parts",
+                       text: "Where a branch meets a rail or bus, the part a real board has there: a colour-banded resistor on the ground rail, a diode on the power rail, a header on the bus, a port at each edge connector.",
+                       tint: silkWhite),
         GraphLegendRow(symbol: "circle.fill", name: "Gold pad",
                        text: "A note in no folder, on the edge of the board it links to most.",
                        tint: padGold, how: "Move a note \u{203A} No folder.")

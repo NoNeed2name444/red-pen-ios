@@ -539,14 +539,29 @@ let used: Set<Int> = Set(preview.bodies.map(\.role))
 check("T1 only chips, capacitors, LEDs and pads (and wiring)",
       used.isSubset(of: Set(CircuitRole.allCases.map(\.rawValue))))
 check("T1 the summary counts boards", preview.summary.hasPrefix("2 boards"), preview.summary)
-let tags: [String] = preview.bodies.filter { roleOf($0).isContainer }.map {
-    GraphCircuit.modelTag(count: $0.count, depth: $0.depth)
+let marks: [(name: String, part: String)] = preview.bodies.filter { roleOf($0).isContainer }.map {
+    CircuitDress.marking(name: $0.title, count: $0.count, depth: $0.depth, seed: $0.seed)
 }
-check("T1 model tags are the app's own", tags.allSatisfy { $0.hasPrefix("S") }
-      && !tags.contains { $0.contains("Apple") || $0.contains("A20") || $0.contains("M5") || $0.contains("M4") },
-      "\(tags)")
-check("T1 the controller's tag outranks its sub-chips'",
-      GraphCircuit.modelTag(count: 30, depth: 0).hasPrefix("S-") && !GraphCircuit.modelTag(count: 5, depth: 1).contains("-"))
+check("T1 chips are marked with their folder in capitals", marks.contains { $0.name == "CARDIOLOGY" }
+      && marks.contains { $0.name == "EXAMPLES" }, "\(marks)")
+check("T1 part numbers are the app's own: RP, a series, two digits, a class and a revision",
+      marks.allSatisfy { m in
+          let p: [Character] = Array(m.part)
+          return m.part.hasPrefix("RP") && p.count == 8 && p[5] == "-" && p[2...4].allSatisfy(\.isNumber)
+              && p[6].isNumber && p[7].isLetter
+      } && !marks.contains { $0.part.contains("Apple") || $0.part.contains("A20") || $0.part.contains("M5") },
+      "\(marks.map(\.part))")
+check("T1 a controller's series outranks its modules'",
+      CircuitDress.marking(name: "a", count: 30, depth: 0, seed: 5).part.hasPrefix("RP7")
+      && CircuitDress.marking(name: "a", count: 5, depth: 1, seed: 5).part.hasPrefix("RP5")
+      && CircuitDress.marking(name: "a", count: 5, depth: 3, seed: 5).part.hasPrefix("RP3"))
+let small = CircuitDress.marking(name: "a", count: 2, depth: 0, seed: 9).part
+let big = CircuitDress.marking(name: "a", count: 200, depth: 0, seed: 9).part
+check("T1 the class grows with what a chip holds", Array(small)[6] < Array(big)[6], small + " " + big)
+check("T1 the same chip always marked the same, a long name cut",
+      CircuitDress.marking(name: "Cardiology", count: 14, depth: 0, seed: 77)
+          == CircuitDress.marking(name: "Cardiology", count: 14, depth: 0, seed: 77)
+      && CircuitDress.marking(name: "Gastroenterology and hepatology", count: 1, depth: 0, seed: 1).name.count == 14)
 
 // MARK: T2 closed circuits
 
@@ -815,6 +830,40 @@ let raisedPts: [SIMD3<Float>] = samples(raised, 20)
 check("T9 a lifted end eases down to the board",
       abs(dot3(raisedPts[0], boardNormal) - 0.4 - board.lift) < 1e-3
       && abs(dot3(raisedPts[20], boardNormal) - board.lift) < 1e-3)
+
+// MARK: T10 the parts' dressing
+
+check("T10 a page is a capacitor, a long one an inductor",
+      CircuitDress.pagePart(words: 80) == .capacitor && CircuitDress.pagePart(words: 249) == .capacitor
+      && CircuitDress.pagePart(words: 250) == .inductor)
+check("T10 the wiring carries resistors, diodes, headers and ports",
+      CircuitDress.fitting(.ground) == .resistor && CircuitDress.fitting(.vcc) == .diode
+      && CircuitDress.fitting(.bus) == .header && CircuitDress.fitting(.connector) == .port
+      && CircuitDress.fitting(.led) == .none && CircuitDress.fitting(.processor) == .none)
+
+/// Fittings whose footprint reaches a part's.
+func fittingOverlaps(_ plan: ThemePlan) -> [String] {
+    var bad: [String] = []
+    let parts: [Int] = plan.bodies.indices.filter { plan.bodies[$0].kind != .fixture }
+    let rects: [CircuitRect] = parts.map { footprint(plan.bodies[$0]) }
+    for body in plan.bodies where body.kind == .fixture {
+        let fit: CircuitFitting = CircuitDress.fitting(roleOf(body))
+        guard fit != .none else { continue }
+        let mine = CircuitRect(c: onBoard(body.home), h: CircuitDress.extent(fit) * Double(body.sphere))
+        for (k, r) in rects.enumerated() where !mine.clears(r, gap: 0.0001) {
+            if bad.count < 5 { bad.append("\(fit) / \(plan.bodies[parts[k]].title)") }
+        }
+    }
+    return bad
+}
+check("T10 the preview's fittings clear every part", fittingOverlaps(preview).isEmpty, "\(fittingOverlaps(preview))")
+var fitBad: [String] = []
+for seed in 0..<60 {
+    let plan: ThemePlan = GraphCircuit.plan(randomVault(UInt64(seed) &* 7919 &+ 11, maxNotes: 80, maxFolders: 8))
+    let found: [String] = fittingOverlaps(plan)
+    if !found.isEmpty && fitBad.count < 4 { fitBad.append("vault \(seed): \(found)") }
+}
+check("T10 60 random vaults: every fitting clears every part", fitBad.isEmpty, "\(fitBad)")
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
