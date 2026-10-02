@@ -30,7 +30,7 @@
 
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
-import { proGate, askModel, spend, refund } from './ai.js';
+import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
 import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
@@ -39,9 +39,14 @@ import { claimGate, MAX_WORK, remembering } from './claims.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
-/// Nemotron on Workers AI, Gemma 4 31B as the slower backup. Not Llama 4
-/// Scout (it passed only half the correct answers); not 3.1 Pro (no free tier).
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+/// Llama 3.3 70B on Groq's free tier, gpt-oss-120b on Cerebras' free tier,
+/// gpt-oss-120b and Nemotron on Workers AI, Gemma 4 31B as the slower backup.
+/// Workers AI's free pool covers only about thirty checks a day (the live
+/// bench, 1 Oct: every call refused once it was spent), so Groq and Cerebras
+/// come first. A voter whose provider has no key here is left out. Not Llama
+/// 4 Scout (it passed only half the correct answers); not 3.1 Pro (no free tier).
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,groq:openai/gpt-oss-120b,groq:llama-3.3-70b-versatile,cerebras:gpt-oss-120b,'
+  + 'workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;
@@ -212,7 +217,7 @@ export function disagree(a, b) {
 /// Which voters may judge: the configured order, minus the model that wrote
 /// the items (a model grading its own work agrees with itself).
 export function votersFor(env, writer) {
-  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS);
+  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS).filter(v => /^bench:/.test(v) || pinnedSource(env, v));
   const w = String(writer || '').toLowerCase().trim();
   if (!w) return all;
   return all.filter(v => { const model = v.slice(v.indexOf(':') + 1).toLowerCase(); return model !== w && !model.endsWith(`/${w}`); });

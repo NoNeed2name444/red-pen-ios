@@ -252,7 +252,11 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(votes[1].risk === 4 && votes[1].answer === 'C' && votes[1].cites.join() === 'S1' && votes[1].fix.value === 'C' && votes[0].risk === 1 && votes[0].evidence === 'none', 'votes are parsed item by item');
   ok(parseVotes('no json', 2).every(v => v === null), 'an unreadable reply is no vote');
   ok(disagree([{ risk: 1 }], [{ risk: 4 }]) && !disagree([{ risk: 1, answer: 'A' }], [{ risk: 2, answer: 'A' }]) && disagree([{ risk: 1, answer: 'A' }], [{ risk: 1, answer: 'B' }]), 'disagreement');
-  ok(!votersFor({}, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor({}, '').length === 4, 'the writing model never votes');
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' };
+  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 7, 'the writing model never votes');
+  ok(votersFor({}, '').length === 0 && votersFor({ FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} }, '').every(v => /^(gemini|workers-ai):/.test(v)),
+     'a voter whose provider has no key here is left out');
+  ok(votersFor(keyed, '').slice(0, 3).map(v => familyOf(v.slice(v.indexOf(':') + 1))).join() === 'google,openai,meta', 'the first three asked are three families, Groq before Workers AI');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'A', risk: 3 }])?.value === 'A', 'voters agreeing on another answer suggest it as the key');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'B', risk: 1 }]) === null, 'a split does not');
   ok((await itemHash(mcq)) === (await itemHash({ ...mcq, id: 'other' })) && (await itemHash(mcq)) !== (await itemHash({ ...mcq, key: 0 })), 'the hash is of the content, not the id');
