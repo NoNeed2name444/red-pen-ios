@@ -183,6 +183,16 @@ suite accuracy AccuracyTests.swift $M/MCQQuestion.swift $M/Differential.swift $M
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
       $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
+# the verification layer's first stage on generated material: broken items
+# removed with their reason, red flags held, the status line
+suite verifyscreen VerificationScreenTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+      $S/Accuracy/VerificationScreen.swift
 # Anki review essentials: daily limits, suspend and bury, undo that
 # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
 suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \

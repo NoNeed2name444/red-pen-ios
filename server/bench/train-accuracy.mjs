@@ -37,8 +37,7 @@
 //      ROWS_BASE (the dataset server; Hugging Face's by default)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { sample, rng } from './accuracy.mjs';
-import { limitKind } from './checkers.mjs';
+import { sample, rng, limitKind } from './stats.mjs';
 import { FEATURES, DEFAULT_WEIGHTS, vector, fit, crossValidate, probability, metrics, thresholds, predict, isManagement, stricter } from '../accuracy-model.js';
 import { EXAMS } from '../exams.js';
 

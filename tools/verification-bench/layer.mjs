@@ -6,9 +6,14 @@
 // wrong key planted (a distractor keyed instead). Nothing else is changed, so
 // the explanation cannot give the error away: the models have to find it.
 //
-// Run (GitHub Actions, .github/workflows/verification-bench.yml):
-//   GITHUB_MODELS_TOKEN=... node tools/verification-bench/layer.mjs --data DIR --out DIR
-//     [--per-source 30] [--sources MedXpertQA,MedQA,CareQA Medicine] [--voters github:a,github:b,...] [--seed 7]
+// Two ways to run it (.github/workflows/verification-bench.yml picks one):
+//   live:     WORKER=<url> KEY=<owner key> ... --data DIR --out DIR
+//             the deployed Worker checks each batch with its own free models -
+//             exactly what students get
+//   provider: BENCH_BASE_URL=<OpenAI-compatible url> BENCH_API_KEY=<key> ...
+//             --voters bench:<model>,bench:<model>,... - this repository's
+//             checkBatch, run here, with a free provider's models voting
+//   options:  [--per-source 30] [--sources MedXpertQA,MedQA,CareQA Medicine] [--seed 7] [--stub]
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +21,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { checkBatch } from '../../server/accuracy.js';
 import { resetBreakers } from '../../server/breakers.js';
 import { familyOf } from '../../server/accuracy-model.js';
-import { loadQuestions, seeded } from './datasets.mjs';
+import { loadQuestions, benchCases } from './datasets.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -27,28 +32,18 @@ const wanted = arg('sources', 'MedXpertQA,MedQA,CareQA Medicine').split(',');
 const voters = arg('voters', process.env.BENCH_VOTERS || '').split(',').filter(Boolean);
 const perBatch = Number(arg('batch', '2'));
 const seed = Number(arg('seed', '7'));
-if (!process.env.GITHUB_MODELS_TOKEN) { console.error('GITHUB_MODELS_TOKEN is not set'); process.exit(2); }
-if (voters.length < 2) { console.error('give at least two --voters (github:<model>)'); process.exit(2); }
+const live = Boolean(process.env.WORKER && process.env.KEY);
+const stubbed = process.argv.includes('--stub');
+if (!live && !stubbed && !(process.env.BENCH_BASE_URL && process.env.BENCH_API_KEY)) {
+  console.error('Set WORKER and KEY (the live Worker), or BENCH_BASE_URL and BENCH_API_KEY (a free provider).'); process.exit(2);
+}
+if (!live && voters.length < 2) { console.error('give at least two --voters (bench:<model>)'); process.exit(2); }
 mkdirSync(outDir, { recursive: true });
 
 // MARK: the questions, right and wrong
 
-const rand = seeded(seed);
 const all = loadQuestions(readdirSync(dataDir).filter(f => f.endsWith('.json')).map(f => join(dataDir, f)));
-const chosen = [];
-for (const src of wanted) {
-  const pool = all.filter(q => q.source === src);
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  chosen.push(...pool.slice(0, perSource));
-}
-const cases = [];
-for (const q of chosen) {
-  cases.push({ truth: 'right', item: { ...q, id: `${q.id}#right` } });
-  const others = q.options.map((_, i) => i).filter(i => i !== q.key);
-  const wrong = others[Math.floor(rand() * others.length)];
-  cases.push({ truth: 'wrong', item: { ...q, id: `${q.id}#wrong`, key: wrong } });
-}
-for (let i = cases.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [cases[i], cases[j]] = [cases[j], cases[i]]; }
+const { chosen, cases } = benchCases(all, { wanted, perSource, seed });
 
 // MARK: the Worker's world: an in-memory database, the bench's voters
 
@@ -78,25 +73,27 @@ let modelCalls = 0, throttled = 0, shown = 0;
 // is not scored as a checker that could not answer
 // --stub: the plumbing alone, offline - every checker answers the keyed
 // letter with no error, the literature finds nothing (for trying the harness)
-const stub = process.argv.includes('--stub');
+const stub = stubbed;
 const stubReply = init => {
+  const isChat = String(init.body || '').includes('"messages"');
+  if (!isChat) return new Response('{}', { status: 404 });
   const body = JSON.parse(init.body);
   const n = (body.messages.at(-1).content.match(/### Item /g) || []).length;
   const items = Array.from({ length: n }, (_, i) => ({ i: i + 1, answer: 'A', risk: 1, evidence: 'none', cites: [], issues: [], fix: null }));
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) } }] }), { status: 200 });
 };
 const fetcher = async (url, init) => {
-  if (stub) return String(url).includes('models.github.ai') ? stubReply(init) : new Response('{}', { status: 404 });
+  if (stub) return String(url).includes('/chat/completions') ? stubReply(init) : new Response('{}', { status: 404 });
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, init);
-    if (String(url).includes('models.github.ai')) {
+    if (String(url).includes('/chat/completions')) {
       modelCalls++;
       // the first replies, and any refusal, word for word: a run whose every
       // call fails says why
       if (shown < 3 || (res.status !== 200 && shown < 8)) {
         shown++;
         const text = await res.clone().text();
-        console.error(`models.github.ai ${JSON.parse(init.body).model} -> ${res.status}: ${text.slice(0, 500).replace(/\s+/g, ' ')}`);
+        console.error(`${JSON.parse(init.body).model} -> ${res.status}: ${text.slice(0, 500).replace(/\s+/g, ' ')}`);
       }
     }
     if (res.status !== 429 || attempt >= 5) return res;
@@ -115,10 +112,26 @@ for (let b = 0; b < cases.length; b += perBatch) {
   resetBreakers();
   // the first voter turns over each batch, so no one model carries the run
   const order = voters.slice((b / perBatch) % voters.length).concat(voters.slice(0, (b / perBatch) % voters.length));
-  const env = { DB: d1(db), BENCH_MODELS: 'github', GITHUB_MODELS_TOKEN: process.env.GITHUB_MODELS_TOKEN,
-    ACCURACY_VOTERS: order.join(','), OWNER_ACCOUNT_IDS: 'bench', OWNER_BENCH_DAILY_LIMIT: '100000', ACCURACY_DAILY_CEILING: '100000' };
-  const res = await checkBatch(env, 'bench', { items: batch.map(c => c.item) }, fetcher,
-    { owner: true, bench: true, budgets: { votes: 240_000, evidence: 30_000, jev: 5_000 } });
+  let res;
+  if (live) {
+    // the deployed Worker, signed in as the owner, counted apart as a bench
+    for (let attempt = 0; ; attempt++) {
+      res = await fetch(`${process.env.WORKER.replace(/\/+$/, '')}/accuracy/check`, {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.KEY}`, 'x-bench': '1' },
+        body: JSON.stringify({ items: batch.map(c => c.item) }),
+      });
+      modelCalls++;
+      const busy = res.status === 429 || res.status === 503;
+      if (!busy || attempt >= 4) break;
+      throttled++;
+      await sleep(30_000 * (attempt + 1));
+    }
+  } else {
+    const env = { DB: d1(db), BENCH_MODELS: 'on', BENCH_BASE_URL: process.env.BENCH_BASE_URL, BENCH_API_KEY: process.env.BENCH_API_KEY,
+      ACCURACY_VOTERS: order.join(','), OWNER_ACCOUNT_IDS: 'bench', OWNER_BENCH_DAILY_LIMIT: '100000', ACCURACY_DAILY_CEILING: '100000' };
+    res = await checkBatch(env, 'bench', { items: batch.map(c => c.item) }, fetcher,
+      { owner: true, bench: true, budgets: { votes: 240_000, evidence: 30_000, jev: 5_000 } });
+  }
   const body = await res.json();
   (body.items || []).forEach((r, n) => results.push({ ...batch[n], result: r }));
   if (body.failures) console.error('failures:', body.failures.join(' | '));
@@ -157,7 +170,7 @@ function measures(list) {
 const overall = measures(results);
 const lines = [];
 lines.push(`# The verification layer on hard questions`, '');
-lines.push(`${chosen.length} real questions (${wanted.map(s => `${s} ${chosen.filter(q => q.source === s).length}`).join(', ')}), each checked with its true key and with a wrong key planted: ${results.length} checks. Voters: ${voters.join(', ')}. ${modelCalls} model calls, ${throttled} rate-limit waits, ${Math.round((Date.now() - started) / 60000)} min.`, '');
+lines.push(`${chosen.length} real questions (${wanted.map(s => `${s} ${chosen.filter(q => q.source === s).length}`).join(', ')}), each checked with its true key and with a wrong key planted: ${results.length} checks. Checkers: ${live ? `the live Worker's own (${process.env.WORKER})` : voters.join(', ')}. ${modelCalls} ${live ? 'batches sent' : 'model calls'}, ${throttled} rate-limit waits, ${Math.round((Date.now() - started) / 60000)} min.`, '');
 lines.push(`| measure | what it means | result |`, `|---|---|---|`);
 lines.push(`| accuracy | of the checks that gave a verdict (Verified or Flagged), the share that were right | ${overall.accuracy.text} (${overall.accuracy.n}/${overall.accuracy.of}) |`);
 lines.push(`| dependability | of the items marked Verified, the share that really were right | ${overall.dependability.text} (${overall.dependability.n}/${overall.dependability.of}) |`);
@@ -188,6 +201,8 @@ for (const [m, p] of Object.entries(per).sort((a, b) => b[1].answered - a[1].ans
   lines.push(`| ${m} | ${p.family} | ${p.answered} | ${pct(p.right, p.answered)} | ${pct(p.blindRight, p.blind)} |`);
 }
 writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
+// everything policy.mjs needs to replay a check under other verdict rules
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(results.map(r => ({ id: r.item.id, source: r.item.source, truth: r.truth,
-  verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons, rules: r.result?.rules, votes: r.result?.votes })), null, 1));
+  keyLetter: String.fromCharCode(65 + r.item.key), verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons,
+  rules: r.result?.rules, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix })), null, 1));
 console.log(lines.join('\n'));
