@@ -104,8 +104,8 @@ export function featuresOf(path, method) {
 /// The feature a /v1/chat/completions model name belongs to: the writers
 /// write, the checkers check (and an unknown name is refused later anyway).
 export function featureOfModel(model) {
-  if (model === 'cramdown-writer' || model === 'cramdown-doctor') return 'write';
-  if (model === 'cramdown-checker' || model === 'cramdown-medval') return 'check';
+  if (model === 'cramdown-writer') return 'write';
+  if (model === 'cramdown-checker') return 'check';
   return null;
 }
 
