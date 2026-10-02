@@ -1,0 +1,2160 @@
+[
+ {
+  "id": "medxpertqa:Text-271#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "keyLetter": "I",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0.5,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 1,
+   "blind_split": 1,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "keyLetter": "C",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 2,
+   "blind_agree": 2,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:4836#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "keyLetter": "A",
+  "verdict": "flagged",
+  "p": 0.752,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (B).",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0.3333333333333333,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "B",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "keyLetter": "A",
+  "verdict": "flagged",
+  "p": 0.698,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (C).",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "C",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ },
+ {
+  "id": "medxpertqa:Text-858#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "keyLetter": "F",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 1,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:4836#right",
+  "source": "MedQA",
+  "truth": "right",
+  "keyLetter": "B",
+  "verdict": "verified",
+  "p": 0.98,
+  "reasons": [],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "supports",
+    "cites": [
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 0,
+   "ev_support": 0.6666666666666666,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 3,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:5288#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "keyLetter": "A",
+  "verdict": "flagged",
+  "p": 0.035,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (D).",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The question describes a patient with non-valvular atrial fibrillation and a recent ischemic stroke, for whom oral anticoagulation (DOACs or warfarin) is indicated for secondary stroke prevention. Initiating heparin and warfarin together is unnecessary for non-valvular AF and carries high bleeding r"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 1,
+   "risk_mean": 0.3333333333333333,
+   "flag_frac": 0.3333333333333333,
+   "disagree": 1,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 2,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 1
+  },
+  "fix": {
+   "field": "key",
+   "value": "D",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ },
+ {
+  "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "keyLetter": "C",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-1287#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "keyLetter": "A",
+  "verdict": "check",
+  "p": 0.655,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.3333333333333333,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-1921#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "keyLetter": "H",
+  "verdict": "check",
+  "p": 0.957,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.3333333333333333,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-2027#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "keyLetter": "D",
+  "verdict": "check",
+  "p": 0.744,
+  "reasons": [
+   "Checkers from 2 different model families, solving it without the key, chose another answer.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "supports",
+    "cites": [
+     "S1",
+     "S2"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0.3333333333333333,
+   "ev_contradict": 0,
+   "ev_count": 0,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 2,
+   "blind_split": 1,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:4433#right",
+  "source": "MedQA",
+  "truth": "right",
+  "keyLetter": "A",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-858#right",
+  "source": "MedXpertQA",
+  "truth": "right",
+  "keyLetter": "E",
+  "verdict": "check",
+  "p": 0.88,
+  "reasons": [
+   "Unresolved: independent checkers solving it blind did not agree.",
+   "Not yet passed by three model families.",
+   "A dose, diagnosis or treatment without evidence behind it."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "E",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "J",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0.5,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 1,
+   "blind_split": 1,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-271#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "keyLetter": "D",
+  "verdict": "check",
+  "p": 0.758,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "I",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0.5,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "I",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "medxpertqa:Text-1921#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "keyLetter": "I",
+  "verdict": "check",
+  "p": 0.668,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "H",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "H",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "keyLetter": "A",
+  "verdict": "check",
+  "p": 0.395,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "A checker raised a concern.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 3,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The keyed answer was likely incorrect because the clinical presentation of acute inflammatory asymmetric oligoarthritis/spondylarthritis following unprotected sexual encounters (urethritis/chlamydia trigger risk), accompanied by conjunctivitis (red eyes, blurred vision) and enthesitis/dactylitis (ha"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0.6666666666666666,
+   "risk_mean": 0.3333333333333333,
+   "flag_frac": 0.5,
+   "disagree": 1,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 2,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 1
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "keyLetter": "C",
+  "verdict": "check",
+  "p": 0.018,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "A checker raised a concern.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Organophosphorus insecticides are well absorbed through the skin, death usually occurs hours rather than minutes after exposure, and the mechanism is acetylcholinesterase inhibition, not nicotine symptoms first."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 1,
+   "risk_mean": 0.5,
+   "flag_frac": 0.5,
+   "disagree": 1,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 1
+  },
+  "fix": {
+   "field": "key",
+   "value": "D",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "medqa:5240#right",
+  "source": "MedQA",
+  "truth": "right",
+  "keyLetter": "D",
+  "verdict": "check",
+  "p": 0.962,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "keyLetter": "D",
+  "verdict": "flagged",
+  "p": 0.011,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (C).",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "In classic scabies, lesions characteristically spare the head and neck in adults, whereas crusted (Norwegian) scabies can involve the face and scalp, making statement C incorrect as a general rule for adults."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 4,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "Face involvement is not typical in immunocompetent adults with scabies; occurs mainly in infants or crusted scabies."
+    ],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 1,
+   "risk_mean": 0.6666666666666666,
+   "flag_frac": 0.6666666666666666,
+   "disagree": 1,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 2
+  },
+  "fix": {
+   "field": "key",
+   "value": "C",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ },
+ {
+  "id": "medqa:4988#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "keyLetter": "C",
+  "verdict": "flagged",
+  "p": 0.035,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (D).",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "ABG shows acute respiratory acidosis (pH 7.29, PaCO2 95 mm Hg) with a normal bicarbonate, indicating central nervous system and respiratory depression (hypoventilation). Heroin (or opioid overdose) is the classic cause of acute opioid-induced respiratory depression among the choices."
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 1,
+   "risk_mean": 0.3333333333333333,
+   "flag_frac": 0.3333333333333333,
+   "disagree": 1,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 2,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 1
+  },
+  "fix": {
+   "field": "key",
+   "value": "D",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ },
+ {
+  "id": "medqa:5240#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "keyLetter": "A",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "D",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "keyLetter": "D",
+  "verdict": "verified",
+  "p": 0.964,
+  "reasons": [],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 3,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "keyLetter": "B",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "C",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "medxpertqa:Text-1287#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "keyLetter": "B",
+  "verdict": "check",
+  "p": 0.677,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 0,
+   "blind_against": 1,
+   "blind_split": 0,
+   "blind_dissent": 1,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "C",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "gemma-4-31b-it"
+   ]
+  }
+ },
+ {
+  "id": "medqa:5288#right",
+  "source": "MedQA",
+  "truth": "right",
+  "keyLetter": "D",
+  "verdict": "check",
+  "p": 0.304,
+  "reasons": [
+   "Not yet passed by three model families.",
+   "A checker raised a concern.",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers judged it likely wrong."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 4,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [
+     "The question describes a patient with non-valvular atrial fibrillation and a recent ischemic stroke. Standard stroke prevention for AF is oral anticoagulation (DOAC or warfarin). However, starting concurrent therapeutic heparin along with warfarin immediately in a patient with a recent ischemic stro"
+    ],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 1,
+   "risk_mean": 0.3333333333333333,
+   "flag_frac": 0.3333333333333333,
+   "disagree": 1,
+   "voters": 1,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 2,
+   "blind_agree": 3,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 1
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96#right",
+  "source": "CareQA Medicine",
+  "truth": "right",
+  "keyLetter": "C",
+  "verdict": "verified",
+  "p": 0.966,
+  "reasons": [],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "C",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 0,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 3,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medxpertqa:Text-2027#wrong",
+  "source": "MedXpertQA",
+  "truth": "wrong",
+  "keyLetter": "H",
+  "verdict": "check",
+  "p": 0.694,
+  "reasons": [
+   "Checkers from 2 different model families, solving it without the key, chose another answer.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "B",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.2,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 2,
+   "blind_split": 1,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:4433#wrong",
+  "source": "MedQA",
+  "truth": "wrong",
+  "keyLetter": "B",
+  "verdict": "check",
+  "p": 0.698,
+  "reasons": [
+   "Checkers from 2 different model families, solving it without the key, chose another answer.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 2,
+   "blind_split": 1,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "medqa:4988#right",
+  "source": "MedQA",
+  "truth": "right",
+  "keyLetter": "D",
+  "verdict": "check",
+  "p": 0.983,
+  "reasons": [
+   "Fewer than three independent blind solves reached the key.",
+   "Not yet passed by three model families."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [
+     "S1"
+    ],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "gemma-4-31b-it",
+    "risk": 1,
+    "answer": "D",
+    "evidence": "supports",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 0.6666666666666666,
+   "key_disagree": 0,
+   "ev_support": 1,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 1,
+   "blind_agree": 1,
+   "blind_against": 0,
+   "blind_split": 0,
+   "blind_dissent": 0,
+   "flag_families": 0
+  },
+  "fix": null
+ },
+ {
+  "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6#wrong",
+  "source": "CareQA Medicine",
+  "truth": "wrong",
+  "keyLetter": "D",
+  "verdict": "flagged",
+  "p": 0.698,
+  "reasons": [
+   "Checkers from 3 different model families, solving it without the key, chose another answer (A).",
+   "A dose, diagnosis or treatment without evidence behind it.",
+   "The checkers were not confident enough."
+  ],
+  "rules": [],
+  "votes": [
+   {
+    "model": "gemini-3.5-flash-lite",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/openai/gpt-oss-120b",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   },
+   {
+    "model": "@cf/nvidia/nemotron-3-120b-a12b",
+    "risk": 1,
+    "answer": "A",
+    "evidence": "none",
+    "cites": [],
+    "issues": [],
+    "fix": null,
+    "blind": true
+   }
+  ],
+  "features": {
+   "bias": 1,
+   "rule_severe": 0,
+   "rule_minor": 0,
+   "risk_max": 0,
+   "risk_mean": 0,
+   "flag_frac": 0,
+   "disagree": 0,
+   "voters": 1,
+   "key_disagree": 1,
+   "ev_support": 0,
+   "ev_contradict": 0,
+   "ev_count": 0.4,
+   "source_match": 0,
+   "no_source": 0,
+   "no_models": 0,
+   "kind_mcq": 1,
+   "kind_card": 0,
+   "kind_case": 0,
+   "kind_osce": 0,
+   "kind_page": 0,
+   "families": 3,
+   "blind_agree": 0,
+   "blind_against": 3,
+   "blind_split": 0,
+   "blind_dissent": 3,
+   "flag_families": 0
+  },
+  "fix": {
+   "field": "key",
+   "value": "A",
+   "by": [
+    "gemini-3.5-flash-lite",
+    "@cf/openai/gpt-oss-120b",
+    "@cf/nvidia/nemotron-3-120b-a12b"
+   ]
+  }
+ }
+]
