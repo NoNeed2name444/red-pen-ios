@@ -87,9 +87,9 @@ extension LibraryView {
             FeatureTile(feature: feature, tint: category.tint, detail: line)
         }
         // a style of its own, so each tile in the one list row is its own
-        // button rather than the row being one; it stands out of the glass
-        // and sinks under the finger
-        .buttonStyle(.popTile)
+        // button rather than the row being one; it gives a little under the
+        // finger
+        .buttonStyle(.pressableRow)
         // the page this tile opens zooms out of it (featurePageView)
         .skyZoomSource(Self.zoomID(feature))
         .accessibilityIdentifier("feature-\(feature.rawValue)")
@@ -130,7 +130,7 @@ extension LibraryView {
 
     private static func moreDetail(_ page: SupportPage) -> String {
         switch page {
-        case .analytics: return "Readiness, trends and what to do next"
+        case .analytics: return "Readiness, study rhythm and what needs a consult"
         case .sources: return "Every lecture you have added"
         default: return ""
         }
@@ -168,9 +168,7 @@ extension LibraryView {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 8)
             Button("Make one") { newSetKind = category.mainKind }
-                .font(.subheadline.weight(.semibold))
-                .buttonStyle(.glass)
-                .popOut(.raised, in: Capsule())
+                .buttonStyle(.wardCompact)
         }
         .frame(minHeight: 56)
         .frostedListRow()

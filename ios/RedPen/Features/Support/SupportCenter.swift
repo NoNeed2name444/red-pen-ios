@@ -15,7 +15,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// What the menu lists, in the order it lists them. Every page is kept,
     /// but three are no longer listed, because each already has a home:
     /// Ideas is a place in the dock (LibraryView routes `.notes` there), By
-    /// subject is the Questions › Tools tile and a link in Progress, and the
+    /// subject is the Questions › Tools tile and a link in Vitals, and the
     /// common questions are the end of How it works.
     static var shown: [SupportPage] { allCases.filter { $0.isListed } }
 
@@ -51,7 +51,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .notes: return "Ideas"
-        case .analytics: return "Progress"
+        case .analytics: return "Vitals"
         case .progress: return "By subject"
         case .sources: return "Your lectures"
         case .examples: return "Try every feature"
@@ -65,7 +65,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .notes: return "lightbulb"
-        case .analytics: return "chart.xyaxis.line"
+        case .analytics: return "waveform.path.ecg"
         case .progress: return "chart.bar.xaxis"
         case .sources: return "doc.richtext"
         case .examples: return "sparkles.rectangle.stack"

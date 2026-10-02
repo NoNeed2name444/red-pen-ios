@@ -187,6 +187,27 @@ suite verifyscreen VerificationScreenTests.swift $M/MCQQuestion.swift $M/Differe
       $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
       $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
       $S/Accuracy/VerificationScreen.swift
+# a question stem read as a patient chart: chips, vitals, results flagged
+# from the accuracy check's own ranges, the story and the question
+suite chart PatientChartTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+      $S/PatientChart.swift
+# the question screen as that chart: the header's words, what the card
+# shows of a stem, the highlighter across story and question, how options
+# are marked (never in a timed paper), the bar's words, what VoiceOver hears
+suite chartquiz ChartQuizTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
+      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
+      $S/PatientChart.swift $F/MCQ/ChartQuiz.swift
 # Anki review essentials: daily limits, suspend and bury, undo that
 # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
 suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \
@@ -292,6 +313,14 @@ suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift
 # the first run: who sees the first-run pages and when, the daily
 # goal's key and range, and tips that wait for a familiar screen
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
+# the Ward Round palette: contrast promises in light and dark, and the
+# AccentColor asset drawn from the same table
+suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift
+# today's ward round on the home: which beds and in what order, the weak
+# spots that need a consult (the weakest always has a bed), the minutes;
+# the study rhythm read from StudyLog's days; the countdown and greeting
+suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swift \
+      $S/Learn/BedPlan.swift $S/Learn/RhythmReading.swift $S/Learn/WardWords.swift
 # fault injection: what an accuracy batch and a transcription chunk do
 # with a 500, a 429, a timeout, an unreadable answer and no network
 suite faults FaultTests.swift $S/NetworkFaults.swift

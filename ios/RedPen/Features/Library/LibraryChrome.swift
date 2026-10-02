@@ -4,7 +4,7 @@ import SwiftUI
 /// as every mode's screen, as it is.
 struct LibraryBackdrop: View {
     var body: some View {
-        AppBackdrop(tint: nil)
+        WardBackground()
     }
 }
 

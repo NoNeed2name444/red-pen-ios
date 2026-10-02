@@ -34,19 +34,19 @@ enum Brand {
     // the look (SwiftUI only; the name and line above also build on Linux,
     // where the test suites run)
     #if canImport(SwiftUI)
-    static let ink = Color(red: 0.08, green: 0.09, blue: 0.11)
+    static let ink = Color(red: 14 / 255, green: 27 / 255, blue: 44 / 255)        // Chart Ink
 
     /// The page. Warm rather than white, so long reading is easy on the eye.
-    static let paper = Color(red: 0.97, green: 0.96, blue: 0.93)
+    static let paper = Color(red: 243 / 255, green: 246 / 255, blue: 249 / 255)   // Ward White
 
     /// The icon's scarlet, and the colour of the one thing that should ever
     /// shout: how long is left.
-    static let signal = Color(red: 0.886, green: 0.243, blue: 0.188)
+    static let signal = Color(red: 194 / 255, green: 98 / 255, blue: 11 / 255)    // Pager Amber
 
     /// The cool mark struck through the icon's page. The only other colour the
     /// brand owns, kept for the answer to whatever the signal is counting down
     /// to - and deliberately the opposite of scarlet, so the two never blur.
-    static let mark = Color(red: 0.549, green: 0.784, blue: 0.941)
+    static let mark = Color(red: 29 / 255, green: 95 / 255, blue: 176 / 255)      // Theatre Blue
 
     /// The mark: three stacked rules pressed down into one.
     ///

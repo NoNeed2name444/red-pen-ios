@@ -19,7 +19,7 @@ struct SignInView: View {
     @State private var joining = false
 
     /// The app's pen red, for the door that works on its own.
-    private static let pen = Color(red: 0.78, green: 0.16, blue: 0.16)
+    private static let pen = Color.wardPrimary
 
     private static let door = RoundedRectangle(cornerRadius: 12, style: .continuous)
 

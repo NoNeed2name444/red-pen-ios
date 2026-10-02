@@ -58,7 +58,8 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     /// The heading over this category's sets.
     var setsHeading: String {
         switch self {
-        case .questions: return "Your question sets"
+        // the home's own list, under the ward round
+        case .questions: return "Your sets"
         case .cards: return "Your decks and books"
         case .osce: return "Your OSCE stations"
         case .audio: return "Your lectures"
@@ -438,7 +439,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 
 // MARK: - The pieces on screen
 
-/// One feature, as a big tile: a coloured symbol, a name, one line.
+/// One feature, as a tile: a Clean Sheet card with the symbol in a soft
+/// square of its colour, a name and one line.
 struct FeatureTile: View {
     let feature: CategoryFeature
     let tint: Color
@@ -446,43 +448,46 @@ struct FeatureTile: View {
     var detail: String? = nil
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: feature.symbol)
-                .font(.title2.weight(.semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(height: 30)
+                .frame(width: 36, height: 36)
+                .background(tint.opacity(0.12), in: square)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.title)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 Text(detail ?? feature.detail)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-        .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .contentShape(shape)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// A heading over one part of a category's page.
+/// A heading over one part of a category's page: Ward small caps in Biro
+/// Grey.
 struct CategoryHeading: View {
     let title: String
 
     var body: some View {
         Text(title)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(nil)
+            .wardSmallCaps()
             .accessibilityAddTraits(.isHeader)
     }
 }

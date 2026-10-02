@@ -70,7 +70,7 @@ CORE_DROP = [
     # the full app's shell: the core has its own (playgrounds_stubs/core)
     "RedPenApp.swift", "Features/Library/LibraryView.swift", "Features/Library/StudyCategory.swift",
     "Features/Library/LibraryRows.swift", "Features/Library/CategoryShelves.swift", "Features/Library/CategoryPages.swift",
-    "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift",
+    "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift", "Features/Library/WardHome.swift",
     "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
     "Features/Support/PlatformSettingsSection.swift", "Features/Support/LibraryDataSettingsSection.swift",
     "Features/Support/StudyReminderSettings.swift", "Features/Auth/LinkDeviceView.swift",

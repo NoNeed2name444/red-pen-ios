@@ -11,11 +11,13 @@ import SwiftUI
 extension StudySetKind {
     var tint: Color {
         switch self {
-        case .mcq: return Color(red: 0.78, green: 0.16, blue: 0.16)     // pen red
-        case .anki: return Color(red: 0.31, green: 0.36, blue: 0.86)    // indigo
-        case .book: return Color(red: 0.10, green: 0.55, blue: 0.50)    // teal
-        case .osce: return Color(red: 0.20, green: 0.62, blue: 0.35)    // green
-        case .narrate: return Color(red: 0.55, green: 0.32, blue: 0.80) // violet
+        // Ward Round: each mode's glyph in a palette tone; the controls on
+        // every screen are Theatre Blue (modeScreen)
+        case .mcq: return .wardPrimaryInk
+        case .anki: return .wardEcg
+        case .book: return .wardSuccess
+        case .osce: return .wardWarning
+        case .narrate: return .wardInkSecondary
         }
     }
 
@@ -57,30 +59,15 @@ struct ModeTile: View {
     // two shapes smudged on top of each other. At night the surface is near
     // black, a hole in the nebula rather than a grey card; only the chosen
     // tile gets any space character - its corona.
+    // Ward Round: the mode's glyph in its tone on a 12% wash; the chosen
+    // one is Theatre Blue with a white glyph.
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-        let dark: Bool = scheme == .dark
-        let rest: Color = dark ? Color(white: 0.08) : Color(.secondarySystemBackground)
-        let surface: Color = selected && !dark ? kind.tint.darkened(0.25) : rest
+        let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
         Image(systemName: kind.symbol)
-            .font(.system(size: size * 0.42, weight: .medium))
-            .foregroundStyle(selected ? Color.white : Color.secondary)
+            .font(.system(size: size * 0.42, weight: .semibold))
+            .foregroundStyle(selected ? Color.wardOnPrimary : kind.tint)
             .frame(width: size, height: size)
-            .background {
-                ZStack {
-                    shape.fill(surface)
-                    if selected {
-                        CoronaGlow(tint: kind.tint)
-                            .clipShape(shape)
-                    }
-                }
-            }
-            .overlay(shape.strokeBorder(Color.primary.opacity(selected ? 0 : 0.08), lineWidth: 0.5))
-            .overlay {
-                if selected {
-                    shape.strokeBorder(PhotonRim.style, lineWidth: 1)
-                }
-            }
+            .background(selected ? Color.wardPrimary : kind.tint.opacity(0.12), in: shape)
             .animation(.snappy(duration: 0.25), value: selected)
     }
 }
@@ -139,7 +126,7 @@ enum PhotonRim {
 struct ModeBackdrop: View {
     let kind: StudySetKind
     var body: some View {
-        AppBackdrop(tint: kind.tint)
+        WardBackground()
     }
 }
 
@@ -148,26 +135,8 @@ struct ModeBackdrop: View {
 /// move with the pop-out, only what you can touch rises out of it. A thin
 /// contact line and a lit rim are all the depth it needs.
 struct ContentCard: ViewModifier {
-    @Environment(\.modeTint) private var tint
-    @Environment(\.colorScheme) private var scheme
-
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
-        let washAlpha: Double = scheme == .dark ? 0.22 : 0.14
-        let wash: [Color] = [tint.opacity(washAlpha), Color.clear]
-        let rim: [Color] = [tint.opacity(0.45), Color.white.opacity(0.25), tint.opacity(0.10)]
-        content
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // frosted, so the backdrop's colour comes through, with a wash of
-            // the mode's own hue across the top
-            .background(.regularMaterial, in: shape)
-            .background(LinearGradient(colors: wash, startPoint: .top, endPoint: .center), in: shape)
-            .overlay(
-                shape.strokeBorder(LinearGradient(colors: rim, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                   lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)       // contact line
+        content.wardCard(padding: 18)
     }
 }
 
@@ -178,8 +147,8 @@ extension View {
     func modeScreen(_ kind: StudySetKind) -> some View {
         self
             .background(ModeBackdrop(kind: kind))
-            .tint(kind.tint)
-            .environment(\.modeTint, kind.tint)
+            .tint(Color.wardPrimary)
+            .environment(\.modeTint, Color.wardPrimary)
     }
 
     /// Slides up and fades in on first appearance, staggered by `index` so
@@ -224,8 +193,8 @@ struct ThinProgress: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.08))
-                Capsule().fill(.tint).frame(width: max(0, min(1, fraction)) * geo.size.width)
+                Capsule().fill(Color.wardHairline)
+                Capsule().fill(Color.wardBeam).frame(width: max(0, min(1, fraction)) * geo.size.width)
             }
         }
         .frame(height: 5)
@@ -246,13 +215,17 @@ struct ScoreRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: 6)
+                .stroke(Color.wardHairline, lineWidth: 6)
                 .padding(3)
-            PhotonArc(fraction: shown, lineWidth: 6)
+            Circle()
+                .trim(from: 0, to: max(0, min(1, shown)))
+                .stroke(Color.wardPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .padding(3)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
-                Text(label).font(.system(size: 38, weight: .bold, design: .rounded))
+                Text(label).font(.system(size: 38, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
@@ -279,7 +252,7 @@ struct ScoreRing: View {
 /// the middle of the indigo Anki screen: the accent is the app's colour, not
 /// the screen's.
 private struct ModeTintKey: EnvironmentKey {
-    static let defaultValue: Color = StudySetKind.mcq.tint
+    static let defaultValue: Color = .wardPrimary
 }
 
 extension EnvironmentValues {
@@ -438,69 +411,8 @@ struct BigButtonStyle: ButtonStyle {
     var fills = true
 
     func makeBody(configuration: Configuration) -> some View {
-        BigButtonFace(label: configuration.label, isPressed: configuration.isPressed,
-                      weight: weight, fills: fills)
-    }
-}
-
-private struct BigButtonFace: View {
-    let label: ButtonStyleConfiguration.Label
-    let isPressed: Bool
-    let weight: BigButtonStyle.Weight
-    let fills: Bool
-
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.modeTint) private var tint
-    @Environment(\.windowSpan) private var span
-
-    private var primary: Bool { weight == .primary }
-
-    // a button that can't be pressed yet goes grey, rather than staying the
-    // screen's colour a little fainter, so "not yet" is unmistakable
-    private var fill: Color {
-        if !isEnabled { return Color.primary.opacity(0.08) }
-        if primary { return tint }
-        return tint.opacity(0.14)
-    }
-
-    private var ink: Color {
-        if !isEnabled { return Color.secondary }
-        if primary { return Color.white }
-        return tint
-    }
-
-    private var edge: Color {
-        if primary || !isEnabled { return Color.clear }
-        return tint.opacity(0.35)
-    }
-
-    private var maxWidth: CGFloat? {
-        if !fills { return nil }
-        if span == .broad { return 360 }
-        return CGFloat.infinity
-    }
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-        let plane: PopOutPlane = primary ? .hero : .raised
-        let slabTint: Color? = primary && isEnabled ? tint : nil
-        let sunk: Bool = isPressed || !isEnabled
-        let scale: CGFloat = isPressed ? 0.97 : 1
-        label
-            .font(.headline)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(ink)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minWidth: 56, maxWidth: maxWidth, minHeight: 56)
-            .background(fill, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 1))
-            .contentShape(shape)
-            .scaleEffect(scale)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
-            .popOut(plane, in: shape, tint: slabTint, pressed: sunk)
-            .contentShape(.hoverEffect, shape)
-            .hoverEffect(.lift)
+        WardButtonStyle(kind: weight == .primary ? .primary : .secondary, fills: fills)
+            .makeBody(configuration: configuration)
     }
 }
 
@@ -533,15 +445,16 @@ struct StudyActionBar<Content: View>: View {
 
     var body: some View {
         let broad: Bool = span == .broad
-        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
         let innerCap: CGFloat? = broad ? nil : 700
         let outerCap: CGFloat = broad ? 1000 : 700
         let side: Alignment = broad ? .trailing : .center
         VStack(spacing: 12) { content }
             .padding(12)
             .frame(maxWidth: innerCap)
-            .liquidGlassPanel(cornerRadius: 28)
-            .popOut(.floating, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .frame(maxWidth: outerCap, alignment: side)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
@@ -603,8 +516,8 @@ struct StudyProgressHeader<Accessory: View>: View {
         .frame(maxWidth: 700)
         // frosted rather than glass, so the glass chips in `accessory` are
         // not glass on glass
-        .background(.regularMaterial, in: shape)
-        .popOut(.raised, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .frame(maxWidth: .infinity)

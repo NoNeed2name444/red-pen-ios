@@ -72,7 +72,7 @@ struct StatsView: View {
                         Spacer(minLength: 8)
                         if !store.ruleSheet.isEmpty {
                             Text("\(store.ruleSheet.count)")
-                                .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                                .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                         }
                     }
                 }
@@ -83,7 +83,7 @@ struct StatsView: View {
             if stats.isEmpty {
                 Section {
                     Text("Make an MCQ set and answer a few questions, and how you are doing in each subject will show here.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
             } else {
                 Section {
@@ -99,7 +99,7 @@ struct StatsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(LibraryBackdrop())
-        .navigationTitle("Progress")
+        .navigationTitle("By subject")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -166,7 +166,7 @@ struct StatsView: View {
         Section {
             if rows.isEmpty {
                 Text("Pick Sure, Maybe or Guess before checking an answer, and how often each is right will show here.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             } else {
                 ForEach(rows) { row in
                     VStack(alignment: .leading, spacing: 6) {
@@ -177,9 +177,9 @@ struct StatsView: View {
                                 .font(.body.weight(.semibold).monospacedDigit())
                                 .foregroundStyle(.tint)
                         }
-                        AccuracyBar(fraction: row.accuracy, color: .accentColor)
+                        AccuracyBar(fraction: row.accuracy, color: Color.wardPrimary)
                         Text(Self.counted(row.answered, "answer"))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 2)
                     .accessibilityElement(children: .combine)
@@ -196,7 +196,7 @@ struct StatsView: View {
                         Label("Confident but wrong", systemImage: "exclamationmark.triangle")
                         Spacer(minLength: 8)
                         Text("\(confidentWrong.count)")
-                            .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                            .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 Button {
@@ -222,7 +222,7 @@ struct StatsView: View {
         Section {
             if shares.isEmpty {
                 Text("After a wrong answer, tap why you think you lost the mark. The reasons you give show here with something to do about each.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             } else {
                 ForEach(shares) { share in
                     reasonRow(share)
@@ -247,7 +247,7 @@ struct StatsView: View {
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.tint)
             }
-            AccuracyBar(fraction: share.share, color: .accentColor)
+            AccuracyBar(fraction: share.share, color: Color.wardPrimary)
             reasonAction(share.reason, count: share.count)
         }
         .padding(.vertical, 2)
@@ -312,9 +312,9 @@ struct StatsView: View {
         let right: String = answered == 0 ? "\u{2013}" : Self.percent(share)
         let streakWord: String = log.streak == 1 ? "day streak" : "days streak"
         return HStack(spacing: 0) {
-            figure("\(log.streak)", streakWord, symbol: "flame.fill", color: .orange)
-            figure("\(log.today)", "today", symbol: "checkmark.circle.fill", color: .accentColor)
-            figure(right, "of \(answered) right", symbol: "target", color: .green)
+            figure("\(log.streak)", streakWord, symbol: "flame.fill", color: Color.wardBeam)
+            figure("\(log.today)", "today", symbol: "checkmark.circle.fill", color: Color.wardPrimaryInk)
+            figure(right, "of \(answered) right", symbol: "target", color: Color.wardSuccess)
         }
         .padding(.vertical, 4)
     }
@@ -323,7 +323,7 @@ struct StatsView: View {
         VStack(spacing: 3) {
             Image(systemName: symbol).font(.caption).foregroundStyle(color)
             Text(value).font(.title2.weight(.bold).monospacedDigit())
-            Text(caption).font(.caption2).foregroundStyle(.secondary)
+            Text(caption).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
@@ -346,7 +346,7 @@ struct StatsView: View {
             }
             AccuracyBar(fraction: fraction, color: color)
             Text(line)
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
@@ -368,11 +368,11 @@ struct StatsView: View {
     /// Green from three in four, amber from half, red below; grey for a
     /// subject not tried yet, which is not the same thing as a bad one.
     private static func color(for s: SubjectStats) -> Color {
-        guard s.answered > 0 else { return .secondary }
+        guard s.answered > 0 else { return Color.wardInkSecondary }
         switch s.accuracy {
-        case 0.75...: return .green
-        case 0.5..<0.75: return .orange
-        default: return .red
+        case 0.75...: return Color.wardSuccess
+        case 0.5..<0.75: return Color.wardWarning
+        default: return Color.wardDanger
         }
     }
 }
@@ -386,7 +386,7 @@ private struct AccuracyBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.08))
+                Capsule().fill(Color.wardHairline)
                 Capsule().fill(color)
                     .frame(width: max(0, min(1, fraction)) * geo.size.width)
             }
