@@ -7,8 +7,8 @@
 # on a newer build, and closes one absent from two newer builds. Issues carry
 # the labels "diagnostics" plus "crash" or "failure".
 #
-# Symbolication: an Xcode build (ipa.yml, personal.yml) publishes its app's dSYM
-# to the "dsyms" release as <UUID>.zip (tools/publish_dsyms.sh). Frames from a
+# Symbolication: an Xcode build would publish its app's dSYM
+# to the "dsyms" release as <UUID>.zip (no such build runs now: the app reaches the iPad as Playgrounds). Frames from a
 # build whose dSYM is there are symbolicated with llvm-symbolizer; others -
 # every Swift Playgrounds build, which has no dSYM - stay as binary+offset.
 #
