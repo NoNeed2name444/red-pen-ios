@@ -46,13 +46,12 @@ TINTS = {
     "mcq": (0.78, 0.16, 0.16),      # pen red
     "anki": (0.31, 0.36, 0.86),     # indigo
     "book": (0.10, 0.55, 0.50),     # teal
-    "qa": (0.90, 0.49, 0.13),       # amber
     "osce": (0.20, 0.62, 0.35),     # green
     "narrate": (0.55, 0.32, 0.80),  # violet
 }
 
 MODE_LABEL = {"mcq": "MCQ", "anki": "Anki", "book": "Textbook",
-              "qa": "Cases", "osce": "OSCE", "narrate": "Narrate"}
+              "osce": "OSCE", "narrate": "Narrate"}
 
 
 class Palette:
@@ -314,15 +313,6 @@ def cards_for(study_set: dict) -> list[Card]:
                          [_option(letter_for(i), o, False) for i, o in enumerate(options)],
                 answer=answer, subject=subject, mode=mode,
                 image=picture(q.get("imageIndex")), source=q.get("source")))
-
-    elif mode == "qa":
-        for c in study_set.get("qaCards", []):
-            out.append(Card(
-                topic=c.get("topic") or topic_from(c.get("stem", "")),
-                kind_label="CASE" if c.get("type") == "case" else "RECALL",
-                question=[_text(c.get("stem", ""))],
-                answer=[_bullet(a) for a in c.get("answer", [])],
-                subject=subject, mode=mode))
 
     elif mode == "osce":
         for checklist in study_set.get("osceChecklists", []):

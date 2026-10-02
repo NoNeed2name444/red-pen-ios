@@ -43,13 +43,13 @@ enum BatchWriting {
 
     /// What a run did not write, for the screen to say and to offer again.
     struct Shortfall: Equatable, Sendable {
-        /// Cards, cases or pages asked for, and written.
+        /// Cards or pages asked for, and written.
         var wanted: Int
         var written: Int
         /// Batches whose request failed.
         var failedBatches: Int
         /// A textbook's parts left unwritten, as indexes into its slices of
-        /// the lecture; empty for cards and cases.
+        /// the lecture; empty for cards.
         var parts: [Int] = []
         /// Why the last failed batch failed.
         var reason: String? = nil
@@ -101,7 +101,7 @@ enum BatchWriting {
         return min(8, pow(2, Double(n - 1)))
     }
 
-    // MARK: cards and cases
+    // MARK: cards
 
     struct Items {
         var items: [String]

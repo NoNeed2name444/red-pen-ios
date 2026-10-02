@@ -31,7 +31,7 @@ enum AccuracyChecker {
     }
 
 
-    /// Grades all of a long `output` - a deck, a set of cases, a textbook -
+    /// Grades all of a long `output` - a deck, a set of stations, a textbook -
     /// a window at a time, each against the part of `source` nearest it
     /// (audit #89: only the first promptBudget/2 characters were read). At
     /// most `maxParts` windows are sent, spread through the whole; the

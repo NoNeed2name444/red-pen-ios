@@ -368,8 +368,6 @@ struct HowToReachCard: View {
     var lecture: String? = nil
 
     var body: some View { EmptyView() }
-
-    static func lectureLabel(for text: String, in set: StudySet) -> String? { nil }
 }
 
 extension View {

@@ -41,36 +41,6 @@ struct NarrateReviewView: View {
     var body: some View { NotInThisBuild(feature: "Audio lectures") }
 }
 
-struct CaseStationClock: View {
-    var body: some View { EmptyView() }
-}
-
-/// The case's composer without the voice: the field and a Send button.
-struct CaseVoiceButtons<Field: View>: View {
-    let hasDraft: Bool
-    let onSend: () -> Void
-    private let field: Field
-
-    init(simulator: CaseSimulator, hasDraft: Bool, onSend: @escaping () -> Void,
-         @ViewBuilder field: () -> Field) {
-        self.hasDraft = hasDraft
-        self.onSend = onSend
-        self.field = field()
-    }
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            field
-            Button(action: onSend) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title)
-            }
-            .disabled(!hasDraft)
-            .accessibilityLabel("Send")
-        }
-    }
-}
-
 struct DrawFromMemoryButton: View {
     let set: StudySet
     let imageIndex: Int

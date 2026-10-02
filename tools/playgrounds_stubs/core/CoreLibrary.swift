@@ -151,7 +151,6 @@ struct CoreSetScreen: View {
         case .mcq: MCQQuizView(set: set)
         case .anki: AnkiReviewView(set: set)
         case .book: BookReaderView(set: set)
-        case .qa: QACardsView(set: set)
         case .osce: OsceReviewView(set: set)
         case .narrate: CoreNarrateScreen(set: set)
         }

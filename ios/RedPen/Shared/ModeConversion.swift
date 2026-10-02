@@ -23,7 +23,7 @@ enum ModeConversion {
 
     /// The modes a set can be turned into. Narrate is a recording read along
     /// with, and there is nothing to turn into one.
-    static let targets: [StudySetKind] = [.mcq, .anki, .qa, .osce, .book]
+    static let targets: [StudySetKind] = [.mcq, .anki, .osce, .book]
 
     /// Whether `set` can be turned into `kind` at all - instantly or written.
     static func canTurn(_ set: StudySet, into kind: StudySetKind) -> Bool {
@@ -50,22 +50,14 @@ enum ModeConversion {
         switch (set.kind, kind) {
         case (.mcq, .anki):
             out.cards = set.questions.compactMap(card(from:))
-        case (.mcq, .qa):
-            out.qaCards = set.questions.compactMap { caseCard(from: $0, topic: set.subject) }
         case (.anki, .mcq):
             // The deck's own answers are the wrong options: nothing invented.
             // Three is where AnkiReviewView's own "Quiz me" draws the line.
             let built = QuizFromCards.build(from: set.cards)
             guard built.questions.count >= 3 else { return nil }
             out.questions = built.questions
-        case (.anki, .qa):
-            out.qaCards = set.cards.compactMap { caseCard(from: $0, topic: set.subject) }
-        case (.qa, .anki):
-            out.cards = set.qaCards.compactMap(card(from:))
         case (.osce, .anki):
             out.cards = set.osceChecklists.flatMap(cards(from:))
-        case (.osce, .qa):
-            out.qaCards = set.osceChecklists.compactMap(caseCard(from:))
         default:
             return nil
         }
@@ -85,58 +77,6 @@ enum ModeConversion {
                         source: question.source)
     }
 
-    /// A question as a Cases card. A long stem is a vignette, so it is shown
-    /// as a clinical case; a short one is plain recall.
-    static func caseCard(from question: MCQQuestion, topic: String) -> QACard? {
-        guard let answer = rightAnswer(of: question) else { return nil }
-        let stem = question.stem.trimmingCharacters(in: .whitespacesAndNewlines)
-        let explanation = question.explanation.trimmingCharacters(in: .whitespacesAndNewlines)
-        let words = stem.split { $0.isWhitespace }.count
-        var card = QACard(topic: topic == "General" ? "" : topic,
-                          type: words >= 25 ? .case : .recall,
-                          stem: stem,
-                          answer: [answer] + (explanation.isEmpty ? [] : [explanation]))
-        // the route to the answer comes with it, for "How to reach it"
-        card.differential = question.differential
-        return card
-    }
-
-    /// A card as a Cases card: its front and its answer bullets. A cloze
-    /// sentence becomes the sentence with its first gap as the question; a
-    /// picture card has nothing to say in words, so it is left out.
-    static func caseCard(from card: AnkiCard, topic: String) -> QACard? {
-        let stem: String
-        var answer: [String]
-        switch card.type {
-        case .qa:
-            stem = card.front.trimmingCharacters(in: .whitespacesAndNewlines)
-            answer = card.bullets.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        case .cloze:
-            stem = QuizFromCards.stem(of: card)
-            // the stem blanks only the first gap, so only that is the answer
-            answer = [QuizFromCards.answer(of: card) ?? ""].filter { !$0.isEmpty }
-        case .occlusion:
-            return nil
-        }
-        let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !why.isEmpty { answer.append(why) }
-        guard !stem.isEmpty, !answer.isEmpty else { return nil }
-        return QACard(topic: topic == "General" ? "" : topic, type: .recall, stem: stem, answer: answer)
-    }
-
-    /// A Cases card as a flashcard: the question on the front, the answer
-    /// points as its bullets.
-    static func card(from qa: QACard) -> AnkiCard? {
-        let stem = qa.stem.trimmingCharacters(in: .whitespacesAndNewlines)
-        let bullets = qa.answer.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        guard !stem.isEmpty, !bullets.isEmpty else { return nil }
-        let topic = qa.topic.trimmingCharacters(in: .whitespaces)
-        return AnkiCard(type: .qa,
-                        front: topic.isEmpty || stem.localizedCaseInsensitiveContains(topic)
-                            ? stem : "\(topic): \(stem)",
-                        bullets: bullets)
-    }
-
     /// A station as cards that drill its order: one card per step, asking
     /// what comes after the one before it. The order is what an examiner
     /// marks, and it is the part that slips.
@@ -152,17 +92,6 @@ enum ModeConversion {
             return AnkiCard(type: .qa, front: front, bullets: [steps[i]],
                             why: "Step \(i + 1) of \(steps.count).")
         }
-    }
-
-    /// A station as one Cases card: talk it through, in order.
-    static func caseCard(from station: OsceChecklist) -> QACard? {
-        let steps = station.steps
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        guard !steps.isEmpty else { return nil }
-        return QACard(topic: station.title, type: .recall,
-                      stem: "Talk through the \(station.title) station, in order.",
-                      answer: steps)
     }
 
     private static func rightAnswer(of question: MCQQuestion) -> String? {
@@ -208,11 +137,6 @@ enum ModeConversion {
             }
         case .book:
             parts = [set.bookMarkdown]
-        case .qa:
-            parts = set.qaCards.map { c -> String in
-                ([c.topic, c.stem] + c.answer.map { "- " + $0 })
-                    .filter { !$0.isEmpty }.joined(separator: "\n")
-            }
         case .osce:
             parts = set.osceChecklists.map { station -> String in
                 (["## " + station.title] + station.steps.map { "- " + $0 }).joined(separator: "\n")

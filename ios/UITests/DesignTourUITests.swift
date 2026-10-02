@@ -32,8 +32,8 @@ import XCTest
 final class DesignTourUITests: XCTestCase {
     private var app: XCUIApplication!
 
-    /// The dock's five categories, in the dock's order.
-    private let categories: [String] = ["questions", "cards", "cases", "osce", "audio"]
+    /// The dock's four categories, in the dock's order.
+    private let categories: [String] = ["questions", "cards", "osce", "audio"]
 
     func testDesignTour() {
         continueAfterFailure = true
@@ -93,7 +93,7 @@ final class DesignTourUITests: XCTestCase {
 
     // MARK: - The steps
 
-    /// 01-05: the library on each of the five categories.
+    /// 01-04: the library on each of the four categories.
     private func libraryOnEachCategory() {
         goHome()
         for (index, category) in categories.enumerated() {

@@ -56,8 +56,6 @@ extension StudySet {
             case .book:
                 let rebased: String = BookFigures.rebased(m.bookMarkdown, by: base)
                 out.bookMarkdown += (out.bookMarkdown.isEmpty ? "" : "\n\n") + rebased
-            case .qa:
-                out.qaCards.append(contentsOf: m.qaCards.map { var c = $0; c.id = UUID(); return c })
             case .osce:
                 out.osceChecklists.append(contentsOf: m.osceChecklists.map { var c = $0; c.id = UUID(); return c })
             case .narrate:

@@ -1,7 +1,7 @@
 import Foundation
 
-// How a diagnosis is reached, kept beside the item it was reached for: a case,
-// a clue-by-clue case, or a question's explanation.
+// How a diagnosis is reached, kept beside the item it was reached for: a
+// question's explanation, or a Study Lens answer.
 //
 // Borrowed from how Glass Health lays out clinical reasoning: the differential
 // in three tiers - the most likely diagnosis, reasonable alternatives, and the
@@ -206,7 +206,7 @@ extension DifferentialTiers {
         }
     }
 
-    /// The one-line form, as a Cases line's fifth field carries it:
+    /// The one-line form:
     /// `Most likely: X (for: a, b; against: c; test: d) / Expanded: Y (...); Z (...) / Can't miss: W (...)`
     static func parse(line: String) -> DifferentialTiers? {
         let marks: [(tier: DifferentialTier, start: String.Index, end: String.Index)] = tierMarks(in: line)

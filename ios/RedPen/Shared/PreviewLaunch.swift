@@ -84,7 +84,7 @@ enum PreviewLaunch {
         try? text.write(to: log, atomically: true, encoding: .utf8)
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -92,10 +92,10 @@ enum PreviewLaunch {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("redpen-preview-\(UUID().uuidString).json")
         let store = Store(fileURL: url)
         store.library = SampleData.sets
-        // group the two cardiology-ish sets so the library screenshot shows a folder
+        // put the cardiology set in a folder so the library screenshot shows one
         let folder = StudyFolder(name: "Cardiology block")
         store.folders = [folder]
-        for i in store.library.indices where ["Cardiology", "Respiratory"].contains(store.library[i].subject) {
+        for i in store.library.indices where store.library[i].subject == "Cardiology" {
             store.library[i].folderId = folder.id
         }
         return store
@@ -223,20 +223,6 @@ enum SampleData {
         """
     )
 
-    static let respiratory = StudySet(
-        name: "Respiratory — cases",
-        subject: "Respiratory",
-        kind: .qa,
-        qaCards: [
-            QACard(topic: "Pneumonia", type: .case, stem: "A 72-year-old with fever, productive cough and right basal crackles. RR 32, BP 88/56, urea 9 mmol/L, confused. What is the CURB-65 score and where should she be managed?",
-                   answer: ["CURB-65 = **4** (confusion, urea > 7, RR ≥ 30, BP < 90/60)", "Score ≥ 3 → **admit, consider ICU**", "IV co-amoxiclav + clarithromycin per local policy"]),
-            QACard(topic: "Asthma", type: .recall, stem: "Features of a life-threatening asthma attack?",
-                   answer: ["PEF < **33%** of best", "SpO₂ < **92%**, PaO₂ < 8 kPa, *normal* PaCO₂", "Silent chest, cyanosis, poor effort", "Exhaustion, arrhythmia, hypotension, altered consciousness"]),
-            QACard(topic: "COPD", type: .case, stem: "Known COPD, acutely breathless, drowsy. ABG on 15 L O₂: pH 7.28, PaCO₂ 9.5 kPa, PaO₂ 14 kPa. Next step?",
-                   answer: ["Controlled oxygen — target SpO₂ **88–92%** (Venturi 24–28%)", "Nebulised salbutamol + ipratropium, steroids, antibiotics if purulent", "Repeat ABG in 30–60 min; **NIV** if pH < 7.35 with PaCO₂ > 6.5 despite treatment"]),
-        ]
-    )
-
     static let osce = StudySet(
         name: "Skills — venepuncture & catheterisation",
         subject: "Clinical skills",
@@ -280,7 +266,7 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce, narrate]
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, osce, narrate]
 
     /// Adds a copy of every example set, once, to a personal build's library -
     /// never to the App Store app, whose students start with their own.
@@ -349,10 +335,6 @@ struct PreviewRoot: View {
             NavigationStack { AnkiReviewView(set: SampleData.cardiology, startRevealed: true) }
         case "book":
             NavigationStack { BookReaderView(set: SampleData.endocrine, page: 1) }
-        case "qa":
-            NavigationStack { QACardsView(set: SampleData.respiratory) }
-        case "qa-revealed":
-            NavigationStack { QACardsView(set: SampleData.respiratory, startRevealed: true) }
         case "osce":
             NavigationStack { OsceReviewView(set: SampleData.osce) }
         case "osce-revealed":

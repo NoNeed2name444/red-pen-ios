@@ -108,13 +108,6 @@ extension AccuracyItem {
         return AccuracyItem(id: c.id.uuidString, kind: .card, text: text, source: String(source.prefix(sourceLimit)))
     }
 
-    static func qa(_ c: QACard, source: String = "") -> AccuracyItem {
-        let points: String = c.answer.map { "- " + $0 }.joined(separator: "\n")
-        let head: String = c.type == .case ? "Case: " : "Q: "
-        return AccuracyItem(id: c.id.uuidString, kind: .case, text: head + c.stem + "\nAnswer points:\n" + points,
-                            source: String(source.prefix(sourceLimit)))
-    }
-
     static func osce(_ s: OsceChecklist, source: String = "") -> AccuracyItem {
         let steps: String = s.steps.map { "- " + $0 }.joined(separator: "\n")
         return AccuracyItem(id: s.id.uuidString, kind: .osce, text: s.title + "\n" + steps,
@@ -147,8 +140,6 @@ extension AccuracyItem {
                 guard let base = card(c) else { return nil }
                 return card(c, source: src(base.checkedText))
             }
-        case .qa:
-            return set.qaCards.map { c in qa(c, source: src(qa(c).checkedText)) }
         case .osce:
             return set.osceChecklists.map { s in osce(s, source: src(osce(s).checkedText)) }
         case .book:

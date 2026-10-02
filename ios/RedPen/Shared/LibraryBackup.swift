@@ -363,7 +363,6 @@ enum LibraryBackup {
         }
         out.cards = set.cards.map { var c = $0; c.id = fresh(c.id); return c }
         out.questions = set.questions.map { var q = $0; q.id = fresh(q.id); return q }
-        out.qaCards = set.qaCards.map { var c = $0; c.id = fresh(c.id); return c }
         out.osceChecklists = set.osceChecklists.map { var c = $0; c.id = fresh(c.id); return c }
         out.narrateSegments = set.narrateSegments.map { var s = $0; s.id = fresh(s.id); return s }
         return out

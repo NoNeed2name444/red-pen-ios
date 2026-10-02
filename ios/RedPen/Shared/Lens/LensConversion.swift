@@ -1,8 +1,8 @@
 import Foundation
 
 // Study Lens: turning a captured question and its answer into something to
-// study - a question in a set, a flashcard, a case, an OSCE station, an idea
-// note, or a narration script.
+// study - a question in a set, a flashcard, an OSCE station, an idea note,
+// or a narration script.
 //
 // Where the app already knows how to turn one mode into another
 // (ModeConversion), that is used, so a Lens capture becomes a card exactly as
@@ -15,7 +15,7 @@ import Foundation
 
 /// Where a capture can go.
 enum LensDestination: String, CaseIterable, Identifiable, Hashable {
-    case questions, cards, cases, osce, ideas, audio
+    case questions, cards, osce, ideas, audio
 
     var id: String { rawValue }
 
@@ -23,7 +23,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "Questions"
         case .cards: return "Cards"
-        case .cases: return "Cases"
         case .osce: return "OSCE"
         case .ideas: return "Ideas"
         case .audio: return "Audio"
@@ -34,7 +33,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "A multiple-choice question in a set"
         case .cards: return "A flashcard, or a cloze card"
-        case .cases: return "A case card to talk through"
         case .osce: return "A station checklist"
         case .ideas: return "A note with the question and why"
         case .audio: return "A script read aloud in Audio"
@@ -45,7 +43,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "checklist.checked"
         case .cards: return "rectangle.on.rectangle.angled"
-        case .cases: return "stethoscope"
         case .osce: return "list.clipboard"
         case .ideas: return "lightbulb"
         case .audio: return "waveform"
@@ -57,7 +54,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return .mcq
         case .cards: return .anki
-        case .cases: return .qa
         case .osce: return .osce
         case .audio: return .narrate
         case .ideas: return nil
@@ -68,8 +64,7 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
     static func suggested(for type: LensQuestionType) -> LensDestination {
         switch type {
         case .mcq, .bestAnswer, .trueFalse: return .questions
-        case .cloze, .shortAnswer, .calculation, .imageLabel: return .cards
-        case .clinicalCase: return .cases
+        case .cloze, .shortAnswer, .calculation, .imageLabel, .clinicalCase: return .cards
         case .osce: return .osce
         }
     }
@@ -105,9 +100,6 @@ enum LensConversion {
             let made: [AnkiCard] = cards(q, a)
             guard !made.isEmpty else { return nil }
             out.cards.append(contentsOf: made)
-        case .qa:
-            guard let made = caseCard(q, a, topic: set.subject) else { return nil }
-            out.qaCards.append(made)
         case .osce:
             guard let made = station(q, a) else { return nil }
             out.osceChecklists.append(made)
@@ -129,7 +121,6 @@ enum LensConversion {
         switch destination {
         case .questions: return question(q, a) != nil
         case .cards: return !cards(q, a).isEmpty
-        case .cases: return caseCard(q, a, topic: "General") != nil
         case .osce: return station(q, a) != nil
         case .ideas: return true
         case .audio: return !narration(q, a).isEmpty
@@ -266,36 +257,6 @@ enum LensConversion {
             text = a.filled.replacingCharacters(in: range, with: marked)
         }
         return AnkiCard(type: .cloze, clozeText: text, why: a.explanation)
-    }
-
-    // MARK: Cases
-
-    static func caseCard(_ q: DetectedQuestion, _ a: LensAnswer, topic: String) -> QACard? {
-        let cleanTopic: String = topic == "General" ? "" : topic
-        switch q.type {
-        case .mcq, .bestAnswer:
-            guard let mcq = question(q, a) else { return nil }
-            return ModeConversion.caseCard(from: mcq, topic: topic)
-        case .clinicalCase:
-            var points: [String] = []
-            if !a.diagnosis.isEmpty { points.append("Most likely: **" + a.diagnosis + "**") }
-            if !a.nextStep.isEmpty { points.append("Next step: " + a.nextStep) }
-            if !a.explanation.isEmpty { points.append(a.explanation) }
-            guard !points.isEmpty else { return nil }
-            var card = QACard(topic: cleanTopic, type: .case, stem: q.stem, answer: points)
-            card.differential = a.differential
-            return card
-        case .osce:
-            guard let s = station(q, a) else { return nil }
-            return ModeConversion.caseCard(from: s)
-        default:
-            let right: String = a.answer.isEmpty ? a.verdict.map { $0 ? "True" : "False" } ?? "" : a.answer
-            guard !right.isEmpty else { return nil }
-            var points: [String] = ["**" + right + "**"]
-            if !a.explanation.isEmpty { points.append(a.explanation) }
-            points.append(contentsOf: a.steps)
-            return QACard(topic: cleanTopic, type: .recall, stem: q.stem, answer: points)
-        }
     }
 
     // MARK: OSCE

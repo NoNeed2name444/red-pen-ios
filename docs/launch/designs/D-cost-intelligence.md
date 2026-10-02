@@ -387,7 +387,6 @@ All three only transform text the app already has.
 |---|---|
 | `Features/MCQ/MCQQuizView.swift` | `AssistBar` under the stem (before answering) and under the explanation (after) |
 | `Features/Anki/AnkiReviewView.swift`, `Features/Anki/AnkiCardFace.swift` | hint on the front, explain on the back |
-| `Features/QA/QACardsView.swift` | explain on the back |
 | `Shared/LLM/HostedLLMClient.swift` | `var task: String? = nil`; `openAIRequest` adds `"task"` when the provider is Vignette Cloud |
 | `Shared/LLM/LocalLLMService.swift` | `LLMChoice.appleCloud` stored as `"pcc"`. `backend(for:)` returns `PCCBackend` when compiled in, on iOS 27, with `assist.pccWriter` on. `needsPro` returns false for it (it costs the owner nothing, so it can be a free-tier writer). |
 | `Features/Support/ModelSettingsView.swift` | "Apple Private Cloud Compute (free)" option when available; the cloud allowance section (section 5) |
@@ -624,7 +623,7 @@ Suites for `swift-tests.yml`. The runner runs from the repository root, so suite
 
 ```
 suite assist AssistTests.swift $S/LLM/Assist.swift $S/LLM/LLMCore.swift \
-      $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+      $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift $S/BookPages.swift \

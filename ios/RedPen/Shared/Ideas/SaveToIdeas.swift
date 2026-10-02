@@ -1,7 +1,7 @@
 import Foundation
 
-// "Save to Ideas": a question's explanation, a card's back, a case's answer,
-// an OSCE station or a passage of a lecture kept as a note in Ideas - like a
+// "Save to Ideas": a question's explanation, a card's back, an OSCE
+// station or a passage of a lecture kept as a note in Ideas - like a
 // notebook beside a question bank. The note is titled from the question or
 // the card's front, filed in a folder named after the set's subject, and
 // remembers where it came from (NoteSource), so its chip can open the
@@ -15,14 +15,13 @@ import Foundation
 /// so notes written before it, or by hand, have none) and read by its chip.
 struct NoteSource: Codable, Hashable, Sendable {
     enum Kind: String, Codable, CaseIterable, Sendable {
-        case question, card, caseCard, osce, lecture
+        case question, card, osce, lecture
 
         /// How the chip names it: "Question", "Card"...
         var label: String {
             switch self {
             case .question: return "Question"
             case .card: return "Card"
-            case .caseCard: return "Case"
             case .osce: return "OSCE station"
             case .lecture: return "Lecture"
             }
@@ -40,7 +39,6 @@ struct NoteSource: Codable, Hashable, Sendable {
             switch self {
             case .question: return "list.bullet.rectangle"
             case .card: return "rectangle.on.rectangle"
-            case .caseCard: return "stethoscope"
             case .osce: return "list.clipboard"
             case .lecture: return "doc.richtext"
             }
@@ -50,7 +48,7 @@ struct NoteSource: Codable, Hashable, Sendable {
     var kind: Kind
     /// The set it was saved from.
     var setID: UUID
-    /// The question, card, case card, station or lecture; nil when only the
+    /// The question, card, station or lecture; nil when only the
     /// set is known.
     var itemID: UUID? = nil
     /// The lecture page, from 1; nil for everything but a lecture.
@@ -166,7 +164,7 @@ enum SaveToIdeas {
 
     // MARK: titles
 
-    /// A note title from a question stem, a card's front or a case: the
+    /// A note title from a question stem or a card's front: the
     /// first sentence, with card markup (`**bold**`, `{{c1::cloze}}`) taken
     /// out, on one line, cut at a word if it is long. `fallback` when there
     /// are no words at all.
@@ -393,18 +391,6 @@ enum SaveToIdeas {
         return IdeaClip(title: title, text: parts.joined(separator: "\n\n"), source: source, subject: subject)
     }
 
-    /// A case card: titled from its topic, or its stem; the answer points.
-    static func caseCard(topic: String, stem: String, answer: [String],
-                         source: NoteSource, subject: String) -> IdeaClip {
-        let named: String = topic.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title: String = Self.title(from: named.isEmpty ? stem : named, fallback: "Saved case")
-        let points: [String] = answer.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        var parts: [String] = []
-        if !named.isEmpty { parts.append(oneLine(stem)) }
-        if !points.isEmpty { parts.append(points.map { "- " + $0 }.joined(separator: "\n")) }
-        return IdeaClip(title: title, text: parts.joined(separator: "\n\n"), source: source, subject: subject)
-    }
-
     /// An OSCE station: its title; the steps in order, the ones started over
     /// at marked.
     static func osce(title: String, steps: [String], weak: Set<Int>,
@@ -424,24 +410,6 @@ enum SaveToIdeas {
                         source: NoteSource, subject: String) -> IdeaClip {
         let title: String = Self.title(from: lecture, fallback: "Lecture notes")
         return IdeaClip(title: title, text: text, source: source, subject: subject, isExcerpt: true)
-    }
-
-    /// A pretend patient's debrief for a case: the diagnosis and the
-    /// checklist points missed, added under the case's own note (the same
-    /// title and source as saving the case card itself).
-    static func caseDebrief(diagnosis: String, missed: [String], covered: Int, total: Int,
-                            of clip: IdeaClip) -> IdeaClip {
-        var lines: [String] = ["**Pretend patient:** \(covered) of \(total) checklist points covered"]
-        let named: String = oneLine(diagnosis)
-        if !named.isEmpty { lines.append("**Diagnosis:** " + named) }
-        let gaps: [String] = missed.map { oneLine($0) }.filter { !$0.isEmpty }
-        if !gaps.isEmpty {
-            lines.append("Missed:\n" + gaps.map { "- " + $0 }.joined(separator: "\n"))
-        }
-        var out: IdeaClip = clip
-        out.text = lines.joined(separator: "\n\n")
-        out.isExcerpt = false
-        return out
     }
 
     /// A passage chosen from an explanation or a card: the same note as the

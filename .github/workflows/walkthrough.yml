@@ -125,7 +125,7 @@ jobs:
           for mode in $MODES; do
             xcrun simctl ui "$UDID" appearance "$mode"
             for screen in library new quiz quiz-checked summary anki anki-revealed \
-                          anki-quizable book qa qa-revealed osce osce-revealed \
+                          anki-quizable book osce osce-revealed \
                           osce-complete quiz-from-cards narrate narrate-fixing \
                           narrate-finished; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true

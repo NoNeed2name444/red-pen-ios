@@ -22,7 +22,7 @@ enum CoverageStatus: String, Codable, CaseIterable {
 struct SubtopicCoverage: Identifiable, Hashable {
     let area: String
     let subtopic: SyllabusSubtopic
-    /// Items that mention it: questions, cards, cases, stations, pages.
+    /// Items that mention it: questions, cards, stations, pages.
     let evidence: Int
     /// Of those, the ones that test the student rather than being read.
     let practice: Int
@@ -137,7 +137,7 @@ enum CoverageEngine {
     // MARK: - The library as items
 
     /// Everything in the library worth matching against, one item per
-    /// question, card, case, station, textbook page, stretch of transcript and
+    /// question, card, station, textbook page, stretch of transcript and
     /// lecture page. A lecture kept by more than one set is read once.
     static func items(from library: [StudySet]) -> [Item] {
         var out: [Item] = []
@@ -150,10 +150,6 @@ enum CoverageEngine {
             }
             for c in set.cards {
                 out.append(item([c.front, c.clozeText, c.bullets.joined(separator: " ")].joined(separator: " "),
-                                practice: true))
-            }
-            for c in set.qaCards {
-                out.append(item([c.topic, c.stem, c.answer.joined(separator: " ")].joined(separator: " "),
                                 practice: true))
             }
             for station in set.osceChecklists {

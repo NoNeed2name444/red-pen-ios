@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Add to…": keep a captured question in a study mode - a question set, a
-/// deck, the cases, an OSCE station, the idea dump or a narration - in a set
+/// deck, an OSCE station, the idea dump or a narration - in a set
 /// or folder the student picks, or in "Lens captures".
 ///
 /// Whatever is made carries the Lens tag and "Study Lens" as its source, and

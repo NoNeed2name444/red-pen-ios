@@ -196,7 +196,7 @@ final class LocalLLMService: ObservableObject {
 
     /// The writer for a free, on-device job when nothing is chosen: Apple's own
     /// model where the device has it. Used by the lecture writers that had no
-    /// generator before (Anki, Cases, Textbook).
+    /// generator before (Anki, Textbook).
     func writerOrApple() -> LLMBackend? {
         backend(for: .writer) ?? (AppleFoundationBackend.isAvailable ? AppleFoundationBackend() : nil)
     }

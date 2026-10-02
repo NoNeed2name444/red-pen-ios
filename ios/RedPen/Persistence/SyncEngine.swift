@@ -492,6 +492,9 @@ final class SyncEngine: ObservableObject {
         switch remote.kind {
         case .set:
             guard let incoming = SyncDocuments.set(from: remote) else {
+                // A kind this app removed: left on the server as it is, and
+                // not noted, since no update will read it.
+                if let payload = remote.payload, StudySetKind.isRetired(payload) { return }
                 // This version cannot read it - a kind of set from a newer
                 // version, say. Not remembered, so it is still the server's to
                 // give; and noted, because the cursor moves past it: after an

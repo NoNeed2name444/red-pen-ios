@@ -23,7 +23,7 @@ enum LectureWriter {
                         figures: figures, style: style, onProgress: onProgress).text
     }
 
-    /// Writes `count` cards, cases or pages. A batch that fails is counted
+    /// Writes `count` cards or pages. A batch that fails is counted
     /// and the run carries on (BatchWriting); it throws only when nothing at
     /// all was written, with the last failure's own error.
     ///
@@ -47,18 +47,17 @@ enum LectureWriter {
         // the server takes them in turn until the count is reached
         if let cloud = CloudJobs.endpoint(for: backend) {
             let cloudPerCall = 12
-            let rounds = min(60, max(windows.count, 1) * (kind == .qa ? 4 : 1))
+            let rounds = min(60, max(windows.count, 1))
             let steps = (0..<rounds).map { r -> CloudJobs.Step in
-                let prompt = cardPrompt(kind: kind, count: cloudPerCall, subject: subject,
-                                        already: ["{{ALREADY}}"], source: "{{SOURCE}}", style: style,
-                                        presentations: kind == .qa ? CaseVariety.plan(cloudPerCall, round: r + 1) : [])
+                let prompt = cardPrompt(count: cloudPerCall, subject: subject,
+                                        already: ["{{ALREADY}}"], source: "{{SOURCE}}", style: style)
                 return .init(system: prompt, user: "Write the \(cloudPerCall) lines now.",
-                             source: r % windows.count, maxTokens: (kind == .qa ? 240 : 160) * cloudPerCall, temperature: 0.6)
+                             source: r % windows.count, maxTokens: 160 * cloudPerCall, temperature: 0.6)
             }
             var spec = CloudJobs.Spec(
-                title: "Writing \(count) \(kind == .qa ? "cases" : "cards")", mode: "loop", extract: "lines",
+                title: "Writing \(count) cards", mode: "loop", extract: "lines",
                 count: count, sources: windows, steps: steps,
-                minFields: kind == .qa ? 4 : 2, keyFields: kind == .qa ? 3 : 1, cloze: kind == .anki,
+                minFields: 2, keyFields: 1, cloze: kind == .anki,
                 patience: min(12, max(3, windows.count + 2)))
             if CloudJobs.context?.serverCheck == true {
                 spec.check = AccuracyChecker.serverCheck(instruction: AccuracyChecker.materialInstruction,
@@ -87,17 +86,15 @@ enum LectureWriter {
             classify: failure, pause: { n in try await pause(after: n, using: backend) },
             onProgress: onProgress) { round, batch, written in
                 let promptSource = windows[(round - 1) % windows.count]
-                // what has been written, in enough words to tell two cases of
-                // the same disease apart
+                // what has been written: each line's first field
                 let already = (earlier + written).map { line -> String in
-                    let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
-                    return String((kind == .qa ? parts.prefix(3) : parts.prefix(1)).joined(separator: " | ").prefix(140))
+                    let front = line.components(separatedBy: "|").first ?? ""
+                    return String(front.trimmingCharacters(in: .whitespaces).prefix(140))
                 }
-                let prompt = cardPrompt(kind: kind, count: batch, subject: subject,
-                                        already: already, source: promptSource, style: style,
-                                        presentations: kind == .qa ? CaseVariety.plan(batch, round: round) : [])
+                let prompt = cardPrompt(count: batch, subject: subject,
+                                        already: already, source: promptSource, style: style)
                 let reply = try await backend.complete([.system(prompt), .user("Write the \(batch) lines now.")],
-                                                       maxTokens: (kind == .qa ? 240 : 160) * batch, temperature: 0.6)
+                                                       maxTokens: 160 * batch, temperature: 0.6)
                 return freshLines(in: reply, kind: kind, seen: &seen)
             }
         // nothing at all: the failure itself, not "nothing usable"
@@ -123,35 +120,15 @@ enum LectureWriter {
         try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
     }
 
-    static func cardPrompt(kind: StudySetKind, count: Int, subject: String,
-                           already: [String], source: String, style: CardStyle = .mixed,
-                           presentations: [String] = []) -> String {
-        var rules: [String]
-        if kind == .qa {
-            rules = [
-                "Write \(count) Cases cards for a medical student revising \(subject.isEmpty ? "medicine" : subject).",
-                "One card per line, exactly: Topic | case or recall | Question | answer point 1; answer point 2; answer point 3 | differential (clinical cases only)",
-                "About half should be clinical cases: a two-sentence vignette ending in a question (\"What is the most likely diagnosis?\", \"What is the next step?\"). The rest are direct recall questions.",
-                "Wrap the key term in each answer point in **double asterisks**.",
-                "A clinical case carries a fifth field: the differential you reasoned through BEFORE writing the answer, exactly as: Most likely: Diagnosis (for: finding, finding; against: finding; test: the test that confirms or rules it out) / Expanded: Diagnosis (for: ...; against: ...; test: ...); Diagnosis (for: ...; against: ...; test: ...) / Can't miss: Diagnosis (for: ...; against: ...; test: ...)",
-                "In it, the findings for and against are taken from the vignette, a few words each; Expanded is 1 or 2 reasonable alternatives; Can't miss is 1 or 2 dangerous diagnoses to exclude, or \"Can't miss: none\" if none fit. The answer points must agree with Most likely and fit every key finding. No | inside the field. Recall cards have no fifth field.",
-                "Follow current guidance, but never cite a source, guideline or reference by name: the app cites the lecture.",
-                "Every clinical case must present differently, even when two cases share a disease: vary the patient (age, sex, pregnancy, comorbidities, medications), the setting (GP, emergency department, ward, clinic), the stage (early, classic, late or complicated), typical versus atypical features, the trigger, and what is asked (diagnosis, next investigation, first-line treatment, complication, contraindication, monitoring). Never reuse a vignette already written, reworded.",
-            ]
-            if !presentations.isEmpty {
-                rules.append("Write the clinical cases in this batch as:")
-                rules += presentations.enumerated().map { "- case \($0.offset + 1): \($0.element)" }
-                rules.append("(skip any of these the disease in the source cannot fit, and pick another variation instead)")
-            }
-        } else {
-            let qa = "Question cards, one per line, exactly: Front | answer point 1; answer point 2 | why it matters (optional). The front is a question; answers are one to three short points; wrap the single tested word or number in **double asterisks**."
-            let cloze = "Cloze cards, one per line, exactly: one sentence stating the fact with the tested word or number hidden as {{c1::that word}} | why it matters (optional). Hide the one thing worth remembering, never a filler word; one hidden part per card."
-            rules = ["Write \(count) flashcards for a medical student revising \(subject.isEmpty ? "medicine" : subject). One fact per card."]
-            switch style {
-            case .qa: rules.append(qa)
-            case .cloze: rules.append(cloze)
-            case .mixed, .image: rules += ["Mix the two kinds, about half each:", "- " + qa, "- " + cloze]
-            }
+    static func cardPrompt(count: Int, subject: String,
+                           already: [String], source: String, style: CardStyle = .mixed) -> String {
+        let qa = "Question cards, one per line, exactly: Front | answer point 1; answer point 2 | why it matters (optional). The front is a question; answers are one to three short points; wrap the single tested word or number in **double asterisks**."
+        let cloze = "Cloze cards, one per line, exactly: one sentence stating the fact with the tested word or number hidden as {{c1::that word}} | why it matters (optional). Hide the one thing worth remembering, never a filler word; one hidden part per card."
+        var rules: [String] = ["Write \(count) flashcards for a medical student revising \(subject.isEmpty ? "medicine" : subject). One fact per card."]
+        switch style {
+        case .qa: rules.append(qa)
+        case .cloze: rules.append(cloze)
+        case .mixed, .image: rules += ["Mix the two kinds, about half each:", "- " + qa, "- " + cloze]
         }
         rules += [
             "Use only what the source supports.",
@@ -176,7 +153,7 @@ enum LectureWriter {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .map { $0.replacingOccurrences(of: #"^(\d+[.)]|[-*•])\s*"#, with: "", options: .regularExpression) }
             .filter { line in
-                (line.components(separatedBy: "|").count >= (kind == .qa ? 4 : 2) || (kind == .anki && line.contains("{{c")))
+                (line.components(separatedBy: "|").count >= 2 || (kind == .anki && line.contains("{{c")))
                     && seen.insert(line.lowercased()).inserted
             }
     }

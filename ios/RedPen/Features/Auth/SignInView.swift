@@ -77,7 +77,7 @@ struct SignInView: View {
     private var masthead: some View {
         VStack(spacing: 10) {
             HStack(spacing: -10) {
-                ForEach([StudySetKind.mcq, .anki, .qa], id: \.self) { kind in
+                ForEach([StudySetKind.mcq, .anki, .osce], id: \.self) { kind in
                     mastTile(kind)
                 }
             }
@@ -104,7 +104,7 @@ struct SignInView: View {
             .zIndex(layer)
     }
 
-    /// Questions to the left, cards upright in the middle, cases to the right.
+    /// Questions to the left, cards upright in the middle, stations to the right.
     private static func tileAngle(_ kind: StudySetKind) -> Double {
         switch kind {
         case .anki: return 0
@@ -117,7 +117,7 @@ struct SignInView: View {
     private static func tilePlane(_ kind: StudySetKind) -> PopOutPlane {
         switch kind {
         case .anki: return .hero
-        case .qa: return .floating
+        case .osce: return .floating
         default: return .raised
         }
     }
@@ -126,7 +126,7 @@ struct SignInView: View {
     private static func tileLayer(_ kind: StudySetKind) -> Double {
         switch kind {
         case .anki: return 2
-        case .qa: return 1
+        case .osce: return 1
         default: return 0
         }
     }

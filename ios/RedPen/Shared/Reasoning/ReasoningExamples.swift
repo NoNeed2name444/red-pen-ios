@@ -1,85 +1,32 @@
 import Foundation
 
 /// Ready-made Reasoning material for the owner's personal build, so every
-/// tool can be tried at once without writing anything: groin hernias, acute
-/// coronary syndrome, and DKA against HHS.
+/// tool can be tried at once without writing anything: groin hernias, and
+/// DKA against HHS.
 ///
 /// The ids are fixed rather than made fresh on each launch, so a score from
-/// yesterday still belongs to the same case today.
+/// yesterday still belongs to the same duel today.
 enum ReasoningExamples {
 
     /// The pretend set the examples hang from. It is never saved to the library.
     static let setId = fixed(0)
 
-    static let set = StudySet(id: setId, name: "Examples: hernia, ACS, DKA", subject: "Medicine & surgery", kind: .book)
+    static let set = StudySet(id: setId, name: "Examples: hernia, DKA", subject: "Medicine & surgery", kind: .book)
 
-    static let pack = ReasoningPack(setId: setId, cases: cases, duels: duels, scripts: scripts,
+    static let pack = ReasoningPack(setId: setId, duels: duels, scripts: scripts,
                                     updatedAt: Date(timeIntervalSince1970: 0))
 
     private static func fixed(_ n: Int) -> UUID {
         UUID(uuidString: String(format: "5EA50000-0000-4000-8000-%012ld", n)) ?? UUID()
     }
 
-    // MARK: clue-by-clue cases
-
-    static let cases: [ClueCase] = [
-        ClueCase(
-            id: fixed(101),
-            clues: [
-                "A 24-year-old man.",
-                "He has noticed a lump in his right groin over the last three months.",
-                "It grows when he lifts heavy boxes at work and goes away when he lies down.",
-                "Standing, the lump runs down into the top of the scrotum, and you cannot get above it.",
-                "It emerges above and medial to the pubic tubercle and has a cough impulse.",
-                "Once reduced, pressure over the midpoint of the inguinal ligament stops it coming back on coughing.",
-                "At laparoscopic repair the sac comes through the deep ring, lateral to the inferior epigastric vessels.",
-            ],
-            diagnosis: "Indirect inguinal hernia",
-            differentials: ["Direct inguinal hernia", "Femoral hernia", "Hydrocele"],
-            teachingPoint: "Lateral to the inferior epigastric vessels means indirect; the deep-ring test only suggests it.",
-            // the deep-ring test (clue 6) is unreliable, as the teaching point
-            // and the hernia duel both say: the vessels at operation settle it
-            decisiveClue: 7,
-            differential: herniaDifferential),
-        ClueCase(
-            id: fixed(102),
-            clues: [
-                "A 62-year-old man.",
-                "Central chest tightness for 40 minutes that began while he was sitting watching television.",
-                "He smokes and has type 2 diabetes; the pain spreads to his left arm and jaw and he is sweating.",
-                "He is pale and clammy; BP 150/90 in both arms, pulse 98, chest clear, no murmur.",
-                "12-lead ECG: 2 mm horizontal ST depression in V4\u{2013}V6, no ST elevation.",
-                "High-sensitivity troponin on arrival is above the 99th centile.",
-                "The repeat troponin three hours later has risen markedly.",
-            ],
-            diagnosis: "NSTEMI",
-            differentials: ["Unstable angina", "Aortic dissection", "Pulmonary embolism"],
-            teachingPoint: "The ECG cannot separate NSTEMI from unstable angina: a rising or falling troponin does.",
-            decisiveClue: 7),
-        ClueCase(
-            id: fixed(103),
-            clues: [
-                "A 19-year-old woman.",
-                "A day of vomiting and abdominal pain.",
-                "For two weeks she has been very thirsty, passing a lot of urine, and losing weight.",
-                "She is drowsy and dry, pulse 118, with deep, sighing breathing.",
-                "Capillary glucose 24 mmol/L; urine ketones 3+.",
-                "Venous blood gas: pH 7.12, bicarbonate 9 mmol/L.",
-                "Blood ketones 5.2 mmol/L; serum osmolality 298 mOsm/kg.",
-            ],
-            diagnosis: "Diabetic ketoacidosis",
-            differentials: ["Hyperosmolar hyperglycaemic state", "Acute pancreatitis", "Gastroenteritis"],
-            teachingPoint: "DKA is three things together: ketones \u{2265}3 mmol/L, glucose >11 mmol/L, and pH <7.3 or bicarbonate <15.",
-            decisiveClue: 6),
-    ]
-
     /// What "How to reach it" names as the source of the examples: they were
     /// written for the app, so no lecture page or paper is claimed for them.
     static let sourceLabel: String = "Worked example, written for the app"
 
-    /// How the hernia case is reached: the "How to reach it" card's example,
-    /// so it can be seen without writing anything. Every finding is one the
-    /// case's own clues give.
+    /// How an indirect inguinal hernia in a young man is reached: the "How
+    /// to reach it" card's example, so it can be seen without writing
+    /// anything.
     static let herniaDifferential = DifferentialTiers(
         mostLikely: [
             DifferentialEntry(

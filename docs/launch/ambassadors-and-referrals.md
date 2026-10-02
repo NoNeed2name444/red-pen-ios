@@ -339,7 +339,7 @@ The owner reads these in Owner tools → Support. Optionally, a weekly digest ca
 
 These are true in the App Store build as described in `app-store-listing.md`. Lines marked there as `[ship-gated]` must wait until the feature has shipped.
 
-- It turns *your* lectures into single-best-answer MCQs with an explanation for every option, spaced-repetition cards, OSCE stations and patient cases.
+- It turns *your* lectures into single-best-answer MCQs with an explanation for every option, spaced-repetition cards and OSCE stations.
 - The free version writes questions on the device, and nothing leaves the phone. There are no ads and no tracking.
 - Cloud features ask your permission first and name their providers.
 - It exports decks as `.apkg` files and prints sets as PDF. (Say "exports `.apkg` decks". Do not describe it as an alternative to any named app.)

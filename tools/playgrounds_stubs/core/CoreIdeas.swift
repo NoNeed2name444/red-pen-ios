@@ -85,10 +85,6 @@ extension SaveToIdeas {
         standIn(.card, item: item.id, in: set)
     }
 
-    static func clip(caseCard item: QACard, in set: StudySet, library: [StudySet]) -> IdeaClip {
-        standIn(.caseCard, item: item.id, in: set)
-    }
-
     static func clip(station item: OsceChecklist, weak: Set<Int>, in set: StudySet,
                      library: [StudySet]) -> IdeaClip {
         standIn(.osce, item: item.id, in: set)

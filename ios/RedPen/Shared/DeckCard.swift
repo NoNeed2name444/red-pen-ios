@@ -13,7 +13,7 @@ struct DeckCard: Equatable {
     var number: Int = 0
     /// The short label the contents index groups by.
     var topic: String
-    /// The chip under the title: RECALL, CASE, LIST, MCQ, STEP, PAGE.
+    /// The chip under the title: RECALL, IMAGE, LIST, MCQ, STEP, PAGE.
     var kindLabel: String
     var question: [DeckBlock]
     var answer: [DeckBlock]
@@ -56,7 +56,6 @@ enum DeckBuilder {
         var built: [DeckCard]
         switch set.kind {
         case .mcq:     built = mcq(set.questions)
-        case .qa:      built = qa(set.qaCards)
         case .osce:    built = osce(set.osceChecklists)
         case .book:    built = book(set.bookMarkdown)
         case .narrate: built = narrate(set.narrateSegments)
@@ -87,17 +86,6 @@ enum DeckBuilder {
                 answer: answer,
                 imageIndex: q.imageIndex,
                 source: q.source)
-        }
-    }
-
-    // MARK: Cases
-
-    static func qa(_ cards: [QACard]) -> [DeckCard] {
-        cards.map { card in
-            DeckCard(topic: card.topic.isEmpty ? topic(from: card.stem) : card.topic,
-                     kindLabel: card.type == .case ? "CASE" : "RECALL",
-                     question: [.text(card.stem)],
-                     answer: card.answer.map { .bullet(lead: nil, text: $0) })
         }
     }
 

@@ -148,7 +148,7 @@ struct LensAnswerSheet: View {
             }
             .buttonStyle(.glassProminent)
             .disabled(answer == nil)
-            .accessibilityHint("Keeps this question in Questions, Cards, Cases, OSCE, Ideas or Audio")
+            .accessibilityHint("Keeps this question in Questions, Cards, OSCE, Ideas or Audio")
             Button {
                 model.answer(question, again: true)
             } label: {
@@ -543,8 +543,6 @@ enum LensAccuracy {
             item = LensConversion.question(q, a).map { AccuracyItem.mcq($0) }
         case .osce:
             item = LensConversion.station(q, a).map { AccuracyItem.osce($0) }
-        case .clinicalCase:
-            item = LensConversion.caseCard(q, a, topic: "General").map { AccuracyItem.qa($0) }
         default:
             item = LensConversion.cards(q, a).first.flatMap { AccuracyItem.card($0) }
         }

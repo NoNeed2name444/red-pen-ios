@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS blocks (
 CREATE TABLE IF NOT EXISTS reports (
   id          TEXT PRIMARY KEY,
   reporter_id TEXT,                            -- null for anonymous (web page) or after the reporter deleted their account
-  target_type TEXT NOT NULL,                   -- share | group | member | question | card | case | contact
+  target_type TEXT NOT NULL,                   -- share | group | member | question | card | contact
   target_ref  TEXT NOT NULL,                   -- share code, group id, group_id:handle, or item ref
   reason      TEXT NOT NULL,                   -- abuse | copyright | error | spam | other
   note        TEXT,                            -- <= 1000
@@ -243,7 +243,7 @@ Sharing, classes and leaderboards are free for everyone (it is the growth loop).
 ### 3.3 Stable IDs on import
 - `SharePacking.incoming(manifest:shareId:code:version:publisher:groupId:)`:
   - Set id = `UUIDv5(ns, "\(shareId):set")`.
-  - Every item id (questions, cards, qaCards, osceChecklists, narrateSegments, and `SourceDoc` ids) = `UUIDv5(ns, "\(shareId):\(originalId)")`.
+  - Every item id (questions, cards, osceChecklists, narrateSegments, and `SourceDoc` ids) = `UUIDv5(ns, "\(shareId):\(originalId)")`.
   - `ns` is a fixed namespace UUID constant.
 - Why:
   - Re-importing is idempotent.
@@ -829,7 +829,7 @@ Top-level code in `ios/RedPen/Tests`, copied to `main.swift` by `swift-tests.yml
 **`swift-tests.yml`** (also add `ios/RedPen/Shared/**` paths, already covered):
 
 ```
-suite share ShareTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
+suite share ShareTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $M/ShareModels.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift $S/BookPages.swift $S/BookFigures.swift \

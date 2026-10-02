@@ -1,8 +1,8 @@
 Red Pen — flat Swift files for SwiftBuilder: Swift Studio
 ===========================================================
 
-These are the same source files from the Xcode/XcodeGen project (all six
-modes: MCQ, Anki, Textbook, Cases, OSCE, and Narrate — plus PDF export and
+These are the same source files from the Xcode/XcodeGen project (all five
+modes: MCQ, Anki, Textbook, OSCE, and Narrate — plus PDF export and
 the iOS 26 Liquid Glass UI), split so each one can be pasted into
 SwiftBuilder as its own file — no folders, no Info.plist, no
 Assets.xcassets, no project.yml. SwiftBuilder manages the app shell
@@ -22,7 +22,6 @@ HOW TO ADD THEM
      00b_Theme.swift           -> per-mode tints/symbols, ModeTile, ModeBackdrop, ContentCard, ThinProgress, ScoreRing (the visual system)
      01_MCQQuestion.swift      -> MCQQuestion, MCQAnswer
      02_AnkiCard.swift         -> AnkiCardType, OcclusionBox, AnkiCard, AnkiQueueItem
-     03_QACard.swift           -> QACard (Cases mode)
      04_OsceChecklist.swift    -> OsceChecklist (OSCE mode)
      05_NarrateSegment.swift   -> NarrateSegment, NarrateScheduler (Narrate mode)
      06_StudySet.swift         -> StudySetKind, StudySet, StudyFolder, PlainTextImport
@@ -32,7 +31,6 @@ HOW TO ADD THEM
      10_MCQQuizView.swift      -> MCQQuizView
      11_MCQSummaryView.swift   -> MCQSummaryView
      12_BookReaderView.swift   -> BookPage, BookPages, BookReaderView (Textbook mode)
-     13_QACardsView.swift      -> QACardsView (Cases mode)
      14_OsceReviewView.swift   -> OsceReviewView (OSCE mode)
      15_NarrateReviewView.swift -> NarrateReviewView, FlowText (Narrate mode)
      16_LibraryView.swift      -> LibraryView (now with a swipe-to-export-PDF action)
@@ -73,13 +71,12 @@ HOW TO ADD THEM
 
 WHAT THIS GETS YOU
 -------------------
-All six study modes, all backed by on-device JSON storage — same as the
+All five study modes, all backed by on-device JSON storage — same as the
 standalone Xcode project, just without the Xcode-specific files:
 
   - MCQ quiz mode (multiple-choice, checked answers, results summary)
   - Anki spaced-repetition review (QA / cloze / image-occlusion cards)
   - Textbook mode (Markdown split into pages, table of contents)
-  - Cases mode (clinical-case and recall Q&A cards)
   - OSCE mode (step-by-step checklist recall with a missed-step second pass)
   - Narrate mode (a lecture transcript read at a reading pace, with
     play/pause, speed control, and tap-to-jump — no audio recording yet,

@@ -168,12 +168,9 @@ W0b	P0.4	edit	ios/RedPen/Features/MCQ/MCQSummaryView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Anki/AnkiReviewView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Anki/AnkiCardFace.swift
 W0b	P0.4	edit	ios/RedPen/Features/Anki/DueTodayView.swift
-W0b	P0.4	edit	ios/RedPen/Features/QA/QACardsView.swift
 W0b	P0.4	edit	ios/RedPen/Features/OSCE/OsceReviewView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Book/BookReaderView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Narrate/NarrateReviewView.swift
-W0b	P0.4	edit	ios/RedPen/Features/Cases/CaseChatView.swift
-W0b	P0.4	edit	ios/RedPen/Features/Reasoning/ClueCaseView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Voice/CommuteModeView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Voice/SpokenStationView.swift
 W0b	P0.4	edit	ios/RedPen/Features/Notes/IdeasView.swift

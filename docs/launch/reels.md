@@ -5,7 +5,7 @@ Written 2026-09-24 against `preview/graph`. This is one of the group G launch do
 - **P3.2** builds `reel-footage.yml` and `ios/UITests/ReelFootageUITests.swift` from the shot lists below (Part C).
 - **P6.1** reads the beat tables to produce caption overlays and `.srt` files. The table format is fixed so a script can parse it: `| t | Shot | On-screen EN | On-screen AR |`, where `t` is `start-end` in seconds.
 
-There are ten reels, each 15 to 30 seconds long, and each comes in English and Egyptian Arabic. **None of them uses "challenge a friend", "tag a friend who…", duels between people or any other head-to-head framing.** The owner rejected that idea. Every reel is one student studying on their own. The call to action is always "save this for exam week" or "link in bio", never "send this to someone to beat".
+There are nine reels (numbered 1-7, 9 and 10), each 15 to 30 seconds long, and each comes in English and Egyptian Arabic. **None of them uses "challenge a friend", "tag a friend who…", duels between people or any other head-to-head framing.** The owner rejected that idea. Every reel is one student studying on their own. The call to action is always "save this for exam week" or "link in bio", never "send this to someone to beat".
 
 ---
 
@@ -34,7 +34,7 @@ These were checked against current sources (listed at the end). Several reels do
 | File | Size | Use |
 |---|---|---|
 | `NN-slug-LANG-social.mp4` | 1080×1920, H.264 High, 30 fps, AAC 48 kHz stereo | TikTok, Reels, Shorts. The app screen is centred ("fit") and the captions are burned in. |
-| `NN-slug-LANG-fill.mp4` | 1080×1920 | The same, with the screen scaled to the full width and the status bar and home indicator cropped away. Use it when the app UI is simple enough to survive the crop (reels 2, 4, 8). |
+| `NN-slug-LANG-fill.mp4` | 1080×1920 | The same, with the screen scaled to the full width and the status bar and home indicator cropped away. Use it when the app UI is simple enough to survive the crop (reels 2, 4). |
 | `NN-slug-LANG-preview.mp4` | **886×1920**, 30 fps, 10–12 Mbps VBR, AAC 256 kbps stereo | App Store app preview (iPhone 6.9"/6.5"/6.1" all take 886×1920). Captions are burned in; the end card has no badge. |
 | `NN-slug-LANG-cover.jpg` | 1080×1920 | The cover frame: the hook text over the most striking frame. |
 | `NN-slug-LANG.srt` | n/a | Caption file for YouTube, and for TikTok or Instagram when burned-in text is off. |
@@ -70,7 +70,7 @@ The brand name stays **Stethoscore** in Latin script in Arabic too, matching `CF
 
 ---
 
-## Part B. The ten reels
+## Part B. The nine reels
 
 Legend: **Free** means the reel shows features anyone can use. **Pro** means it shows Stethoscore Pro features, so the end card uses the Pro line. **Footage** says where the best take comes from:
 
@@ -301,36 +301,6 @@ Every reel can be made by CI alone (Part C), so the owner never *has* to record 
 
 ---
 
-### Reel 8: Diagnose at clue 2?
-
-- **Plan:** Free to play the cases in a set; writing new cases uses a writer model.
-- **Length:** 20 s
-- **Footage:** CI (it is all taps)
-- **Keyword:** EN "clinical reasoning practice" / AR «تشخيص من الـ clues»
-
-**Hooks**
-
-- **TikTok:** "Clinical reasoning practice: could you diagnose this at clue 2?"
-- **Instagram:** cover text: "Clue 1 of 6. Diagnose now or wait?"
-- **Shorts title:** "Clinical reasoning: diagnose from as few clues as you dare"
-- **AR hook:** «تقدر تشخّص من تاني clue؟»
-
-| t | Shot | On-screen EN | On-screen AR |
-|---|---|---|---|
-| 0.0-3.0 | Clue case: "Clue 1 of 6"; "Worth 1.83 if right" | Clinical reasoning, one clue at a time | التشخيص.. clue ورا clue |
-| 3.0-7.0 | Reveal clue 2: "Worth 1.67 if right" | The earlier you commit, the more it's worth | كل ما تشخّص بدري.. السؤال يستاهل أكتر |
-| 7.0-11.0 | Four diagnoses shown; hold on them for 2 s | Four options. Commit when you're sure. | 4 اختيارات.. اختار لما تبقى متأكد |
-| 11.0-14.0 | Commit → right; all clues shown | (pause, no text) | |
-| 14.0-17.0 | "How it went last time" line on the case list | Just you and the case. No rush. | إنت والحالة بس.. على راحتك |
-| 17.0-20.0 | End card (free) | (A.2) | (A.2) |
-
-- **Caption EN:** "Clinical reasoning practice: clues appear one at a time, and the earlier you commit to the right diagnosis, the more it's worth. Solo practice, at your own pace."
-- **Caption AR:** «الـ clues بتظهر واحدة واحدة، وكل ما تشخّص صح بدري السؤال يستاهل أكتر. تدريب لوحدك وعلى راحتك.»
-- **Hashtags (5):** `#medstudent #clinicalreasoning #usmle #diagnosis #طالب_طب`
-- **Note:** show the case list, not a leaderboard or any other person. The "Worth" numbers are whatever `ClueCaseView` shows for that case: 1 + (clues left ÷ clues), shown to two decimals.
-
----
-
 ### Reel 9: Record the lecture, follow the transcript word by word
 
 - **Plan:** Pro (transcribing a recorded lecture is a Pro perk on the paywall)
@@ -412,7 +382,7 @@ Cadence: 3 posts a week, the same reel on all three platforms on the same day. U
 
 `reel-footage.yml` runs on `macos-latest` (the same image rule as `walkthrough.yml`: iOS 26 needs the newest Xcode) and follows the pattern `walkthrough.yml` already uses. The difference is that a UI test drives the taps, so each reel plays its beats on cue.
 
-**Inputs:** `reels` (`all`, or ids like `1,4,8`), `languages` (`en,ar`), `appearance` (`dark` by default; reel 2 is always dark), `voiceover` (`off` or `on`).
+**Inputs:** `reels` (`all`, or ids like `1,4,9`), `languages` (`en,ar`), `appearance` (`dark` by default; reel 2 is always dark), `voiceover` (`off` or `on`).
 
 **Steps, for each reel and each language:**
 
@@ -565,4 +535,4 @@ Use this only when the owner *wants* their own device audio, voice or the tilt e
 - EMLE held in February and September: https://en.wikipedia.org/wiki/Egyptian_Medical_Licensing_Examination ; https://emle.academy/faqs/
 - USMLE Step 1 pass/fail only from 26 Jan 2022: https://www.usmle.org/usmle-step-1-transition-passfail-only-score-reporting
 - `simctl io recordVideo` records no audio, and its options: https://github.com/lionheart/openradar-mirror/issues/19330 ; https://sarunw.com/posts/take-screenshot-and-record-video-in-ios-simulator/
-- In-repo facts: `ios/RedPen/Shared/MCQCoverage.swift` (`suggestedCount` = characters ÷ 320), `Features/Library/LecturePDFSection.swift`, `Features/Examples/OcclusionExample.swift`, `Features/Notes/Graph3DView.swift` / `GraphLook.swift` (black holes), `Features/Voice/CommuteModeView.swift`, `Features/Reasoning/ClueCaseView.swift` ("Worth … if right"), `Shared/Coverage/Syllabus.swift`, `Features/Paywall/PaywallView.swift` (Pro perks), `server/tts.js` (Aura-2 voices, free daily allowance), `.github/workflows/walkthrough.yml` and `live-tests.yml`.
+- In-repo facts: `ios/RedPen/Shared/MCQCoverage.swift` (`suggestedCount` = characters ÷ 320), `Features/Library/LecturePDFSection.swift`, `Features/Examples/OcclusionExample.swift`, `Features/Notes/Graph3DView.swift` / `GraphLook.swift` (black holes), `Features/Voice/CommuteModeView.swift`, `Shared/Coverage/Syllabus.swift`, `Features/Paywall/PaywallView.swift` (Pro perks), `server/tts.js` (Aura-2 voices, free daily allowance), `.github/workflows/walkthrough.yml` and `live-tests.yml`.

@@ -79,7 +79,7 @@ The rule: **if it costs the owner money per use, it is Pro. If it costs nothing,
 
 | Feature | Free | Pro | Running cost | Gate today |
 |---|---|---|---|---|
-| Write MCQs, cards, OSCE stations and cases on the device (Apple's model) | ✓ | ✓ | $0 | none |
+| Write MCQs, cards and OSCE stations on the device (Apple's model) | ✓ | ✓ | $0 | none |
 | Review: spaced repetition, Due today, MCQ practice, OSCE timer, commute mode with the phone's voice, draw from memory, reasoning tools | ✓ | ✓ | $0 | none |
 | Import PDF, Word and PowerPoint handouts | ✓ **(change)** | ✓ | $0 | Code: not gated. Paywall and listing: listed as Pro. |
 | On-device transcription (Narrate) | ✓ | ✓ | $0 | none |

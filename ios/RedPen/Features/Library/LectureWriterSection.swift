@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Writing Anki cards, Cases cards or a Textbook from a lecture, for the
+/// Writing Anki cards or a Textbook from a lecture, for the
 /// new-set screen.
 ///
 /// Like OSCE stations, what it writes lands in the editor as text in the same
@@ -537,8 +537,7 @@ struct LectureWriterSection: View {
                 let finalNote = note
                 try Task.checkCancellation()
                 await MainActor.run {
-                    let made: String = mode == .qa ? "cases" : "cards"
-                    let finished: String = mode == .book ? "Your textbook is ready" : "Your \(made) are ready"
+                    let finished: String = mode == .book ? "Your textbook is ready" : "Your cards are ready"
                     GenerationCenter.shared.end(job, finished: finished)
                     if mode == .book && retry != nil {
                         // each page written again goes in its own gap

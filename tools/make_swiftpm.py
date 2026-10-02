@@ -21,7 +21,7 @@ samples = args[4:]  # lectures for this build only (never in the repository)
 #
 # "core" is the build for an iPad whose Swift Playgrounds cannot compile the
 # whole app: about a third of the lines, keeping the library, the study modes
-# (questions, cards, textbook, cases, OSCE), sources, generation and the
+# (questions, cards, textbook, OSCE), sources, generation and the
 # accuracy engine, sign-in and the exam; with its own small library shell
 # (playgrounds_stubs/core). Everything else is left out and named in
 # CoreLibrary's footer.
@@ -31,7 +31,7 @@ CORE_DROP = [
     "Features/Lens", "Shared/Lens",                              # Study Lens
     "Features/Analytics",                                         # Progress analytics
     "Features/Voice", "Shared/Voice",                             # spoken OSCE, commute mode, explain-it-back
-    "Features/Reasoning", "Shared/Reasoning",                     # clue cases, duels, scripts, how-to-reach
+    "Features/Reasoning", "Shared/Reasoning",                     # duels, scripts, how-to-reach
     "Features/Recall",                                            # draw from memory
     "Features/Narrate",                                           # audio lectures
     "Features/Coverage", "Shared/Coverage/CoverageCloudCheck.swift", "Shared/Coverage/CoverageExamples.swift",
