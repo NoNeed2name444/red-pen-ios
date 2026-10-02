@@ -85,19 +85,17 @@ struct ModelSettingsView: View {
 
     private var useSection: some View {
         Section {
-            // one model to choose: the writer. Checking is the verification
-            // layer's, not a model's (the owner, 1 Oct)
-            ForEach(LLMRole.allCases.filter { $0 == .writer }) { role in
+            ForEach(LLMRole.allCases) { role in
                 rolePicker(role)
             }
-            Toggle("Verify what is generated", isOn: $llm.checkGenerated)
+            Toggle("Check generated questions and stations", isOn: $llm.checkGenerated)
             if let cloudNote {
                 Text(cloudNote).font(.footnote).foregroundStyle(.orange)
             }
         } header: {
             Text("Use")
         } footer: {
-            Text("The writer writes questions, OSCE stations, cards and textbook pages. Everything it writes is checked by the verification layer: safety checks on this device at once, then three model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge. Verified means all three agree, nothing raised a concern and no safety check fired; anything less says Check this.")
+            Text("The writer plays the patient in Cases and can write MCQs and OSCE stations. The checker grades answers against their source \u{2014} every patient reply, generated questions and stations, and any card or page you ask it to check.")
         }
     }
 
@@ -126,8 +124,7 @@ struct ModelSettingsView: View {
 
     private var deviceSection: some View {
         Section {
-            // MedVAL no longer checks anything: the verification layer does
-            ForEach(MedicalModel.allCases.filter { $0 != .medval }) { model in
+            ForEach(MedicalModel.allCases) { model in
                 modelRow(model)
             }
         } header: {
@@ -147,7 +144,7 @@ struct ModelSettingsView: View {
     private var cloudSection: some View {
         Section {
             LabeledContent("Writer", value: "Gemini 3.5 Flash")
-            LabeledContent("Verification", value: "Three model families solving blind, the literature, a calibrated verdict")
+            LabeledContent("Checker", value: "Gemini 3.5 Flash, MedVAL's rubric, current evidence")
             LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
         } header: {
             Text("\(Brand.name) Cloud \u{00B7} Pro")
@@ -222,7 +219,7 @@ struct ModelSettingsView: View {
             }
             // the medical models on the device are Pro too
             if choice == .device, !llm.isPro {
-                cloudNote = "Doctor-R1 is part of Pro."
+                cloudNote = "Doctor-R1 and MedVAL are part of Pro."
                 showPaywall = true
                 return
             }

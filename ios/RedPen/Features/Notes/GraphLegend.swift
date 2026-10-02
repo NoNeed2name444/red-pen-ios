@@ -154,6 +154,7 @@ struct GraphLegendContent {
         case .neurons: return neurons
         case .circuit: return circuit
         case .space: return space
+        case .performance: return performance
         }
     }
 
@@ -337,6 +338,54 @@ extension GraphLegendContent {
         rows: circuitRows, footer: circuitFooter)
 }
 
+extension GraphLegendContent {
+    // MARK: Performance
+
+    private static let hubWhite: Color = Color(red: 0.86, green: 0.9, blue: 1.0)
+    private static let pointBlue: Color = Color(red: 0.36, green: 0.61, blue: 1.0)
+    private static let pointRose: Color = Color(red: 1.0, green: 0.37, blue: 0.49)
+    private static let glowAmber: Color = Color(red: 1.0, green: 0.71, blue: 0.26)
+    private static let lineGrey: Color = Color(white: 0.75)
+    private static let glowSoft: Color = glowAmber.opacity(0.35)
+
+    private static let performanceRungs: [GraphLegendRung] = [
+        GraphLegendRung(caption: "Far folder", size: 30, fill: glowSoft, ring: .clear),
+        GraphLegendRung(caption: "Folder", size: 22, fill: hubWhite, ring: .clear),
+        GraphLegendRung(caption: "Page", size: 16, fill: pointRose, ring: .clear),
+        GraphLegendRung(caption: "Idea", size: 11, fill: pointBlue, ring: .clear),
+        GraphLegendRung(caption: "Far note", size: 5, fill: lineGrey, ring: .clear)
+    ]
+
+    private static let performanceRows: [GraphLegendRow] = [
+        GraphLegendRow(symbol: "circle.hexagongrid.fill", name: "Folder",
+                       text: "A bright hub with its notes round it in a ball. Each top-level folder and everything in it has its own colour; a folder inside a folder is a lighter shade.",
+                       tint: hubWhite, how: "Make a folder: + \u{203A} New folder."),
+        GraphLegendRow(symbol: "circle.fill", name: "Page",
+                       text: "A larger point. Brighter means more links.", tint: pointRose,
+                       how: "Add a page: + \u{203A} New page."),
+        GraphLegendRow(symbol: "smallcircle.filled.circle", name: "Idea",
+                       text: "A smaller point. Brighter means more links.", tint: pointBlue,
+                       how: "Add an idea: + \u{203A} New idea, or type it in the bar."),
+        GraphLegendRow(symbol: "sun.min.fill", name: "Glow",
+                       text: "A folder too far away to show its notes one by one: one soft light stands for all of them, and links into it end at its middle. Come closer and it opens into its points.",
+                       tint: glowAmber),
+        GraphLegendRow(symbol: "line.diagonal", name: "Lines",
+                       text: "Links, coloured by the notes at their ends, fainter between folders and in the distance. Thin grey lines join each folder to the one it sits in.",
+                       tint: lineGrey, how: "Link two notes: type [[ and a note\u{2019}s title in a note."),
+        GraphLegendRow(symbol: "speedometer", name: "Speed",
+                       text: "The readout at the top counts the notes, the links and the frames a second. Its menu shows a demo map of 100,000 or 300,000 made-up notes; your own notes are never touched.",
+                       tint: lineGrey)
+    ]
+
+    private static let performanceFooter: String = "Drag to turn, two fingers to slide, pinch to zoom. Tap a point to preview it; tap a glow to fly in. Tap a point twice to open it, empty space twice to see the whole map."
+
+    /// The Performance theme (GraphPerf*): what the points, glows and lines are.
+    static let performance: GraphLegendContent = GraphLegendContent(
+        rungs: performanceRungs, ladderCaption: "Nearer things show more detail.",
+        ladderLabel: "Size ladder: far folder, folder, page, idea, far note",
+        rows: performanceRows, footer: performanceFooter)
+}
+
 /// A theme's one-time card (the Universe's first): the three most useful
 /// ways to add to the map (GraphTheme.cardSteps), with the full list a tap
 /// away. Shown once, never in the design preview; it sits
@@ -403,6 +452,7 @@ struct GraphEmptyHint: View {
         case .space: return "No galaxies yet: your notes orbit one star. Add a folder to light your first black hole."
         case .neurons: return "No brain regions yet. Add a folder to grow your first one."
         case .circuit: return "No collections yet: every note sits on one board. Add a folder to place your first circuit of its own."
+        case .performance: return "No folders yet: every note shares one cluster. Add a folder to start a cluster of its own."
         }
     }
 

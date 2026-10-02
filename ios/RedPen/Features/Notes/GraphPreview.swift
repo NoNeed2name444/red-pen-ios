@@ -46,6 +46,10 @@ import SwiftUI
 ///   the two loose notes as gold pads on their boards' left edges.
 ///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
 ///   work with it too.
+/// - `-graphPreviewTheme performance` shows the Performance theme
+///   (GraphPerf*: points and lines on the GPU), and with
+///   `-graphPreviewPerfDemo 100000` (or 300000) a demo vault of that many
+///   made-up notes in its place.
 /// - `-graphPreviewRemove [names]` deletes some folders and notes three
 ///   seconds in (see `removes`), in any theme, to show them dying.
 ///
@@ -107,6 +111,9 @@ enum GraphPreview {
     /// `-graphPreviewLinkLength <0.6...1.8>`: the map planned at that link
     /// length (never the owner's stored one).
     static let linkLength: Double? = argument("-graphPreviewLinkLength").flatMap { Double($0) }
+    /// `-graphPreviewPerfDemo <notes>`: the Performance theme shows a demo
+    /// vault of that many made-up notes (100000 or 300000) instead.
+    static let perfDemo: Int? = argument("-graphPreviewPerfDemo").flatMap { Int($0) }
 
     /// The value after a launch argument, in the design preview.
     private static func argument(_ flag: String) -> String? {
@@ -116,7 +123,7 @@ enum GraphPreview {
     }
 
     /// The theme asked for with `-graphPreviewTheme <name>` (space,
-    /// neurons, circuit); Space without one.
+    /// neurons, circuit, performance); Space without one.
     static let theme: GraphTheme = {
         let args: [String] = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "-graphPreviewTheme"), at + 1 < args.count else { return .space }

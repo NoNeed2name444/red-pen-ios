@@ -62,7 +62,7 @@ struct PaywallView: View {
                 .multilineTextAlignment(.center)
             VStack(alignment: .leading, spacing: 8) {
                 perk("doc.text.viewfinder", "Read PDFs, Word and PowerPoint handouts")
-                perk("stethoscope", "Doctor-R1, the medical writer, on this device")
+                perk("stethoscope", "Doctor-R1 and MedVAL, the medical models, on this device")
                 perk("cloud", "\(Brand.name) Cloud: Google's Gemini writes and checks questions, stations and patient cases on any device")
                 perk("checkmark.shield", "Every cloud answer checked for medical accuracy")
                 perk("rectangle.dashed", "Turn labelled diagrams into occlusion cards")

@@ -203,11 +203,11 @@ export function laneNames(env, route) {
 /// the day's Gemini ceiling, and the Workers AI neuron shares (takeNeurons).
 /// One round: a per-minute limit is the next voter's turn, not a wait.
 export async function askModel(env, account, owner, use, messages, maxTokens, fetcher = fetch) {
-  // bench: models only for the verification bench (tools/verification-bench,
-  // run in GitHub Actions with a free provider's key): never in production,
+  // GitHub Models only for the verification bench (tools/verification-bench,
+  // run in GitHub Actions with the run's own token): never in production,
   // where BENCH_MODELS is never set
-  const bench = env.BENCH_MODELS === 'on' && /^bench:/.test(use);
-  if (!bench && !/^(gemini|workers-ai|groq|cerebras):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
+  const bench = env.BENCH_MODELS === 'github' && /^github:/.test(use);
+  if (!bench && !/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
   const source = pinnedSource(env, use);
   if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
   const route = { sources: [source], account: owner ? 'owner' : account, owner, rounds: 1 };
@@ -227,13 +227,8 @@ export function pinnedSource(env, use) {
   if (kind === 'gemini' && env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) return { kind: 'gemini', models: [model] };
   if (kind === 'workers-ai' && env.AI) return { kind: 'workers-ai', model };
   if (kind === 'hf' && env.AI_API_KEY) return { kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY, model };
-  // free tiers with no card and real daily room (Groq: about 1,000 requests a
-  // day per model; Cerebras: about a million tokens a day): checker families
-  // beside Google's, so three can agree (the owner's 99.999%, 2 Oct)
-  if (kind === 'groq' && env.GROQ_API_KEY) return { kind: 'openai', base: 'https://api.groq.com/openai/v1', key: env.GROQ_API_KEY, model };
-  if (kind === 'cerebras' && env.CEREBRAS_API_KEY) return { kind: 'openai', base: 'https://api.cerebras.ai/v1', key: env.CEREBRAS_API_KEY, model };
-  if (kind === 'bench' && env.BENCH_MODELS === 'on' && env.BENCH_BASE_URL && env.BENCH_API_KEY) {
-    return { kind: 'openai', base: env.BENCH_BASE_URL, key: env.BENCH_API_KEY, model };
+  if (kind === 'github' && env.BENCH_MODELS === 'github' && env.GITHUB_MODELS_TOKEN) {
+    return { kind: 'openai', base: 'https://models.github.ai/inference', key: env.GITHUB_MODELS_TOKEN, model };
   }
   return null;
 }

@@ -30,27 +30,22 @@
 
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
-import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
+import { proGate, askModel, spend, refund } from './ai.js';
 import { europePMC, medlinePlus, openFDA } from './evidence.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
-/// Llama 3.3 70B on Groq's free tier, gpt-oss-120b on Cerebras' free tier,
-/// gpt-oss-120b and Nemotron on Workers AI, Gemma 4 31B as the slower backup.
-/// Workers AI's free pool covers only about thirty checks a day (the live
-/// bench, 1 Oct: every call refused once it was spent), so Groq and Cerebras
-/// come first. A voter whose provider has no key here is left out. Not Llama
-/// 4 Scout (it passed only half the correct answers); not 3.1 Pro (no free tier).
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,groq:openai/gpt-oss-120b,groq:llama-3.3-70b-versatile,cerebras:gpt-oss-120b,'
-  + 'workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+/// Nemotron on Workers AI, Gemma 4 31B as the slower backup. Not Llama 4
+/// Scout (it passed only half the correct answers); not 3.1 Pro (no free tier).
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;
-export const MAX_CALLS = 5;
+const MAX_CALLS = 4;
 /// What of an item a voter is shown: four of them, with their lectures and
 /// evidence, stay under the 24,000 characters Workers AI takes.
 const SHOWN_ITEM_CHARS = 2200;
@@ -217,7 +212,7 @@ export function disagree(a, b) {
 /// Which voters may judge: the configured order, minus the model that wrote
 /// the items (a model grading its own work agrees with itself).
 export function votersFor(env, writer) {
-  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS).filter(v => /^bench:/.test(v) || pinnedSource(env, v));
+  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS);
   const w = String(writer || '').toLowerCase().trim();
   if (!w) return all;
   return all.filter(v => { const model = v.slice(v.indexOf(':') + 1).toLowerCase(); return model !== w && !model.endsWith(`/${w}`); });
@@ -290,7 +285,7 @@ export function suggestedFix(item, votes) {
       blindBy.get(v.answer).add(familyOf(v.model));
     }
     for (const [answer, fams] of blindBy) {
-      if (fams.size >= MIN_VERIFY_VOTERS && answer.charCodeAt(0) - 65 < item.options.length) {
+      if (fams.size >= 2 && answer.charCodeAt(0) - 65 < item.options.length) {
         return { field: 'key', value: answer, by: read.filter(v => v.blind && v.answer === answer).map(v => v.model) };
       }
     }
@@ -465,109 +460,63 @@ export async function evidenceStage(items, fetcher, budget = BUDGETS.evidence) {
 export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes) {
   const started = Date.now();
   const messages = votePrompt(entries);
+  // the second ballot solves the questions blind (key and explanation
+  // withheld); a third, called when the first two disagree, sees everything
   const hasMcq = entries.some(e => e.item.kind === 'mcq');
   const blindMessages = hasMcq ? votePrompt(entries, { blind: true }) : messages;
   const ballots = [];
   const failures = [];
   const statuses = [];
-  let calls = 0;
+  let wanted = 2, calls = 0;
   const queue = votersFor(env, writer);
-  // a batch of questions is solved blind by three families first (DNA brief:
+  // a batch of questions is solved blind by two families first (DNA brief:
   // kinetic proofreading - independent discriminations before any is shown
-  // the key; three for the owner's 99.999%); a voter shown the key comes
-  // last, and only for what it alone can judge: an explanation's facts, or a
-  // card in the same batch. A batch of cards is read by three families.
-  const need = MIN_VERIFY_VOTERS;
+  // the key); a third blind solve breaks a split; a voter shown the key
+  // comes last, and only for what it alone can judge: an explanation's
+  // facts, or a card in the same batch
   const explained = entries.some(e => e.item.kind === 'mcq' && String(e.item.explanation || '').trim().length > 20);
-  // a card in a batch of questions sees the full item on every ballot; a
-  // voter shown everything is asked when the blind ones disagree about it
+  // a card in the batch sees the full item on every ballot; a third is asked
+  // when the first two disagree about it, as for a batch of cards
   const otherSplit = () => ballots.length >= 2 && entries.some((e, n) => e.item.kind !== 'mcq'
     && disagree([ballots[0].parsed[n]], [ballots[1].parsed[n]]));
-  const familiesIn = list => new Set(list.map(b => familyOf(b.model))).size;
-  const sightedWanted = () => hasMcq && (explained || otherSplit()) && !ballots.some(b => !b.blind);
-  // round one's answers as they come in, then the ballots
-  const got = [];
-  // which voter next: 'fresh', from a family that has neither answered nor
-  // is being asked (two votes from one family are one witness); 'hedge', or
-  // else one standing in for a family still being asked; 'any', or else
-  // whoever is left (a voter shown the key may share a blind solver's family)
-  const asking = new Map();
-  const familyOfUse = u => familyOf(u.slice(u.indexOf(':') + 1));
-  const nextVoter = (mode = 'fresh') => {
-    const answered = new Set([...ballots, ...got].map(b => familyOf(b.model)));
-    let i = queue.findIndex(u => !answered.has(familyOfUse(u)) && !asking.get(familyOfUse(u)));
-    if (i < 0 && mode === 'hedge') i = queue.findIndex(u => !answered.has(familyOfUse(u)));
-    if (i < 0 && mode === 'any') i = queue.length ? 0 : -1;
-    return i < 0 ? null : queue.splice(i, 1)[0];
-  };
-  const ask = async (use, blind) => {
+  const blindCount = () => ballots.filter(b => b.blind).length;
+  const blindSplit = () => entries.some((e, n) => {
+    if (e.item.kind !== 'mcq') return false;
+    const answers = ballots.filter(b => b.blind).map(b => b.parsed[n]?.answer).filter(Boolean);
+    const key = e.item.key >= 0 ? String.fromCharCode(65 + e.item.key) : null;
+    return answers.length >= 2 && (new Set(answers).size > 1 || answers.some(a => a !== key) && answers.some(a => a === key));
+  });
+  while (queue.length) {
+    if (ballots.length >= wanted || calls >= MAX_CALLS) break;
+    // once one family has voted, the next voter is from another family when
+    // there is one: two votes from one family are one witness
+    if (ballots.length) {
+      const voted = new Set(ballots.map(b => familyOf(b.model)));
+      const other = queue.findIndex(u => !voted.has(familyOf(u.slice(u.indexOf(':') + 1))));
+      if (other > 0) queue.unshift(queue.splice(other, 1)[0]);
+    }
+    const use = queue.shift();
     calls++;
-    const family = familyOfUse(use);
-    asking.set(family, (asking.get(family) || 0) + 1);
+    // questions: blind until two blind solves stand (three when they split)
+    const blindWanted = !hasMcq ? 0 : (blindCount() >= 2 && blindSplit() ? 3 : 2);
+    const blind = hasMcq && blindCount() < blindWanted;
     // room for a reasoning model to think before it answers every item
     const asked = await within(budget, () => askModel(env, account, owner, use, blind ? blindMessages : messages, 500 * entries.length + 600, fetcher), null);
-    asking.set(family, asking.get(family) - 1);
     statuses.push(asked.status);
     if (asked.status === 'error') console.error('accuracy voter', use, asked.error);
-    if (asked.status !== 'ok') { failures.push(`${use}: ${asked.status}`); return null; }
+    if (asked.status !== 'ok') { failures.push(`${use}: ${asked.status}`); continue; }
     const r = asked.value;
-    if (!r.ok) { failures.push(`${use}: ${r.status}`); return null; }
+    if (!r.ok) { failures.push(`${use}: ${r.status}`); continue; }
     const parsed = parseVotes(r.content, entries.length);
-    if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); return null; }
+    if (!parsed.some(Boolean)) { failures.push(`${use}: unreadable`); continue; }
     // a blind voter judged only the stem and options: it fixes nothing
     if (blind) parsed.forEach((v, n) => { if (v && entries[n].item.kind === 'mcq') { v.fix = null; v.blind = true; } });
-    return { model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) };
-  };
-
-  // round one: three voters at once, from three families (for questions,
-  // all blind), so the wait is the slowest of three calls rather than their
-  // sum. A failed call is replaced at once; a slow one is hedged - after
-  // ACCURACY_HEDGE_MS one more voter is asked, and the first answer from
-  // each family stands (Dean and Barroso, The Tail at Scale, 2013)
-  const hedgeMs = Number(env.ACCURACY_HEDGE_MS) || 8000;
-  await new Promise(resolve => {
-    let inFlight = 0, order = 0, hedged = false, finished = false;
-    const finish = () => { if (!finished) { finished = true; resolve(); } };
-    const launch = (mode = 'fresh') => {
-      if (calls >= MAX_CALLS) return false;
-      const use = nextVoter(mode);
-      if (!use) return false;
-      const mine = order++;
-      inFlight++;
-      ask(use, hasMcq).then(b => {
-        inFlight--;
-        if (finished) return;
-        // one answer per family: a second from the same family adds no witness
-        if (b && !got.some(g => familyOf(g.model) === familyOf(b.model))) got.push({ ...b, order: mine });
-        if (familiesIn(got) >= need) return finish();
-        // a failure is replaced at once, while the others are still out
-        if (!b && familiesIn(got) + inFlight < need) launch();
-        if (inFlight === 0) finish();
-      });
-      return true;
-    };
-    for (let i = 0; i < need; i++) launch();
-    if (inFlight === 0) return finish();
-    const timer = setTimeout(() => {
-      if (finished || hedged || familiesIn(got) >= need) return;
-      hedged = true;
-      launch('hedge');
-    }, hedgeMs);
-    timer?.unref?.();
-  });
-  // in the order they were asked, so a reply reads the same however the race went
-  ballots.push(...got.sort((a, b) => a.order - b.order).map(({ order, ...b }) => b));
-
-  // then one at a time, only while something is left: a family still
-  // missing (from another family only), or a voter shown the key for an
-  // explanation or a disputed card
-  while (calls < MAX_CALLS) {
-    const short = familiesIn(ballots.filter(b => !hasMcq || b.blind)) < need;
-    // a family still missing comes only from another family
-    const use = short ? nextVoter('fresh') : sightedWanted() ? nextVoter('any') : null;
-    if (!use) break;
-    const b = await ask(use, hasMcq && short);
-    if (b) ballots.push(b);
+    ballots.push({ model: use.slice(use.indexOf(':') + 1), parsed, ...(blind ? { blind: true } : {}) });
+    if (hasMcq) {
+      // two blind solves, a third when they split, then one shown the key
+      // when an explanation needs judging or a card was disputed
+      wanted = (blindCount() >= 2 && blindSplit() ? 3 : 2) + (explained || otherSplit() ? 1 : 0);
+    } else if (ballots.length === 2 && disagree(ballots[0].parsed, ballots[1].parsed)) wanted = 3;
   }
   return ended('votes', statuses, started, budget, { ballots, failures });
 }
@@ -721,18 +670,14 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   return reply({ items: results, ...(!ballots.length ? { busy: true } : {}), ...(owner && failures.length ? { failures } : {}) });
 }
 
-/// Signals to check again rather than grade: a question checked before it
-/// was solved blind (1 Oct), whose votes all saw the key; and a check that
-/// reached fewer than three model families - the free models had run out -
-/// once a day has passed, so the bar is met when they are back. `age`: the
-/// signals' age in seconds.
-export function staleSignals(signals, age = 0) {
-  const votes = (Array.isArray(signals?.votes) ? signals.votes : []).filter(Boolean);
+/// Signals from before questions were solved blind by two families (1 Oct):
+/// fewer than two blind solves of a question. They are checked again rather
+/// than graded on votes that saw the key.
+export function staleSignals(signals) {
+  const votes = Array.isArray(signals?.votes) ? signals.votes : [];
   // kept with its kind since; before, a question is known by its answer letters
-  const question = signals?.kind ? signals.kind === 'mcq' : votes.some(v => typeof v.answer === 'string');
-  if (question && votes.filter(v => v.blind).length < 2) return true;
-  const families = new Set(votes.filter(v => !question || v.blind).map(v => familyOf(v.model))).size;
-  return families < MIN_VERIFY_VOTERS && age > 86_400;
+  const question = signals?.kind ? signals.kind === 'mcq' : votes.some(v => v && typeof v.answer === 'string');
+  return question && votes.filter(v => v && v.blind).length < 2;
 }
 
 async function readVerdict(env, hash) {
@@ -742,7 +687,7 @@ async function readVerdict(env, hash) {
     const days = Number(env.ACCURACY_CACHE_DAYS) || 365;
     if (row.created_at < now() - days * 86_400) return null;
     const signals = JSON.parse(row.signals);
-    return staleSignals(signals, now() - row.created_at) ? null : signals;
+    return staleSignals(signals) ? null : signals;
   } catch { return null; }
 }
 

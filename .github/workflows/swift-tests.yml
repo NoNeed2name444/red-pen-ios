@@ -35,6 +35,7 @@ on:
       - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
       - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
       - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
+      - 'ios/RedPen/Features/Notes/GraphPerf*.swift'
       - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'

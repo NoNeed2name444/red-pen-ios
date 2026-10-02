@@ -68,6 +68,9 @@ struct Graph3DView: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.layoutDirection) private var direction
     @State private var built: GraphScene?
+    /// The Performance theme's snapshot of the notes (GraphPerfAdapter):
+    /// its own Metal engine builds the map, with no SceneKit scene.
+    @State private var perfSource: GraphPerfSource?
     @State private var filter: GraphFilter = .all
     /// Bumped by the recentre button; the view notices the change.
     @State private var recenter: Int = 0
@@ -126,6 +129,8 @@ struct Graph3DView: View {
                 } description: {
                     Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
                 }
+            } else if theme == .performance {
+                perfSpace
             } else if let built {
                 space(built)
             } else {
@@ -278,10 +283,27 @@ struct Graph3DView: View {
         .coversSky()
     }
 
+    /// The Performance theme's map (GraphPerfSpace), with the same tools,
+    /// peek card and options as every other theme.
+    private var perfSpace: some View {
+        GraphPerfSpace(source: perfSource, filter: filter, recenter: recenter, command: command,
+                       chosen: selection.selected, linksFor: selection.linksShown ? selection.selected : nil,
+                       touch: touchHandlers, bold: bold)
+            .overlay(alignment: .bottom) {
+                bottomPanels(nil)
+            }
+            .overlay {
+                optionsLayer(nil)
+            }
+            .ideaTools { tools }
+            .environment(\.colorScheme, .dark)
+            .coversSky()
+    }
+
     /// The peek card for the chosen body, or the Link length bar: over the
     /// bottom of the map, clear of the round tools, sliding up.
     @ViewBuilder
-    private func bottomPanels(_ built: GraphScene) -> some View {
+    private func bottomPanels(_ built: GraphScene?) -> some View {
         VStack(spacing: 10) {
             if tuningLinks {
                 GraphLinkLengthBar(value: linkBinding, done: { tuningLinks = false })
@@ -315,7 +337,7 @@ struct Graph3DView: View {
     /// A body's options, held still on it: a glass list beside where it
     /// was held; a tap anywhere else puts it away.
     @ViewBuilder
-    private func optionsLayer(_ built: GraphScene) -> some View {
+    private func optionsLayer(_ built: GraphScene?) -> some View {
         if let target = options {
             GeometryReader { geo in
                 let size: CGSize = geo.size
@@ -414,7 +436,7 @@ struct Graph3DView: View {
             case .links:
                 break
             case .menu(let id):
-                if let built { options = optionsTarget(id, in: built, at: options?.point) }
+                options = optionsTarget(id, in: built, at: options?.point)
             }
         }
     }
@@ -439,7 +461,6 @@ struct Graph3DView: View {
 
     /// Held still on a body: its options, where it was held.
     private func held(_ id: UUID, at point: CGPoint) {
-        guard let built else { return }
         options = optionsTarget(id, in: built, at: point)
         handle(.hold(id))
     }
@@ -456,7 +477,7 @@ struct Graph3DView: View {
             if selection.selected != id { handle(.tapBody(id)) }
             command.send(.flyIn(id))
         case "Delete":
-            if let built { deleting = optionsTarget(id, in: built, at: nil) }
+            deleting = optionsTarget(id, in: built, at: nil)
         default:
             if selection.selected != id { handle(.tapBody(id)) }
         }
@@ -523,19 +544,19 @@ struct Graph3DView: View {
         return "Ideas"
     }
 
-    private func isFolder(_ id: UUID, in built: GraphScene) -> Bool {
+    private func isFolder(_ id: UUID, in built: GraphScene?) -> Bool {
         id == GraphUniverse.homeID || notes.folder(id) != nil
     }
 
-    private func optionsTarget(_ id: UUID, in built: GraphScene, at point: CGPoint?) -> GraphOptionsTarget {
+    private func optionsTarget(_ id: UUID, in built: GraphScene?, at point: CGPoint?) -> GraphOptionsTarget {
         let home: Bool = id == GraphUniverse.homeID
         return GraphOptionsTarget(id: id, folder: isFolder(id, in: built), home: home, point: point)
     }
 
     /// What the peek card says about body `id`.
-    private func peek(_ id: UUID, in built: GraphScene) -> GraphPeekContent? {
-        let role: String = built.roles[id] ?? ""
-        let themeName: String = built.theme.rawValue
+    private func peek(_ id: UUID, in built: GraphScene?) -> GraphPeekContent? {
+        let role: String = built?.roles[id] ?? ""
+        let themeName: String = (built?.theme ?? theme).rawValue
         if id == GraphUniverse.homeID || notes.folder(id) != nil {
             let home: Bool = id == GraphUniverse.homeID
             let folderID: UUID? = home ? nil : id
@@ -764,6 +785,11 @@ struct Graph3DView: View {
     }
 
     private func rebuild() async {
+        if theme == .performance {
+            rebuildPerformance()
+            return
+        }
+        perfSource = nil
         if theme != .space {
             await rebuildTheme(theme)
             return
@@ -862,6 +888,16 @@ struct Graph3DView: View {
         scene.names = names
         scene.linkScale = linkValue
         built = scene
+    }
+
+    /// The Performance theme (GraphPerfTheme): no SceneKit scene, only a
+    /// snapshot of the notes for its own engine, which builds the map off
+    /// the main thread.
+    private func rebuildPerformance() {
+        built = nil
+        let input: GraphPerfInput = GraphPerfAdapter.input(store: notes, edges: notes.allEdges(),
+                                                           linkScale: linkValue)
+        perfSource = GraphPerfSource(version: (perfSource?.version ?? 0) + 1, input: input)
     }
 
     /// What the plan reads from the store: notes, folders and links only.

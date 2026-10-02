@@ -2,14 +2,11 @@
 # the sensors on every question as published and with errors planted, and the
 # whole layer - literature, checker models of different families, the blind
 # re-solve, the verdict - on hard questions (MedXpertQA, MedQA, CareQA), each
-# with its true key and with a wrong key planted.
-#
-# Which checkers, by the secrets the repository has:
-# - AI_API_KEY: the live Worker, with its own free models (what students get);
-# - else BENCH_API_KEY + BENCH_BASE_URL (secrets) and BENCH_VOTERS (variable,
-#   "bench:<model>,..." from at least two model families): this repository's
-#   checkBatch with a free OpenAI-compatible provider's models.
-# Results: the run summary, and runs/<run id>/ on verification-bench-results.
+# with its true key and with a wrong key planted. The checkers are GitHub
+# Models, free for this repository's runs, called with the run's own token
+# (permission models: read); production never uses them (ai.js refuses
+# github: voters without BENCH_MODELS). Results: the run summary, and
+# runs/<run id>/ on the verification-bench-results branch.
 name: Verification bench
 on:
   push:
@@ -20,8 +17,13 @@ on:
         description: 'Questions per source (each checked twice)'
         required: false
         default: '30'
+      voters:
+        description: 'Checkers, github:<model>,... (empty: one per family from the catalog)'
+        required: false
+        default: ''
 permissions:
   contents: write
+  models: read
 concurrency:
   group: verification-bench
   cancel-in-progress: false
@@ -38,23 +40,22 @@ jobs:
         run: tools/verification-bench/fetch.sh data
       - name: Sensors on every question
         run: node tools/verification-bench/sensors.mjs data/*.json --out out/sensors > /dev/null
+      - name: Pick the checkers
+        id: pick
+        env:
+          MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code=$(curl -s -o catalog.json -w '%{http_code}' -H "Authorization: Bearer $MODELS_TOKEN" \
+            -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://models.github.ai/catalog/models)
+          echo "catalog HTTP $code: $(head -c 300 catalog.json)"
+          [ "$code" = "200" ] || echo '[]' > catalog.json
+          node tools/verification-bench/pick-voters.mjs catalog.json "${{ inputs.voters }}" >> "$GITHUB_OUTPUT"
       - name: The whole layer on hard questions
         env:
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          BENCH_API_KEY: ${{ secrets.BENCH_API_KEY }}
-          BENCH_BASE_URL: ${{ secrets.BENCH_BASE_URL }}
-          BENCH_VOTERS: ${{ vars.BENCH_VOTERS }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          n="${{ inputs.per_source || '30' }}"
-          if [ -n "$AI_API_KEY" ]; then
-            export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
-            export KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
-            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$n"
-          elif [ -n "$BENCH_API_KEY" ] && [ -n "$BENCH_BASE_URL" ]; then
-            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$n" --voters "$BENCH_VOTERS"
-          else
-            echo "No checkers: add the AI_API_KEY secret (the live Worker), or BENCH_API_KEY and BENCH_BASE_URL secrets with a BENCH_VOTERS variable." | tee -a "$GITHUB_STEP_SUMMARY"
-          fi
+          node tools/verification-bench/layer.mjs --data data --out out/layer \
+            --per-source "${{ inputs.per_source || '30' }}" --voters "${{ steps.pick.outputs.voters }}"
       - name: Summary
         if: always()
         run: |
@@ -71,12 +72,8 @@ jobs:
           if git fetch -q origin verification-bench-results; then
             git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B verification-bench-results
           else
-            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results
+            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results && git -C "$dest" rm -rq . || true
           fi
-          # results only: nothing of the repository rides along (an earlier
-          # publish committed the whole tree beside the runs)
-          git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
-          find "$dest" -mindepth 1 -maxdepth 1 ! -name .git ! -name runs -exec rm -rf {} +
           mkdir -p "$dest/runs/${{ github.run_id }}"
           cp out/layer/report.md out/layer/results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
           cp out/sensors/report.md "$dest/runs/${{ github.run_id }}/sensors.md" 2>/dev/null || true

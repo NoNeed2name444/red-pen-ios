@@ -5,8 +5,8 @@ import SwiftUI
 /// Where the paywall sits, and it sits in one place on purpose. Reading a file,
 /// typing questions, importing a deck and reviewing everything you already have
 /// stay free, and so does generating with Apple's model or the Gemma fallback.
-/// What Pro buys is the medical writer, Doctor-R1, on the device, and the
-/// larger hosted models; what it writes is checked by the verification layer.
+/// What Pro buys is the medical models: Doctor-R1 and MedVAL on the device,
+/// and CramDown Cloud, the larger hosted models.
 struct MCQGenerateForm: View {
     @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
@@ -231,10 +231,7 @@ struct MCQGenerateForm: View {
         let count = questionCount, subj = subject, hy = highYield, setName = name
         let cite = readSource
         let writer = llm.backend(for: .writer)
-        // the verification layer checks what is made (VerificationScreen now,
-        // the independent checkers once the set is saved): no single model's
-        // screening to wait on
-        let verify: Bool = llm.checkGenerated
+        let checker = llm.checkGenerated ? llm.backend(for: .checker) : nil
         // A cloud job's replies stay kept - on this device and on the
         // server - until this generation is done with them, however it
         // ends: an app closed while they are checked or saved finds them
@@ -267,9 +264,11 @@ struct MCQGenerateForm: View {
                     guard let writer else { throw LLMError.notReady("Choose a writer in AI models.") }
                     // kept with a cloud job, so the set is still made if the
                     // app is closed before the server finishes
+                    let onServer = (checker as? CloudJobBackend)?.checksOnServer == true
+                    let check: String? = MCQGenerateForm.checkPlace(checker != nil, onServer: onServer)
                     let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
-                                             source: cite?.doc(), check: nil, exam: ExamChoice.current?.id).encoded
-                    questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: false,
+                                             source: cite?.doc(), check: check, exam: ExamChoice.current?.id).encoded
+                    questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
                                                                checking: { done, total in
                         Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
                     }, delivery: delivery)) {
@@ -286,18 +285,28 @@ struct MCQGenerateForm: View {
                         sourceText: text, count: count, subject: subj,
                         highYield: hy, onProgress: progress)
                 }
-                // the verification layer's first stage, on the device and
-                // instant: a broken question is removed with its reason, a red
-                // flag is held; the independent checkers take the set once saved
+                // every generated question checked against the lecture before it
+                // reaches the set; high-risk ones are dropped
                 try Task.checkCancellation()
                 var checkNote = ""
-                if verify {
-                    let screened = VerificationScreen.questions(questions)
+                if let checker {
+                    let screened = await AccuracyChecker.screen(
+                        questions, source: text, using: checker,
+                        onProgress: { done, total in
+                            GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking with \(checker.label)")
+                            Task { @MainActor in
+                                generationStatus = "Checking \(done) of \(total) with \(checker.label)\u{2026}"
+                            }
+                        })
+                    let screenedTotal: Int = questions.count
                     questions = screened.kept
-                    checkNote = VerificationScreen.note(screened)
+                    // a question the checker never graded is not a checked one
+                    checkNote += MedVAL.uncheckedNote(screened.unchecked, of: screenedTotal)
+                    if screened.removed > 0 { checkNote += " \(screened.removed) removed as high risk." }
+                    if screened.flagged > 0 { checkNote += " \(screened.flagged) flagged moderate risk \u{2014} check them." }
                 }
                 guard !questions.isEmpty else {
-                    throw LLMError.notReady("Every question failed the on-device checks \u{2014} try a clearer source.")
+                    throw LLMError.notReady("The checker graded every question high risk \u{2014} try a clearer source.")
                 }
                 let finalQuestions = questions
                 let note = checkNote

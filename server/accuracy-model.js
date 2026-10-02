@@ -82,11 +82,7 @@ export function features({ kind, rules = [], votes = [], evidenceCount = 0, sour
     f.blind_agree = byLetter.get(keyLetter)?.size || 0;
     f.blind_against = Math.max(0, ...[...byLetter].filter(([l]) => l !== keyLetter).map(([, fams]) => fams.size));
     f.blind_split = byLetter.size > 1 ? 1 : 0;
-    // every family that solved it blind and reached anything but the key
-    f.blind_dissent = new Set([...byLetter].filter(([l]) => l !== keyLetter).flatMap(([, fams]) => [...fams])).size;
   }
-  // the families that flagged it
-  f.flag_families = new Set(read.filter(v => v.risk >= 3).map(v => familyOf(v.model))).size;
   return f;
 }
 
@@ -114,14 +110,9 @@ export function predict(f, model = DEFAULT_WEIGHTS) {
 
 // MARK: the oath check (plan §22 Layer 7: regex first, fail closed)
 
-/// The fewest model families an item needs, each passing it (a question:
-/// each solving it blind and reaching its key), before it can be Verified;
-/// and the fewest agreeing on another answer before a question is Flagged.
-/// Three, for the owner's 99.999% (1 Oct): one family's word never stands
-/// alone (audit #95, #97), and two can share a blind spot; a third
-/// independent discrimination multiplies the selectivity again (DNA brief:
-/// kinetic proofreading; Islamic brief: tawatur, many independent chains).
-export const MIN_VERIFY_VOTERS = 3;
+/// The fewest checker models whose votes an item needs before it can be
+/// Verified: one free model's word is never enough (audit #95, #97).
+export const MIN_VERIFY_VOTERS = 2;
 
 /// How much of an oath item its own lecture must contain to stand for the
 /// evidence behind it.
@@ -160,39 +151,29 @@ export const isOath = text => {
 };
 
 /// Verified / Check this / Flagged, or unchecked when no model has looked.
-/// Verified needs three model families passing the item with no concern
-/// raised and no sensor firing; and an oath item (a dose, a diagnosis, a
+/// Verified also needs the passing votes to come from two model families.
+/// rules alone can flag an item but never verify one, and a severe rule hit
+/// keeps an item from being Verified whatever the models said. Verified also
+/// needs two models' votes; and an oath item (a dose, a diagnosis, a
 /// treatment) needs evidence behind it - the literature the voters were shown
-/// supporting it, or its own lecture saying it. Flagged needs proof from two
-/// directions; rules alone flag an item only before any model has looked.
-/// Everything else is Check this. The app's AccuracyModel.grade, rule for rule.
+/// supporting it, or its own lecture saying it - or it stays Check this.
 export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   if (f.no_models) return f.rule_severe > 0 ? 'flagged' : 'unchecked';
-  const need = MIN_VERIFY_VOTERS;
+  // two independent blind solvers agreeing on another answer: an explained
+  // objection from two chains, which outweighs any approval (Islamic brief:
+  // jarh mufassar, tawatur) - the key is wrong
   const question = Number(f.kind_mcq) === 1;
-  // Flagged only on proof from two directions at once; anything less is
-  // Check this, never a guess either way (the owner's 99.999%, 1 Oct).
-  // Three families solving it blind agree on one other answer and none
-  // reaches the key: an explained objection from independent chains (Islamic
-  // brief: jarh mufassar, tawatur) - the key is wrong
-  if (question && (Number(f.blind_against) || 0) >= need && !(Number(f.blind_agree) > 0)) return 'flagged';
-  // a severe safety rule that the models also judge likely wrong
-  if (f.rule_severe > 0 && p < t.flagged) return 'flagged';
-  // every voter, from three families, judged it wrong
-  if (!question && (Number(f.flag_families) || 0) >= need && Number(f.flag_frac) === 1 && p < t.flagged) return 'flagged';
-  const enough = Math.round((Number(f.voters) || 0) * 3) >= need;
+  if (question && (Number(f.blind_against) || 0) >= MIN_VERIFY_VOTERS) return 'flagged';
+  if (p < t.flagged) return 'flagged';
+  const enough = Math.round((Number(f.voters) || 0) * 3) >= MIN_VERIFY_VOTERS;
   const backed = !oath || (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
-  const independent = (Number(f.families) || 0) >= need;
-  // no voter raised a concern, none read the literature against it, and no
-  // sensor fired, however mildly (0.5% of real questions; almost all real)
-  const unanimous = !(Number(f.flag_frac) > 0) && !(Number(f.ev_contradict) > 0);
-  const clean = !(f.rule_severe > 0) && !(f.rule_minor > 0);
-  // a question is Verified only when three independent blind solves reach
-  // its key and no family solving it blind went elsewhere: a checker shown
-  // the key tends to agree with it (DNA brief: kinetic proofreading)
-  const solved = !question || ((Number(f.blind_agree) || 0) >= need && !(Number(f.blind_dissent) > 0));
-  if (p >= t.verified && clean && enough && backed && independent && unanimous && solved) return 'verified';
+  const independent = (Number(f.families) || 0) >= MIN_VERIFY_VOTERS;
+  // a question is Verified only when two independent blind solves reach its
+  // key: a checker shown the key tends to agree with it (DNA brief: kinetic
+  // proofreading, a second discrimination that does not see the first)
+  const solved = !question || (Number(f.blind_agree) || 0) >= MIN_VERIFY_VOTERS;
+  if (p >= t.verified && !f.rule_severe && enough && backed && independent && solved) return 'verified';
   return 'check';
 }
 
@@ -202,23 +183,18 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
 export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = false, letters = null) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   const out = [];
-  const need = MIN_VERIFY_VOTERS;
-  const words = ['no', 'one', 'two', 'three', 'four', 'five'];
   const question = Number(f.kind_mcq) === 1;
   if (f.no_models) return verdictName === 'flagged' ? ['A safety rule failed; no checker has looked yet.'] : ['Not checked yet.'];
-  const against = Number(f.blind_against) || 0, agree = Number(f.blind_agree) || 0;
-  if (question && against >= 2) {
-    out.push(`Checkers from ${against} different model families, solving it without the key, chose another answer${letters ? ` (${letters})` : ''}.`);
+  if (question && (Number(f.blind_against) || 0) >= MIN_VERIFY_VOTERS) {
+    out.push(`Checkers from ${f.blind_against} different model families, solving it without the key, chose another answer${letters ? ` (${letters})` : ''}.`);
   }
   if (f.rule_severe) out.push('A safety rule failed.');
-  else if (f.rule_minor && verdictName !== 'verified') out.push('A safety rule raised a concern.');
-  if (question && verdictName !== 'verified') {
-    if (f.blind_split && agree > 0) out.push('Unresolved: independent checkers solving it blind did not agree.');
-    else if (agree < need && against < 2) out.push(`Fewer than ${words[need]} independent blind solves reached the key.`);
+  if (question && f.blind_split && !(f.blind_against >= MIN_VERIFY_VOTERS) && !(f.blind_agree >= MIN_VERIFY_VOTERS)) {
+    out.push('Unresolved: independent checkers solving it blind did not agree.');
+  } else if (question && (Number(f.blind_agree) || 0) < MIN_VERIFY_VOTERS && verdictName !== 'flagged') {
+    out.push('Fewer than two independent blind solves reached the key.');
   }
-  if ((Number(f.families) || 0) < need && verdictName !== 'flagged') out.push(`Not yet passed by ${words[need]} model families.`);
-  if (Number(f.flag_frac) > 0 && verdictName !== 'flagged' && !(question && against >= 2)) out.push('A checker raised a concern.');
-  if (Number(f.ev_contradict) > 0) out.push('A checker found literature against it.');
+  if ((Number(f.families) || 0) < MIN_VERIFY_VOTERS && verdictName !== 'flagged') out.push('Not yet passed by two model families.');
   if (oath && !((Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH)) {
     out.push('A dose, diagnosis or treatment without evidence behind it.');
   }

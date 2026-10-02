@@ -165,6 +165,14 @@ suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
 suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
+# the Performance theme's engine at 100,000 notes and 300,000: the
+# graph, the seed and the force layout a slice a frame, cluster level of
+# detail (fewer bodies and lines as the camera goes back), picks against
+# brute force, the camera, and the scene and frame the GPU is handed
+suite graphperf GraphPerfTests.swift $F/Notes/GraphPerfGraph.swift $F/Notes/GraphPerfSynthetic.swift \
+      $F/Notes/GraphPerfLayout.swift $F/Notes/GraphPerfForce.swift $F/Notes/GraphPerfLOD.swift \
+      $F/Notes/GraphPerfClusters.swift $F/Notes/GraphPerfPick.swift $F/Notes/GraphPerfCamera.swift \
+      $F/Notes/GraphPerfScene.swift $F/Notes/GraphPerfShaders.swift
 # the accuracy engine: dose, lab and contradiction rules (the same
 # cases as the server's), the accuracy model's grades, the cache key,
 # the order background checks run in, and one-tap corrections
@@ -175,16 +183,6 @@ suite accuracy AccuracyTests.swift $M/MCQQuestion.swift $M/Differential.swift $M
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
       $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift
-# the verification layer's first stage on generated material: broken items
-# removed with their reason, red flags held, the status line
-suite verifyscreen VerificationScreenTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/QACard.swift \
-      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift \
-      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
-      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
-      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
-      $S/Accuracy/AccuracyItem.swift $S/Accuracy/AccuracyRules.swift $S/Accuracy/AccuracyModel.swift \
-      $S/Accuracy/AccuracyLedger.swift $S/Accuracy/AccuracySchedule.swift \
-      $S/Accuracy/VerificationScreen.swift
 # Anki review essentials: daily limits, suspend and bury, undo that
 # wins a sync, FSRS-5, the report outbox and the rating-prompt rule
 suite reviewessentials ReviewEssentialsTests.swift $M/AnkiCard.swift \

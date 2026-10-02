@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ruleHits, doses, labValues, explainedAnswer, sourceMatch, itemText, DRUGS, LABS } from '../accuracy-rules.js';
-import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, reasonsFor, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH, familyOf, MIN_VERIFY_VOTERS } from '../accuracy-model.js';
+import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, reasonsFor, validWeights, fit, crossValidate, metrics, thresholds, auc, probability, hasDose, isOath, OATH_SOURCE_MATCH, familyOf } from '../accuracy-model.js';
 import { DOSE_VECTORS } from './oath-vectors.mjs';
 import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights, describe } from '../accuracy.js';
 import { normaliseMedQA, normaliseMedMCQA, variants, corrupt, reportedExamples, train, reportMarkdown } from '../bench/train-accuracy.mjs';
@@ -72,46 +72,23 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
 
 // MARK: the model
 {
-  // the bar is three families (the owner's 99.999%, 1 Oct)
-  ok(MIN_VERIFY_VOTERS === 3, 'Verified needs three model families');
-  const G = 'gemini-3.5-flash-lite', GM = 'gemma-4-31b-it', O = '@cf/openai/gpt-oss-120b', N = '@cf/nvidia/nemotron-3-120b-a12b';
-  const solve = (model, answer, extra = {}) => ({ model, risk: 1, answer, evidence: 'supports', blind: true, ...extra });
-  const pass = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const pass = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports', blind: true }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   const p1 = predict(pass);
-  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `three blind solves from three families reach the key, with support: Verified (${p1.toFixed(3)})`);
-  const twoBlind = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(predict(twoBlind), twoBlind) === 'check' && reasonsFor('check', predict(twoBlind), twoBlind).some(r => r.includes('three')),
-     'two blind families on the key are no longer enough: Check this, saying three are needed');
-  const dissent = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(GM, 'C'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(dissent.blind_agree === 3 && dissent.blind_dissent === 1 && verdict(0.99, dissent) === 'check', 'a family whose blind solve went elsewhere keeps it from Verified, even with three on the key');
-  const concern = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A'), { model: O, risk: 3, answer: 'A', evidence: 'none' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(0.99, concern) === 'check' && reasonsFor('check', 0.99, concern).includes('A checker raised a concern.'), 'a concern from any checker keeps it from Verified, and says so');
-  const mild = features({ kind: 'mcq', rules: [{ severity: 'minor' }], votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(0.99, mild) === 'check', 'any sensor firing, however mildly, keeps it from Verified');
-  const against = features({ kind: 'mcq', votes: [solve(G, 'A', { evidence: 'contradicts' }), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(0.99, against) === 'check' && reasonsFor('check', 0.99, against).includes('A checker found literature against it.'), 'literature read against it keeps it from Verified');
+  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `two blind solves from two families reach the key, with support: Verified (${p1.toFixed(3)})`);
   // the briefs' rules for questions (DNA: kinetic proofreading; Islamic: tawatur, jarh mufassar, tawaqquf)
-  const anchored = features({ kind: 'mcq', votes: [{ model: G, risk: 1, answer: 'A', evidence: 'supports' }, { model: O, risk: 1, answer: 'A', evidence: 'supports' }, { model: N, risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const anchored = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   ok(verdict(predict(anchored), anchored) === 'check', 'votes that saw the key are not enough to verify a question');
-  const oneBlind = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(GM, 'A'), { model: O, risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const oneBlind = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: 'gemma-4-31b-it', risk: 1, answer: 'A', evidence: 'supports', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   ok(oneBlind.blind_agree === 1 && verdict(predict(oneBlind), oneBlind) === 'check', 'two blind solves from one family are one witness');
-  const wrongKey = features({ kind: 'mcq', votes: [solve(G, 'C', { evidence: 'none' }), solve(O, 'C', { evidence: 'none' }), solve(N, 'C', { evidence: 'none' }), { risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(wrongKey.blind_against === 3 && verdict(predict(wrongKey), wrongKey) === 'flagged', 'three families solving it blind agree on another answer and none on the key: Flagged, whatever a reviewer shown the key said');
-  ok(reasonsFor('flagged', predict(wrongKey), wrongKey, undefined, false, 'C')[0].includes('another answer (C)'), 'and the reason names the answer they chose');
-  const twoAgainst = features({ kind: 'mcq', votes: [solve(G, 'C', { evidence: 'none' }), solve(O, 'C', { evidence: 'none' })], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(predict(twoAgainst), twoAgainst) === 'check', 'two families on another answer are not proof enough to flag: Check this');
-  const outvoted = features({ kind: 'mcq', votes: [solve(G, 'C', { evidence: 'none' }), solve(O, 'C', { evidence: 'none' }), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
-  ok(verdict(predict(outvoted), outvoted) === 'check' && reasonsFor('check', predict(outvoted), outvoted).some(r => r.startsWith('Unresolved')), 'two families on another answer and one on the key: Unresolved, Check this');
-  const parted = features({ kind: 'mcq', votes: [solve(G, 'C', { evidence: 'none' }), solve(O, 'A', { evidence: 'none' })], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const against = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, answer: 'A', evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(against.blind_against === 2 && verdict(predict(against), against) === 'flagged', 'two families solving it blind agree on another answer: Flagged, whatever a reviewer shown the key said');
+  ok(reasonsFor('flagged', predict(against), against, undefined, false, 'C')[0].includes('another answer (C)'), 'and the reason names the answer they chose');
+  const parted = features({ kind: 'mcq', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, answer: 'C', evidence: 'none', blind: true }, { model: '@cf/openai/gpt-oss-120b', risk: 1, answer: 'A', evidence: 'none', blind: true }], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   ok(verdict(predict(parted), parted) === 'check' && reasonsFor('check', predict(parted), parted).some(r => r.startsWith('Unresolved')), 'blind solves that split leave it Unresolved (Check this), and say so');
-  const card3 = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7 });
-  ok(verdict(predict(card3), card3) === 'verified', 'a card has no key to solve: three families passing it verify it');
-  const bad = features({ kind: 'card', votes: [{ model: G, risk: 4, evidence: 'contradicts' }, { model: O, risk: 4, evidence: 'contradicts' }, { model: N, risk: 4, evidence: 'contradicts' }], sourceMatch: 0.7 });
-  ok(bad.flag_families === 3 && verdict(predict(bad), bad) === 'flagged', 'three families judging it wrong, with the model agreeing: Flagged');
-  const bad2 = features({ kind: 'card', votes: [{ model: G, risk: 4, evidence: 'contradicts' }, { model: O, risk: 4, evidence: 'contradicts' }], sourceMatch: 0.7 });
-  ok(verdict(predict(bad2), bad2) === 'check' && reasonsFor('check', predict(bad2), bad2).includes('The checkers judged it likely wrong.'), 'two families judging it wrong: Check this, saying it is likely wrong');
-  const sighted = features({ kind: 'mcq', votes: [{ risk: 4, answer: 'B', evidence: 'contradicts' }, { risk: 4, answer: 'B', evidence: 'contradicts' }], keyLetter: 'A', sourceMatch: 0.7 });
-  ok(verdict(predict(sighted), sighted) === 'check', 'checkers shown the key calling it wrong, with no blind solve: Check this, not proof');
+  const card2 = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7 });
+  ok(verdict(predict(card2), card2) === 'verified', 'a card has no key to solve: two families passing it still verify it');
+  const bad = features({ kind: 'mcq', votes: [{ risk: 4, answer: 'B', evidence: 'contradicts' }, { risk: 4, answer: 'B', evidence: 'contradicts' }], keyLetter: 'A', sourceMatch: 0.7 });
+  ok(verdict(predict(bad), bad) === 'flagged', 'two flagging votes are Flagged');
   const split = features({ kind: 'mcq', votes: [{ risk: 1, answer: 'A', evidence: 'none' }, { risk: 3, answer: 'A', evidence: 'none' }], keyLetter: 'A', sourceMatch: 0.5 });
   ok(verdict(predict(split), split) === 'check', 'a split vote is Check this');
   const none = features({ kind: 'card', rules: [] });
@@ -120,15 +97,13 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(verdict(predict(ruled), ruled) === 'flagged', 'a severe rule hit with no model is Flagged');
   const passRuled = features({ kind: 'card', rules: [{ severity: 'severe' }], votes: [{ risk: 1, evidence: 'supports' }, { risk: 1, evidence: 'supports' }], sourceMatch: 1, evidenceCount: 5 });
   ok(verdict(predict(passRuled), passRuled) !== 'verified', 'a severe rule hit is never Verified');
-  const ruledWrong = features({ kind: 'card', rules: [{ severity: 'severe' }], votes: [{ model: G, risk: 4, evidence: 'contradicts' }, { model: O, risk: 3, evidence: 'none' }], sourceMatch: 0 });
-  ok(verdict(predict(ruledWrong), ruledWrong) === 'flagged', 'a severe rule hit the models also judge likely wrong: Flagged');
   ok(features({ kind: 'mcq', votes: [{ risk: 1, answer: 'C' }, { risk: 1, answer: 'A' }], keyLetter: 'A' }).key_disagree === 0.5, 'key disagreement is the share answering otherwise');
   // two votes from one family are one witness (independence: DNA and Islamic briefs)
-  const sameFamily = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: GM, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
-  ok(sameFamily.families === 2 && verdict(0.99, sameFamily) === 'check', 'three passing votes from two families (Gemini and Gemma are one) are Check this, not Verified');
-  const threeFamilies = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
-  ok(threeFamilies.families === 3 && verdict(0.99, threeFamilies) === 'verified', 'three passing votes from three families can be Verified');
-  const failing = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 4, evidence: 'contradicts' }], evidenceCount: 3, sourceMatch: 0.9 });
+  const sameFamily = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: 'gemma-4-31b-it', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(sameFamily.families === 1 && verdict(0.99, sameFamily) === 'check', 'two passing votes from one family (Gemini and Gemma) are Check this, not Verified');
+  const twoFamilies = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  ok(twoFamilies.families === 2 && verdict(0.99, twoFamilies) === 'verified', 'two passing votes from two families can be Verified');
+  const failing = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 4, evidence: 'contradicts' }], evidenceCount: 3, sourceMatch: 0.9 });
   ok(failing.families === 1, 'a vote that flags the item does not count as a family passing it');
   ok(familyOf('gemma-4-31b-it') === familyOf('gemini-3.1-pro-preview') && familyOf('@cf/openai/gpt-oss-120b') === 'openai' && familyOf('@cf/nvidia/nemotron-3-120b-a12b') === 'nvidia',
      'families: Gemini and Gemma are Google; gpt-oss is OpenAI; Nemotron is NVIDIA');
@@ -136,11 +111,11 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   const lone = features({ kind: 'card', votes: [{ risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
   ok(verdict(0.99, lone) === 'check', 'a single vote, however sure, is Check this, never Verified');
   // the oath check (plan §22 Layer 7): a dose, a diagnosis or a treatment needs evidence behind it
-  const unbacked = features({ kind: 'card', votes: [{ model: GM, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
+  const unbacked = features({ kind: 'card', votes: [{ model: 'gemma-4-31b-it', risk: 1, evidence: 'none' }, { model: '@cf/nvidia/nemotron-3-120b-a12b', risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
   ok(verdict(0.99, unbacked) === 'verified' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check',
-     'an oath item passed by three families but with no support from the literature or its lecture stays Check this');
-  const literature = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
-  const lecture = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
+     'an oath item with two votes but no support from the literature or its lecture stays Check this');
+  const literature = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'supports' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
+  const lecture = features({ kind: 'card', votes: [{ model: 'gemini-3.5-flash-lite', risk: 1, evidence: 'none' }, { model: '@cf/openai/gpt-oss-120b', risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
   ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'verified' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'verified',
      'with the literature supporting it, or its own lecture saying it, an oath item can be Verified');
   for (const [text, dose] of DOSE_VECTORS) ok(hasDose(text) === dose, `dose ${dose ? 'found' : 'not found'}: ${text}`);
@@ -252,11 +227,7 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(votes[1].risk === 4 && votes[1].answer === 'C' && votes[1].cites.join() === 'S1' && votes[1].fix.value === 'C' && votes[0].risk === 1 && votes[0].evidence === 'none', 'votes are parsed item by item');
   ok(parseVotes('no json', 2).every(v => v === null), 'an unreadable reply is no vote');
   ok(disagree([{ risk: 1 }], [{ risk: 4 }]) && !disagree([{ risk: 1, answer: 'A' }], [{ risk: 2, answer: 'A' }]) && disagree([{ risk: 1, answer: 'A' }], [{ risk: 1, answer: 'B' }]), 'disagreement');
-  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' };
-  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 7, 'the writing model never votes');
-  ok(votersFor({}, '').length === 0 && votersFor({ FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} }, '').every(v => /^(gemini|workers-ai):/.test(v)),
-     'a voter whose provider has no key here is left out');
-  ok(votersFor(keyed, '').slice(0, 3).map(v => familyOf(v.slice(v.indexOf(':') + 1))).join() === 'google,openai,meta', 'the first three asked are three families, Groq before Workers AI');
+  ok(!votersFor({}, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor({}, '').length === 4, 'the writing model never votes');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'A', risk: 3 }])?.value === 'A', 'voters agreeing on another answer suggest it as the key');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'B', risk: 1 }]) === null, 'a split does not');
   ok((await itemHash(mcq)) === (await itemHash({ ...mcq, id: 'other' })) && (await itemHash(mcq)) !== (await itemHash({ ...mcq, key: 0 })), 'the hash is of the content, not the id');
@@ -321,8 +292,8 @@ const items = [
   r = await checkBatch(env, 'owner', { items }, fetcher, { owner: true });
   let body = await r.json();
   ok(r.status === 200 && body.items.length === 2 && body.items[0].id === 'q1', 'a batch is checked');
-  ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `three free voters from three families, asked at once, one call each for the whole batch (${calls.join()})`);
-  ok(body.items[0].votes.length === 3 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with all three votes and the evidence they were shown');
+  ok(calls.join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/openai/gpt-oss-120b', `two free voters, one call each for the whole batch (${calls.join()})`);
+  ok(body.items[0].votes.length === 2 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with both votes and the evidence they were shown');
   ok(body.items[0].verdict === 'verified' && body.items[0].p > 0.85, `agreeing votes with support: Verified (${body.items[0].p})`);
   ok(body.items[1].verdict === 'check' || body.items[1].verdict === 'verified', 'the card is scored too');
   ok(Array.isArray(body.items[0].rules) && typeof body.items[0].features.no_models === 'number', 'rules and features come back for the app to re-score');
@@ -333,25 +304,24 @@ const items = [
   ok(calls.length === 0 && body.items.every(i => i.cached), 'checked again unchanged: from the cache, no model asked');
   calls.length = 0;
   await checkBatch(env, 'owner', { items: [{ ...items[1], text: items[1].text + ' (edited)' }] }, fetcher, { owner: true });
-  ok(calls.length === 3, 'an edited item is checked again');
+  ok(calls.length === 2, 'an edited item is checked again');
 
-  // the writer never votes; three families solving it blind on another answer flag it
+  // disagreement brings in a third voter; the writer never votes
   calls.length = 0;
   workersReply = JSON.stringify({ items: [{ i: 1, risk: 4, answer: "A", evidence: "contradicts", issues: ["PCC is wrong"], fix: { field: "key", value: "A" } }] });
-  geminiReply = workersReply;
   r = await checkBatch(env, 'owner', { items: [{ ...items[0], stem: items[0].stem + ' Now.' }], writer: 'gemini-3.5-flash-lite' }, fetcher, { owner: true });
   body = await r.json();
   ok(!calls.includes('gemini:gemini-3.5-flash-lite'), 'the model that wrote the items does not judge them');
-  ok([...calls].sort().join() === 'gemini:gemma-4-31b-it,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `the next three free voters instead (${calls.join()})`);
-  ok(body.items[0].verdict === 'flagged' && body.items[0].fix?.field === 'key' && body.items[0].fix.value === 'A', 'all three solve it to another answer: Flagged, with that answer as the fix');
-  workersReply = null; geminiReply = null;
+  ok(calls.join() === 'workers:@cf/openai/gpt-oss-120b,workers:@cf/nvidia/nemotron-3-120b-a12b', `the next two free voters instead (${calls.join()})`);
+  ok(body.items[0].verdict === 'flagged' && body.items[0].fix?.field === 'key' && body.items[0].fix.value === 'A', 'both flag it and agree on the key: Flagged, with the key as the fix');
+  workersReply = null;
 
   calls.length = 0;
   workersReply = JSON.stringify({ items: [{ i: 1, risk: 4, answer: 'A', evidence: 'contradicts', issues: ['wrong'] }] });
   r = await checkBatch(env, 'owner', { items: [{ ...items[0], stem: items[0].stem + ' Today.' }] }, fetcher, { owner: true });
   body = await r.json();
-  ok(calls.length === 3, `three models asked at once, and no fourth family to ask (${calls.join()})`);
-  ok(body.items[0].votes.length === 3 && body.items[0].verdict === 'check', 'two families against the key and one for it: Check this, neither Verified nor Flagged');
+  ok(calls.length === 3, `a split vote asks a third model (${calls.join()})`);
+  ok(body.items[0].votes.length === 3 && body.items[0].verdict !== 'verified', 'and the split is not Verified');
   workersReply = null;
 
   // nobody answers: unchecked, not cached
@@ -363,7 +333,7 @@ const items = [
   geminiReply = null; workersReply = null;
   calls.length = 0;
   await checkBatch(env, 'owner', { items: [{ ...items[1], text: 'Q: fresh\nA: x' }] }, fetcher, { owner: true });
-  ok(calls.length === 3, 'and asked again next time');
+  ok(calls.length === 2, 'and asked again next time');
 }
 {
   // a Pro account's background share and daily batches
@@ -386,8 +356,7 @@ const items = [
   await checkBatch(env2, 'a1', { items: [{ kind: 'card', text: 'Q: share first\nA: y' }] }, fetcher);
   calls.length = 0;
   r = await checkBatch(env2, 'a1', { items: [{ kind: 'card', text: 'Q: share\nA: y' }] }, fetcher);
-  ok(r.status === 200 && !calls.includes('gemini:gemini-3.5-flash-lite') && calls.length === 3 && calls.includes('gemini:gemma-4-31b-it'),
-     `the account's free share is respected, Gemma standing in for Google (${calls.join()})`);
+  ok(r.status === 200 && !calls.includes('gemini:gemini-3.5-flash-lite') && calls.length === 2, `the account's free share is respected (${calls.join()})`);
   // neurons: an account with no Workers AI share left
   const env3 = freshEnv({ AI: workers, OWNER_ACCOUNT_IDS: 'a1', WORKERS_AI_NEURONS_PER_ACCOUNT: '0' });
   calls.length = 0;

@@ -1,0 +1,13 @@
+# How this lecturer says each term, as the committee confirmed it.
+# spelling<TAB>english<TAB>how many engines agreed<TAB>which
+#
+# Learned, not written by hand: every line is a span where independent
+# recognisers agreed on the sound. Correct a line freely - it is read as an
+# exact lookup and the match is on sound, so one entry covers every spelling
+# of the same pronunciation.
+اكيوت	acute	3	cohere,qwen3-asr,whisper-turbo
+ديسكويد ريش	discoid rash	3	cohere,qwen3-asr,whisper-turbo
+ريفرسبل	reversible	3	cohere,qwen3-asr,whisper-turbo
+كرونيك	chronic	3	cohere,qwen3-asr,whisper-turbo
+مرر ريش	malar rash	3	cohere,qwen3-asr,whisper-turbo
+ميكو كوتينيوس	mucocutaneous	3	cohere,qwen3-asr,whisper-turbo

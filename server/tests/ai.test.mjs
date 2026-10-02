@@ -705,15 +705,15 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(r4.status === 200 && (await r4.json()).choices[0].message.content === 'gemini', "a check of Claude's own writing goes to another model");
 }
 
-// MARK: bench models only for the verification bench
+// MARK: GitHub Models only for the verification bench
 {
   const { askModel, pinnedSource } = await import('../ai.js');
-  const keys = { BENCH_BASE_URL: 'https://free.example/v1', BENCH_API_KEY: 't' };
-  const asked = await askModel(keys, 'a1', true, 'bench:some/model', [], 10, async () => { throw new Error('no call'); });
-  ok(asked.ok === false && asked.status === 400, 'a bench: voter is refused in production (no BENCH_MODELS)');
-  ok(pinnedSource(keys, 'bench:some/model') === null, 'and has no route there');
-  const bench = pinnedSource({ ...keys, BENCH_MODELS: 'on' }, 'bench:some/model');
-  ok(bench?.kind === 'openai' && bench.base === 'https://free.example/v1' && bench.model === 'some/model', 'the bench routes it to its provider');
+  const asked = await askModel({ GITHUB_MODELS_TOKEN: 't' }, 'a1', true, 'github:openai/gpt-4.1-mini', [], 10, async () => { throw new Error('no call'); });
+  ok(asked.ok === false && asked.status === 400, 'a github: voter is refused in production (no BENCH_MODELS)');
+  ok(pinnedSource({ GITHUB_MODELS_TOKEN: 't' }, 'github:openai/gpt-4.1-mini') === null, 'and has no route there');
+  const bench = pinnedSource({ BENCH_MODELS: 'github', GITHUB_MODELS_TOKEN: 't' }, 'github:openai/gpt-4.1-mini');
+  ok(bench?.kind === 'openai' && bench.base === 'https://models.github.ai/inference' && bench.model === 'openai/gpt-4.1-mini',
+     'the bench routes it to GitHub Models');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

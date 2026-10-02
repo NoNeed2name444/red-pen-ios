@@ -394,7 +394,7 @@ struct SettingsPage: View {
                 Label("AI models", systemImage: "cpu")
             }
         } footer: {
-            Text("Doctor-R1 on this device, or \(Brand.name) Cloud (Gemini).")
+            Text("Doctor-R1 and MedVAL on this device, or \(Brand.name) Cloud (Gemini).")
         }
     }
 

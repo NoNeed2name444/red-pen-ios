@@ -161,16 +161,11 @@ struct AccuracyLedger: Codable {
 
     /// Checked already: a model voted on exactly this content, and the claim
     /// gate did not fail on it (an item it failed on is asked about again).
-    /// A question checked before it was solved blind (1 Oct) is asked about
-    /// again: votes that saw the key cannot verify it now. So is a check that
-    /// reached fewer than three model families (the free models had run
-    /// out), once a day has passed. server/accuracy.js staleSignals.
-    func isChecked(_ hash: String, question: Bool = false, now: Date = Date()) -> Bool {
+    /// A question checked before two families solved it blind (1 Oct) is
+    /// asked about again: votes that saw the key cannot verify it now.
+    func isChecked(_ hash: String, question: Bool = false) -> Bool {
         guard let record = records[hash], !record.votes.isEmpty else { return false }
         if question && record.votes.filter({ $0.blind == true }).count < 2 { return false }
-        let counted: [AccuracyVote] = record.votes.filter { !question || $0.blind == true }
-        let families: Int = Set(counted.map { AccuracyModel.familyOf($0.model) }).count
-        if families < AccuracyModel.minVerifyVoters && now.timeIntervalSince(record.checkedAt) > 86_400 { return false }
         return !(record.claimHolds ?? []).contains(AccuracyCheckReply.gateFailed)
     }
 

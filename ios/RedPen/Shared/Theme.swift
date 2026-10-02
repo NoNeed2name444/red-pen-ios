@@ -778,12 +778,6 @@ struct AccuracyAsk {
     }
 }
 
-/// An item whose verification is being shown.
-struct VerifyingItem: Identifiable {
-    let id = UUID()
-    let item: AccuracyItem
-}
-
 /// The one "More" menu in a study screen's top corner.
 ///
 /// Before this, each screen put its extras straight into the toolbar as bare
@@ -801,8 +795,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
     let extra: Extra
     @State private var turning: StudySet?
     @State private var showingPocket = false
-    /// The item whose verification is shown (AccuracyWhySheet).
-    @State private var verifying: VerifyingItem?
+    @State private var request: AccuracyRequest?
     @State private var reporting: QuestionReport?
 
     func body(content: Content) -> some View {
@@ -813,10 +806,8 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                         extra
                         if let check {
                             Button {
-                                // offered once the item is answered (text() is nil
-                                // before): the checkers' verdict can show the key
                                 if let now = check.text(), !now.isEmpty {
-                                    verifying = VerifyingItem(item: check.reportItem(in: set))
+                                    request = AccuracyRequest(set: set, instruction: check.instruction, text: now)
                                 }
                             } label: {
                                 Label("Check accuracy", systemImage: "checkmark.shield")
@@ -852,9 +843,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
             }
             .tipSighting(.study)
             .turnIntoPicker(for: $turning)
-            // the verification layer's verdict on it: rules, the checkers'
-            // votes, the literature, the fix - checked now if it never was
-            .sheet(item: $verifying) { AccuracyWhySheet(item: $0.item, checksWhenUnchecked: true) }
+            .sheet(item: $request) { AccuracyCheckSheet(request: $0) }
             .sheet(item: $reporting) { QuestionReportSheet(report: $0) }
             .sheet(isPresented: $showingPocket) { WardPocketSheet() }
     }
