@@ -714,7 +714,8 @@ check("T7 300 notes in 12 folders: under 2 s, whole", manyTook < 2 && whole(many
 
 check("T8 Circuit is offered", GraphTheme.circuit.isReady && GraphTheme.offered.contains(.circuit))
 check("T8 Circuit is kept", GraphTheme.stored("circuit") == .circuit)
-check("T8 the menu's order: Space, Neurons, Circuit", GraphTheme.offered == [.space, .neurons, .circuit])
+check("T8 the menu's order: Space, Neurons, Circuit, Performance",
+      GraphTheme.offered == [.space, .neurons, .circuit, .performance])
 check("T8 the Circuit's own words teach how to add", GraphTheme.circuit.legendTitle == "How your circuits are built"
       && GraphTheme.circuit.cardSteps.count == 3
       && GraphTheme.circuit.cardSteps.contains { $0.contains("New folder") })

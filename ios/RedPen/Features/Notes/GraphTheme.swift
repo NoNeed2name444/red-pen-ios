@@ -14,12 +14,18 @@ import Foundation
 //             processors, modules on their sub-boards, capacitors,
 //             resistors, LEDs, diodes and headers, joined by routed copper
 //             traces carrying current
+//   Performance  speed first (GraphPerf*.swift): every note a point and
+//             every link a line, drawn by the GPU in a few instanced draws
+//             so 100,000 notes and their links fit on screen at once; far
+//             away a folder's notes merge into one glow
 //
-// Every theme other than Space is planned by a pure Foundation planner into
+// Space, Neurons and Circuit are planned by a pure Foundation planner into
 // a ThemePlan (GraphThemePlan.swift) and built by the shared theme scene
 // (GraphThemeScene.swift) with the theme's own look (GraphThemeLook), so a
 // new theme adds a planner, a look and its legend - nothing else changes.
-// The Graphics setting (GraphicsQuality.swift) applies to every theme.
+// Performance is the exception: its own Metal engine, with no SceneKit and
+// no Stethoscore types (GraphPerfTheme.swift is its glue), takes the map's
+// place. The Graphics setting (GraphicsQuality.swift) applies to every theme.
 //
 // Foundation only: the choice and its words are tested on Linux.
 
@@ -27,6 +33,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
     case space
     case neurons
     case circuit
+    case performance
 
     var id: String { rawValue }
 
@@ -38,7 +45,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
     /// Whether it can be chosen (a theme still being built is not).
     var isReady: Bool {
         switch self {
-        case .space, .neurons, .circuit: return true
+        case .space, .neurons, .circuit, .performance: return true
         }
     }
 
@@ -58,6 +65,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .space: return "Space"
         case .neurons: return "Neurons"
         case .circuit: return "Circuit"
+        case .performance: return "Performance"
         }
     }
 
@@ -66,6 +74,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .space: return "sparkles"
         case .neurons: return "brain.head.profile"
         case .circuit: return "cpu"
+        case .performance: return "speedometer"
         }
     }
 
@@ -76,6 +85,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .space: return "How your universe is built"
         case .neurons: return "How your network is built"
         case .circuit: return "How your circuits are built"
+        case .performance: return "How the fast map is built"
         }
     }
 
@@ -85,6 +95,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .space: return "Space of ideas"
         case .neurons: return "Network of ideas"
         case .circuit: return "Circuit of ideas"
+        case .performance: return "Fast map of ideas"
         }
     }
 
@@ -100,6 +111,9 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .circuit:
             return "Tap a part to preview it on a card; tap again, or Open, to read it. "
                 + "Hold a part to move it, or hold it still for its options. Drag to turn, pinch to zoom."
+        case .performance:
+            return "Tap a point to preview it on a card; tap again, or Open, to read it. "
+                + "Hold a point for its options. Drag to turn, two fingers to slide, pinch to zoom."
         }
     }
 
@@ -109,6 +123,7 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .space: return "Your notes as a universe"
         case .neurons: return "Your notes as a nervous system"
         case .circuit: return "Your notes as a circuit"
+        case .performance: return "Your notes, built for speed"
         }
     }
 
@@ -123,6 +138,9 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         case .circuit:
             return "Each top-level folder is its own circuit board with its chip; pages are capacitors "
                 + "and ideas LEDs. Links are copper traces carrying current."
+        case .performance:
+            return "Every note is a point and every link a line, drawn so 100,000 fit at once. "
+                + "Each top-level folder has its own colour; far away a folder\u{2019}s notes merge into one glow."
         }
     }
 
@@ -142,6 +160,10 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
             return ["Tap + \u{203A} New folder: a new circuit board with its chip.",
                     "Tap + \u{203A} New page for a capacitor, New idea for an LED.",
                     "Type [[ and a note\u{2019}s title in a note: a copper trace joins them."]
+        case .performance:
+            return ["Tap + \u{203A} New folder: a new cluster round its hub.",
+                    "Tap + \u{203A} New page for a larger point, New idea for a smaller one.",
+                    "Type [[ and a note\u{2019}s title in a note: a line joins them."]
         }
     }
 

@@ -184,6 +184,14 @@ suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
 suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
+# the Performance theme's engine at 100,000 notes and 300,000: the
+# graph, the seed and the force layout a slice a frame, cluster level of
+# detail (fewer bodies and lines as the camera goes back), picks against
+# brute force, the camera, and the scene and frame the GPU is handed
+suite graphperf GraphPerfTests.swift $F/Notes/GraphPerfGraph.swift $F/Notes/GraphPerfSynthetic.swift \
+      $F/Notes/GraphPerfLayout.swift $F/Notes/GraphPerfForce.swift $F/Notes/GraphPerfLOD.swift \
+      $F/Notes/GraphPerfClusters.swift $F/Notes/GraphPerfPick.swift $F/Notes/GraphPerfCamera.swift \
+      $F/Notes/GraphPerfScene.swift $F/Notes/GraphPerfShaders.swift
 # the accuracy engine: dose, lab and contradiction rules (the same
 # cases as the server's), the accuracy model's grades, the cache key,
 # the order background checks run in, and one-tap corrections

@@ -106,7 +106,7 @@ enum GraphThemes {
         switch theme {
         case .neurons: return GraphNeurons.plan(input)
         case .circuit: return GraphCircuit.plan(input)
-        case .space: return nil
+        case .space, .performance: return nil
         }
     }
 
@@ -117,7 +117,7 @@ enum GraphThemes {
         switch theme {
         case .neurons: return GraphNeuronLook(lively: lively, bold: bold, cells: cells)
         case .circuit: return GraphCircuitLook(lively: lively, bold: bold)
-        case .space: return nil
+        case .space, .performance: return nil
         }
     }
 
@@ -127,7 +127,7 @@ enum GraphThemes {
         switch theme {
         case .neurons: _ = NeuronProbe.support
         case .circuit: _ = CircuitProbe.support
-        case .space: break
+        case .space, .performance: break
         }
     }
 }
@@ -294,7 +294,7 @@ extension GraphSceneBuilder {
         switch theme {
         case .neurons: return .cell
         case .circuit: return .part
-        case .space: return .plain
+        case .space, .performance: return .plain
         }
     }
 
