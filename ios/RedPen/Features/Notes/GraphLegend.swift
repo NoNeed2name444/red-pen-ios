@@ -220,8 +220,9 @@ struct GraphLegendContent {
 
     // MARK: Neurons
 
-    private static let teal: Color = Color(red: 0.30, green: 0.95, blue: 0.85)
-    private static let green: Color = Color(red: 0.50, green: 1.0, blue: 0.55)
+    // NeuronPalette's: green, cyan, pink and amber on deep blue
+    private static let teal: Color = Color(red: 0.35, green: 1.0, blue: 0.5)
+    private static let green: Color = Color(red: 0.25, green: 0.92, blue: 1.0)
     private static let amber: Color = Color(red: 1.0, green: 0.72, blue: 0.30)
     private static let tealGel: Color = teal.opacity(0.22)
     private static let greenGel: Color = green.opacity(0.22)
@@ -229,7 +230,8 @@ struct GraphLegendContent {
     private static let tealRing: Color = teal.opacity(0.8)
     private static let tealFaint: Color = teal.opacity(0.6)
     private static let gliaGel: Color = Color(white: 0.75).opacity(0.4)
-    private static let interTint: Color = Color(red: 0.42, green: 0.72, blue: 1.0)
+    private static let interTint: Color = Color(red: 1.0, green: 0.42, blue: 0.78)
+    private static let stateTint: Color = Color(red: 0.82, green: 0.36, blue: 1.0)
     private static let gliaTint: Color = Color(white: 0.8)
     private static let crossTint: Color = Color(red: 0.75, green: 0.58, blue: 1.0)
     private static let receptorTint: Color = Color(red: 1.0, green: 0.82, blue: 0.45)
@@ -264,12 +266,15 @@ struct GraphLegendContent {
         GraphLegendRow(symbol: "antenna.radiowaves.left.and.right", name: "Receptor",
                        text: "A note in no folder with links: a sensory cell at the edge, sending impulses in. With no links it drifts as microglia.",
                        tint: receptorTint, how: "A note in no folder (Move \u{203A} No folder)."),
+        GraphLegendRow(symbol: "sparkles", name: "Cell states",
+                       text: "Each cell shows a state, as the space\u{2019}s bodies have styles: resting, slowly breathing; firing, a burst of spikes with calcium waves spreading; releasing, a cloud of transmitter drifting out; pacemaker, a steady beat with two lobes sweeping round; migrating, crawling on behind its growth cone; engulfing, drawing debris into a dark phagosome. Left alone, a commissural cell beats, a receptor migrates and microglia engulf.",
+                       tint: stateTint, how: "Look \u{203A} Cells: one state for every note, or Region states for one folder."),
         GraphLegendRow(symbol: "bolt.horizontal.fill", name: "Axons and synapses",
                        text: "Links. Impulses run from the sending cell at random times; near its target each axon branches into fine twigs whose swollen tips press on the next cell, and the impulse crosses there. Tracts join regions; each folder's pathway runs down to the folders inside it.",
                        tint: amber, how: "Link two notes: type [[ and a note\u{2019}s title in a note.")
     ]
 
-    private static let neuronFooter: String = "Cells drift gently in their fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
+    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
 
     /// The Neurons (GraphNeurons): one line per kind of cell.
     static let neurons: GraphLegendContent = GraphLegendContent(
@@ -285,7 +290,7 @@ extension GraphLegendContent {
     private static let boardGreen: Color = Color(red: 0.10, green: 0.42, blue: 0.26)
     private static let chipBlack: Color = Color(white: 0.1)
     private static let chipEdge: Color = Color(white: 0.8)
-    private static let canDark: Color = Color(red: 0.16, green: 0.18, blue: 0.2)
+    private static let canDark: Color = Color(red: 0.10, green: 0.24, blue: 0.62)
     private static let canStripe: Color = Color(white: 0.8)
     private static let ledAmber: Color = Color(red: 1.0, green: 0.70, blue: 0.22)
     private static let padGold: Color = Color(red: 1.0, green: 0.78, blue: 0.36)
@@ -302,14 +307,14 @@ extension GraphLegendContent {
 
     private static let circuitRows: [GraphLegendRow] = [
         GraphLegendRow(symbol: "cpu", name: "Chip",
-                       text: "A collection (a top-level folder): its own circuit board, the chip its controller. Bigger holds more.",
+                       text: "A collection (a top-level folder): its own circuit board, the chip its controller, marked with the folder\u{2019}s name. Bigger holds more.",
                        tint: silkWhite, how: "Make a folder: + \u{203A} New folder \u{2192} a new circuit board."),
         GraphLegendRow(symbol: "memorychip", name: "Smaller chip",
                        text: "A folder inside a folder: a smaller chip on its own sub-board, on a branch of its chip's bus.",
                        tint: silkWhite, how: "In the List, a folder\u{2019}s menu \u{203A} New folder inside."),
         GraphLegendRow(symbol: "cylinder.fill", name: "Capacitor",
-                       text: "A page, on its chip's bus. Bigger is longer.", tint: canStripe,
-                       how: "Add a page: + \u{203A} New page."),
+                       text: "A page, on its chip's bus: a blue capacitor, or a copper-wound inductor once it is over 250 words. Bigger is longer.",
+                       tint: canStripe, how: "Add a page: + \u{203A} New page."),
         GraphLegendRow(symbol: "lightbulb.fill", name: "LED",
                        text: "An idea, on a branch off the page it links to; its linked ideas follow it in a row. Lit when it has links.",
                        tint: ledAmber, how: "Add an idea: + \u{203A} New idea, or type it in the bar."),
@@ -317,11 +322,14 @@ extension GraphLegendContent {
                        text: "Power (VCC) along each board's top, ground (GND) along its bottom: every part sits on a loop from one to the other.",
                        tint: copper),
         GraphLegendRow(symbol: "point.topleft.down.to.point.bottomright.curvepath.fill", name: "Traces",
-                       text: "Links inside a board: copper, now and then carrying a packet of current down from the power rail. The LED it reaches lights.",
+                       text: "Links inside a board: copper, now and then carrying a packet of current - sometimes a burst - down from the power rail. The pad flashes as it lands and the LED there lights.",
                        tint: current, how: "Link two notes: type [[ and a note\u{2019}s title in a note."),
         GraphLegendRow(symbol: "rectangle.connected.to.line.below", name: "Connectors",
                        text: "A link to another collection leaves its board at a gold edge connector and runs as a thin bus to the other board.",
                        tint: padGold, how: "Link notes in two different folders."),
+        GraphLegendRow(symbol: "minus.plus.batteryblock", name: "Small parts",
+                       text: "Where a branch meets a rail or bus, the part a real board has there: a colour-banded resistor on the ground rail, a diode on the power rail, a header on the bus, a port at each edge connector.",
+                       tint: silkWhite),
         GraphLegendRow(symbol: "circle.fill", name: "Gold pad",
                        text: "A note in no folder, on the edge of the board it links to most.",
                        tint: padGold, how: "Move a note \u{203A} No folder.")

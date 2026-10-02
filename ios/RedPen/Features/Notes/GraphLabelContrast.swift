@@ -489,10 +489,10 @@ nonisolated struct GraphShine: Sendable, Equatable {
     }
 
     /// Each theme's ground behind everything: the night sky, the Neurons'
-    /// dark fluid, the Circuit's bench and boards.
+    /// deep blue fluid, the Circuit's bench and boards.
     static func backdrop(theme: String) -> GraphRGB {
         switch theme {
-        case "neurons": return GraphRGB(0.05, 0.05, 0.09)
+        case "neurons": return GraphRGB(0.03, 0.06, 0.16)
         case "circuit": return GraphRGB(0.06, 0.10, 0.08)
         default: return GraphRGB(0.03, 0.03, 0.06)
         }

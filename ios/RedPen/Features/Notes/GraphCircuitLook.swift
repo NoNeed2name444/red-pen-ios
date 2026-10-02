@@ -6,28 +6,34 @@ import simd
 // MARK: - The Circuit look
 //
 // How the Circuit theme (GraphCircuit) is dressed, for the shared theme
-// scene (GraphThemeScene): calm, readable boards on a dark bench, with few
-// kinds of part.
+// scene (GraphThemeScene): realistic, readable boards on a dark bench.
 //
-// - each collection's board: plain dark green solder mask with a soft
-//   vignette and a thin outline, its copper power rail along the top and
-//   ground rail along the bottom (a child of its chip, so dragging the chip
-//   moves the whole circuit); a sub-folder's sub-board a shade lighter;
+// - each collection's board: glossy green solder mask over a copper pour,
+//   with plated vias, mounting holes at its corners, a soft vignette and a
+//   thin outline, its copper power rail along the top and ground rail
+//   along the bottom (a child of its chip, so dragging the chip moves the
+//   whole circuit); a sub-folder's sub-board a shade lighter;
 // - chips in the style of modern system-on-chip packages (evoking, never
 //   copying): a rounded square package, its near-black, lightly brushed
 //   anodised lid with a soft sheen, a thin bright bevel and an etched
 //   outline inset, a faint die layout showing under it (performance and
 //   efficiency cores, a GPU grid, a neural block, cache) - more blocks the
-//   more the folder holds - its folder's name printed on it in the
-//   system font with the app's own model tag ("S-12 Pro"); at High a
-//   subtle ring of tiny passives round the controller;
-// - capacitors (pages): dark cans with a pale stripe and aluminium tops;
+//   more the folder holds - its folder's name printed on it in capitals
+//   over the app's own part number ("CARDIOLOGY" / "RP754-2G",
+//   CircuitDress.marking); at High a subtle ring of tiny passives round
+//   the controller;
+// - pages: blue electrolytic capacitors with a pale stripe and aluminium
+//   tops, a long page a toroidal inductor of copper windings;
+// - the wiring's taps (CircuitDress.fitting): a colour-banded resistor at
+//   each ground tap, a diode at each power tap, a two-pin header at each
+//   bus tap and a port's metal shell on each edge connector;
 // - LEDs (ideas): amber domes, lit when the idea has links, dim when not;
 // - gold pads (loose notes) on the board's edge, and gold edge connectors
 //   where a link leaves for another board;
 // - traces: one copper trace per link, square with rounded 45° corners
 //   (GraphLinkRoute), a thin gold bus between boards; now and then a cyan
-//   packet runs down from the power rail, and the LED it reaches lights.
+//   packet runs down from the power rail - at High often a burst of three
+//   - the pad flashes as they land, and the LED there lights.
 //
 // Colours: restrained copper, green and white, with one accent - cyan
 // current, amber LEDs.
@@ -85,10 +91,11 @@ final class GraphCircuitLook: GraphThemeLook {
         upTurn = simd_quatf(angle: angle, axis: SIMD3<Float>(1, 0, 0))
         let high: Bool = budget.tier == .high
         let rate: Float = lively ? (high ? 0.28 : 0.18) : 0
+        let burst: Float = lively && high ? Self.burstShare : 0
         linkMaterial = Self.traceMaterial(bus: false, bold: bold, lively: lively, budget: budget, support: support,
-                                          width: 0.032, rate: rate)
+                                          width: 0.032, rate: rate, burst: burst)
         farMaterial = Self.traceMaterial(bus: true, bold: bold, lively: lively, budget: budget, support: support,
-                                         width: 0.022, rate: rate)
+                                         width: 0.022, rate: rate, burst: burst)
         hotRing = GraphSceneBuilder.plane(Self.glowMaterial(tint: Self.current * 0.5, ring: Self.hot, gain: 0.3,
                                                             support: support))
         if support.has("trace") {
@@ -110,6 +117,19 @@ final class GraphCircuitLook: GraphThemeLook {
     static let hot = SIMD3<Float>(0.6, 0.95, 1.0)
     static let amber = SIMD3<Float>(1.0, 0.70, 0.22)
     static let lid = SIMD3<Float>(0.055, 0.058, 0.066)
+    /// A blue electrolytic's sleeve and its pale stripe; an inductor's
+    /// enamelled copper; a resistor's beige body and gold tolerance band; a
+    /// diode's black glass and silver cathode band; a header's black
+    /// plastic.
+    static let sleeve = SIMD3<Float>(0.10, 0.24, 0.62)
+    static let sleeveStripe = SIMD3<Float>(0.82, 0.88, 0.95)
+    static let winding = SIMD3<Float>(0.86, 0.46, 0.20)
+    static let ferrite = SIMD3<Float>(0.09, 0.09, 0.10)
+    static let resistorBody = SIMD3<Float>(0.80, 0.70, 0.52)
+    static let diodeGlass = SIMD3<Float>(0.06, 0.06, 0.07)
+    static let plastic = SIMD3<Float>(0.05, 0.05, 0.06)
+    /// Packets a slot sends as a burst of three, at High.
+    static let burstShare: Float = 0.3
     static let substrate = SIMD3<Float>(0.05, 0.10, 0.075)
 
     func tone(region: Int, plan: ThemePlan) -> UIColor? {
@@ -255,8 +275,16 @@ final class GraphCircuitLook: GraphThemeLook {
             }
             return out
         case .capacitor:
+            if CircuitDress.pagePart(words: body.words) == .inductor {
+                // a toroid of enamelled copper on a dark ferrite core
+                let core = piece(cylinder("core", 0.5, 0.42, high ? 24 : 12), y: 0.21,
+                                 look: material(6, Self.ferrite, shine: 0.3))
+                let coil = piece(torus("coil", 0.62, 0.3, high), y: 0.32,
+                                 look: material(5, Self.winding, shine: 1))
+                return [core, coil]
+            }
             let can = piece(cylinder("can", 0.8, 1.6, high ? 32 : 16), y: 0.8,
-                            look: material(4, SIMD3<Float>(0.10, 0.12, 0.13), b: SIMD3<Float>(0.80, 0.82, 0.80),
+                            look: material(4, Self.sleeve, b: Self.sleeveStripe,
                                            c: SIMD3<Float>(0.74, 0.76, 0.79), shine: 0.7))
             return [can]
         case .led:
@@ -273,11 +301,65 @@ final class GraphCircuitLook: GraphThemeLook {
             return [pad]
         case .connector:
             let finger = piece(box("finger", 1.2, 0.05, 2.2, 0.02), y: 0.025, look: material(10, Self.gold, shine: 1))
-            return [finger]
+            guard high else { return [finger] }
+            // a port's brushed metal shell over the finger
+            let shell = piece(box("portShell", 1.2, 0.55, 1.3, 0.06), y: 0.3, look: material(1, Self.tin, shine: 0.9))
+            return [finger, shell]
         case .vcc, .ground, .bus:
             let via = piece(cylinder("via", 0.9, 0.05, 12), y: 0.025, look: material(7, Self.tin, shine: 0.8))
-            return [via]
+            return [via] + fitting(CircuitDress.fitting(role), high: high)
         }
+    }
+
+    /// A tap's part (CircuitDress.fitting), in series on the board: a
+    /// resistor or a diode lying along the branch (the part's z, down the
+    /// board) with its leads at High, or a two-pin header.
+    private func fitting(_ kind: CircuitFitting, high: Bool) -> [SCNNode] {
+        let along = simd_quatf(angle: Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+        switch kind {
+        case .resistor, .diode:
+            let resistor: Bool = kind == .resistor
+            let shape: SCNGeometry = resistor ? capsule("resistor", 0.34, 1.75, high)
+                : cylinder("diode", 0.3, 1.5, high ? 16 : 10)
+            let look: SCNMaterial = resistor
+                ? material(2, Self.resistorBody, b: Self.gold, shine: 0.5)
+                : material(3, Self.diodeGlass, b: SIMD3<Float>(0.86, 0.87, 0.9), shine: 1)
+            let body = piece(shape, y: 0.42, look: look)
+            body.simdOrientation = along
+            guard high else { return [body] }
+            let leads = piece(leadPair(), y: 0, look: material(7, Self.tin, shine: 0.8))
+            return [body, leads]
+        case .header:
+            guard high else { return [] }
+            let block = piece(box("header", 1.7, 0.6, 0.8, 0.04), y: 0.3, look: material(6, Self.plastic, shine: 0.4))
+            let pins = piece(pinPair(), y: 0, look: material(10, Self.gold, shine: 1))
+            return [block, pins]
+        case .none, .port:
+            return []
+        }
+    }
+
+    /// A resistor's or diode's two tinned leads, bent down to the board.
+    private func leadPair() -> SCNGeometry {
+        if let made = shapes["leads"] { return made }
+        var list: [(SIMD3<Float>, SIMD3<Float>)] = []
+        for side in [Float(-1), Float(1)] {
+            list.append((SIMD3<Float>(0, 0.42, side * 1.0), SIMD3<Float>(0.05, 0.05, 0.16)))
+            list.append((SIMD3<Float>(0, 0.22, side * 1.12), SIMD3<Float>(0.05, 0.2, 0.05)))
+        }
+        let made: SCNGeometry = CircuitMesh.boxes(list)
+        shapes["leads"] = made
+        return made
+    }
+
+    /// A header's two gold pins, standing out of its block.
+    private func pinPair() -> SCNGeometry {
+        if let made = shapes["pins"] { return made }
+        let half = SIMD3<Float>(0.07, 0.42, 0.07)
+        let made: SCNGeometry = CircuitMesh.boxes([(SIMD3<Float>(-0.42, 0.75, 0), half),
+                                                   (SIMD3<Float>(0.42, 0.75, 0), half)])
+        shapes["pins"] = made
+        return made
     }
 
     /// A piece: a shared shape in a shared material (one geometry per
@@ -312,6 +394,15 @@ final class GraphCircuitLook: GraphThemeLook {
         if let made = shapes[key] { return made }
         let made = SCNCylinder(radius: r, height: h)
         made.radialSegmentCount = sides
+        shapes[key] = made
+        return made
+    }
+
+    private func torus(_ key: String, _ ring: CGFloat, _ pipe: CGFloat, _ high: Bool) -> SCNGeometry {
+        if let made = shapes[key] { return made }
+        let made = SCNTorus(ringRadius: ring, pipeRadius: pipe)
+        made.ringSegmentCount = high ? 48 : 24
+        made.pipeSegmentCount = high ? 16 : 8
         shapes[key] = made
         return made
     }
@@ -377,7 +468,8 @@ final class GraphCircuitLook: GraphThemeLook {
     /// A trace: copper, with current in cyan; `bus` the thin gold bus
     /// between boards.
     private static func traceMaterial(bus: Bool, bold: Bool, lively: Bool, budget: GraphicsBudget,
-                                      support: CircuitSupport, width: Float, rate: Float) -> SCNMaterial {
+                                      support: CircuitSupport, width: Float, rate: Float,
+                                      burst: Float) -> SCNMaterial {
         let base: SIMD3<Float> = bus ? gold : copper
         let strength: Float = bold ? 1.3 : 1
         guard support.has("trace") else {
@@ -405,7 +497,7 @@ final class GraphCircuitLook: GraphThemeLook {
         // held still (Reduce Motion, a still space): no packets at all,
         // rather than packets frozen partway along
         set(material, "rpRate", rate)
-        set(material, "rpBurst", 0)
+        set(material, "rpBurst", burst)
         set(material, "rpBundle", 0)
         set(material, "rpWidth", width)
         tint(material, "rpTintA", base * strength)
@@ -564,15 +656,16 @@ final class GraphCircuitLook: GraphThemeLook {
         return node
     }
 
-    /// A chip's name, printed on its lid: its folder's name and its model
-    /// tag (GraphCircuit.modelTag).
+    /// A chip's marking, printed on its lid: its folder's name in capitals
+    /// and its part number (CircuitDress.marking).
     private func nameplate(_ body: ThemeBody, role: CircuitRole) -> SCNNode {
         let wide: CGFloat = role == .module ? 1.25 : 1.3
         let plane = SCNPlane(width: wide, height: wide * 0.5)
         let material = SCNMaterial()
         material.lightingModel = .constant
-        let tag: String = GraphCircuit.modelTag(count: body.count, depth: max(body.depth, 0))
-        material.diffuse.contents = CircuitArt.nameplate(body.title, tag: tag)
+        let mark = CircuitDress.marking(name: body.title, count: body.count, depth: max(body.depth, 0),
+                                        seed: body.seed)
+        material.diffuse.contents = CircuitArt.nameplate(mark.name, tag: mark.part)
         material.blendMode = .alpha
         material.writesToDepthBuffer = false
         material.readsFromDepthBuffer = true
@@ -592,7 +685,8 @@ final class GraphCircuitLook: GraphThemeLook {
     /// NeuronImpulses on the same timing.
     func ticker(parts: [GraphThemeParts], plan: ThemePlan) -> GraphThemeTicker? {
         guard lively, support.has("trace") else { return nil }
-        return NeuronImpulses(glows: parts.map(\.glow), swaying: [], rate: packetRate, bursts: 0)
+        let bursts: Float = budget.tier == .high ? Self.burstShare : 0
+        return NeuronImpulses(glows: parts.map(\.glow), swaying: [], rate: packetRate, bursts: bursts)
     }
 
     // MARK: behind the boards
@@ -728,8 +822,9 @@ enum CircuitRoom {
 /// A chip's printed name and the rails' silkscreen, drawn once each.
 @MainActor
 enum CircuitArt {
-    /// Its folder's name in the system font, and under it the app's own
-    /// model tag, in soft white on the chip's dark lid.
+    /// Its folder's name in capitals, and under it the app's own part
+    /// number in a narrow monospaced face, in soft white laser marking on
+    /// the chip's dark lid.
     static func nameplate(_ title: String, tag: String) -> UIImage {
         let size = CGSize(width: 256, height: 128)
         let format = UIGraphicsImageRendererFormat()
@@ -740,8 +835,8 @@ enum CircuitArt {
         let soft = UIColor(white: 0.72, alpha: 0.85)
         let name: String = String(title.prefix(14))
         return renderer.image { _ in
-            let big = UIFont.systemFont(ofSize: name.count > 9 ? 25 : 31, weight: .semibold)
-            let small = UIFont.systemFont(ofSize: 19, weight: .medium)
+            let big = UIFont.systemFont(ofSize: name.count > 9 ? 22 : 28, weight: .bold)
+            let small = UIFont.monospacedSystemFont(ofSize: 20, weight: .medium)
             let top: [NSAttributedString.Key: Any] = [.font: big, .foregroundColor: ink]
             let bottom: [NSAttributedString.Key: Any] = [.font: small, .foregroundColor: soft]
             let first = NSAttributedString(string: name, attributes: top)

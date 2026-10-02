@@ -3,8 +3,9 @@ import Foundation
 // The Circuit theme's shader modifiers (GraphCircuitLook builds the materials
 // and checks they compile; GraphCircuit plans what they dress).
 //
-// The look is calm boards on a dark bench under a desk lamp: plain dark
-// green solder mask with a soft vignette and a thin silkscreen outline;
+// The look is real boards on a dark bench under a desk lamp: glossy green
+// solder mask over a copper pour, plated vias and mounting holes, a soft
+// vignette and a thin silkscreen outline;
 // chips in the style of modern system-on-chip packages - a near-black,
 // lightly brushed lid with a bright bevel, an etched outline and a faint
 // die layout under it; capacitor cans; LEDs in amber epoxy; gold pads.
@@ -33,7 +34,12 @@ nonisolated enum CircuitShaders {
 
     /// A collection's board (`rpZone` 0) or a sub-folder's sub-board (1), on a box
     /// whose own y is the board's up; `rpSize` is half the box. Tint A the
-    /// solder mask (a soft vignette darkens its edges), C its thin outline.
+    /// solder mask (a soft vignette darkens its edges, a copper pour shows
+    /// faintly through it), B the copper of its plated vias, C its thin
+    /// outline; a main board has a plated mounting hole in each corner. The
+    /// mask is glossy: a broad sheen of the lamp and a Fresnel reflection of
+    /// the room at grazing angles. `rpDetail` 0 drops the grain, pour and
+    /// vias.
     static let board: String = """
     #pragma arguments
     float rpProbe;
@@ -68,7 +74,27 @@ nonisolated enum CircuitShaders {
     float rp_lw = mix(0.006, 0.005, rpZone);
     float rp_line = 1.0 - smoothstep(rp_lw, rp_lw + 0.005, abs(rp_ed - rp_inset));
     rp_col = mix(rp_col, rpTintC, rp_line * mix(0.45, 0.3, rpZone));
-    float rp_hole = 0.0;
+
+    """ + GraphShaderKit.noise("rp_pn", "float3(rp_q.x * 3.0, rp_q.y * 3.0, rpZone * 7.0)") + """
+    float rp_pour = smoothstep(0.48, 0.56, rp_pn) * rpDetail;
+    rp_col = rp_col * (1.0 + 0.12 * rp_pour);
+    float2 rp_vc = rp_q * 7.0;
+    float2 rp_vi = floor(rp_vc);
+    float rp_vh = fract(sin(dot(rp_vi, float2(41.7, 289.3)) + rpZone) * 43758.5453);
+    float2 rp_vo = float2(rp_vh, fract(rp_vh * 13.7)) * 0.5 + float2(0.25, 0.25);
+    float rp_vd = length(fract(rp_vc) - rp_vo) / 7.0;
+    float rp_vis = step(0.8, rp_vh) * step(0.12, rp_ed) * rpDetail;
+    float rp_vring = (1.0 - smoothstep(0.009, 0.012, rp_vd)) * rp_vis;
+    float rp_bore = (1.0 - smoothstep(0.004, 0.006, rp_vd)) * rp_vis;
+    rp_col = mix(rp_col, mix(rpTintB, float3(0.8, 0.82, 0.85), 0.55), rp_vring * 0.85);
+    rp_col = mix(rp_col, float3(0.02, 0.02, 0.02), rp_bore);
+    float2 rp_cq = float2(rpSize.x, rpSize.z) - abs(rp_q) - float2(0.11, 0.11);
+    float rp_md = length(rp_cq);
+    float rp_main = 1.0 - step(0.5, rpZone);
+    float rp_mring = (1.0 - smoothstep(0.045, 0.05, rp_md)) * rp_main;
+    float rp_hole = (1.0 - smoothstep(0.024, 0.028, rp_md)) * rp_main;
+    rp_col = mix(rp_col, float3(0.78, 0.8, 0.83), rp_mring);
+    rp_col = mix(rp_col, float3(0.015, 0.015, 0.015), rp_hole);
 
     float rp_lay = step(0.5, fract(rp_lp.y * 45.0));
     float3 rp_side = float3(0.30, 0.27, 0.15) * (0.75 + 0.25 * rp_lay);
@@ -77,8 +103,14 @@ nonisolated enum CircuitShaders {
     float3 rp_L = normalize(float3(-0.35, 0.65, 0.68));
     float3 rp_H = normalize(rp_L + rp_V);
     float rp_nl = max(dot(rp_N, rp_L), 0.0);
-    float rp_sp = pow(max(dot(rp_N, rp_H), 0.0), 60.0) * 0.18 * (1.0 - rp_hole);
-    rp_col = rp_col * (0.6 + 0.4 * rp_nl) + float3(0.55, 0.75, 0.62) * rp_sp;
+    float rp_nh = max(dot(rp_N, rp_H), 0.0);
+    float rp_sp = pow(rp_nh, 60.0) * 0.18 * (1.0 - rp_hole);
+    float rp_sheen = pow(rp_nh, 10.0) * 0.07 * rp_top;
+    float rp_gm = 1.0 - clamp(dot(rp_N, rp_V), 0.0, 1.0);
+    float rp_g2 = rp_gm * rp_gm;
+    float rp_fres = rp_g2 * rp_g2 * rp_gm * 0.22 * rp_top;
+    rp_col = rp_col * (0.6 + 0.4 * rp_nl) + float3(0.55, 0.75, 0.62) * (rp_sp + rp_sheen);
+    rp_col = rp_col + float3(0.30, 0.38, 0.40) * rp_fres;
 
     """ + GraphStyleShaders.glowEnd
 
@@ -90,7 +122,9 @@ nonisolated enum CircuitShaders {
     /// Tint A the copper, B the current, C its glow; `rpBundle` 1 draws a
     /// bus of three traces; `rpWidth` is half the strip's width in the
     /// space (so the pads come out round); `rpRate` the chance a slot sends
-    /// a packet, `rpBurst` the chance it is a burst.
+    /// a packet, `rpBurst` the chance it is a burst of three (at High: a
+    /// burst runs down the trace, the pad flashes as each lands); the
+    /// copper's edges catch the lamp in glints along it (`rpDetail`).
     ///
     /// Drawn alpha-blended, premultiplied (GraphCircuitLook.traceMaterial):
     /// the copper is opaque where it covers (alpha its coverage), so it lies
@@ -134,6 +168,10 @@ nonisolated enum CircuitShaders {
     float rp_edge = exp(-rp_ex * rp_ex);
     float rp_sheen = 0.86 + 0.14 * sin(rp_along * 3.1 + rp_seed * 1.7);
     float3 rp_col = rpTintA * (0.52 * rp_sheen + 0.3 * rp_edge);
+    float rp_gs = max(sin(rp_along * 2.3 + rp_seed * 0.7), 0.0);
+    float rp_g2 = rp_gs * rp_gs;
+    float rp_g4 = rp_g2 * rp_g2;
+    rp_col = rp_col + rpTintA * (0.22 * rp_g4 * rp_g4 * rp_edge * rpDetail);
 
     float rp_py = rp_s * rpWidth;
     float rp_pa = length(float2(rp_along, rp_py));

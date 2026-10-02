@@ -191,6 +191,7 @@ final class GraphStyleKit {
         var moon: SCNNode?
         var beam: SCNNode?
         var tail: SCNNode?
+        var dust: SCNNode?
         var extra = SIMD2<Float>(0, 0)
         switch style {
         case .rocky where look == .plain:
@@ -215,6 +216,8 @@ final class GraphStyleKit {
             // an Oort comet rests with no tail: none is made, so the
             // animator never swings a hidden one
             if case .comet(let active) = look, !active { break }
+            // two tails: the ion tail straight away from the light, the
+            // dust tail bent back along the path (GraphStyleAnimator)
             let made = SCNNode(geometry: plane("cometTail", source: GraphStyleShaders.cometTail,
                                                fallback: GraphStyleArt.streak, tint: nil))
             made.renderingOrder = 3
@@ -222,23 +225,35 @@ final class GraphStyleKit {
             node.addChildNode(made)
             tail = made
             haze.append(made)
+            let pale = UIColor(red: 1, green: 0.9, blue: 0.7, alpha: 1)
+            let dusty = SCNNode(geometry: plane("cometDust", source: GraphStyleShaders.cometDust,
+                                                fallback: GraphStyleArt.streak, tint: pale))
+            dusty.renderingOrder = 3
+            dusty.categoryBitMask = 2
+            node.addChildNode(dusty)
+            dust = dusty
+            haze.append(dusty)
             extra = SIMD2<Float>(r * 2, r * 7)
         default:
             break
         }
 
-        let rig = GraphStyleRig(style: style, tilt: tilt, base: base, body: body,
+        var rig = GraphStyleRig(style: style, tilt: tilt, base: base, body: body,
                                 bodyRadius: bodyRadius, bodyFlat: style == .gasGiant ? 0.94 : 1,
                                 bodySpin: Self.bodySpin(style), bodyTurn: bodyTurn,
                                 diskLeaf: disk, diskSide: diskSide, ringLeaf: ring, ringSide: ringSide,
                                 moon: moon, moonOrbit: bodyRadius * 2.3, beam: beam, extraSize: extra,
                                 tail: tail, seed: seed, haze: haze, reach: r)
+        rig.dust = dust
         rigs.append(rig)
 
         // each disk turns once every 10 to 20 seconds at rest
         let pace: Float = 0.5 + random.unit() * 0.5
         let spinRate: Float = 0.31 + pace * 0.31
-        let swell: Float = style == .sun ? 0.3 : 0
+        // a sun's corona swells a little as it moves; its rays flare in
+        // the shader (the motion rides in its plane's z scale), so the
+        // chromosphere stays on the limb
+        let swell: Float = style == .sun ? 0.1 : 0
         let gain: Float = style == .blackHole ? 1 : 0.4
         let hotRing: SCNGeometry? = style == .blackHole ? hotHole().ring : nil
         lightNow = .shared
@@ -375,9 +390,13 @@ final class GraphStyleKit {
             tier = t
             dark = d
         }
+        // a gas giant without its ring (the Universe's shorter pages) casts
+        // no ring shadow on its clouds: its own material
+        let ringed: Bool = style == .gasGiant && Self.hasDisk(style, look: look)
         let key: String
         switch style {
-        case .rocky, .gasGiant: key = "body-\(style.rawValue)-\(palette)" + lightKey
+        case .rocky: key = "body-rocky-\(palette)" + lightKey
+        case .gasGiant: key = "body-gasGiant-\(palette)" + (ringed ? "" : "-bare") + lightKey
         case .comet: key = "body-comet" + lightKey
         case .sun: key = "body-sun" + Self.tierKey(tier, dark: dark)
         default: key = "body-\(style.rawValue)"
@@ -387,6 +406,9 @@ final class GraphStyleKit {
         sphere.segmentCount = style == .blackHole ? 28 : 36
         let material: SCNMaterial = bodyMaterial(style, palette: palette)
         if style == .sun { material.multiply.contents = Self.tierColour(tier, dark: dark) }
+        if style == .gasGiant && material.shaderModifiers != nil {
+            material.setValue(NSNumber(value: ringed ? 1.0 : 0.0), forKey: "rpRinged")
+        }
         sphere.materials = [material]
         cache[key] = sphere
         return sphere

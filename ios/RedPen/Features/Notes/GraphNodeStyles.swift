@@ -1,77 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// What a note looks like in the Space. Each is physically inspired, with
-/// its own look at rest, its own answer to being dragged, and its own
-/// effect on the links that reach it (see GraphStyleShaders.link):
-///
-/// - black hole: a black sphere, a Doppler-bright photon ring, lensed arcs,
-///   a Keplerian accretion disk; links bend in and fall into it;
-/// - sun: granulation, limb darkening, corona, prominences and flares;
-///   links run whiter near it and it throws its pulses out as plasma;
-/// - rocky planet: continents, clouds, a terminator towards the nearest
-///   sun, air, a moon that lags when dragged; pulses glint on arrival;
-/// - gas giant: banded clouds with jets and a storm, a tilted ring with
-///   shadows; dragged, the bands smear; links light a bar on the ring;
-/// - pulsar: a tiny core and two sweeping beams; its links beat in step;
-/// - comet: a nucleus, a coma and two tails pointing away from the
-///   nearest sun, stretching when it moves.
-///
-/// The raw value is stored; `code` is what the link shader reads, and also
-/// which end of a link sends: the higher code is the link's A end.
-nonisolated enum GraphNodeStyle: String, CaseIterable, Sendable, Identifiable {
-    case blackHole
-    case rocky
-    case gasGiant
-    case comet
-    case pulsar
-    case sun
-
-    var id: String { rawValue }
-
-    /// The link shader's number for this style (0...5), and its send rank.
-    var code: Int {
-        switch self {
-        case .blackHole: return 0
-        case .rocky: return 1
-        case .gasGiant: return 2
-        case .comet: return 3
-        case .pulsar: return 4
-        case .sun: return 5
-        }
-    }
-
-    var name: String {
-        switch self {
-        case .blackHole: return "Black holes"
-        case .sun: return "Suns"
-        case .rocky: return "Rocky planets"
-        case .gasGiant: return "Gas giants"
-        case .pulsar: return "Pulsars"
-        case .comet: return "Comets"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .blackHole: return "circle.circle.fill"
-        case .sun: return "sun.max.fill"
-        case .rocky: return "globe.europe.africa.fill"
-        case .gasGiant: return "circle.lefthalf.filled"
-        case .pulsar: return "dot.radiowaves.left.and.right"
-        case .comet: return "sparkle"
-        }
-    }
-
-    /// The order the picker lists them in.
-    static let menuOrder: [GraphNodeStyle] = [.blackHole, .sun, .rocky, .gasGiant, .pulsar, .comet]
-
-    /// How long a pulsar takes to turn once, in seconds. The link shader
-    /// beats twice a turn (4/3 a second) and GraphShape.clockPeriod (3000 s)
-    /// is a whole number of turns, so the clock's wrap never shows.
-    static let pulsarPeriod: Float = 1.5
-}
-
 /// Which look the notes take, as the owner chose it in the Space's tools:
 /// the Universe (GraphUniverse: folders as black holes and stars, notes as
 /// planets, moons, pulsars and comets, by size), or one style for every
@@ -191,12 +120,18 @@ struct GraphStyleTool: View {
     /// (nil where the map is not planned: the single looks).
     var linkLength: Double = GraphLinkLength.standard
     var tuneLinks: (() -> Void)? = nil
+    /// The Neurons' cell states (NeuronStateChoice): one for every note's
+    /// cell, and one per region, stored as the space's looks are.
+    var cellState: Binding<String> = .constant(NeuronStateChoice.naturalValue)
+    var cellFolders: Binding<String> = .constant("")
 
     private var chosen: GraphTheme { GraphTheme.stored(theme) }
 
     var body: some View {
         let space: Bool = chosen == .space
-        let custom: Bool = !space || main != GraphStyleChoice.auto || !folderRaw.isEmpty
+        let neurons: Bool = chosen == .neurons
+        let cells = NeuronStateChoice(main: cellState.wrappedValue, folderRaw: cellFolders.wrappedValue)
+        let custom: Bool = !space || main != GraphStyleChoice.auto || !folderRaw.isEmpty || cells.isCustom
         let ink: Color = custom ? Color.accentColor : Color.secondary
         let glass: Glass = IdeaToolGlass.glass(active: custom)
         Menu {
@@ -210,6 +145,9 @@ struct GraphStyleTool: View {
             }
             if space {
                 spaceLooks
+            }
+            if neurons {
+                cellLooks
             }
             // Curved (each theme's own shape) or Straight, in every theme
             IdeaLinesPicker()
@@ -229,14 +167,14 @@ struct GraphStyleTool: View {
                 }
             }
         } label: {
-            IdeaToolFace(symbol: space ? "sparkles" : chosen.symbol)
+            IdeaToolFace(symbol: "sparkles")
         }
         .foregroundStyle(ink)
         .glassEffect(glass, in: .circle)
         .popOut(.floating, in: Circle())
         .hoverEffect(.highlight)
         .accessibilityLabel("Look")
-        .accessibilityHint("Choose the map's theme - space, neurons or circuit - in space how notes look, and curved or straight lines.")
+        .accessibilityHint("Choose the map's theme - space, neurons or circuit - how notes look in space, the cells' states in neurons, and curved or straight lines.")
     }
 
     /// The Space theme's own choices: the Universe or one style for all,
@@ -263,6 +201,44 @@ struct GraphStyleTool: View {
                 }
             }
         }
+    }
+
+    /// The Neurons' own choices: each cell's state (the space styles'
+    /// six, each a process of its own) for all notes, and one per region.
+    @ViewBuilder
+    private var cellLooks: some View {
+        Picker("Cells", selection: cellState) {
+            Label("Natural", systemImage: "sparkles").tag(NeuronStateChoice.naturalValue)
+            ForEach(NeuronState.menuOrder) { state in
+                Label(state.title, systemImage: state.symbol).tag(state.rawValue)
+            }
+        }
+        .pickerStyle(.inline)
+        if !folders.isEmpty {
+            Menu("Region states") {
+                ForEach(folders) { folder in
+                    Picker(folder.name, selection: cellFolderBinding(folder.id)) {
+                        Text("Same as all").tag("")
+                        ForEach(NeuronState.menuOrder) { state in
+                            Label(state.title, systemImage: state.symbol).tag(state.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+        }
+    }
+
+    private func cellFolderBinding(_ id: UUID) -> Binding<String> {
+        let store: Binding<String> = cellFolders
+        return Binding<String>(
+            get: { NeuronStateChoice.parse(store.wrappedValue)[id]?.rawValue ?? "" },
+            set: { value in
+                var map: [UUID: NeuronState] = NeuronStateChoice.parse(store.wrappedValue)
+                map[id] = NeuronState(rawValue: value)
+                store.wrappedValue = NeuronStateChoice.encode(map)
+            }
+        )
     }
 
     /// The stored theme, read back as one the menu offers.

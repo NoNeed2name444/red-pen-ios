@@ -46,6 +46,12 @@ import SwiftUI
 ///   the two loose notes as gold pads on their boards' left edges.
 ///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
 ///   work with it too.
+/// - `-graphPreviewCells <state>` shows every Neurons cell in that state
+///   (firing, releasing, pacemaker, migrating, engulfing or resting).
+/// - The screen round the map is the app's: a back chevron top left, the
+///   "Ideas" title on a glass pill at the top, and the map's three round
+///   glass tools (filter, look, recentre) stacked bottom right; flown in
+///   to a folder, its name pill ("Examples", with its count) sits beside it.
 /// - `-graphPreviewRemove [names]` deletes some folders and notes three
 ///   seconds in (see `removes`), in any theme, to show them dying.
 ///
@@ -121,6 +127,16 @@ enum GraphPreview {
         let args: [String] = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "-graphPreviewTheme"), at + 1 < args.count else { return .space }
         return GraphTheme.stored(args[at + 1])
+    }()
+
+    /// The Neurons' cell state asked for with `-graphPreviewCells <state>`
+    /// (resting, firing, releasing, pacemaker, migrating, engulfing) for
+    /// every note's cell; natural (each role's own) without one.
+    static let cells: String = {
+        guard let asked = argument("-graphPreviewCells"), NeuronState(rawValue: asked) != nil else {
+            return NeuronStateChoice.naturalValue
+        }
+        return asked
     }()
 
     /// The one style asked for with `-graphPreviewStyle`, if any.
@@ -249,11 +265,45 @@ struct GraphPreviewRoot: View {
         .appendingPathComponent("redpen-graph-preview-library-\(UUID().uuidString).json"))
 
     var body: some View {
-        Graph3DView(open: { _ in }, openFolder: { _ in })
-            .environmentObject(notes)
-            .environmentObject(library)
-            .background(Color.black)
-            .ignoresSafeArea()
-            .environment(\.colorScheme, .dark)
+        ZStack(alignment: .top) {
+            Graph3DView(open: { _ in }, openFolder: { _ in })
+                .environmentObject(notes)
+                .environmentObject(library)
+                .background(Color.black)
+                .ignoresSafeArea()
+            GraphPreviewBar()
+        }
+        .environment(\.colorScheme, .dark)
+    }
+}
+
+/// The top of the Ideas screen as the app shows it over the map: a back
+/// chevron on the left and the "Ideas" title on a glass pill in the middle
+/// (the design preview has no navigation of its own to draw them).
+struct GraphPreviewBar: View {
+    var body: some View {
+        ZStack {
+            Text("Ideas")
+                .font(.headline)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
+                .glassEffect(.regular, in: .capsule)
+                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Button {
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("Back")
+                Spacer()
+            }
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
     }
 }

@@ -1711,8 +1711,11 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     /// Points each emitter at a moving note - the dragged one first, then the
-    /// fastest - keeping a note on the emitter it already has, and sets how
-    /// many sparks it throws by how fast that note is going.
+    /// fastest - keeping a note on the emitter it already has, dresses it in
+    /// that note's style (a black hole's plume of debris, a sun's plasma, a
+    /// comet's icy dust: GraphStyleAnimator.dressTrail), aims the sparks a
+    /// style throws back along its path, and sets how many it throws by how
+    /// fast that note is going.
     private func updateTrails() {
         guard !emitters.isEmpty else { return }
         wanted.removeAll(keepingCapacity: true)
@@ -1724,8 +1727,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         for note in wanted where !owner.contains(where: { $0 == note }) {
             guard let free = owner.firstIndex(where: { $0 == nil }) else { continue }
             owner[free] = note
-            // sparks in the note's own colour: embers, sunfire, dust, ice
-            if let styler { trails[free].particleColor = styler.sparkColor(note) }
+            styler?.dressTrail(trails[free], note: note)
         }
         for slot in emitters.indices {
             let system: SCNParticleSystem = trails[slot]
@@ -1734,7 +1736,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 continue
             }
             emitters[slot].simdPosition = position[note]
-            let rate: Float = 160 * level[note] * budget.particleScale
+            styler?.aimTrail(system, note: note, velocity: velocity[note])
+            let full: Float = styler?.trailRate(note) ?? 160
+            let rate: Float = full * level[note] * budget.particleScale
             system.birthRate = CGFloat(rate)
         }
     }

@@ -180,30 +180,6 @@ nonisolated enum GraphCircuit {
     static let padSphere: Double = 0.075
     static let fixtureSphere: Double = 0.028
 
-    // MARK: the chips' names
-
-    /// A chip's printed model tag, by its place in the hierarchy and how
-    /// much it holds: "S-12 Pro" for a board's controller (the number and
-    /// suffix growing with its notes), "S7" for a chip on a sub-board. S
-    /// for Stethoscore; never anyone else's name or numbering.
-    static func modelTag(count: Int, depth: Int) -> String {
-        let lv: Int = min(GraphUniverse.level(words: max(count, 0) * 40), 8)
-        if depth > 0 {
-            let n: Int = 5 + min(lv, 6) - min(depth - 1, 2)
-            return "S" + String(max(n, 3))
-        }
-        let n: Int = 8 + lv
-        var suffix: String = ""
-        if count >= 40 {
-            suffix = " Ultra"
-        } else if count >= 16 {
-            suffix = " Max"
-        } else if count >= 6 {
-            suffix = " Pro"
-        }
-        return "S-" + String(n) + suffix
-    }
-
     // MARK: planning
 
     static func plan(_ input: UniverseInput) -> ThemePlan {
