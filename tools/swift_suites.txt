@@ -154,6 +154,12 @@ suite shaders ShaderSourceTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/Gra
 # overlaps, pathways running outward, impulses at random times
 suite neurons NeuronHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift
+# the Neurons' look: green, cyan, pink and amber on deep blue, the six
+# cell states mirroring the space styles, the Look menu's choice, the bokeh
+suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
+      $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift \
+      $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
+      $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
 # the Circuit theme: folders as processors and module chips on their
 # sub-boards, notes as capacitors, resistors, LEDs, diodes, headers
 # and edge fingers - the ladder, no overlapping footprints, flat on

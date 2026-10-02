@@ -7,18 +7,28 @@ import simd
 //
 // How the Neurons theme (GraphNeurons) is dressed, for the shared theme
 // scene (GraphThemeScene): every cell a translucent, glowing gel body -
-// soma (NeuronShaders.soma, its membrane wobbling), its dendritic arbor of
-// soft tapered tubes (swaying), a halo round it, and a glow its dendrites
-// give off when an impulse arrives - on a dark tissue backdrop of blurred
-// extracellular light and out-of-focus cells, instead of stars.
+// soma (NeuronShaders.soma, its membrane wobbling, a purple and magenta
+// interior), its dendritic arbor of soft tapered tubes (swaying), a halo
+// round it, and a glow its dendrites give off when an impulse arrives - on
+// deep blue fluid with bokeh (out-of-focus lights in the palette's colours)
+// and slow motes drifting through the map, instead of stars.
 //
-// Colours are fluorescence dyes on black: each region its own (teal, green,
-// azure, violet, lime), its nucleus in a second dye; receptors gold,
-// microglia pale ice; axons pale teal, impulses amber with a magenta halo.
+// Colours are bioluminescence on deep blue (NeuronPalette): each region its
+// own dye (green, cyan, pink, amber, violet), its ideas' cells leaning to
+// the region's accent so a map of two regions shows all four; receptors
+// gold, microglia pale ice; axons pale teal, impulses amber with a magenta
+// halo.
+//
+// Each cell shows a state (NeuronState, chosen in the Look menu or by its
+// role): resting, firing, releasing, pacemaker, migrating, engulfing - the
+// space styles' six, each a process of its own in the soma and halo
+// shaders, and in its shape and motion here: a pacemaker's bipolar arbor
+// turning, a migrating cell's leading process and its nucleus stepping
+// forward, an engulfing cell's microglial arbor.
 //
 // Nothing is made per cell but its nodes: materials are one per (region
-// dye, kind of cell), geometry one sphere and a few arbor shapes per kind,
-// shared; every cell is turned at random so no two look alike.
+// dye, kind of cell, state), geometry one sphere and a few arbor shapes per
+// kind, shared; every cell is turned at random so no two look alike.
 //
 // The Graphics budget (GraphQuality.current) sets the cost: at Smooth the
 // sphere has fewer segments, the arbors fewer sides, samples and side
@@ -79,6 +89,8 @@ final class GraphNeuronLook: GraphThemeLook {
     let bold: Bool
     let budget: GraphicsBudget
     let support: NeuronSupport
+    /// Each cell's state: chosen in the Look menu, or its role's own.
+    let cells: NeuronStateChoice
     let linkMaterial: SCNMaterial
     let farMaterial: SCNMaterial
     let linkHalfWidth: Float = 0.08
@@ -104,16 +116,17 @@ final class GraphNeuronLook: GraphThemeLook {
     private var somaLooks: [String: SCNMaterial] = [:]
     private var somaShapes: [String: SCNGeometry] = [:]
     private var arborLooks: [String: SCNGeometry] = [:]
-    private var haloLooks: [Int: SCNGeometry] = [:]
+    private var haloLooks: [String: SCNGeometry] = [:]
     private let sphere: SCNGeometry
     private let arrivalPlane: SCNGeometry
     /// Each region's dye slot, by body index.
     private var slotOf: [Int: Int] = [:]
     private var slotsFor: Int = -1
 
-    init(lively: Bool, bold: Bool) {
+    init(lively: Bool, bold: Bool, cells: NeuronStateChoice = .natural) {
         self.lively = lively
         self.bold = bold
+        self.cells = cells
         let budget: GraphicsBudget = GraphQuality.current
         self.budget = budget
         let support: NeuronSupport = NeuronProbe.support
@@ -136,47 +149,54 @@ final class GraphNeuronLook: GraphThemeLook {
 
     // MARK: colours
 
-    /// The regions' membrane dyes and their nuclei's (sRGB, as on screen).
-    static let dyes: [(SIMD3<Float>, SIMD3<Float>)] = [
-        (SIMD3<Float>(0.30, 0.95, 0.85), SIMD3<Float>(0.45, 0.55, 1.0)),
-        (SIMD3<Float>(0.50, 1.00, 0.55), SIMD3<Float>(0.75, 0.55, 1.0)),
-        (SIMD3<Float>(0.42, 0.72, 1.00), SIMD3<Float>(0.35, 0.95, 0.80)),
-        (SIMD3<Float>(0.75, 0.58, 1.00), SIMD3<Float>(0.45, 0.95, 0.75)),
-        (SIMD3<Float>(0.72, 1.00, 0.50), SIMD3<Float>(0.40, 0.60, 1.00))
-    ]
-    static let receptorDye = (SIMD3<Float>(1.0, 0.82, 0.45), SIMD3<Float>(0.5, 0.6, 1.0))
-    static let microgliaDye = (SIMD3<Float>(0.62, 0.78, 0.95), SIMD3<Float>(0.9, 0.6, 0.9))
+    /// The organelles' speckle, the axons' and tracts' pale teal, and the
+    /// impulses (NeuronPalette: amber in a magenta-pink halo).
     static let organelles = SIMD3<Float>(0.9, 0.95, 0.7)
     static let fibre = SIMD3<Float>(0.50, 0.90, 0.86)
     static let tract = SIMD3<Float>(0.45, 0.80, 0.95)
-    static let impulse = SIMD3<Float>(1.0, 0.72, 0.30)
-    static let impulseHalo = SIMD3<Float>(1.0, 0.32, 0.80)
+    static let impulse: SIMD3<Float> = NeuronPalette.impulse
+    static let impulseHalo: SIMD3<Float> = NeuronPalette.impulseHalo
 
     /// A body's dye slot: its region's place in the plan (5 dyes round), 5
     /// for a receptor, 6 for a microglial cell.
     private func slot(_ body: ThemeBody, plan: ThemePlan) -> Int {
         if slotsFor != plan.bodies.count {
             slotOf = [:]
-            for (k, r) in plan.regions.enumerated() { slotOf[r] = k % Self.dyes.count }
+            for (k, r) in plan.regions.enumerated() { slotOf[r] = k % NeuronPalette.dyes.count }
             slotsFor = plan.bodies.count
         }
         if body.region >= 0 { return slotOf[body.region] ?? 0 }
         return body.role == NeuronRole.microglia.rawValue ? 6 : 5
     }
 
-    private static func dye(_ slot: Int) -> (SIMD3<Float>, SIMD3<Float>) {
-        if slot == 5 { return receptorDye }
-        if slot == 6 { return microgliaDye }
-        return dyes[max(slot, 0) % dyes.count]
+    /// A cell's membrane colour: its slot's dye, an idea's leaning to the
+    /// region's accent, an astrocyte's paled.
+    private static func membrane(slot: Int, kind: NeuronCellKind, idea: Bool) -> SIMD3<Float> {
+        let dye: SIMD3<Float> = NeuronPalette.dye(slot: slot, idea: idea)
+        guard kind == .glia else { return dye }
+        return (dye + SIMD3<Float>(0.95, 0.9, 0.8)) * 0.5
     }
 
     func tone(region: Int, plan: ThemePlan) -> UIColor? {
         guard region >= 0, region < plan.bodies.count else { return nil }
-        let c: SIMD3<Float> = Self.dye(slot(plan.bodies[region], plan: plan)).0
+        let c: SIMD3<Float> = NeuronPalette.dye(slot: slot(plan.bodies[region], plan: plan))
         return UIColor(red: CGFloat(c.x), green: CGFloat(c.y), blue: CGFloat(c.z), alpha: 1)
     }
 
     // MARK: a cell
+
+    /// The shape a state gives a cell: a pacemaker bipolar (the commissural
+    /// arbor, two long dendrites), a migrating cell a leading process (the
+    /// receptor's), an engulfing one a microglial arbor; otherwise its role's.
+    static func shape(_ kind: NeuronCellKind, state: NeuronState) -> NeuronCellKind {
+        guard kind != .hub else { return kind }
+        switch state {
+        case .pacemaker: return .commissural
+        case .migrating: return .receptor
+        case .engulfing: return .microglia
+        case .resting, .firing, .releasing: return kind
+        }
+    }
 
     func makeBody(_ body: ThemeBody, index: Int, plan: ThemePlan) -> GraphThemeParts {
         let node = SCNNode()
@@ -187,19 +207,24 @@ final class GraphNeuronLook: GraphThemeLook {
         case .fixture: node.name = "fixture"
         }
         let role: NeuronRole = NeuronRole(rawValue: body.role) ?? .interneuron
-        let kind: NeuronCellKind = NeuronCellKind.of(role)
+        let state: NeuronState = cells.state(of: index, in: plan)
+        let kind: NeuronCellKind = Self.shape(NeuronCellKind.of(role), state: state)
+        // the large glowing cells are the regions' pegs and their pyramidal
+        // notes; interneurons and glia are the ideas between, in the
+        // region's accent
+        let idea: Bool = role == .interneuron || role == .glia
         let dyeSlot: Int = slot(body, plan: plan)
         var random = UniverseRandom(body.seed ^ 0xCE11)
         let size: Float = body.sphere
 
-        let soma = SCNNode(geometry: somaGeometry(slot: dyeSlot, kind: kind))
+        let soma = SCNNode(geometry: somaGeometry(slot: dyeSlot, kind: kind, state: state, idea: idea))
         soma.simdScale = SIMD3<Float>(size, size, size)
         soma.simdOrientation = Self.randomTurn(&random)
         soma.renderingOrder = 6
         node.addChildNode(soma)
 
         let variant: Int = Int(body.seed % 3)
-        let arbor = SCNNode(geometry: arborGeometry(kind: kind, variant: variant, slot: dyeSlot))
+        let arbor = SCNNode(geometry: arborGeometry(kind: kind, variant: variant, slot: dyeSlot, idea: idea))
         arbor.simdScale = SIMD3<Float>(size, size, size)
         arbor.simdOrientation = Self.arborTurn(kind, axis: body.axis, random: &random)
         arbor.renderingOrder = 6
@@ -212,9 +237,11 @@ final class GraphNeuronLook: GraphThemeLook {
         facing.freeAxes = .all
         holder.constraints = [facing]
         let stretch = SCNNode()
-        // Smooth (no haze): no standing halo - one blended quad five times
-        // the cell's size less for every cell - only the chosen one's
-        let halo: SCNGeometry = budget.haze ? haloGeometry(slot: dyeSlot) : GraphThemeParts.noHalo
+        // Smooth (no haze): no standing halo for a resting cell - one
+        // blended quad five times the cell's size less for every cell - but
+        // a cell in a state keeps its own, as its process is drawn there
+        let standing: Bool = budget.haze || state != .resting
+        let halo: SCNGeometry = standing ? haloGeometry(slot: dyeSlot, state: state, idea: idea) : GraphThemeParts.noHalo
         let leaf = SCNNode(geometry: halo)
         let across: Float = size * 5
         leaf.simdScale = SIMD3<Float>(across, across, 1)
@@ -237,12 +264,85 @@ final class GraphNeuronLook: GraphThemeLook {
         glow.isHidden = true
         holder.addChildNode(glow)
 
+        if lively {
+            Self.move(state, soma: soma, arbor: arbor, size: size, random: &random)
+        }
+
         var parts = GraphThemeParts(node: node, radius: size * 0.8, ringStretch: stretch, ringLeaf: leaf,
                                     ringGeometry: halo, diskLeaf: disk)
         parts.glow = glow
-        // the many small cells' halos go first in a crowded map
-        parts.thinnable = body.kind == .note && kind != .pyramidal
+        // the many small resting cells' halos go first in a crowded map
+        parts.thinnable = body.kind == .note && kind != .pyramidal && state == .resting
         return parts
+    }
+
+    /// Each state's own movement, on SceneKit's actions (none for a resting
+    /// cell: its membrane breathes in the shader):
+    /// - firing: the soma twitches at each spike of a burst, then rests;
+    /// - releasing: the soma swells slowly and gives, as it lets go;
+    /// - pacemaker: the bipolar arbor turns steadily, the soma kicks each
+    ///   beat (twice a turn of NeuronState.beatPeriod, as the halo's);
+    /// - migrating: the nucleus steps forward along the leading process and
+    ///   the process draws after it (nucleokinesis);
+    /// - engulfing: the arbor closes and opens again, turning slowly.
+    private static func move(_ state: NeuronState, soma: SCNNode, arbor: SCNNode, size: Float,
+                             random: inout UniverseRandom) {
+        let lag: Double = random.unit() * 2
+        let up: SIMD3<Float> = arbor.simdOrientation.act(SIMD3<Float>(0, 1, 0))
+        let axis = SCNVector3(x: up.x, y: up.y, z: up.z)
+        let s = CGFloat(size)
+        let period = Double(NeuronState.beatPeriod)
+        var somaLoop: SCNAction?
+        var arborLoop: SCNAction?
+        switch state {
+        case .resting:
+            break
+        case .firing:
+            let spike: SCNAction = pulse(to: s * 1.07, from: s, rise: 0.05, fall: 0.16)
+            somaLoop = SCNAction.sequence([spike, spike, spike, SCNAction.wait(duration: 1.2, withRange: 0.8)])
+        case .releasing:
+            somaLoop = pulse(to: s * 1.06, from: s, rise: 1.6, fall: 2.2)
+            arborLoop = pulse(to: s * 1.03, from: s, rise: 1.6, fall: 2.2)
+        case .pacemaker:
+            let kick: SCNAction = pulse(to: s * 1.05, from: s, rise: 0.06, fall: 0.3)
+            somaLoop = SCNAction.sequence([kick, SCNAction.wait(duration: max(period / 2 - 0.36, 0.05))])
+            arborLoop = SCNAction.rotate(by: CGFloat.pi * 2, around: axis, duration: period * 4)
+        case .migrating:
+            let step: SIMD3<Float> = up * (size * 0.35)
+            let ahead = SCNAction.move(by: SCNVector3(x: step.x, y: step.y, z: step.z), duration: 1.4)
+            ahead.timingMode = .easeInEaseOut
+            let draw = SCNAction.move(by: SCNVector3(x: -step.x, y: -step.y, z: -step.z), duration: 2.2)
+            draw.timingMode = .easeInEaseOut
+            somaLoop = SCNAction.sequence([ahead, SCNAction.wait(duration: 0.4), draw])
+            let half: SIMD3<Float> = step * 0.5
+            let reach = SCNAction.move(by: SCNVector3(x: half.x, y: half.y, z: half.z), duration: 1.8)
+            reach.timingMode = .easeInEaseOut
+            let after = SCNAction.move(by: SCNVector3(x: -half.x, y: -half.y, z: -half.z), duration: 2.2)
+            after.timingMode = .easeInEaseOut
+            arborLoop = SCNAction.sequence([reach, after])
+        case .engulfing:
+            let close = SCNAction.scale(to: s * 0.86, duration: 1.8)
+            close.timingMode = .easeInEaseOut
+            let open = SCNAction.scale(to: s * 1.04, duration: 2.4)
+            open.timingMode = .easeInEaseOut
+            let turn = SCNAction.rotate(by: CGFloat.pi / 3, around: axis, duration: 4.2)
+            arborLoop = SCNAction.group([SCNAction.sequence([close, open]), turn])
+        }
+        if let somaLoop {
+            soma.runAction(SCNAction.sequence([SCNAction.wait(duration: lag), SCNAction.repeatForever(somaLoop)]))
+        }
+        if let arborLoop {
+            arbor.runAction(SCNAction.sequence([SCNAction.wait(duration: lag), SCNAction.repeatForever(arborLoop)]))
+        }
+    }
+
+    /// Swell to `to` and settle back to `from`.
+    private static func pulse(to: CGFloat, from: CGFloat, rise: Double, fall: Double) -> SCNAction {
+        let grow = SCNAction.scale(to: to, duration: rise)
+        grow.timingMode = .easeOut
+        let back = SCNAction.scale(to: from, duration: fall)
+        back.timingMode = .easeInEaseOut
+        return SCNAction.sequence([grow, back])
     }
 
     /// A turn to anywhere, from the cell's own numbers.
@@ -256,8 +356,9 @@ final class GraphNeuronLook: GraphThemeLook {
     }
 
     /// A pyramidal cell's apical dendrite, and a receptor's peripheral
-    /// process, point outward (the arbor's +y along the body's axis),
-    /// twisted at random about it; every other arbor turned anyhow.
+    /// process (a migrating cell's leading one), point outward (the arbor's
+    /// +y along the body's axis), twisted at random about it; every other
+    /// arbor turned anyhow.
     private static func arborTurn(_ kind: NeuronCellKind, axis: SIMD3<Float>,
                                   random: inout UniverseRandom) -> simd_quatf {
         guard kind == .pyramidal || kind == .receptor else { return randomTurn(&random) }
@@ -271,20 +372,19 @@ final class GraphNeuronLook: GraphThemeLook {
 
     // MARK: materials
 
-    /// The shared sphere, dressed once per dye and kind of cell.
-    private func somaGeometry(slot: Int, kind: NeuronCellKind) -> SCNGeometry {
-        let key: String = "s\(slot)-\(kind.rawValue)"
+    /// The shared sphere, dressed once per dye, kind of cell, state and
+    /// whether it is an idea's.
+    private func somaGeometry(slot: Int, kind: NeuronCellKind, state: NeuronState, idea: Bool) -> SCNGeometry {
+        let key: String = "s\(slot)-\(kind.rawValue)-\(state.code)-\(idea ? 1 : 0)"
         if let made = somaShapes[key] { return made }
         let copy: SCNGeometry = sphere.copy() as? SCNGeometry ?? sphere
-        copy.materials = [makeSoma(slot: slot, kind: kind)]
+        copy.materials = [makeSoma(slot: slot, kind: kind, state: state, idea: idea)]
         somaShapes[key] = copy
         return copy
     }
 
-    private func makeSoma(slot: Int, kind: NeuronCellKind) -> SCNMaterial {
-        let dye: (SIMD3<Float>, SIMD3<Float>) = Self.dye(slot)
-        var membrane: SIMD3<Float> = dye.0
-        if kind == .glia { membrane = (dye.0 + SIMD3<Float>(0.95, 0.9, 0.8)) * 0.5 }
+    private func makeSoma(slot: Int, kind: NeuronCellKind, state: NeuronState, idea: Bool) -> SCNMaterial {
+        let membrane: SIMD3<Float> = Self.membrane(slot: slot, kind: kind, idea: idea)
         let material: SCNMaterial = Self.additive()
         guard support.has("soma") else {
             material.diffuse.contents = Self.colour(membrane * 0.45)
@@ -295,18 +395,19 @@ final class GraphNeuronLook: GraphThemeLook {
         Self.set(material, "rpMotion", lively ? 1 : 0)
         Self.set(material, "rpDetail", budget.shaderDetail)
         Self.set(material, "rpNucleus", kind.nucleus)
+        Self.set(material, "rpState", Float(state.code))
         Self.set(material, "rpSway", 0)
         Self.set(material, "rpWobble", lively ? kind.wobble : 0)
         Self.tint(material, "rpTintA", membrane)
-        Self.tint(material, "rpTintB", dye.1)
+        Self.tint(material, "rpTintB", NeuronPalette.nucleus)
         Self.tint(material, "rpTintC", Self.organelles)
         clocked.append(material)
         swaying.append(material)
         return material
     }
 
-    private func arborGeometry(kind: NeuronCellKind, variant: Int, slot: Int) -> SCNGeometry {
-        let key: String = "a\(kind.rawValue)-\(variant)-\(slot)"
+    private func arborGeometry(kind: NeuronCellKind, variant: Int, slot: Int, idea: Bool) -> SCNGeometry {
+        let key: String = "a\(kind.rawValue)-\(variant)-\(slot)-\(idea ? 1 : 0)"
         if let made = arborLooks[key] { return made }
         let shapeKey: String = "shape\(kind.rawValue)-\(variant)"
         let shape: SCNGeometry
@@ -319,17 +420,15 @@ final class GraphNeuronLook: GraphThemeLook {
             arborLooks[shapeKey] = shape
         }
         let geometry: SCNGeometry = shape.copy() as? SCNGeometry ?? shape
-        geometry.materials = [makeArbor(slot: slot, kind: kind)]
+        geometry.materials = [makeArbor(slot: slot, kind: kind, idea: idea)]
         arborLooks[key] = geometry
         return geometry
     }
 
-    private func makeArbor(slot: Int, kind: NeuronCellKind) -> SCNMaterial {
-        let key: String = "m\(slot)-\(kind == .glia ? 1 : 0)"
+    private func makeArbor(slot: Int, kind: NeuronCellKind, idea: Bool) -> SCNMaterial {
+        let key: String = "m\(slot)-\(kind == .glia ? 1 : 0)-\(idea ? 1 : 0)"
         if let made = somaLooks[key] { return made }
-        let dye: (SIMD3<Float>, SIMD3<Float>) = Self.dye(slot)
-        var membrane: SIMD3<Float> = dye.0
-        if kind == .glia { membrane = (dye.0 + SIMD3<Float>(0.95, 0.9, 0.8)) * 0.5 }
+        let membrane: SIMD3<Float> = Self.membrane(slot: slot, kind: kind, idea: idea)
         let material: SCNMaterial = Self.additive()
         if support.has("arbor") {
             material.shaderModifiers = [.geometry: NeuronShaders.sway, .surface: NeuronShaders.arbor]
@@ -346,25 +445,33 @@ final class GraphNeuronLook: GraphThemeLook {
         return material
     }
 
-    private func haloGeometry(slot: Int) -> SCNGeometry {
-        if let made = haloLooks[slot] { return made }
-        let tint: SIMD3<Float> = Self.dye(slot).0
-        let plane: SCNGeometry = GraphSceneBuilder.plane(Self.haloMaterial(tint: tint, hot: false, support: support))
-        haloLooks[slot] = plane
+    private func haloGeometry(slot: Int, state: NeuronState, idea: Bool) -> SCNGeometry {
+        let key: String = "h\(slot)-\(state.code)-\(idea ? 1 : 0)"
+        if let made = haloLooks[key] { return made }
+        let tint: SIMD3<Float> = NeuronPalette.dye(slot: slot, idea: idea)
+        let material: SCNMaterial = Self.haloMaterial(tint: tint, hot: false, support: support, state: state,
+                                                      lively: lively)
+        if support.has("halo") && state != .resting { clocked.append(material) }
+        let plane: SCNGeometry = GraphSceneBuilder.plane(material)
+        haloLooks[key] = plane
         return plane
     }
 
-    private static func haloMaterial(tint: SIMD3<Float>, hot: Bool, support: NeuronSupport) -> SCNMaterial {
+    private static func haloMaterial(tint: SIMD3<Float>, hot: Bool, support: NeuronSupport,
+                                     state: NeuronState = .resting, lively: Bool = false) -> SCNMaterial {
         let material: SCNMaterial = additive()
         material.isDoubleSided = true
         guard support.has("halo") else {
             material.diffuse.contents = NeuronArt.softDisc
-            material.multiply.contents = colour(tint * (hot ? 0.9 : 0.4))
+            let gain: Float = hot ? 0.9 : (state == .resting ? 0.4 : 0.6)
+            material.multiply.contents = colour(tint * gain)
             return material
         }
         material.shaderModifiers = [.surface: NeuronShaders.halo]
         GraphStyleUniforms.defaults(material)
         set(material, "rpGain", hot ? 1.8 : 1)
+        set(material, "rpState", Float(state.code))
+        set(material, "rpMotion", lively ? 1 : 0)
         Self.tint(material, "rpTintA", tint)
         let ring: SIMD3<Float> = hot ? SIMD3<Float>(0.75, 0.95, 1.0) : SIMD3<Float>(0, 0, 0)
         Self.tint(material, "rpTintC", ring)
@@ -456,6 +563,15 @@ final class GraphNeuronLook: GraphThemeLook {
 
     func makeSky() -> SCNNode {
         NeuronTissue.makeSky()
+    }
+
+    /// Motes drifting through the fluid, at the High budget in a moving
+    /// space.
+    func decorate(world: SCNNode, plan: ThemePlan) {
+        guard lively, budget.tier == .high else { return }
+        var reach: Float = 1
+        for p in plan.envelope { reach = max(reach, simd_length(p)) }
+        world.addChildNode(NeuronTissue.motes(reach: reach))
     }
 }
 
@@ -672,14 +788,14 @@ enum NeuronArbor {
     }
 }
 
-// MARK: - The tissue behind
+// MARK: - The fluid behind
 
-/// The Neurons' backdrop, in place of the stars: dark tissue lit by soft,
-/// blurred extracellular glows (teal, green, a little magenta), with a
-/// scatter of out-of-focus cells - pale rings of light, as in a
-/// microscope's deep field. Made once, on a sphere of radius 1, shared by
-/// every scene and scaled by the builder; GraphSim keeps it round the
-/// camera, so it is at infinity.
+/// The Neurons' backdrop, in place of the stars: deep blue fluid lit by
+/// soft, wide glows (blue, teal, a little violet and magenta), with bokeh -
+/// discs of the palette's green, cyan, pink and amber, out of focus behind
+/// the microscope's plane (NeuronBokeh). Made once, on a sphere of radius
+/// 1, shared by every scene and scaled by the builder; GraphSim keeps it
+/// round the camera, so it is at infinity.
 @MainActor
 enum NeuronTissue {
     static func makeSky() -> SCNNode {
@@ -690,10 +806,10 @@ enum NeuronTissue {
         dome.renderingOrder = -30
         dome.categoryBitMask = 2
         sky.addChildNode(dome)
-        let cells = SCNNode(geometry: Self.blurred)
-        cells.renderingOrder = -29
-        cells.categoryBitMask = 2
-        sky.addChildNode(cells)
+        let bokeh = SCNNode(geometry: Self.bokeh)
+        bokeh.renderingOrder = -29
+        bokeh.categoryBitMask = 2
+        sky.addChildNode(bokeh)
         return sky
     }
 
@@ -701,8 +817,8 @@ enum NeuronTissue {
     private static func glows() -> [(SIMD3<Float>, Float, SIMD3<Float>)] {
         var random = UniverseRandom(0x7155)
         let hues: [SIMD3<Float>] = [
-            SIMD3<Float>(0.03, 0.10, 0.09), SIMD3<Float>(0.03, 0.09, 0.05), SIMD3<Float>(0.02, 0.05, 0.10),
-            SIMD3<Float>(0.07, 0.02, 0.06)
+            SIMD3<Float>(0.02, 0.06, 0.16), SIMD3<Float>(0.02, 0.09, 0.11), SIMD3<Float>(0.06, 0.03, 0.14),
+            SIMD3<Float>(0.08, 0.02, 0.08)
         ]
         var out: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
         for k in 0..<16 {
@@ -730,7 +846,7 @@ enum NeuronTissue {
                 let flat: Float = cos(lat)
                 let dir = SIMD3<Float>(flat * cos(lon), sin(lat), flat * sin(lon))
                 positions.append(SCNVector3(x: dir.x, y: dir.y, z: dir.z))
-                var c = SIMD3<Float>(0.010, 0.026, 0.032)
+                var c: SIMD3<Float> = NeuronPalette.deep
                 for (centre, reach, hue) in lights {
                     let gap: Float = simd_distance(dir, centre) / reach
                     c += hue * exp(-gap * gap)
@@ -762,30 +878,24 @@ enum NeuronTissue {
         return geometry
     }
 
-    private static let blurred: SCNGeometry = makeBlurred()
+    private static let bokeh: SCNGeometry = makeBokeh()
 
-    /// Out-of-focus cells: soft rings on the sky, each a quad facing the
-    /// middle, in one geometry.
-    private static func makeBlurred() -> SCNGeometry {
-        var random = UniverseRandom(0xB0E4)
+    /// The bokeh discs (NeuronBokeh): each a quad facing the middle, its
+    /// colour in its vertices, in one geometry.
+    private static func makeBokeh() -> SCNGeometry {
         var positions: [SCNVector3] = []
         var coords: [CGPoint] = []
         var colours: [Float] = []
         var indices: [Int32] = []
-        let tints: [SIMD3<Float>] = [SIMD3<Float>(0.10, 0.30, 0.27), SIMD3<Float>(0.12, 0.28, 0.14),
-                                     SIMD3<Float>(0.22, 0.10, 0.22), SIMD3<Float>(0.10, 0.18, 0.32)]
-        for k in 0..<44 {
-            let d: SIMD3<Float> = GraphUniverse.float3(ThemeLayout.fibonacci(k, 44))
-            let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
-            let dir: SIMD3<Float> = simd_normalize(d + jitter * 0.25)
-            let size: Float = 0.025 + 0.06 * Float(random.unit())
+        for disc in NeuronBokeh.discs() {
+            let dir: SIMD3<Float> = disc.direction
             let u: SIMD3<Float> = GraphLinkCurve.perpendicular(to: dir)
             let v: SIMD3<Float> = GraphLinkCurve.cross(dir, u)
             let first = Int32(positions.count)
             let corners: [(Float, Float)] = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
-            let tint: SIMD3<Float> = linear(tints[k % tints.count] * (0.5 + 0.5 * Float(random.unit())))
+            let tint: SIMD3<Float> = linear(disc.colour * (0.32 * disc.strength))
             for (x, y) in corners {
-                let p: SIMD3<Float> = dir * 0.98 + u * (x * size) + v * (y * size)
+                let p: SIMD3<Float> = dir * 0.98 + u * (x * disc.size) + v * (y * disc.size)
                 positions.append(SCNVector3(x: p.x, y: p.y, z: p.z))
                 coords.append(CGPoint(x: CGFloat((x + 1) / 2), y: CGFloat((y + 1) / 2)))
                 colours.append(contentsOf: [tint.x, tint.y, tint.z])
@@ -799,7 +909,7 @@ enum NeuronTissue {
                                    elements: [SCNGeometryElement(indices: indices, primitiveType: .triangles)])
         let material = SCNMaterial()
         material.lightingModel = .constant
-        material.diffuse.contents = NeuronArt.blurredCell
+        material.diffuse.contents = NeuronArt.bokehDisc
         material.blendMode = .add
         material.isDoubleSided = true
         material.writesToDepthBuffer = false
@@ -818,10 +928,43 @@ enum NeuronTissue {
     private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
         SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
     }
+
+    /// Motes drifting slowly through the map, near and far (High budget,
+    /// moving space only): specks of the palette in the fluid, so the
+    /// depth reads as fluid and not as empty space. `reach` is the map's
+    /// radius.
+    static func motes(reach: Float) -> SCNNode {
+        let system = SCNParticleSystem()
+        let room: Float = max(reach * 1.3, 1)
+        system.emitterShape = SCNSphere(radius: CGFloat(room))
+        system.birthLocation = .volume
+        system.birthRate = 4
+        system.warmupDuration = 30
+        system.particleLifeSpan = 28
+        system.particleLifeSpanVariation = 8
+        system.particleSize = CGFloat(room * 0.006)
+        system.particleSizeVariation = CGFloat(room * 0.004)
+        system.particleVelocity = CGFloat(room * 0.004)
+        system.particleVelocityVariation = CGFloat(room * 0.004)
+        system.spreadingAngle = 180
+        system.particleImage = NeuronArt.softDisc
+        system.particleColor = UIColor(red: 0.45, green: 0.9, blue: 0.85, alpha: 0.5)
+        system.particleColorVariation = SCNVector4(x: 0.35, y: 0.2, z: 0.3, w: 0.2)
+        system.blendMode = .additive
+        system.isAffectedByGravity = false
+        system.particleAngularVelocityVariation = 0
+        let node = SCNNode()
+        node.name = "motes"
+        node.categoryBitMask = 2
+        node.renderingOrder = 5
+        node.addParticleSystem(system)
+        return node
+    }
 }
 
-/// Two small pictures, drawn once: a soft disc (the fallback glows) and an
-/// out-of-focus cell (a soft ring round a fainter middle).
+/// Small pictures, drawn once: a soft disc (the fallback glows, the motes)
+/// and a bokeh disc (flat, a little brighter at its rim, soft-edged - a
+/// light out of focus through a round aperture).
 @MainActor
 enum NeuronArt {
     static let softDisc: UIImage = draw { context, size in
@@ -833,13 +976,13 @@ enum NeuronArt {
                                    endRadius: size / 2, options: [])
     }
 
-    static let blurredCell: UIImage = draw { context, size in
+    static let bokehDisc: UIImage = draw { context, size in
         let clear = UIColor(white: 1, alpha: 0).cgColor
-        let faint = UIColor(white: 1, alpha: 0.35).cgColor
+        let body = UIColor(white: 1, alpha: 0.62).cgColor
         let rim = UIColor(white: 1, alpha: 0.9).cgColor
-        let colours: [CGColor] = [faint, faint, rim, clear]
+        let colours: [CGColor] = [body, body, rim, clear]
         guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colours as CFArray,
-                                        locations: [0, 0.55, 0.8, 1]) else { return }
+                                        locations: [0, 0.7, 0.86, 1]) else { return }
         let middle = CGPoint(x: size / 2, y: size / 2)
         context.drawRadialGradient(gradient, startCenter: middle, startRadius: 0, endCenter: middle,
                                    endRadius: size / 2, options: [])
@@ -887,7 +1030,8 @@ nonisolated enum NeuronProbe {
             let ok: Bool = GraphStyleProbe.renders(modifiers, on: shape, device: device) { material in
                 let values: [(String, Float)] = [("rpMotion", 1), ("rpNucleus", 0.4), ("rpSway", 0),
                                                  ("rpWobble", 0.02), ("rpGain", 1), ("rpRate", 0.5),
-                                                 ("rpBurst", 0.2), ("rpBundle", 0), ("rpHalf", 0.08)]
+                                                 ("rpBurst", 0.2), ("rpBundle", 0), ("rpHalf", 0.08),
+                                                 ("rpState", 1)]
                 for (key, value) in values { material.setValue(NSNumber(value: value), forKey: key) }
             }
             if ok { passed.insert(name) }

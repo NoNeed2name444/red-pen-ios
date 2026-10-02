@@ -24,7 +24,81 @@ import Foundation
 // - each style's sparks when it moves: a black hole's bright plume of
 //   debris, a sun's plasma, a comet's icy dust.
 //
+// The styles themselves (GraphNodeStyle) live here too, so a theme that
+// mirrors them (the Neurons' cell states, NeuronState) is tested with them.
 // Plain SIMD3<Float> arithmetic (no simd module). Foundation only.
+
+/// What a note looks like in the Space. Each is physically inspired, with
+/// its own look at rest, its own answer to being dragged, and its own
+/// effect on the links that reach it (see GraphStyleShaders.link):
+///
+/// - black hole: a black sphere, a Doppler-bright photon ring, lensed arcs,
+///   a Keplerian accretion disk; links bend in and fall into it;
+/// - sun: granulation, limb darkening, corona, prominences and flares;
+///   links run whiter near it and it throws its pulses out as plasma;
+/// - rocky planet: continents, clouds, a terminator towards the nearest
+///   sun, air, a moon that lags when dragged; pulses glint on arrival;
+/// - gas giant: banded clouds with jets and a storm, a tilted ring with
+///   shadows; dragged, the bands smear; links light a bar on the ring;
+/// - pulsar: a tiny core and two sweeping beams; its links beat in step;
+/// - comet: a nucleus, a coma and two tails pointing away from the
+///   nearest sun, stretching when it moves.
+///
+/// The raw value is stored; `code` is what the link shader reads, and also
+/// which end of a link sends: the higher code is the link's A end.
+nonisolated enum GraphNodeStyle: String, CaseIterable, Sendable, Identifiable {
+    case blackHole
+    case rocky
+    case gasGiant
+    case comet
+    case pulsar
+    case sun
+
+    var id: String { rawValue }
+
+    /// The link shader's number for this style (0...5), and its send rank.
+    var code: Int {
+        switch self {
+        case .blackHole: return 0
+        case .rocky: return 1
+        case .gasGiant: return 2
+        case .comet: return 3
+        case .pulsar: return 4
+        case .sun: return 5
+        }
+    }
+
+    var name: String {
+        switch self {
+        case .blackHole: return "Black holes"
+        case .sun: return "Suns"
+        case .rocky: return "Rocky planets"
+        case .gasGiant: return "Gas giants"
+        case .pulsar: return "Pulsars"
+        case .comet: return "Comets"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .blackHole: return "circle.circle.fill"
+        case .sun: return "sun.max.fill"
+        case .rocky: return "globe.europe.africa.fill"
+        case .gasGiant: return "circle.lefthalf.filled"
+        case .pulsar: return "dot.radiowaves.left.and.right"
+        case .comet: return "sparkle"
+        }
+    }
+
+    /// The order the picker lists them in.
+    static let menuOrder: [GraphNodeStyle] = [.blackHole, .sun, .rocky, .gasGiant, .pulsar, .comet]
+
+    /// How long a pulsar takes to turn once, in seconds. The link shader
+    /// beats twice a turn (4/3 a second) and GraphShape.clockPeriod (3000 s)
+    /// is a whole number of turns, so the clock's wrap never shows
+    /// (SpaceOptics, tested on Linux).
+    static let pulsarPeriod: Float = SpaceOptics.pulsarPeriod
+}
 
 nonisolated enum SpaceOptics {
     // MARK: the black hole's disk

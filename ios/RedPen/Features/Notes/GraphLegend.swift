@@ -220,8 +220,9 @@ struct GraphLegendContent {
 
     // MARK: Neurons
 
-    private static let teal: Color = Color(red: 0.30, green: 0.95, blue: 0.85)
-    private static let green: Color = Color(red: 0.50, green: 1.0, blue: 0.55)
+    // NeuronPalette's: green, cyan, pink and amber on deep blue
+    private static let teal: Color = Color(red: 0.35, green: 1.0, blue: 0.5)
+    private static let green: Color = Color(red: 0.25, green: 0.92, blue: 1.0)
     private static let amber: Color = Color(red: 1.0, green: 0.72, blue: 0.30)
     private static let tealGel: Color = teal.opacity(0.22)
     private static let greenGel: Color = green.opacity(0.22)
@@ -229,7 +230,8 @@ struct GraphLegendContent {
     private static let tealRing: Color = teal.opacity(0.8)
     private static let tealFaint: Color = teal.opacity(0.6)
     private static let gliaGel: Color = Color(white: 0.75).opacity(0.4)
-    private static let interTint: Color = Color(red: 0.42, green: 0.72, blue: 1.0)
+    private static let interTint: Color = Color(red: 1.0, green: 0.42, blue: 0.78)
+    private static let stateTint: Color = Color(red: 0.82, green: 0.36, blue: 1.0)
     private static let gliaTint: Color = Color(white: 0.8)
     private static let crossTint: Color = Color(red: 0.75, green: 0.58, blue: 1.0)
     private static let receptorTint: Color = Color(red: 1.0, green: 0.82, blue: 0.45)
@@ -264,12 +266,15 @@ struct GraphLegendContent {
         GraphLegendRow(symbol: "antenna.radiowaves.left.and.right", name: "Receptor",
                        text: "A note in no folder with links: a sensory cell at the edge, sending impulses in. With no links it drifts as microglia.",
                        tint: receptorTint, how: "A note in no folder (Move \u{203A} No folder)."),
+        GraphLegendRow(symbol: "sparkles", name: "Cell states",
+                       text: "Each cell shows a state, as the space\u{2019}s bodies have styles: resting, slowly breathing; firing, a burst of spikes with calcium waves spreading; releasing, a cloud of transmitter drifting out; pacemaker, a steady beat with two lobes sweeping round; migrating, crawling on behind its growth cone; engulfing, drawing debris into a dark phagosome. Left alone, a commissural cell beats, a receptor migrates and microglia engulf.",
+                       tint: stateTint, how: "Look \u{203A} Cells: one state for every note, or Region states for one folder."),
         GraphLegendRow(symbol: "bolt.horizontal.fill", name: "Axons and synapses",
                        text: "Links. Impulses run from the sending cell at random times; near its target each axon branches into fine twigs whose swollen tips press on the next cell, and the impulse crosses there. Tracts join regions; each folder's pathway runs down to the folders inside it.",
                        tint: amber, how: "Link two notes: type [[ and a note\u{2019}s title in a note.")
     ]
 
-    private static let neuronFooter: String = "Cells drift gently in their fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
+    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
 
     /// The Neurons (GraphNeurons): one line per kind of cell.
     static let neurons: GraphLegendContent = GraphLegendContent(

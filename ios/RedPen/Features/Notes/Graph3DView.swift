@@ -77,6 +77,10 @@ struct Graph3DView: View {
     /// The notes' look (GraphStyleChoice), remembered; a change rebuilds.
     @AppStorage(GraphStyleChoice.key) private var nodeStyle: String = GraphStyleChoice.standard
     @AppStorage(GraphStyleChoice.foldersKey) private var folderStyles: String = ""
+    /// The Neurons' cell states (NeuronStateChoice): one for all, one per
+    /// region.
+    @AppStorage(NeuronStateChoice.key) private var cellState: String = NeuronStateChoice.naturalValue
+    @AppStorage(NeuronStateChoice.foldersKey) private var cellFolders: String = ""
     /// The Universe's first-run card has been seen.
     @AppStorage("vignette.space.universeHintSeen") private var hintSeen: Bool = false
     /// The map's theme (GraphTheme: Space, Neurons, Circuit), remembered; a
@@ -617,7 +621,7 @@ struct Graph3DView: View {
 
         GraphStyleTool(theme: themeBinding, main: lookBinding, folderRaw: folderBinding, folders: topFolders,
                        showLegend: { showingLegend = true }, linkLength: linkValue,
-                       tuneLinks: tuneLinksAction)
+                       tuneLinks: tuneLinksAction, cellState: cellStateBinding, cellFolders: cellFoldersBinding)
 
         IdeaToolButton(symbol: "scope", label: "Recentre") {
             recenter += 1
@@ -639,6 +643,20 @@ struct Graph3DView: View {
 
     private var folderBinding: Binding<String> {
         GraphPreview.isOn ? .constant("") : $folderStyles
+    }
+
+    /// The Neurons' cell states in force: the owner's choice, or in the
+    /// design preview the one asked for (`-graphPreviewCells`).
+    private var cellStateBinding: Binding<String> {
+        GraphPreview.isOn ? .constant(GraphPreview.cells) : $cellState
+    }
+
+    private var cellFoldersBinding: Binding<String> {
+        GraphPreview.isOn ? .constant("") : $cellFolders
+    }
+
+    private var cellChoice: NeuronStateChoice {
+        NeuronStateChoice(main: cellStateBinding.wrappedValue, folderRaw: cellFoldersBinding.wrappedValue)
     }
 
     /// The theme in force: the owner's choice, or in the design preview the
@@ -742,6 +760,7 @@ struct Graph3DView: View {
         }
         parts.append("\(reduceMotion)")
         parts.append(nodeStyle + "|" + folderStyles)
+        if theme == .neurons { parts.append("c" + cellState + "|" + cellFolders) }
         parts.append("t" + theme.rawValue)
         parts.append("\(quality.rawValue)")
         parts.append("g\(graphics.tier.rawValue)")
@@ -846,7 +865,8 @@ struct Graph3DView: View {
         }.value
         guard !Task.isCancelled else { return }
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
-        guard let plan = worked, let look = GraphThemes.look(chosen, lively: lively, bold: bold) else {
+        let cells: NeuronStateChoice = cellChoice
+        guard let plan = worked, let look = GraphThemes.look(chosen, lively: lively, bold: bold, cells: cells) else {
             await rebuildUniverse()
             return
         }
@@ -1638,6 +1658,7 @@ struct GraphSCNView: UIViewRepresentable {
             if case .folder(let id) = filter, let slot = folders[id] {
                 fly(to: slot, animated: true)
             } else if filter == .all && before != .all {
+                if flown != nil { sim.showName(nil) }
                 flown = nil
                 flownID = nil
                 frame(animated: true)
@@ -1646,6 +1667,7 @@ struct GraphSCNView: UIViewRepresentable {
 
         /// Glides the camera back to the fitted view of the whole graph.
         func recentre() {
+            if flown != nil { sim?.showName(nil) }
             flown = nil
             flownID = nil
             frame(animated: true)
@@ -1764,6 +1786,9 @@ struct GraphSCNView: UIViewRepresentable {
             let centre: SIMD3<Float> = turn.act(local)
             flown = i
             flownID = sim.ids[i]
+            // its name pill ("Examples - 14 notes") beside it while
+            // the camera is on it
+            sim.showName(i)
             let still: Bool = !sim.lively || UIAccessibility.isReduceMotionEnabled
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)

@@ -112,9 +112,10 @@ enum GraphThemes {
 
     /// The theme's look, made for this build (the Graphics budget and
     /// liveliness as they are now).
-    static func look(_ theme: GraphTheme, lively: Bool, bold: Bool) -> GraphThemeLook? {
+    static func look(_ theme: GraphTheme, lively: Bool, bold: Bool,
+                     cells: NeuronStateChoice = .natural) -> GraphThemeLook? {
         switch theme {
-        case .neurons: return GraphNeuronLook(lively: lively, bold: bold)
+        case .neurons: return GraphNeuronLook(lively: lively, bold: bold, cells: cells)
         case .circuit: return GraphCircuitLook(lively: lively, bold: bold)
         case .space: return nil
         }

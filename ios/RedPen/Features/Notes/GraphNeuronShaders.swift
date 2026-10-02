@@ -34,8 +34,16 @@ nonisolated enum NeuronShaders {
     // MARK: the soma
 
     /// A cell body on a unit sphere (the node scaled to its size): tint A
-    /// the membrane dye, B the nucleus, C the organelles; `rpNucleus` the
-    /// nucleus's radius as a share of the cell's (0: none).
+    /// the membrane dye, glowing brightest just inside the edge; inside, a
+    /// purple glow deepening to magenta where there is most cell to look
+    /// through (NeuronPalette.interior, .heart); B the nucleus
+    /// (violet-magenta), its nucleolus brighter; C the organelles;
+    /// `rpNucleus` the nucleus's radius as a share of the cell's (0: none).
+    /// `rpState` its state (NeuronState.code): firing flickers hotter, a
+    /// pacemaker brightens on each beat (twice a turn of NeuronState
+    /// .beatPeriod, with its halo), releasing crowds vesicles under the
+    /// membrane, engulfing darkens its heart to a phagosome ringed with
+    /// light.
     static let soma: String = """
     #pragma arguments
     float rpClock;
@@ -43,6 +51,7 @@ nonisolated enum NeuronShaders {
     float rpProbe;
     float rpDetail;
     float rpNucleus;
+    float rpState;
     float3 rpTintA;
     float3 rpTintB;
     float3 rpTintC;
@@ -97,13 +106,26 @@ nonisolated enum NeuronShaders {
     float rp_rim = pow(1.0 - rp_mu, 2.4) * smoothstep(0.0, 0.18, rp_mu);
     float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
     float rp_br = 1.0 + 0.07 * sin(rp_t * 0.9 + rp_ph);
-    float rp_body = 0.14 + 0.2 * rp_thick;
-    float3 rp_col = rpTintA * (rp_body + 1.1 * rp_rim);
-    float3 rp_nucCol = rpTintB * (0.3 + 0.22 * rp_thick);
-    rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.8);
+    float rp_deep = rp_thick * rp_thick;
+    float3 rp_inner = mix(float3(0.58, 0.24, 0.98), float3(0.98, 0.28, 0.72), rp_deep);
+    float3 rp_col = rpTintA * (0.06 + 0.08 * rp_thick + 1.15 * rp_rim);
+    rp_col = rp_col + rp_inner * (0.07 + 0.3 * rp_deep);
+    float3 rp_nucCol = rpTintB * (0.32 + 0.24 * rp_thick);
+    rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.75);
     rp_col = rp_col + rpTintB * (0.4 * rp_env);
-    rp_col = rp_col + rpTintB * (0.35 * rp_lol);
+    rp_col = rp_col + float3(1.0, 0.5, 0.88) * (0.42 * rp_lol);
     rp_col = rp_col + rpTintC * (0.45 * rp_dot * rp_thick);
+    float rp_fire = step(0.5, rpState) * step(rpState, 1.5);
+    float rp_vesk = step(1.5, rpState) * step(rpState, 2.5);
+    float rp_pace = step(2.5, rpState) * step(rpState, 3.5);
+    float rp_eat = step(4.5, rpState);
+    float rp_fl = 0.5 + 0.5 * sin(rp_t * 17.0 + rp_ph * 5.0) * sin(rp_t * 7.3 + rp_ph);
+    float rp_beat = fract((rp_t / 1.5 + fract(rp_ph * 0.37)) * 2.0);
+    float rp_bp = exp(-rp_beat * 6.0) * rpMotion;
+    rp_col = rp_col * (1.0 + rp_fire * (0.3 + 0.35 * rp_fl) + rp_pace * 0.7 * rp_bp);
+    rp_col = rp_col * (1.0 - rp_eat * 0.8 * smoothstep(0.45, 0.8, rp_thick));
+    rp_col = rp_col + rpTintA * (rp_eat * 0.5 * rp_rim);
+    rp_col = rp_col + rpTintC * (rp_vesk * 0.5 * rp_dot * (1.0 - rp_thick));
     float3 rp_L = normalize(float3(-0.45, 0.6, 0.66));
     float3 rp_H = normalize(rp_L + rp_V);
     float rp_sp = pow(max(dot(rp_N, rp_H), 0.0), 40.0);
@@ -175,19 +197,35 @@ nonisolated enum NeuronShaders {
 
     // MARK: glows
 
-    /// The soft light round a cell, on a billboard 5 cell radii across (the
+    /// The light round a cell, on a billboard 5 cell radii across (the
     /// membrane at 0.4 of its half side): a little inside, a soft falloff
-    /// outside; tint C draws the chosen cell's thin ring.
+    /// outside; tint C draws the chosen cell's thin ring. `rpState`
+    /// (NeuronState.code) adds the cell's process, each moving on the
+    /// shaders' clock, its phase from where the cell is:
+    ///
+    /// - firing: rays of calcium waves flickering round it, and a ring
+    ///   spreading out at each spike;
+    /// - releasing: a cloud of transmitter in slow swirling bands, vesicles
+    ///   drifting out through it;
+    /// - pacemaker: a beat twice a turn (the pulsar's period): the glow
+    ///   brightens, a ring wave runs out, two lobes sweep round;
+    /// - migrating: the growth cone's filopodia, feeling about;
+    /// - engulfing: arms of debris spiralling in to a bright lip at the
+    ///   membrane, the phagosome dark inside (the soma's).
     static let halo: String = """
     #pragma arguments
+    float rpClock;
+    float rpMotion;
     float rpProbe;
     float rpGain;
+    float rpState;
     float3 rpTintA;
     float3 rpTintC;
 
     #pragma body
 
     """ + GraphStyleShaders.plane + """
+    float rp_t = rpClock * rpMotion;
     float rp_e = 0.4;
     float rp_out = max(rp_r - rp_e, 0.0);
     float rp_outside = step(rp_e, rp_r);
@@ -196,8 +234,68 @@ nonisolated enum NeuronShaders {
     float rp_in = rp_r / rp_e;
     float rp_inner = rp_in * rp_in * 0.12 * (1.0 - rp_outside);
     float rp_lum = (rp_soft + rp_wide) * rp_outside + rp_inner;
+    float3 rp_col = rpTintA * (rp_lum * rpGain);
+    float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
+    float rp_a = atan2(rp_qy, rp_qx);
+    if (rpState > 0.5 && rpState < 1.5) {
+    float rp_sp = fract(rp_t * 0.9 + fract(rp_ph));
+    float rp_rd0 = (rp_r - rp_e - rp_sp * 0.55) / 0.025;
+    float rp_ring = exp(-rp_rd0 * rp_rd0) * (1.0 - rp_sp) * rp_outside;
+    float rp_rw = 0.5 + 0.5 * sin(rp_a * 11.0 + rp_ph * 3.0 + sin(rp_a * 3.0 + rp_t) * 1.5);
+    float rp_rays = rp_rw * rp_rw * rp_rw;
+    rp_rays = rp_rays * rp_rays;
+    float rp_flick = 0.75 + 0.25 * sin(rp_t * 17.0 + rp_ph * 5.0) * sin(rp_t * 7.3 + rp_ph);
+    rp_col = rp_col + rpTintA * (rp_rays * exp(-rp_out / 0.22) * 0.5 * rp_flick * rp_outside);
+    rp_col = rp_col + float3(1.0, 0.85, 0.55) * (rp_ring * 0.55);
+    } else if (rpState > 1.5 && rpState < 2.5) {
+
+    """ + GraphShaderKit.noise("rp_cn", "float3(cos(rp_a) * 2.0, sin(rp_a) * 2.0, rp_r * 4.0 - rp_t * 0.25)") + """
+    float rp_band = 0.5 + 0.5 * sin(rp_r * 24.0 - rp_t * 0.8 + rp_cn * 4.0);
+    float rp_cloud = exp(-rp_out / 0.33) * (0.18 + 0.4 * rp_band * rp_cn) * rp_outside;
+    float rp_vq = rp_r * 12.0 - rp_t * 0.5;
+    float rp_vi = floor(rp_vq);
+    float rp_vw = (rp_a + 3.14159) * 3.0;
+    float rp_vh = fract(sin(rp_vi * 12.9898 + floor(rp_vw) * 78.233 + rp_ph) * 43758.5453);
+    float rp_vf = fract(rp_vq) - 0.5;
+    float rp_vg = fract(rp_vw) - 0.5;
+    float rp_ves = exp(-(rp_vf * rp_vf + rp_vg * rp_vg) * 60.0) * step(0.62, rp_vh) * rp_outside;
+    rp_col = rp_col + mix(rpTintA, float3(1.0, 0.5, 0.85), 0.35) * rp_cloud;
+    rp_col = rp_col + float3(1.0, 0.9, 0.72) * (rp_ves * 0.45 * exp(-rp_out / 0.4));
+    } else if (rpState > 2.5 && rpState < 3.5) {
+    float rp_turn = rp_t / 1.5 + fract(rp_ph * 0.37);
+    float rp_bt = fract(rp_turn * 2.0);
+    float rp_wd = (rp_r - rp_e - rp_bt * 0.5) / 0.02;
+    float rp_wave = exp(-rp_wd * rp_wd) * (1.0 - rp_bt) * rp_outside;
+    float rp_lc = cos(rp_a - rp_turn * 6.2831853);
+    float rp_lobe = rp_lc * rp_lc;
+    rp_lobe = rp_lobe * rp_lobe * rp_lobe;
+    rp_lobe = rp_lobe * rp_lobe * exp(-rp_out / 0.3) * rp_outside;
+    rp_col = rp_col * (1.0 + 0.8 * exp(-rp_bt * 6.0) * rpMotion);
+    rp_col = rp_col + float3(0.75, 0.85, 1.0) * (rp_wave * 0.65 + rp_lobe * 0.5);
+    } else if (rpState > 3.5 && rpState < 4.5) {
+    float rp_fw = 0.5 + 0.5 * sin(rp_a * 9.0 + sin(rp_t * 0.7 + rp_ph) * 2.0);
+    float rp_fil = rp_fw * rp_fw * rp_fw;
+    rp_fil = rp_fil * rp_fil;
+    rp_col = rp_col + rpTintA * (rp_fil * exp(-rp_out / 0.12) * 0.4 * rp_outside);
+    } else if (rpState > 4.5) {
+    float rp_lr = log(max(rp_r, 0.05));
+    float rp_spin = rp_a + rp_lr * 3.0 + rp_t * 0.9;
+    float rp_ac = 0.5 + 0.5 * cos(rp_spin * 2.0);
+    float rp_arm = rp_ac * rp_ac * rp_ac;
+    rp_arm = rp_arm * rp_arm;
+    float rp_fall = exp(-rp_out / 0.3) * rp_outside;
+    float rp_dq = rp_lr * 9.0 + rp_t * 1.3;
+    float rp_dg = fract(rp_dq) - 0.5;
+    float rp_dw = (rp_spin + 3.14159) * 2.5;
+    float rp_dh = fract(sin(floor(rp_dq) * 7.13 + floor(rp_dw) * 3.7) * 43758.5453);
+    float rp_da = fract(rp_dw) - 0.5;
+    float rp_deb = exp(-(rp_dg * rp_dg + rp_da * rp_da) * 40.0) * step(0.55, rp_dh) * rp_fall;
+    float rp_rr = (rp_r - rp_e * 1.06) / 0.012;
+    float rp_lip = exp(-rp_rr * rp_rr);
+    rp_col = rp_col + float3(0.95, 0.6, 1.0) * (rp_arm * rp_fall * 0.3 + rp_deb * 0.6 + rp_lip * 0.45);
+    }
     float rp_fade = clamp((1.0 - rp_r) / 0.25, 0.0, 1.0);
-    float3 rp_col = rpTintA * (rp_lum * rp_fade * rpGain);
+    rp_col = rp_col * rp_fade;
     float rp_rd = (rp_r - 0.47) / 0.014;
     rp_col = rp_col + rpTintC * (exp(-rp_rd * rp_rd) * rp_fade);
 
@@ -406,7 +504,8 @@ nonisolated enum NeuronShaders {
     float rp_patch = rp_act * smoothstep(0.03, 0.1, rp_tp) * exp(-rp_tp / 0.4);
     rp_nt = max(rp_nt, 1.4 * rp_patch * exp(-rp_pd * rp_pd) * exp(-rp_pw * rp_pw));
 
-    float rp_wm = rp_fw * rp_hill * (1.0 - 0.1 * rp_node) * mix(0.42, 1.0, rp_stem) + 0.00001;
+    float rp_cap = 1.0 - 0.08 * rp_myel * (0.5 + 0.5 * cos(rp_m * 6.2831853));
+    float rp_wm = rp_fw * rp_hill * (1.0 - 0.45 * rp_node) * rp_cap * mix(0.42, 1.0, rp_stem) + 0.00001;
     float rp_xm = rp_dm / rp_wm + (1.0 - step(rp_Bk + rp_Nk, rp_dE)) * 1000.0;
     float rp_x = min(rp_xm, rp_xt);
     float rp_tube = sqrt(max(1.0 - rp_x * rp_x, 0.0));
@@ -419,7 +518,10 @@ nonisolated enum NeuronShaders {
     float rp_imp = min(rp_pulse * (1.0 + 0.7 * rp_node), 1.6) * rp_in;
     float rp_flash = rp_tee * rp_act * exp(-rp_tp / 0.25);
     float rp_fibre = (0.2 * rp_tube + 0.34 * rp_edge) * rp_in * rp_bead;
-    float3 rp_col = rpTintA * (rp_fibre + 0.05 * rp_halo);
+    float rp_gl = (rp_y / rp_wm - 0.42) / 0.16;
+    float rp_gloss = exp(-rp_gl * rp_gl) * rp_myel * (1.0 - rp_node) * (1.0 - rpBundle) * rp_in;
+    float3 rp_col = rpTintA * (rp_fibre + 0.05 * rp_halo + 0.22 * rp_gloss);
+    rp_col = rp_col + float3(0.9, 0.95, 1.0) * (0.08 * rp_gloss);
     rp_col = rp_col + rpTintA * (0.1 * rp_tee + 0.08 * rp_cupIn + 0.18 * rp_psd);
     rp_col = rp_col + (rpTintA * 0.6 + float3(0.25, 0.25, 0.25)) * (0.16 * min(rp_ves, 1.0) * rp_cupIn);
     float rp_core = exp(-rp_x * rp_x * 1.5);
