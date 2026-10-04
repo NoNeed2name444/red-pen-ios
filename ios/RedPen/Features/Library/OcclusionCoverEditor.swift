@@ -17,7 +17,8 @@ struct OcclusionCoverEditor: View {
     let aspect: Double
     @Binding var covers: [PhotoOcclusion.Cover]
     @Binding var selected: UUID?
-    var tint: Color = StudySetKind.anki.tint
+    /// The chosen cover and the one being drawn.
+    var tint: Color = .wardPrimary
 
     /// What the drag under way is doing, decided where it started.
     private enum Edit {
@@ -44,7 +45,7 @@ struct OcclusionCoverEditor: View {
                 }
             }
             .clipShape(shape)
-            .overlay(shape.strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Picture with \(covers.count) covers")
             .accessibilityHint("Drag across the picture to draw a cover. Each cover's answer can also be edited in the list below.")
@@ -57,7 +58,7 @@ struct OcclusionCoverEditor: View {
                 .resizable()
                 .interpolation(.medium)
         } else {
-            Rectangle().fill(Color.white)
+            Rectangle().fill(Color.wardSurface)
         }
     }
 
@@ -83,8 +84,9 @@ struct OcclusionCoverEditor: View {
         let rect: CGRect = cover.box.rect(in: size)
         let chosen: Bool = cover.id == selected
         let answered: Bool = !PhotoOcclusion.tidied(cover.answer).isEmpty
-        let fill: Color = chosen ? tint.opacity(0.35) : Color.orange.opacity(answered ? 0.35 : 0.15)
-        let edge: Color = chosen ? tint : Color.orange
+        // Pager Amber: a strong warm colour that still shows on a photo
+        let fill: Color = chosen ? tint.opacity(0.35) : Color.wardBeam.opacity(answered ? 0.35 : 0.15)
+        let edge: Color = chosen ? tint : Color.wardBeam
         let dash: [CGFloat] = answered ? [] : [5, 4]
         return ZStack(alignment: .topLeading) {
             Rectangle()
@@ -111,7 +113,7 @@ struct OcclusionCoverEditor: View {
         return ZStack(alignment: .topLeading) {
             ForEach(0..<4, id: \.self) { index in
                 Circle()
-                    .fill(Color.white)
+                    .fill(Color.wardSurface)
                     .overlay(Circle().strokeBorder(tint, lineWidth: 2.5))
                     .frame(width: s, height: s)
                     .offset(x: points[index].x - s / 2, y: points[index].y - s / 2)

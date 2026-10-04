@@ -69,7 +69,7 @@ struct PictureFromPhotoView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(AppBackdrop(tint: tint))
+        .wardScreen()
         .navigationTitle("From a photo or scan")
         .navigationBarTitleDisplayMode(.inline)
         // the save slab only once there is something to save
@@ -105,15 +105,13 @@ struct PictureFromPhotoView: View {
         }
         if let progress {
             HStack(spacing: 10) {
-                ProgressView()
-                Text(progress).font(.subheadline).foregroundStyle(.secondary)
+                EcgLoader()
+                Text(progress).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
             .accessibilityElement(children: .combine)
         }
         if let problem {
-            Label(problem, systemImage: "exclamationmark.triangle")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: problem)
         }
     }
 
@@ -123,7 +121,7 @@ struct PictureFromPhotoView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("A labelled diagram from a photo, a screenshot or a scanned page. The labels are read on this device and each gets a cover; move or add covers before saving.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             sourceTiles
         }
     }
@@ -145,26 +143,24 @@ struct PictureFromPhotoView: View {
 
     private func sourceTile(_ title: String, detail: String, symbol: String, id: String,
                             action: @escaping () -> Void) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: symbol)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(tint)
-                    .frame(height: 30)
-                    .accessibilityHidden(true)
+                WardIconSquare(symbol: symbol, tone: .blue, size: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline).foregroundStyle(.primary)
-                    Text(detail).font(.caption).foregroundStyle(.secondary)
+                    Text(title).font(.headline).foregroundStyle(Color.wardInk)
+                    Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-            .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.popTile)
+        .buttonStyle(.plain)
         .accessibilityIdentifier(id)
     }
 
@@ -285,12 +281,12 @@ struct PictureFromPhotoView: View {
         if pages.indices.contains(current) {
             let page: PhotoPage = pages[current]
             OcclusionCoverEditor(image: page.preview, aspect: page.aspect,
-                                 covers: coversBinding, selected: $selected, tint: tint)
+                                 covers: coversBinding, selected: $selected, tint: Color.wardPrimary)
                 .frame(maxHeight: 540)
                 .frame(maxWidth: .infinity)
             Text("Drag a cover to move it, its corners to stretch it, or across the picture to draw a new one.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             coverTools(page)
             selectedPanel
             labelList
@@ -311,16 +307,12 @@ struct PictureFromPhotoView: View {
         let count: Int = PhotoOcclusion.answered(pages[index].covers).count
         let title: String = "Page \(index + 1) \u{00B7} \(count)"
         let chosen: Bool = index == current
-        return Button {
+        return WardFilterChip(text: title, selected: chosen) {
             current = index
             selected = nil
-        } label: {
-            Text(title).font(.subheadline.weight(chosen ? .semibold : .regular))
         }
-        .buttonStyle(.glass)
-        .tint(chosen ? tint : nil)
+        .monospacedDigit()
         .accessibilityLabel("Page \(index + 1), \(count) labels")
-        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private func coverTools(_ page: PhotoPage) -> some View {
@@ -330,7 +322,7 @@ struct PictureFromPhotoView: View {
             } label: {
                 Label("Add a cover", systemImage: "plus.rectangle")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.wardCompact)
             .accessibilityIdentifier("photoAddCover")
             Spacer(minLength: 0)
             Menu {
@@ -342,7 +334,7 @@ struct PictureFromPhotoView: View {
             } label: {
                 Label("More", systemImage: "ellipsis.circle")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.wardCompact)
             .disabled(progress != nil)
         }
     }
@@ -386,15 +378,16 @@ struct PictureFromPhotoView: View {
                     .focused($answerFocused)
                     .textInputAutocapitalization(.sentences)
                     .submitLabel(.done)
-                    .popField()
+                    .frame(minHeight: 44)
+                    .wardField()
                     .accessibilityIdentifier("photoCoverAnswer")
                 Button(role: .destructive) {
                     deleteCover(id)
                 } label: {
                     Image(systemName: "trash")
-                        .frame(minWidth: 44, minHeight: 44)
+                        .foregroundStyle(Color.wardDanger)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.wardCompact)
                 .accessibilityLabel("Delete this cover")
             }
         }
@@ -423,6 +416,7 @@ struct PictureFromPhotoView: View {
     private var labelList: some View {
         let covers: [PhotoOcclusion.Cover] = coversBinding.wrappedValue
         if !covers.isEmpty {
+            let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(covers) { cover in
@@ -433,10 +427,12 @@ struct PictureFromPhotoView: View {
             } label: {
                 Text(labelSummary(covers))
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .frame(minHeight: 44, alignment: .leading)
             }
             .padding(.horizontal, 14)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
         }
     }
 
@@ -448,10 +444,10 @@ struct PictureFromPhotoView: View {
         } label: {
             HStack {
                 Image(systemName: chosen ? "largecircle.fill.circle" : "rectangle.fill")
-                    .foregroundStyle(chosen ? tint : Color.orange)
+                    .foregroundStyle(chosen ? Color.wardPrimary : Color.wardBeam)
                     .accessibilityHidden(true)
                 Text(answer.isEmpty ? "No answer yet" : answer)
-                    .foregroundStyle(answer.isEmpty ? .secondary : .primary)
+                    .foregroundStyle(answer.isEmpty ? Color.wardInkSecondary : Color.wardInk)
                 Spacer(minLength: 0)
             }
             .frame(minHeight: 36)
@@ -493,11 +489,13 @@ struct PictureFromPhotoView: View {
             }
             if destination == nil {
                 TextField(PhotoOcclusion.defaultName(on: Date(), scanned: anyScanned), text: $name)
-                    .popField()
+                    .frame(minHeight: 44)
+                    .wardField()
                     .accessibilityLabel("Deck name")
                     .accessibilityIdentifier("photoDeckName")
                 TextField("Subject, like Anatomy", text: $subject)
-                    .popField()
+                    .frame(minHeight: 44)
+                    .wardField()
                     .accessibilityLabel("Subject")
             }
             if pages.contains(where: { !$0.text.isEmpty }) {
@@ -506,10 +504,9 @@ struct PictureFromPhotoView: View {
                         Text("Also keep the pages as a lecture")
                         Text("Listed under Sources, with the words read from each page.")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
-                .tint(tint)
                 .accessibilityIdentifier("photoKeepLecture")
             }
         }
@@ -522,13 +519,12 @@ struct PictureFromPhotoView: View {
     private var saveButton: some View {
         let total: Int = cardTotal
         let plural: String = total == 1 ? "" : "s"
+        let title: String = saving ? "Saving\u{2026}" : "Save \(total) picture card\(plural)"
         return Button {
             Task { await save() }
         } label: {
-            HStack {
-                if saving { ProgressView().controlSize(.small) }
-                Label("Save \(total) picture card\(plural)", systemImage: "checkmark")
-            }
+            Label(title, systemImage: "checkmark")
+                .monospacedDigit()
         }
         .buttonStyle(.bigPrimary)
         .disabled(total == 0 || saving || progress != nil)
@@ -593,10 +589,16 @@ struct PictureFromPhotoView: View {
         let plural: String = result.cards == 1 ? "" : "s"
         let lecture: String = result.lecture ? " The pages are under Sources too." : ""
         return VStack(alignment: .leading, spacing: 14) {
-            Label("Saved \(result.cards) picture card\(plural) to \u{201C}\(result.set.name)\u{201D}.\(lecture)",
-                  systemImage: "checkmark.circle.fill")
-                .font(.headline)
-                .foregroundStyle(.primary)
+            HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.wardSuccess)
+                    .accessibilityHidden(true)
+                Text("Saved \(result.cards) picture card\(plural) to \u{201C}\(result.set.name)\u{201D}.\(lecture)")
+                    .foregroundStyle(Color.wardInk)
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .wardCard()
             NavigationLink {
                 StudySetScreen(set: result.set)
             } label: {

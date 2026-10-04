@@ -6,15 +6,22 @@ import SwiftUI
 /// by the library's own rows above these (LibraryView.setsSections).
 extension LibraryView {
 
-    /// All · Questions · Cards · Notes · Lectures.
+    /// All · Questions · Cards · Notes · Lectures, as filter chips.
     var searchScopeSection: some View {
         Section {
-            Picker("Search in", selection: $search.scope) {
-                ForEach(LibrarySearch.Scope.allCases) { scope in
-                    Text(scope.title).tag(scope)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: WardSpace.s) {
+                    ForEach(LibrarySearch.Scope.allCases) { scope in
+                        WardFilterChip(text: scope.title, selected: search.scope == scope) {
+                            search.scope = scope
+                        }
+                        .accessibilityIdentifier("searchScope-\(scope.rawValue)")
+                    }
                 }
+                .padding(.vertical, 2)
             }
-            .pickerStyle(.segmented)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Search in")
             .accessibilityIdentifier("searchScope")
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             .listRowBackground(Color.clear)
@@ -40,7 +47,8 @@ extension LibraryView {
             }
         } else if search.scope != .all && !search.busy {
             Section {
-                ContentUnavailableView.search(text: query)
+                WardEmptyState(symbol: "magnifyingglass", title: "No results",
+                               message: "Nothing in \(search.scope.title.lowercased()) matches \u{201C}\(query)\u{201D}. Check the spelling or try another word.")
                     .listRowBackground(Color.clear)
             }
         }
@@ -65,30 +73,34 @@ extension LibraryView {
 
     /// "Build a session": a filtered deck from this search, or from filters.
     func buildSessionButton(from text: String) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return Button { sessionText = text; buildingSession = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.title3)
-                    .foregroundStyle(Color.accentColor)
+            HStack(spacing: WardSpace.m) {
+                WardIconSquare(symbol: "slider.horizontal.3", tone: .blue)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Build a session")
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                     Text("Missed this week, a subject, a tag, what\u{2019}s due")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .accessibilityHidden(true)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .contentShape(shape)
         }
-        .buttonStyle(.popTile)
+        .buttonStyle(.plain)
         .accessibilityIdentifier("buildSession")
     }
 
@@ -97,17 +109,18 @@ extension LibraryView {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: hit.kind.symbol)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 24)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(Self.marked(hit))
                         .font(.subheadline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                     Text(Self.whereFound(hit))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
@@ -127,7 +140,7 @@ extension LibraryView {
         var out = AttributedString(String(chars[0..<lo]))
         var match = AttributedString(String(chars[lo..<hi]))
         match.inlinePresentationIntent = .stronglyEmphasized
-        match.backgroundColor = Color.yellow.opacity(0.35)
+        match.backgroundColor = Color.wardBeam.opacity(0.3)
         out += match
         out += AttributedString(String(chars[hi...]))
         return out
@@ -212,9 +225,9 @@ struct FoundCardSheet: View {
                     face
                     if !revealed {
                         Button { revealed = true } label: {
-                            Text("Show answer").font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+                            Text("Show answer").frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.wardSecondary)
                         .accessibilityIdentifier("foundCardReveal")
                     }
                     Button {
@@ -222,14 +235,14 @@ struct FoundCardSheet: View {
                         openDeck(found.set)
                     } label: {
                         Label("Open \u{201C}\(found.set.name)\u{201D}", systemImage: "rectangle.stack")
-                            .frame(maxWidth: .infinity, minHeight: 36)
+                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.wardPrimary)
                     .accessibilityIdentifier("foundCardOpenDeck")
                 }
                 .padding(20)
             }
-            .background(LibraryBackdrop())
+            .wardScreen()
             .navigationTitle("Card")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -240,27 +253,25 @@ struct FoundCardSheet: View {
     }
 
     private var face: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        return VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(front)
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             if revealed {
-                Divider()
+                Rectangle().fill(Color.wardHairline).frame(height: 1)
+                    .accessibilityHidden(true)
                 ForEach(Array(answers.enumerated()), id: \.offset) { _, line in
-                    Text(line).font(.body)
+                    Text(line).font(.body).foregroundStyle(Color.wardInk)
                 }
                 if !found.card.why.isEmpty {
                     Text(found.card.why)
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: shape)
-        .popOut(.raised, in: shape)
+        .wardCard()
     }
 
     private var front: String {

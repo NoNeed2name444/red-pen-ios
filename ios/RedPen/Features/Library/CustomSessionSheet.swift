@@ -30,8 +30,7 @@ struct CustomSessionSheet: View {
     var body: some View {
         NavigationStack {
             form
-                .scrollContentBackground(.hidden)
-                .background(LibraryBackdrop())
+                .wardForm()
                 .navigationTitle("Build a session")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -83,7 +82,7 @@ struct CustomSessionSheet: View {
             .frostedListRow()
             if let note {
                 Section {
-                    Text(note).font(.footnote).foregroundStyle(.secondary)
+                    WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: note)
                 }
                 .listRowBackground(Color.clear)
             }
@@ -107,21 +106,22 @@ struct CustomSessionSheet: View {
         VStack(spacing: 10) {
             Text(summary)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("customSessionCount")
             HStack(spacing: 10) {
                 if !plan.cards.isEmpty {
                     Button { start(.review) } label: {
-                        Text("Review cards").frame(maxWidth: .infinity, minHeight: 36)
+                        Text("Review cards").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardSecondary)
                     .accessibilityIdentifier("customSessionReview")
                 }
                 Button { start(.quiz) } label: {
-                    Text("Start quiz").font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+                    Text("Start quiz").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.wardPrimary)
                 .accessibilityIdentifier("customSessionQuiz")
             }
             .disabled(plan.isEmpty || starting || !filter.narrows)

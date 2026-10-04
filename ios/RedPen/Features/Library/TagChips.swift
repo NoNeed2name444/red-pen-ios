@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Tags as glass chips: each with its × to take it off, a field to add more
+/// Tags as white capsule chips: each with its × to take it off, a field to add more
 /// (Return, or the plus), and the library's own tags offered underneath as
 /// the typing narrows them. For a card, a question or a whole set.
 ///
@@ -24,7 +24,7 @@ struct TagChipsField: View {
             }
             HStack(spacing: 8) {
                 Image(systemName: "tag")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
                 TextField("Add a tag", text: $typed)
                     .textInputAutocapitalization(.never)
@@ -38,11 +38,12 @@ struct TagChipsField: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .disabled(CardTags.parse(typed).isEmpty)
                 .accessibilityLabel("Add tag")
             }
-            .popField()
+            .frame(minHeight: 44)
+            .wardField()
             let offered: [String] = CardTags.suggestions(for: typed, from: known, excluding: tags, limit: 8)
             if !offered.isEmpty && (focused || !typed.isEmpty) {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -51,11 +52,12 @@ struct TagChipsField: View {
                             Button { take(tag) } label: {
                                 Label(CardTags.label(tag), systemImage: "plus")
                                     .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.wardPrimaryInk)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
+                                    .background(Color.wardPrimary.opacity(0.12), in: Capsule())
                             }
                             .buttonStyle(.plain)
-                            .liquidGlassChip()
                             .accessibilityLabel("Add tag \(tag)")
                         }
                     }
@@ -69,10 +71,12 @@ struct TagChipsField: View {
         HStack(spacing: 6) {
             Text(CardTags.label(tag))
                 .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
             Button { remove(tag) } label: {
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.wardInkSecondary)
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
@@ -82,7 +86,8 @@ struct TagChipsField: View {
         .padding(.leading, 10)
         .padding(.trailing, 4)
         .padding(.vertical, 3)
-        .liquidGlassChip()
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .help(tag)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Tag \(tag)")
@@ -116,13 +121,13 @@ struct TagLine: View {
                 ForEach(shown, id: \.self) { tag in
                     Text("#" + CardTags.label(tag))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
                 if more > 0 {
                     Text("+\(more)")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .accessibilityElement(children: .ignore)
