@@ -104,6 +104,8 @@ struct LibraryView: View {
     @AppStorage("cramdown.confirmDelete") var confirmDelete = true
     @AppStorage("cramdown.openLastSet") var openLastSet = false
     @AppStorage("cramdown.lastSetId") var lastSetId = ""
+    /// Which of Ideas' views is open (IdeasView): only the 3D map keeps the sky.
+    @AppStorage("vignette.ideas.mode") private var ideasModeRaw = IdeasMode.list.rawValue
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -438,11 +440,11 @@ struct LibraryView: View {
     /// nothing while the keyboard has put the dock away.
     private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
 
-    /// The ECG grid paper under every category's page; Ideas keeps the sky
-    /// its 3D map flies through.
+    /// The ECG grid paper under every page, Ideas' list and board too; only
+    /// the 3D map keeps the sky it flies through.
     @ViewBuilder
     private var backdrop: some View {
-        if inIdeas {
+        if inIdeas && ideasModeRaw == IdeasMode.space.rawValue {
             AppBackdrop(tint: IdeasPlace.tint)
         } else {
             WardBackground()
