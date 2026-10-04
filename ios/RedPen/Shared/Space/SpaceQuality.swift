@@ -294,7 +294,9 @@ extension EnvironmentValues {
 }
 
 /// Wraps the whole app (from popOutLifecycle): publishes SpaceQuality and the
-/// zoom namespace, and holds the app dark when "Always night sky" is on.
+/// zoom namespace, and holds the app dark when "Always night sky" is on or
+/// the 3D map fills the screen, so the bar's title, the status bar and the
+/// dock read light on its sky.
 struct SkyRoot<Content: View>: View {
     let content: Content
     @Namespace private var zoom
@@ -304,7 +306,7 @@ struct SkyRoot<Content: View>: View {
         let center = SpaceQualityCenter.shared
         let level: SpaceQuality = center.level
         let budget: GraphicsBudget = center.graphics
-        let scheme: ColorScheme? = alwaysNight ? .dark : nil
+        let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : nil
         content
             .environment(\.spaceQuality, level)
             .environment(\.graphics, budget)

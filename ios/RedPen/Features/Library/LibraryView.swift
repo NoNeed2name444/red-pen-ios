@@ -444,12 +444,14 @@ struct LibraryView: View {
     /// the 3D map keeps the sky it flies through.
     @ViewBuilder
     private var backdrop: some View {
-        if inIdeas && ideasModeRaw == IdeasMode.space.rawValue {
+        if underSky {
             AppBackdrop(tint: IdeasPlace.tint)
         } else {
             WardBackground()
         }
     }
+
+    private var underSky: Bool { inIdeas && ideasModeRaw == IdeasMode.space.rawValue }
 
     /// A category's page is titled by its own first row - the date, the
     /// app's name with its squiggle, a greeting (WardHome) - so the bar
