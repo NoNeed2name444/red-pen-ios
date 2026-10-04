@@ -24,8 +24,10 @@ struct AnkiCardFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(badge)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tint)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(Color.wardPrimaryInk)
 
             if card.pictureOnFront { picture }
 
@@ -34,10 +36,12 @@ struct AnkiCardFace: View {
                 // answer appears in the gap it was hidden in
                 Text(Self.clozeSentence(card.clozeText, revealed: revealed))
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .accessibilityLabel(Self.clozeSpoken(card.clozeText, revealed: revealed))
             } else {
                 Text(front)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
             }
 
             if revealed {
@@ -46,7 +50,7 @@ struct AnkiCardFace: View {
                 // where it was read (a cloze fills its gap in place instead)
                 VStack(alignment: .leading, spacing: 14) {
                     if card.type != .cloze {
-                        Divider().accessibilityHidden(true)
+                        Rectangle().fill(Color.wardHairline).frame(height: 1).accessibilityHidden(true)
                     }
                     back
                     if !card.pictureOnFront { picture }
@@ -83,12 +87,12 @@ struct AnkiCardFace: View {
                         .frame(minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")
             } else {
                 Text(label)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -131,6 +135,8 @@ struct AnkiCardFace: View {
         let others = OcclusionCovers.others(for: card, in: deck)
         let target = card.occlusion
         let isRevealed = revealed
+        // the covers keep their own opaque colours, matched to the exported
+        // masks (OcclusionCovers), so they hide labels on any photo
         let grey = Color(red: OcclusionCovers.otherRGB.red,
                          green: OcclusionCovers.otherRGB.green,
                          blue: OcclusionCovers.otherRGB.blue)
@@ -189,13 +195,15 @@ struct AnkiCardFace: View {
 
     private var why: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Why / how").font(.subheadline.weight(.bold)).foregroundStyle(.secondary)
-            Text(card.why).font(.body).lineSpacing(2)
+            Text("Why / how").wardSmallCaps().accessibilityAddTraits(.isHeader)
+            Text(card.why).font(.body).lineSpacing(2).foregroundStyle(Color.wardInk)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.05),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.wardBackground,
+                    in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
+            .strokeBorder(Color.wardHairline, lineWidth: 1))
         .padding(.top, 4)
     }
 
@@ -211,8 +219,8 @@ struct AnkiCardFace: View {
     }
 
     /// A cloze sentence with its gaps as Anki draws them: "[...]" (or the
-    /// hint) in blue until revealed, then the answer, bold and blue, in the
-    /// same place.
+    /// hint) in Theatre Blue until revealed, then the answer, bold and blue,
+    /// in the same place.
     static func clozeSentence(_ text: String, revealed: Bool) -> AttributedString {
         var out = AttributedString()
         for piece in AnkiCard.clozePieces(text) {
@@ -221,7 +229,7 @@ struct AnkiCardFace: View {
                 continue
             }
             var gap = AttributedString(revealed ? piece.text : AnkiCard.clozeGap(piece))
-            gap.foregroundColor = Color.blue
+            gap.foregroundColor = Color.wardPrimaryInk
             gap.inlinePresentationIntent = .stronglyEmphasized
             out += gap
         }
@@ -321,7 +329,9 @@ extension AnkiFooter where Companion == EmptyView {
 /// words: Again, Hard, Good, Easy.
 ///
 /// Shared by the one-deck screen and Due today, so the two cannot drift
-/// apart. Good is the filled one, because it is the answer most cards get
+/// apart. Each speaks in its tone - Again Resus Red, Hard Caution Amber,
+/// Good Discharge Green, Easy Theatre Blue - with when it comes back in SF
+/// Mono. Good is the filled one, because it is the answer most cards get
 /// and the one a thumb should find without looking; the other three are the
 /// quiet version of the same button.
 ///
@@ -351,7 +361,7 @@ struct AnkiRatingBar: View {
             if hints {
                 Text("How well did you remember it?")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             if oneRow {
                 HStack(spacing: 12) {
@@ -387,20 +397,28 @@ struct AnkiRatingBar: View {
                 Text(Self.meaning(rating)).font(.footnote)
             }
             if !when.isEmpty {
-                Text("back in " + when).font(.caption).opacity(0.85)
+                HStack(spacing: 3) {
+                    Text("back in").font(.caption)
+                    Text(when)
+                        .font(.system(.caption, design: .monospaced).weight(.semibold))
+                        .monospacedDigit()
+                }
+                .opacity(0.9)
             }
         }
-        if rating == .good {
-            Button(action: action) { label }
-                .buttonStyle(.bigPrimary)
-                // 1 to 4, Again to Easy - Anki's own keys
-                .numberKey(key)
-                .accessibilityHint(Self.meaning(rating))
-        } else {
-            Button(action: action) { label }
-                .buttonStyle(.bigSecondary)
-                .numberKey(key)
-                .accessibilityHint(Self.meaning(rating))
+        Button(action: action) { label }
+            .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), filled: rating == .good))
+            // 1 to 4, Again to Easy - Anki's own keys
+            .numberKey(key)
+            .accessibilityHint(Self.meaning(rating))
+    }
+
+    static func tone(_ rating: AnkiRating) -> WardTone {
+        switch rating {
+        case .again: return .danger
+        case .hard: return .warning
+        case .good: return .green
+        case .easy: return .blue
         }
     }
 
@@ -421,5 +439,37 @@ struct AnkiRatingBar: View {
         case .good: return "I got it"
         case .easy: return "Too easy"
         }
+    }
+}
+
+/// A rating button in its tone: the filled one in the tone with Clean Sheet
+/// words (which read on green in light and dark alike), the quiet ones the
+/// tone's words on a wash of it with an edge.
+private struct AnkiRatingButtonStyle: ButtonStyle {
+    let tone: WardTone
+    var filled = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
+        let pressed: Bool = configuration.isPressed
+        let ink: Color = filled ? Color.wardSurface : tone.color
+        let wash: Color = filled ? tone.color : tone.color.opacity(0.10)
+        let edge: Color = filled ? Color.clear : tone.color.opacity(0.4)
+        return configuration.label
+            .font(.headline)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(ink)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .background(wash, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: 1))
+            .contentShape(shape)
+            .opacity(pressed ? 0.85 : 1)
+            .scaleEffect(pressed ? 0.98 : 1)
+            .animation(.snappy(duration: 0.2), value: pressed)
+            .contentShape(.hoverEffect, shape)
+            .hoverEffect(.highlight)
     }
 }
