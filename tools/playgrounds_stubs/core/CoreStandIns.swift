@@ -273,41 +273,9 @@ struct AppBackdrop: View {
     }
 }
 
-// MARK: - Sync (Persistence/SyncEngine): the personal build skips it
-
-final class SyncEngine: ObservableObject {
-    enum Status: Equatable {
-        case idle
-        case syncing
-        case offline
-        case failed(String)
-        case needsPro
-        case needsLibraryChoice
-    }
-
-    @Published private(set) var status: Status = .idle
-    @Published var copiesKept = 0
-    @Published var lastSyncedAt: Date? = nil
-
-    var setsKeptHere: Int { 0 }
-
-    func syncNow() async {}
-    func chooseLibrary(addToAccount: Bool) async {}
-    func addKeptSets() async {}
-    func forgetEverythingSynced(libraryNowBelongsTo owner: String? = nil) {}
-}
-
 // MARK: - Screens this build leaves out
-
-struct LinkDeviceView: View {
-    var joinOnly: Bool = false
-
-    var body: some View { NotInThisBuild(feature: "Linking another device") }
-}
-
-struct ModelSettingsView: View {
-    var body: some View { NotInThisBuild(feature: "Model settings") }
-}
+// SyncEngine, LinkDeviceView and ModelSettingsView live in core-shell-out:
+// core3 brings the real ones back and must not also compile these.
 
 struct RuleSheetView: View {
     var body: some View { NotInThisBuild(feature: "The rule sheet") }
@@ -358,12 +326,9 @@ struct HowToReachCard: View {
     var body: some View { EmptyView() }
 }
 
-extension View {
-    /// Guess-first on a textbook (Features/Learn): nothing here.
-    func guessFirst(_ set: StudySet) -> some View { self }
-}
-
 // MARK: - Helpers the kept code calls by name
+// guessFirst and Store.picks live in core-shell-out: core3 brings the real
+// Learn files back, which declare both.
 
 extension PassMark {
     /// The chosen exam's rough pass mark, or the track's (Shared/Exam/ExamFormats.swift).
@@ -372,7 +337,11 @@ extension PassMark {
     }
 }
 
-enum MockPaperView {
+/// A mock paper (Features/Mock). The exam picker asks for the length in
+/// words (hours); the shell, once it is back, also opens the paper itself.
+struct MockPaperView: View {
+    var body: some View { NotInThisBuild(feature: "A mock paper") }
+
     static func hours(_ minutes: Int) -> String {
         let h: Int = minutes / 60
         let m: Int = minutes % 60
@@ -390,14 +359,4 @@ final class AppRouter {
     static let shared = AppRouter()
 
     func isFront(_ id: UUID) -> Bool { true }
-}
-
-extension Store {
-    /// The picks for these questions, in this order (Shared/Learn/LearnStore.swift).
-    func picks(ids: [UUID]) -> [QuestionPick] {
-        let wanted = Set(ids)
-        let found = mcqPicks { wanted.contains($0.question.id) }
-        let byID = Dictionary(found.map { ($0.question.id, $0) }, uniquingKeysWith: { a, _ in a })
-        return ids.compactMap { byID[$0] }
-    }
 }

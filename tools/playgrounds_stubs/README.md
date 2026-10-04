@@ -26,8 +26,10 @@ limit at 36,000 lines.
 | `graph3d` | the 3D Ideas map (`Features/Notes/Graph*.swift`), about 20,000 lines of SceneKit | `graph3d.swift` |
 | `lens` | Study Lens (`Features/Lens`, `Shared/Lens`) | `lens.swift` |
 | `analytics` | the Progress screen's rings and charts | `analytics.swift` |
-| `core` | everything but the core, see below | `graph3d.swift` + `core/` + `core-audio-out/` |
-| `core1` | the core's drops minus step 1 below (lecture audio, Voice, Recall, Narrate come back) | `graph3d.swift` + `core/` + `core-audio-in/` |
+| `core` | everything but the core, see below | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-out/` |
+| `core1` | the core's drops minus step 1 below (lecture audio, Voice, Recall, Narrate come back) | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-in/` |
+| `core2` | core1's drops minus step 2 below (imports, exports, backups, picture cards come back) | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-in/` + `core-exports-in/` |
+| `core3` | core2's drops minus step 3 below (the full shell, sessions, sync, and the Ward Round home's learning pieces come back) | `graph3d.swift` + `lens.swift` + `analytics.swift` + `CoreStandIns` + `CoreIdeas` + `core3/` |
 
 `_common.swift` (the "not in this build" screen) goes in whenever anything
 is left out.
@@ -60,8 +62,12 @@ The core has its own shell in `core/`:
   a calm backdrop in place of the sky, haptics in place of the space cues,
   an idle sync engine, placeholder screens, and the small helpers.
 
-The shell is shared by every step of the add-back; what differs per step is
-in a folder of its own, copied in beside it:
+The small shell is shared by core, core1 and core2. core3 does not copy
+`CoreApp.swift` or `CoreLibrary.swift`: the app's own `RedPenApp` and
+`LibraryView` are back. It also does not copy `core-shell-out/`, which holds
+the stand-ins for `SyncEngine`, `LinkDeviceView`, `ModelSettingsView`,
+`guessFirst` and `Store.picks` — the real files declare those. What differs
+per step is in a folder of its own, copied in beside the shell:
 
 - `core-audio-out/CoreAudioStandIns.swift` (the core): the stand-ins for
   the step-1 parts (the spoken OSCE station, the narrate reader, draw
@@ -70,6 +76,12 @@ in a folder of its own, copied in beside it:
 - `core-audio-in/CoreAudio.swift` (core1): the narrate reader is the app's
   own, and the library gets a Spoken section (commute mode, explain it back),
   which the full app reaches from its study categories instead.
+- `core-exports-in/CoreExports.swift` (core2): the picture-card and export
+  ways into the small shell. core3 does not copy it: `CategoryFeature`,
+  `CategoryHeading` and `StudySetScreen` in that file are the real library's.
+- `core3/Core3Gaps.swift` (core3): the names the returning shell still uses
+  from Ideas, the sky, diagnostics, the platform, reasoning, insight,
+  coverage and onboarding.
 
 When the full app changes, a kept file may start using a new name from a
 left-out part. The package check (`swiftpm-check.yml`) builds the core on
@@ -92,22 +104,32 @@ four zips:
 |---|---|---|---|
 | 1 | lecture audio: transcriber, player, narrate plan, pronunciation, corrections (1,965), Voice (5,190), Recall and Narrate (2,269) | 9,424 | about 43,200 |
 | 2 | imports and exports: Anki packages, PDFs, backups, occlusion and picture cards, scanner | 9,585 | about 52,800 |
-| 3 | the full shell (5,144), sessions, stats and editors (2,797), sync (1,585) | 9,526 | about 62,400 |
-| 4 | Coverage, Learn, Examples, Insight, Mock (5,694), Reasoning (2,858) | 8,552 | about 70,900 |
+| 3 | the full shell, sessions, stats and editors, sync, and Learn. Ward Round's home calls `BedPlan`, `ExamWeekPlanner`, `RhythmReading`, `WardWords` and `LearnRouter`, so `Shared/Learn` and `Features/Learn` come back with the shell rather than as an empty bed plan | about 12,900 | about 67,700 kept lines, before stand-ins |
+| 4 | Coverage, Examples, Insight, Mock and Reasoning. Learn already came back in step 3, so this step is not a chunk yet | | |
 | 5 | Study Lens (3,520), analytics (1,477), the 2D Ideas map (2,261) | 7,258 | about 78,200 |
 | 6 | the living sky, pop-out, diagnostics, platform, App Intents | 6,920 | about 85,100 |
 | 7 | the 3D Ideas map | 20,433 | about 105,500 |
 
-Each step is its own chunk in `make_swiftpm.py` (`core1` is step 1), so the
-core itself stays as it was sent: the step's chunk drops `CORE_DROP` minus
-the paths it brings back (`STEP1_BACK`), and the stand-ins for those parts
-move from the shared shell into the step's own folder. The package check
-(`swiftpm-check.yml`) compiles every chunk on each push to `personal`
-before a zip goes out. `tools/playgrounds_cut.py --drop <the remaining
-drops> --names` lists what the remaining stand-ins must still provide; the
-extension methods it cannot see (`guessFirst`, `commuteModeSheet`, `picks`)
-are found by the compile.
+Each step is its own chunk in `make_swiftpm.py` (`core1` is step 1, `core2`
+is step 2, `core3` is step 3), so the core itself stays as it was sent: the
+step's chunk drops `CORE_DROP` minus the paths it brings back, and the
+stand-ins for those parts move from the shared shell into the step's own
+folder. The package check (`swiftpm-check.yml`) compiles every chunk on each
+push to `personal` before a zip goes out. `tools/playgrounds_cut.py --drop
+<the remaining drops> --names` lists what the remaining stand-ins must still
+provide; the extension methods it cannot see (`guessFirst`,
+`commuteModeSheet`, `picks`, `platformRoutes`, `skyScroll`) are found by the
+compile.
 
-Status, 1 October: step 1 is prepared as `core1` (about 42,400 lines before
-the stand-ins), waiting on the owner's result for zip 1 (the core) before it
-goes out.
+`GraphLineStyle.swift` and `GraphicsQuality.swift` stay in every core
+package (`CORE_KEEP`). They are Foundation only, and Settings in the full
+shell reads them.
+
+Status: `core`, `core1` and `core2` are the chunks already on this ladder.
+`core3` is the next zip. Measured while assembling it: 67,699 lines of the
+app's own Swift come back, and the zip is 295 Swift files, 68,891 lines
+once the stand-ins are in. That sits in the gap between the last package
+that built on the iPad (about 36,600) and the first that did not (about
+71,700), so this is the zip that can show the ceiling. This machine cannot
+compile it: there is no iOS SDK here. `swiftpm-check.yml` compiles it on a
+Mac runner once the branch is `personal`.
