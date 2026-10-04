@@ -79,7 +79,9 @@ CORE_DROP = [
 CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
              "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift",
              # Foundation only, shared by Settings and the Ideas map (the map itself stays out)
-             "GraphLineStyle.swift", "GraphicsQuality.swift"]
+             "GraphLineStyle.swift", "GraphicsQuality.swift",
+             # Foundation only: the core home's countdown and greeting (CoreLibrary.swift)
+             "WardWords.swift"]
 # The add-back order (playgrounds_stubs/README.md): each step puts one part of
 # CORE_DROP back into the core, as its own chunk, to find the iPad's ceiling
 # one zip at a time. core1 = the core plus step 1: lecture audio, the spoken
