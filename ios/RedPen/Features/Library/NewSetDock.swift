@@ -15,7 +15,7 @@ enum NewSetDockPrimary: Equatable {
 /// New set's one bottom container, under the thumb.
 ///
 /// Step 1 has none: tapping a kind moves on by itself. On steps 2 and 3 it is
-/// one floating glass slab: Back at the leading end, the step's one main
+/// one white slab: Back at the leading end, the step's one main
 /// button at the trailing end (right thumb). While something is being
 /// written, the progress card - with its Cancel, the one way to stop -
 /// takes the slab's place, so there is never more than one thing floating
@@ -50,12 +50,12 @@ struct NewSetDock: View {
     }
 
     private var slab: some View {
-        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
         return VStack(spacing: 8) {
             if let hint {
                 Text(hint)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
             }
@@ -67,8 +67,9 @@ struct NewSetDock: View {
             }
         }
         .padding(12)
-        .liquidGlassPanel(cornerRadius: 28)
-        .popOut(.floating, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
         .frame(maxWidth: 600)
@@ -100,7 +101,7 @@ private struct NewSetDockPrimaryButton: View {
             Button(action: next) {
                 Label("Next", systemImage: "arrow.right")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .disabled(!ready)
             .keyboardShortcut(.defaultAction)
             .accessibilityIdentifier("newSetNext")
@@ -108,7 +109,7 @@ private struct NewSetDockPrimaryButton: View {
             Button(action: chooseSaved) {
                 Label("Choose a file", systemImage: "square.and.arrow.down")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
         case .floating(let id):
             let shortcut: KeyboardShortcut? = id == "create" ? NewSetDockPrimaryButton.save : nil
             FloatingActionButton(expecting: id, shortcut: shortcut)
@@ -126,9 +127,9 @@ struct NewSetStepDot: View {
     var body: some View {
         let reached: Bool = one <= current
         let done: Bool = one < current
-        let fill: Color = reached ? tint : Color.secondary.opacity(0.2)
-        let number: Color = reached ? Color.white : Color.secondary
-        let caption: Color = one == current ? Color.primary : Color.secondary
+        let fill: Color = reached ? tint : Color.wardHairline
+        let number: Color = reached ? Color.wardOnPrimary : Color.wardInkSecondary
+        let caption: Color = one == current ? Color.wardInk : Color.wardInkSecondary
         HStack(spacing: 6) {
             ZStack {
                 Circle()
@@ -137,10 +138,10 @@ struct NewSetStepDot: View {
                 if done {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.wardOnPrimary)
                 } else {
                     Text("\(one.rawValue)")
-                        .font(.subheadline.weight(.bold))
+                        .font(.system(.subheadline, design: .monospaced).weight(.bold))
                         .foregroundStyle(number)
                 }
             }

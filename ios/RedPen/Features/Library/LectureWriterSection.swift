@@ -98,28 +98,28 @@ struct LectureWriterSection: View {
     /// Step 2: a lecture file, or notes pasted in, or both.
     private var addSection: some View {
         Section {
-            // raised, but second to the dock's Next
+            // second to the dock's Next
             Button { picking = true } label: {
                 HStack {
-                    if reading { ProgressView().controlSize(.small) }
+                    if reading { EcgLoader() }
                     Label(pickTitle, systemImage: "doc.badge.plus")
                 }
             }
-            .buttonStyle(.bigSecondary)
+            .buttonStyle(.wardSecondary)
             .disabled(working || reading)
             .frame(maxWidth: .infinity)
             if let readSource {
                 let pages: Int = readSource.document.pages.count
                 let line: String = "\(readSource.name) \u{2014} \(pages) pages"
                 Label(line, systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let trouble {
-                Text(trouble).font(.footnote).foregroundStyle(.red)
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Or paste your notes").font(.subheadline.weight(.semibold))
@@ -156,14 +156,14 @@ struct LectureWriterSection: View {
                 CountField(title: "How many \(noun)s", value: $count, range: countRange)
                     .disabled(working)
             }
-            // the hero slab, the same as its floating copy in the dock
+            // the same as its floating copy in the dock
             Button { start() } label: {
                 HStack {
-                    if working || reading { ProgressView().controlSize(.small) }
+                    if working || reading { EcgLoader() }
                     Text(primaryLabel)
                 }
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .disabled(!canWrite || working || reading)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("writer")
@@ -177,17 +177,17 @@ struct LectureWriterSection: View {
             // what the last run could not write, and only that, again
             if let missing, !working, canWriteMissing(missing) {
                 Button(missing.shortfall.retryTitle(noun: noun)) { writeMissing() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.wardCompact)
                     .disabled(reading)
             }
             if !hasSource && !(kind == .anki && style == .image) {
                 Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let trouble {
-                Text(trouble).font(.footnote).foregroundStyle(.red)
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
                 Button("AI models") { showModels = true }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.wardCompact)
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))

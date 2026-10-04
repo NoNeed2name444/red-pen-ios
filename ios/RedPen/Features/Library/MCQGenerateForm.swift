@@ -127,15 +127,14 @@ struct MCQGenerateForm: View {
                       systemImage: "lock.fill")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            // the hero slab, the same as its floating copy in the dock, so
-            // it does not flatten when the real one takes over
+            // the same as its floating copy in the dock
             Button { startGenerating() } label: {
                 HStack {
-                    if isGenerating { ProgressView().controlSize(.small) }
+                    if isGenerating { EcgLoader() }
                     Text(generateLabel)
                 }
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .disabled(!canStart)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("mcq")
@@ -197,13 +196,22 @@ struct MCQGenerateForm: View {
                         .font(.caption).foregroundStyle(.secondary)
                 case .downloading(let fraction):
                     let percent: Int = Int(fraction * 100)
-                    let line: String = "Downloading offline model \u{2014} \(percent)%"
-                    ProgressView(value: fraction) {
-                        Text(line).font(.footnote)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Downloading offline model").font(.footnote).foregroundStyle(Color.wardInk)
+                            Spacer(minLength: 8)
+                            Text("\(percent)%")
+                                .font(.system(.footnote, design: .monospaced))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.wardInkSecondary)
+                        }
+                        EcgStrip(progress: fraction)
                     }
+                    .accessibilityElement(children: .combine)
                     Button("Cancel download", role: .cancel) { gemma.cancelDownload() }
                 case .failed(let message):
-                    Text("Download failed: \(message)").font(.footnote).foregroundStyle(.red)
+                    WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill",
+                               text: "Download failed: \(message)")
                     Button("Try again") { gemma.download() }
                 }
             } header: {
