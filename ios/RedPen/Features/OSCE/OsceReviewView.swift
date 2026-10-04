@@ -55,7 +55,8 @@ struct OsceReviewView: View {
                     stepBody(checklist)
                 }
             } else {
-                ContentUnavailableView("No checklists in this set.", systemImage: "checklist")
+                WardEmptyState(symbol: "checklist", title: "No checklists in this set.")
+                    .frame(maxHeight: .infinity)
             }
         }
         .modeScreen(.osce)
@@ -137,23 +138,20 @@ struct OsceReviewView: View {
                 let left = secondsLeft(at: context.date)
                 let running = clockEndsAt != nil
                 let symbol: String = running ? "pause.fill" : (left == 0 ? "arrow.counterclockwise" : "play.fill")
-                let ink: Color = running && left <= 60 ? Color.red : Color.primary
+                // red in the last minute only while the clock runs
+                let warnBelow: Int = running ? 61 : 0
                 HStack(spacing: 6) {
                     Image(systemName: symbol)
-                        .font(.footnote)
-                    Text(String(format: "%d:%02d", left / 60, left % 60))
-                        .monospacedDigit()
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.wardPrimaryInk)
+                    WardTimerPill(seconds: left, warnBelow: warnBelow)
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(ink)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Station clock, \(left / 60) minutes \(left % 60) seconds")
                 .accessibilityHint(running ? "Pauses the clock" : (left == 0 ? "Resets the clock" : "Starts the clock"))
             }
-            .padding(.horizontal, 12)
             .frame(minHeight: 44)
             .contentShape(Capsule())
-            .liquidGlassChip(plane: .raised)
         }
         .buttonStyle(.plain)
         .contentShape(.hoverEffect, Capsule())
@@ -213,6 +211,7 @@ struct OsceReviewView: View {
                 if revealed, let text = currentStepText {
                     Text(text)
                         .font(.title3.weight(.medium))
+                        .foregroundStyle(Color.wardInk)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 10)
                         .contentCard()
@@ -220,7 +219,7 @@ struct OsceReviewView: View {
                 } else {
                     Text(promptLine)
                         .font(.title3)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                         .padding(16)
                         .frame(maxWidth: .infinity)
@@ -229,7 +228,7 @@ struct OsceReviewView: View {
                     Text(run.restarts == 0
                          ? "Work through the station out loud, in order, revealing each step to check yourself."
                          : "From the top. The steps go in order, so a missed one means starting again.")
-                        .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.center)
                 }
             }
             .padding(16)

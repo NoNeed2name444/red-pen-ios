@@ -14,12 +14,13 @@ import SwiftUI
 /// reading along knows exactly where the lecturer is, instead of scanning a
 /// highlighted paragraph for their place.
 struct NarrateWordFlow: View {
-    @Environment(\.modeTint) private var modeTint
     let texts: [String]
     let langs: [String]
     let currentIndex: Int
     /// The word within the current line being spoken right now.
     var spokenWord: Int?
+    /// The mis-heard word being fixed, marked until the fix is saved.
+    var misheard: FixTarget?
     /// Where each line sits in the scroll view, for the auto-scroll's band.
     var band: NarrateScrollBand?
     let onJump: (Int) -> Void
@@ -31,11 +32,12 @@ struct NarrateWordFlow: View {
         LazyVStack(alignment: .leading, spacing: 10) {
             ForEach(texts.indices, id: \.self) { i in
                 let current: Bool = i == currentIndex
+                let wrong: Int? = misheard?.segment == i ? misheard?.word : nil
                 NarrateLine(index: i, text: texts[i],
                             rtl: i < langs.count && langs[i] == "ar",
                             current: current,
                             spoken: current ? spokenWord : nil,
-                            tint: modeTint,
+                            misheard: wrong,
                             band: band, onJump: onJump, onFix: onFix)
                     .equatable()
                     .id(i)
@@ -57,7 +59,9 @@ struct NarrateLine: View, Equatable {
     let rtl: Bool
     let current: Bool
     let spoken: Int?
-    let tint: Color
+    /// A word marked as mis-heard: Resus Red, underlined, so it is not
+    /// colour alone.
+    var misheard: Int? = nil
     let band: NarrateScrollBand?
     let onJump: (Int) -> Void
     let onFix: (FixTarget) -> Void
@@ -67,13 +71,13 @@ struct NarrateLine: View, Equatable {
     /// whose highlight moved.
     nonisolated static func == (a: NarrateLine, b: NarrateLine) -> Bool {
         a.index == b.index && a.text == b.text && a.rtl == b.rtl
-            && a.current == b.current && a.spoken == b.spoken && a.tint == b.tint
+            && a.current == b.current && a.spoken == b.spoken && a.misheard == b.misheard
     }
 
     var body: some View {
         let words: [String] = text.split(separator: " ").map(String.init)
-        let ink: Color = current ? tint : Color.primary
-        let lit: Color = current ? tint.opacity(0.14) : Color.clear
+        let ink: Color = current ? Color.wardPrimaryInk : Color.wardInk
+        let lit: Color = current ? Color.wardPrimary.opacity(0.08) : Color.clear
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
@@ -98,10 +102,14 @@ struct NarrateLine: View, Equatable {
 
     private func word(_ text: String, at w: Int, ink: Color) -> some View {
         let speaking: Bool = spoken == w
-        let mark: Color = speaking ? tint.opacity(0.24) : Color.clear
+        let wrong: Bool = misheard == w
+        let wash: Color = wrong ? Color.wardDanger.opacity(0.12) : Color.clear
+        let mark: Color = speaking ? Color.wardBeam.opacity(0.24) : wash
+        let shown: Color = wrong ? Color.wardDanger : ink
         return Text(text)
             .font(.body)
-            .foregroundStyle(ink)
+            .underline(wrong, color: Color.wardDanger)
+            .foregroundStyle(shown)
             .background {
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
                     .fill(mark)

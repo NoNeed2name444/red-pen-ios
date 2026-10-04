@@ -80,8 +80,7 @@ struct DueTodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 Text(due.setName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .wardSmallCaps()
                 AnkiCardFace(card: due.card, images: images(for: due),
                              revealed: revealed, deck: deck(for: due))
             }
@@ -110,10 +109,8 @@ struct DueTodayView: View {
     }
 
     private var emptyScroll: some View {
-        let symbol: String = reviewedCount > 0 ? "checkmark.seal.fill" : "clock"
-        let title: String = reviewedCount > 0 ? "That's everything" : "Nothing due today"
-        return ScrollView {
-            FinishHero(symbol: symbol, title: title, message: emptyLine)
+        ScrollView {
+            emptyHero
                 .padding(.horizontal, 16)
                 .padding(.top, 32)
                 .readableColumn()
@@ -123,6 +120,17 @@ struct DueTodayView: View {
         // stays in reach with nothing due
         .studyBar { emptyBar }
         .reviewPromptAfterStreak(reviewedCount > 0)
+    }
+
+    /// A round finished here ends on the done seal (and its cue); a queue that
+    /// was empty from the start is an empty state.
+    @ViewBuilder
+    private var emptyHero: some View {
+        if reviewedCount > 0 {
+            FinishHero(symbol: "checkmark.seal.fill", title: "That's everything", message: emptyLine)
+        } else {
+            WardEmptyState(symbol: "clock", title: "Nothing due today", message: emptyLine)
+        }
     }
 
     private var emptyBar: some View {

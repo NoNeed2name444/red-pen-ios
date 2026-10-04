@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A quiz opened from the Progress screen, with the way it is to be sat:
+/// A quiz opened from the Vitals screen, with the way it is to be sat:
 /// normally, as a slow reading drill, or against the clock.
 struct InsightQuiz: Identifiable, Hashable {
     var set: StudySet
@@ -11,7 +11,7 @@ struct InsightQuiz: Identifiable, Hashable {
     var id: UUID { self.set.id }
 }
 
-/// The top card of the Progress screen: the estimated score as a range,
+/// The top card of the Vitals screen: the estimated score as a range,
 /// against a typical pass mark, and the subjects that would move it most.
 struct ReadinessCard: View {
     let estimate: ReadinessEstimate?
@@ -28,9 +28,10 @@ struct ReadinessCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Label("Readiness estimate", systemImage: "gauge.with.dots.needle.50percent")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 if includesExamples {
-                    Text("Example data").font(.caption2).foregroundStyle(.tertiary)
+                    WardChip(text: "Example data", tone: .grey)
                 }
             }
             if let estimate {
@@ -46,10 +47,10 @@ struct ReadinessCard: View {
         let needed = Readiness.minimumAnswers
         return VStack(alignment: .leading, spacing: 8) {
             Text("Answer at least \(needed) questions and an estimated score will show here.")
-                .font(.subheadline).foregroundStyle(.secondary)
-            ThinProgress(fraction: Double(min(answered, needed)) / Double(needed))
+                .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+            EcgStrip(progress: Double(min(answered, needed)) / Double(needed))
             Text("\(min(answered, needed)) of \(needed)")
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -58,11 +59,13 @@ struct ReadinessCard: View {
         let track = ExamTrack.current
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(Self.percent(e.center))
-                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 40, weight: .bold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(Color.wardInk)
             VStack(alignment: .leading, spacing: 1) {
                 Text("likely \(Self.percent(e.low))\u{2013}\(Self.percent(e.high))")
-                    .font(.subheadline.weight(.medium).monospacedDigit())
-                Text(verdict(e)).font(.caption).foregroundStyle(.secondary)
+                    .font(.system(.subheadline, design: .monospaced).weight(.medium))
+                    .foregroundStyle(Color.wardInk)
+                Text(verdict(e)).font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .accessibilityElement(children: .combine)
@@ -72,27 +75,26 @@ struct ReadinessCard: View {
         let exam: String = track == .general ? "" : " for " + track.rawValue.uppercased()
         let passLine: String = "Typical pass mark\(exam): \(Self.percent(e.passMark)) \u{00B7} approximate"
         Text(passLine)
-            .font(.caption).foregroundStyle(.secondary)
+            .font(.caption).monospacedDigit().foregroundStyle(Color.wardInkSecondary)
 
         Text(basis(e))
-            .font(.caption).foregroundStyle(.secondary)
+            .font(.caption).foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
 
         if !e.levers.isEmpty {
-            Divider()
-            Text("What would move it most")
-                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                .textCase(.uppercase)
+            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            WardSectionLabel("What would move it most")
             ForEach(e.levers) { lever in
                 Button { onDrill(lever.subject) } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "scope").foregroundStyle(.tint)
+                        Image(systemName: "scope").foregroundStyle(Color.wardPrimaryInk)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(lever.subject).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-                            Text(leverLine(lever)).font(.caption).foregroundStyle(.secondary)
+                            Text(lever.subject).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
+                            Text(leverLine(lever)).font(.caption).monospacedDigit()
+                                .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     // the whole 44 points answer a tap, not just the words
                     .frame(minHeight: 44)
@@ -164,14 +166,14 @@ private struct RangeBar: View {
             let layout = RangeBarLayout(width: geo.size.width, low: low, center: center,
                                         high: high, mark: mark)
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.08)).frame(height: 8)
-                Capsule().fill(Color.accentColor.opacity(0.35))
+                Capsule().fill(Color.wardHairline).frame(height: 8)
+                Capsule().fill(Color.wardPrimary.opacity(0.35))
                     .frame(width: layout.rangeWidth, height: 8)
                     .offset(x: layout.rangeX)
-                Circle().fill(Color.accentColor)
+                Circle().fill(Color.wardPrimary)
                     .frame(width: 12, height: 12)
                     .offset(x: layout.centerX)
-                Rectangle().fill(Color.primary.opacity(0.6))
+                Rectangle().fill(Color.wardInk)
                     .frame(width: 2, height: 18)
                     .offset(x: layout.markX)
             }
@@ -219,12 +221,12 @@ struct InsightQuestionList: View {
                 Section {
                     Label(tip, systemImage: "lightbulb")
                         .font(.subheadline)
+                        .foregroundStyle(Color.wardInk)
                 }
             }
             if picks.isEmpty {
                 Section {
-                    Text("Nothing here at the moment.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "tray", title: "Nothing here at the moment.")
                 }
             } else {
                 Section {
@@ -236,8 +238,7 @@ struct InsightQuestionList: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
     }
 
     private var quizButton: some View {
@@ -250,7 +251,7 @@ struct InsightQuestionList: View {
         } label: {
             Label("Quiz these", systemImage: "list.bullet.rectangle")
         }
-        .buttonStyle(.bigPrimary)
+        .buttonStyle(.wardPrimary)
         .keyboardShortcut(.defaultAction)
         .accessibilityHint(hint)
     }
@@ -284,10 +285,11 @@ private struct InsightQuestionRow: View {
                 if hasAnswer {
                     Label(q.options[q.correctIndex], systemImage: "checkmark.circle")
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.wardSuccess)
                 }
                 if !q.explanation.isEmpty {
                     Text(q.explanation)
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .padding(.vertical, 4)
@@ -295,9 +297,10 @@ private struct InsightQuestionRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(q.stem)
                     .font(.subheadline)
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(3)
                 Text(Store.subjectName(pick.set))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .hoverEffect(.highlight)

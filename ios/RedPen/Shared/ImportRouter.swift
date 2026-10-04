@@ -210,14 +210,24 @@ struct ImportInboxSheet: View {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 if reading {
-                    ProgressView("Reading\u{2026}")
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 8) {
+                        EcgLoader()
+                        Text("Reading\u{2026}")
+                            .font(.callout)
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .combine)
                 } else if let set {
                     setSummary(set)
                 } else {
-                    Text(problem ?? elsewhere)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    if let problem {
+                        WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: problem)
+                    } else {
+                        Text(elsewhere)
+                            .font(.callout)
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
                     takeItThere
                 }
                 Spacer(minLength: 0)
@@ -232,7 +242,7 @@ struct ImportInboxSheet: View {
             }
         }
         .presentationDetents([.medium])
-        .presentationBackground(.ultraThinMaterial)
+        .presentationBackground(Color.wardBackground)
         .task { await read() }
         .sheet(isPresented: $picturing) {
             NavigationStack {
@@ -258,9 +268,8 @@ struct ImportInboxSheet: View {
                 picturing = true
             } label: {
                 Label("Make picture cards from this", systemImage: "photo.on.rectangle")
-                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.popTile)
+            .buttonStyle(.wardPrimary)
             .accessibilityIdentifier("importInboxPicture")
         case .lecture:
             Button {
@@ -268,9 +277,8 @@ struct ImportInboxSheet: View {
             } label: {
                 Label(readingLecture ? "Reading the lecture\u{2026}" : "Make questions from this lecture",
                       systemImage: "doc.text.viewfinder")
-                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.popTile)
+            .buttonStyle(.wardPrimary)
             .disabled(readingLecture)
             .accessibilityIdentifier("importInboxLecture")
         default:
@@ -305,15 +313,12 @@ struct ImportInboxSheet: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.title2)
-                .frame(width: 48, height: 48)
-                .liquidGlassChip()
+            WardIconSquare(symbol: symbol, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(file.name).font(.headline).lineLimit(2)
+                Text(file.name).font(.headline).foregroundStyle(Color.wardInk).lineLimit(2)
                 Text(file.kind.label + " \u{00B7} " + sizeText)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -352,17 +357,16 @@ struct ImportInboxSheet: View {
 
     private func setSummary(_ set: StudySet) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(set.name).font(.title3.weight(.semibold))
+            Text(set.name).font(.title3.weight(.semibold)).foregroundStyle(Color.wardInk)
             Text("\(set.kind.label) \u{00B7} \(set.itemCount) items \u{00B7} \(set.subject)")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             Button {
                 add(set)
             } label: {
                 Label(added ? "Added to library" : "Add to library",
                       systemImage: added ? "checkmark" : "plus")
-                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.popTile)
+            .buttonStyle(.wardPrimary)
             .disabled(added)
             .accessibilityIdentifier("importInboxAdd")
         }

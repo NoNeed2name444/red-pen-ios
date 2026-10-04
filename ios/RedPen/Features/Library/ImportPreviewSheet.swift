@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// What a picked deck or table will add, before anything is added: the
-/// figures as glass tiles ("412 cards", "38 pictures", "3 subdecks → 3
+/// figures as white tiles ("412 cards", "38 pictures", "3 subdecks → 3
 /// sets"), the sets it becomes, anything left out and why, and one Import
 /// tile. Cancel leaves the library exactly as it was.
 struct ImportPreviewSheet: View {
@@ -26,8 +26,7 @@ struct ImportPreviewSheet: View {
                 .padding(20)
             }
             .scrollBounceBehavior(.basedOnSize)
-            .background(ModeBackdrop(kind: kind))
-            .tint(kind.tint)
+            .wardScreen()
             .environment(\.modeTint, kind.tint)
             .navigationTitle("Import")
             .navigationBarTitleDisplayMode(.inline)
@@ -47,19 +46,15 @@ struct ImportPreviewSheet: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: preview.source.symbol)
-                .font(.title2)
-                .foregroundStyle(kind.tint)
-                .frame(width: 48, height: 48)
-                .liquidGlassChip(tint: kind.tint, plane: .raised)
-                .accessibilityHidden(true)
+            WardIconSquare(symbol: preview.source.symbol, size: 48)
             VStack(alignment: .leading, spacing: 4) {
                 Text(preview.title)
                     .font(.title3.weight(.bold))
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                 Text("Nothing is added until you tap Import.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -76,42 +71,45 @@ struct ImportPreviewSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: fact.symbol)
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(kind.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
+                .accessibilityHidden(true)
             Text(fact.value)
-                .font(.title3.weight(.bold))
+                .font(.system(.title3, design: .monospaced).weight(.bold))
                 .monospacedDigit()
+                .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(fact.label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .liquidGlassPanel(cornerRadius: 16, plane: .raised)
+        .wardCard(padding: 14)
         .accessibilityElement(children: .combine)
     }
 
     private var setsList: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(preview.sets.count == 1 ? "Your new set" : "Your new sets")
-                .font(.headline)
+            WardSectionLabel(preview.sets.count == 1 ? "Your new set" : "Your new sets")
             VStack(spacing: 0) {
                 ForEach(Array(preview.sets.prefix(listed).enumerated()), id: \.offset) { index, set in
-                    if index > 0 { Divider().padding(.leading, 14) }
+                    if index > 0 { hairline }
                     setRow(set, folder: folderName(at: index))
                 }
                 if preview.sets.count > listed {
-                    Divider().padding(.leading, 14)
+                    hairline
                     Text("and \(preview.sets.count - listed) more")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .liquidGlassPanel(cornerRadius: 16, plane: .raised)
+            .wardCard(padding: 0)
         }
+    }
+
+    private var hairline: some View {
+        Rectangle().fill(Color.wardHairline).frame(height: 1).padding(.leading, 14)
     }
 
     private func folderName(at index: Int) -> String? {
@@ -125,19 +123,20 @@ struct ImportPreviewSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(set.name)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                 if let folder {
                     Label(folder, systemImage: "folder")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             Text("\(count.formatted()) \(noun)")
-                .font(.caption.weight(.semibold))
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .padding(14)
         .accessibilityElement(children: .combine)
@@ -148,7 +147,7 @@ struct ImportPreviewSheet: View {
             ForEach(preview.notes, id: \.self) { line in
                 Label(line, systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -158,7 +157,6 @@ struct ImportPreviewSheet: View {
     private var importTile: some View {
         let count: Int = preview.itemCount
         let noun: String = kind == .mcq ? (count == 1 ? "question" : "questions") : (count == 1 ? "card" : "cards")
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return Button {
             guard !importing else { return }
             importing = true
@@ -166,21 +164,16 @@ struct ImportPreviewSheet: View {
         } label: {
             HStack(spacing: 12) {
                 if importing {
-                    ProgressView()
+                    EcgLoader()
                 } else {
                     Image(systemName: "tray.and.arrow.down.fill")
                         .font(.title3)
                 }
                 Text(importing ? "Adding\u{2026}" : "Import \(count.formatted()) \(noun)")
-                    .font(.headline)
             }
-            .foregroundStyle(kind.tint)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .background(kind.tint.opacity(0.14), in: shape)
-            .overlay(shape.strokeBorder(kind.tint.opacity(0.5), lineWidth: 1.5))
-            .contentShape(shape)
+            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 18, plane: .floating, tint: kind.tint))
+        .buttonStyle(.wardPrimary)
         .disabled(importing)
         .keyboardShortcut(.defaultAction)
         .accessibilityIdentifier("importConfirm")

@@ -74,9 +74,8 @@ struct SourcePreviewView: View {
     var body: some View {
         NavigationStack {
             content
-                // the deep plane: the same slow mesh as every other screen,
-                // behind the glass, so the reader is not a flat sheet
-                .background(LibraryBackdrop())
+                .background(WardBackground())
+                .tint(Color.wardPrimary)
                 .navigationTitle(source.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -127,7 +126,7 @@ struct SourcePreviewView: View {
                 if sidebar {
                     SourcePageList(source: source, selected: $page)
                         .frame(width: 240)
-                    Divider()
+                    Rectangle().fill(Color.wardHairline).frame(width: 1)
                 }
                 reading
             }
@@ -156,7 +155,8 @@ struct SourcePreviewView: View {
         let title: String = "\(source.pageCount) \(noun)s"
         return NavigationStack {
             SourcePageList(source: source, selected: $page)
-                .background(LibraryBackdrop())
+                .background(WardBackground())
+                .tint(Color.wardPrimary)
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -176,7 +176,6 @@ struct SourcePreviewView: View {
 /// search than flicking through the document, which is the thing the list is
 /// meant to save.
 struct SourcePageList: View {
-    @Environment(\.modeTint) private var modeTint
     let source: SourceDoc
     @Binding var selected: Int
 
@@ -193,7 +192,7 @@ struct SourcePageList: View {
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(page.number == selected
-                                   ? modeTint.opacity(0.12) : Color.clear)
+                                   ? Color.wardPrimary.opacity(0.12) : Color.clear)
                 .id(page.number)
             }
             .listStyle(.plain)
@@ -215,18 +214,19 @@ struct SourcePageList: View {
     private func row(_ page: SourceDoc.Page) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text("\(page.number)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.system(.caption, design: .monospaced))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(minWidth: 22, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(firstLine(page))
                     .font(.subheadline)
-                    .foregroundStyle(page.isBlank ? .secondary : .primary)
+                    .foregroundStyle(page.isBlank ? Color.wardInkSecondary : Color.wardInk)
                     .lineLimit(2)
                 if page.recognised {
                     Label("Recognised", systemImage: "text.viewfinder")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -241,7 +241,6 @@ struct SourcePageList: View {
 /// for revision: "where does she talk about complement" is answered by the list
 /// itself, often without opening a page at all.
 struct SourceResultsList: View {
-    @Environment(\.modeTint) private var modeTint
     let hits: [SourceSearch.Hit]
     let source: SourceDoc
     let open: (Int) -> Void
@@ -249,9 +248,10 @@ struct SourceResultsList: View {
     var body: some View {
         Group {
             if hits.isEmpty {
-                ContentUnavailableView("Not in this \(source.kind.label.lowercased())",
-                                       systemImage: "magnifyingglass",
-                                       description: Text("No \(source.kind.pageNoun.lowercased()) mentions it."))
+                WardEmptyState(symbol: "magnifyingglass",
+                               title: "Not in this \(source.kind.label.lowercased())",
+                               message: "No \(source.kind.pageNoun.lowercased()) mentions it.")
+                    .frame(maxHeight: .infinity, alignment: .top)
             } else {
                 List {
                     Section {
@@ -260,7 +260,7 @@ struct SourceResultsList: View {
                                 .buttonStyle(.plain)
                         }
                     } header: {
-                        Text(heading)
+                        WardSectionLabel(heading)
                     }
                 }
                 .listStyle(.plain)
@@ -282,9 +282,10 @@ struct SourceResultsList: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("\(source.kind.pageNoun) \(hit.page)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(modeTint)
+                .foregroundStyle(Color.wardPrimaryInk)
             marked(hit)
                 .font(.subheadline)
+                .foregroundStyle(Color.wardInk)
                 .lineLimit(3)
         }
         .padding(.vertical, 2)
@@ -301,6 +302,6 @@ struct SourceResultsList: View {
         let before = String(characters[..<hit.range.lowerBound])
         let match = String(characters[hit.range])
         let after = String(characters[hit.range.upperBound...])
-        return Text("\(before)\(Text(match).bold().foregroundColor(modeTint))\(after)")
+        return Text("\(before)\(Text(match).bold().foregroundColor(Color.wardPrimaryInk))\(after)")
     }
 }

@@ -71,8 +71,8 @@ struct RuleSheetView: View {
         List {
             if store.ruleSheet.isEmpty {
                 Section {
-                    Text("Every question you get wrong can leave one line here to remember. Add them from a quiz\u{2019}s results, or from your recent mistakes below.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "list.bullet.rectangle", title: "No rules yet",
+                                   message: "Every question you get wrong can leave one line here to remember. Add them from a quiz\u{2019}s results, or from your recent mistakes below.")
                 }
             }
 
@@ -80,7 +80,7 @@ struct RuleSheetView: View {
                 Section {
                     Label(note, systemImage: "checkmark.circle")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
 
@@ -100,12 +100,11 @@ struct RuleSheetView: View {
             if !store.ruleSheet.isEmpty && shown.isEmpty {
                 Section {
                     Text("No rules match \u{201C}\(query)\u{201D}.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
     }
 
     // MARK: - The bottom slab
@@ -140,19 +139,18 @@ struct RuleSheetView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(rule.text)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             if !rule.detail.isEmpty {
                 Text(rule.detail)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if rule.byAI || rule.isExample == true {
                 HStack(spacing: 8) {
-                    if rule.byAI { Label("Written with AI", systemImage: "sparkles") }
-                    if rule.isExample == true { Text("Example data") }
+                    if rule.byAI { WardChip(text: "Written with AI", tone: .blue, symbol: "sparkles") }
+                    if rule.isExample == true { WardChip(text: "Example data", tone: .grey) }
                 }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)
@@ -213,7 +211,7 @@ private struct RuleSheetButtons: View {
                 Button(action: onWrite) {
                     Label(writeTitle, systemImage: "sparkles")
                 }
-                .buttonStyle(.bigSecondary)
+                .buttonStyle(.wardSecondary)
                 .accessibilityHint("Rewrites each plain rule as one exam-style line, ten at a time")
             }
             if span == .broad && plain > 0 && missed > 0 { Spacer(minLength: 16) }
@@ -221,7 +219,7 @@ private struct RuleSheetButtons: View {
                 Button(action: onAdd) {
                     Label(addTitle, systemImage: "text.badge.plus")
                 }
-                .buttonStyle(.bigPrimary)
+                .buttonStyle(.wardPrimary)
                 .keyboardShortcut(.defaultAction)
             }
         }
@@ -239,15 +237,15 @@ private struct RuleWritingProgress: View {
         let status: String = "Writing rules with AI \u{00B7} \(done) of \(total)"
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                ProgressView()
+                EcgLoader()
                 Text(status)
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
+                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
             }
-            ThinProgress(fraction: fraction)
+            EcgStrip(progress: fraction)
             Text("Ten at a time. You can keep using the app while it works.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(maxWidth: 560, alignment: .leading)
         .accessibilityElement(children: .combine)

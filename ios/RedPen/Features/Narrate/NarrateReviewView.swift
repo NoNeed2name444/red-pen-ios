@@ -371,12 +371,13 @@ struct NarrateReviewView: View {
     @ViewBuilder
     private var transcriptBody: some View {
         if texts.isEmpty {
-            FinishHero(symbol: "waveform", title: "Nothing to read yet", message: emptyLine)
+            WardEmptyState(symbol: "waveform", title: "Nothing to read yet", message: emptyLine)
                 .padding(.top, 32)
         } else {
             NarrateWordFlow(texts: texts, langs: segments.map(\.lang),
                             currentIndex: index,
                             spokenWord: spokenWord,
+                            misheard: fixing,
                             band: band,
                             onJump: { jump(to: $0) },
                             onFix: { fixing = $0 })

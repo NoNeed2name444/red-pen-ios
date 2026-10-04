@@ -31,8 +31,13 @@ struct SourceDocumentView: View {
             if let pdf {
                 PDFDocumentView(url: pdf, page: $page)
             } else if preparing {
-                ProgressView(preparingLine)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: WardSpace.m) {
+                    EcgLoader()
+                    Text(preparingLine)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let quickLook {
                 QuickLookView(url: quickLook)
             } else {
@@ -81,7 +86,7 @@ struct PDFDocumentView: UIViewRepresentable {
         let view = IdeaPDFView()
         view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
-        view.backgroundColor = .secondarySystemBackground
+        view.backgroundColor = UIColor(Color.wardBackground)
         view.document = PDFDocument(url: url)
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
@@ -146,7 +151,7 @@ struct TextPagesView: View {
                 }
                 .padding()
             }
-            .background(Color(.secondarySystemBackground))
+            .background(Color.wardBackground)
             .onAppear { reader.scrollTo(page, anchor: .top) }
             // a page picked in the list or the sheet: go straight there
             .onChange(of: page) { _, now in
@@ -167,20 +172,23 @@ struct TextPagesView: View {
         let noun: String = source.kind.pageNoun
         let title: String = "\(noun) \(p.number)"
         let blank: String = "No text on this \(noun.lowercased())"
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .wardSmallCaps()
             if p.isBlank {
                 Label(blank, systemImage: "photo")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             } else {
                 LecturePassageText(text: p.text, page: p.number)
+                    .foregroundStyle(Color.wardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(16)
         .frame(maxWidth: 720, alignment: .leading)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 }
 

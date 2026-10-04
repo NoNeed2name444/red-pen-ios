@@ -25,7 +25,7 @@ struct QuestionReportSheet: View {
                 Section("Reporting") {
                     Text(preview)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(5)
                 }
                 Section("What\u{2019}s wrong?") {
@@ -46,12 +46,15 @@ struct QuestionReportSheet: View {
                 }
                 if let outcome {
                     Section {
-                        Label(outcome, systemImage: "checkmark.circle")
+                        Label {
+                            Text(outcome)
+                        } icon: {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
+                        }
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Report a problem")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

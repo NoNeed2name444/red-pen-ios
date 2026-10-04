@@ -39,21 +39,25 @@ struct LensAddSheet: View {
         NavigationStack {
             Form {
                 modeSection
+                    .wardRowBackground()
                 placeSection
+                    .wardRowBackground()
                 if let added {
                     Section {
                         Label(added, systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.wardSuccess)
                     }
+                    .wardRowBackground()
                 }
                 if let problem {
                     Section {
-                        Label(problem, systemImage: "exclamationmark.triangle")
+                        WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: problem)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Add to\u{2026}")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -89,14 +93,14 @@ struct LensAddSheet: View {
                             .frame(width: 28)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(d.title).foregroundStyle(.primary)
+                            Text(d.title).foregroundStyle(Color.wardInk)
                             Text(usable ? d.detail : "Not enough in this answer to make one")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)
                         if d == destination {
-                            Image(systemName: "checkmark").foregroundStyle(.tint)
+                            Image(systemName: "checkmark").foregroundStyle(Color.wardPrimaryInk)
                         }
                     }
                 }

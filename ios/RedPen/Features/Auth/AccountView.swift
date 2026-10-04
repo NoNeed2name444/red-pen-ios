@@ -37,8 +37,7 @@ struct AccountView: View {
             subscriptionSection
             leaveSection
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -84,25 +83,23 @@ struct AccountView: View {
         }
     }
 
-    /// The screen's one hero. It has to stand on a higher plane than the
-    /// raised card it sits on: a pop-out inside another only adds the
-    /// difference, so a raised button on a raised card would lie flat on it.
+    /// The screen's one primary button, on the card under who you are.
     @ViewBuilder
     private var headerButton: some View {
         switch headerAction {
         case .plans:
             Button("See plans") { showPaywall = true }
-                .buttonStyle(.bigPrimary)
+                .buttonStyle(.wardPrimary)
         case .link:
             Button { linking = true } label: {
                 Label("Link another device", systemImage: "ipad.and.iphone")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
         case .sync:
             Button { Task { await sync.syncNow() } } label: {
                 Label("Sync now", systemImage: "arrow.triangle.2.circlepath")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .disabled(sync.status == .syncing)
         }
     }
@@ -111,7 +108,11 @@ struct AccountView: View {
 
     private var syncSection: some View {
         Section {
-            LabeledContent("Sync", value: syncSummary)
+            LabeledContent {
+                WardChip(text: syncSummary, tone: syncTone)
+            } label: {
+                Text("Sync")
+            }
             if !subscriptions.isPro {
                 Text("Keeping your iPhone and iPad the same is part of Pro.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -125,8 +126,7 @@ struct AccountView: View {
                 }
             }
             if sync.copiesKept > 0 {
-                Text(copiesNote)
-                    .font(.caption).foregroundStyle(.orange)
+                WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: copiesNote)
             }
             if sync.status == .needsLibraryChoice {
                 // somebody else's library is on this device: nothing of it
@@ -236,6 +236,16 @@ struct AccountView: View {
         }
     }
 
+    private var syncTone: WardTone {
+        switch sync.status {
+        case .syncing: return .blue
+        case .offline, .needsLibraryChoice: return .warning
+        case .failed: return .danger
+        case .needsPro: return .grey
+        case .idle: return sync.lastSyncedAt == nil ? .grey : .green
+        }
+    }
+
     private func showManage() {
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene }).first else { return }
@@ -243,7 +253,7 @@ struct AccountView: View {
     }
 }
 
-/// Who is signed in, on a raised card: the name, how they signed in, a Pro
+/// Who is signed in, on a card: the name, how they signed in, a Pro
 /// badge, and one action under them. With no account it shows only the
 /// action.
 private struct AccountHeaderCard<Action: View>: View {
@@ -260,7 +270,6 @@ private struct AccountHeaderCard<Action: View>: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         VStack(alignment: .leading, spacing: 14) {
             if let person {
                 identity(person)
@@ -269,21 +278,19 @@ private struct AccountHeaderCard<Action: View>: View {
             }
             action
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: shape)
-        .popOut(.raised, in: shape)
+        .wardCard()
     }
 
     private func identity(_ person: Account) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 44))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(person.shownName)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
                 Text(Self.how(person, localOnly: localOnly))
                     .font(.subheadline)
@@ -306,10 +313,10 @@ private struct ProBadge: View {
     var body: some View {
         Text("Pro")
             .font(.caption.weight(.bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.wardOnPrimary)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(.tint, in: Capsule())
+            .background(Color.wardPrimary, in: Capsule())
             .accessibilityLabel("Pro subscription")
     }
 }

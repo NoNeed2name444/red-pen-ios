@@ -22,12 +22,11 @@ struct SetCreditsView: View {
         return List {
             if credits.isEmpty {
                 Section {
-                    Label("Nothing recorded for this set", systemImage: "questionmark.folder")
-                        .font(.headline)
-                    Text("It was typed in, imported from a file, or made before \(Brand.name) kept where a set came from. Whatever is in it is yours, or came with the file you imported.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "questionmark.folder", title: "Nothing recorded for this set",
+                                   message: "It was typed in, imported from a file, or made before \(Brand.name) kept where a set came from. Whatever is in it is yours, or came with the file you imported.",
+                                   tone: .grey)
                 }
+                .wardRowBackground()
             }
             if !credits.lectures.isEmpty || !credits.citedElsewhere.isEmpty {
                 lecturesSection(credits)
@@ -45,9 +44,9 @@ struct SetCreditsView: View {
                     Label("Every source and licence", systemImage: "books.vertical")
                 }
             }
+            .wardRowBackground()
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Sources and licences")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $reading) { source in
@@ -62,25 +61,25 @@ struct SetCreditsView: View {
             ForEach(credits.lectures) { lecture in
                 Button { reading = lecture.source } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: lecture.source.kind.symbol)
-                            .foregroundStyle(set.kind.tint)
-                            .frame(width: 28)
+                        WardIconSquare(symbol: lecture.source.kind.symbol, tone: .blue, size: 32)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(lecture.source.name.isEmpty ? "Untitled lecture" : lecture.source.name)
                                 .font(.body.weight(.medium))
+                                .foregroundStyle(Color.wardInk)
                             Text(lecture.detail)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.wardInkSecondary)
                             if lecture.cited > 0 {
                                 Text("Cited by \(lecture.cited) \(lecture.cited == 1 ? set.itemNoun : set.itemNoun + "s")")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.wardInkSecondary)
                             }
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.forward")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.wardInkSecondary)
+                            .accessibilityHidden(true)
                     }
                     .contentShape(Rectangle())
                 }
@@ -93,10 +92,10 @@ struct SetCreditsView: View {
                         Text(name).font(.body.weight(.medium))
                         Text("Cited, but not kept with this set")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                     }
                 } icon: {
-                    Image(systemName: "doc").foregroundStyle(.secondary)
+                    Image(systemName: "doc").foregroundStyle(Color.wardInkSecondary)
                 }
             }
         } header: {
@@ -104,6 +103,7 @@ struct SetCreditsView: View {
         } footer: {
             Text("Your own material. \(Brand.name) keeps it so you can read it again, and claims nothing over it.")
         }
+        .wardRowBackground()
     }
 
     // MARK: Question style
@@ -116,6 +116,7 @@ struct SetCreditsView: View {
         } footer: {
             Text("When questions are written for \(exam), the writer is shown a few real \(style.name) questions as examples of the exam\u{2019}s style. They are examples only: the writer is told never to copy them, and a question written on this device that copies one is dropped.")
         }
+        .wardRowBackground()
     }
 
     // MARK: Checked against
@@ -129,7 +130,9 @@ struct SetCreditsView: View {
                     }
                     ContentSourceDetail(source: group.source, showsUse: false)
                 } label: {
-                    LabeledContent(group.source.name, value: "\(group.refs.count)")
+                    LabeledContent(group.source.name) {
+                        Text("\(group.refs.count)").font(WardType.obs).monospacedDigit()
+                    }
                 }
             }
             if !credits.otherEvidence.isEmpty {
@@ -138,7 +141,9 @@ struct SetCreditsView: View {
                         refLink(ref)
                     }
                 } label: {
-                    LabeledContent("Other sources", value: "\(credits.otherEvidence.count)")
+                    LabeledContent("Other sources") {
+                        Text("\(credits.otherEvidence.count)").font(WardType.obs).monospacedDigit()
+                    }
                 }
             }
         } header: {
@@ -146,6 +151,7 @@ struct SetCreditsView: View {
         } footer: {
             Text("What the accuracy checks read for this set. Titles and links only: each page stays with its publisher, under its own terms.")
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder
@@ -173,16 +179,17 @@ struct ContentLicencesView: View {
             } header: {
                 Text("Your material")
             }
+            .wardRowBackground()
             ForEach(ContentSources.all) { source in
                 Section {
                     ContentSourceDetail(source: source)
                 } header: {
                     Text(source.name)
                 }
+                .wardRowBackground()
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Sources and licences")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -204,7 +211,7 @@ struct ContentSourceDetail: View {
             if let changes = source.changes {
                 Text("Changes: " + changes)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 2)

@@ -90,7 +90,7 @@ struct MCQSummaryView: View {
             let plural: String = added == 1 ? "" : "s"
             Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -232,12 +232,12 @@ struct MCQSummaryView: View {
             if isUnsaved && saved.wrappedValue {
                 Label("Saved to library", systemImage: "checkmark")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             if mistakesSaved {
                 Label("In your library as \u{201C}Mistakes\u{201D}", systemImage: "checkmark")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
 
             rulesAddedNote
@@ -270,12 +270,13 @@ struct MCQSummaryView: View {
     /// ones that were missed.
     private var reviewList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Your answers")
-                .font(.headline)
+            WardSectionLabel("Your answers")
                 .padding(.bottom, 8)
             ForEach(studySet.questions.indices, id: \.self) { i in
                 reviewRow(i)
-                if i < studySet.questions.count - 1 { Divider() }
+                if i < studySet.questions.count - 1 {
+                    Rectangle().fill(Color.wardHairline).frame(height: 1).accessibilityHidden(true)
+                }
             }
         }
         .contentCard()
@@ -289,15 +290,15 @@ struct MCQSummaryView: View {
         return HStack(alignment: .top, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(correct ? Color.green : Color.red)
+                    .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
                     .font(.title3)
                     .accessibilityLabel(correct ? "Right" : "Wrong")
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(q.stem).font(.body).lineSpacing(2)
+                    Text(q.stem).font(.body).lineSpacing(2).foregroundStyle(Color.wardInk)
                     if !correct, q.options.indices.contains(q.correctIndex) {
                         Text("Answer: \(q.options[q.correctIndex])")
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.wardSuccess)
                     }
                 }
             }

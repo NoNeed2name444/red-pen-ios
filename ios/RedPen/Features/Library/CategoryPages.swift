@@ -38,9 +38,8 @@ struct SpokenPatientsView: View {
         List {
             Section {
                 if stations.isEmpty {
-                    Text("Make an OSCE set and each station shows up here, with a patient to talk to.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "person.wave.2.fill", title: "No stations yet",
+                                   message: "Make an OSCE set and each station shows up here, with a patient to talk to.")
                         .listRowBackground(Color.clear)
                 }
                 ForEach(Array(stations.enumerated()), id: \.offset) { _, station in
@@ -72,17 +71,17 @@ struct SpokenPatientsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .skyScroll()
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: StudySetKind.osce.tint))
+        .wardForm()
         .navigationTitle("Talking patient")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-/// A row that opens a page: a coloured symbol, a name, and one line.
+/// A row that opens a page: the symbol in an icon square of its colour, a
+/// name, and one line.
 struct CategoryRowLabel: View {
     let title: String
     let symbol: String
@@ -90,18 +89,21 @@ struct CategoryRowLabel: View {
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 14) {
+        let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
+        HStack(spacing: WardSpace.m) {
             Image(systemName: symbol)
-                .font(.title3)
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 32)
+                .frame(width: 40, height: 40)
+                .background(tint.opacity(0.12), in: square)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body.weight(.semibold))
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
+                Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
         }
-        .frame(minHeight: 48)
+        .padding(.vertical, WardSpace.xs)
+        .frame(minHeight: 56)
     }
 }
 
@@ -140,9 +142,8 @@ struct DrawPracticeView: View {
             }
             if withPictures.isEmpty {
                 Section {
-                    Text("Pictures in your sets show up here. Pick one, draw it from memory, then compare.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "photo", title: "No pictures yet",
+                                   message: "Pictures in your sets show up here. Pick one, draw it from memory, then compare.")
                         .listRowBackground(Color.clear)
                 }
             }
@@ -151,11 +152,10 @@ struct DrawPracticeView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .skyScroll()
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: StudySetKind.anki.tint))
+        .wardForm()
         .navigationTitle("Draw from memory")
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(item: $figure) { DrawRecallView(figure: $0) }
@@ -169,6 +169,7 @@ struct DrawPracticeView: View {
                     open(set, index)
                 } label: {
                     Label("Picture \(index + 1)", systemImage: "photo")
+                        .foregroundStyle(Color.wardInk)
                         .frame(minHeight: 44, alignment: .leading)
                 }
                 .frostedListRow()

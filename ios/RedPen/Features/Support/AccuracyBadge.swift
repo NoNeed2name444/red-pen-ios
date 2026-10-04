@@ -1,12 +1,14 @@
 import SwiftUI
 
 extension AccuracyGrade {
-    var color: Color {
+    var color: Color { tone.color }
+
+    var tone: WardTone {
         switch self {
         case .verified: return .green
-        case .check: return .orange
-        case .flagged: return .red
-        case .unchecked: return .secondary
+        case .check: return .warning
+        case .flagged: return .danger
+        case .unchecked: return .grey
         }
     }
 }
@@ -39,26 +41,19 @@ struct AccuracyBadge: View {
     }
 }
 
-/// The capsule itself: a symbol and a word, in the grade's colour.
+/// The chip itself: a symbol and a word, in the grade's tone.
 struct AccuracyBadgeFace: View {
     let grade: AccuracyGrade
     var checking: Bool = false
 
     var body: some View {
-        let colour: Color = checking ? .secondary : grade.color
-        HStack(spacing: 4) {
+        Group {
             if checking {
-                ProgressView().controlSize(.mini)
-                Text("Checking\u{2026}")
+                WardChip(text: "Checking\u{2026}", tone: .grey, symbol: "hourglass")
             } else {
-                Image(systemName: grade.symbol)
-                Text(grade.title)
+                WardChip(text: grade.title, tone: grade.tone, symbol: grade.symbol)
             }
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(colour)
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(colour.opacity(0.14), in: Capsule())
         .contentShape(Capsule())
     }
 }
@@ -121,8 +116,7 @@ struct AccuracyWhySheet: View {
                 if let fix = suggestion { fixSection(fix) }
                 reportSection
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Accuracy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -150,7 +144,7 @@ struct AccuracyWhySheet: View {
                 }
                 .disabled(working)
             }
-            if let message { Text(message).font(.footnote).foregroundStyle(.secondary) }
+            if let message { Text(message).font(.footnote).foregroundStyle(Color.wardInkSecondary) }
         } header: {
             Text("Result")
         } footer: {
@@ -174,8 +168,9 @@ struct AccuracyWhySheet: View {
         Section("Rule checks") {
             ForEach(assessment.rules, id: \.self) { hit in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(Self.ruleTitle(hit.rule)).font(.caption.weight(.semibold))
-                        .foregroundStyle(hit.isSevere ? Color.red : Color.orange)
+                    Label(Self.ruleTitle(hit.rule), systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(hit.isSevere ? Color.wardDanger : Color.wardWarning)
                     Text(hit.detail).font(.footnote)
                 }
             }
@@ -189,8 +184,8 @@ struct AccuracyWhySheet: View {
                     HStack {
                         Text(vote.model).font(.caption.weight(.semibold))
                         Spacer()
-                        Text(Self.riskWords(vote.risk)).font(.caption)
-                            .foregroundStyle(vote.risk >= 3 ? Color.red : Color.green)
+                        WardChip(text: Self.riskWords(vote.risk), tone: vote.risk >= 3 ? .danger : .green,
+                                 symbol: vote.risk >= 3 ? "xmark.circle.fill" : "checkmark.circle.fill")
                     }
                     if let answer = vote.answer, item.kind == .mcq {
                         Text("Its own answer: " + answer).font(.caption).foregroundStyle(.secondary)
@@ -236,7 +231,7 @@ struct AccuracyWhySheet: View {
             } label: {
                 Label("Accept the correction", systemImage: "checkmark.circle")
             }
-            .buttonStyle(.bigSecondary)
+            .buttonStyle(.wardSecondary)
         } header: {
             Text("Suggested correction")
         } footer: {

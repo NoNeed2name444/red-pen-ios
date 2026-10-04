@@ -34,13 +34,13 @@ struct FloatingSwitcher<Value: Hashable>: View {
     @Binding var collapsed: Bool
     /// The identifier of the collapse button AND of the collapsed circle.
     let toggleIdentifier: String
-    var tint: Color = .accentColor
+    var tint: Color = .wardPrimaryInk
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var liftSpace
 
     init(items: [SwitcherItem<Value>], selection: Binding<Value>, collapsed: Binding<Bool>,
-         toggleIdentifier: String, tint: Color = .accentColor) {
+         toggleIdentifier: String, tint: Color = .wardPrimaryInk) {
         self.items = items
         self._selection = selection
         self._collapsed = collapsed
@@ -119,7 +119,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
     let action: () -> Void
 
     var body: some View {
-        let ink: Color = chosen ? tint : Color.secondary
+        let ink: Color = chosen ? tint : Color.wardInkSecondary
         let shape = RoundedRectangle(cornerRadius: 21, style: .continuous)
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         Button(action: action) {
@@ -183,7 +183,7 @@ private struct SwitcherCollapseButton: View {
     }
 }
 
-/// The folded state: one glass circle showing what is chosen.
+/// The folded state: one white circle showing what is chosen.
 private struct SwitcherBubble<Value: Hashable>: View {
     let items: [SwitcherItem<Value>]
     let chosen: SwitcherItem<Value>?
@@ -205,7 +205,9 @@ private struct SwitcherBubble<Value: Hashable>: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
+        .background(Color.wardSurface, in: Circle())
+        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .contextMenu {
             ForEach(items) { item in
                 Button {
@@ -226,9 +228,9 @@ private struct SwitcherBadge: View {
     var body: some View {
         Image(systemName: "chevron.up")
             .font(.system(size: 7, weight: .heavy))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .padding(3)
-            .background(.thinMaterial, in: Circle())
+            .background(Color.wardSurface, in: Circle())
             .offset(x: -2, y: 2)
             .accessibilityHidden(true)
     }

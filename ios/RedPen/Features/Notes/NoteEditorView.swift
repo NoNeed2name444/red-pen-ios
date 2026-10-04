@@ -57,8 +57,7 @@ struct NoteEditorView: View {
     var body: some View {
         NavigationStack {
             form
-                .scrollContentBackground(.hidden)
-                .background(LibraryBackdrop())
+                .wardForm()
                 .studyBar { actionBar }
                 .navigationTitle(kind.label)
                 .navigationBarTitleDisplayMode(.inline)
@@ -148,9 +147,10 @@ struct NoteEditorView: View {
                         .frame(minHeight: bodyHeight, alignment: .topLeading)
                 } else {
                     // The note's body is a reading surface - long text that is
-                    // read, re-read and edited in place - so it stays ON the
-                    // glass (screen plane) and never slides with the pop-out.
+                    // read, re-read and edited in place - so it sits flat on
+                    // its row and never slides with the pop-out.
                     TextEditor(text: $text)
+                        .scrollContentBackground(.hidden)
                         .frame(minHeight: bodyHeight)
                         .focused($editing, equals: .body)
                         .accessibilityLabel("Note")
@@ -160,8 +160,10 @@ struct NoteEditorView: View {
             } footer: {
                 Text("Type [[ and a note\u{2019}s title to link it, like [[Heart failure]]. Markdown works too: # headings, - bullets, **bold**, *italic*; switch to Read to see it laid out. Lines written \u{201C}Question | Answer\u{201D}, or bullet points, can be turned into cards.")
             }
+            .wardRowBackground()
 
             linkedSection
+                .wardRowBackground()
 
             if !backlinks.isEmpty {
                 Section("Linked here from") {
@@ -169,6 +171,7 @@ struct NoteEditorView: View {
                         linkRow(id, how: isHandLinked(id) ? "Linked by hand" : "Names this note")
                     }
                 }
+                .wardRowBackground()
             }
         }
     }
@@ -233,7 +236,7 @@ struct NoteEditorView: View {
             HStack(spacing: 8) {
                 ForEach(suggestions) { note in
                     Button(note.title) { complete(with: note.title) }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.wardCompact)
                         .font(.caption)
                 }
             }
@@ -270,13 +273,13 @@ struct NoteEditorView: View {
         } label: {
             HStack {
                 Image(systemName: "plus.circle")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(name).foregroundStyle(.primary)
+                    Text(name).foregroundStyle(Color.wardInk)
                     Text("No note by this name yet \u{2014} tap to make it")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .contentShape(Rectangle())
@@ -381,16 +384,16 @@ struct NoteEditorView: View {
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(named)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                     Text(how)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.forward")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .contentShape(Rectangle())
         }
@@ -408,7 +411,7 @@ struct NoteEditorView: View {
                 Button("Unlink", systemImage: "xmark") {
                     notes.unlink(current, id)
                 }
-                .tint(.gray)
+                .tint(Color.wardInkSecondary)
             }
         }
     }
@@ -471,7 +474,8 @@ struct LinkPickerView: View {
                 let others = notes.search(query).filter { $0.id != noteID }
                 if others.isEmpty {
                     Text(query.isEmpty ? "There are no other notes yet." : "Nothing matches.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
+                        .wardRowBackground()
                 }
                 ForEach(others) { note in
                     let linked = notes.isLinked(noteID, note.id)
@@ -483,23 +487,23 @@ struct LinkPickerView: View {
                                 .foregroundStyle(NoteTone.color(for: note.folderId, in: notes))
                                 .frame(width: 24)
                             Text(note.title.isEmpty ? "Untitled" : note.title)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(Color.wardInk)
                                 .lineLimit(2)
                             Spacer(minLength: 8)
                             if linked {
                                 Image(systemName: "checkmark")
                                     .font(.body.weight(.semibold))
-                                    .foregroundStyle(.tint)
+                                    .foregroundStyle(Color.wardPrimaryInk)
                             }
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(linked ? [.isSelected] : [])
+                    .wardRowBackground()
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .searchable(text: $query, prompt: "Find a note")
             .navigationTitle("Link to\u{2026}")
             .navigationBarTitleDisplayMode(.inline)
@@ -532,14 +536,14 @@ private struct NoteEditorActions: View {
                     Image(systemName: "link")
                 }
             }
-            .buttonStyle(.bigCompanion)
+            .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
             .accessibilityLabel("Link to\u{2026}")
             Button(action: cards) {
                 Text("Turn into cards")
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
         }
     }
 }
@@ -577,22 +581,24 @@ private struct NoteChipLabel: View {
     let title: String
     let symbol: String
     /// The folder's own colour on the folder chip; grey on the kind chip.
-    var tint: Color = Color.gray
+    var tint: Color = Color.wardInkSecondary
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: symbol)
+                .foregroundStyle(tint)
             Text(title)
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .font(.subheadline.weight(.medium))
-        .foregroundStyle(.primary)
+        .foregroundStyle(Color.wardInk)
         .padding(.horizontal, 12)
         .frame(minHeight: 36)
-        .liquidGlassChip(tint: tint, plane: .raised)
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .hoverEffect(.highlight)

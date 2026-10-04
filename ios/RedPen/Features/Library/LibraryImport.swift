@@ -75,7 +75,7 @@ struct ImportFact: Hashable {
     var symbol: String
 }
 
-/// What a picked file will add - shown in a glass sheet before anything in
+/// What a picked file will add - shown in a sheet before anything in
 /// the library changes.
 struct ImportPreview: Identifiable {
     let id = UUID()
