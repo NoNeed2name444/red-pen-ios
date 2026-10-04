@@ -28,8 +28,7 @@ struct DiagnosticsSettingsView: View {
                 eventsSection("Sent lately", recent)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Diagnostics")
         .diagnosticsScreen("screen:diagnostics")
         .navigationBarTitleDisplayMode(.inline)
@@ -51,13 +50,13 @@ struct DiagnosticsSettingsView: View {
 
     private var developerSection: some View {
         Section {
-            LabeledContent("Waiting", value: "\(queued.count)")
-            LabeledContent("Sent today", value: "\(sentToday)")
+            LabeledContent { obs(queued.count) } label: { Text("Waiting") }
+            LabeledContent { obs(sentToday) } label: { Text("Sent today") }
             Button {
                 Task { await sendNow() }
             } label: {
                 HStack {
-                    if sending { ProgressView().controlSize(.small) }
+                    if sending { EcgLoader() }
                     Text(account.state.session?.isLocalOnly == true
                          ? "Send now (gives this device a server account)" : "Send now")
                 }
@@ -86,6 +85,13 @@ struct DiagnosticsSettingsView: View {
         }
     }
 
+    private func obs(_ n: Int) -> some View {
+        Text("\(n)")
+            .font(.system(.body, design: .monospaced))
+            .monospacedDigit()
+            .foregroundStyle(Color.wardInkSecondary)
+    }
+
     @ViewBuilder
     private func eventsSection(_ title: String, _ events: [DiagEvent]) -> some View {
         if !events.isEmpty {
@@ -94,7 +100,7 @@ struct DiagnosticsSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(DiagFingerprint.title(event, binary: event.device?.binary ?? "RedPen"))
                             .font(.footnote.weight(.semibold))
-                        Text(detail(event)).font(.caption2).foregroundStyle(.secondary)
+                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(.secondary)
                     }
                 }
             }

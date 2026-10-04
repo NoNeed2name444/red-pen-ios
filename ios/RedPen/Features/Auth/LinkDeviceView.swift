@@ -23,8 +23,6 @@ struct LinkDeviceView: View {
     @FocusState private var typing: Bool
     @Environment(\.windowSpan) private var span
 
-    private static let field = RoundedRectangle(cornerRadius: 14, style: .continuous)
-
     /// A centred sheet: on a wide iPad the bar must centre under the form
     /// rather than hug the trailing edge as it does on a full-width screen.
     private var sheetSpan: WindowSpan { min(span, WindowSpan.middling) }
@@ -36,8 +34,7 @@ struct LinkDeviceView: View {
                 joinSection
                 statusRows
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Link another device")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -76,11 +73,7 @@ struct LinkDeviceView: View {
                 .focused($typing)
                 .onSubmit { Task { await join() } }
                 .onChange(of: typed) { _, new in typedChanged(new) }
-                // the field on its own raised surface, standing out of the
-                // glass like the code slab above it; no lean, for the caret
-                .padding(12)
-                .background(.regularMaterial, in: LinkDeviceView.field)
-                .popOut(.raised, in: LinkDeviceView.field, cues: .translateOnly)
+                .wardField()
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
         } header: {
@@ -103,15 +96,15 @@ struct LinkDeviceView: View {
     @ViewBuilder
     private var statusRows: some View {
         if account.busy {
-            Section { ProgressView().frame(maxWidth: .infinity) }
+            Section { EcgLoader().frame(maxWidth: .infinity) }
         }
         if let trouble = account.trouble {
-            Section { Text(trouble).foregroundStyle(.red) }
+            Section { WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble) }
         }
         if joined {
             Section {
                 Label("Linked. Your library is syncing.", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.wardSuccess)
             }
         }
     }
@@ -135,14 +128,14 @@ struct LinkDeviceView: View {
             Button { Task { await join() } } label: {
                 Label("Join", systemImage: "link")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
             .disabled(typed.count != 8 || account.busy)
         } else {
             Button { Task { await makeCode() } } label: {
                 Label(showTitle, systemImage: "number.square")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
             .disabled(account.busy)
         }
@@ -205,30 +198,30 @@ struct LinkDeviceView: View {
     }
 }
 
-/// The code to type on the other device, on a slab that stands out of the
-/// glass, with how long it still works.
+/// The code to type on the other device, on a card, with how long it still
+/// works.
 private struct PairingCodeSlab: View {
     let code: String
     let expires: Date
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(spacing: 10) {
             Text(PairingCodeSlab.spaced(code))
                 .font(.system(size: 40, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.wardInk)
                 .textSelection(.enabled)
                 .accessibilityLabel(PairingCodeSlab.spoken(code))
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(PairingCodeSlab.countdown(until: expires, now: context.date))
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.footnote, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
         .padding(.horizontal, 12)
-        .background(.regularMaterial, in: shape)
-        .popOut(.raised, in: shape)
+        .wardCard(padding: 0)
     }
 
     /// "ABCD – EFGH", with thin spaces round the dash.

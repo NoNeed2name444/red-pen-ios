@@ -7,7 +7,7 @@ import LocalAuthentication
 //
 // Case content reads like patient notes, so a student can lock the app:
 // Settings > Privacy > "Lock with Face ID" (PlatformSettingsSection). While
-// the app is in the app switcher a blurred glass shield covers it, and coming
+// the app is in the app switcher a ward-white shield covers it, and coming
 // back asks for Face ID (or the passcode) before the shield lifts.
 //
 // Xcode build only: Face ID needs NSFaceIDUsageDescription in Info.plist,
@@ -48,7 +48,7 @@ enum AppLock {
     }
 
     /// Asks once; true when the owner is confirmed.
-    static func unlock(reason: String = "Unlock Stethoscore") async -> Bool {
+    static func unlock(reason: String = "Unlock \(Brand.name)") async -> Bool {
         #if canImport(LocalAuthentication) && !SWIFT_PACKAGE
         let context = LAContext()
         do {
@@ -137,21 +137,32 @@ private struct AppLockShield: ViewModifier {
 
     private var shield: some View {
         ZStack {
-            Rectangle().fill(.ultraThinMaterial)
-            VStack(spacing: 16) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 34, weight: .semibold))
-                    .frame(width: 72, height: 72)
-                    .liquidGlassChip()
-                Text("Stethoscore is locked")
+            // WardBackground lets taps through; this solid layer keeps the
+            // app underneath hidden and untouchable
+            Color.wardBackground
+            WardBackground()
+            VStack(spacing: WardSpace.l) {
+                HStack(spacing: WardSpace.s) {
+                    EcgSquiggle()
+                        .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .frame(width: 32, height: 16)
+                        .accessibilityHidden(true)
+                    Text(Brand.name)
+                        .font(WardType.title)
+                        .foregroundStyle(Color.wardInk)
+                }
+                WardIconSquare(symbol: "lock.fill", tone: .blue, size: 72)
+                Text("Locked")
                     .font(.headline)
+                    .foregroundStyle(Color.wardInk)
                 if locked && !covered {
                     Button("Unlock") { Task { await unlock() } }
-                        .buttonStyle(.glassProminent)
+                        .buttonStyle(WardButtonStyle(fills: false))
                         .disabled(asking)
                         .accessibilityIdentifier("appLockUnlock")
                 }
             }
+            .padding(WardSpace.xl)
         }
         .ignoresSafeArea()
         .accessibilityElement(children: .contain)
