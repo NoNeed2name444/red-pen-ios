@@ -6,14 +6,16 @@ import SwiftUI
 // app while it runs and the panel it opens into (WardRoundOverlay), and the
 // goal ring beside the streak.
 //
-// The time left is a thin orbit ring that redraws once a second, and only
-// while a clock is actually running: a paused round, a finished break and a
-// finished round are still pictures. Breaks sit on a calm, still star field -
-// nothing on it moves.
+// The time left is a WardRing that redraws once a second, and only while a
+// clock is actually running: a paused round, a finished break and a finished
+// round are still pictures.
 
 enum WardRoundStyle {
-    /// Starlight blue: calm, and apart from the pen red of the actions.
-    static let tint = Color(red: 0.55, green: 0.78, blue: 0.94)
+    /// Theatre Blue while focusing, green on a break, grey while paused.
+    static func tone(_ round: WardRound) -> WardTone {
+        if round.phase == .rest || round.phase == .ready { return .green }
+        return round.isPaused ? .grey : .blue
+    }
 }
 
 /// Redraws `content` once a second while the round's clock runs, on the
@@ -36,32 +38,18 @@ struct WardRoundTicker<Content: View>: View {
     }
 }
 
-/// A thin ring of the time left, with a small body riding its end.
-struct OrbitRing: View {
-    let fraction: Double
-    var tint: Color = WardRoundStyle.tint
+/// The time left as a small ring with no numeral, for the tile and the chip
+/// (the time sits beside it in SF Mono).
+struct WardRoundMiniRing: View {
+    let round: WardRound
+    let now: Date
     var width: CGFloat = 3
     var size: CGFloat = 22
 
     var body: some View {
-        let turn: Double = 360 * fraction
-        let dot: CGFloat = width * 2.2
-        ZStack {
-            Circle()
-                .stroke(Color.primary.opacity(0.12), lineWidth: width)
-            Circle()
-                .trim(from: 0, to: fraction)
-                .stroke(tint, style: StrokeStyle(lineWidth: width, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Circle()
-                .fill(tint)
-                .frame(width: dot, height: dot)
-                .offset(y: -size / 2)
-                .rotationEffect(.degrees(turn))
-                .opacity(fraction > 0 ? 1 : 0)
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
+        WardRing(value: round.leftFraction(at: now), tone: WardRoundStyle.tone(round), lineWidth: width, centre: "")
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -75,7 +63,6 @@ struct WardRoundTile: View {
     @AppStorage(WardRoundClock.breakKey) private var rest: Int = 5
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(alignment: .leading, spacing: 12) {
             if let round = clock.round {
                 running(round)
@@ -83,20 +70,17 @@ struct WardRoundTile: View {
                 setup
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular.tint(WardRoundStyle.tint.opacity(0.14)), in: shape)
-        .popOut(.raised, in: shape)
+        .wardCard(padding: 14)
     }
 
     @ViewBuilder
     private var setup: some View {
         Label("Start a ward round", systemImage: "stethoscope")
             .font(.headline)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Color.wardInk)
         Text("Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak.")
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
         Picker("Focus", selection: $focus) {
             ForEach(WardRoundPlan.focusChoices, id: \.self) { minutes in
@@ -114,11 +98,9 @@ struct WardRoundTile: View {
         .accessibilityIdentifier("wardRoundBreak")
         Button(action: start) {
             Label("Start round 1", systemImage: "play.fill")
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glassProminent)
-        .popOut(.hero, in: Capsule(), tint: .accentColor)
+        .buttonStyle(.wardPrimary)
         .accessibilityIdentifier("wardRoundStart")
     }
 
@@ -126,16 +108,17 @@ struct WardRoundTile: View {
         HStack(spacing: 12) {
             WardRoundTicker(round: round) { now in
                 HStack(spacing: 12) {
-                    OrbitRing(fraction: round.leftFraction(at: now), width: 4, size: 40)
+                    WardRoundMiniRing(round: round, now: now, width: 4, size: 40)
                     Text(round.caption(at: now))
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                         .monospacedDigit()
+                        .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                 }
             }
             Spacer(minLength: 8)
             Button("Open") { WardRoundOverlay.shared.open() }
-                .buttonStyle(.glass)
+                .buttonStyle(.wardCompact)
                 .accessibilityIdentifier("wardRoundOpen")
         }
     }
@@ -159,13 +142,13 @@ struct WardRoundChip: View {
     var body: some View {
         WardRoundTicker(round: round) { now in
             HStack(spacing: 8) {
-                OrbitRing(fraction: round.leftFraction(at: now))
+                WardRoundMiniRing(round: round, now: now)
                 Text(notice ?? words(at: now))
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
             }
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
@@ -173,9 +156,10 @@ struct WardRoundChip: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Ward round: " + round.caption(at: now))
         }
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .contentShape(Capsule())
-        .glassEffect(.regular.interactive(), in: Capsule())
-        .popOut(.floating, in: Capsule())
         .onTapGesture(perform: open)
         .sensoryFeedback(.success, trigger: notice) { _, new in new != nil }
         .accessibilityAddTraits(.isButton)
@@ -205,37 +189,29 @@ struct WardRoundPanel: View {
 
     private var clock: WardRoundClock { WardRoundClock.shared }
 
-    private var resting: Bool { round.phase == .rest || round.phase == .ready }
-
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         VStack(spacing: 16) {
             header
             WardRoundTicker(round: round) { now in face(now) }
             if let notice {
                 Text(notice)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .multilineTextAlignment(.center)
             }
             controls
         }
-        .padding(20)
-        .background {
-            if resting { StillStarField().clipShape(shape) }
-        }
-        .glassEffect(.regular, in: shape)
-        // a tap on the panel's own glass is not a tap on the dimming behind
+        .wardCard(padding: 20)
+        // a tap on the panel itself is not a tap on the dimming behind
         .contentShape(shape)
-        .popOut(.floating, in: shape)
-        .environment(\.colorScheme, resting ? .dark : colorSchemeBeneath)
     }
-
-    @Environment(\.colorScheme) private var colorSchemeBeneath
 
     private var header: some View {
         HStack {
             Label("Ward round", systemImage: "stethoscope")
                 .font(.headline)
+                .foregroundStyle(Color.wardInk)
             Spacer(minLength: 8)
             Button(action: close) {
                 Image(systemName: "chevron.down")
@@ -244,7 +220,7 @@ struct WardRoundPanel: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .accessibilityLabel("Fold the ward round away")
             .accessibilityIdentifier("wardRoundFold")
         }
@@ -253,25 +229,18 @@ struct WardRoundPanel: View {
     private func face(_ now: Date) -> some View {
         let time: String = WardRound.clock(round.remaining(at: now))
         return VStack(spacing: 10) {
-            ZStack {
-                OrbitRing(fraction: round.leftFraction(at: now), width: 6, size: 190)
-                VStack(spacing: 4) {
-                    Text(phaseWord)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(round.isTimed ? time : "\u{2013}")
-                        .font(.system(size: 44, weight: .bold, design: .rounded).monospacedDigit())
-                    Text(round.roundWords)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            VStack(spacing: 8) {
+                WardRing(value: round.leftFraction(at: now), tone: WardRoundStyle.tone(round), label: phaseWord,
+                         lineWidth: 6, centre: round.isTimed ? time : "\u{2013}")
+                    .frame(width: 180, height: 180)
+                Text(round.roundWords)
+                    .wardSmallCaps()
             }
-            .frame(width: 200, height: 200)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(round.caption(at: now))
             Text(tally)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(.subheadline, design: .monospaced))
+                .foregroundStyle(Color.wardInkSecondary)
                 .monospacedDigit()
         }
     }
@@ -307,7 +276,7 @@ struct WardRoundPanel: View {
         case .rest:
             Text("Look away from the screen for a while.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             wide("Start round \(round.round + 1) now", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
             stopButton
         case .ready:
@@ -328,6 +297,7 @@ struct WardRoundPanel: View {
         } label: {
             Text("Stop the ward round")
                 .font(.subheadline)
+                .foregroundStyle(Color.wardDanger)
                 .frame(minHeight: 44)
         }
         .buttonStyle(.borderless)
@@ -338,10 +308,9 @@ struct WardRoundPanel: View {
                       action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.wardSecondary)
         .accessibilityIdentifier(id)
     }
 
@@ -349,54 +318,10 @@ struct WardRoundPanel: View {
                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glassProminent)
-        .popOut(.hero, in: Capsule(), tint: .accentColor)
+        .buttonStyle(.wardPrimary)
         .accessibilityIdentifier(id)
-    }
-}
-
-/// A calm night for the break: stars drawn once, in place. Nothing moves.
-struct StillStarField: View {
-    private struct Star {
-        var x: CGFloat
-        var y: CGFloat
-        var size: CGFloat
-        var glow: Double
-    }
-
-    /// The same sky every time, from a fixed seed.
-    private static let stars: [Star] = {
-        var seed: UInt64 = 0x5EED_CA1D
-        func next() -> CGFloat {
-            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
-            return CGFloat(seed >> 40) / CGFloat(1 << 24)
-        }
-        var out: [Star] = []
-        for _ in 0..<90 {
-            let x: CGFloat = next()
-            let y: CGFloat = next()
-            let size: CGFloat = 0.6 + 1.8 * next() * next()
-            let glow: Double = Double(0.35 + 0.6 * next())
-            out.append(Star(x: x, y: y, size: size, glow: glow))
-        }
-        return out
-    }()
-
-    var body: some View {
-        Canvas { context, size in
-            for star in Self.stars {
-                let point = CGPoint(x: star.x * size.width, y: star.y * size.height)
-                let box = CGRect(x: point.x - star.size / 2, y: point.y - star.size / 2,
-                                 width: star.size, height: star.size)
-                context.fill(Path(ellipseIn: box), with: .color(.white.opacity(star.glow)))
-            }
-        }
-        .background(SkyPalette.ink)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
 
@@ -411,10 +336,10 @@ struct DailyGoalRing: View {
 
     var body: some View {
         let progress = GoalProgress(done: done, goal: GoalProgress.goal(stored: stored))
-        let tint: Color = progress.met ? .green : .orange
+        let tint: Color = progress.met ? Color.wardSuccess : Color.wardBeam
         HStack(spacing: 6) {
             ZStack {
-                Circle().stroke(Color.primary.opacity(0.12), lineWidth: 3)
+                Circle().stroke(Color.wardHairline, lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: progress.fraction)
                     .stroke(tint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -422,9 +347,9 @@ struct DailyGoalRing: View {
             }
             .frame(width: 18, height: 18)
             Text(progress.label)
-                .font(.caption.weight(.semibold))
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1)
         }
         .accessibilityElement(children: .ignore)
@@ -442,14 +367,14 @@ struct TodayGoalRow: View {
         let rest: String = log.restDayReady ? "Rest day ready" : "Rest day used this week"
         HStack(spacing: 12) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(streak > 0 ? Color.orange : Color.secondary)
+                .foregroundStyle(streak > 0 ? Color.wardBeam : Color.wardInkSecondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(days).font(.subheadline.weight(.semibold))
+                Text(days).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Color.wardInk)
                 Label(rest, systemImage: "moon.fill")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             DailyGoalRing(done: log.today)

@@ -59,8 +59,10 @@ private struct LearnSheet: View {
         if let set = store.singleQuestionQuiz(id) {
             MCQQuizView(set: set, keepsProgress: false)
         } else {
-            ContentUnavailableView("That question has gone", systemImage: "questionmark.folder",
-                                   description: Text("It may have been deleted, or edited on another device."))
+            WardEmptyState(symbol: "questionmark.folder", title: "That question has gone",
+                           message: "It may have been deleted, or edited on another device.")
+                .frame(maxHeight: .infinity)
+                .wardScreen()
         }
     }
 
@@ -69,7 +71,9 @@ private struct LearnSheet: View {
         if let set = store.library.first(where: { $0.id == id }) {
             GuessFirstView(set: set)
         } else {
-            ContentUnavailableView("That set has gone", systemImage: "questionmark.folder")
+            WardEmptyState(symbol: "questionmark.folder", title: "That set has gone")
+                .frame(maxHeight: .infinity)
+                .wardScreen()
         }
     }
 }

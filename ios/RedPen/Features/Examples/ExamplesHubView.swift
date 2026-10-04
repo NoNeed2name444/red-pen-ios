@@ -7,7 +7,7 @@ import SwiftUI
 /// can add the example sets from here.
 ///
 /// A list on a phone. On a wide iPad the same links are tiles, a few across,
-/// standing a little out of the glass - with the same identifiers, so the
+/// white cards on the grid - with the same identifiers, so the
 /// tour and its test find them either way.
 struct ExamplesHubView: View {
     @EnvironmentObject private var store: Store
@@ -30,7 +30,6 @@ struct ExamplesHubView: View {
                 list
             }
         }
-        .background(LibraryBackdrop())
         .navigationTitle("Try every feature")
         .accessibilityIdentifier("examplesHub")
     }
@@ -60,7 +59,7 @@ struct ExamplesHubView: View {
             } header: { Text("In the library") }
             .font(.subheadline)
         }
-        .scrollContentBackground(.hidden)
+        .wardForm()
     }
 
     // MARK: - A wide iPad: tiles
@@ -77,15 +76,15 @@ struct ExamplesHubView: View {
                     ExamplesHeading(title: "In the library")
                     VStack(alignment: .leading, spacing: 10) { libraryNotes }
                         .font(.subheadline)
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .foregroundStyle(Color.wardInk)
+                        .wardCard()
                 }
             }
             .padding(20)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
+        .wardScreen()
     }
 
     private func gridSection<Content: View>(_ title: String, columns: [GridItem],
@@ -239,12 +238,12 @@ private struct HowToReachExample: View {
         ScrollView {
             HowToReachCard(differential: ReasoningExamples.herniaDifferential,
                            lecture: ReasoningExamples.sourceLabel)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .wardCard(padding: 0)
                 .padding(16)
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
         }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .navigationTitle("How to reach it")
     }
 }
@@ -254,12 +253,8 @@ private struct ExamplesHeading: View {
     let title: String
 
     var body: some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
+        WardSectionLabel(title)
             .padding(.horizontal, 4)
-            .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -271,45 +266,38 @@ private struct ExampleRowLabel: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: symbol).font(.title3).foregroundStyle(.secondary).frame(width: 30)
+            WardIconSquare(symbol: symbol, size: 34)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body.weight(.semibold))
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
+                Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 2)
     }
 }
 
-/// An example as a tile: the same symbol, title and line, on a frosted
-/// face that stands out of the glass.
+/// An example as a tile: the same symbol, title and line, on a white card.
 private struct ExampleTile: View {
     let title: String
     let symbol: String
     let detail: String
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.title2)
-                .foregroundStyle(.tint)
-                .frame(width: 32)
-                .accessibilityHidden(true)
+            WardIconSquare(symbol: symbol, size: 36)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                 Text(detail)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(3)
             }
             Spacer(minLength: 0)
         }
         .multilineTextAlignment(.leading)
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .background(.regularMaterial, in: shape)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+        .wardCard()
     }
 }

@@ -59,8 +59,8 @@ struct CoverageView: View {
             if !ready {
                 Section {
                     HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Reading your library\u{2026}").foregroundStyle(.secondary)
+                        EcgLoader()
+                        Text("Reading your library\u{2026}").foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             } else {
@@ -72,8 +72,7 @@ struct CoverageView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         // the slab only once there is something to show and check
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if ready {
@@ -181,7 +180,7 @@ struct CoverageView: View {
             } label: {
                 Label(title, systemImage: "sparkles")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
             .disabled(areas.isEmpty)
         }
@@ -245,19 +244,17 @@ struct CoverageView: View {
                 checkSummary(check)
             }
             if let failure = checker.failure {
-                Text(failure)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: failure)
             }
             if let blocker = checker.blocker {
                 Text(blocker)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             if !hasNews {
                 Text("The keyword check below is instant. Check with AI reads what your matching items actually say.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("AI check")
@@ -272,23 +269,25 @@ struct CoverageView: View {
             if check.isExample {
                 Label("Example check", systemImage: "wand.and.stars")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Text("Made up from your keyword result to show what a real check looks like, for the first \(CoverageExamples.areaCount) areas.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             } else {
                 let who: String = CoverageCloudCheck.displayName(check.source)
                 let when: String = check.date.formatted(.relative(presentation: .named))
                 Text("Checked by \(who) \u{00B7} \(when)")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 if !check.byPreferredModel {
                     Text("Gemini 3.1 Pro wasn't available, so \(who) checked it.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 if !check.failedAreas.isEmpty {
                     Text(Self.failedLine(check.failedAreas))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
@@ -316,6 +315,7 @@ struct CoverageView: View {
                 if !next.isEmpty {
                     Label("Study next: \(next)", systemImage: "arrow.forward.circle")
                         .font(.subheadline)
+                        .foregroundStyle(Color.wardPrimaryInk)
                 }
             } header: {
                 Text("\(target.name) blueprint")
@@ -343,6 +343,7 @@ struct CoverageView: View {
                     Text(area.area.name)
                     Spacer()
                     Text(tally)
+                        .font(.system(.caption, design: .monospaced))
                         .textCase(nil)
                 }
             }
@@ -370,39 +371,44 @@ struct CoverageView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(sub.subtopic.name)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 StatusChip(status: status)
             }
             Text(Self.detail(sub))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInkSecondary)
             if let ai {
                 if !ai.evidence.isEmpty {
                     Text(ai.evidence)
                         .font(.caption)
+                        .foregroundStyle(Color.wardInk)
                 }
                 if ai.status.coverage != sub.status {
                     Text("Keywords said \(sub.status.label.lowercased())")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 if !ai.suggestion.isEmpty {
                     Label(ai.suggestion, systemImage: "lightbulb")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
             if isGap {
-                // a glass chip standing out of the row; the finger's worth
-                // of target is taller than the chip
+                // a small capsule on the row; the finger's worth of target
+                // is taller than the capsule
                 Button {
                     generate(sub, area: area)
                 } label: {
                     Label("Generate questions", systemImage: "wand.and.stars")
                         .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.wardPrimaryInk)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .liquidGlassChip(tint: nil, plane: .raised)
+                        .background(Color.wardSurface, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
                         .frame(minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
@@ -432,17 +438,27 @@ struct CoverageView: View {
         return parts.joined(separator: " \u{00B7} ")
     }
 
-    static func color(_ status: CoverageStatus) -> Color {
+    static func tone(_ status: CoverageStatus) -> WardTone {
         switch status {
         case .covered: return .green
-        case .thin: return .orange
-        case .notCovered: return .red
+        case .thin: return .warning
+        case .notCovered: return .danger
+        }
+    }
+
+    static func color(_ status: CoverageStatus) -> Color { tone(status).color }
+
+    static func symbol(_ status: CoverageStatus) -> String {
+        switch status {
+        case .covered: return "checkmark.circle.fill"
+        case .thin: return "circle.lefthalf.filled"
+        case .notCovered: return "xmark.circle.fill"
         }
     }
 }
 
 /// One of the three counts at the top, as a chip that filters the rows to
-/// its status. It stands a little out of the glass; the chosen one is filled.
+/// its status. White with a hairline; the chosen one takes its tone.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -450,16 +466,18 @@ private struct CoverageCountChip: View {
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
-        let fill: Color = chosen ? colour.opacity(0.22) : Color.clear
-        let edge: Color = chosen ? colour.opacity(0.6) : Color.primary.opacity(0.08)
+        let fill: Color = chosen ? colour.opacity(0.12) : Color.clear
+        let edge: Color = chosen ? colour.opacity(0.6) : Color.wardHairline
         let shape = Capsule()
         VStack(spacing: 2) {
             Text("\(count)")
-                .font(.title2.weight(.bold).monospacedDigit())
+                .font(WardType.obsLarge)
+                .monospacedDigit()
                 .foregroundStyle(colour)
-            Text(status.label)
+            Label(status.label, systemImage: CoverageView.symbol(status))
+                .labelStyle(.titleAndIcon)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -468,13 +486,13 @@ private struct CoverageCountChip: View {
         .frame(maxWidth: .infinity, minHeight: 56)
         .background {
             ZStack {
-                shape.fill(.regularMaterial)
+                shape.fill(Color.wardSurface)
                 shape.fill(fill)
             }
         }
         .overlay(shape.strokeBorder(edge, lineWidth: 1))
+        .wardShadow()
         .contentShape(shape)
-        .popOut(.raised, in: shape, tint: chosen ? colour : nil)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)
         .accessibilityElement(children: .combine)
@@ -494,30 +512,25 @@ private struct CoverageCheckProgress: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(status)
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-                ThinProgress(fraction: fraction)
+                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
+                EcgStrip(progress: fraction)
             }
             .accessibilityElement(children: .combine)
             Spacer(minLength: 8)
             Button("Stop", role: .cancel, action: onStop)
-                .buttonStyle(.bigCompanion)
+                .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 .keyboardShortcut(.cancelAction)
         }
     }
 }
 
-/// A small coloured label for a coverage status.
+/// A coverage status as a WardChip, with an icon so it never rests on colour.
 struct StatusChip: View {
     let status: CoverageStatus
 
     var body: some View {
-        Text(status.label)
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .foregroundStyle(CoverageView.color(status))
-            .background(CoverageView.color(status).opacity(0.15), in: Capsule())
+        WardChip(text: status.label, tone: CoverageView.tone(status), symbol: CoverageView.symbol(status))
             .fixedSize()
     }
 }

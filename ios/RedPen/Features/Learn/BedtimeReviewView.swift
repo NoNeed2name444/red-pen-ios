@@ -16,30 +16,31 @@ struct BedtimeReviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Today\u{2019}s misses").font(.largeTitle.weight(.semibold))
+                    Text("Today\u{2019}s misses").font(.largeTitle.weight(.semibold)).foregroundStyle(Color.wardInk)
                     Text(subtitle(picks.count))
                         .font(.title3)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(picks, id: \.question.id) { pick in
                     BedtimeItem(pick: pick, rule: store.ruleSheet[pick.question.id]?.text)
                 }
                 Text("That\u{2019}s all. Good night \u{2014} tomorrow morning, two minutes on these.")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                 Button("Good night") { dismiss() }
-                    .buttonStyle(.bigSecondary)
+                    .buttonStyle(.wardSecondary)
             }
             .padding(24)
             .frame(maxWidth: 640, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.wardBackground.ignoresSafeArea())
+        .tint(Color.wardPrimary)
         .environment(\.colorScheme, .dark)
-        .environment(\.modeTint, Color(red: 0.62, green: 0.58, blue: 0.85))
+        .environment(\.modeTint, Color.wardPrimary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(Color.wardBackground, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
@@ -62,15 +63,15 @@ private struct BedtimeItem: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(q.stem)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(4)
             Text(answer)
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(Color(white: 0.92))
+                .foregroundStyle(Color.wardInk)
             if !line.isEmpty {
                 Text(line)
                     .font(.title3)
-                    .foregroundStyle(Color(white: 0.78))
+                    .foregroundStyle(Color.wardInk.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -98,18 +99,19 @@ struct MorningCheckView: View {
             Spacer(minLength: 0)
             Image(systemName: "sunrise.fill")
                 .font(.system(size: 52))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.wardBeam)
                 .accessibilityHidden(true)
-            Text("Morning check").font(.largeTitle.weight(.bold))
+            Text("Morning check").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)
             Text(Self.note(count))
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 480)
             Spacer(minLength: 0)
         }
         .padding(24)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .wardScreen()
         .studyBar {
             if count > 0 {
                 Button {
@@ -118,10 +120,10 @@ struct MorningCheckView: View {
                 } label: {
                     Label("Start", systemImage: "play.fill")
                 }
-                .buttonStyle(.bigPrimary)
+                .buttonStyle(.wardPrimary)
             } else {
                 Button("Done") { dismiss() }
-                    .buttonStyle(.bigSecondary)
+                    .buttonStyle(.wardSecondary)
             }
         }
         .navigationTitle("")

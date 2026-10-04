@@ -33,11 +33,11 @@ struct ExamDashboardCard: View {
                     bars
                     nextUp(exam)
                 } else {
-                    ProgressView().frame(maxWidth: .infinity)
+                    EcgLoader().frame(maxWidth: .infinity)
                 }
                 Text(ExamDashboardCard.sourceNote(exam))
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 chooseFirst
@@ -58,11 +58,12 @@ struct ExamDashboardCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Which exam are you preparing for?", systemImage: "graduationcap")
                 .font(.headline)
+                .foregroundStyle(Color.wardInk)
             Text("Pick it and questions, the plan, the coverage map and mock papers follow its format and blueprint.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             Button("Choose your exam") { picking = true }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.wardCompact)
                 .accessibilityIdentifier("examDashboardChoose")
         }
     }
@@ -73,17 +74,18 @@ struct ExamDashboardCard: View {
         let second: String? = ExamChoice.currentSecondary.map { "with \($0.shortName)" }
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(exam.name).font(.headline)
+                Text(exam.name).font(.headline).foregroundStyle(Color.wardInk)
                 if let second {
-                    Text(second).font(.caption).foregroundStyle(.secondary)
+                    Text(second).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 8)
-            Text(countdown)
-                .font(.title3.weight(.bold).monospacedDigit())
+            WardPill(text: countdown)
+                .monospacedDigit()
                 .accessibilityLabel(days.map { "\($0) days to go" } ?? "No exam date")
             Button { picking = true } label: {
                 Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
             }
@@ -99,14 +101,13 @@ struct ExamDashboardCard: View {
         let above: Bool = predicted >= exam.passMark
         let line: String = "Predicted ~\(ExamDashboardCard.percent(predicted)) \u{00B7} pass mark ~\(ExamDashboardCard.percent(exam.passMark)) \u{00B7} blueprint covered \(ExamDashboardCard.percent(covered))"
         return VStack(alignment: .leading, spacing: 6) {
-            Gauge(value: min(1, max(0, predicted))) {
-                EmptyView()
-            }
-            .gaugeStyle(.accessoryLinearCapacity)
-            .tint(above ? Color.green : Color.orange)
+            WardProgressBar(value: predicted, label: "Predicted score")
+            WardChip(text: above ? "Above the pass mark" : "Below the pass mark",
+                     tone: above ? .green : .warning,
+                     symbol: above ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
             Text(line)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .combine)
     }
@@ -115,7 +116,7 @@ struct ExamDashboardCard: View {
     private var bars: some View {
         let top: [BlueprintStanding] = Array(standings.filter { $0.area.percent > 0 }.prefix(6))
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Blueprint").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            WardSectionLabel("Blueprint")
             ForEach(top) { s in
                 BlueprintBar(standing: s)
             }
@@ -125,19 +126,20 @@ struct ExamDashboardCard: View {
     private func nextUp(_ exam: TargetExam) -> some View {
         let next: [BlueprintStanding] = ExamBlueprint.studyNext(standings, limit: 3)
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Study next").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            WardSectionLabel("Study next")
             ForEach(next) { s in
                 Button {
                     preset = NewSetPreset(blueprintArea: s.area.title, exam: exam)
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "sparkles").foregroundStyle(.tint).accessibilityHidden(true)
+                        Image(systemName: "sparkles").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(s.area.title).foregroundStyle(.primary)
-                            Text(ExamDashboardCard.why(s)).font(.caption).foregroundStyle(.secondary)
+                            Text(s.area.title).foregroundStyle(Color.wardInk)
+                            Text(ExamDashboardCard.why(s)).font(.caption).monospacedDigit()
+                                .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)
-                        Image(systemName: "plus.circle").foregroundStyle(.tint).accessibilityHidden(true)
+                        Image(systemName: "plus.circle").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -197,29 +199,24 @@ struct ExamDashboardCard: View {
     }
 }
 
-/// One blueprint area: its share, and a bar of how much is covered, coloured
-/// by readiness.
+/// One blueprint area: its share, its readiness, and a bar of how much is
+/// covered.
 struct BlueprintBar: View {
     let standing: BlueprintStanding
 
     var body: some View {
         let share: String = "\(Int(standing.area.percent.rounded()))%"
-        let colour: Color = standing.readiness >= 0.6 ? .green : standing.readiness >= 0.45 ? .orange : .red
+        let ready: String = ExamDashboardCard.percent(standing.readiness) + " ready"
+        let readyTone: WardTone = standing.readiness >= 0.6 ? .green : (standing.readiness >= 0.45 ? .warning : .danger)
         let spoken: String = "\(standing.area.title), \(share) of the exam, \(ExamDashboardCard.percent(standing.coverage)) covered, readiness \(ExamDashboardCard.percent(standing.readiness))"
         return VStack(alignment: .leading, spacing: 3) {
             HStack {
-                Text(standing.area.title).font(.caption).lineLimit(1)
+                Text(standing.area.title).font(.caption).lineLimit(1).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 6)
-                Text(share).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text(ready).font(.system(.caption2, design: .monospaced)).foregroundStyle(readyTone.color)
+                Text(share).font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
             }
-            GeometryReader { geo in
-                let width: CGFloat = geo.size.width * CGFloat(min(1, max(0, standing.coverage)))
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.08))
-                    Capsule().fill(colour.opacity(0.8)).frame(width: max(4, width))
-                }
-            }
-            .frame(height: 6)
+            WardProgressBar(value: standing.coverage, label: standing.area.title)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)

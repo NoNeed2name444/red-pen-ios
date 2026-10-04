@@ -6,7 +6,7 @@ import UIKit
 // While a ward round runs, a small chip floats at the bottom of the screen,
 // in the same band as the library's New set button over the dock - and it
 // stays there wherever the student goes: into a deck, a quiz in a sheet, the
-// 3D map. Tapping it opens the round in a glass panel over everything;
+// 3D map. Tapping it opens the round in a card over everything;
 // dragging it moves it to another corner, out of a screen's way.
 //
 // It lives in a window of its own, one level above the app's, because
@@ -177,7 +177,7 @@ struct WardRoundFloat: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { area = $0 }
-        .tint(Color(red: 0.78, green: 0.16, blue: 0.16))
+        .tint(Color.wardPrimary)
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: model.expanded)
     }
 
