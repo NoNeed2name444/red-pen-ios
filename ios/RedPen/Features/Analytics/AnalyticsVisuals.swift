@@ -2,11 +2,10 @@ import SwiftUI
 import Charts
 
 // The pictures on the Analytics page, kept apart so each can be read (and
-// reused) on its own. The score and readiness rings are photon rings - the
-// 3D map's black-hole palette, ember to white-gold - and everything else is
-// drawn in the accent colour at a few strengths, so the page stays calm, and
-// each one reads to VoiceOver as a single sentence rather than a pile of
-// shapes.
+// reused) on its own. The score and readiness rings are a hairline track
+// with an arc in the ring's tone, and everything else is drawn in Theatre
+// Blue at a few strengths, so the page stays calm, and each one reads to
+// VoiceOver as a single sentence rather than a pile of shapes.
 
 /// One arc of a segmented ring: part of a whole, in its own colour.
 struct RingSegment: Identifiable, Hashable {
@@ -35,9 +34,9 @@ struct ProgressRing<Centre: View>: View {
     var spoken: String
     var size: CGFloat
     var lineWidth: CGFloat
-    /// A ring that can be pressed: it sits on a frosted disc that stands a
-    /// little out of the glass (see `RingButtonStyle`). The ring itself and
-    /// its fill never move on their own.
+    /// A ring that can be pressed: it sits on a Clean Sheet disc with a
+    /// hairline edge (see `RingButtonStyle`). The ring itself and its fill
+    /// never move on their own.
     var raised: Bool
     let centre: Centre
 
@@ -45,7 +44,7 @@ struct ProgressRing<Centre: View>: View {
     @Environment(\.ringPressed) private var pressed
     @State private var shown = false
 
-    init(value: Double, total: Double = 1, segments: [RingSegment] = [], tint: Color = .accentColor,
+    init(value: Double, total: Double = 1, segments: [RingSegment] = [], tint: Color = .wardPrimary,
          label: String, marker: Double? = nil, spoken: String = "", size: CGFloat = 64,
          lineWidth: CGFloat = 7, raised: Bool = false, @ViewBuilder centre: () -> Centre) {
         self.value = value
@@ -60,9 +59,6 @@ struct ProgressRing<Centre: View>: View {
         self.raised = raised
         self.centre = centre()
     }
-
-    /// The photon ring is thinner than its track.
-    private var photonWidth: CGFloat { max(2.5, lineWidth * 0.62) }
 
     /// How far round the plain fill goes, 0...1.
     private var fraction: Double {
@@ -96,13 +92,14 @@ struct ProgressRing<Centre: View>: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
+                    .stroke(Color.wardHairline, lineWidth: lineWidth)
                     .padding(inset)
                 if segments.isEmpty {
-                    // a thin photon ring, ember to white-gold as it fills
-                    // (Space/PhotonRing.swift); the track stays full width
-                    PhotonArc(fraction: filled, lineWidth: photonWidth)
-                        .padding(inset - photonWidth / 2)
+                    Circle()
+                        .trim(from: 0, to: filled)
+                        .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .padding(inset)
                 } else {
                     ForEach(arcs) { arc in
                         Circle()
@@ -114,7 +111,7 @@ struct ProgressRing<Centre: View>: View {
                 }
                 if let marker {
                     Capsule()
-                        .fill(Color.primary.opacity(0.7))
+                        .fill(Color.wardInk)
                         .frame(width: 2, height: markerHeight)
                         .offset(y: markerOffset)
                         .rotationEffect(.degrees(markerAngle))
@@ -145,8 +142,8 @@ struct ProgressRing<Centre: View>: View {
     }
 }
 
-/// A pressable ring's disc: a frosted face under the ring, raised out of the
-/// glass, sinking flat while pressed. A plain ring is left as it is.
+/// A pressable ring's disc: a Clean Sheet face with a hairline edge under the
+/// ring, dimming a touch while pressed. A plain ring is left as it is.
 private struct RingDisc: ViewModifier {
     let raised: Bool
     let pressed: Bool
@@ -156,8 +153,10 @@ private struct RingDisc: ViewModifier {
         if raised {
             content
                 .padding(3)
-                .background(.regularMaterial, in: Circle())
-                .popOut(.raised, in: Circle(), pressed: pressed)
+                .background(Color.wardSurface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
+                .wardShadow()
+                .opacity(pressed ? 0.85 : 1)
         } else {
             content
         }
@@ -205,7 +204,7 @@ struct RingCentre: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(value)
-                .font(.system(.subheadline, design: .rounded).weight(.bold).monospacedDigit())
+                .font(.system(.subheadline, design: .monospaced).weight(.bold).monospacedDigit())
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let caption {
                 Text(caption).font(.system(size: 9)).foregroundStyle(.secondary)
@@ -227,7 +226,7 @@ struct SparkPoint: Identifiable, Hashable {
 /// A tiny line of accuracy day by day, with no axes: the shape, not the numbers.
 struct Sparkline: View {
     var points: [SparkPoint]
-    var tint: Color = .accentColor
+    var tint: Color = .wardPrimary
 
     var body: some View {
         Chart(points) { point in
@@ -256,11 +255,11 @@ struct Sparkline: View {
 struct ReasonDonut: View {
     var shares: [ReasonShare]
 
-    /// The accent at a strength that steps down with each reason, commonest
+    /// Theatre Blue at a strength that steps down with each reason, commonest
     /// strongest.
     private func shade(_ index: Int) -> Color {
         let strength: Double = 0.9 - Double(index) * 0.16
-        return Color.accentColor.opacity(max(0.25, strength))
+        return Color.wardPrimary.opacity(max(0.25, strength))
     }
 
     var body: some View {
@@ -276,7 +275,7 @@ struct ReasonDonut: View {
                     }
                 }
                 VStack(spacing: 0) {
-                    Text("\(total)").font(.title3.weight(.bold).monospacedDigit())
+                    Text("\(total)").font(.system(.title3, design: .monospaced).weight(.bold).monospacedDigit())
                     Text(total == 1 ? "reason" : "reasons").font(.caption2).foregroundStyle(.secondary)
                 }
             }
@@ -289,7 +288,7 @@ struct ReasonDonut: View {
                         .font(.caption)
                     Spacer(minLength: 8)
                     Text("\(Int((share.share * 100).rounded()))%")
-                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
         }
@@ -322,17 +321,17 @@ struct CalibrationChart: View {
             ForEach(rows) { row in
                 BarMark(x: .value("Confidence", row.confidence.title),
                         y: .value("Right", row.accuracy * 100))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle(Color.wardPrimary.opacity(0.7))
                     .cornerRadius(4)
             }
             ForEach(rows) { row in
                 LineMark(x: .value("Confidence", row.confidence.title),
                          y: .value("Ideal", Self.ideal(row.confidence)))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .foregroundStyle(Color.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                 PointMark(x: .value("Confidence", row.confidence.title),
                           y: .value("Ideal", Self.ideal(row.confidence)))
-                    .foregroundStyle(Color.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .symbolSize(20)
             }
         }
@@ -407,16 +406,16 @@ struct StudyHeatmap: View {
     private static let legendLevels: [Double] = [0.0, 0.3, 0.6, 1.0]
 
     private static func legendShade(_ level: Double) -> Color {
-        guard level > 0 else { return Color.primary.opacity(0.07) }
+        guard level > 0 else { return Color.wardHairline }
         let strength: Double = 0.25 + 0.7 * level
-        return Color.accentColor.opacity(strength)
+        return Color.wardPrimary.opacity(strength)
     }
 
     private func shade(_ count: Int, busiest: Int) -> Color {
-        guard count > 0, busiest > 0 else { return Color.primary.opacity(0.07) }
+        guard count > 0, busiest > 0 else { return Color.wardHairline }
         let level: Double = Double(count) / Double(busiest)
         let strength: Double = 0.25 + 0.7 * min(1, level)
-        return Color.accentColor.opacity(strength)
+        return Color.wardPrimary.opacity(strength)
     }
 
     var body: some View {
@@ -434,7 +433,7 @@ struct StudyHeatmap: View {
                                 .overlay {
                                     if cell.isToday {
                                         RoundedRectangle(cornerRadius: 3)
-                                            .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.5)
+                                            .strokeBorder(Color.wardInk, lineWidth: 1.5)
                                     }
                                 }
                                 .overlay {

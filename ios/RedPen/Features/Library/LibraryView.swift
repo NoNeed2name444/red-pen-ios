@@ -164,7 +164,7 @@ struct LibraryView: View {
     /// How tall the dock actually is, measured rather than guessed.
     ///
     /// The first attempt padded the list by a round number and the last row
-    /// still ended up behind the glass. A floating bar's height depends on the
+    /// still ended up behind the bar. A floating bar's height depends on the
     /// text size the reader chose, so the only reliable number is the one the
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
@@ -592,7 +592,8 @@ struct LibraryView: View {
             // a search that found nothing says so, rather than leaving a
             // blank page
             Section {
-                ContentUnavailableView.search(text: query)
+                WardEmptyState(symbol: "magnifyingglass", title: "No results for \u{201C}\(query)\u{201D}",
+                               message: "Check the spelling or try a new search.")
                     .listRowBackground(Color.clear)
             }
         } else if shown.isEmpty && !store.library.isEmpty {
@@ -710,7 +711,7 @@ struct LibraryView: View {
                     }
                     Button("Ungroup", systemImage: "folder.badge.minus") { store.ungroup(folder.id) }
                 } label: {
-                    // a control, so it stands out of the glass
+                    // a control, so it stands out from the header
                     moreMenuFace
                 }
                 .menuStyle(.button)
@@ -732,8 +733,8 @@ struct LibraryView: View {
         // the thumb's way. The studying itself is in the dock; Select is
         // beside the sets it picks from.
         ToolbarItem(placement: .topBarTrailing) {
-            // toolbar items already sit in the system's glass on iOS 26;
-            // an extra .glass style here squashed the label into a circle
+            // toolbar items already sit in the system's own capsule on iOS 26;
+            // an extra button style here squashed the label into a circle
             Menu {
                 SupportMenuItems(chosen: $support)
             } label: {

@@ -500,14 +500,16 @@ enum IdeasPlace {
     static let title: String = "Ideas"
     static let symbol: String = "lightbulb"
     static let chosenSymbol: String = "lightbulb.fill"
-    /// Golden, so the page and the dock say "somewhere else" at a glance.
-    static let tint: Color = Color(red: 0.86, green: 0.64, blue: 0.10)
+    /// Pager Amber: the tint of the 3D map's backdrop, the one place that
+    /// keeps its own look.
+    static let tint: Color = Color.wardBeam
     /// Where Ideas sits along the dock: after the four categories.
     static var order: Int { StudyCategory.allCases.count }
 }
 
-/// The floating dock: the four categories, each a symbol over its name, in
-/// one glass panel, and Ideas in a glass pill of its own beside it.
+/// The floating dock: the four categories, each a symbol over its name, on
+/// one Clean Sheet panel with a hairline edge, and Ideas on a panel of its
+/// own beside it.
 ///
 /// On a phone (and a narrow iPad window) it runs along the bottom, under the
 /// thumb: four equal slots in the panel - on a 375-point iPhone about 65
@@ -516,9 +518,8 @@ enum IdeasPlace {
 /// pill. On a wide iPad it stands on end as a rail on the leading edge, under
 /// the left hand, with Ideas last after a divider.
 ///
-/// The chosen one takes its own colour and a lifted capsule that travels
-/// between them. The panel stands out of the glass as ONE unit: the items and
-/// the capsule inside it never move on their own.
+/// The chosen one is a Theatre Blue segment, white on blue, that travels
+/// between them; the others are Biro Grey on the white panel.
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
     /// Whether Ideas, rather than a category, is the page on show.
@@ -539,7 +540,7 @@ struct CategoryDock: View {
     }
 
     private var panelShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
+        RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
     }
 
     var body: some View {
@@ -565,61 +566,61 @@ struct CategoryDock: View {
     }
 
     private var categoriesPanel: some View {
-        GlassEffectContainer(spacing: 4) {
-            HStack(spacing: 2) {
-                ForEach(StudyCategory.allCases) { category in
-                    item(category)
-                }
+        HStack(spacing: 2) {
+            ForEach(StudyCategory.allCases) { category in
+                item(category)
             }
-            .padding(5)
         }
-        .liquidGlassPanel(cornerRadius: 28)
-        .popOut(.floating, in: panelShape)
+        .padding(5)
+        .background(Color.wardSurface, in: panelShape)
+        .overlay(panelShape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
     }
 
-    /// Ideas, in a glass pill of its own beside the panel.
+    /// Ideas, on a panel of its own beside the categories.
     private var ideasPill: some View {
         let chosen: Bool = inIdeas
         let shape: RoundedRectangle = panelShape
-        let wash: Color = chosen ? IdeasPlace.tint.opacity(0.22) : Color.clear
+        let fill: Color = chosen ? Color.wardPrimary : Color.wardSurface
+        let edge: Color = chosen ? Color.clear : Color.wardHairline
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
                 .frame(width: 64)
                 .frame(minHeight: 56, maxHeight: .infinity)
+                .background(fill, in: shape)
+                .overlay(shape.strokeBorder(edge, lineWidth: 1))
                 .contentShape(shape)
                 .contentShape(.hoverEffect, shape)
                 .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
-        // on the button itself, before the interactive glass and the
-        // pop-out wrap it, so UI tests find (and can tap) the button
         .accessibilityLabel(IdeasPlace.title)
         .accessibilityHint("Your idea dump, board and 3D map")
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
-        .glassEffect(.regular.tint(wash).interactive(), in: shape)
-        .popOut(.floating, in: shape)
+        .wardShadow()
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
     }
 
     // MARK: on end, the wide iPad's rail
 
     private var rail: some View {
-        GlassEffectContainer(spacing: 4) {
-            VStack(spacing: 2) {
-                ForEach(StudyCategory.allCases) { category in
-                    item(category)
-                }
-                Divider()
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                ideasRailItem
+        VStack(spacing: 2) {
+            ForEach(StudyCategory.allCases) { category in
+                item(category)
             }
-            .padding(5)
+            Rectangle()
+                .fill(Color.wardHairline)
+                .frame(height: 1)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+            ideasRailItem
         }
+        .padding(5)
         .frame(width: 76)
-        .liquidGlassPanel(cornerRadius: 28)
-        .popOut(.floating, in: panelShape)
+        .background(Color.wardSurface, in: panelShape)
+        .overlay(panelShape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .padding(.leading, 12)
         .frame(maxHeight: .infinity)
     }
@@ -627,19 +628,20 @@ struct CategoryDock: View {
     /// Ideas in the rail: an item like the others, after the divider.
     private var ideasRailItem: some View {
         let chosen: Bool = inIdeas
+        let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
                     if chosen {
-                        Capsule()
-                            .fill(IdeasPlace.tint.opacity(0.14))
+                        segment
+                            .fill(Color.wardPrimary)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                     }
                 }
-                .contentShape(Capsule())
-                .contentShape(.hoverEffect, Capsule())
+                .contentShape(segment)
+                .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
@@ -656,39 +658,37 @@ struct CategoryDock: View {
         withAnimation(.snappy(duration: 0.3)) { inIdeas = true }
     }
 
-    /// The lightbulb over the word Ideas, golden when chosen.
+    /// The lightbulb over the word Ideas, white on Theatre Blue when chosen.
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
-        let ink: Color = chosen ? IdeasPlace.tint : Color.secondary
-        let glow: Color? = chosen ? IdeasPlace.tint : nil
-        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink, glow: glow)
+        let ink: Color = chosen ? Color.wardOnPrimary : Color.wardInkSecondary
+        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink)
     }
 
     private func item(_ category: StudyCategory) -> some View {
         let chosen: Bool = !inIdeas && category == selection
-        let ink: Color = chosen ? category.tint : Color.secondary
-        let wash: Color = category.tint.opacity(0.14)
+        let ink: Color = chosen ? Color.wardOnPrimary : Color.wardInkSecondary
+        let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
             withAnimation(.snappy(duration: 0.3)) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: category.title, ink: ink,
-                         glow: chosen ? category.tint : nil)
+            DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
-                    // One capsule that moves between the categories rather
+                    // One segment that moves between the categories rather
                     // than one per category shown and hidden: it travels with
                     // the choice instead of blinking out here and in again
                     // there.
                     if chosen {
-                        Capsule()
-                            .fill(wash)
+                        segment
+                            .fill(Color.wardPrimary)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                     }
                 }
-                .contentShape(Capsule())
-                .contentShape(.hoverEffect, Capsule())
+                .contentShape(segment)
+                .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
@@ -713,26 +713,17 @@ struct CategoryDock: View {
     }
 }
 
-/// One dock item's face: a symbol over its name. The chosen one's symbol
-/// sits in a soft coronal glow in its own colour - a small star.
+/// One dock item's face: a symbol over its name.
 private struct DockItemFace: View {
     let symbol: String
     let title: String
     let ink: Color
-    var glow: Color? = nil
 
     var body: some View {
         VStack(spacing: 3) {
             Image(systemName: symbol)
                 .font(.system(size: 19, weight: .semibold))
                 .frame(height: 24)
-                .background {
-                    if let glow {
-                        CoronaGlow(tint: glow, reach: 0.5, strength: 0.45)
-                            .frame(width: 44, height: 44)
-                            .transition(.opacity)
-                    }
-                }
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)
