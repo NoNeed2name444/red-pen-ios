@@ -159,7 +159,8 @@ struct IdeasView: View {
         return List {
             if found.isEmpty {
                 Text("Nothing matches \u{201C}\(query)\u{201D}.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .wardRowBackground()
             } else {
                 Section(heading) {
                     ForEach(found) { note in noteRow(note) }
@@ -168,6 +169,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
+        .tint(Color.wardPrimary)
     }
 
     /// A clear row as tall as the Library's dock, so the last row can scroll
@@ -198,6 +200,7 @@ struct IdeasView: View {
                 } header: {
                     Text(trailText(current))
                         .textCase(nil)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
             if !subfolders.isEmpty {
@@ -209,7 +212,8 @@ struct IdeasView: View {
                 if here.isEmpty {
                     Text(emptyText(inFolder: current != nil))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
+                        .wardRowBackground()
                 } else {
                     ForEach(here) { note in noteRow(note) }
                 }
@@ -217,6 +221,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
+        .tint(Color.wardPrimary)
         .overlay {
             if notes.notes.isEmpty && notes.folders.isEmpty {
                 firstIdea
@@ -242,22 +247,20 @@ struct IdeasView: View {
             folderId = current.parentId
         } label: {
             Label(parentName, systemImage: "chevron.backward")
+                .foregroundStyle(Color.wardPrimaryInk)
                 .contentShape(Rectangle())
         }
         .hoverEffect(.highlight)
+        .wardRowBackground()
     }
 
     private var firstIdea: some View {
-        ContentUnavailableView {
-            Label("Dump your first idea", systemImage: "lightbulb")
-        } description: {
-            Text("Anything worth remembering: a mnemonic, a question to look up, a link between two topics. Join them up later on the board or in the space.")
-        } actions: {
+        WardEmptyState(symbol: "lightbulb", title: "Dump your first idea",
+                       message: "Anything worth remembering: a mnemonic, a question to look up, a link between two topics. Join them up later on the board or in the space.") {
             // gone once typing, when Send is the one main button
             if !typing {
                 Button("Start typing") { capturing = true }
-                    .buttonStyle(.glassProminent)
-                    .popOut(.hero, in: Capsule())
+                    .buttonStyle(.wardPrimary)
             }
         }
     }
@@ -272,14 +275,15 @@ struct IdeasView: View {
                     .foregroundStyle(NoteTone.color(for: folder.id, in: notes))
                     .frame(width: 24)
                 Text(folder.name)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 Text(count)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(.caption, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
                 Image(systemName: "chevron.forward")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .contentShape(Rectangle())
         }
@@ -299,6 +303,7 @@ struct IdeasView: View {
                 notes.deleteFolder(folder.id)
             }
         }
+        .wardRowBackground()
     }
 
     private func noteRow(_ note: Note) -> some View {
@@ -316,18 +321,18 @@ struct IdeasView: View {
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                     if !preview.isEmpty {
                         Text(preview)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                             .lineLimit(1)
                     }
                     if links > 0 {
                         Label(linked, systemImage: "point.3.connected.trianglepath.dotted")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 Spacer(minLength: 0)
@@ -346,13 +351,14 @@ struct IdeasView: View {
         }
         .swipeActions(edge: .leading) {
             Button("Move\u{2026}", systemImage: "folder") { moving = note }
-                .tint(.indigo)
+                .tint(Color.wardPrimary)
         }
         .swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) {
                 notes.delete(note.id)
             }
         }
+        .wardRowBackground()
     }
 
     /// Every folder a note can go into, indented by depth, and "No folder".

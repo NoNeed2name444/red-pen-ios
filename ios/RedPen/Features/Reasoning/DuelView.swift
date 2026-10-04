@@ -15,13 +15,15 @@ struct DuelsView: View {
             Section {
                 Text("Features appear one at a time. Say whose each one is \u{2014} the first condition, the second, or both.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
             if duels.isEmpty {
                 Section {
                     Text("No duels yet. Write some from this set below.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             } else {
                 Section("Duels") {
                     ForEach(duels) { pair in
@@ -33,10 +35,10 @@ struct DuelsView: View {
                         .hoverEffect(.highlight)
                     }
                 }
+                .wardRowBackground()
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Lookalike duels")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -60,15 +62,16 @@ struct DuelsView: View {
         let title: String = "\(pair.a) vs \(pair.b)"
         let fresh: String = "\(pair.features.count) features \u{00B7} not played"
         return VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.body.weight(.medium))
+            Text(title).font(.body.weight(.medium)).foregroundStyle(Color.wardInk)
             if let last = reasoning.lastDuel(of: pair.id) {
                 Text("Last time \(last.right) of \(last.total)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.caption, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
             } else {
                 Text(fresh)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -77,8 +80,8 @@ struct DuelsView: View {
 /// One duel, played: features one at a time, each swiped or tapped to the
 /// condition it belongs to, then the score and the reasons.
 ///
-/// The feature card is the screen's hero: it stands highest out of the
-/// glass, and is what the thumb pulls. The three answers sit in the slab at
+/// The feature card is the screen's hero: the one raised card, and what the
+/// thumb pulls. The three answers sit in the slab at
 /// the bottom in the same order as the swipes: first condition, both, second.
 struct DuelView: View {
     let pair: LookalikePair
@@ -108,7 +111,7 @@ struct DuelView: View {
                 playScreen
             }
         }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .navigationTitle("Duel")
         .navigationBarTitleDisplayMode(.inline)
         .animation(.snappy, value: index)
@@ -138,7 +141,7 @@ struct DuelView: View {
                 VStack(spacing: 18) {
                     Text("\(pair.a) vs \(pair.b)")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                     if index > 0 { feedback(order[index - 1]) }
                     if order.indices.contains(index) {
@@ -146,7 +149,7 @@ struct DuelView: View {
                     }
                     Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(16)
@@ -158,27 +161,27 @@ struct DuelView: View {
     }
 
     private func card(_ feature: LookalikeFeature) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         let turn: Double = Double(drag.width) / 20
         return Text(feature.text)
             .font(.title3.weight(.semibold))
+            .foregroundStyle(Color.wardInk)
             .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: .infinity, minHeight: 170)
-            .background(shape.fill(Color(.secondarySystemBackground)))
+            .background(shape.fill(Color.wardSurface))
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
             .overlay(alignment: .top) {
                 if let leaning = leaning {
                     Text(name(leaning))
                         .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.wardPrimaryInk)
                         .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(Capsule().fill(Color.accentColor.opacity(0.2)))
+                        .background(Capsule().fill(Color.wardPrimary.opacity(0.12)))
                         .padding(8)
                 }
             }
-            // the hero plane: the card stands out of the glass. Lifted as a
-            // whole, so its sheen and its side travel with it when it is
-            // pulled; the pull itself is only ever the finger's.
-            .popOut(.hero, in: shape)
+            .wardShadow()
             .offset(drag)
             .rotationEffect(.degrees(turn))
             .gesture(
@@ -233,28 +236,28 @@ struct DuelView: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
-        .buttonStyle(.bigSecondary)
+        .buttonStyle(.wardSecondary)
         .keyboardShortcut(Self.arrow(side), modifiers: [])
     }
 
     private func feedback(_ feature: LookalikeFeature) -> some View {
         let ok: Bool = answers[feature.id] == feature.side
         let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
-        let colour: Color = ok ? Color.green : Color.red
+        let colour: Color = ok ? Color.wardSuccess : Color.wardDanger
         let line: String = "\(feature.text) \u{2192} \(name(feature.side))"
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
             VStack(alignment: .leading, spacing: 2) {
-                Text(line).font(.footnote.weight(.semibold))
+                Text(line).font(.footnote.weight(.semibold)).foregroundStyle(Color.wardInk)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.footnote).foregroundStyle(.secondary)
+                    Text(feature.why).font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(colour.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(colour.opacity(0.12)))
     }
 
     private func answer(_ side: LookalikeSide) {
@@ -294,12 +297,12 @@ struct DuelView: View {
             } label: {
                 Label("Comparison table", systemImage: "tablecells")
             }
-            .buttonStyle(.bigCompanion)
+            .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
             if span == .broad { Spacer(minLength: 16) }
             Button(action: again) {
                 Label("Duel again", systemImage: "arrow.counterclockwise")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
         }
     }
@@ -309,23 +312,26 @@ struct DuelView: View {
         return VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 4) {
                 Text(score)
-                    .font(.largeTitle.weight(.bold).monospacedDigit())
-                Text(verdict).font(.subheadline).foregroundStyle(.secondary)
+                    .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInk)
+                Text(verdict).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 Text("\(pair.a) vs \(pair.b)")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
 
             if !pair.bottomLine.isEmpty {
                 Text(pair.bottomLine)
+                    .foregroundStyle(Color.wardInk)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.1)))
+                    .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(Color.wardPrimary.opacity(0.08)))
             }
 
-            Text("Feature by feature").font(.headline)
+            WardSectionLabel("Feature by feature")
             ForEach(order) { feature in
                 DuelFeatureResult(feature: feature, given: answers[feature.id], name: name)
             }
@@ -358,17 +364,17 @@ private struct DuelFeatureResult: View {
 
     var body: some View {
         let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
-        let colour: Color = ok ? Color.green : Color.red
+        let colour: Color = ok ? Color.wardSuccess : Color.wardDanger
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
             VStack(alignment: .leading, spacing: 2) {
-                Text(feature.text).font(.subheadline.weight(.medium))
+                Text(feature.text).font(.subheadline.weight(.medium)).foregroundStyle(Color.wardInk)
                 Text(answerLine)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color.wardPrimaryInk)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.caption).foregroundStyle(.secondary)
+                    Text(feature.why).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -386,7 +392,7 @@ struct ComparisonTableView: View {
         let bFeatures = pair.features.filter { $0.side == .b }
         let shared = pair.features.filter { $0.side == .both }
         let rows: Int = max(aFeatures.count, bFeatures.count)
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 10) {
@@ -394,7 +400,7 @@ struct ComparisonTableView: View {
                         Text(pair.a).font(.headline)
                         Text(pair.b).font(.headline)
                     }
-                    Divider().gridCellColumns(2)
+                    Rectangle().fill(Color.wardHairline).frame(height: 1).gridCellColumns(2)
                     ForEach(0..<rows, id: \.self) { row in
                         GridRow {
                             cell(row < aFeatures.count ? aFeatures[row] : nil)
@@ -402,11 +408,11 @@ struct ComparisonTableView: View {
                         }
                     }
                     if !shared.isEmpty {
-                        Divider().gridCellColumns(2)
+                        Rectangle().fill(Color.wardHairline).frame(height: 1).gridCellColumns(2)
                         GridRow {
                             Text("Both \u{2014} these do not tell them apart")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.wardInkSecondary)
                                 .gridCellColumns(2)
                         }
                         ForEach(shared) { feature in
@@ -417,19 +423,22 @@ struct ComparisonTableView: View {
                     }
                 }
                 .padding(16)
-                .background(.regularMaterial, in: shape)
+                .background(Color.wardSurface, in: shape)
+                .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+                .wardShadow()
                 if !pair.bottomLine.isEmpty {
                     Text(pair.bottomLine)
+                        .foregroundStyle(Color.wardInk)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.1)))
+                        .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(Color.wardPrimary.opacity(0.08)))
                 }
             }
             .padding()
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .navigationTitle("Comparison")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -445,9 +454,9 @@ struct ComparisonTableView: View {
     private func cell(_ feature: LookalikeFeature?) -> some View {
         if let feature {
             VStack(alignment: .leading, spacing: 2) {
-                Text(feature.text).font(.subheadline)
+                Text(feature.text).font(.subheadline).foregroundStyle(Color.wardInk)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.caption).foregroundStyle(.secondary)
+                    Text(feature.why).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
