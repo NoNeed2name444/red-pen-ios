@@ -54,3 +54,10 @@ extension Store {
         return ids.compactMap { byID[$0] }
     }
 }
+
+/// The words the notifications carry for the study Focus filter
+/// (Shared/Learn/WardRoundClock.swift).
+enum StudyFocus {
+    static let criteria = "study"
+    static let other = "other"
+}
