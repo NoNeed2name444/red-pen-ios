@@ -227,7 +227,8 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return padding(insets)
             .frame(minHeight: 44)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
             .popOut(.raised, in: shape, cues: .translateOnly)
     }
 
@@ -247,7 +248,8 @@ extension View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .frame(minHeight: 44)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
             .popOut(.raised, in: shape, cues: .translateOnly)
     }
 

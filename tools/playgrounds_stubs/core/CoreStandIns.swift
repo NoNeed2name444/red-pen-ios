@@ -71,10 +71,10 @@ struct PopTileStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        let edge: Color = (tint ?? Color.primary).opacity(0.15)
         return configuration.label
-            .background(.regularMaterial, in: shape)
-            .overlay(shape.strokeBorder(edge))
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .opacity(configuration.isPressed ? 0.9 : 1)
     }
@@ -101,12 +101,7 @@ extension View {
     func popOutLifecycle() -> some View { self }
 
     func studyBar<C: View>(@ViewBuilder _ content: () -> C) -> some View {
-        let inner: C = content()
-        let bar = HStack(spacing: 12) { inner }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .background(.bar)
+        let bar = StudyActionBar(content: content)
         return safeAreaInset(edge: .bottom, spacing: 0) { bar }
     }
 
@@ -114,7 +109,8 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return padding(insets)
             .frame(minHeight: 44)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     func popFieldRow(cornerRadius: CGFloat = 12) -> some View {
@@ -129,7 +125,8 @@ extension View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .frame(minHeight: 44)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     func popEditorRow(cornerRadius: CGFloat = 12) -> some View {
