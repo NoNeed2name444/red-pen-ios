@@ -82,7 +82,13 @@ private struct SpokenStationScreen: View {
             case .running:
                 running
             case .marking:
-                ProgressView("The examiner is marking\u{2026}").frame(maxHeight: .infinity)
+                VStack(spacing: WardSpace.m) {
+                    EcgLoader()
+                    Text("The examiner is marking\u{2026}")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                .frame(maxHeight: .infinity)
             case .marked:
                 if let attempt = session.attempt {
                     StationReportView(attempt: attempt)
@@ -166,14 +172,12 @@ private struct SpokenStationScreen: View {
     }
 
     private func failed(_ message: String) -> some View {
-        ContentUnavailableView {
-            Label("Couldn't mark the station", systemImage: "exclamationmark.triangle")
-        } description: {
-            Text(message)
-        }
-        .studyBar {
-            StationFailedBar(session: session)
-        }
+        WardEmptyState(symbol: "exclamationmark.triangle", title: "Couldn't mark the station",
+                       message: message, tone: .danger)
+            .frame(maxHeight: .infinity)
+            .studyBar {
+                StationFailedBar(session: session)
+            }
     }
 }
 
@@ -217,8 +221,8 @@ private struct SpokenTranscript: View {
                     }
                     if session.busy {
                         HStack(spacing: 8) {
-                            ProgressView().controlSize(.small)
-                            Text("The patient is answering\u{2026}").font(.footnote).foregroundStyle(.secondary)
+                            EcgLoader()
+                            Text("The patient is answering\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
                         }
                     }
                 }
@@ -279,7 +283,7 @@ private struct StationAttemptRow: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(attempt.title).foregroundStyle(.primary).lineLimit(2)
+                        Text(attempt.title).foregroundStyle(Color.wardInk).lineLimit(2)
                         if attempt.isExample { VoiceExampleTag() }
                     }
                     Text(attempt.date, format: .dateTime.day().month().hour().minute())
@@ -287,7 +291,9 @@ private struct StationAttemptRow: View {
                 }
                 Spacer()
                 Text(score)
-                    .font(.headline.monospacedDigit())
+                    .font(.system(.headline, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInk)
             }
         }
         .swipeActions {
@@ -349,8 +355,8 @@ private struct SpokenStationComposer: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .frame(minHeight: 48)
-            .background(Color.primary.opacity(0.06), in: shape)
-            .popOut(.raised, in: shape, cues: .translateOnly)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     private var speakerButton: some View {
@@ -360,7 +366,7 @@ private struct SpokenStationComposer: View {
         return Button(action: toggleVoice) {
             Image(systemName: symbol)
         }
-        .buttonStyle(StationCircleStyle(prominent: false, tint: StudySetKind.osce.tint))
+        .buttonStyle(StationCircleStyle(prominent: false, tint: Color.wardPrimaryInk))
         .accessibilityLabel(label)
     }
 
@@ -368,7 +374,7 @@ private struct SpokenStationComposer: View {
         let listening: Bool = listener.listening
         let symbol: String = listening ? "stop.fill" : "mic.fill"
         let label: String = listening ? "Stop and send" : "Speak"
-        let tint: Color = listening ? Color.red : StudySetKind.osce.tint
+        let tint: Color = listening ? Color.wardDanger : Color.wardPrimary
         let blocked: Bool = session.busy || session.hearing?.canHear != true
         return Button(action: talk) {
             Image(systemName: symbol)
@@ -382,7 +388,7 @@ private struct SpokenStationComposer: View {
         Button(action: send) {
             Image(systemName: "arrow.up")
         }
-        .buttonStyle(StationCircleStyle(prominent: true, tint: StudySetKind.osce.tint))
+        .buttonStyle(StationCircleStyle(prominent: true, tint: Color.wardPrimary))
         .keyboardShortcut(.return, modifiers: [.command])
         .disabled(session.busy)
         .accessibilityLabel("Send")
@@ -426,31 +432,30 @@ private struct StationCircleFace: View {
     @Environment(\.isEnabled) private var isEnabled
 
     private var fill: Color {
-        if !isEnabled { return Color.primary.opacity(0.08) }
+        if !isEnabled { return Color.wardHairline }
         if prominent { return tint }
-        return tint.opacity(0.14)
+        return Color.wardSurface
     }
 
     private var ink: Color {
-        if !isEnabled { return Color.secondary }
-        if prominent { return Color.white }
+        if !isEnabled { return Color.wardInkSecondary }
+        if prominent { return Color.wardOnPrimary }
         return tint
     }
 
     var body: some View {
-        let plane: PopOutPlane = prominent ? .hero : .raised
-        let slabTint: Color? = prominent && isEnabled ? tint : nil
-        let sunk: Bool = isPressed || !isEnabled
+        let edge: Color = prominent ? Color.clear : Color.wardHairline
         let scale: CGFloat = isPressed ? 0.94 : 1
         label
             .font(.title3.weight(.semibold))
             .foregroundStyle(ink)
             .frame(width: 48, height: 48)
             .background(fill, in: Circle())
+            .overlay(Circle().strokeBorder(edge, lineWidth: 1))
             .contentShape(Circle())
             .scaleEffect(scale)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
-            .popOut(plane, in: Circle(), tint: slabTint, pressed: sunk)
+            .wardShadow()
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.lift)
     }
@@ -460,26 +465,29 @@ private struct SpokenLineBubble: View {
     let line: SpokenLine
 
     var body: some View {
+        let bubble = RoundedRectangle(cornerRadius: 14, style: .continuous)
         switch line.speaker {
         case .examiner:
             Text(line.text)
                 .font(.callout.italic())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(10)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(Color.wardInkSecondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .student:
             HStack {
                 Spacer(minLength: 40)
                 Text(line.text)
                     .padding(10)
-                    .foregroundStyle(.white)
-                    .background(StudySetKind.osce.tint, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .foregroundStyle(Color.wardOnPrimary)
+                    .background(Color.wardPrimary, in: bubble)
             }
         case .patient:
             Text(line.text)
+                .foregroundStyle(Color.wardInk)
                 .padding(10)
-                .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.wardSurface, in: bubble)
+                .overlay(bubble.strokeBorder(Color.wardHairline, lineWidth: 1))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.trailing, 40)
         }
@@ -495,8 +503,9 @@ struct StationReportView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.mark.done.count)")
-                        .font(.system(size: 54, weight: .bold, design: .rounded).monospacedDigit())
-                    Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(.secondary)
+                        .font(.system(size: 54, weight: .bold, design: .monospaced).monospacedDigit())
+                        .foregroundStyle(Color.wardInk)
+                    Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(Color.wardInkSecondary)
                     Spacer()
                     if attempt.isExample { VoiceExampleTag() }
                 }
@@ -506,7 +515,7 @@ struct StationReportView: View {
                     HStack(spacing: 2) {
                         ForEach(1...5, id: \.self) { i in
                             Image(systemName: i <= attempt.mark.communication ? "star.fill" : "star")
-                                .foregroundStyle(i <= attempt.mark.communication ? Color.yellow : Color.secondary)
+                                .foregroundStyle(i <= attempt.mark.communication ? Color.wardBeam : Color.wardInkSecondary)
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -530,8 +539,9 @@ struct StationReportView: View {
                                 Text(stage.meaning).font(.caption).foregroundStyle(.secondary)
                             }
                         } icon: {
-                            Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle")
-                                .foregroundStyle(done ? Color.green : Color.red)
+                            Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(done ? Color.wardSuccess : Color.wardDanger)
+                                .accessibilityLabel(done ? "Done" : "Missed")
                         }
                     }
                 }
@@ -543,8 +553,9 @@ struct StationReportView: View {
                     Label {
                         Text(step)
                     } icon: {
-                        Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle")
-                            .foregroundStyle(done ? Color.green : Color.red)
+                        Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(done ? Color.wardSuccess : Color.wardDanger)
+                            .accessibilityLabel(done ? "Done" : "Missed")
                     }
                     .font(.callout)
                 }

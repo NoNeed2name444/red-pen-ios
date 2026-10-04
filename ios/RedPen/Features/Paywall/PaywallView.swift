@@ -15,7 +15,7 @@ struct PaywallView: View {
     @State private var chosen: SubscriptionPlan = .yearly
 
     private static let title: String = Brand.name + " Pro"
-    private static let row = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    private static let row = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
 
     /// A centred sheet, whatever the window behind it: on a wide iPad the
     /// buy bar centres under the plans instead of hugging the trailing edge,
@@ -35,7 +35,7 @@ struct PaywallView: View {
                 .frame(maxWidth: 480)
                 .frame(maxWidth: .infinity)
             }
-            .background(LibraryBackdrop())
+            .wardScreen()
             // buying, restoring and the small print, under the thumb
             .studyBar { buyBar }
             .navigationTitle(PaywallView.title)
@@ -55,10 +55,11 @@ struct PaywallView: View {
         VStack(spacing: 10) {
             Image(systemName: "pencil.and.scribble")
                 .font(.system(size: 42))
-                .foregroundStyle(StudySetKind.mcq.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
             Text("Everything, from any lecture")
                 .font(.title2.weight(.bold))
+                .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.center)
             VStack(alignment: .leading, spacing: 8) {
                 perk("doc.text.viewfinder", "Read PDFs, Word and PowerPoint handouts")
@@ -76,9 +77,9 @@ struct PaywallView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol)
                 .frame(width: 22)
-                .foregroundStyle(StudySetKind.anki.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
-            Text(text).font(.subheadline)
+            Text(text).font(.subheadline).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
         }
     }
@@ -89,7 +90,7 @@ struct PaywallView: View {
             // the spinner only while an answer is still to come: trouble
             // (nothing for sale, the App Store unreachable) is shown below
             if subscriptions.trouble == nil {
-                ProgressView().padding(.vertical, 24)
+                EcgLoader().padding(.vertical, 24)
             }
         } else {
             VStack(spacing: 10) {
@@ -102,13 +103,13 @@ struct PaywallView: View {
         }
     }
 
-    /// The chosen plan stands a little out of the glass; the other lies flat.
+    /// The chosen plan edged in Theatre Blue; the other with a hairline.
     private func planRow(_ plan: SubscriptionPlan, _ product: Product) -> some View {
         let picked: Bool = chosen == plan
         let symbol: String = picked ? "largecircle.fill.circle" : "circle"
-        let mark: Color = picked ? StudySetKind.mcq.tint : Color.secondary
-        let edge: Color = picked ? StudySetKind.mcq.tint : Color.clear
-        let plane: PopOutPlane = picked ? .raised : .screen
+        let mark: Color = picked ? Color.wardPrimary : Color.wardInkSecondary
+        let edge: Color = picked ? Color.wardPrimary : Color.wardHairline
+        let edgeWidth: CGFloat = picked ? 2 : 1
         let traits: AccessibilityTraits = picked ? .isSelected : []
         return Button {
             chosen = plan
@@ -117,22 +118,25 @@ struct PaywallView: View {
                 Image(systemName: symbol)
                     .foregroundStyle(mark)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(plan.label).font(.body.weight(.semibold))
+                    Text(plan.label).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     if plan == .yearly, let saving = subscriptions.yearlySaving, saving > 0 {
                         Text("Save \(saving)% against monthly")
-                            .font(.caption).foregroundStyle(StudySetKind.anki.tint)
+                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardSuccess)
                     }
                 }
                 Spacer()
-                Text(product.displayPrice).font(.body.weight(.semibold))
+                Text(product.displayPrice)
+                    .font(WardType.obs.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInk)
             }
             .padding(14)
-            .background(.thinMaterial, in: PaywallView.row)
-            .overlay(PaywallView.row.stroke(edge, lineWidth: 2))
+            .background(Color.wardSurface, in: PaywallView.row)
+            .overlay(PaywallView.row.strokeBorder(edge, lineWidth: edgeWidth))
             .contentShape(PaywallView.row)
         }
         .buttonStyle(.plain)
-        .popOut(plane, in: PaywallView.row)
+        .wardShadow()
         .animation(.snappy(duration: 0.2), value: picked)
         .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)
@@ -151,18 +155,17 @@ struct PaywallView: View {
     @ViewBuilder
     private var buyBar: some View {
         if let trouble = subscriptions.trouble {
-            Text(trouble).font(.footnote).foregroundStyle(.red)
-                .multilineTextAlignment(.center)
+            WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
         }
         Button {
             Task { await subscriptions.buy(chosen) }
         } label: {
             HStack(spacing: 8) {
-                if subscriptions.busy { ProgressView().controlSize(.small) }
+                if subscriptions.busy { EcgLoader() }
                 Text(buyTitle)
             }
         }
-        .buttonStyle(.bigPrimary)
+        .buttonStyle(.wardPrimary)
         .keyboardShortcut(.defaultAction)
         .disabled(cannotBuy)
         // required in the app itself, not only on a website
@@ -180,7 +183,7 @@ struct PaywallView: View {
     private var billing: some View {
         Text("Billed through your Apple Account and renews until cancelled. Cancel any time in Settings.")
             .font(.caption2)
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
             .padding(.top, 4)
     }

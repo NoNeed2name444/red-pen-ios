@@ -26,11 +26,12 @@ struct RecordingTermsView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.wardDanger)
                     .accessibilityHidden(true)
 
                 Text("Read this before you start")
-                    .font(.largeTitle.bold())
+                    .font(WardType.display)
+                    .foregroundStyle(Color.wardInk)
 
                 warningBox
 
@@ -57,16 +58,17 @@ struct RecordingTermsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Share crash and failure reports")
                             .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.wardInk)
                         Text("When something breaks, \(Brand.name) sends what went wrong and the phone model to be fixed \u{2014} never your notes, questions, recordings, name or email. You can change this any time in Settings.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 .accessibilityIdentifier("shareCrashReports")
 
                 Text("By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
@@ -74,7 +76,7 @@ struct RecordingTermsView: View {
         }
         // the agree button under the thumb; the terms scroll up behind it
         .safeAreaInset(edge: .bottom, spacing: 0) { agreeBar }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .interactiveDismissDisabled()
         .task {
             while remaining > 0 {
@@ -99,17 +101,17 @@ struct RecordingTermsView: View {
             Text("In an emergency, call your local emergency number.")
                 .font(.subheadline)
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(Color.wardInk)
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.red.opacity(0.12), in: shape)
-        .overlay(shape.strokeBorder(Color.red.opacity(0.55), lineWidth: 1.5))
+        .background(Color.wardDanger.opacity(0.12), in: shape)
+        .overlay(shape.strokeBorder(Color.wardDanger.opacity(0.55), lineWidth: 1.5))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("medicalWarning")
     }
 
-    /// The same floating glass slab as every other bottom bar, in the terms'
-    /// own 560-point column, so the terms scroll up behind glass rather than
+    /// The same bottom bar as every other screen's, in the terms' own
+    /// 560-point column, so the terms scroll up behind it rather than
     /// showing round a bare button.
     private var agreeBar: some View {
         StudyActionBar { agreeButton }
@@ -117,10 +119,8 @@ struct RecordingTermsView: View {
             .frame(maxWidth: .infinity)
     }
 
-    /// Flat on the slab and grey while it counts down; the moment it can be
-    /// pressed it rises out of the slab as the one thing to do here, and sinks
-    /// under the finger. (The screen's big button, like every study screen's:
-    /// a glass button on the glass slab would be glass on glass.)
+    /// Grey while it counts down; the moment it can be pressed it turns
+    /// Theatre Blue as the one thing to do here.
     private var agreeButton: some View {
         let waiting: Bool = remaining > 0
         let title: String = waiting ? "\(remaining)" : "I understand and agree"
@@ -143,14 +143,10 @@ struct RecordingTermsView: View {
 
     private func point(_ symbol: String, _ title: String, _ detail: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .foregroundStyle(StudySetKind.narrate.tint)
-                .frame(width: 30)
-                .accessibilityHidden(true)
+            WardIconSquare(symbol: symbol, tone: .blue, size: 32)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+                Text(title).font(.headline).foregroundStyle(Color.wardInk)
+                Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

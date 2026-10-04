@@ -77,7 +77,7 @@ struct ReaderBar: View {
     }
 }
 
-/// Every page, as a list: a 44-point glass circle.
+/// Every page, as a list: a 44-point white circle.
 private struct ReaderPagesButton: View {
     let noun: String
     let action: () -> Void
@@ -87,19 +87,20 @@ private struct ReaderPagesButton: View {
         Button(action: action) {
             Image(systemName: "sidebar.squares.left")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 44, height: 44)
+                .background(Color.wardSurface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .popOut(.floating, in: Circle())
+        .wardShadow()
         .hoverEffect(.lift)
         .accessibilityLabel(label)
     }
 }
 
-/// "‹ Page 3 of 12 ›": a floating glass capsule. The left and right arrow
+/// "‹ Page 3 of 12 ›": a floating white capsule. The left and right arrow
 /// keys turn the pages as well.
 private struct ReaderPager: View {
     @Binding var page: Int
@@ -117,7 +118,9 @@ private struct ReaderPager: View {
             ReaderPagerArrow(symbol: "chevron.left", label: before, key: .leftArrow,
                              enabled: !atStart) { turn(-1) }
             Text(place)
-                .font(.footnote.weight(.semibold).monospacedDigit())
+                .font(.system(.footnote, design: .monospaced).weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .contentTransition(.numericText())
@@ -126,8 +129,9 @@ private struct ReaderPager: View {
                              enabled: !atEnd) { turn(1) }
         }
         .padding(.horizontal, 2)
-        .glassEffect(.regular, in: .capsule)
-        .popOut(.floating, in: Capsule())
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
     }
 
     private func turn(_ by: Int) {
@@ -145,7 +149,7 @@ private struct ReaderPagerArrow: View {
     let action: () -> Void
 
     var body: some View {
-        let ink: Color = enabled ? Color.primary : Color.secondary.opacity(0.5)
+        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary.opacity(0.5)
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .semibold))
