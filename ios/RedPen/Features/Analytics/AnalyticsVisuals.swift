@@ -359,10 +359,16 @@ struct CalibrationChart: View {
 }
 
 /// Twelve weeks of study as a calendar grid, a column a week, shaded by how
-/// much was done each day, with today outlined.
+/// much was done each day, with today outlined and a small moon on each
+/// rest day that kept the streak.
 struct StudyHeatmap: View {
     /// Amount studied per day, keyed like StudyLog (`yyyy-MM-dd`).
     var counts: [String: Int]
+    /// Missed days covered as the week's free rest day (StudyLog.restDaysUsed).
+    var restDays: Set<String> = []
+    /// Days with a ward round's minutes (StudyLog.minutes): they keep the
+    /// streak, so they are never drawn as empty, even with no card on them.
+    var focusDays: Set<String> = []
     var weeks: Int = 12
 
     private struct Cell: Identifiable {
@@ -387,7 +393,9 @@ struct StudyHeatmap: View {
             for row in 0..<7 {
                 guard let date = calendar.date(byAdding: .day, value: column * 7 + row, to: first) else { continue }
                 let key = StudyLog.key(for: date)
-                cells.append(Cell(date: date, key: key, count: counts[key] ?? 0,
+                let count: Int = counts[key] ?? 0
+                let held: Int = (count == 0 && focusDays.contains(key)) ? 1 : count
+                cells.append(Cell(date: date, key: key, count: held,
                                   isToday: calendar.isDate(date, inSameDayAs: today),
                                   isFuture: date > today))
             }
@@ -429,6 +437,9 @@ struct StudyHeatmap: View {
                                             .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.5)
                                     }
                                 }
+                                .overlay {
+                                    if restDays.contains(cell.key) { RestDayMoon() }
+                                }
                                 .aspectRatio(1, contentMode: .fit)
                         }
                     }
@@ -446,6 +457,28 @@ struct StudyHeatmap: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Study calendar, last \(weeks) weeks: something studied on \(studied) day\(studied == 1 ? "" : "s"), at most \(busiest) in a day.")
+        .accessibilityLabel(calendarWords(studied: studied, busiest: busiest) + restWords(cells))
+    }
+
+    private func calendarWords(studied: Int, busiest: Int) -> String {
+        let plural: String = studied == 1 ? "" : "s"
+        return "Study calendar, last \(weeks) weeks: something studied on \(studied) day\(plural), at most \(busiest) in a day."
+    }
+
+    private func restWords(_ cells: [Cell]) -> String {
+        let rested: Int = cells.filter { restDays.contains($0.key) }.count
+        guard rested > 0 else { return "" }
+        let plural: String = rested == 1 ? "" : "s"
+        return " \(rested) rest day\(plural) kept the streak."
+    }
+}
+
+/// The rest day's mark on the study calendar.
+private struct RestDayMoon: View {
+    var body: some View {
+        Image(systemName: "moon.fill")
+            .font(.system(size: 7, weight: .bold))
+            .foregroundStyle(Color.wardPrimaryInk)
+            .accessibilityHidden(true)
     }
 }

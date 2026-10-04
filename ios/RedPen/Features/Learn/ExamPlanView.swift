@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The exam plan: where the run-up stands, what the student would remember
-/// on the day, the next two weeks of reviews, how much is locked in per
-/// subject, and what this phase asks for.
+/// The exam plan: where the run-up stands, today's goal and a ward round,
+/// what the student would remember on the day, the next two weeks of
+/// reviews, how much is locked in per subject, and what this phase asks for.
 ///
 /// Opened from Mission Control's "Plan". Everything on it is an estimate
 /// from the app's own schedule and answer history, and it says so.
@@ -23,6 +23,20 @@ struct ExamPlanView: View {
         let rings: [SecuredRule.Ring] = SecuredRule.rings(subjects: store.questionSubjects(), standings: standings)
         List {
             Section { PhaseHero(phase: phase) }
+            // the streak, the goal ring and a ward round (WardRoundView.swift)
+            Section {
+                TodayGoalRow()
+            } header: {
+                Text("Today")
+            } footer: {
+                Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
+            }
+            // the tile is its own glass, so no list row behind it
+            Section {
+                WardRoundTile()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            }
             // the chosen exam: countdown, blueprint coverage, readiness, study next
             Section {
                 ExamDashboardCard()
