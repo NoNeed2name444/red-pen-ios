@@ -91,6 +91,11 @@ protocol GraphThemeLook: AnyObject {
     /// How its camera develops the picture (GraphLens): bloom, exposure,
     /// colour, depth of field when flown in. Flat by default.
     var lens: GraphLens { get }
+    /// Lights the scene for a look whose materials are lit (the Circuit's
+    /// metal, solder and glossy mask): its lighting environment, for
+    /// reflections, and any lights. Nothing by default - every other look
+    /// is unlit.
+    func light(_ scene: SCNScene, plan: ThemePlan)
 }
 
 extension GraphThemeLook {
@@ -99,6 +104,7 @@ extension GraphThemeLook {
     var farArbor: GraphLinkArbor? { nil }
     func decorate(world: SCNNode, plan: ThemePlan) {}
     var lens: GraphLens { .flat }
+    func light(_ scene: SCNScene, plan: ThemePlan) {}
 }
 
 /// Which planner and look each theme has.
@@ -217,6 +223,7 @@ extension GraphSceneBuilder {
         }
 
         look.decorate(world: world, plan: plan)
+        look.light(scene, plan: plan)
 
         // the notes' links, and every container wired to those inside it
         var edges: [(UUID, UUID)] = noteEdges
