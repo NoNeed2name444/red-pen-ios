@@ -694,6 +694,13 @@ final class GraphCircuitLook: GraphThemeLook {
     func makeSky() -> SCNNode {
         CircuitRoom.makeSky()
     }
+
+    /// A macro shot of a board: LEDs and packets blooming, a flown-in
+    /// board in focus with the bench falling away.
+    var lens: GraphLens {
+        GraphLens(bloom: 0.8, threshold: 0.75, blur: 8, iterations: 2, spread: 1, exposure: 0, saturation: 1.05,
+                  contrast: 0.08, vignette: 0.5, vignettePower: 1.3, aperture: 1.4)
+    }
 }
 
 private extension Double {

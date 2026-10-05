@@ -565,6 +565,13 @@ final class GraphNeuronLook: GraphThemeLook {
         NeuronTissue.makeSky()
     }
 
+    /// Fluorescence under the microscope: the cells' hottest light blooming
+    /// wide, the field darkening towards its edges.
+    var lens: GraphLens {
+        GraphLens(bloom: 1.1, threshold: 0.55, blur: 12, iterations: 2, spread: 1, exposure: 0, saturation: 1.15,
+                  contrast: 0.1, vignette: 0.55, vignettePower: 1.2)
+    }
+
     /// Motes drifting through the fluid, at the High budget in a moving
     /// space.
     func decorate(world: SCNNode, plan: ThemePlan) {
