@@ -1009,6 +1009,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return home[i]
     }
 
+    /// How far body `i` reaches from its centre: its link trim radius, as
+    /// its look gave it (it never changes).
+    func bodyRadius(_ i: Int) -> Float {
+        guard i >= 0, i < radius.count else { return 0 }
+        return radius[i]
+    }
+
     /// Where a note is now, in the space's own coordinates.
     func currentPosition(_ i: Int) -> SIMD3<Float> {
         lock.lock()

@@ -499,6 +499,66 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    // MARK: close-ups
+
+    /// The Neurons theme seen close (`-graphPreviewZoom`), as the owner's
+    /// quality boards show it: each top-level folder a whole neuron, its
+    /// subfolders the parts it branches into, and a note on one of them.
+    func testNeuronsCloseUp() {
+        closeUps(theme: "neurons", number: 50, [
+            ("cardiology", "Cardiology", "18,12", "1"),
+            ("examples", "Examples", "-20,10", "1"),
+            ("inguinal", "Inguinal", "12,-8", "1"),
+            ("heart-failure", "Heart failure", "0,0", "1")
+        ])
+    }
+
+    /// The Circuit theme seen close and low, as a board on a bench is: a
+    /// whole board, a chip with its parts, a capacitor and an LED.
+    func testCircuitCloseUp() {
+        closeUps(theme: "circuit", number: 51, [
+            ("cardiology", "Cardiology", "-12,-34", "1"),
+            ("examples", "Examples", "10,-30", "1"),
+            ("acs", "Acute coronary syndrome", "8,-38", "1"),
+            ("stemi", "STEMI", "0,-42", "1")
+        ])
+    }
+
+    /// The Space seen close: each single look's body (as the owner's style
+    /// boards show them, one at a time), then a galaxy's black hole and a
+    /// star in the Universe.
+    func testSpaceCloseUps() {
+        let styles: [String] = ["blackHole", "sun", "rocky", "gasGiant", "pulsar", "comet"]
+        for (k, style) in styles.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewStyle", style, "-graphPreviewZoom", "Heart failure",
+                                    "-graphPreviewTurn", "0,8"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(5)
+            snap(app, "52-\(k + 1)-space-close-\(style)")
+            app.terminate()
+        }
+        closeUps(theme: "space", number: 53, [
+            ("examples", "Examples", "0,14", "1"),
+            ("inguinal", "Inguinal", "10,6", "1")
+        ])
+    }
+
+    /// One launch per close-up: (its name, the body, the turn, the scale).
+    private func closeUps(theme: String, number: Int, _ shots: [(String, String, String, String)]) {
+        for (k, shot) in shots.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewZoom", shot.1,
+                                    "-graphPreviewTurn", shot.2, "-graphPreviewZoomScale", shot.3]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(5)
+            snap(app, "\(number)-\(k + 1)-\(theme)-close-\(shot.0)")
+            app.terminate()
+        }
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name

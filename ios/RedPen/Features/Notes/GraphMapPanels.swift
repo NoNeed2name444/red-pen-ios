@@ -17,6 +17,8 @@ struct GraphMapCommand: Equatable {
         case flyIn(UUID)
         /// The design preview: a body held still, as a finger would.
         case previewHold(UUID)
+        /// The design preview: the camera right up to a body (a close-up).
+        case previewZoom(UUID)
     }
 
     var kind: Kind = .none

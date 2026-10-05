@@ -58,6 +58,9 @@ import SwiftUI
 ///   made-up notes in its place.
 /// - `-graphPreviewRemove [names]` deletes some folders and notes three
 ///   seconds in (see `removes`), in any theme, to show them dying.
+/// - `-graphPreviewZoom <title or folder>` takes a close-up of one body, in
+///   any theme or single look, seen from `-graphPreviewTurn <yaw,pitch>`
+///   degrees and framed `-graphPreviewZoomScale` times as wide.
 ///
 /// The Universe seeds by names here, as the store's ids change every
 /// launch. The owner's own look setting is never read or written. The space
@@ -104,7 +107,27 @@ enum GraphPreview {
     }
 
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
-    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil
+    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil && zoom == nil
+
+    /// `-graphPreviewZoom <title or folder>`: two seconds after the map
+    /// appears, the camera goes right up to that body for a close-up of its
+    /// look - a folder's whole system, a note and its glow - with nothing
+    /// chosen and no name shown.
+    static let zoom: String? = argument("-graphPreviewZoom")
+    /// `-graphPreviewTurn <yaw,pitch>`: the close-up seen from that many
+    /// degrees round to the right and up from straight on (0,0 without).
+    static let turn: SIMD2<Float> = {
+        guard let raw = argument("-graphPreviewTurn") else { return SIMD2<Float>(0, 0) }
+        let parts: [Float] = raw.split(separator: ",").compactMap { Float($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 2 else { return SIMD2<Float>(0, 0) }
+        return SIMD2<Float>(parts[0], parts[1])
+    }()
+    /// `-graphPreviewZoomScale <x>`: how much round the body the close-up
+    /// frames (1 without; 0.5 twice as close).
+    static let zoomScale: Float = {
+        guard let raw = argument("-graphPreviewZoomScale"), let x = Float(raw), x > 0.05 else { return 1 }
+        return x
+    }()
 
     /// `-graphPreviewSelect <title or folder>`: a moment after the map
     /// appears, that body is tapped - chosen, its peek card up. With
