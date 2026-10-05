@@ -105,11 +105,10 @@ final class GraphPreviewUITests: XCTestCase {
 
     // MARK: the Neurons theme
 
-    /// The whole map as a nervous system: Cardiology and Examples as two
-    /// regions, Examples' pathway running out through Inguinal (Anatomy one
-    /// relay further) and Femoral, impulses running along the axons at
-    /// their own random times - so the second picture differs from the
-    /// first - and in landscape.
+    /// The whole map as cells: Cardiology and Examples as two cells,
+    /// Inguinal and Femoral as parts of Examples, Anatomy a smaller part
+    /// of Inguinal, impulses running along the axons at their own random
+    /// times - so the second picture differs from the first - and in landscape.
     func testNeuronsAtRest() {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
@@ -118,7 +117,7 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
         sleep(3)
         let summary: String = (space.value as? String) ?? ""
-        XCTAssertTrue(summary.contains("regions") && summary.contains("glia"), "no Neurons summary: \(summary)")
+        XCTAssertTrue(summary.contains("cells") && summary.contains("glia"), "no Neurons summary: \(summary)")
         snap(app, "11-neurons-at-rest")
         sleep(2)
         snap(app, "12-neurons-two-seconds-later")
@@ -543,6 +542,24 @@ final class GraphPreviewUITests: XCTestCase {
             ("examples", "Examples", "0,14", "1"),
             ("inguinal", "Inguinal", "10,6", "1")
         ])
+    }
+
+    /// The Performance theme's demo of 100,000 notes: the fast map, its
+    /// speed readout, and the same map a moment later once frames are coming.
+    func testPerformance100k() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "performance", "-graphPreviewPerfDemo", "100000"]
+        app.launch()
+        let space = app.otherElements["graph3D"]
+        XCTAssertTrue(space.waitForExistence(timeout: 30), "the fast map didn't open")
+        let readout = app.buttons["perfReadout"]
+        let ready = NSPredicate(format: "value CONTAINS %@", "100,000")
+        let appeared = XCTNSPredicateExpectation(predicate: ready, object: readout)
+        let waited = XCTWaiter.wait(for: [appeared], timeout: 90)
+        snap(app, "54-performance-100k")
+        sleep(2)
+        snap(app, "55-performance-100k-later")
+        XCTAssertEqual(waited, .completed, "the 100,000-note readout didn't arrive")
     }
 
     /// One launch per close-up: (its name, the body, the turn, the scale).
