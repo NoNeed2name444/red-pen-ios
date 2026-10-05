@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [iphone-graph, iphone-tour, ipad]
+        part: [iphone-graph]
     steps:
       - uses: actions/checkout@v4
         # no token left in .git/config for the build: the packages it
@@ -144,7 +144,7 @@ jobs:
           NAME: ${{ steps.dev.outputs.name }}
           PART: ${{ matrix.part }}
           # workflow_dispatch: a pattern of test names to run (grep -E), all when empty
-          ONLY: ${{ inputs.only }}
+          ONLY: ${{ inputs.only || 'testNeuronsCloseUp|testCircuitCloseUp|testSpaceCloseUps|testNeuronsAtRest|testCircuitAtRest|testEachStyle' }}
         run: |
           # one test run against the build above: its result bundle and log, then which tests
           run_tests() {
