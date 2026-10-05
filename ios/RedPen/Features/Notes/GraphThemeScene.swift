@@ -88,6 +88,14 @@ protocol GraphThemeLook: AnyObject {
     /// Anything the look adds to the world beside the bodies (the Circuit:
     /// the motherboard under everything). Nothing by default.
     func decorate(world: SCNNode, plan: ThemePlan)
+    /// How its camera develops the picture (GraphLens): bloom, exposure,
+    /// colour, depth of field when flown in. Flat by default.
+    var lens: GraphLens { get }
+    /// Lights the scene for a look whose materials are lit (the Circuit's
+    /// metal, solder and glossy mask): its lighting environment, for
+    /// reflections, and any lights. Nothing by default - every other look
+    /// is unlit.
+    func light(_ scene: SCNScene, plan: ThemePlan)
 }
 
 extension GraphThemeLook {
@@ -95,6 +103,8 @@ extension GraphThemeLook {
     var arbor: GraphLinkArbor? { nil }
     var farArbor: GraphLinkArbor? { nil }
     func decorate(world: SCNNode, plan: ThemePlan) {}
+    var lens: GraphLens { .flat }
+    func light(_ scene: SCNScene, plan: ThemePlan) {}
 }
 
 /// Which planner and look each theme has.
@@ -213,6 +223,7 @@ extension GraphSceneBuilder {
         }
 
         look.decorate(world: world, plan: plan)
+        look.light(scene, plan: plan)
 
         // the notes' links, and every container wired to those inside it
         var edges: [(UUID, UUID)] = noteEdges
@@ -238,9 +249,8 @@ extension GraphSceneBuilder {
         camera.zFar = Double(far)
         let skyRadius: Float = far * 0.5
         sky.simdScale = SIMD3<Float>(skyRadius, skyRadius, skyRadius)
-        camera.wantsHDR = false
-        camera.bloomIntensity = 0
-        camera.wantsExposureAdaptation = false
+        let lens: GraphLens = look.lens
+        lens.apply(to: camera)
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         cameraNode.simdPosition = SIMD3<Float>(0, 0, distance)
@@ -277,6 +287,7 @@ extension GraphSceneBuilder {
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.theme = look.theme
+        built.lens = lens
         built.systems = plan.systems
         built.summary = plan.summary
         built.folders = folders

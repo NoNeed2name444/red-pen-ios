@@ -1,8 +1,8 @@
 // The Neurons theme (GraphNeurons): the ideas' hierarchy as a nervous
 // system, laid out the way a pathway runs from the brain outward.
 //
-// Top-level folders are brain regions, folders inside them relays down the
-// pathway, pages large neurons, ideas interneurons, short one-link ideas
+// Top-level folders are cells, folders inside them parts of that cell,
+// deeper folders smaller parts, pages large neurons, ideas interneurons, short one-link ideas
 // glia hugging their neuron, bridging ideas commissural neurons, loose notes
 // receptors (linked) or microglia (not). None of this needs a screen, so it
 // is all checked here: the roles the design preview must show, the size
@@ -460,11 +460,20 @@ check("T1 the bridging idea is commissural", titles(preview, .commissural) == ["
 check("T1 both loose notes are receptors", titles(preview, .receptor) == ["Richter's hernia", "Pericarditis"],
       "\(titles(preview, .receptor))")
 check("T1 no microglia", titles(preview, .microglia).isEmpty)
-let expectedSummary: String = "2 regions, 3 relays, 9 neurons, 12 interneurons, 6 glia, 1 commissural neuron, 2 receptors"
+let expectedSummary: String = "2 cells, 2 cell parts, 1 subpart, 9 neurons, 12 interneurons, 6 glia, 1 commissural neuron, 2 receptors"
 check("T1 summary", preview.summary == expectedSummary, preview.summary)
 let anatomy: Int = bodyNamed(preview, "Anatomy") ?? -1
 let inguinal: Int = bodyNamed(preview, "Inguinal") ?? -1
 let examples: Int = bodyNamed(preview, "Examples") ?? -1
+check("T1 a cell, then a part, then a smaller part",
+      anatomy >= 0 && inguinal >= 0 && examples >= 0
+      && preview.bodies[examples].depth == 0 && preview.bodies[inguinal].depth == 1
+      && preview.bodies[anatomy].depth == 2
+      && NeuronAnatomy.of(depth: 0) == .cell && NeuronAnatomy.of(depth: 1) == .part
+      && NeuronAnatomy.of(depth: 2) == .subpart
+      && preview.bodies[examples].sphere > preview.bodies[inguinal].sphere
+      && preview.bodies[inguinal].sphere > preview.bodies[anatomy].sphere,
+      "\(preview.bodies[examples].sphere) \(preview.bodies[inguinal].sphere) \(preview.bodies[anatomy].sphere)")
 check("T1 Anatomy relays from Inguinal, Inguinal from Examples",
       anatomy >= 0 && preview.bodies[anatomy].parent == inguinal && preview.bodies[inguinal].parent == examples)
 check("T1 regions listed", preview.regions.map { preview.bodies[$0].title }.sorted() == ["Cardiology", "Examples"])
@@ -565,7 +574,7 @@ let homeOnly: ThemePlan = GraphNeurons.plan(UniverseInput(
 check("T6 no folders: one brainstem first", homeOnly.bodies.first?.role == NeuronRole.brainstem.rawValue
       && homeOnly.bodies.first?.id == GraphUniverse.homeID)
 check("T6 no folders: every note in it", homeOnly.bodies.dropFirst().allSatisfy { $0.parent >= 0 })
-check("T6 no folders: summary", homeOnly.summary.hasPrefix("1 brainstem"), homeOnly.summary)
+check("T6 no folders: summary", homeOnly.summary.hasPrefix("1 cell"), homeOnly.summary)
 
 // a cycle: A in B, B in A
 let fa: UUID = fixedID(6001)

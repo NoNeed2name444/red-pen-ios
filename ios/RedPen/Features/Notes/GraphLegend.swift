@@ -238,19 +238,19 @@ struct GraphLegendContent {
     private static let receptorTint: Color = Color(red: 1.0, green: 0.82, blue: 0.45)
 
     private static let neuronRungs: [GraphLegendRung] = [
-        GraphLegendRung(caption: "Region", size: 30, fill: tealGel, ring: teal, halo: true),
-        GraphLegendRung(caption: "Relay", size: 24, fill: greenGel, ring: green, halo: true),
+        GraphLegendRung(caption: "Cell", size: 30, fill: tealGel, ring: teal, halo: true),
+        GraphLegendRung(caption: "Part", size: 24, fill: greenGel, ring: green, halo: true),
         GraphLegendRung(caption: "Page", size: 18, fill: tealBody, ring: tealRing, halo: true),
         GraphLegendRung(caption: "Idea", size: 13, fill: tealBody, ring: tealFaint, halo: true),
         GraphLegendRung(caption: "Glia", size: 8, fill: gliaGel, ring: .clear)
     ]
 
     private static let neuronRows: [GraphLegendRow] = [
-        GraphLegendRow(symbol: "brain", name: "Region",
-                       text: "A top-level folder: a brain region, its big pyramidal cell (an upper motor neuron) at the heart of a cluster of its notes. Bigger holds more.",
+        GraphLegendRow(symbol: "brain", name: "Cell",
+                       text: "A top-level folder: one cell, its soma at the heart of its notes. Bigger holds more.",
                        tint: teal, how: "Make a folder: + \u{203A} New folder."),
-        GraphLegendRow(symbol: "arrow.triangle.branch", name: "Relay",
-                       text: "A folder inside a folder: the next relay down a descending pathway from the brain, a brainstem nucleus, then a spinal cord neuron, then an autonomic ganglion on the way to its organ. Always a little smaller than the one it hangs from.",
+        GraphLegendRow(symbol: "arrow.triangle.branch", name: "Cell part",
+                       text: "A folder inside a cell: a part of it, such as a dendrite field or the axon, drawn smaller. A folder inside that part is a smaller piece again, a spine or a bouton.",
                        tint: green, how: "A folder inside a folder: its menu in the List \u{203A} New folder inside."),
         GraphLegendRow(symbol: "circle.hexagongrid.fill", name: "Neuron",
                        text: "A page: a large neuron. Bigger and more branched is longer.", tint: teal,
@@ -271,16 +271,16 @@ struct GraphLegendContent {
                        text: "Each cell shows a state, as the space\u{2019}s bodies have styles: resting, slowly breathing; firing, a burst of spikes with calcium waves spreading; releasing, a cloud of transmitter drifting out; pacemaker, a steady beat with two lobes sweeping round; migrating, crawling on behind its growth cone; engulfing, drawing debris into a dark phagosome. Left alone, a commissural cell beats, a receptor migrates and microglia engulf.",
                        tint: stateTint, how: "Look \u{203A} Cells: one state for every note, or Region states for one folder."),
         GraphLegendRow(symbol: "bolt.horizontal.fill", name: "Axons and synapses",
-                       text: "Links. Impulses run from the sending cell at random times; near its target each axon branches into fine twigs whose swollen tips press on the next cell, and the impulse crosses there. Tracts join regions; each folder's pathway runs down to the folders inside it.",
+                       text: "Links. Impulses run from the sending cell at random times; near its target each axon branches into fine twigs whose swollen tips press on the next cell, and the impulse crosses there. Tracts join cells; each cell's pathway runs out to its parts.",
                        tint: amber, how: "Link two notes: type [[ and a note\u{2019}s title in a note.")
     ]
 
-    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
+    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a cell or a part twice to fly in, twice again to open the folder. Drag a cell and its parts follow."
 
     /// The Neurons (GraphNeurons): one line per kind of cell.
     static let neurons: GraphLegendContent = GraphLegendContent(
         rungs: neuronRungs, ladderCaption: "Bigger cells hold more.",
-        ladderLabel: "Size ladder: region, relay, page, idea, glia",
+        ladderLabel: "Size ladder: cell, cell part, page, idea, glia",
         rows: neuronRows, footer: neuronFooter)
 }
 
@@ -307,11 +307,11 @@ extension GraphLegendContent {
     ]
 
     private static let circuitRows: [GraphLegendRow] = [
-        GraphLegendRow(symbol: "cpu", name: "Chip",
-                       text: "A collection (a top-level folder): its own circuit board, the chip its controller, marked with the folder\u{2019}s name. Bigger holds more.",
+        GraphLegendRow(symbol: "cpu", name: "Board",
+                       text: "A top-level folder: its own circuit board, the main circuit, its chip marked with the folder\u{2019}s name. Bigger holds more.",
                        tint: silkWhite, how: "Make a folder: + \u{203A} New folder \u{2192} a new circuit board."),
-        GraphLegendRow(symbol: "memorychip", name: "Smaller chip",
-                       text: "A folder inside a folder: a smaller chip on its own sub-board, on a branch of its chip's bus.",
+        GraphLegendRow(symbol: "memorychip", name: "Circuit part",
+                       text: "A folder inside a board: a part of that circuit, a smaller chip on its own sub-board. A folder inside that part is a smaller part again.",
                        tint: silkWhite, how: "In the List, a folder\u{2019}s menu \u{203A} New folder inside."),
         GraphLegendRow(symbol: "cylinder.fill", name: "Capacitor",
                        text: "A page, on its chip's bus: a blue capacitor, or a copper-wound inductor once it is over 250 words. Bigger is longer.",
@@ -342,7 +342,7 @@ extension GraphLegendContent {
     /// add to them.
     static let circuit: GraphLegendContent = GraphLegendContent(
         rungs: circuitRungs, ladderCaption: "Bigger parts hold more.",
-        ladderLabel: "Size ladder: board chip, sub-chip, page, idea, pad",
+        ladderLabel: "Size ladder: board, circuit part, page, idea, pad",
         rows: circuitRows, footer: circuitFooter)
 }
 
@@ -458,7 +458,7 @@ struct GraphEmptyHint: View {
     private var words: String {
         switch theme {
         case .space: return "No galaxies yet: your notes orbit one star. Add a folder to light your first black hole."
-        case .neurons: return "No brain regions yet. Add a folder to grow your first one."
+        case .neurons: return "No cells yet. Add a folder to grow your first one."
         case .circuit: return "No collections yet: every note sits on one board. Add a folder to place your first circuit of its own."
         case .performance: return "No folders yet: every note shares one cluster. Add a folder to start a cluster of its own."
         }

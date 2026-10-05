@@ -39,11 +39,13 @@ import simd
 ///
 /// The map has themes (GraphTheme, chosen at the top of the Look menu):
 /// Space - the Universe and the single looks - Neurons, the same
-/// hierarchy as a nervous system (GraphNeurons: regions, relays down the
-/// pathway, neurons, glia and receptors joined by axons carrying impulses),
-/// and Circuit, as a printed circuit board (GraphCircuit: processors,
-/// modules on sub-boards, capacitors, resistors, LEDs and headers joined by
-/// routed copper traces carrying current), each planned the same way and
+/// hierarchy as cells (GraphNeurons: a top-level folder is a cell, a
+/// folder inside it a part, deeper a smaller part; neurons, glia and
+/// receptors joined by axons carrying impulses), and Circuit, as a printed
+/// circuit board (GraphCircuit: a top-level folder is a board, a folder
+/// inside it a part of that circuit, deeper a smaller part; capacitors,
+/// resistors, LEDs and headers joined by routed copper traces carrying
+/// current), each planned the same way and
 /// built by the shared theme scene
 /// (GraphThemeScene), so it moves, picks, filters and flies in exactly as
 /// the Universe does. The Graphics setting applies to every theme.
@@ -214,6 +216,18 @@ struct Graph3DView: View {
             if let name = GraphPreview.hold, let id = previewID(name) {
                 command.send(.previewHold(id))
             }
+        }
+        .task {
+            // the design preview's close-up of one body, once the scene is
+            // built (a loaded runner builds it late)
+            guard let name = GraphPreview.zoom else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            var waited: UInt64 = 0
+            while built == nil, waited < 30_000_000_000 {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                waited += 250_000_000
+            }
+            if let id = previewID(name) { command.send(.previewZoom(id)) }
         }
         .task {
             // the design preview's picture of the legend
@@ -901,7 +915,7 @@ struct Graph3DView: View {
         var roles: [UUID: String] = [:]
         var names: [UUID: String] = [:]
         for body in plan.bodies where body.kind != .fixture {
-            roles[body.id] = String(body.role)
+            roles[body.id] = GraphPeek.roleToken(role: body.role, depth: body.depth)
             names[body.id] = body.label
         }
         scene.roles = roles
@@ -980,6 +994,8 @@ struct GraphScene {
     var linkScale: Double = 1
     /// What VoiceOver calls each body (its name pill's words).
     var names: [UUID: String] = [:]
+    /// How its camera develops the picture, and focuses when flown in.
+    var lens: GraphLens = .flat
 }
 
 /// Turns notes and their positions into SceneKit nodes.
@@ -1149,11 +1165,7 @@ enum GraphSceneBuilder {
         // the sky sits just inside the far plane, kept round the camera
         let skyRadius: Float = far * 0.5
         sky.simdScale = SIMD3<Float>(skyRadius, skyRadius, skyRadius)
-        // no HDR, bloom or glare: the glows are baked into the textures and
-        // shaders, and camera bloom would put a halo round everything bright
-        camera.wantsHDR = false
-        camera.bloomIntensity = 0
-        camera.wantsExposureAdaptation = false
+        GraphLens.space.apply(to: camera)
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         let cameraHome = SIMD3<Float>(0, 0, distance)
@@ -1178,7 +1190,9 @@ enum GraphSceneBuilder {
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
-        return GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
+        var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: homes, pad: pad)
+        built.lens = .space
+        return built
     }
 
     /// A single look's style as the Universe body it looks like, for the
@@ -1509,6 +1523,11 @@ struct GraphSCNView: UIViewRepresentable {
         private var folders: [UUID: Int] = [:]
         private var titles: [String: Int] = [:]
         private var dragTarget: Int?
+        /// The scene's lens, focused on whatever the camera flies in to.
+        private var lens: GraphLens = .flat
+        /// How many times the design preview's close-up has waited for the
+        /// view to have a size.
+        private var previewZoomTries: Int = 0
         /// The folder body the camera has flown in to (its index and id),
         /// or nil at the whole map.
         private var flown: Int?
@@ -1568,6 +1587,7 @@ struct GraphSCNView: UIViewRepresentable {
             folders = built.folders
             titles = built.containerTitles
             dragTarget = built.dragTarget
+            lens = built.lens
             framedWide = nil
             framedPose = nil
             shownFilter = nil
@@ -1796,6 +1816,7 @@ struct GraphSCNView: UIViewRepresentable {
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
             framedPose = camera.simdTransform
+            if let lensed = camera.camera { lens.focus(lensed, at: nil) }
         }
 
         /// Flies the camera in to frame folder body `i`'s whole system - its
@@ -1836,6 +1857,52 @@ struct GraphSCNView: UIViewRepresentable {
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
             framedPose = camera.simdTransform
+            if let lensed = camera.camera { lens.focus(lensed, at: simd_length(offset)) }
+            wake()
+        }
+
+        /// The design preview's close-up (`-graphPreviewZoom`): the camera
+        /// right up to body `i` - a folder's whole system, a note's look and
+        /// glow - seen from `-graphPreviewTurn` degrees round and above, so
+        /// its depth shows, focused on it. Nothing is chosen and no name is
+        /// shown: the picture is the body itself. It frames where the body
+        /// is this instant, so a note that moves is caught where it is.
+        private func zoom(to i: Int) {
+            guard let view, let camera, let sim, i >= 0, i < sim.ids.count else { return }
+            let size: CGSize = view.bounds.size
+            guard size.width > 1, size.height > 1 else { return }
+            let wide: Bool = size.width > size.height
+            let turn: simd_quatf = worldTurn(wide: wide)
+            let reach: Float = max(sim.bodyRadius(i) * 3 * GraphPreview.zoomScale, 0.05)
+            var points: [SIMD3<Float>] = []
+            if i < systems.count, !systems[i].isEmpty {
+                points = systems[i].map { turn.act($0) * GraphPreview.zoomScale }
+            } else {
+                let axes: [SIMD3<Float>] = [SIMD3<Float>(1, 0, 0), SIMD3<Float>(-1, 0, 0), SIMD3<Float>(0, 1, 0),
+                                            SIMD3<Float>(0, -1, 0), SIMD3<Float>(0, 0, 1), SIMD3<Float>(0, 0, -1)]
+                points = axes.map { $0 * reach }
+            }
+            let window: GraphWindow = GraphFraming.window(width: Float(size.width),
+                                                          height: Float(size.height), insets: insets)
+            let distance: Float = GraphFraming.distance(points: points, pad: 0.02, window: window, fill: 0.9)
+            let offset: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
+            let degrees: SIMD2<Float> = GraphPreview.turn
+            let yaw = simd_quatf(angle: degrees.x * Float.pi / 180, axis: SIMD3<Float>(0, 1, 0))
+            let pitch = simd_quatf(angle: -degrees.y * Float.pi / 180, axis: SIMD3<Float>(1, 0, 0))
+            let look: simd_quatf = yaw * pitch
+            let centre: SIMD3<Float> = turn.act(sim.currentPosition(i))
+            flown = nil
+            flownID = nil
+            view.pointOfView = camera
+            view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0
+            sim.world.simdOrientation = turn
+            camera.simdPosition = centre + look.act(offset)
+            camera.simdOrientation = look
+            SCNTransaction.commit()
+            framedPose = camera.simdTransform
+            if let lensed = camera.camera { lens.focus(lensed, at: simd_length(offset)) }
             wake()
         }
 
@@ -2103,6 +2170,17 @@ struct GraphSCNView: UIViewRepresentable {
                     previewHoldTries += 1
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                         self?.run(.previewHold(id))
+                    }
+                }
+            case .previewZoom(let id):
+                // the view may not have its size yet on a loaded runner
+                if let i = sim.index[id], let view, view.bounds.width > 1 {
+                    previewZoomTries = 0
+                    zoom(to: i)
+                } else if previewZoomTries < 60 {
+                    previewZoomTries += 1
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                        self?.run(.previewZoom(id))
                     }
                 }
             case .none, .clear, .links:

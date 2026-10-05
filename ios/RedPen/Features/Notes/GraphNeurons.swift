@@ -1,20 +1,15 @@
 import Foundation
 
-// The Neurons theme: the ideas' own hierarchy drawn as a nervous system,
-// laid out the way a descending pathway runs - from the brain outward.
+// The Neurons theme: the ideas' own hierarchy drawn as cells, laid out
+// the way a pathway runs - from each cell outward through its parts.
 //
-// - the whole vault is the central nervous system;
-// - a top-level folder is a brain region: a big pyramidal cell (an upper
-//   motor neuron, like the motor cortex's Betz cells) at the heart of a
-//   cluster of its notes;
-// - a folder inside a folder is the next relay down one real descending
-//   chain, the central autonomic pathway: a brainstem nucleus one level
-//   down (as the rostral ventrolateral medulla relays the hypothalamus and
-//   cortex), then a spinal cord neuron (the lateral horn's preganglionic
-//   cell), then an autonomic ganglion (the postganglionic cell that
-//   reaches the organ); deeper folders stay ganglion cells. Each stands
-//   out along its region's outward axis, so region -> relay -> relay reads
-//   like brain -> brainstem -> spinal cord -> ganglion -> organ;
+// - the whole vault is the tissue;
+// - a top-level folder is one cell: a big soma at the heart of its notes;
+// - a folder inside that cell is a part of it (a dendrite field, the axon),
+//   drawn smaller and standing out along the cell's axis;
+// - a folder inside a part is a smaller piece of that part (a spine, a
+//   bouton), smaller again; deeper folders stay subparts, only a little
+//   smaller each time so a long chain never shrinks into a note;
 // - a page is a large multipolar neuron (bigger is longer, its dendrites
 //   richer), an idea a small interneuron;
 // - a short idea linked only to the note it sits with is a glial cell (an
@@ -26,11 +21,11 @@ import Foundation
 //   none, drifting on patrol;
 // - with no folders at all, one brainstem cell holds every note.
 //
-// Links are axons: inside a cluster short local fibres, between clusters
-// of one region projection fibres, between regions long tracts; and every
-// folder is wired to the folders inside it by its pathway tract. Impulses
-// run from the sending end (the higher rank: regions and relays send down
-// the pathway, receptors send in) to the receiving one.
+// Links are axons: inside a cluster short local fibres, between parts of
+// one cell projection fibres, between cells long tracts; and every folder
+// is wired to the folders inside it by its pathway tract. Impulses run
+// from the sending end (the higher rank: cells and their parts send
+// outward, receptors send in) to the receiving one.
 //
 // Four rules, as in the Universe: what a cell is = what the item is; size
 // = how much is in it (every container bigger than every note, a folder
@@ -42,9 +37,9 @@ import Foundation
 // into the first clear place). Tested on Linux (Tests/NeuronHierarchyTests).
 
 nonisolated enum NeuronRole: Int, Sendable, CaseIterable {
-    /// A top-level folder: a brain region's pyramidal hub.
+    /// A top-level folder: one cell, the soma everything else hangs from.
     case region = 0
-    /// A folder inside a folder: a relay neuron down the pathway.
+    /// A folder inside a cell: a part of it, or a smaller piece of a part.
     case relay = 1
     /// The one container of a vault with no folders.
     case brainstem = 2
@@ -61,7 +56,7 @@ nonisolated enum NeuronRole: Int, Sendable, CaseIterable {
     /// A loose note with no links: a microglial cell drifting on patrol.
     case microglia = 8
 
-    /// Which end of a link sends: regions and relays down the pathway,
+    /// Which end of a link sends: cells and their parts outward,
     /// receptors inward, neurons to interneurons, never glia.
     var rank: Int {
         switch self {
@@ -89,6 +84,28 @@ nonisolated enum NeuronRole: Int, Sendable, CaseIterable {
 
     var isContainer: Bool {
         self == .region || self == .relay || self == .brainstem
+    }
+}
+
+/// Where a folder sits in a cell. Depth 0 is the cell, depth 1 one of its
+/// parts, deeper a smaller piece of that part.
+nonisolated enum NeuronAnatomy: Sendable, Equatable {
+    case cell
+    case part
+    case subpart
+
+    static func of(depth: Int) -> NeuronAnatomy {
+        if depth <= 0 { return .cell }
+        if depth == 1 { return .part }
+        return .subpart
+    }
+
+    var word: String {
+        switch self {
+        case .cell: return "Cell"
+        case .part: return "Cell part"
+        case .subpart: return "Subpart"
+        }
     }
 }
 
@@ -128,18 +145,28 @@ nonisolated enum GraphNeurons {
         return GraphUniverse.clamp(0.40 + 0.02 * size, 0.40, 0.54)
     }
 
-    /// The smallest a relay at depth `d` is drawn: 0.31, 0.28, 0.27, ...,
-    /// falling with every level and always above the biggest page.
-    static func relayFloor(_ d: Int) -> Double {
-        0.25 + 0.06 / Double(max(d, 1))
-    }
-
-    /// A relay: by how many notes it holds, always a little smaller than
-    /// the container it sits in.
+    /// A folder inside a cell. Depth 1 is a part of the cell, clearly
+    /// smaller than it. Depth 2 is a smaller piece of that part. Deeper
+    /// folders stay subparts and shrink only a little, so a long chain
+    /// stays above every page and strictly under its parent.
     static func relaySphere(count: Int, depth: Int, parent: Double) -> Double {
         let size: Double = log2(1 + Double(count))
-        let own: Double = GraphUniverse.clamp(0.29 + 0.012 * size, 0.29, 0.37)
-        return max(min(own, parent * 0.9), relayFloor(depth))
+        let own: Double
+        let share: Double
+        if depth <= 1 {
+            own = GraphUniverse.clamp(0.34 + 0.01 * size, 0.32, 0.42)
+            share = 0.80
+        } else if depth == 2 {
+            own = GraphUniverse.clamp(0.28 + 0.006 * size, 0.27, 0.34)
+            share = 0.88
+        } else {
+            own = parent * 0.992
+            share = 0.992
+        }
+        var sphere: Double = min(own, parent * share)
+        if sphere < 0.236 { sphere = min(0.236, parent * 0.992) }
+        if sphere >= parent { sphere = parent * 0.992 }
+        return sphere
     }
 
     static let brainstemSphere: Double = 0.44
@@ -152,22 +179,35 @@ nonisolated enum GraphNeurons {
         return planner.run()
     }
 
-    /// "2 regions, 3 relays, 12 neurons, ...".
+    /// "2 cells, 2 cell parts, 1 subpart, 12 neurons, ...".
     static func summary(_ bodies: [ThemeBody]) -> String {
         var counts = [Int](repeating: 0, count: NeuronRole.allCases.count)
-        for body in bodies where body.role >= 0 && body.role < counts.count { counts[body.role] += 1 }
+        var cells: Int = 0
+        var parts: Int = 0
+        var subparts: Int = 0
+        for body in bodies where body.role >= 0 && body.role < counts.count {
+            counts[body.role] += 1
+            switch NeuronRole(rawValue: body.role) {
+            case .region, .brainstem: cells += 1
+            case .relay:
+                if NeuronAnatomy.of(depth: body.depth) == .part { parts += 1 } else { subparts += 1 }
+            default: break
+            }
+        }
+        var said: [String] = []
+        func add(_ n: Int, _ one: String, _ many: String) {
+            if n > 0 { said.append("\(n) " + (n == 1 ? one : many)) }
+        }
+        add(cells, "cell", "cells")
+        add(parts, "cell part", "cell parts")
+        add(subparts, "subpart", "subparts")
         let words: [(NeuronRole, String, String)] = [
-            (.region, "region", "regions"), (.brainstem, "brainstem", "brainstems"), (.relay, "relay", "relays"),
             (.pyramidal, "neuron", "neurons"), (.interneuron, "interneuron", "interneurons"),
             (.glia, "glial cell", "glia"), (.commissural, "commissural neuron", "commissural neurons"),
             (.receptor, "receptor", "receptors"), (.microglia, "microglial cell", "microglia")
         ]
-        var parts: [String] = []
-        for (role, one, many) in words {
-            let n: Int = counts[role.rawValue]
-            if n > 0 { parts.append("\(n) " + (n == 1 ? one : many)) }
-        }
-        return parts.joined(separator: ", ")
+        for (role, one, many) in words { add(counts[role.rawValue], one, many) }
+        return said.joined(separator: ", ")
     }
 }
 

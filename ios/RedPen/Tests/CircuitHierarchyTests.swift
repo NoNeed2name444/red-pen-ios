@@ -636,6 +636,17 @@ let ideas: [Float] = preview.bodies.filter { roleOf($0) == .led }.map(\.sphere)
 let chipsMin: Float = preview.bodies.filter { roleOf($0).isContainer }.map(\.sphere).min() ?? 0
 check("T3 sizes: chips > pages > ideas, sub-chips under their chip", sizesOK
       && (pages.min() ?? 1) > (ideas.max() ?? 0) && chipsMin > (pages.max() ?? 0))
+let circuitExamples: Int = bodyNamed(preview, "Examples") ?? -1
+let circuitInguinal: Int = bodyNamed(preview, "Inguinal") ?? -1
+let circuitAnatomy: Int = bodyNamed(preview, "Anatomy") ?? -1
+check("T3 a board, then a part, then a smaller part",
+      circuitExamples >= 0 && circuitInguinal >= 0 && circuitAnatomy >= 0
+      && CircuitAnatomy.of(depth: preview.bodies[circuitExamples].depth) == .board
+      && CircuitAnatomy.of(depth: preview.bodies[circuitInguinal].depth) == .part
+      && CircuitAnatomy.of(depth: preview.bodies[circuitAnatomy].depth) == .subpart
+      && preview.bodies[circuitExamples].sphere > preview.bodies[circuitInguinal].sphere
+      && preview.bodies[circuitInguinal].sphere > preview.bodies[circuitAnatomy].sphere,
+      "\(preview.bodies[circuitExamples].sphere) \(preview.bodies[circuitInguinal].sphere) \(preview.bodies[circuitAnatomy].sphere)")
 
 // MARK: T4 the same notes, the same boards
 

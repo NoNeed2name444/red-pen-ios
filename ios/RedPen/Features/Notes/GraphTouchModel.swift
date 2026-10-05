@@ -260,21 +260,49 @@ nonisolated enum GraphPeek {
     static let chipLimit: Int = 6
     static let lineLimit: Int = 3
 
+    /// A theme body's role token: the role's number, and for a folder its
+    /// depth, so a cell's part and a smaller piece of that part can be told
+    /// apart ("1@2").
+    static func roleToken(role: Int, depth: Int) -> String {
+        "\(role)@\(depth)"
+    }
+
+    /// The role number and, when the token carries one, the folder's depth.
+    /// A bare "1" is one level in (a part); anything else bare is the top.
+    static func roleCode(_ role: String) -> (code: String, depth: Int) {
+        guard let at = role.firstIndex(of: "@") else {
+            return (role, role == "1" ? 1 : 0)
+        }
+        let code: String = String(role[..<at])
+        let rest: String = String(role[role.index(after: at)...])
+        return (code, Int(rest) ?? 0)
+    }
+
     /// The theme's own word for a body.
     static func roleWord(theme: String, role: String, folder: Bool, home: Bool) -> String? {
+        let parsed: (code: String, depth: Int) = roleCode(role)
         switch theme {
         case "neurons":
-            let words: [String: String] = [
-                "0": "Brain region", "1": "Relay neuron", "2": "Brainstem", "3": "Neuron", "4": "Interneuron",
-                "5": "Glial cell", "6": "Commissural neuron", "7": "Receptor", "8": "Microglia"
-            ]
-            return words[role]
+            switch parsed.code {
+            case "0", "2": return "Cell"
+            case "1": return parsed.depth >= 2 ? "Subpart" : "Cell part"
+            case "3": return "Neuron"
+            case "4": return "Interneuron"
+            case "5": return "Glial cell"
+            case "6": return "Commissural neuron"
+            case "7": return "Receptor"
+            case "8": return "Microglia"
+            default: return nil
+            }
         case "circuit":
-            let words: [String: String] = [
-                "0": "Processor", "1": "Module chip", "2": "System chip", "3": "Capacitor", "6": "LED",
-                "11": "Gold pad"
-            ]
-            return words[role]
+            switch parsed.code {
+            case "0", "2": return "Board"
+            case "1": return parsed.depth >= 2 ? "Smaller part" : "Circuit part"
+            case "3": return "Capacitor"
+            case "6": return "LED"
+            case "11": return "Gold pad"
+            default: return nil
+            }
         default:
             let words: [String: String] = [
                 "galaxy": "Black hole", "star": "Star", "home": "Home star", "gasGiant": "Gas giant",

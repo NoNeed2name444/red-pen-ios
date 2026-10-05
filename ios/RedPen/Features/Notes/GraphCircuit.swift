@@ -4,15 +4,16 @@ import Foundation
 // dark bench - one small board per collection, each a closed circuit that
 // follows real circuit logic, so it reads at a glance.
 //
-// - every top-level folder is its own board, with its chip - the
-//   controller at the top of its hierarchy - in the top left corner;
+// - every top-level folder is its own board: the main circuit, with its
+//   chip in the top left corner;
 // - a power rail (VCC) runs along each board's top edge and a ground rail
 //   (GND) along its bottom; every part sits on a closed path from the power
 //   rail, through the chip, through the part and back down to ground -
 //   nothing dangles;
 // - the hierarchy is the topology: the chip feeds a bus; a folder inside
-//   it is a smaller chip on its own sub-board, on a branch of that bus,
-//   with its own bus; pages are capacitors on the bus; ideas are LEDs in
+//   it is a part of that circuit, a smaller chip on its own sub-board, on
+//   a branch of that bus; a folder inside that part is a smaller part
+//   again; pages are capacitors on the bus; ideas are LEDs in
 //   parallel branches off the page they link to (or straight off the chip's
 //   bus when they link to none); an idea's own linked ideas chain in series
 //   after it; each branch ends in a tap on the ground rail;
@@ -38,9 +39,9 @@ import Foundation
 // Tested on Linux (Tests/CircuitHierarchyTests).
 
 nonisolated enum CircuitRole: Int, Sendable, CaseIterable {
-    /// A top-level folder: its board's controller chip.
+    /// A top-level folder: the board, the main circuit.
     case processor = 0
-    /// A folder inside a folder: a smaller chip on its own sub-board.
+    /// A folder inside a board: a part of that circuit, or a smaller part.
     case module = 1
     /// The one container of a vault with no folders.
     case soc = 2
@@ -73,6 +74,28 @@ nonisolated enum CircuitRole: Int, Sendable, CaseIterable {
         case .led: return SIMD2<Double>(0.85, 0.85)
         case .pad: return SIMD2<Double>(0.9, 0.9)
         case .vcc, .ground, .bus, .connector: return SIMD2<Double>(0.5, 0.5)
+        }
+    }
+}
+
+/// Where a folder sits on a board. Depth 0 is the board itself, depth 1 a
+/// part of that circuit, deeper a smaller part.
+nonisolated enum CircuitAnatomy: Sendable, Equatable {
+    case board
+    case part
+    case subpart
+
+    static func of(depth: Int) -> CircuitAnatomy {
+        if depth <= 0 { return .board }
+        if depth == 1 { return .part }
+        return .subpart
+    }
+
+    var word: String {
+        switch self {
+        case .board: return "Board"
+        case .part: return "Circuit part"
+        case .subpart: return "Smaller part"
         }
     }
 }
@@ -155,12 +178,17 @@ nonisolated enum GraphCircuit {
         return GraphUniverse.clamp(0.30 + 0.016 * size, 0.30, 0.42)
     }
 
-    /// A sub-folder's chip: by what it holds, always smaller than the chip
-    /// it hangs from and bigger than any page.
-    static func moduleSphere(count: Int, parent: Double) -> Double {
+    /// A folder inside a board. Depth 1 is a part of the circuit, smaller
+    /// than the board's chip. Deeper is a smaller part, another step down,
+    /// always under its parent and above any page.
+    static func moduleSphere(count: Int, depth: Int, parent: Double) -> Double {
         let size: Double = log2(1 + Double(count))
-        let own: Double = GraphUniverse.clamp(0.19 + 0.01 * size, 0.19, 0.27)
-        return max(min(own, parent * 0.85), 0.165)
+        let drop: Double = depth <= 1 ? 0 : 0.02 * Double(min(depth - 1, 3))
+        let own: Double = GraphUniverse.clamp(0.22 + 0.01 * size - drop, 0.168, 0.28)
+        let share: Double = depth <= 1 ? 0.82 : 0.78
+        let under: Double = parent * share
+        if under <= 0.162 { return min(own, parent * 0.92) }
+        return min(max(own, 0.162), under)
     }
 
     static let socSphere: Double = 0.34
@@ -353,7 +381,7 @@ nonisolated struct CircuitPlanner: Sendable {
                 cSphere[c] = GraphCircuit.processorSphere(count: tree.count[c])
             } else {
                 let up: Double = cSphere[tree.parent[c]]
-                cSphere[c] = GraphCircuit.moduleSphere(count: tree.count[c], parent: up)
+                cSphere[c] = GraphCircuit.moduleSphere(count: tree.count[c], depth: tree.depth[c], parent: up)
             }
         }
     }

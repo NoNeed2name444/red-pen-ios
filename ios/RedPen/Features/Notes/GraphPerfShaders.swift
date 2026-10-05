@@ -8,8 +8,9 @@
 //   bodies   one quad per body in the draw list, a disc of its radius on
 //            screen clamped to 1.25-28 points (hubs 3-48), a note under a
 //            point and a quarter fading out; a lit ball once a few pixels
-//            across, a flat dot below; opaque, writing depth; the chosen
-//            body larger with a white ring
+//            across, a flat dot below; a hub wears a bright ring so a folder
+//            reads as one even among 100,000 points; opaque, writing depth;
+//            the chosen body larger with a white ring
 //   lines    one line per link in the list, coloured by each end, faded in
 //            from 2 to 12 points long on screen, x0.55 between clusters,
 //            fainter with depth, added up; an end inside a collapsed
@@ -95,6 +96,7 @@ nonisolated enum GraphPerfShaders {
         float2 uv;
         float pixels;
         float ring;
+        float kind;
     };
 
     struct LineOut {
@@ -146,6 +148,7 @@ nonisolated enum GraphPerfShaders {
         o.uv = c;
         o.pixels = drawn * f.screen.w;
         o.ring = chosen ? 1.0 : 0.0;
+        o.kind = note ? 0.0 : 1.0;
         return o;
     }
 
@@ -163,6 +166,10 @@ nonisolated enum GraphPerfShaders {
         float detail = smoothstep(2.5, 7.0, in.pixels);
         float shade = mix(1.0, 0.38 + 0.8 * light + 0.55 * rim, detail);
         float3 rgb = in.colour.rgb * shade * in.colour.a;
+        if (in.kind > 0.5 && in.pixels > 4.0) {
+            float hub = smoothstep(0.52, 0.64, r) * (1.0 - smoothstep(0.80, 0.94, r));
+            rgb += in.colour.rgb * hub * in.colour.a * 0.9;
+        }
         if (in.ring > 0.5) {
             float band = smoothstep(0.66, 0.74, r) * (1.0 - smoothstep(0.86, 0.94, r));
             rgb = mix(rgb, float3(1.0), band);

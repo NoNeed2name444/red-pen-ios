@@ -264,6 +264,9 @@ final class GraphPerfCoordinator {
             guard let b = scene.body(id), let point = view.screenPoint(of: b) else { return }
             let hold: (UUID, CGPoint) -> Void = touch.hold
             DispatchQueue.main.async { hold(id, point) }
+        case .previewZoom(let id):
+            guard let b = scene.body(id) else { return }
+            view.fly(toBody: b)
         case .none, .clear, .links:
             break
         }

@@ -31,17 +31,17 @@ import SwiftUI
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
-///   Cardiology and Examples as two brain regions, Inguinal and Femoral
-///   relays out along Examples' pathway with Anatomy one step further,
+///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
+///   of the Examples cell with Anatomy a smaller part of Inguinal,
 ///   pages as large neurons, ideas as interneurons, the six short one-link
 ///   ideas as glia on their neurons, the bridging idea as a commissural
 ///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
 ///   `-graphPreviewLegend` work with it too.
 /// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
 ///   Cardiology and Examples as two circuit boards side by side on the
-///   bench, each with its chip, power rail along the top and ground rail
-///   along the bottom; Inguinal and Femoral as smaller chips on sub-boards
-///   on branches of Examples' bus, with Anatomy on Inguinal's; pages as
+///   bench, each the main circuit, power rail along the top and ground rail
+///   along the bottom; Inguinal and Femoral as parts of Examples' circuit
+///   on branches of its bus, with Anatomy a smaller part of Inguinal's; pages as
 ///   capacitors, ideas as LEDs in branches off the pages they link to, and
 ///   the two loose notes as gold pads on their boards' left edges.
 ///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
@@ -58,6 +58,9 @@ import SwiftUI
 ///   made-up notes in its place.
 /// - `-graphPreviewRemove [names]` deletes some folders and notes three
 ///   seconds in (see `removes`), in any theme, to show them dying.
+/// - `-graphPreviewZoom <title or folder>` takes a close-up of one body, in
+///   any theme or single look, seen from `-graphPreviewTurn <yaw,pitch>`
+///   degrees and framed `-graphPreviewZoomScale` times as wide.
 ///
 /// The Universe seeds by names here, as the store's ids change every
 /// launch. The owner's own look setting is never read or written. The space
@@ -104,7 +107,27 @@ enum GraphPreview {
     }
 
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
-    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil
+    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil && zoom == nil
+
+    /// `-graphPreviewZoom <title or folder>`: two seconds after the map
+    /// appears, the camera goes right up to that body for a close-up of its
+    /// look - a folder's whole system, a note and its glow - with nothing
+    /// chosen and no name shown.
+    static let zoom: String? = argument("-graphPreviewZoom")
+    /// `-graphPreviewTurn <yaw,pitch>`: the close-up seen from that many
+    /// degrees round to the right and up from straight on (0,0 without).
+    static let turn: SIMD2<Float> = {
+        guard let raw = argument("-graphPreviewTurn") else { return SIMD2<Float>(0, 0) }
+        let parts: [Float] = raw.split(separator: ",").compactMap { Float($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 2 else { return SIMD2<Float>(0, 0) }
+        return SIMD2<Float>(parts[0], parts[1])
+    }()
+    /// `-graphPreviewZoomScale <x>`: how much round the body the close-up
+    /// frames (1 without; 0.5 twice as close).
+    static let zoomScale: Float = {
+        guard let raw = argument("-graphPreviewZoomScale"), let x = Float(raw), x > 0.05 else { return 1 }
+        return x
+    }()
 
     /// `-graphPreviewSelect <title or folder>`: a moment after the map
     /// appears, that body is tapped - chosen, its peek card up. With

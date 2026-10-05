@@ -7,13 +7,13 @@ import Foundation
 //
 //   Space     the Universe (GraphUniverse): black holes, stars, planets,
 //             moons, pulsars and comets; the default
-//   Neurons   a nervous system (GraphNeurons): regions, relays down the
-//             pathway, neurons, glia and receptors, joined by axons that
-//             carry impulses
-//   Circuit   a circuit board (GraphCircuit): the vault the motherboard,
-//             processors, modules on their sub-boards, capacitors,
-//             resistors, LEDs, diodes and headers, joined by routed copper
-//             traces carrying current
+//   Neurons   cells (GraphNeurons): a top-level folder is a cell, a folder
+//             inside it a part of that cell, deeper a smaller part; pages
+//             are neurons, ideas interneurons, joined by axons
+//   Circuit   a circuit board (GraphCircuit): a top-level folder is a
+//             board, a folder inside it a part of that circuit, deeper a
+//             smaller part; capacitors, resistors, LEDs, diodes and
+//             headers, joined by routed copper traces carrying current
 //   Performance  speed first (GraphPerf*.swift): every note a point and
 //             every link a line, drawn by the GPU in a few instanced draws
 //             so 100,000 notes and their links fit on screen at once; far
@@ -133,11 +133,11 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
             return "Top-level folders are black holes, folders are stars, pages are gas giants "
                 + "and ideas are rocky planets. Bigger holds more."
         case .neurons:
-            return "Top-level folders are brain regions, folders are relays down the pathway, "
-                + "pages are large neurons and ideas small ones. Links are axons carrying impulses."
+            return "A top-level folder is a cell. A folder inside it is a part of that cell, "
+                + "and a folder inside that is a smaller part. Pages are large neurons and ideas small ones."
         case .circuit:
-            return "Each top-level folder is its own circuit board with its chip; pages are capacitors "
-                + "and ideas LEDs. Links are copper traces carrying current."
+            return "A top-level folder is a circuit board. A folder inside it is a part of that circuit, "
+                + "and a folder inside that is a smaller part. Pages are capacitors and ideas LEDs."
         case .performance:
             return "Every note is a point and every link a line, drawn so 100,000 fit at once. "
                 + "Each top-level folder has its own colour; far away a folder\u{2019}s notes merge into one glow."
@@ -153,11 +153,11 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
                     "Tap + \u{203A} New page for a gas giant, New idea for a rocky planet.",
                     "Type [[ and a note\u{2019}s title in a note: a link joins them."]
         case .neurons:
-            return ["Tap + \u{203A} New folder: a new brain region.",
+            return ["Tap + \u{203A} New folder: a new cell.",
                     "Tap + \u{203A} New page for a large neuron, New idea for a small one.",
                     "Type [[ and a note\u{2019}s title in a note: an axon joins them."]
         case .circuit:
-            return ["Tap + \u{203A} New folder: a new circuit board with its chip.",
+            return ["Tap + \u{203A} New folder: a new circuit board.",
                     "Tap + \u{203A} New page for a capacitor, New idea for an LED.",
                     "Type [[ and a note\u{2019}s title in a note: a copper trace joins them."]
         case .performance:

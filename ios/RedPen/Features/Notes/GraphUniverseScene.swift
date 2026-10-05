@@ -206,9 +206,7 @@ extension GraphSceneBuilder {
         camera.zFar = Double(far)
         let skyRadius: Float = far * 0.5
         sky.simdScale = SIMD3<Float>(skyRadius, skyRadius, skyRadius)
-        camera.wantsHDR = false
-        camera.bloomIntensity = 0
-        camera.wantsExposureAdaptation = false
+        GraphLens.space.apply(to: camera)
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         cameraNode.simdPosition = SIMD3<Float>(0, 0, distance)
@@ -244,6 +242,7 @@ extension GraphSceneBuilder {
         built.dragTarget = Self.busiestStar(plan)
         built.galaxies = plan.bodies.filter { $0.role == .galaxy }.map(\.id)
         built.galaxyOf = galaxyOf
+        built.lens = .space
         return built
     }
 
@@ -386,6 +385,15 @@ extension GraphSceneBuilder {
         let element = SCNGeometryElement(indices: indices, primitiveType: .line)
         return SCNGeometry(sources: [source], elements: [element])
     }
+}
+
+extension GraphLens {
+    /// The Space (the Universe and the single looks): the corona and the
+    /// photon ring bloom, the sky darkens toward the corners, and a flown-in
+    /// body is in focus with the rest falling soft.
+    static let space = GraphLens(bloom: 1.05, threshold: 0.62, blur: 14, iterations: 3, spread: 1.15, exposure: 0.15,
+                                 saturation: 1.16, contrast: 0.1, vignette: 0.42, vignettePower: 1.55,
+                                 fringe: 0.14, aperture: 2.0)
 }
 
 /// How one planned body is built (GraphSceneBuilder.buildUniverse).

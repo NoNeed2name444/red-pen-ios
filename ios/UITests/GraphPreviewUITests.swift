@@ -105,11 +105,10 @@ final class GraphPreviewUITests: XCTestCase {
 
     // MARK: the Neurons theme
 
-    /// The whole map as a nervous system: Cardiology and Examples as two
-    /// regions, Examples' pathway running out through Inguinal (Anatomy one
-    /// relay further) and Femoral, impulses running along the axons at
-    /// their own random times - so the second picture differs from the
-    /// first - and in landscape.
+    /// The whole map as cells: Cardiology and Examples as two cells,
+    /// Inguinal and Femoral as parts of Examples, Anatomy a smaller part
+    /// of Inguinal, impulses running along the axons at their own random
+    /// times - so the second picture differs from the first - and in landscape.
     func testNeuronsAtRest() {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
@@ -118,7 +117,7 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
         sleep(3)
         let summary: String = (space.value as? String) ?? ""
-        XCTAssertTrue(summary.contains("regions") && summary.contains("glia"), "no Neurons summary: \(summary)")
+        XCTAssertTrue(summary.contains("cells") && summary.contains("glia"), "no Neurons summary: \(summary)")
         snap(app, "11-neurons-at-rest")
         sleep(2)
         snap(app, "12-neurons-two-seconds-later")
@@ -496,6 +495,84 @@ final class GraphPreviewUITests: XCTestCase {
         if look.waitForExistence(timeout: 5) && press(look) {
             sleep(1)
             snap(app, "49-2-board-look-menu")
+        }
+    }
+
+    // MARK: close-ups
+
+    /// The Neurons theme seen close (`-graphPreviewZoom`), as the owner's
+    /// quality boards show it: each top-level folder a whole neuron, its
+    /// subfolders the parts it branches into, and a note on one of them.
+    func testNeuronsCloseUp() {
+        closeUps(theme: "neurons", number: 50, [
+            ("cardiology", "Cardiology", "18,12", "1"),
+            ("examples", "Examples", "-20,10", "1"),
+            ("inguinal", "Inguinal", "12,-8", "1"),
+            ("heart-failure", "Heart failure", "0,0", "1")
+        ])
+    }
+
+    /// The Circuit theme seen close and low, as a board on a bench is: a
+    /// whole board, a chip with its parts, a capacitor and an LED.
+    func testCircuitCloseUp() {
+        closeUps(theme: "circuit", number: 51, [
+            ("cardiology", "Cardiology", "-12,-34", "1"),
+            ("examples", "Examples", "10,-30", "1"),
+            ("acs", "Acute coronary syndrome", "8,-38", "1"),
+            ("stemi", "STEMI", "0,-42", "1")
+        ])
+    }
+
+    /// The Space seen close: each single look's body (as the owner's style
+    /// boards show them, one at a time), then a galaxy's black hole and a
+    /// star in the Universe.
+    func testSpaceCloseUps() {
+        let styles: [String] = ["blackHole", "sun", "rocky", "gasGiant", "pulsar", "comet"]
+        for (k, style) in styles.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewStyle", style, "-graphPreviewZoom", "Heart failure",
+                                    "-graphPreviewTurn", "0,8"]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(5)
+            snap(app, "52-\(k + 1)-space-close-\(style)")
+            app.terminate()
+        }
+        closeUps(theme: "space", number: 53, [
+            ("examples", "Examples", "0,14", "1"),
+            ("inguinal", "Inguinal", "10,6", "1")
+        ])
+    }
+
+    /// The Performance theme's demo of 100,000 notes: the fast map, its
+    /// speed readout, and the same map a moment later once frames are coming.
+    func testPerformance100k() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "performance", "-graphPreviewPerfDemo", "100000"]
+        app.launch()
+        let space = app.otherElements["graph3D"]
+        XCTAssertTrue(space.waitForExistence(timeout: 30), "the fast map didn't open")
+        let readout = app.buttons["perfReadout"]
+        let ready = NSPredicate(format: "value CONTAINS %@", "100,000")
+        let appeared = XCTNSPredicateExpectation(predicate: ready, object: readout)
+        let waited = XCTWaiter.wait(for: [appeared], timeout: 90)
+        snap(app, "54-performance-100k")
+        sleep(2)
+        snap(app, "55-performance-100k-later")
+        XCTAssertEqual(waited, .completed, "the 100,000-note readout didn't arrive")
+    }
+
+    /// One launch per close-up: (its name, the body, the turn, the scale).
+    private func closeUps(theme: String, number: Int, _ shots: [(String, String, String, String)]) {
+        for (k, shot) in shots.enumerated() {
+            let app = XCUIApplication()
+            app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewZoom", shot.1,
+                                    "-graphPreviewTurn", shot.2, "-graphPreviewZoomScale", shot.3]
+            app.launch()
+            XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+            sleep(5)
+            snap(app, "\(number)-\(k + 1)-\(theme)-close-\(shot.0)")
+            app.terminate()
         }
     }
 
