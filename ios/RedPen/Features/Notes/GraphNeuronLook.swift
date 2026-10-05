@@ -38,7 +38,12 @@ import simd
 
 /// What kind of cell a body is drawn as (its material and arbor).
 nonisolated enum NeuronCellKind: Int, CaseIterable, Sendable {
+    /// A whole cell: the top-level folder.
     case hub
+    /// A part of that cell: one level of folder in.
+    case part
+    /// A smaller piece of a part: any folder deeper than that.
+    case subpart
     case pyramidal
     case interneuron
     case commissural
@@ -46,9 +51,10 @@ nonisolated enum NeuronCellKind: Int, CaseIterable, Sendable {
     case receptor
     case microglia
 
-    static func of(_ role: NeuronRole) -> NeuronCellKind {
+    static func of(_ role: NeuronRole, depth: Int) -> NeuronCellKind {
         switch role {
-        case .region, .relay, .brainstem: return .hub
+        case .region, .brainstem: return .hub
+        case .relay: return NeuronAnatomy.of(depth: depth) == .part ? .part : .subpart
         case .pyramidal: return .pyramidal
         case .interneuron: return .interneuron
         case .commissural: return .commissural
@@ -62,6 +68,8 @@ nonisolated enum NeuronCellKind: Int, CaseIterable, Sendable {
     var nucleus: Float {
         switch self {
         case .hub: return 0.42
+        case .part: return 0.36
+        case .subpart: return 0.28
         case .pyramidal, .commissural: return 0.46
         case .interneuron: return 0.5
         case .glia: return 0.32
@@ -74,6 +82,8 @@ nonisolated enum NeuronCellKind: Int, CaseIterable, Sendable {
     var wobble: Float {
         switch self {
         case .hub: return 0.03
+        case .part: return 0.035
+        case .subpart: return 0.05
         case .pyramidal, .commissural, .receptor: return 0.04
         case .interneuron: return 0.045
         case .glia: return 0.05
@@ -189,7 +199,10 @@ final class GraphNeuronLook: GraphThemeLook {
     /// arbor, two long dendrites), a migrating cell a leading process (the
     /// receptor's), an engulfing one a microglial arbor; otherwise its role's.
     static func shape(_ kind: NeuronCellKind, state: NeuronState) -> NeuronCellKind {
-        guard kind != .hub else { return kind }
+        switch kind {
+        case .hub, .part, .subpart: return kind
+        case .pyramidal, .interneuron, .commissural, .glia, .receptor, .microglia: break
+        }
         switch state {
         case .pacemaker: return .commissural
         case .migrating: return .receptor
@@ -208,7 +221,7 @@ final class GraphNeuronLook: GraphThemeLook {
         }
         let role: NeuronRole = NeuronRole(rawValue: body.role) ?? .interneuron
         let state: NeuronState = cells.state(of: index, in: plan)
-        let kind: NeuronCellKind = Self.shape(NeuronCellKind.of(role), state: state)
+        let kind: NeuronCellKind = Self.shape(NeuronCellKind.of(role, depth: body.depth), state: state)
         // the large glowing cells are the regions' pegs and their pyramidal
         // notes; interneurons and glia are the ideas between, in the
         // region's accent
@@ -361,7 +374,7 @@ final class GraphNeuronLook: GraphThemeLook {
     /// arbor turned anyhow.
     private static func arborTurn(_ kind: NeuronCellKind, axis: SIMD3<Float>,
                                   random: inout UniverseRandom) -> simd_quatf {
-        guard kind == .pyramidal || kind == .receptor else { return randomTurn(&random) }
+        guard kind == .pyramidal || kind == .receptor || kind == .part else { return randomTurn(&random) }
         let up = SIMD3<Float>(0, 1, 0)
         let size: Float = simd_length(axis)
         let to: SIMD3<Float> = size > 0.0001 ? axis / size : up
@@ -568,8 +581,8 @@ final class GraphNeuronLook: GraphThemeLook {
     /// Fluorescence under the microscope: the cells' hottest light blooming
     /// wide, the field darkening towards its edges.
     var lens: GraphLens {
-        GraphLens(bloom: 1.1, threshold: 0.55, blur: 12, iterations: 2, spread: 1, exposure: 0, saturation: 1.15,
-                  contrast: 0.1, vignette: 0.55, vignettePower: 1.2)
+        GraphLens(bloom: 1.15, threshold: 0.5, blur: 14, iterations: 3, spread: 1.1, exposure: 0.1, saturation: 1.18,
+                  contrast: 0.12, vignette: 0.55, vignettePower: 1.3, fringe: 0.08, aperture: 1.8)
     }
 
     /// Motes drifting through the fluid, at the High budget in a moving
@@ -706,6 +719,19 @@ enum NeuronArbor {
                 let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
                 let dir: SIMD3<Float> = GraphUniverse.float3(d) + jitter * 0.25
                 add(dir, length: 1.4 + 0.8 * Float(random.unit()), thick: 0.24, sides: extra)
+            }
+        case .part:
+            // one long process, a dendrite field or the axon, and a short skirt
+            add(SIMD3<Float>(0, 1, 0), length: 2.4, thick: 0.22, sides: extra)
+            for k in 0..<3 {
+                let a: Float = Float(k) * 2 * Float.pi / 3
+                add(SIMD3<Float>(cos(a), -0.35, sin(a)), length: 1.1, thick: 0.14, sides: 0)
+            }
+        case .subpart:
+            // a smaller piece: a few short fine twigs, like spines
+            for k in 0..<4 {
+                let d: SIMD3<Float> = GraphUniverse.float3(ThemeLayout.fibonacci(k, 4))
+                add(d, length: 0.7 + 0.25 * Float(random.unit()), thick: 0.1, sides: 0)
             }
         case .interneuron:
             for k in 0..<5 {

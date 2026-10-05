@@ -279,6 +279,17 @@ for scale: Float in [0.6, 1, 1.8] {
 }
 check("P3 a longer link scale moves bodies apart, sizes stay",
       extents[0] < extents[1] && extents[1] < extents[2] && radii[0] == radii[1] && radii[1] == radii[2], "\(extents)")
+var smallerInside = true
+for f in 0..<graph.folderCount where graph.folderParent[f] >= 0 {
+    let parent = Int(graph.folderParent[f])
+    if layout.radius[n + f] >= layout.radius[n + parent] { smallerInside = false }
+}
+check("P3 a folder inside a folder is a smaller hub", smallerInside && graph.folderCount > 0)
+let cellHub = GraphPerfLayout.hubRadius(notes: 80, depth: 0)
+let partHub = GraphPerfLayout.hubRadius(notes: 80, depth: 1)
+let subHub = GraphPerfLayout.hubRadius(notes: 80, depth: 2)
+check("P3 hub sizes step down: folder, part, smaller part",
+      cellHub > partHub && partHub > subHub && subHub > GraphPerfLayout.pageRadius)
 
 // MARK: - P4 screen bins and picks
 
@@ -402,8 +413,14 @@ check("P5 sphere queries equal brute force", gridAgree)
 var kAgree = true
 for _ in 0..<(optimized ? 50 : 6) {
     let p = SIMD3(Float(rng.unit()) - 0.5, Float(rng.unit()) - 0.5, Float(rng.unit()) - 0.5) * pickExtent
-    let brute = pickPos.indices.map { (((pickPos[$0] - p) * (pickPos[$0] - p)).sum(), $0) }
-        .sorted { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1 < $1.1 }.prefix(5).map { $0.1 }
+    var ranked: [(Float, Int)] = []
+    ranked.reserveCapacity(pickPos.count)
+    for i in pickPos.indices {
+        let d: SIMD3<Float> = pickPos[i] - p
+        ranked.append(((d * d).sum(), i))
+    }
+    ranked.sort { a, b in a.0 != b.0 ? a.0 < b.0 : a.1 < b.1 }
+    let brute: [Int] = ranked.prefix(5).map { $0.1 }
     if pickWorld.nearest(5, to: p) != brute { kAgree = false }
 }
 check("P5 k-nearest queries equal brute force (in empty space too)", kAgree)

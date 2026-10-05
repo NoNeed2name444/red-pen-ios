@@ -112,10 +112,18 @@ check("T3 a folder: counts and its latest notes", folderCard.lines == [
     "8 notes \u{00B7} 1 subfolder", "Latest: Inguinal canal, Internal ring test, Direct inguinal hernia"
 ], "\(folderCard.lines)")
 check("T3 a folder: Open folder and Fly in", folderCard.primary == "Open folder" && folderCard.secondary == ["Fly in"])
-check("T3 Neurons folder: Brain region", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "0", folder: true,
-                                                                          title: "C")).kind == "Brain region \u{00B7} Folder")
-check("T3 Circuit folder: Processor", GraphPeek.content(GraphPeekInput(theme: "circuit", role: "0", folder: true,
-                                                                       title: "C")).kind == "Processor \u{00B7} Folder")
+check("T3 Neurons folder: Cell", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "0", folder: true,
+                                                                    title: "C")).kind == "Cell \u{00B7} Folder")
+check("T3 Neurons part: Cell part", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "1", folder: true,
+                                                                     title: "C")).kind == "Cell part \u{00B7} Folder")
+check("T3 Neurons subpart", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "1@2", folder: true,
+                                                             title: "C")).kind == "Subpart \u{00B7} Folder")
+check("T3 Circuit folder: Board", GraphPeek.content(GraphPeekInput(theme: "circuit", role: "0", folder: true,
+                                                                   title: "C")).kind == "Board \u{00B7} Folder")
+check("T3 Circuit part", GraphPeek.content(GraphPeekInput(theme: "circuit", role: "1", folder: true,
+                                                          title: "C")).kind == "Circuit part \u{00B7} Folder")
+check("T3 Circuit smaller part", GraphPeek.content(GraphPeekInput(theme: "circuit", role: "1@2", folder: true,
+                                                                  title: "C")).kind == "Smaller part \u{00B7} Folder")
 check("T3 every card is read out whole", note.spoken.contains("Gas giant") && note.spoken.contains("2 links"))
 check("T3 an untitled note", GraphPeek.content(GraphPeekInput(theme: "space", role: "rocky", folder: false,
                                                               title: "")).title == "Untitled")

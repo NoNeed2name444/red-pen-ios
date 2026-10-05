@@ -31,17 +31,17 @@ import SwiftUI
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
-///   Cardiology and Examples as two brain regions, Inguinal and Femoral
-///   relays out along Examples' pathway with Anatomy one step further,
+///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
+///   of the Examples cell with Anatomy a smaller part of Inguinal,
 ///   pages as large neurons, ideas as interneurons, the six short one-link
 ///   ideas as glia on their neurons, the bridging idea as a commissural
 ///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
 ///   `-graphPreviewLegend` work with it too.
 /// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
 ///   Cardiology and Examples as two circuit boards side by side on the
-///   bench, each with its chip, power rail along the top and ground rail
-///   along the bottom; Inguinal and Femoral as smaller chips on sub-boards
-///   on branches of Examples' bus, with Anatomy on Inguinal's; pages as
+///   bench, each the main circuit, power rail along the top and ground rail
+///   along the bottom; Inguinal and Femoral as parts of Examples' circuit
+///   on branches of its bus, with Anatomy a smaller part of Inguinal's; pages as
 ///   capacitors, ideas as LEDs in branches off the pages they link to, and
 ///   the two loose notes as gold pads on their boards' left edges.
 ///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`

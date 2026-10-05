@@ -39,11 +39,13 @@ import simd
 ///
 /// The map has themes (GraphTheme, chosen at the top of the Look menu):
 /// Space - the Universe and the single looks - Neurons, the same
-/// hierarchy as a nervous system (GraphNeurons: regions, relays down the
-/// pathway, neurons, glia and receptors joined by axons carrying impulses),
-/// and Circuit, as a printed circuit board (GraphCircuit: processors,
-/// modules on sub-boards, capacitors, resistors, LEDs and headers joined by
-/// routed copper traces carrying current), each planned the same way and
+/// hierarchy as cells (GraphNeurons: a top-level folder is a cell, a
+/// folder inside it a part, deeper a smaller part; neurons, glia and
+/// receptors joined by axons carrying impulses), and Circuit, as a printed
+/// circuit board (GraphCircuit: a top-level folder is a board, a folder
+/// inside it a part of that circuit, deeper a smaller part; capacitors,
+/// resistors, LEDs and headers joined by routed copper traces carrying
+/// current), each planned the same way and
 /// built by the shared theme scene
 /// (GraphThemeScene), so it moves, picks, filters and flies in exactly as
 /// the Universe does. The Graphics setting applies to every theme.
@@ -913,7 +915,7 @@ struct Graph3DView: View {
         var roles: [UUID: String] = [:]
         var names: [UUID: String] = [:]
         for body in plan.bodies where body.kind != .fixture {
-            roles[body.id] = String(body.role)
+            roles[body.id] = GraphPeek.roleToken(role: body.role, depth: body.depth)
             names[body.id] = body.label
         }
         scene.roles = roles

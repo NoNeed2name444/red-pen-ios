@@ -32,9 +32,24 @@ nonisolated struct GraphPerfLayout: Sendable {
     /// Clearance past the outermost shell, more than the largest note.
     static let margin: Float = 0.6
 
-    /// A hub's radius, 0.35 to 1.2, growing with the log of the notes under it.
-    static func hubRadius(notes: Int) -> Float {
-        min(1.2, 0.35 + 0.085 * Float(log2(Double(1 + notes))))
+    /// A hub's drawn radius, 0.35 to 1.2 at the top, growing with the log of
+    /// the notes under it. A folder inside a folder is a part of that
+    /// cluster, and a folder inside that a smaller piece: each level is
+    /// drawn smaller, never under a page. The seed layout places shells
+    /// from the top-level size, then stores this drawn size.
+    static func hubRadius(notes: Int, depth: Int = 0) -> Float {
+        let base: Float = min(1.2, 0.35 + 0.085 * Float(log2(Double(1 + notes))))
+        let share: Float
+        if depth <= 0 {
+            share = 1
+        } else if depth == 1 {
+            share = 0.72
+        } else if depth == 2 {
+            share = 0.56
+        } else {
+            share = max(0.42, 0.56 * pow(0.94, Float(depth - 2)))
+        }
+        return max(pageRadius + 0.08, base * share)
     }
 
     /// Points on shell j of a ball whose first shell has radius `first` (in
@@ -69,6 +84,8 @@ nonisolated struct GraphPerfLayout: Sendable {
 
         var radius = [Float](repeating: 0, count: n + fc)
         for i in 0..<n { radius[i] = g.isPage[i] ? pageRadius : noteRadius }
+        // shells are placed from the full hub, so a smaller drawn part does
+        // not pull its notes inward
         for f in 0..<fc { radius[n + f] = hubRadius(notes: Int(g.folderSubtreeCount[f])) }
 
         // each system's own ball: the first shell clears the hub by half a spacing
@@ -140,6 +157,9 @@ nonisolated struct GraphPerfLayout: Sendable {
                     }
                 }
             }
+        }
+        for f in 0..<fc {
+            radius[n + f] = hubRadius(notes: Int(g.folderSubtreeCount[f]), depth: Int(g.folderDepth[f]))
         }
         return GraphPerfLayout(positions: positions, radius: radius, systemCentre: centre,
                                coreRadius: core, systemRadius: reach, spacing: s)

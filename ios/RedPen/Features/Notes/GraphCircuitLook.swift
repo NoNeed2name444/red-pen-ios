@@ -259,12 +259,14 @@ final class GraphCircuitLook: GraphThemeLook {
         let high: Bool = budget.tier == .high
         switch role {
         case .processor, .soc, .module:
-            let small: Bool = role == .module
+            let anatomy: CircuitAnatomy = role == .module ? CircuitAnatomy.of(depth: body.depth) : .board
+            let small: Bool = anatomy != .board
+            let lidSide: CGFloat = anatomy == .subpart ? 1.15 : (small ? 1.55 : 1.6)
             let blocks: Float = GraphUniverse.clamp(log2(1 + Double(body.count)) / 6, 0, 1).float
             let base = piece(box("package", 1.9, 0.07, 1.9, 0.14), y: 0.035,
                              look: material(6, Self.substrate, shine: 0.25))
-            let lidShape: SCNGeometry = box(small ? "lidSmall" : "lid", small ? 1.55 : 1.6, 0.12,
-                                            small ? 1.55 : 1.6, 0.16)
+            let lidShape: SCNGeometry = box(anatomy == .subpart ? "lidTiny" : (small ? "lidSmall" : "lid"),
+                                            lidSide, 0.12, lidSide, 0.16)
             let cover = piece(lidShape, y: 0.13,
                               look: material(13, Self.lid, b: Self.silk, c: SIMD3<Float>(0.35, 0.42, 0.6),
                                              shine: 0.9, glow: small ? blocks * 0.5 : blocks))
@@ -698,8 +700,8 @@ final class GraphCircuitLook: GraphThemeLook {
     /// A macro shot of a board: LEDs and packets blooming, a flown-in
     /// board in focus with the bench falling away.
     var lens: GraphLens {
-        GraphLens(bloom: 0.8, threshold: 0.75, blur: 8, iterations: 2, spread: 1, exposure: 0, saturation: 1.05,
-                  contrast: 0.08, vignette: 0.5, vignettePower: 1.3, aperture: 1.4)
+        GraphLens(bloom: 0.95, threshold: 0.65, blur: 10, iterations: 3, spread: 1.05, exposure: 0.08,
+                  saturation: 1.1, contrast: 0.1, vignette: 0.48, vignettePower: 1.35, fringe: 0.06, aperture: 1.4)
     }
 }
 
