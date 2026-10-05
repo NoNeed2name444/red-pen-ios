@@ -1,0 +1,24 @@
+== logs/iphone-graph-testCircuitAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' passed (34.317 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testCircuitCloseUp.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitCloseUp]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitCloseUp]' passed (82.424 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testEachStyle.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' passed (168.431 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (103.375 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsCloseUp.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsCloseUp]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsCloseUp]' passed (108.053 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testSpaceCloseUps.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testSpaceCloseUps]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testSpaceCloseUps]' passed (135.709 seconds).
+** TEST EXECUTE SUCCEEDED **
