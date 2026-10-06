@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildPrompt, parseItems, qualityProblems, novelty, publicItems, blueprintTag, decide, metrics, highStakes, NOVELTY_LIMIT } from '../../tools/question-bank/bank.mjs';
 import { generate, validate } from '../../tools/question-bank/pipeline.mjs';
+import { BATCH } from '../../server/accuracy.js';
 
 let failures = 0;
 const ok = (cond, what, detail = '') => { console.log((cond ? 'ok   ' : 'FAIL ') + what + (cond ? '' : `  | ${detail}`)); if (!cond) failures++; };
@@ -87,6 +88,46 @@ let threw = false;
 try { await validate(['--candidates', join(dir, 'c.jsonl'), '--out', join(dir, 'p2'), '--topics-file', '/x'], 'key', async (u, i) => u.endsWith('/accuracy/check') ? new Response('nope', { status: 503 }) : offline()); } catch { threw = true; }
 const p2 = readFileSync(join(dir, 'p2.jsonl'), 'utf8').trim();
 ok(!threw && p2 === '', 'checkers down: nothing kept (never kept unchecked)');
+
+// More than one Worker batch: the real endpoint's limit, shuffled replies,
+// and a failed middle request must leave candidate order and decisions intact.
+const nine = Array.from({ length: 9 }, (_, i) => ({
+  item: { ...good, stem: `Case ${i + 1}: ${good.stem}` }, passage, model: 'fixture',
+}));
+const nineFile = join(dir, 'nine-candidates.jsonl');
+writeFileSync(nineFile, nine.map(c => JSON.stringify(c)).join('\n') + '\n');
+const rows = name => readFileSync(join(dir, name), 'utf8').split('\n').filter(Boolean).map(JSON.parse);
+const sizes = [];
+const strictWorker = async (url, init) => {
+  const body = JSON.parse(init.body);
+  sizes.push(body.items.length);
+  if (!body.items.length || body.items.length > BATCH) return new Response('{}', { status: 400 });
+  return new Response(JSON.stringify({ items: body.items.map(i => ({ id: i.id, verdict: 'verified', p: 0.93 })).reverse() }));
+};
+await validate(['--candidates', nineFile, '--out', join(dir, 'nine'), '--topics-file', '/nonexistent'], 'key', strictWorker);
+const nineKept = rows('nine.jsonl');
+ok(sizes.join() === '4,4,1', 'nine candidates use the Worker limit, including the final partial batch', sizes.join());
+ok(nineKept.length === 9 && rows('nine.dropped.jsonl').length === 0, 'all nine verified good candidates are kept');
+ok(nineKept.every((r, i) => r.item.stem === nine[i].item.stem && r.id.endsWith(`-${i}`)), 'shuffled verdicts preserve candidate order and stable indexes');
+ok(nineKept.every(r => r.p === 0.93 && r.review === 'required' && r.source.attribution === passage.attribution), 'batching preserves score, review requirement and source metadata');
+
+let request = 0;
+const failingWorker = async (url, init) => {
+  const body = JSON.parse(init.body);
+  if (body.items.length > BATCH) return new Response('{}', { status: 400 });
+  request++;
+  if (request === 2) return new Response('unavailable', { status: 503 });
+  if (request === 3) return new Response(JSON.stringify({ results: [{ id: body.items[0].id, verdict: 'verified' }] }));
+  return new Response(JSON.stringify({ items: body.items.slice(0, 3).map((item, i) => ({ id: item.id, verdict: ['verified', 'flagged', 'check'][i] })) }));
+};
+await validate(['--candidates', nineFile, '--out', join(dir, 'mixed'), '--topics-file', '/nonexistent'], 'key', failingWorker);
+const mixedKept = rows('mixed.jsonl'), mixedDropped = rows('mixed.dropped.jsonl');
+ok(request === 3 && mixedKept.map(r => r.item.stem).join() === [nine[0], nine[8]].map(c => c.item.stem).join(), 'a failed middle batch does not prevent checking the last candidate');
+ok(mixedDropped.map(r => r.item.stem).join() === nine.slice(1, 8).map(c => c.item.stem).join(), 'dropped candidates keep their original order');
+ok(mixedDropped[0]?.reasons.includes('accuracy: flagged') && mixedDropped[1]?.reasons.includes('accuracy: check') && mixedDropped[2]?.reasons.includes('accuracy: no verdict'), 'flagged, unsure and missing verdicts retain their existing drop reasons');
+ok(mixedDropped.slice(3).length === 4 && mixedDropped.slice(3).every(r => r.reasons.includes('accuracy: not checked (503)')), 'every item in a failed batch remains unchecked and dropped');
+const mixedMetrics = JSON.parse(readFileSync(join(dir, 'mixed.metrics.json'), 'utf8'));
+ok(mixedMetrics.generated === 9 && mixedMetrics.kept === 2 && mixedMetrics.droppedFor.accuracy === 7, 'metrics include successful and failed batches');
 
 console.log(failures ? `\n${failures} QUESTION BANK TEST FAILURE(S)` : '\nall question bank tests pass');
 process.exit(failures ? 1 : 0);
