@@ -25,6 +25,13 @@ final class LectureImporter: ObservableObject {
     /// True while Gemini has the recording, so the screen says where it went.
     @Published var inCloud = false
 
+    /// Whether the Narrate screen is showing; it says so as it comes and
+    /// goes. A transcript finishing after it has gone is handed to `keep`,
+    /// which saves it to the set: nobody is left to adopt `produced`, and the
+    /// Gemini chunks it was made from are already deleted (audit #70).
+    var onScreen = true
+    var keep: (@MainActor ([NarrateSegment], LectureLanguage) -> Void)?
+
     /// Who does the listening.
     enum Engine { case cloud, device }
 
@@ -120,6 +127,7 @@ final class LectureImporter: ObservableObject {
             _ = learned.applyLearned(to: &texts)
             for i in segments.indices { segments[i].text = texts[i] }
 
+            if !onScreen { keep?(segments, language) }
             produced = segments
             working = nil
         } catch {

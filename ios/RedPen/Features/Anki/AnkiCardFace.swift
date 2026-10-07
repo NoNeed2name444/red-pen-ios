@@ -100,8 +100,7 @@ struct AnkiCardFace: View {
     private var picture: some View {
         if let idx = card.imageIndex,
            images.indices.contains(idx),
-           let data = Data(base64Encoded: Self.stripDataPrefix(images[idx])),
-           let uiImage = UIImage(data: data) {
+           let uiImage = Self.pictures.picture(for: images[idx], make: { UIImage(data: $0) }) {
             if card.type == .occlusion {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
@@ -240,6 +239,9 @@ struct AnkiCardFace: View {
     static func highlighted(_ s: String) -> AttributedString {
         (try? AttributedString(markdown: s)) ?? AttributedString(s)
     }
+
+    /// Pictures decoded once, not on every redraw (audit #67).
+    private static let pictures = PictureCache<UIImage>()
 
     /// An image may be stored bare or as a full data: URI, depending on where
     /// it came from.

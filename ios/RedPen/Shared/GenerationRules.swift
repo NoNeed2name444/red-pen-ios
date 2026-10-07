@@ -46,4 +46,12 @@ enum GenerationRules {
     static func closingStops(running: UUID?, closing: UUID) -> Bool {
         running == closing
     }
+
+    /// Whether a run that has just ended may clear the screen's "writing"
+    /// state: only while it is still the current run. A cancelled run ends
+    /// late, and by then a new one may have started; clearing then left the
+    /// new one untracked and impossible to cancel (audit #68).
+    static func endingClears(ended: UUID, current: UUID?) -> Bool {
+        ended == current
+    }
 }

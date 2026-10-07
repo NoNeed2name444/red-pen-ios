@@ -131,8 +131,8 @@ struct NarrateReviewView: View {
 
     private var screen: some View {
         stage
-            .onAppear(perform: seed)
-            .onDisappear { voice.stop(); player.stop() }
+            .onAppear { importer.onScreen = true; seed() }
+            .onDisappear { importer.onScreen = false; voice.stop(); player.stop() }
             // a recording screen: the camera stays off while it is open
             .popOutFacePaused()
             // adding a recording is in the same More menu as every other
@@ -147,6 +147,13 @@ struct NarrateReviewView: View {
             // which is the shape LectureImporter.attach takes
             .fileImporter(isPresented: $importing, allowedContentTypes: [.audio],
                           allowsMultipleSelection: false) { picked in
+                importer.keep = { [store, id = studySet.id] made, spoken in
+                    // the screen has gone: the transcript still lands on the set
+                    guard var current = store.library.first(where: { $0.id == id }) else { return }
+                    current.narrateSegments = made
+                    current.language = spoken
+                    store.update(current)
+                }
                 Task { await importer.attach(picked, to: studySet, learned: learned, engine: engine, language: language) }
             }
             .confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,

@@ -102,7 +102,7 @@ suite pictures PictureTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift \
       $S/Explanation.swift \
-      $S/SetPictures.swift
+      $S/SetPictures.swift $S/PictureCache.swift
 suite occlusion OcclusionFilterTests.swift $M/AnkiCard.swift $S/FigureGrid.swift $S/OcclusionFilter.swift \
       $S/OcclusionPhrases.swift
 # one cover per label phrase, and the answer is what is under it
