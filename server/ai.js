@@ -1087,27 +1087,38 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
   const skipped = resting(env, lane, trace, `Workers AI ${model}`);
   if (skipped) return skipped;
   const [rateIn, rateOut] = NEURON_RATES[model] || NEURON_RATES['@cf/nvidia/nemotron-3-120b-a12b'];
-  const neurons = (chars / 4) * rateIn / 1e6 + maxTokens * rateOut / 1e6;
+  let neurons = (chars / 4) * rateIn / 1e6 + maxTokens * rateOut / 1e6;
   if (!await takeNeurons(env, account, neurons, owner)) {
     breakers.release(lane);
     return { ok: false, status: 429, detail: "Workers AI: this account's share of today's free allowance is used." };
   }
   if (trace) trace.calls += 1;
   let out;
+  let spentBefore = 0;
   try {
     out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature));
+    // Nemotron can still think through every token it was given and answer
+    // nothing; asked once more with its thinking off it answers, so the check
+    // keeps its third family (bench run 37613939679: 7 of 15 batches lost
+    // Nemotron this way). The retry takes its own neurons first.
+    if (!workersText(out) && /nemotron/.test(model) && await takeNeurons(env, account, neurons, owner)) {
+      spentBefore = usedNeurons(out?.usage, rateIn, rateOut) ?? Math.ceil(neurons);
+      neurons *= 2;
+      out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature, { thinking: false }));
+    }
   } catch (error) {
     // down, over capacity, or the account's free neurons gone: all "failed"
     // as far as the chain is concerned
     breakers.failure(env, lane);
-    await giveNeurons(env, account, neurons, owner).catch(() => {});
+    if (neurons - spentBefore >= 1) await giveNeurons(env, account, neurons - spentBefore, owner).catch(() => {});
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
   }
   breakers.success(env, lane);
   // what was taken assumed the whole max_tokens came back; when the model
   // says what it used, the rest goes back to the pool, or the day's
   // allowance runs out at a fraction of what was really spent
-  const spent = usedNeurons(out?.usage, rateIn, rateOut);
+  const used = usedNeurons(out?.usage, rateIn, rateOut);
+  const spent = used === null ? null : used + spentBefore;
   const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
   if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
   const content = workersText(out);
@@ -1121,9 +1132,20 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
 /// max_tokens: a 200- or 900-token call came back with the answer empty
 /// (content null, the tokens all in reasoning_content) - "sent back nothing
 /// usable", again and again. Cloudflare's own example turns it off this way.
-export function workersInput(model, messages, maxTokens, temperature) {
+///
+/// Nemotron 3 thinks at full effort by default and, given a few hundred tokens
+/// an item, often spent them all thinking ("sent back nothing usable"). It is
+/// asked to think briefly (low_effort) and always to answer
+/// (force_nonempty_content), as Cloudflare's model page describes; `thinking:
+/// false` turns its thinking off for the one retry askWorkersAI makes.
+export function workersInput(model, messages, maxTokens, temperature, { thinking = true } = {}) {
   const input = { messages, max_tokens: maxTokens, temperature };
   if (/gemma-4/.test(model)) input.chat_template_kwargs = { enable_thinking: false };
+  if (/nemotron-3/.test(model)) {
+    input.chat_template_kwargs = thinking
+      ? { enable_thinking: true, low_effort: true, force_nonempty_content: true }
+      : { enable_thinking: false, force_nonempty_content: true };
+  }
   return input;
 }
 
