@@ -161,11 +161,12 @@ suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Gra
       $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
       $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
-# the Circuit theme: folders as processors and module chips on their
-# sub-boards, notes as capacitors, resistors, LEDs, diodes, headers
-# and edge fingers - the ladder, no overlapping footprints, flat on
-# the board, every trace routed square with rounded 45° corners, the
-# chips' markings and the parts' dressing clear of every part
+# the Circuit theme (glass tiles since 7 October): folders as chips on
+# their tiles and inlays, pages, ideas and loose notes as parts - the
+# ladder, no overlapping footprints, flat on the bench, every guide
+# routed square with rounded 45° corners, the chips' markings, the
+# parts' dressing clear of every part, and the one pulse of light a
+# beat round each circuit (every part lit, no wire outrun)
 suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
       $F/Notes/GraphTheme.swift $F/Notes/GraphCircuitDress.swift

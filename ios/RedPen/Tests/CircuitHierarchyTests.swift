@@ -12,12 +12,13 @@
 // the power rail to ground; that series and parallel follow the hierarchy;
 // that current (the ranks) always runs away from the power rail; the same
 // notes always give the same boards; no overlaps, flat, boards apart; edge
-// cases; 300 notes in under 2 s; the words; and that every routed trace is
-// one smooth piece of straights and 45 degree diagonals.
+// cases; 300 notes in under 2 s; the words; that every routed trace is
+// one smooth piece of straights and 45 degree diagonals; and the timing of
+// the glass look's one pulse of light a beat round each circuit (T11).
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphCircuit.swift,
-// GraphLinkCurve.swift, GraphNeuronImpulses.swift and GraphTheme.swift
-// (Foundation only). The design preview's notes are the same copy
+// GraphLinkCurve.swift, GraphNeuronImpulses.swift, GraphTheme.swift and
+// GraphCircuitDress.swift (Foundation only). The design preview's notes are the same copy
 // CosmicHierarchyTests and NeuronHierarchyTests use.
 import Foundation
 
@@ -865,6 +866,84 @@ for seed in 0..<60 {
     if !found.isEmpty && fitBad.count < 4 { fitBad.append("vault \(seed): \(found)") }
 }
 check("T10 60 random vaults: every fitting clears every part", fitBad.isEmpty, "\(fitBad)")
+
+// MARK: T11 the pulse of light (the glass look: one pulse a beat round each circuit)
+
+check("T11 a pulse every 6 s, its spacing a fifth of a link's 64",
+      GraphCircuit.pulseSpacing * 5 == 64 && abs(GraphCircuit.pulseSpeed * 6 - GraphCircuit.pulseSpacing) < 1e-12)
+check("T11 a guide's length is square and 45°",
+      abs(GraphCircuit.routeLength(SIMD2<Double>(0, 0), SIMD2<Double>(3, 4)) - (1 + 3 * 2.0.squareRoot())) < 1e-12
+      && GraphCircuit.routeLength(SIMD2<Double>(1, 1), SIMD2<Double>(1, 1)) == 0
+      && GraphCircuit.routeLength(SIMD2<Double>(2, 0), SIMD2<Double>(-1, 0)) == 3)
+check("T11 what the pulse sees each part as",
+      GraphCircuit.pulseKind(.processor) == 1 && GraphCircuit.pulseKind(.module) == 1
+      && GraphCircuit.pulseKind(.soc) == 1 && GraphCircuit.pulseKind(.bus) == 2
+      && GraphCircuit.pulseKind(.ground) == 3 && GraphCircuit.pulseKind(.vcc) == 4
+      && GraphCircuit.pulseKind(.connector) == 5 && GraphCircuit.pulseKind(.capacitor) == 0
+      && GraphCircuit.pulseKind(.led) == 0 && GraphCircuit.pulseKind(.pad) == 0)
+
+/// What is wrong with a plan's pulse: a spot per body, every distance
+/// finite; each power tap on its board's beat; every other body lit; and
+/// no wire (or note link, from the higher rank) carrying the light to its
+/// far end later than the light could run along it.
+func pulseProblems(_ plan: ThemePlan) -> [String] {
+    let at: [CircuitPulseSpot] = GraphCircuit.pulseSpots(plan)
+    guard at.count == plan.bodies.count else { return ["\(at.count) spots for \(plan.bodies.count) bodies"] }
+    var bad: [String] = []
+    for (i, b) in plan.bodies.enumerated() {
+        let d: Double = at[i].dist
+        guard d.isFinite, d >= 0 else {
+            bad.append("\(b.title): \(d)")
+            continue
+        }
+        if roleOf(b) == .vcc {
+            let k: Int = plan.regions.firstIndex(of: b.region) ?? 0
+            let beat: Double = GraphCircuit.stagger[k % GraphCircuit.stagger.count] * GraphCircuit.pulseSpacing
+            if abs(d - beat) > 1e-9 { bad.append("tap \(i) of board \(k) at \(d), not \(beat)") }
+        } else if d <= 0 {
+            bad.append("\(roleOf(b)) \(b.title) never lit")
+        }
+        if at[i].kind != GraphCircuit.pulseKind(roleOf(b)) { bad.append("\(b.title) seen as \(at[i].kind)") }
+    }
+    for l in plan.links where l.kind == 0 || l.kind == 5 || l.kind == 6 {
+        var a: Int = l.a
+        var b: Int = l.b
+        if l.kind == 0 && plan.bodies[b].rank > plan.bodies[a].rank { (a, b) = (b, a) }
+        let run: Double = GraphCircuit.routeLength(at[a].at, at[b].at)
+        if at[b].dist > at[a].dist + run + 1e-6 {
+            bad.append("link \(a)->\(b) kind \(l.kind): \(at[b].dist) after \(at[a].dist) + \(run)")
+        }
+    }
+    return Array(bad.prefix(5))
+}
+check("T11 the preview's pulse: one spot per body, every part lit, every tap on its beat, no wire outrun",
+      pulseProblems(preview).isEmpty, "\(pulseProblems(preview))")
+
+/// Each board's beat: its first power tap's distance, in board order.
+func beatsOf(_ plan: ThemePlan) -> [Double] {
+    let at: [CircuitPulseSpot] = GraphCircuit.pulseSpots(plan)
+    return plan.regions.map { r in
+        let tap: Int? = plan.bodies.indices.first { plan.bodies[$0].region == r && roleOf(plan.bodies[$0]) == .vcc }
+        return tap.map { at[$0].dist } ?? -1
+    }
+}
+let previewBeats: [Double] = beatsOf(preview)
+check("T11 the preview's two boards never pulse in step",
+      previewBeats.count == 2 && previewBeats.allSatisfy { $0 >= 0 } && previewBeats[0] != previewBeats[1],
+      "\(previewBeats)")
+var pulseBad: [String] = []
+var beatBad: [String] = []
+for seed in 0..<60 {
+    let plan: ThemePlan = GraphCircuit.plan(randomVault(UInt64(seed) &* 104_729 &+ 5, maxNotes: 80, maxFolders: 8))
+    let found: [String] = pulseProblems(plan)
+    if !found.isEmpty && pulseBad.count < 4 { pulseBad.append("vault \(seed): \(found)") }
+    let beats: [Double] = Array(beatsOf(plan).prefix(GraphCircuit.stagger.count))
+    if beats.contains(where: { $0 < 0 }) || Set(beats).count != beats.count {
+        if beatBad.count < 4 { beatBad.append("vault \(seed): \(beats)") }
+    }
+}
+check("T11 60 random vaults: every part lit, every tap on its beat, no wire outrun", pulseBad.isEmpty, "\(pulseBad)")
+check("T11 60 random vaults: neighbouring boards never pulse in step", beatBad.isEmpty, "\(beatBad)")
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

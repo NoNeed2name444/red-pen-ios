@@ -1114,3 +1114,138 @@ nonisolated struct CircuitBoardLayout: Sendable {
     var left: Double = 0
     var rect = CircuitRect(c: SIMD2<Double>(0, 0), h: SIMD2<Double>(0, 0))
 }
+
+// MARK: - The pulse of light
+
+/// A body as the circuit's pulse of light sees it: where it rests on the
+/// bench, how far along the wiring the light has come from its tile's
+/// source to reach it, and what it is (0 a note's part, 1 a chip, 2 a bus
+/// tap, 3 a ground tap, 4 a source, 5 a port). GraphCircuitLook times each
+/// part's flash, and each wire's travelling light (GraphLinkBoard.phases),
+/// from these, so one pulse runs round each circuit every beat.
+nonisolated struct CircuitPulseSpot: Sendable, Equatable {
+    let at: SIMD2<Double>
+    let dist: Double
+    let kind: Int
+}
+
+extension GraphCircuit {
+    /// One pulse of light every 6 s: this far apart along the wiring (a
+    /// fifth of the 64 units a link's texture coordinate steps by, so the
+    /// shader can drop the seed above them), at this speed.
+    static let pulseSpacing: Double = 12.8
+    static let pulseSpeed: Double = 12.8 / 6.0
+    /// Each tile's beat starts this share of a period after the first's,
+    /// by its place on the bench, so the tiles never pulse in step.
+    static let stagger: [Double] = [0, 0.37, 0.71, 0.18]
+
+    static func pulseKind(_ role: CircuitRole) -> Int {
+        switch role {
+        case .processor, .module, .soc: return 1
+        case .bus: return 2
+        case .ground: return 3
+        case .vcc: return 4
+        case .connector: return 5
+        default: return 0
+        }
+    }
+
+    /// A body's place on the bench.
+    static func onBench(_ p: SIMD3<Float>) -> SIMD2<Double> {
+        let q = SIMD3<Double>(Double(p.x), Double(p.y), Double(p.z))
+        let x: Double = GraphUniverse.dot(q, right)
+        let y: Double = GraphUniverse.dot(q, forward)
+        return SIMD2<Double>(x, y)
+    }
+
+    /// A guide's length from `p` to `q`, routed square and at 45°.
+    static func routeLength(_ p: SIMD2<Double>, _ q: SIMD2<Double>) -> Double {
+        let dx: Double = abs(q.x - p.x)
+        let dy: Double = abs(q.y - p.y)
+        let minor: Double = min(dx, dy)
+        return max(dx, dy) - minor + minor * 2.0.squareRoot()
+    }
+
+    /// Every body's spot: the light's distance to it is the shortest way
+    /// along the wiring (kinds 5 and 6, from their first end) and the
+    /// circuit's note links (from the higher rank), from its board's power
+    /// tap, plus its board's stagger. A body the light never
+    /// reaches rests at 0.
+    static func pulseSpots(_ plan: ThemePlan) -> [CircuitPulseSpot] {
+        let n: Int = plan.bodies.count
+        var spots: [SIMD2<Double>] = []
+        spots.reserveCapacity(n)
+        for b in plan.bodies { spots.append(onBench(b.home)) }
+        var next = [[(Int, Double)]](repeating: [], count: n)
+        for l in plan.links {
+            var a: Int = l.a
+            var b: Int = l.b
+            if l.kind == 0 {
+                if plan.bodies[b].rank > plan.bodies[a].rank {
+                    a = l.b
+                    b = l.a
+                }
+            } else if l.kind != 5 && l.kind != 6 {
+                continue
+            }
+            next[a].append((b, routeLength(spots[a], spots[b])))
+        }
+        var dist = [Double](repeating: Double.infinity, count: n)
+        var heap = CircuitHeap()
+        for (i, b) in plan.bodies.enumerated() where b.role == CircuitRole.vcc.rawValue {
+            let k: Int = plan.regions.firstIndex(of: b.region) ?? 0
+            dist[i] = stagger[k % stagger.count] * pulseSpacing
+            heap.push(dist[i], i)
+        }
+        while let (d, x) = heap.pop() {
+            if d > dist[x] { continue }
+            for (y, w) in next[x] where d + w < dist[y] {
+                dist[y] = d + w
+                heap.push(dist[y], y)
+            }
+        }
+        var out: [CircuitPulseSpot] = []
+        out.reserveCapacity(n)
+        for (i, b) in plan.bodies.enumerated() {
+            let role: CircuitRole = CircuitRole(rawValue: b.role) ?? .led
+            let d: Double = dist[i].isFinite ? dist[i] : 0
+            out.append(CircuitPulseSpot(at: spots[i], dist: d, kind: pulseKind(role)))
+        }
+        return out
+    }
+}
+
+/// A small binary heap of (distance, body), nearest first.
+nonisolated struct CircuitHeap: Sendable {
+    var items: [(Double, Int)] = []
+
+    mutating func push(_ d: Double, _ i: Int) {
+        items.append((d, i))
+        var k: Int = items.count - 1
+        while k > 0 {
+            let up: Int = (k - 1) / 2
+            if items[up].0 <= items[k].0 { break }
+            items.swapAt(up, k)
+            k = up
+        }
+    }
+
+    mutating func pop() -> (Double, Int)? {
+        guard let first = items.first else { return nil }
+        let last: (Double, Int) = items.removeLast()
+        if items.isEmpty { return first }
+        items[0] = last
+        var k: Int = 0
+        while true {
+            let l: Int = k * 2 + 1
+            let r: Int = l + 1
+            var m: Int = k
+            if l < items.count && items[l].0 < items[m].0 { m = l }
+            if r < items.count && items[r].0 < items[m].0 { m = r }
+            if m == k { break }
+            items.swapAt(m, k)
+            k = m
+        }
+        return first
+    }
+}

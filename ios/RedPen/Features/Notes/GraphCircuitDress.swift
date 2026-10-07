@@ -23,6 +23,11 @@ import Foundation
 //   number, "RP" (Red Pen) - never anyone else's name or numbering.
 //
 // Every fitting stays inside its tap's room, clear of every part (T10).
+//
+// Since 7 October the Circuit is the owner's translucent glass look, not the
+// green board (GraphCircuitLook): it prints only the marking's part number
+// under each chip's name. The page parts and fittings are kept, and still
+// tested, but not drawn.
 
 /// A page's part.
 nonisolated enum CircuitPagePart: Sendable, Equatable {

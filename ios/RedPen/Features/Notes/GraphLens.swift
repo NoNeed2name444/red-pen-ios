@@ -7,7 +7,8 @@ import Foundation
 // soft bloom on the brightest stars with a touch of colour fringe at the
 // edge; Neurons a microscope's shallow focus, the far cells melting into
 // bokeh, a darker vignette and the glow of bioluminescence; Circuit a
-// macro lens over a board, a narrow band in focus and the LEDs blooming;
+// macro lens over glass, a narrow band in focus and the light guides and
+// capsules blooming;
 // Performance no lens at all (speed first).
 //
 // The Graphics setting decides whether any of it runs: every effect here
@@ -74,8 +75,9 @@ nonisolated struct GraphLens: Sendable, Equatable {
                              vignette: 0.6, vignettePower: 1.2, fringe: 0.15, exposure: 0, saturation: 1.1,
                              contrast: 0.06, lensing: false)
         case .circuit:
-            // a macro lens over the board: a narrow band sharp, LEDs bloom
-            return GraphLens(hdr: true, bloom: 0.28, bloomThreshold: 0.9, bloomBlur: 5, depthBlur: 0.008,
+            // a macro lens over glass: a narrow band sharp, the light
+            // guides and capsules bloom
+            return GraphLens(hdr: true, bloom: 0.38, bloomThreshold: 0.8, bloomBlur: 7, depthBlur: 0.008,
                              vignette: 0.35, vignettePower: 1.3, fringe: 0, exposure: 0, saturation: 1,
                              contrast: 0.1, lensing: false)
         case .performance:
