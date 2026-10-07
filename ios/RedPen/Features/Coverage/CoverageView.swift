@@ -31,6 +31,11 @@ struct CoverageView: View {
         return picked
     }
 
+    /// The picked exams a kept AI check belongs to (CoverageCloudCheck.scope).
+    private var checkScope: String? {
+        target.map { $0.id + "+" + (ExamChoice.currentSecondary?.id ?? "") }
+    }
+
     private var plan: [BlueprintArea] {
         target.map { ExamBlueprint.plan(primary: $0, secondary: ExamChoice.currentSecondary) } ?? []
     }
@@ -88,7 +93,7 @@ struct CoverageView: View {
         .task(id: assessmentKey) { await assess() }
         .onChange(of: track) { _, now in
             checker.cancel()
-            checker.load(for: now, areas: [])
+            checker.load(for: now, exam: checkScope, areas: [])
         }
         .sheet(item: $preset) { NewSetView(preset: $0) }
         .sheet(isPresented: $pickingExam) {
@@ -109,7 +114,7 @@ struct CoverageView: View {
         guard !Task.isCancelled else { return }
         areas = result
         computing = false
-        checker.load(for: track, areas: result)
+        checker.load(for: track, exam: checkScope, areas: result)
     }
 
     /// The status shown: the AI's when it has one, the keywords' otherwise.
@@ -177,7 +182,7 @@ struct CoverageView: View {
             let fresh: Bool = checker.check == nil || checker.check?.isExample == true
             let title: String = fresh ? "Check with AI" : "Check again"
             Button {
-                checker.run(track: track, areas: areas, library: store.library)
+                checker.run(track: track, exam: checkScope, areas: areas, library: store.library)
             } label: {
                 Label(title, systemImage: "sparkles")
             }

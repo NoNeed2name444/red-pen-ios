@@ -100,6 +100,25 @@ enum TwinRetest {
     static func slot(after current: Int, count: Int) -> Int {
         min(current + 1 + gap, count)
     }
+
+    /// The slots of a sitting that are a question's first showing; a
+    /// re-test repeats an id already seen.
+    static func firstShowings(_ ids: [UUID]) -> [Int] {
+        var seen = Set<UUID>()
+        return ids.indices.filter { seen.insert(ids[$0]).inserted }
+    }
+
+    /// A sitting with its re-tests taken out: each question's first answer
+    /// and option order, in the set's own order, and the position as the
+    /// next of the set's own questions. A re-test is practice straight after
+    /// a miss, not a second question: it must not score, and the place it
+    /// leaves is the set's, so a sitting with one in can still be resumed.
+    static func collapse<Answer>(ids: [UUID], answers: [Answer], orders: [[Int]],
+                                 current: Int) -> (answers: [Answer], orders: [[Int]], current: Int) {
+        let keep: [Int] = firstShowings(ids).filter { $0 < answers.count && $0 < orders.count }
+        let at: Int = keep.filter { $0 < current }.count
+        return (keep.map { answers[$0] }, keep.map { orders[$0] }, min(at, max(0, keep.count - 1)))
+    }
 }
 
 /// The prompt that writes a twin, and the checks on what comes back.

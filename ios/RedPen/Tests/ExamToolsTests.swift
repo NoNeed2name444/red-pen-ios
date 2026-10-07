@@ -125,6 +125,15 @@ queue.prune(keeping: [])
 check("twins gone from the library are forgotten", queue.entries.isEmpty)
 check("the re-test comes a few questions on", TwinRetest.slot(after: 2, count: 20) == 6)
 check("or at the end", TwinRetest.slot(after: 18, count: 20) == 20)
+let qa = UUID(), qb = UUID(), qc = UUID()
+check("a re-test is not a first showing", TwinRetest.firstShowings([qa, qb, qa, qc]) == [0, 1, 3])
+let folded = TwinRetest.collapse(ids: [qa, qb, qa, qc], answers: ["miss", "right", "retest", ""],
+                                 orders: [[0, 1], [1, 0], [1, 0], [0, 1]], current: 3)
+check("a re-test is left out of the answers kept", folded.answers == ["miss", "right", ""])
+check("its option order goes with it", folded.orders == [[0, 1], [1, 0], [0, 1]])
+check("the place is the set's own: question 3", folded.current == 2)
+check("standing on the re-test resumes at the next of the set's own",
+      TwinRetest.collapse(ids: [qa, qb, qa, qc], answers: ["a", "b", "c", "d"], orders: [[], [], [], []], current: 2).current == 2)
 
 let input = TwinPrompt.input(stem: "A 24-year-old woman has palpitations.", options: ["Graves disease", "Toxic adenoma"],
                              correctIndex: 0, explanation: "Diffuse uptake.", picked: 1, reason: "Mixed up lookalikes")
