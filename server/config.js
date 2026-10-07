@@ -170,6 +170,7 @@ export const ENV_MAP = {
   GROUP_LICENCES: 'flags.billing.licences',
   AI_CONSENT_ENFORCED: 'flags.trust.aiConsentEnforced',
 };
+const ZERO_IS_DEFAULT = ['chatDaily', 'transcribeDaily', 'ttsDaily'];
 
 const APP_RANGES = { configTtlSeconds: [60, 604800], minBuild: [0, 1000000000], latestBuild: [0, 1000000000] };
 const TOP_KEYS = ['flags', 'limits', 'freeShare', 'messages', 'app', 'cache'];
@@ -221,6 +222,8 @@ export function envOverrides(env = {}) {
   for (const name of Object.keys(DEFAULTS.limits)) {
     const isLegacy = own(legacy, `limits.${name}`);
     const n = envNumber(isLegacy ? legacy[`limits.${name}`] : env[envNameForLimit(name)]);
+    // ai.js and tts.js read these as `Number(x) || default`: 0 is the default there
+    if (isLegacy && n === 0 && ZERO_IS_DEFAULT.includes(name)) continue;
     if (n !== null && (isLegacy ? n >= 0 : inRange(name, n))) out.limits[name] = n;
   }
   for (const key of Object.keys(DEFAULTS.flags)) {

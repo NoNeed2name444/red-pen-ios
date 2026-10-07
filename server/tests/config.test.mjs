@@ -111,6 +111,10 @@ function store(db, version, body) {
   ok(effective(null, { AI_DAILY_LIMIT: '30000' }).limits.chatDaily === 30000,
      'a legacy var outside the owner range still wins (an existing deployment keeps its number)');
   ok(effective(null, { AI_DAILY_LIMIT: '-5' }).limits.chatDaily === 400, 'a negative legacy var is ignored');
+  const zero = effective(null, { AI_DAILY_LIMIT: '0', TRANSCRIBE_DAILY: '0', TTS_DAILY_LIMIT: '0', OWNER_MONTHLY_USD: '0' });
+  ok(zero.limits.chatDaily === 400 && zero.limits.transcribeDaily === 36 && zero.limits.ttsDaily === 300,
+     'a daily limit of 0 is the default, as ai.js and tts.js read it (Number(x) || default)');
+  ok(zero.limits.ownerMonthlyUsd === 0, 'but an owner budget of 0 is 0, as ai.js reads it (finite)');
   ok(effective(null, { SHARES_PER_ACCOUNT: '50' }).limits.sharesPerAccount === 50, 'a var named after a limit sets it');
   ok(effective(null, { SHARES_PER_ACCOUNT: '5000' }).limits.sharesPerAccount === 100, 'but only within its range');
   ok(effective(null, { LICENCE_PAID_MODELS: '1' }).limits.licencePaidModels === 0, 'so class access cannot gain paid AI from an env var');
