@@ -156,6 +156,7 @@ enum CoverageCloudCheck {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         request.timeoutInterval = 180
         let body: [String: Any] = [
             "model": "cramdown-writer",
@@ -174,15 +175,11 @@ enum CoverageCloudCheck {
         }
         let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard (200...299).contains(code) else {
-            let message = (object?["message"] as? String) ?? (object?["error"] as? String)
-            switch code {
-            case 401, 403: throw AuthAPI.Failure.signedOut
-            case 402: throw AuthAPI.Failure.needsPro(message ?? "The cloud check is part of Pro.")
-            case 404: throw AuthAPI.Failure.notConfigured
-            case 429: throw AuthAPI.Failure.tooManyTries
-            default: throw AuthAPI.Failure.server(message ?? "The cloud check did not answer.")
-            }
+        // the same reading of a refusal as every other call to the worker
+        if let failure = AuthAPI.failure(status: code, data: data,
+                                         needsPro: "The cloud check is part of Pro.",
+                                         fallback: "The cloud check did not answer.") {
+            throw failure
         }
         let choices = object?["choices"] as? [[String: Any]]
         let message = choices?.first?["message"] as? [String: Any]

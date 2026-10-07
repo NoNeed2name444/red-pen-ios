@@ -173,8 +173,8 @@ struct PaywallView: View {
             Button("Restore") { Task { await subscriptions.restore() } }
                 .disabled(subscriptions.busy)
             // served by our own server (server/legal.js), not the retired redpen.app
-            Link("Terms", destination: AuthAPI.baseURL.appendingPathComponent("terms"))
-            Link("Privacy", destination: AuthAPI.baseURL.appendingPathComponent("privacy"))
+            Link("Terms", destination: LegalLinks.url(.terms))
+            Link("Privacy", destination: LegalLinks.url(.privacy))
         }
         .font(.footnote)
         .buttonStyle(.borderless)

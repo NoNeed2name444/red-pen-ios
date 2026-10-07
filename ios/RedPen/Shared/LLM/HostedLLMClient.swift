@@ -115,6 +115,8 @@ struct HostedLLMClient: LLMBackend {
         }
         request.timeoutInterval = 180
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // the worker only: a provider the student added is told nothing
+        VignetteHeaders.apply(to: &request)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
