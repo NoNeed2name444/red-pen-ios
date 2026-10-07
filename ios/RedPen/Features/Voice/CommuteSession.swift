@@ -38,6 +38,7 @@ final class CommuteSession: ObservableObject {
     let listener = VoiceListener()
 
     private weak var reviews: ReviewStore?
+    private weak var store: Store?
     private var loop: Task<Void, Never>?
     private var generation = 0
     /// Cards already sent round again this sitting; a card is repeated once,
@@ -50,10 +51,11 @@ final class CommuteSession: ObservableObject {
 
     // MARK: controls
 
-    func load(_ items: [Item], reviews: ReviewStore) {
+    func load(_ items: [Item], reviews: ReviewStore, store: Store) {
         end()
         self.items = items
         self.reviews = reviews
+        self.store = store
         position = 0
         lines = []
         right = 0
@@ -278,6 +280,7 @@ final class CommuteSession: ObservableObject {
 
         let correct = choice == question.correctIndex
         if correct { right += 1 } else { wrong += 1 }
+        store?.recordAnswer(question.id, correct: correct, picked: choice)
         StudyLog.shared.record()
         if correct {
             add(.right, "Right \u{2014} \(key). \(keyText)")

@@ -222,7 +222,7 @@ struct CommuteModeView: View {
     private func start(due: [ReviewPlan.Due]) {
         let items: [CommuteSession.Item] = playlist(due: due)
         guard !items.isEmpty else { return }
-        session.load(items, reviews: reviews)
+        session.load(items, reviews: reviews, store: store)
         session.start()
     }
 
