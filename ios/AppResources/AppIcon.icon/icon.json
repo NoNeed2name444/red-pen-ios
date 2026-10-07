@@ -19,13 +19,13 @@
     {
       "layers": [
         {
-          "glass": true,
-          "image-name": "5-a-plus.svg",
+          "glass": false,
+          "image-name": "5-a-plus.png",
           "name": "a-plus"
         },
         {
-          "glass": true,
-          "image-name": "4-chest-piece.svg",
+          "glass": false,
+          "image-name": "4-chest-piece.png",
           "name": "chest-piece"
         }
       ],
@@ -43,8 +43,8 @@
     {
       "layers": [
         {
-          "glass": true,
-          "image-name": "3-earpieces.svg",
+          "glass": false,
+          "image-name": "3-earpieces.png",
           "name": "earpieces"
         }
       ],
@@ -62,9 +62,14 @@
     {
       "layers": [
         {
-          "glass": true,
-          "image-name": "2-tubing.svg",
+          "glass": false,
+          "image-name": "2-tubing.png",
           "name": "tubing"
+        },
+        {
+          "glass": false,
+          "image-name": "1-metal.png",
+          "name": "metal"
         }
       ],
       "name": "Tubing",
@@ -81,21 +86,12 @@
     {
       "layers": [
         {
-          "glass": true,
-          "image-name": "1-metal.svg",
-          "name": "metal"
+          "glass": false,
+          "image-name": "0-background.png",
+          "name": "background"
         }
       ],
-      "name": "Metal",
-      "shadow": {
-        "kind": "neutral",
-        "opacity": 0.5
-      },
-      "specular": true,
-      "translucency": {
-        "enabled": false,
-        "value": 0.5
-      }
+      "name": "Background"
     }
   ],
   "supported-platforms": {

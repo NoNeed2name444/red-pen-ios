@@ -5,7 +5,7 @@ options:
     iOS: "26.0"
   createIntermediateGroups: true
   # An Icon Composer .icon is a folder Xcode treats as one file; without this
-  # an older XcodeGen adds icon.json and the SVGs inside it one by one.
+  # an older XcodeGen adds icon.json and the PNGs inside it one by one.
   fileTypes:
     icon:
       file: true
@@ -49,6 +49,11 @@ targets:
       # package (which copies RedPen/) keeps the set alone.
       - path: AppResources/AppIcon.icon
         type: file
+        buildPhase: resources
+      # The same layers as PNGs, for IconLayersView (actool compiles the .icon
+      # away, so the app cannot read them from it).
+      - path: ../design/icon/layers
+        type: folder
         buildPhase: resources
     dependencies:
       - package: LocalLLMClient
