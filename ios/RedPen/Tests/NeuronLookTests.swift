@@ -171,5 +171,24 @@ check("N5 the pacemaker's beat is the pulsar's period in both",
       NeuronShaders.soma.contains("rp_t / 1.5") && NeuronShaders.halo.contains("rp_t / 1.5")
       && SpaceOptics.pulsarPeriod == 1.5)
 
+// MARK: N6 the orbs round the map
+
+let orbs: [NeuronOrb] = NeuronBokeh.orbs()
+check("N6 the same every time", orbs == NeuronBokeh.orbs() && orbs.count == NeuronBokeh.orbCount)
+check("N6 in a shell round the map, never on the lens",
+      orbs.allSatisfy { o in
+          let r: Float = (o.at * o.at).sum().squareRoot()
+          return r > 0.3 && r <= 1.41 && o.at.z <= NeuronBokeh.orbFront
+      })
+check("N6 in front of the cells and behind them",
+      orbs.filter { $0.at.z > 0.2 }.count >= 6 && orbs.filter { $0.at.z < -0.2 }.count >= 6)
+let bigOrbs: [NeuronOrb] = orbs.filter { $0.size > 0.11 }
+let smallOrbs: [NeuronOrb] = orbs.filter { $0.size < 0.08 }
+let meanBigOrb: Float = bigOrbs.map(\.strength).reduce(0, +) / Float(max(bigOrbs.count, 1))
+let meanSmallOrb: Float = smallOrbs.map(\.strength).reduce(0, +) / Float(max(smallOrbs.count, 1))
+check("N6 most small, the big ones fainter, all faint",
+      smallOrbs.count > bigOrbs.count && meanBigOrb < meanSmallOrb
+      && orbs.allSatisfy { $0.strength > 0 && $0.strength < 0.4 && onScreen($0.colour) })
+
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
