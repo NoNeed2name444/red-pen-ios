@@ -184,6 +184,11 @@ suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
 suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
+# the themed hierarchy (plan §3d): each folder a cell or a circuit with
+# the same seven parts, files and bullets in both themes, read from the
+# notes; links as fibres (strength, kind) or wires (resistance, current);
+# levels 3-4 built only up close, bounded, never smaller than a page
+suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against

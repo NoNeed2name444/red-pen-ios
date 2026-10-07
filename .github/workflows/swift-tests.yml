@@ -43,6 +43,8 @@ on:
       - 'ios/RedPen/Features/Notes/GraphShaderCatalog.swift'
       - 'ios/RedPen/Features/Notes/GraphNeuronStates.swift'
       - 'ios/RedPen/Features/Notes/GraphCircuitDress.swift'
+      - 'ios/RedPen/Features/Notes/GraphAnatomy.swift'
+      - 'ios/RedPen/Features/Notes/GraphLens.swift'
       - 'ios/RedPen/Features/Notes/GraphPerf*.swift'
       - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
