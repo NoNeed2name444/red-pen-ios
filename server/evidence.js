@@ -12,10 +12,22 @@
 //
 // Every lookup has a short timeout and is cached for a day, so a slow source
 // costs a check a few seconds at most and never fails it.
+//
+// MedlinePlus and openFDA entries also carry the source's own full text for
+// proof (server/proof.js): `html`, the summary as MedlinePlus sends it, and
+// `official`, the label's sections. They stay on the server: the evidence a
+// model is shown, or the app is sent, never has them (gather, and accuracy.js
+// evidenceFor, leave them out).
+
+import { FDA_SECTIONS, drugTokens } from './proof.js';
 
 const TIMEOUT_MS = 6000;
 const CACHE_SECONDS = 24 * 60 * 60;
 const MAX_EVIDENCE_CHARS = 7000;
+// the longest summary kept for proof, as sent (escaped HTML): proof reads a
+// summary whole, never a cut one that could end on half a sentence, and the
+// longest topics run to about 15,000 characters
+const MAX_SUMMARY_HTML = 40_000;
 
 /// Pull the output being checked (and the lecture it came from) out of a
 /// MedVAL-format prompt. Null when the text is not one.
@@ -146,19 +158,50 @@ export async function europePMC(query, fetcher = fetch) {
   })).filter(e => e.text);
 }
 
-/// MedlinePlus health topics (NLM), the reviewed summary for the topic.
+/// MedlinePlus health topics (NLM), the reviewed summary for the topic; with
+/// `html`, the whole summary as sent, when it is not past MAX_SUMMARY_HTML.
 export async function medlinePlus(query, fetcher = fetch) {
   const url = `https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term=${encodeURIComponent(query)}&retmax=1`;
   const xml = await getText(url, fetcher);
   if (!xml) return [];
   const doc = xml.match(/<document[^>]*url="([^"]+)"[\s\S]*?<\/document>/);
   if (!doc) return [];
-  const field = name => unhtml((doc[0].match(new RegExp(`<content name="${name}">([\\s\\S]*?)</content>`)) || [])[1]);
+  const raw = name => (doc[0].match(new RegExp(`<content name="${name}">([\\s\\S]*?)</content>`)) || [])[1];
+  const field = name => unhtml(raw(name));
   const text = field('FullSummary') || field('snippet');
-  return text ? [{ source: 'MedlinePlus', title: field('title') || query, url: doc[1], text: trim(text, 700) }] : [];
+  if (!text) return [];
+  const entry = { source: 'MedlinePlus', title: field('title') || query, url: doc[1], text: trim(text, 700) };
+  const html = raw('FullSummary');
+  if (html && html.length <= MAX_SUMMARY_HTML) entry.html = html;
+  return [entry];
 }
 
-/// openFDA: the current label of a drug, the parts a question would test.
+/// The label's own sections, for proof: only when it is the label of this
+/// drug alone, every generic name it lists naming the drug and nothing more
+/// (a salt the name leaves out aside, as "metformin hydrochloride" is
+/// metformin). A combination ("lisinopril and hydrochlorothiazide"), another
+/// salt ("warfarin sodium"), a form in the name ("metformin ER 500 mg") or one
+/// of a class ("insulin lispro") is not the drug a claim names, so it proves
+/// nothing about it. Only the sections proof reads, as the label has them.
+function officialLabel(drug, label) {
+  const want = drugTokens(drug);
+  const names = label.openfda?.generic_name;
+  if (!want.length || !Array.isArray(names) || !names.length) return null;
+  const same = names.every(name => {
+    const got = drugTokens(name);
+    return got.length === want.length && got.every((t, i) => t === want[i]);
+  });
+  if (!same) return null;
+  const sections = {};
+  for (const key of FDA_SECTIONS) {
+    const texts = (Array.isArray(label[key]) ? label[key] : [label[key]]).filter(v => typeof v === 'string' && v);
+    if (texts.length) sections[key] = texts;
+  }
+  return Object.keys(sections).length ? { drug, effective: label.effective_time || null, sections } : null;
+}
+
+/// openFDA: the current label of a drug, the parts a question would test;
+/// with `official`, its sections whole, when it is the drug's alone.
 export async function openFDA(drug, fetcher = fetch) {
   const url = `https://api.fda.gov/drug/label.json?search=openfda.generic_name:%22${encodeURIComponent(drug)}%22&limit=1`;
   // cached under the address without the key, so the key is never stored
@@ -173,11 +216,15 @@ export async function openFDA(drug, fetcher = fetch) {
     ['Warnings', part('boxed_warning') || part('warnings_and_cautions') || part('warnings')],
   ].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(' ');
   const setId = label.set_id || label.id;
-  return text ? [{
+  if (!text) return [];
+  const entry = {
     source: 'openFDA label', title: `${drug} (FDA label, effective ${label.effective_time || 'current'})`,
     url: setId ? `https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=${setId}` : 'https://open.fda.gov/apis/drug/label/',
     text,
-  }] : [];
+  };
+  const official = officialLabel(drug, label);
+  if (official) entry.official = official;
+  return [entry];
 }
 
 /// A title as the same work's other records write it: the "(journal, year)"
@@ -212,9 +259,16 @@ export async function gather(terms, fetcher = fetch) {
   for (const e of unique) {
     if (used + e.text.length > MAX_EVIDENCE_CHARS) break;
     used += e.text.length;
-    out.push({ ...e, id: `S${out.length + 1}` });
+    out.push({ ...forModels(e), id: `S${out.length + 1}` });
   }
   return out;
+}
+
+/// An entry as a model or the app may see it: without the full texts kept
+/// for proof.
+export function forModels(entry) {
+  const { official, html, ...rest } = entry;
+  return rest;
 }
 
 export function evidenceBlock(evidence) {
