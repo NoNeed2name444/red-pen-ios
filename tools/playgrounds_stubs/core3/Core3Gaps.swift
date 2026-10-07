@@ -146,7 +146,12 @@ enum InsightExamples {
 
 enum PlatformNotice {
     static let search = Notification.Name("stethoscore.command.search")
+    static let focusRoundEnded = Notification.Name("stethoscore.focusRoundEnded")
     static let openItem = Notification.Name("stethoscore.openItem")
+
+    static func post(_ name: Notification.Name, _ info: [String: Any] = [:]) {
+        NotificationCenter.default.post(name: name, object: nil, userInfo: info)
+    }
 
     static func publisher(_ name: Notification.Name) -> NotificationCenter.Publisher {
         NotificationCenter.default.publisher(for: name)

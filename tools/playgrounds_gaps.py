@@ -5,16 +5,22 @@ declared, so a missing stand-in shows here instead of in the Mac build.
   playgrounds_gaps.py <ios/RedPen> <assembled .swiftpm folder>
 
 A type is "gone" when the full app declares it at the top level and nothing in
-the package (its own files or the stand-ins, at any depth) does. Code under
-`#if ... !SWIFT_PACKAGE` is skipped, since the package never compiles it.
-Exit 1, with each name and the files using it, when any gone type is used.
+the package (its own files or the stand-ins, at any depth) does. A stand-in
+type (declared under Shared/PlaygroundsStubs) is also short when a kept file
+names `Type.member` and neither the stand-in nor an extension of it declares
+that member. Code under `#if ... !SWIFT_PACKAGE` is skipped, since the
+package never compiles it. Exit 1, naming each gap and the files using it.
 """
 import os, re, sys
 
 MOD = r'(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:nonisolated|public|internal|private|fileprivate|final|indirect|open|package)\s+)*'
 TOP = re.compile(r'^' + MOD + r'(?:struct|class|enum|actor|protocol|typealias)\s+([A-Za-z_]\w*)', re.M)
 ANY = re.compile(r'^\s*' + MOD + r'(?:struct|class|enum|actor|protocol|typealias)\s+([A-Za-z_]\w*)', re.M)
+KIND = re.compile(r'^\s*' + MOD + r'(?:struct|class|enum|actor|protocol)\s+([A-Za-z_]\w*)', re.M)
 TYPE = re.compile(r'\b[A-Z]\w*\b')
+NAME = r'[A-Za-z_]\w*'
+MEMBER = re.compile(r'\b(?:let|var|func|case)\s+((?:' + NAME + r'(?:\([^)]*\))?(?:\s*=\s*[^,\n]+)?\s*,\s*)*' + NAME + ')')
+STUBS = os.path.join("Shared", "PlaygroundsStubs")
 
 
 def swift_files(root):
@@ -52,6 +58,50 @@ def compiled(text):
     return re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', t)
 
 
+def body(text, start):
+    """What sits between the first `{` after start and its matching `}`."""
+    i = text.find("{", start)
+    if i < 0:
+        return ""
+    depth = 0
+    for j in range(i, len(text)):
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i + 1:j]
+    return text[i + 1:]
+
+
+def members(chunk):
+    found = set()
+    for m in MEMBER.finditer(chunk):
+        for part in m.group(1).split(","):
+            found.add(re.match(r'\s*(' + NAME + ')', part).group(1))
+    return found
+
+
+def short_members(texts, pkg):
+    """`Stand-in.member` uses whose member no stand-in or extension declares."""
+    stand_ins = set()
+    for p, t in texts.items():
+        if os.path.relpath(p, pkg).startswith(STUBS):
+            stand_ins |= set(KIND.findall(t))
+    gaps = {}
+    for name in stand_ins:
+        decl = re.compile(r'^\s*' + MOD + r'(?:struct|class|enum|actor|protocol|extension)\s+' + name + r'\b', re.M)
+        have = set()
+        for t in texts.values():
+            for m in decl.finditer(t):
+                have |= members(body(t, m.end()))
+        use = re.compile(r'(?<![\w.])' + name + r'\.([a-z_]\w*)')
+        for p, t in texts.items():
+            for member in set(use.findall(t)) - have - {"self", "init", "allCases"}:
+                gaps.setdefault(f"{name}.{member}", []).append(os.path.relpath(p, pkg))
+    return gaps
+
+
 def main():
     full, pkg = sys.argv[1], sys.argv[2]
     app = set()
@@ -68,7 +118,10 @@ def main():
             users.setdefault(n, []).append(os.path.relpath(p, pkg))
     for n in sorted(users):
         print(f"  {n} (dropped) used by {', '.join(sorted(users[n])[:3])}")
-    return 1 if users else 0
+    short = short_members(texts, pkg)
+    for n in sorted(short):
+        print(f"  {n} (not in the stand-in) used by {', '.join(sorted(short[n])[:3])}")
+    return 1 if users or short else 0
 
 
 sys.exit(main())
