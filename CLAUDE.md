@@ -21,7 +21,7 @@ The owner's design targets: docs/design/targets-2026-10-01.md (no Rank, Clerk ba
 ## Branches and commits
 - personal is the working branch; keep the session branch a copy of it. Work on design/<name> (app-build runs there). Never force-push; no pull requests unless asked.
 - Commit messages: a plain-English subject and a body saying why.
-- The Swift Playgrounds zip (tools/make_swiftpm.py, variants core, core1, core2, core3) is how the app reaches the owner's iPad: a kept file must not name a type its variant drops (tools/playgrounds_cut.py); keep added lines small.
+- The Swift Playgrounds zip (tools/make_swiftpm.py, variants core, core1, core2, core3) is how the app reaches the owner's iPad: a kept file must not name a type its variant drops (tools/playgrounds_cut.py). There is no line limit any more (the owner lifted the 36,000 one).
 
 ## Never
 - Propose Modal, a Whisper fallback, GEMINI_API_KEY in the app, Gemini 3.6 Flash, challenge-a-friend, ranks or leaderboards, or a personal self-learning model.

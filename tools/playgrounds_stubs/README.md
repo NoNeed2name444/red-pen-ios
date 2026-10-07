@@ -16,8 +16,9 @@ GitHub runners with Xcode 26.2 and 26.3, the compilers closest to the one
 inside Swift Playground 4.7, and the blank App template still builds on the
 iPad. So the code is fine and the size is not: the iPad's build has a
 ceiling somewhere between 36,600 lines (the last package that built there)
-and 71,700 (the first that did not). The owner set the Playgrounds build's
-limit at 36,000 lines.
+and 71,700 (the first that did not). The owner has lifted the 36,000-line
+limit the core builds used to keep to, so the core is no longer trimmed to
+a line count.
 
 ## Chunks
 

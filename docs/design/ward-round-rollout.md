@@ -20,7 +20,7 @@ Written 1 October 2026 from an inventory of every screen (the screen-by-screen i
 Everything goes in a new folder, `ios/RedPen/Shared/Ward/`.
 - That folder is not in `CORE_DROP`, so the Playgrounds core, core1 and core2 all pick it up with no change to `make_swiftpm.py`.
 - No file in it may name a type from `Shared/Space`, `PopOut`, `Shared/Learn`, `Features/Analytics` or the gaps branches. This keeps it legal for `tools/playgrounds_cut.py`.
-- The core build is at about 34,000 lines against the owner's 36,000 limit. The whole folder should stay under about 900 lines, and the space code it replaces should be deleted as the batches move off it.
+- The whole folder should stay small, and the space code it replaces should be deleted as the batches move off it. (The owner has since lifted the 36,000-line limit on the Playgrounds core.)
 
 ### 1a. Tokens
 
@@ -186,7 +186,7 @@ The batches, in priority order (what a student sees most comes first):
    - `ipad-preview.yml` portrait and landscape, and `ipad-widths.yml` at 320, 507, 678 and full width.
    - Reading content stays in `ReadableColumn` (760 or 820); the grid fills the whole window; bottom bars cap at 360 per button.
    - The rail and the dock both use `WardSegmented`.
-6. **Playgrounds.** `swiftpm-check.yml` is green for core, core1 and core2. `tools/playgrounds_cut.py --drop … --names` lists no new names the batch's kept files need. Core line count stays under 36,000.
+6. **Playgrounds.** `swiftpm-check.yml` is green for core, core1 and core2. `tools/playgrounds_cut.py --drop … --names` lists no new names the batch's kept files need.
 7. **Motion.** Under Reduce Motion, ECG sweeps, loaders and the strip fill are static or crossfade.
 8. **Preflight.** `tools/preflight.sh` is green, and `tools/ci_status.py <branch> --wait` exits 0, before the batch merges into `personal`.
 
@@ -219,7 +219,6 @@ The owner's iPad zip is `--without core`, so what the owner sees is mostly the s
 - **Pager Amber is not safe for small text.** It is 4.16:1 on Clean Sheet and 3.84:1 on Ward White, so AA large only. Use it for beams, rings, highlights and fills. Pill text, such as "Finals in N days", must use Caution Amber #9A5B00 on an amber tint, or white bold text at 14pt or more. The WardPaletteTests guard this.
 - **Dark mode is unspecified.** The night-shift set in §1a is a proposal. The "Always night sky", "Pop-out", face-tracking and Graphics settings (`SupportCenter.swift:150-264`, `SpaceQuality.swift:249-312`) currently force dark for the sky. The owner has to decide whether they move under an "Ideas map" header and whether the app simply follows the system appearance.
 - **Launch colour.** The owner has to choose: `LaunchBackground` is midnight today, and `LaunchSplash` plus `project.yml:71-72` must change together, or a dark frame will flash before the white app.
-- **Playgrounds ceiling.** The Ward code adds lines to a core sitting at about 34,000 of 36,000. Removing space code offsets this only in the full app; the core already drops `Shared/Space`. Keep the foundation small, and re-measure after B0 and B1.
 - **Re-pointing everything at once in Batch 0** (BigButton, ContentCard, ModeBackdrop, PopOut) changes all 18 preview screens in one commit. That makes it easy to miss an unreadable combination, for example a white-on-tint `bigSecondary` that now sits on white. Compare every preview screen in both modes before merging.
 - **Keeping the old helper APIs as shims** leaves dead code (`PopOutPlane` arguments, `modeTint`, `kind.tint`). Each batch removes its own call sites; a final sweep deletes the shims and the `CoreStandIns` entries.
 - **Mode identity.** One Theatre Blue chrome removes the per-mode colour that students use to tell modes apart. The mode icons and small-caps lines ("MCQ · 42 QUESTIONS") have to carry that instead. Watch for feedback.
