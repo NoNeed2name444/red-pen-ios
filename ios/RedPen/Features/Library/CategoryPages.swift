@@ -109,8 +109,8 @@ struct CategoryRowLabel: View {
 }
 
 extension View {
-    /// A list row frosted, so the backdrop shows through while the row stays
-    /// easy to read - the library's own row background.
+    /// A list row as a soft tile raised off the base - the library's own
+    /// row background (the name is older than the soft UI).
     func frostedListRow() -> some View {
         wardRowBackground()
     }

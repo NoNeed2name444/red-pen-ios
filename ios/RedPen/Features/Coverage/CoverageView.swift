@@ -68,6 +68,7 @@ struct CoverageView: View {
                         Text("Reading your library\u{2026}").foregroundStyle(Color.wardInkSecondary)
                     }
                 }
+                .wardRowBackground()
             } else {
                 summarySection
                 if target != nil { blueprintSection }
@@ -161,13 +162,11 @@ struct CoverageView: View {
     /// or Stop while it runs.
     private var bar: some View {
         VStack(spacing: 12) {
-            Picker("Show", selection: showGaps) {
-                Text("Everything").tag(false)
-                Text("Gaps only").tag(true)
+            WardSegmented(selection: showGaps, options: [false, true]) { gaps in
+                Text(gaps ? "Gaps only" : "Everything")
             }
-            .pickerStyle(.segmented)
-            .frame(minHeight: 32)
-            .hoverEffect(.highlight)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Show")
             checkControl
         }
         .frame(maxWidth: 560)
@@ -266,6 +265,7 @@ struct CoverageView: View {
         } footer: {
             Text("Sends each area\u{2019}s subtopics and a short digest of your library \u{2014} set names, matching questions and cards, lecture headings \u{2014} to \(Brand.name) Cloud.")
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder
@@ -327,6 +327,7 @@ struct CoverageView: View {
             } footer: {
                 Text("Blueprint covered \(ExamDashboardCard.percent(covered)) \u{00B7} predicted ~\(ExamDashboardCard.percent(predicted)) against a pass mark of ~\(ExamDashboardCard.percent(target.passMark)). An estimate from your library and answers, weighted by each area\u{2019}s share of the exam.")
             }
+            .wardRowBackground()
         }
     }
 
@@ -352,6 +353,7 @@ struct CoverageView: View {
                         .textCase(nil)
                 }
             }
+            .wardRowBackground()
         }
     }
 

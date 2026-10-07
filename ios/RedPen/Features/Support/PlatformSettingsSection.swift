@@ -38,7 +38,9 @@ struct PlatformSettingsSection: View {
                     }
                 }
             if !Self.isPlaygrounds {
+                // the tip draws its own platter: on the base, not on a tile
                 SiriTipView(intent: ReviewDueIntent())
+                    .listRowBackground(Color.clear)
                 ShortcutsLink()
                     .shortcutsLinkStyle(.automaticOutline)
             }
@@ -47,6 +49,7 @@ struct PlatformSettingsSection: View {
         } footer: {
             Text(siriFooter)
         }
+        .wardRowBackground()
 
         if !Self.isPlaygrounds {
             Section {
@@ -57,6 +60,7 @@ struct PlatformSettingsSection: View {
             } footer: {
                 Text("From 6 pm the evening before your exam, the Lock Screen shows the countdown and the cards still due. Add the widgets from the Home Screen, and the Review due button from Control Centre.")
             }
+            .wardRowBackground()
         }
 
         if AppLock.supported || MindfulMinutes.available {
@@ -84,6 +88,7 @@ struct PlatformSettingsSection: View {
             } footer: {
                 Text(privacyFooter)
             }
+            .wardRowBackground()
         }
     }
 

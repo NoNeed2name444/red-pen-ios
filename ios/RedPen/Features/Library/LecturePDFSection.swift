@@ -109,6 +109,7 @@ struct LecturePDFSection: View {
             .buttonStyle(.wardSecondary)
             .disabled(reading || disabled)
             .frame(maxWidth: .infinity)
+            .wardButtonRow()
 
             if let status {
                 Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
@@ -138,6 +139,7 @@ struct LecturePDFSection: View {
         } footer: {
             Text("PDF, Word or PowerPoint. It is read on this device, scanned pages too.")
         }
+        .wardRowBackground()
     }
 
     private var picturesTitle: String {

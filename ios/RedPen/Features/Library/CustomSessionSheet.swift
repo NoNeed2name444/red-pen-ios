@@ -48,10 +48,11 @@ struct CustomSessionSheet: View {
     private var form: some View {
         Form {
             Section {
-                Picker("Take", selection: $filter.include) {
-                    ForEach(CustomSession.Include.allCases) { Text($0.title).tag($0) }
+                WardSegmented(selection: $filter.include, options: CustomSession.Include.allCases) { include in
+                    Text(include.title)
                 }
-                .pickerStyle(.segmented)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Take")
                 .listRowBackground(Color.clear)
             }
             Section {

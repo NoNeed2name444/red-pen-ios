@@ -191,8 +191,10 @@ struct SourcePageList: View {
                     row(page)
                 }
                 .buttonStyle(.plain)
-                .listRowBackground(page.number == selected
-                                   ? Color.wardPrimary.opacity(0.12) : Color.clear)
+                .accessibilityAddTraits(page.number == selected ? .isSelected : [])
+                // the open page pressed into the base; the rest flat on it
+                .listRowBackground(Group { if page.number == selected { WardRowTile(inset: true) } })
+                .listRowSeparator(.hidden)
                 .id(page.number)
             }
             .listStyle(.plain)
@@ -216,7 +218,7 @@ struct SourcePageList: View {
             Text("\(page.number)")
                 .font(.system(.caption, design: .monospaced))
                 .monospacedDigit()
-                .foregroundStyle(Color.wardInkSecondary)
+                .foregroundStyle(page.number == selected ? Color.wardPrimaryInk : Color.wardInkSecondary)
                 .frame(minWidth: 22, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(firstLine(page))
@@ -262,6 +264,7 @@ struct SourceResultsList: View {
                     } header: {
                         WardSectionLabel(heading)
                     }
+                    .wardRowBackground()
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)

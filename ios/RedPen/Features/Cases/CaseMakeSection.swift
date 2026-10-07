@@ -68,6 +68,7 @@ struct CaseMakeSection: View {
             .buttonStyle(.bigSecondary)
             .disabled(working)
             .frame(maxWidth: .infinity)
+            .wardButtonRow()
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -78,6 +79,7 @@ struct CaseMakeSection: View {
         } footer: {
             Text("PDF, Word or PowerPoint. A lecture on a condition - how it presents, what the tests show, how it is treated - makes the best patients.")
         }
+        .wardRowBackground()
     }
 
     private var makeSection: some View {
@@ -98,6 +100,7 @@ struct CaseMakeSection: View {
                 .disabled(!canMake)
                 .frame(maxWidth: .infinity)
                 .floatingActionAnchor("cases")
+                .wardButtonRow()
             }
             messages
             DisclosureGroup("More options", isExpanded: $showMore) {
@@ -108,6 +111,7 @@ struct CaseMakeSection: View {
         } footer: {
             Text("Each patient is checked for its structure and its numbers before it is kept, and by the accuracy checkers once the set is saved.")
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder

@@ -150,6 +150,7 @@ struct AccuracyWhySheet: View {
         } footer: {
             Text("Checked against this \(item.kind.noun)'s lecture and current literature by free checker models voting, with rule checks for doses, lab values and contradictions. Scored by \(Brand.name)'s accuracy model (\(accuracy.weights.version)). Still use your judgement.")
         }
+        .wardRowBackground()
     }
 
     private func explanation(_ a: AccuracyAssessment, percent: Int) -> String {
@@ -175,6 +176,7 @@ struct AccuracyWhySheet: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private func votesSection(_ votes: [AccuracyVote]) -> some View {
@@ -199,6 +201,7 @@ struct AccuracyWhySheet: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private func evidenceSection(_ evidence: [AccuracyEvidence]) -> some View {
@@ -214,6 +217,7 @@ struct AccuracyWhySheet: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     /// A correction offered for this item, if it can be applied with one tap.
@@ -232,11 +236,13 @@ struct AccuracyWhySheet: View {
                 Label("Accept the correction", systemImage: "checkmark.circle")
             }
             .buttonStyle(.wardSecondary)
+            .wardButtonRow()
         } header: {
             Text("Suggested correction")
         } footer: {
             Text("It is checked again once changed. You can still edit it by hand.")
         }
+        .wardRowBackground()
     }
 
     private var reportSection: some View {
@@ -244,6 +250,7 @@ struct AccuracyWhySheet: View {
             if reporting {
                 TextField("What's wrong? (optional)", text: $note, axis: .vertical)
                     .lineLimit(2...5)
+                    .popFieldRow()
                 Button("Send report") { Task { await sendReport() } }
                     .disabled(working)
             } else if assessment.record?.reported == true {
@@ -256,6 +263,7 @@ struct AccuracyWhySheet: View {
         } footer: {
             Text("Reports help train the accuracy model. Only this \(item.kind.noun) and your note are sent.")
         }
+        .wardRowBackground()
     }
 
     // MARK: actions

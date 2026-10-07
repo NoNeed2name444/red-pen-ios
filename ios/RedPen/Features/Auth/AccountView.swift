@@ -149,6 +149,7 @@ struct AccountView: View {
         } footer: {
             Text("Your decks, folders and review schedule follow you between your devices. Recordings and learned pronunciations stay on the phone that made them.")
         }
+        .wardRowBackground()
     }
 
     /// Sets kept off this account when it signed in, said as a sentence.
@@ -181,6 +182,7 @@ struct AccountView: View {
             Button("Restore purchases") { Task { await subscriptions.restore() } }
                 .disabled(subscriptions.busy)
         }
+        .wardRowBackground()
     }
 
     // MARK: Leaving - always last
@@ -192,6 +194,7 @@ struct AccountView: View {
         } footer: {
             Text("Deleting removes your account, your synced library and its subscription record from our server. The copy on this phone stays. It does not cancel an active subscription \u{2014} do that in Manage first, or Apple will keep billing.")
         }
+        .wardRowBackground()
     }
 
     private func signOut() {

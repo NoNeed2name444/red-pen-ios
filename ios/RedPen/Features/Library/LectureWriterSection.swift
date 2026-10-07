@@ -108,6 +108,7 @@ struct LectureWriterSection: View {
             .buttonStyle(.wardSecondary)
             .disabled(working || reading)
             .frame(maxWidth: .infinity)
+            .wardButtonRow()
             if let readSource {
                 let pages: Int = readSource.document.pages.count
                 let line: String = "\(readSource.name) \u{2014} \(pages) pages"
@@ -135,6 +136,7 @@ struct LectureWriterSection: View {
         } footer: {
             Text("PDF, Word or PowerPoint. It is read on this device.")
         }
+        .wardRowBackground()
     }
 
     /// Step 3: the card type (Cards only), how many, the one big button,
@@ -167,6 +169,7 @@ struct LectureWriterSection: View {
             .disabled(!canWrite || working || reading)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("writer")
+            .wardButtonRow()
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -197,6 +200,7 @@ struct LectureWriterSection: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+        .wardRowBackground()
     }
 
     /// Step 2's file button: what it does now.

@@ -42,11 +42,13 @@ struct CardEditSheet: View {
                              ? "Nothing is hidden yet \u{2014} wrap the tested words in {{c1::...}}."
                              : "Wrap the tested words in {{c1::...}}.")
                     }
+                    .wardRowBackground()
                 case .qa:
                     Section("Question") {
                         TextEditor(text: $working.front).frame(minHeight: 70)
                             .popEditorRow()
                     }
+                    .wardRowBackground()
                     Section {
                         TextEditor(text: $bullets).frame(minHeight: 90)
                             .popEditorRow()
@@ -55,11 +57,13 @@ struct CardEditSheet: View {
                     } footer: {
                         Text("One bullet per line.")
                     }
+                    .wardRowBackground()
                 case .occlusion:
                     Section("Question") {
                         TextField("What is labelled here?", text: $working.front)
                             .popFieldRow()
                     }
+                    .wardRowBackground()
                     Section {
                         TextEditor(text: $bullets).frame(minHeight: 60)
                             .popEditorRow()
@@ -68,11 +72,13 @@ struct CardEditSheet: View {
                     } footer: {
                         Text("The label this card's mask covers. The mask itself is set where the card was made.")
                     }
+                    .wardRowBackground()
                 }
                 Section("Why / how") {
                     TextEditor(text: $working.why).frame(minHeight: 70)
                         .popEditorRow()
                 }
+                .wardRowBackground()
                 Section {
                     TagChipsField(tags: $working.tags, known: knownTags)
                         .listRowBackground(Color.clear)
@@ -85,6 +91,7 @@ struct CardEditSheet: View {
                     Section("From") {
                         Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
                     }
+                    .wardRowBackground()
                 }
             }
             .wardForm()
@@ -141,6 +148,7 @@ struct QuestionEditSheet: View {
                     TextEditor(text: $working.stem).frame(minHeight: 90)
                         .popEditorRow()
                 }
+                .wardRowBackground()
                 Section {
                     ForEach(working.options.indices, id: \.self) { index in
                         optionRow(index)
@@ -162,6 +170,7 @@ struct QuestionEditSheet: View {
                     TextEditor(text: $working.explanation).frame(minHeight: 90)
                         .popEditorRow()
                 }
+                .wardRowBackground()
                 Section("Tags") {
                     TagChipsField(tags: $working.tags, known: knownTags)
                         .listRowBackground(Color.clear)
@@ -170,6 +179,7 @@ struct QuestionEditSheet: View {
                     Section("From") {
                         Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
                     }
+                    .wardRowBackground()
                 }
             }
             .wardForm()

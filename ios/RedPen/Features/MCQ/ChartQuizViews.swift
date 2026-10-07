@@ -5,10 +5,12 @@ import SwiftUI
 // its chips that are buttons are WardChipButtonStyle (WardControls). What
 // each shows is decided, and tested, in ChartQuiz.
 
-/// An answer option as a rounded row: its letter in a circle, then its text.
-/// Chosen, Theatre Blue; once checked, the right one Discharge Green with a
-/// check and a wrong pick Resus Red with a cross. Crossed out, it is struck
-/// through and dimmed. For the quiz and the mock paper.
+/// An answer option as a soft row: its letter in a small well, then its
+/// text. Chosen, the row is pressed into the base with its letter in Theatre
+/// Blue; once checked, the right one is pressed in with a Discharge Green
+/// letter and check, a wrong pick with a Resus Red letter and cross - the
+/// colour on the letter and the mark only. Crossed out, it is struck through
+/// and dimmed. For the quiz and the mock paper.
 struct WardOptionRow: View {
     let letter: String
     let text: String
@@ -18,35 +20,28 @@ struct WardOptionRow: View {
 
     private var tone: Color? {
         switch mark {
-        case .chosen: return .wardPrimary
+        case .chosen: return .wardPrimaryInk
         case .right: return .wardSuccess
         case .wrong: return .wardDanger
         case .idle, .past: return nil
         }
     }
 
-    /// On green and red the surface colour reads in light and dark alike.
     private var letterInk: Color {
-        switch mark {
-        case .chosen: return .wardOnPrimary
-        case .right, .wrong: return .wardSurface
-        case .idle: return .wardInk
-        case .past: return .wardInkSecondary
-        }
+        if let tone { return tone }
+        return mark == .past ? .wardInkSecondary : .wardInk
     }
 
     private var symbol: String? { mark == .right ? "checkmark.circle.fill" : (mark == .wrong ? "xmark.circle.fill" : nil) }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
-        let edge: Color = tone ?? .wardHairline
-        let wash: Color = (tone ?? Color.clear).opacity(0.10)
         HStack(spacing: WardSpace.m) {
             Text(letter)
                 .font(.body.weight(.bold).monospaced())
                 .foregroundStyle(letterInk)
                 .frame(width: badge, height: badge)
-                .background(tone ?? Color.wardInkSecondary.opacity(0.12), in: Circle())
+                .wardInset(in: Circle())
                 .accessibilityHidden(true)
             Text(text)
                 .font(.body)
@@ -55,16 +50,13 @@ struct WardOptionRow: View {
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let symbol {
-                Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(edge).accessibilityHidden(true)
+                Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .frame(minHeight: 56)
-        .background(wash, in: shape)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(edge, lineWidth: tone == nil ? 1 : 1.5))
-        .wardShadow()
+        .wardRelief(in: shape, lift: .mid, pressed: tone != nil)
         .opacity(ChartQuiz.faded(struck: struck, mark: mark) ? 0.45 : 1)
     }
 }

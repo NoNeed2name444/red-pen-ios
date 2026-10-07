@@ -64,10 +64,6 @@ struct GraphLegendSheet: View {
                 }
             }
         }
-        // its pictures and words are the map's own colours, made for the
-        // map's night, so the legend is night too, whatever the phone's
-        // setting (the sheet only: the screen under it keeps its own)
-        .preferredColorScheme(.dark)
         .accessibilityIdentifier(theme == .space ? "universeLegend" : theme.rawValue + "Legend")
     }
 

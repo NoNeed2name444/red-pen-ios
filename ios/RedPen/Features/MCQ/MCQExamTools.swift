@@ -184,11 +184,15 @@ struct LabRangesSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                // the switch sits on the base itself, not on a tile
                 Section {
                     WardUnitsPicker(conventional: $conventional)
                 }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
                 LabRangesSections(query: query, conventional: conventional)
             }
+            .wardForm()
             .searchable(text: $query, prompt: "Search lab values")
             .navigationTitle("Lab values")
             .navigationBarTitleDisplayMode(.inline)
@@ -214,8 +218,9 @@ struct LabRangesSections: View {
         Section {
             Text(LabRanges.caveat)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
+        .wardRowBackground()
         ForEach(LabRanges.groups, id: \.self) { group in
             let rows: [LabRange] = found.filter { $0.group == group }
             if !rows.isEmpty {
@@ -224,6 +229,7 @@ struct LabRangesSections: View {
                         labRow(row)
                     }
                 }
+                .wardRowBackground()
             }
         }
     }
@@ -235,7 +241,7 @@ struct LabRangesSections: View {
             Spacer(minLength: 8)
             Text(value)
                 .font(.body.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.trailing)
         }
         .accessibilityElement(children: .combine)
@@ -261,9 +267,7 @@ struct CalculatorSheet: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color.wardSurface, in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-                        .strokeBorder(Color.wardHairline, lineWidth: 1))
+                    .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: .mid)
                     .accessibilityLabel("Display, \(calc.display)")
                 LazyVGrid(columns: columns, spacing: 10) {
                     Group {
@@ -313,18 +317,16 @@ struct CalculatorSheet: View {
     }
 
     private func opKey(_ op: ExamCalculator.Op) -> some View {
-        let on: Bool = calc.pendingOp == op
-        return key(op.rawValue, role: on ? .equals : .op) { calc.op(op) }
+        return key(op.rawValue, role: .op, chosen: calc.pendingOp == op) { calc.op(op) }
     }
 
+    /// A soft key: digits in ink, the functions in slate, the operations
+    /// and = in Theatre Blue; a pending operation stays pressed in.
     @ViewBuilder
-    private func key(_ title: String, role: KeyRole, action: @escaping () -> Void) -> some View {
+    private func key(_ title: String, role: KeyRole, chosen: Bool = false, action: @escaping () -> Void) -> some View {
         if role == .blank {
             Color.clear.frame(minHeight: 56)
         } else {
-            let fill: Color = Self.fill(role)
-            let ink: Color = Self.ink(role)
-            let edge: Color = role == .equals ? Color.clear : Color.wardHairline
             let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
             Button {
                 UISelectionFeedbackGenerator().selectionChanged()
@@ -332,30 +334,20 @@ struct CalculatorSheet: View {
             } label: {
                 Text(title)
                     .font(.system(.title2, design: .monospaced).weight(.semibold))
-                    .foregroundStyle(ink)
+                    .foregroundStyle(Self.ink(role))
                     .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(fill, in: shape)
-                    .overlay(shape.strokeBorder(edge, lineWidth: 1))
                     .contentShape(shape)
             }
-            .buttonStyle(PopPressStyle(plane: .raised, shape: shape))
-        }
-    }
-
-    private static func fill(_ role: KeyRole) -> Color {
-        switch role {
-        case .digit, .blank: return Color.wardSurface
-        case .function: return Color.wardBackground
-        case .op: return Color.wardPrimary.opacity(0.12)
-        case .equals: return Color.wardPrimary
+            .buttonStyle(PopPressStyle(plane: .raised, shape: shape, chosen: chosen))
+            .accessibilityAddTraits(chosen ? .isSelected : [])
         }
     }
 
     private static func ink(_ role: KeyRole) -> Color {
         switch role {
-        case .equals: return Color.wardOnPrimary
-        case .op: return Color.wardPrimaryInk
-        case .digit, .function, .blank: return Color.wardInk
+        case .equals, .op: return Color.wardPrimaryInk
+        case .function: return Color.wardInkSecondary
+        case .digit, .blank: return Color.wardInk
         }
     }
 }

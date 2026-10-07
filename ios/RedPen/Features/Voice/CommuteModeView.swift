@@ -109,6 +109,7 @@ struct CommuteModeView: View {
             } footer: {
                 Text("Right rates Good, wrong rates Again.")
             }
+            .wardRowBackground()
 
             if !questionSets.isEmpty {
                 questionsSection
@@ -125,6 +126,7 @@ struct CommuteModeView: View {
                         .foregroundStyle(Color.wardPrimaryInk)
                 }
             }
+            .wardRowBackground()
         }
         .wardForm()
     }
@@ -152,6 +154,7 @@ struct CommuteModeView: View {
         } footer: {
             Text("Say the letter, A to E.")
         }
+        .wardRowBackground()
     }
 
     /// The voice choice, folded away: it is set once and rarely changed.
@@ -174,6 +177,7 @@ struct CommuteModeView: View {
         } footer: {
             Text("Works with the screen locked.")
         }
+        .wardRowBackground()
     }
 
     private var voiceNote: String {

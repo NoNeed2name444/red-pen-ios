@@ -51,6 +51,7 @@ struct SpokenStationView: View {
                 Text("The patient and the examiner are played by your writer model. With Pro, use \(Brand.name) Cloud or a model on this device; Apple's own model works for free where Apple Intelligence is on.")
                     .font(.callout).foregroundStyle(.secondary)
             }
+            .wardRowBackground()
             StationPastAttempts(title: station.title, shown: $shown)
         }
         .scrollContentBackground(.hidden)
@@ -118,6 +119,7 @@ private struct SpokenStationScreen: View {
             } footer: {
                 Text("Tap the microphone to speak; it sends when you pause. The patient answers in their own voice. You can type instead.")
             }
+            .wardRowBackground()
             StationPastAttempts(title: session.station.title, shown: $shown)
         }
         .scrollContentBackground(.hidden)
@@ -260,6 +262,7 @@ private struct StationPastAttempts: View {
                                   delete: deleteAction(for: attempt))
             }
         }
+        .wardRowBackground()
     }
 
     /// Shipped examples can't be deleted.
@@ -527,6 +530,7 @@ struct StationReportView: View {
             } header: {
                 Text(attempt.title)
             }
+            .wardRowBackground()
 
             if let spikes = attempt.mark.spikes, attempt.isCommunication {
                 Section("SPIKES") {
@@ -545,6 +549,7 @@ struct StationReportView: View {
                         }
                     }
                 }
+                .wardRowBackground()
             }
 
             Section("Checklist") {
@@ -560,6 +565,7 @@ struct StationReportView: View {
                     .font(.callout)
                 }
             }
+            .wardRowBackground()
 
             if !attempt.mark.missedNotes.isEmpty {
                 Section("The examiner's notes") {
@@ -567,6 +573,7 @@ struct StationReportView: View {
                         Text(note).font(.callout)
                     }
                 }
+                .wardRowBackground()
             }
 
             Section("Transcript") {
@@ -578,11 +585,13 @@ struct StationReportView: View {
                     }
                 }
             }
+            .wardRowBackground()
 
             Section {
                 Text("A study aid, not an exam result. Marked by a model from a speech-recognition transcript, which can mishear.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            .wardRowBackground()
         }
         .scrollContentBackground(.hidden)
         .modeScreen(.osce)

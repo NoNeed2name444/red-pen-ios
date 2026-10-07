@@ -265,6 +265,7 @@ struct NoteEditorView: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private func missingRow(_ name: String) -> some View {
@@ -554,23 +555,17 @@ private struct NoteModePicker: View {
     let labelled: Bool
 
     var body: some View {
-        Picker("View", selection: $reading) {
+        WardSegmented(selection: $reading, options: [false, true]) { read in
             if labelled {
-                Text("Write").tag(false)
-                Text("Read").tag(true)
+                Text(read ? "Read" : "Write")
             } else {
-                Image(systemName: "pencil")
-                    .accessibilityLabel("Write")
-                    .tag(false)
-                Image(systemName: "doc.richtext")
-                    .accessibilityLabel("Read")
-                    .tag(true)
+                Image(systemName: read ? "doc.richtext" : "pencil")
+                    .accessibilityLabel(read ? "Read" : "Write")
             }
         }
-        .pickerStyle(.segmented)
-        .controlSize(.large)
         .fixedSize()
-        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("View")
         .accessibilityIdentifier("noteMarkdownToggle")
     }
 }

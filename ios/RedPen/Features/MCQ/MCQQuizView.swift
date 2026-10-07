@@ -1126,36 +1126,39 @@ struct MCQQuizView: View {
     }
 }
 
-/// A control that carries the Ward shadow and dims and shrinks a touch under
-/// the finger: the mock paper's options and Flag, the calculator's keys (this
-/// screen's own are on the Ward kit now: WardOptionRow, WardChipButtonStyle).
-/// A control on the screen's own plane (or below it) has no shadow.
+/// A key shaped out of the base, as the calculator's are: raised off the
+/// screen at `plane` and pressed in while held or while `chosen` (a pending
+/// operation). On the screen's own plane (or below it) it is drawn flat.
+/// Reduce Motion keeps it still: no shrink, no eased change.
 struct PopPressStyle<S: InsettableShape>: ButtonStyle {
     let plane: PopOutPlane
     let shape: S
+    var chosen = false
 
     func makeBody(configuration: Configuration) -> some View {
-        PopPressFace(label: configuration.label, pressed: configuration.isPressed,
-                     raised: plane.rawValue > PopOutPlane.screen.rawValue)
+        PopPressFace(label: configuration.label, shape: shape, held: configuration.isPressed,
+                     chosen: chosen, raised: plane.rawValue > PopOutPlane.screen.rawValue)
     }
 }
 
-private struct PopPressFace: View {
+private struct PopPressFace<S: InsettableShape>: View {
     let label: ButtonStyleConfiguration.Label
-    let pressed: Bool
+    let shape: S
+    let held: Bool
+    let chosen: Bool
     let raised: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let scale: CGFloat = pressed && !reduceMotion ? 0.975 : 1
-        let face = label
+        let inset: Bool = held || chosen
+        let scale: CGFloat = held && !reduceMotion ? 0.975 : 1
+        label
+            .background {
+                if raised {
+                    WardReliefFace(shape: shape, lift: inset ? .low : .mid, inset: inset)
+                }
+            }
             .scaleEffect(scale)
-            .opacity(pressed ? 0.85 : 1)
-            .animation(.snappy(duration: 0.2), value: pressed)
-        if raised {
-            face.wardShadow()
-        } else {
-            face
-        }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: inset)
     }
 }

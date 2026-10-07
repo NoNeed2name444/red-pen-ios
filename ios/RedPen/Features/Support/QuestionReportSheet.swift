@@ -28,6 +28,7 @@ struct QuestionReportSheet: View {
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(5)
                 }
+                .wardRowBackground()
                 Section("What\u{2019}s wrong?") {
                     Picker("Reason", selection: $reason) {
                         ForEach(SupportReason.allCases) { r in
@@ -37,6 +38,7 @@ struct QuestionReportSheet: View {
                     .pickerStyle(.inline)
                     .labelsHidden()
                 }
+                .wardRowBackground()
                 Section {
                     TextField("Add a note (optional)", text: $note, axis: .vertical)
                         .lineLimit(3...6)
@@ -44,6 +46,7 @@ struct QuestionReportSheet: View {
                 } footer: {
                     Text("Only this \(report.item.kind.noun), the reason and your note are sent. Nothing else from your library.")
                 }
+                .wardRowBackground()
                 if let outcome {
                     Section {
                         Label {
@@ -52,6 +55,7 @@ struct QuestionReportSheet: View {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
                         }
                     }
+                    .wardRowBackground()
                 }
             }
             .wardForm()

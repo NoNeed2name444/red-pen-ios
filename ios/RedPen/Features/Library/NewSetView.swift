@@ -613,12 +613,11 @@ struct NewSetView: View {
     /// at the bottom, under the thumb.
     private var importSection: some View {
         return Section {
-            Picker("From", selection: $importSource) {
-                ForEach(ImportSource.allCases) { source in
-                    Text(source.title).tag(source)
-                }
+            WardSegmented(selection: $importSource, options: ImportSource.allCases) { source in
+                Text(source.title)
             }
-            .pickerStyle(.segmented)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("From")
             .listRowBackground(Color.clear)
             .onChange(of: importSource) { _, _ in importError = nil }
             if let readingFile {
@@ -663,9 +662,11 @@ struct NewSetView: View {
             .keyboardShortcut("s", modifiers: .command)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("create")
+            .wardButtonRow()
         } footer: {
             Text(readiness)
         }
+        .wardRowBackground()
     }
 
     /// Whether a lecture section is doing the writing - and so holds the
@@ -688,6 +689,7 @@ struct NewSetView: View {
         } header: {
             WardSectionLabel(title)
         }
+        .wardRowBackground()
     }
 
     private func formatHelp(for kind: StudySetKind) -> String {

@@ -73,6 +73,7 @@ struct MCQGenerateForm: View {
                 } footer: {
                     Text("The questions are written from this text. A file you add above lands here too.")
                 }
+                .wardRowBackground()
             }
 
             if step == .make {
@@ -138,6 +139,7 @@ struct MCQGenerateForm: View {
             .disabled(!canStart)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("mcq")
+            .wardButtonRow()
             if let generationStatus, !isGenerating {
                 Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
             }
@@ -165,6 +167,7 @@ struct MCQGenerateForm: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private var generateLabel: String {
@@ -217,6 +220,7 @@ struct MCQGenerateForm: View {
             } header: {
                 Text("Needed first: an offline model")
             }
+            .wardRowBackground()
         }
     }
 

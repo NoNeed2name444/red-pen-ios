@@ -130,8 +130,8 @@ struct SupportMenuItems: View {
 
 // MARK: - Settings
 
-// Settings, How it works and the common questions are plain Ward Round
-// forms: white rows on the ECG grid, small-caps headers, no raised control.
+// Settings, How it works and the common questions are plain soft forms:
+// rows as tiles raised just off the base, small-caps headers.
 
 /// How the app looks and behaves, the exam it writes for, and where the AI
 /// models are chosen.
@@ -242,14 +242,12 @@ struct SettingsPage: View {
             HStack {
                 Text("Lines")
                 Spacer()
-                Picker("Lines", selection: $straightLines) {
-                    ForEach(GraphLineStyle.allCases) { style in
-                        Text(style.title).tag(style.isStraight)
-                    }
+                WardSegmented(selection: $straightLines, options: [false, true]) { straight in
+                    Text(GraphLineStyle.stored(straight).title)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
                 .fixedSize()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Lines")
                 .accessibilityIdentifier("lineStylePicker")
             }
         } header: {
@@ -257,6 +255,7 @@ struct SettingsPage: View {
         } footer: {
             Text(lookFooter)
         }
+        .wardRowBackground()
     }
 
     /// What the two toggles will actually do on this device, right now.
@@ -350,6 +349,7 @@ struct SettingsPage: View {
         } footer: {
             Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
         }
+        .wardRowBackground()
     }
 
     private var hasExamDate: Binding<Bool> {
@@ -383,6 +383,7 @@ struct SettingsPage: View {
         } footer: {
             Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
         }
+        .wardRowBackground()
     }
 
     private var modelsSection: some View {
@@ -395,6 +396,7 @@ struct SettingsPage: View {
         } footer: {
             Text("Doctor-R1 on this device, or \(Brand.name) Cloud (Gemini).")
         }
+        .wardRowBackground()
     }
 
     private var versionSection: some View {
@@ -411,6 +413,7 @@ struct SettingsPage: View {
         } footer: {
             Text(Brand.line)
         }
+        .wardRowBackground()
     }
 }
 
@@ -458,6 +461,7 @@ struct HelpPage: View {
             Text("Put your material in once, then study it in whichever shape suits the exam you are sitting.")
                 .font(.callout)
         }
+        .wardRowBackground()
     }
 
     private var modesSection: some View {
@@ -466,6 +470,7 @@ struct HelpPage: View {
                 HelpModeRow(kind: kind, detail: HelpPage.what(kind))
             }
         }
+        .wardRowBackground()
     }
 
     private var materialSection: some View {
@@ -474,6 +479,7 @@ struct HelpPage: View {
             HelpBullet(text: "Import a lecture PDF or slide deck and let the app cut it into pages.")
             HelpBullet(text: "Record a lecture and have it written out, then study the writing.")
         }
+        .wardRowBackground()
     }
 
     private var exportSection: some View {
@@ -481,6 +487,7 @@ struct HelpPage: View {
             HelpBullet(text: "Tap the \u{2026} on a set (or swipe it) to export it: every mode prints as a flashcard deck.")
             HelpBullet(text: "A Cards set exports as an .apkg deck instead, because paper keeps neither its schedule nor its masks.")
         }
+        .wardRowBackground()
     }
 
     private var questionsSection: some View {
@@ -490,6 +497,7 @@ struct HelpPage: View {
                     .id(HelpPage.questionID(index))
             }
         }
+        .wardRowBackground()
     }
 
     private static func questionID(_ index: Int) -> String {

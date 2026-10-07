@@ -79,6 +79,7 @@ struct OsceGenerateSection: View {
             .buttonStyle(.wardSecondary)
             .disabled(working)
             .frame(maxWidth: .infinity)
+            .wardButtonRow()
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
                     .font(.footnote).foregroundStyle(Color.wardInkSecondary)
@@ -89,6 +90,7 @@ struct OsceGenerateSection: View {
         } footer: {
             Text("PDF, Word or PowerPoint. A skills lecture or a mark sheet works best.")
         }
+        .wardRowBackground()
     }
 
     /// Step 3: how many stations, the one big button, and More options.
@@ -114,6 +116,7 @@ struct OsceGenerateSection: View {
                 .disabled(!canGenerate)
                 .frame(maxWidth: .infinity)
                 .floatingActionAnchor("osce")
+                .wardButtonRow()
             }
             messages
             DisclosureGroup("More options", isExpanded: $showMore) {
@@ -124,6 +127,7 @@ struct OsceGenerateSection: View {
         } footer: {
             Text("The stations appear below to check before you save the set.")
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder

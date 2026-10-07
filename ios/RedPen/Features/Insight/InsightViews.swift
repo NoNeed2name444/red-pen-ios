@@ -223,11 +223,13 @@ struct InsightQuestionList: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.wardInk)
                 }
+                .wardRowBackground()
             }
             if picks.isEmpty {
                 Section {
                     WardEmptyState(symbol: "tray", title: "Nothing here at the moment.")
                 }
+                .wardRowBackground()
             } else {
                 Section {
                     ForEach(picks, id: \.question.id) { pick in
@@ -236,6 +238,7 @@ struct InsightQuestionList: View {
                 } footer: {
                     Text(footer)
                 }
+                .wardRowBackground()
             }
         }
         .wardForm()

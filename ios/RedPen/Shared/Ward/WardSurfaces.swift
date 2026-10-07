@@ -105,12 +105,22 @@ struct MonitorCard<Content: View>: View {
 /// A List or Form row as a soft tile raised low off the base. A cell clips
 /// what it draws, so the tile keeps clear of the cell's edges by more than
 /// its lights reach and no cut shows; between rows that clearance is the gap
-/// soft tiles stand apart by.
+/// soft tiles stand apart by. Pressed in, it marks the chosen row.
 struct WardRowTile: View {
+    var inset = false
+
+    /// A tiled row's insets: the tile's clearance (8 a side, 6 above and
+    /// below) plus the room its content keeps inside it.
+    static let insets = EdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20)
+    /// A row that is one big raised button: as far in on every side as the
+    /// highest button's lights reach, so the cell never cuts them.
+    static let buttonInsets = EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
+
     var body: some View {
-        WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low)
+        WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous),
+                       lift: .low, inset: inset)
             .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            .padding(.vertical, 6)
     }
 }
 
@@ -163,11 +173,24 @@ extension View {
             .wardControls()
     }
 
-    /// A List or Form row (or a Section's rows) as soft tiles; the gap
-    /// between the tiles parts them, so no separator line.
+    /// A List or Form row (or a Section's rows) as soft tiles, with insets
+    /// that keep the content clear of the tile's edge; the gap between the
+    /// tiles parts them, so no separator line. A row that sets its own
+    /// background or insets keeps them.
     func wardRowBackground() -> some View {
         self
             .listRowBackground(WardRowTile())
+            .listRowInsets(WardRowTile.insets)
+            .listRowSeparator(.hidden)
+    }
+
+    /// A List or Form row that is one big button: no tile under it, since
+    /// the button is raised itself, and room around it for its lights.
+    /// Wins over the tiles its Section sets.
+    func wardButtonRow() -> some View {
+        self
+            .listRowBackground(Color.clear)
+            .listRowInsets(WardRowTile.buttonInsets)
             .listRowSeparator(.hidden)
     }
 }

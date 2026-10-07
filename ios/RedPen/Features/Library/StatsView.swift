@@ -50,6 +50,7 @@ struct StatsView: View {
                     if !set.questions.isEmpty { drill = set }
                 }
             }
+            .wardRowBackground()
 
             Section {
                 overview(tried)
@@ -59,6 +60,7 @@ struct StatsView: View {
                         .font(.caption)
                 }
             }
+            .wardRowBackground()
 
             confidenceSection
             reasonsSection
@@ -79,12 +81,14 @@ struct StatsView: View {
             } footer: {
                 Text("One line to remember for each question you got wrong, by subject.")
             }
+            .wardRowBackground()
 
             if stats.isEmpty {
                 Section {
                     Text("Make an MCQ set and answer a few questions, and how you are doing in each subject will show here.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             } else {
                 Section {
                     ForEach(stats) { subject in
@@ -95,6 +99,7 @@ struct StatsView: View {
                 } footer: {
                     Text("Every answer you have checked counts, so a question answered twice counts twice. Weakest first. Tap a subject to drill it.")
                 }
+                .wardRowBackground()
             }
         }
         .scrollContentBackground(.hidden)
@@ -212,6 +217,7 @@ struct StatsView: View {
                 Text("\u{201C}Sure\u{201D} should be right nearly every time. Confident mistakes come first in every drill.")
             }
         }
+        .wardRowBackground()
     }
 
     // MARK: why marks are lost
@@ -235,6 +241,7 @@ struct StatsView: View {
                 Text("The last \(Store.reasonWindowDays) days, from the reason you picked after each wrong answer.")
             }
         }
+        .wardRowBackground()
     }
 
     private func reasonRow(_ share: ReasonShare) -> some View {

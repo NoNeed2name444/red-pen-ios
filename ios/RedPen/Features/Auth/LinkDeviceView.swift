@@ -100,15 +100,18 @@ struct LinkDeviceView: View {
     private var statusRows: some View {
         if account.busy {
             Section { EcgLoader().frame(maxWidth: .infinity) }
+            .wardRowBackground()
         }
         if let trouble = account.trouble {
             Section { WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble) }
+            .wardRowBackground()
         }
         if joined {
             Section {
                 Label("Linked. Your library is syncing.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(Color.wardSuccess)
             }
+            .wardRowBackground()
         }
     }
 

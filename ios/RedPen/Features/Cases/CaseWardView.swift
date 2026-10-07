@@ -189,12 +189,11 @@ struct CaseWardView: View {
 
     private var actions: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Action", selection: $group) {
-                ForEach(CaseStep.Group.allCases, id: \.self) { g in
-                    Text(g.label).tag(g)
-                }
+            WardSegmented(selection: $group, options: CaseStep.Group.allCases) { g in
+                Text(g.label)
             }
-            .pickerStyle(.segmented)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Action")
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 8)], alignment: .leading, spacing: 8) {
                 ForEach(file.steps(in: group)) { step in
                     actionChip(step)

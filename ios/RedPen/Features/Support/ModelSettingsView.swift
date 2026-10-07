@@ -52,10 +52,12 @@ struct ModelSettingsView: View {
             } footer: {
                 Text("Technical reports so problems get fixed. Never your notes, questions or recordings.")
             }
+            .wardRowBackground()
             Section {
                 Text("A study aid, not medical advice. Generated text can be wrong even when checked.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            .wardRowBackground()
         }
         .wardForm()
         .navigationTitle("AI models")
@@ -98,6 +100,7 @@ struct ModelSettingsView: View {
         } footer: {
             Text("The writer writes questions, OSCE stations, cards and textbook pages. Everything it writes is checked by the verification layer: safety checks on this device at once, then three model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge. Verified means all three agree, nothing raised a concern and no safety check fired; anything less says Check this.")
         }
+        .wardRowBackground()
     }
 
     private func rolePicker(_ role: LLMRole) -> some View {
@@ -126,6 +129,7 @@ struct ModelSettingsView: View {
         } footer: {
             Text(ModelSettingsView.deviceFooter)
         }
+        .wardRowBackground()
     }
 
     private static var deviceFooter: String {
@@ -153,6 +157,7 @@ struct ModelSettingsView: View {
         } footer: {
             Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-device models. Your text is sent to Google or Cloudflare to answer; \(Brand.name) does not keep it.")
         }
+        .wardRowBackground()
     }
 
     private var ownKeySection: some View {
@@ -184,6 +189,7 @@ struct ModelSettingsView: View {
         } footer: {
             Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms.")
         }
+        .wardRowBackground()
     }
 
     /// Tap to edit; swipe, or press and hold, to delete.
@@ -333,6 +339,7 @@ private struct ProviderEditor: View {
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .popFieldRow()
                 }
+                .wardRowBackground()
                 Section {
                     Toggle("Needs an API key", isOn: $provider.needsKey)
                         .popFieldRow()
@@ -344,6 +351,7 @@ private struct ProviderEditor: View {
                 } footer: {
                     Text("Stored in the keychain on this device. Never synced, never sent anywhere except to this address.")
                 }
+                .wardRowBackground()
                 Section {
                     Button {
                         Task { await test() }
@@ -356,6 +364,7 @@ private struct ProviderEditor: View {
                     .disabled(testing)
                     if let testResult { Text(testResult).font(.footnote).foregroundStyle(.secondary) }
                 }
+                .wardRowBackground()
             }
             .wardForm()
             .navigationTitle(title)
@@ -441,5 +450,6 @@ private struct AccuracyEngineSection: View {
         } footer: {
             Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item is checked against its lecture and current literature (PubMed reviews, MedlinePlus, FDA labels) by two or three free models voting, never only by the model that wrote it, plus rule checks for doses, lab values and contradictions. An item is checked again only when it changes. Needs \(Brand.name) Cloud; rule checks work everywhere.")
         }
+        .wardRowBackground()
     }
 }

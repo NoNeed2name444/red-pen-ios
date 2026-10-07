@@ -583,6 +583,7 @@ struct ExplainResultView: View {
             } header: {
                 Text(attempt.topic)
             }
+            .wardRowBackground()
 
             points("Covered", attempt.result.covered, symbol: "checkmark.circle.fill", color: Color.wardSuccess)
             points("Missed", attempt.result.missed, symbol: "circle.dashed", color: Color.wardWarning)
@@ -591,6 +592,7 @@ struct ExplainResultView: View {
             Section("What you said") {
                 Text(attempt.transcript).font(.callout).foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
         }
         .wardForm()
         .modeScreen(.narrate)
@@ -645,6 +647,7 @@ struct ExplainResultView: View {
                 .font(.callout)
             }
         }
+        .wardRowBackground()
     }
 
     private var gaps: [String] { attempt.result.missed + attempt.result.wrong }
