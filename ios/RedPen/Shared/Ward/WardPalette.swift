@@ -4,14 +4,18 @@ import Foundation
 /// light and dark values that every colour in the app is drawn from, and the
 /// contrast each text colour is promised against the surface it sits on.
 ///
+/// Soft UI: the ground and every card are one matte base per mode, so a
+/// card is told from the ground by its relief (WardRelief), never by a
+/// different colour or an edge.
+///
 /// Foundation only, so the promises are tested on Linux (WardPaletteTests);
 /// WardTokens turns the table into SwiftUI colours.
 enum WardToken: String, CaseIterable {
-    /// Ward White: the ground every screen sits on
+    /// The matte base every screen sits on
     case background
-    /// Clean Sheet: cards, rows, sheets
+    /// Cards, rows, sheets: the same base, raised or pressed in by relief
     case surface
-    /// Theatre Blue as a fill: primary buttons, selected chips
+    /// Theatre Blue as a fill: a switch that is on, the app's tint
     case primary
     /// Theatre Blue as text and glyphs on a surface
     case primaryInk
@@ -31,28 +35,28 @@ enum WardToken: String, CaseIterable {
     case ink
     /// Biro Grey: secondary text and small caps
     case inkSecondary
-    /// Card edges and separators
+    /// A groove: separators and the empty part of a track
     case hairline
-    /// The vitals monitor card, dark in both modes
+    /// The vitals monitor's well, dark in both modes
     case monitor
 }
 
 enum WardPalette {
     /// (light, dark) as 0xRRGGBB.
     static let table: [WardToken: (light: UInt32, dark: UInt32)] = [
-        .background:   (0xF3F6F9, 0x0B131D),
-        .surface:      (0xFFFFFF, 0x152230),
+        .background:   (0xE0E5EC, 0x2A2E35),
+        .surface:      (0xE0E5EC, 0x2A2E35),
         .primary:      (0x1D5FB0, 0x2A6BC4),
         .primaryInk:   (0x1D5FB0, 0x7DB0F2),
         .onPrimary:    (0xFFFFFF, 0xFFFFFF),
-        .ecg:          (0xD32F45, 0xF2788A),
+        .ecg:          (0xBA273B, 0xF2788A),
         .beam:         (0xC2620B, 0xF0A04B),
-        .success:      (0x16804F, 0x4CC38A),
-        .warning:      (0x9A5B00, 0xE7AE45),
+        .success:      (0x137045, 0x4CC38A),
+        .warning:      (0x8F5400, 0xE7AE45),
         .danger:       (0xC0262D, 0xF57A7F),
         .ink:          (0x0E1B2C, 0xE8EEF5),
         .inkSecondary: (0x4E5E73, 0xA3B1C3),
-        .hairline:     (0xE1E7EE, 0x2A3A4D),
+        .hairline:     (0xC8D0DA, 0x1F2228),
         .monitor:      (0x0E1B2C, 0x0E1B2C),
     ]
 
@@ -89,5 +93,17 @@ enum WardPalette {
         (.ecg, .surface, 4.5), (.success, .surface, 4.5),
         (.warning, .surface, 4.5), (.danger, .surface, 4.5),
         (.beam, .surface, 3),
+        // soft UI tints labels and glyphs, not fills, so the accents sit on
+        // the ground too
+        (.ecg, .background, 4.5), (.success, .background, 4.5),
+        (.warning, .background, 4.5), (.danger, .background, 4.5),
+        (.beam, .background, 3),
+    ]
+
+    /// The monitor's well wears the dark values in both modes (MonitorCard
+    /// sets the dark scheme), so each is promised on it too.
+    static let monitorPromises: [(text: WardToken, ratio: Double)] = [
+        (.ink, 4.5), (.inkSecondary, 4.5), (.primaryInk, 4.5), (.ecg, 4.5),
+        (.success, 4.5), (.warning, 4.5), (.danger, 4.5), (.beam, 3),
     ]
 }
