@@ -335,7 +335,7 @@ suite wardpocket WardPocketTests.swift $S/WardPocket.swift $S/WardPocketScores.s
 # Save to Ideas: the title a note gets from a question or a card, one
 # note per item, the subject's folder, what a save writes and adds,
 # and the backlink to the item, stored and as a link
-suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift
+suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift $S/Ideas/IdeaEdges.swift
 # the first run: who sees the first-run pages and when, the daily
 # goal's key and range, and tips that wait for a familiar screen
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
