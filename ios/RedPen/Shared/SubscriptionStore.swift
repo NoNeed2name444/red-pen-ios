@@ -26,8 +26,9 @@ final class SubscriptionStore: ObservableObject {
     private(set) var originalTransactionID: String?
 
     var access: Access { Entitlement.access(record) }
-    /// Personal build: everything is unlocked, no subscription needed.
-    var isPro: Bool { true }
+    /// A subscription, or the personal build (everything unlocked, no
+    /// subscription needed). Only the personal build skips the gate.
+    var isPro: Bool { Entitlement.unlocked(access, personal: PersonalBuild.isOn) }
 
     private var updates: Task<Void, Never>?
     private let fileURL: URL
@@ -142,7 +143,7 @@ final class SubscriptionStore: ObservableObject {
         defer { busy = false }
         try? await AppStore.sync()
         await refresh()
-        if !isPro { trouble = "No subscription found on this Apple Account." }
+        if !access.isPro { trouble = "No subscription found on this Apple Account." }
     }
 
     // MARK: what the App Store says now
@@ -172,7 +173,7 @@ final class SubscriptionStore: ObservableObject {
         }
 
         if found.plan != nil,
-           let statuses = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupName) {
+           let statuses = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupID) {
             // being told a renewal is being retried is the difference between
             // "they cancelled" and "their card expired"
             found.inBillingRetry = statuses.contains {

@@ -171,8 +171,8 @@ struct AccountView: View {
     private var subscriptionSection: some View {
         Section {
             LabeledContent("Subscription",
-                           value: Entitlement.summary(subscriptions.access))
-            if subscriptions.isPro {
+                           value: Entitlement.accountLine(subscriptions.access, personal: PersonalBuild.isOn))
+            if subscriptions.access.isPro {
                 // Apple's own sheet, so cancelling and changing plan
                 // happen where the student expects rather than in a
                 // screen of ours that can only be wrong

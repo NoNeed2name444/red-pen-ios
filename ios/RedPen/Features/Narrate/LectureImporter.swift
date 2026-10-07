@@ -61,15 +61,13 @@ final class LectureImporter: ObservableObject {
         }
     }
 
-    /// The lecture's own slide terms first, so Gemini spells them as the
-    /// slides do.
+    /// The lecture's own slide terms, so Gemini spells them as the slides do.
     static func vocabulary(for set: StudySet) -> [String] {
-        CloudTranscript.vocabulary(from: set.sources.flatMap { $0.pages.map(\.text) },
-                                   extra: MedicalTerms.common)
+        CloudTranscript.lectureTerms(slides: set.sources.flatMap { $0.pages.map(\.text) })
     }
 
     func transcribe(_ url: URL, learned: PronunciationLibrary,
-                    engine: Engine = .cloud, vocabulary: [String] = MedicalTerms.common) async {
+                    engine: Engine = .cloud, vocabulary: [String] = []) async {
         trouble = nil
         notice = nil
         do {
