@@ -69,6 +69,8 @@ struct NarrateReviewView: View {
     @State private var snapshot: [String] = []
     @State private var importing = false
     @State private var choosingEngine = false
+    /// Made by the audio tile for this visit (NarratePlan.dropsEmptyLecture).
+    @State private var madeHere = false
     @State private var engine: LectureImporter.Engine = .cloud
     /// What the lecture is spoken in, chosen with the engine and saved on the
     /// set with the transcript it produced.
@@ -132,7 +134,10 @@ struct NarrateReviewView: View {
     private var screen: some View {
         stage
             .onAppear { importer.onScreen = true; seed() }
-            .onDisappear { importer.onScreen = false; voice.stop(); player.stop(); NowPlaying.deactivate() }
+            .onDisappear {
+                importer.onScreen = false; voice.stop(); player.stop(); NowPlaying.deactivate()
+                dropIfEmpty()
+            }
             // a recording screen: the camera stays off while it is open
             .popOutFacePaused()
             // adding a recording is in the same More menu as every other
@@ -205,9 +210,19 @@ struct NarrateReviewView: View {
 
     // MARK: setting up
 
+    /// The audio tile's lecture, left with nothing in it, goes with the screen.
+    private func dropIfEmpty() {
+        guard let current = store.library.first(where: { $0.id == studySet.id }),
+              NarratePlan.dropsEmptyLecture(madeHere: madeHere, segments: current.narrateSegments.count,
+                                            hasRecording: LectureAudio.existing(for: studySet.id) != nil,
+                                            importing: importer.working != nil) else { return }
+        store.deleteSet(studySet.id)
+    }
+
     private func seed() {
         if Self.importOnOpen == studySet.id {
             Self.importOnOpen = nil
+            madeHere = true
             choosingEngine = true
         }
         guard segments.isEmpty else { return }

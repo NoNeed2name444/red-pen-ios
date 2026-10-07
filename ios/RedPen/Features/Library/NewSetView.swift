@@ -121,6 +121,8 @@ struct NewSetView: View {
     @State private var generationOwner = UUID()
     @State private var generatedSet: StudySet?
     @State private var generatedSetSaved = false
+    /// Close tapped on questions not saved yet (audit #29).
+    @State private var leavingQuiz = false
     /// Set when a set is being turned into another mode by the writer, or
     /// started from the syllabus: the mode is chosen and the material is in,
     /// so New set opens on its last step with Make the next tap.
@@ -213,10 +215,31 @@ struct NewSetView: View {
                 } message: {
                     Text(importNotice ?? "")
                 }
-                .fullScreenCover(item: $generatedSet) { set in
+                .fullScreenCover(item: $generatedSet, onDismiss: {
+                    if generatedSetSaved { dismiss() }
+                }) { set in
                     NavigationStack {
                         MCQQuizView(set: set, isUnsaved: true, saved: $generatedSetSaved,
                                     onSave: { store.addSet(set) })
+                            // a full-screen quiz with no way out (audit #29)
+                            .toolbar {
+                                ToolbarItem(placement: .topBarLeading) {
+                                    Button("Close") {
+                                        if generatedSetSaved { generatedSet = nil } else { leavingQuiz = true }
+                                    }
+                                    .accessibilityIdentifier("generatedQuizClose")
+                                }
+                            }
+                            .confirmationDialog("Keep these questions?", isPresented: $leavingQuiz,
+                                                titleVisibility: .visible) {
+                                Button("Save to library") {
+                                    store.addSet(set)
+                                    generatedSetSaved = true
+                                    generatedSet = nil
+                                }
+                                Button("Discard", role: .destructive) { generatedSet = nil }
+                                Button("Cancel", role: .cancel) {}
+                            }
                     }
                 }
         }
