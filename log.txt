@@ -1,0 +1,158 @@
+== logs/iphone-graph-testCircuitAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' passed (38.583 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testCircuitFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitFlyIn]' passed (23.059 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testCircuitLegend.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLegend]' passed (20.048 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testCircuitLookMenu.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLookMenu]' passed (25.439 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testCircuitWhileDragging.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitWhileDragging]' passed (26.121 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testEachStyle.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' passed (123.051 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testGraphAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' passed (58.403 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testGraphWhileDragging.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' passed (70.493 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testHoldDrag.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' passed (32.378 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testHoldForOptions.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' passed (50.747 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLabelsOverBrightBodies.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (56.187 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLinkLength.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' passed (139.008 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLookMenu.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' passed (28.722 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (31.421 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (23.532 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsLegend.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' passed (18.996 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsLookMenu.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' passed (34.551 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsWhileDragging.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' passed (30.928 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testRemovalInEachTheme.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' passed (83.318 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testRemovingATopFolder.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' passed (48.420 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testStraightLines.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' passed (132.586 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testTapFolder.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' passed (62.312 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testTapNoteThenOpen.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (111.034 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testUniverseFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' passed (37.906 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testUniverseLegend.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' passed (31.350 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-tour.log
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' started.
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' passed (671.565 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/ipad.log
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' started.
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' passed (557.968 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitAtRest]' passed (36.212 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitFlyIn]' passed (21.553 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLegend]' passed (14.422 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitLookMenu]' passed (17.383 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testCircuitWhileDragging]' passed (15.415 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' passed (82.021 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' passed (25.419 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' passed (16.977 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' passed (29.249 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' passed (46.213 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (47.008 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' passed (135.810 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' passed (36.515 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (28.471 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (27.796 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' passed (25.639 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' passed (22.788 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' passed (15.813 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' passed (69.792 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' passed (32.967 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' passed (142.101 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' passed (52.669 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (92.304 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' passed (15.480 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' passed (17.248 seconds).
+** TEST EXECUTE SUCCEEDED **
