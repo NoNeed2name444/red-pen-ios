@@ -741,7 +741,7 @@ final class DesignTourUITests: XCTestCase {
     }
 
     private func snap(_ name: String) {
-        let shot = XCTAttachment(screenshot: app.screenshot())
+        let shot = uprightShot(app)
         shot.name = name
         shot.lifetime = .keepAlways
         add(shot)
