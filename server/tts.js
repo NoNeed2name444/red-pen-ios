@@ -168,11 +168,15 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
 
   const scope = owner ? 'owner' : accountId;
 
-  // Aura-2, from the cache (which costs nothing, so is not counted), then
-  // free, then (once Pro pays) out of the budget
+  // Cached audio costs nothing and is not counted. Prefer an existing
+  // Aura-2 line, then an existing MeloTTS line, before reserving any usage.
   const auraKey = await cacheKey(AURA, speaker, text, scope);
   const hit = await cached(env, auraKey);
   if (hit) return audio(hit, AURA, true);
+  // MeloTTS has one voice for both roles, so its cache ignores the speaker.
+  const meloKey = await cacheKey(MELO, 'default', text, scope);
+  const meloHit = await cached(env, meloKey);
+  if (meloHit) return audio(meloHit, MELO, true);
 
   const limit = owner ? Number(env.OWNER_TTS_DAILY_LIMIT) || 1000 : Number(env.TTS_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   if (!await spend(env, `tts:${scope}`, limit)) {
@@ -213,10 +217,7 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
     if (auraNeurons) await giveNeurons(env, scope, auraNeurons, owner).catch(e => console.error('tts neurons', e));
   }
 
-  // MeloTTS: one voice for both roles, so the cache ignores the speaker
-  const meloKey = await cacheKey(MELO, 'default', text, scope);
-  const meloHit = await cached(env, meloKey);
-  if (meloHit) return audio(meloHit, MELO, true);
+  // Neither model was cached: MeloTTS follows the existing Aura-2 attempt.
   const meloNeurons = text.length * MELO_NEURONS_PER_CHAR;
   if (await takeNeurons(env, scope, meloNeurons, owner)) {
     const melo = await synthesise(env, MELO, 'default', text);

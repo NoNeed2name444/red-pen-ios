@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { speech, voiceFor, tidy, audioBytes, AURA, MELO, MAX_TTS_CHARS } from '../tts.js';
+import { speech, voiceFor, tidy, audioBytes, cacheKey, AURA, MELO, MAX_TTS_CHARS } from '../tts.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -185,6 +185,30 @@ const said = async r => new TextDecoder().decode(await r.arrayBuffer());
   const statuses = [];
   for (let i = 0; i < 3; i++) statuses.push((await speech(env, 'pro', { text: 'Same line.' }, noApple)).status);
   ok(statuses.join() === '200,200,200', 'a cached line again and again stays within a one-line day');
+}
+
+// MeloTTS cache hits also cost nothing, including after the daily cap.
+{
+  const env = freshEnv({ TTS_DAILY_LIMIT: '1', TTS_FREE_DAILY_CHARS: '0' });
+  const replies = [];
+  for (let i = 0; i < 3; i++) replies.push(await speech(env, 'pro', { text: 'Same Melo line.' }, noApple));
+  ok(replies.every(r => r.status === 200 && r.headers.get('x-voice-model') === 'melotts'), 'a cached MeloTTS line stays available throughout a one-line day');
+  ok(replies.map(r => r.headers.get('x-voice-cache')).join() === 'miss,hit,hit', 'MeloTTS repeats retain cache metadata');
+  ok(env.AI.calls.length === 1 && env.AI.calls[0].model === MELO, 'MeloTTS repeats synthesise only once');
+  ok((await Promise.all(replies.map(said))).every(bytes => bytes.startsWith('melo')), 'each MeloTTS repeat returns the audio bytes');
+  const usage = env.db.prepare("SELECT requests FROM ai_usage WHERE account_id = 'tts:pro'").get();
+  ok(usage?.requests === 1, 'MeloTTS cache hits do not spend another daily line');
+}
+
+// When both versions exist, the existing Aura-2 line still takes priority.
+{
+  const env = freshEnv({ TTS_FREE_DAILY_CHARS: '0' });
+  await speech(env, 'pro', { text: 'Both cached.' }, noApple);
+  const auraKey = await cacheKey(AURA, 'pandora', 'Both cached.', 'pro');
+  await env.BLOBS.put(auraKey, mp3('aura:pandora'));
+  const r = await speech(env, 'pro', { text: 'Both cached.' }, noApple);
+  ok(r.headers.get('x-voice-model') === 'aura-2' && r.headers.get('x-voice-cache') === 'hit', 'Aura-2 remains preferred when both models are cached');
+  ok(env.AI.calls.length === 1, 'the preferred Aura-2 cache hit makes no model call');
 }
 
 // Aura-2 failing gives its free characters back
