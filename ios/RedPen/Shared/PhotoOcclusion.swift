@@ -97,7 +97,9 @@ enum PhotoOcclusion {
     }
 
     /// A new cover drawn by dragging across the picture, whichever way the
-    /// drag went; nil for a drag too short to mean a box (a tap, or a slip).
+    /// drag went; nil for a drag too short to mean a box (a tap, or a slip),
+    /// or one along a single line: that is a scroll swipe that began on the
+    /// picture, and the thin cover it made hid part of it on every card.
     static func drawn(fromX x0: Double, y y0: Double, toX x1: Double, y y1: Double,
                       minSide: Double = minSide) -> OcclusionBox? {
         let a: Double = min(max(x0, 0), 1)
@@ -106,7 +108,7 @@ enum PhotoOcclusion {
         let d: Double = min(max(y1, 0), 1)
         let w: Double = abs(b - a)
         let h: Double = abs(d - c)
-        guard w >= minSide || h >= minSide else { return nil }
+        guard w >= minSide && h >= minSide else { return nil }
         return clamped(OcclusionBox(x: min(a, b), y: min(c, d), w: w, h: h), minSide: minSide)
     }
 

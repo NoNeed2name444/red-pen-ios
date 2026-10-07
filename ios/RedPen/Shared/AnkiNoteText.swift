@@ -724,4 +724,13 @@ struct AnkiProgress: Equatable {
         return AnkiProgress(due: when, intervalDays: max(days, 0), reviews: max(reps, 0),
                             lapses: max(lapses, 0), suspended: queue == -1)
     }
+
+    /// When Anki last showed the card: its due date less its interval, never
+    /// later than now. FSRS reads the time since the last rating to know how
+    /// far memory has decayed, so this - not the moment of import - is what
+    /// the imported record must say it was rated at; otherwise a card that
+    /// was overdue on import day is treated as just reviewed.
+    func lastReviewed(now: Date = Date()) -> Date {
+        min(due.addingTimeInterval(-intervalDays * 86_400), now)
+    }
 }

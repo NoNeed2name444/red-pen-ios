@@ -329,13 +329,43 @@ const MAX_BLOBS = 60_000;
 /// How long a running total is trusted before R2 is listed to correct it.
 const RECOUNT_SECONDS = 24 * 60 * 60;
 
+const MAX_BLOB_BYTES = 12 * 1024 * 1024;
+
+/// The request body, or null as soon as it passes `max` bytes.
+export async function readCapped(request, max) {
+  const stream = request.body;
+  if (!stream || typeof stream.getReader !== 'function') {
+    const whole = await request.arrayBuffer();
+    return whole.byteLength > max ? null : whole;
+  }
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) { out.set(chunk, at); at += chunk.byteLength; }
+  return out.buffer;
+}
+
 export async function putBlob(env, account, name, request, budget = Infinity) {
   if (!isHash(name)) return json({ error: 'bad name' }, 400);
   // refused on its declared size before it is read into memory
   const declared = Number(request.headers?.get?.('content-length')) || 0;
-  if (declared > 12 * 1024 * 1024) return json({ error: 'too big' }, 413);
-  const data = await request.arrayBuffer();
-  if (data.byteLength > 12 * 1024 * 1024) return json({ error: 'too big' }, 413);
+  if (declared > MAX_BLOB_BYTES) return json({ error: 'too big' }, 413);
+  // a chunked upload declares no length, so its body is read up to the limit
+  // and abandoned there, never buffered whole
+  const data = await readCapped(request, MAX_BLOB_BYTES);
+  if (!data) return json({ error: 'too big' }, 413);
 
   // Already here: the same bytes under the same name, so there is nothing to
   // store and nothing to count. Checked before the budget so that a retry of an

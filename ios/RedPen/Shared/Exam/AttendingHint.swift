@@ -112,16 +112,33 @@ enum AttendingHint {
 }
 
 /// Hints kept once written, so a question asks the model only once.
-/// Keyed by the item's id; the oldest go first past the cap.
+/// Keyed by the item's id and, when given, a version of its wording: a
+/// corrected key or stem keeps its id, and a hint written for the old one
+/// would steer towards the old answer. The oldest go first past the cap.
 struct HintCache: Codable, Hashable {
     static let cap = 400
     var hints: [String: String] = [:]
     var order: [String] = []
 
-    func hint(for id: UUID) -> String? { hints[id.uuidString] }
+    /// A short fingerprint of what the hint was written for. Stable across
+    /// launches (FNV-1a), unlike Swift's seeded Hasher.
+    static func version(stem: String, options: [String], answer: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in ([stem] + options + [answer]).joined(separator: "\u{1F}").utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return String(hash, radix: 16)
+    }
 
-    mutating func store(_ hint: String, for id: UUID) {
-        let key: String = id.uuidString
+    static func key(_ id: UUID, _ version: String) -> String {
+        version.isEmpty ? id.uuidString : id.uuidString + "#" + version
+    }
+
+    func hint(for id: UUID, version: String = "") -> String? { hints[Self.key(id, version)] }
+
+    mutating func store(_ hint: String, for id: UUID, version: String = "") {
+        let key: String = Self.key(id, version)
         if hints[key] == nil { order.append(key) }
         hints[key] = hint
         while order.count > Self.cap {

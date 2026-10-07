@@ -40,12 +40,22 @@ enum LLMError: LocalizedError {
         switch self {
         case .notReady(let why): return why
         case .emptyReply: return "The model returned nothing usable \u{2014} try again."
-        case .http(402, let body), .http(429, let body):
+        // the server's own refusals (Pro, quota, a subscription on another
+        // account, an app too old) are sentences meant for the student
+        case .http(let code, let body) where LLMError.plainRefusals.contains(code) && LLMError.readable(body):
             return String(body.prefix(200))
         case .http(let code, let body):
             return "The hosted model refused the request (HTTP \(code)). \(body.prefix(160))"
         case .badResponse: return "The hosted model answered in a shape the app doesn't understand."
         case .missingKey(let name): return "Add an API key for \(name) in AI models."
         }
+    }
+
+    static let plainRefusals: Set<Int> = [401, 402, 403, 409, 410, 429]
+
+    /// A message a person can read, not a JSON or HTML error page.
+    static func readable(_ body: String) -> Bool {
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !text.isEmpty && !text.hasPrefix("{") && !text.hasPrefix("<")
     }
 }

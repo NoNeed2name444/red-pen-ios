@@ -101,6 +101,21 @@ const a1Token = await accountToken('a1');
   ok((await chat(env, 'a1', request, fakeFetch(apple))).status === 402, 'and is refused');
 }
 
+// a lapsed (or made-up) subscription is not re-asked on every request
+{
+  const env = freshEnv(asc);
+  const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
+    { status: 2, signedTransactionInfo: jws({ expiresDate: Date.now() - 1000, appAccountToken: a1Token }) }] }] };
+  await linkSubscription(env, 'a1', { originalTransactionId: '2000000126' }, fakeFetch(apple));
+  let asked = 0;
+  const counting = async (url, init) => { if (url.includes('storekit')) asked++; return fakeFetch(apple)(url, init); };
+  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, counting);
+  ok(asked === 0, 'a lapsed subscription checked minutes ago is not sent to Apple again on each request');
+  env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
+  await chat(env, 'a1', request, counting);
+  ok(asked > 0, 'but it is asked again once the short recheck has passed, so a renewal is noticed');
+}
+
 // another app's subscription: refused
 {
   const env = freshEnv(asc);
@@ -549,6 +564,12 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
      && withoutThinking('<think>a</think>b') === 'b' && withoutThinking(null) === '',
      "a reasoning model's thinking is taken out, even when the opening tag is missing (QwQ)");
 
+  const nemo = workersInput('@cf/nvidia/nemotron-3-120b-a12b', [], 10, 0).chat_template_kwargs;
+  const nemoOff = workersInput('@cf/nvidia/nemotron-3-120b-a12b', [], 10, 0, { thinking: false }).chat_template_kwargs;
+  ok(nemo?.enable_thinking === true && nemo.low_effort === true && nemo.force_nonempty_content === true
+     && nemoOff?.enable_thinking === false && nemoOff.force_nonempty_content === true,
+     'Nemotron 3 is asked to think briefly and always answer; its retry has thinking off');
+
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1' };
   const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
   let sent = null;
@@ -557,6 +578,16 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const g = await chat(gemmaEnv, 'a1', request, busy);
   ok(g.status === 200 && (await g.json()).choices[0].message.content === 'gemma says' && sent.chat_template_kwargs.enable_thinking === false,
      'Gemma 4 on Workers AI answers through the fallback');
+
+  const nemoSent = [];
+  const nemoEnv = freshEnv({ ...firebase, FALLBACK_MODEL: '@cf/nvidia/nemotron-3-120b-a12b',
+    AI: { run: async (model, input) => { nemoSent.push(input.chat_template_kwargs);
+      return nemoSent.length === 1 ? { choices: [{ message: { content: null, reasoning_content: 'thinking...' }, finish_reason: 'length' }] }
+        : { choices: [{ message: { content: 'nemotron says' } }] }; } } });
+  const n = await chat(nemoEnv, 'a1', request, busy);
+  ok(n.status === 200 && (await n.json()).choices[0].message.content === 'nemotron says'
+     && nemoSent.length === 2 && nemoSent[0].enable_thinking === true && nemoSent[1].enable_thinking === false,
+     'Nemotron that thinks through all its tokens is asked once more with thinking off, and that answer is used');
 
   // 3.1 Pro's free limit is zero: once Google says "per day", it is not asked again today
   const perDay = JSON.stringify({ error: { message: 'Quota exceeded', details: [

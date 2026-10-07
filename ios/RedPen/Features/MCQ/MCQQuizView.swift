@@ -147,7 +147,7 @@ struct MCQQuizView: View {
 
     private var scoreSoFar: (correct: Int, checked: Int) {
         var correct = 0, checked = 0
-        for (i, ans) in answers.enumerated() where ans.checked {
+        for (i, ans) in answers.enumerated() where ans.checked && !isRetest(i) {
             checked += 1
             if isRight(i) { correct += 1 }
         }
@@ -212,7 +212,7 @@ struct MCQQuizView: View {
             timeUp()
         }
         .navigationDestination(isPresented: $showSummary) {
-            MCQSummaryView(set: sittingSet, answers: originalAnswers, onRetake: { retake() },
+            MCQSummaryView(set: studySet, answers: setAnswers, onRetake: { retake() },
                            isUnsaved: isUnsaved, saved: saved, onSave: onSave)
         }
         // the slow reading drill: the answer waits until the question has
@@ -242,7 +242,7 @@ struct MCQQuizView: View {
     // MARK: resume / retake — the web app's resumeBanner and retakeBtn
 
     private func checkForResume() {
-        guard shuffle, let p = store.quizProgress[studySet.id],
+        guard shuffle, keepsProgress, let p = store.quizProgress[studySet.id],
               p.questionIds == studySet.questions.map(\.id),
               // an option added or removed since then would leave the saved
               // order pointing past the end of the list
@@ -299,7 +299,7 @@ struct MCQQuizView: View {
     }
 
     private func startAgain() {
-        store.clearProgress(for: studySet.id)
+        forgetPlace()
         withAnimation(.snappy) { pendingResume = nil }
     }
 
@@ -307,20 +307,28 @@ struct MCQQuizView: View {
     /// never for a quiz with no place in the library - and never in exam
     /// mode: a timed paper is sat in one go, and resumed later it would carry
     /// on without its clock, with the answers it had been hiding.
-    private var keepsPosition: Bool { shuffle && keepsProgress && !examMode && reordered == nil }
+    private var keepsPosition: Bool { shuffle && keepsProgress && !examMode }
 
-    /// The set as sat, re-tests and all, for the results.
-    private var sittingSet: StudySet {
-        guard let reordered else { return studySet }
-        var out: StudySet = studySet
-        out.questions = reordered
-        return out
+    /// The answers to the set's own questions, re-tests taken out: a re-test
+    /// is practice, not a question more in the score (TwinRetest.collapse).
+    private var setAnswers: [MCQAnswer] {
+        TwinRetest.collapse(ids: questions.map(\.id), answers: originalAnswers, orders: orders, current: 0).answers
+    }
+
+    /// Drops the set's saved place - only for a quiz that keeps one. A quiz
+    /// opened from a search hit or a home tile can carry the real set's id,
+    /// and its Timed, Finish or Try again must not wipe that set's place.
+    private func forgetPlace() {
+        guard keepsProgress else { return }
+        store.clearProgress(for: studySet.id)
     }
 
     private func persist() {
         guard keepsPosition else { return }
-        store.saveProgress(QuizProgress(current: current, answers: answers,
-                                        questionIds: studySet.questions.map(\.id), optionOrders: orders),
+        // a re-test slotted in is left out, so the place saved is the set's own
+        let kept = TwinRetest.collapse(ids: questions.map(\.id), answers: answers, orders: orders, current: current)
+        store.saveProgress(QuizProgress(current: kept.current, answers: kept.answers,
+                                        questionIds: studySet.questions.map(\.id), optionOrders: kept.orders),
                            for: studySet.id)
     }
 
@@ -337,7 +345,7 @@ struct MCQQuizView: View {
         struck = [:]
         highlights = [:]
         hints = [:]
-        store.clearProgress(for: studySet.id)
+        forgetPlace()
     }
 
     // MARK: timed exam mode
@@ -429,7 +437,7 @@ struct MCQQuizView: View {
     }
 
     private func startExam() {
-        store.clearProgress(for: studySet.id)
+        forgetPlace()
         withAnimation(.snappy) {
             pendingResume = nil
             examMode = true
@@ -439,9 +447,13 @@ struct MCQQuizView: View {
 
     private func timeUp() {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        // an answer chosen but not yet moved on from still counts when the
-        // time runs out, as it would on the paper - marked and recorded like
-        // the rest, rather than scored in the results but never recorded
+        handIn()
+    }
+
+    /// The paper handed in, by the student or the clock: every answer
+    /// chosen is marked and recorded then, as on the day - not as it was
+    /// picked, which locked it and made skipping and coming back impossible.
+    private func handIn() {
         for qi in answers.indices where !answers[qi].checked && answers[qi].selected != nil {
             commit(qi)
         }
@@ -485,8 +497,10 @@ struct MCQQuizView: View {
     private var header: some View {
         let s = scoreSoFar
         let total: Int = questions.count
+        // a paper marks nothing until it is handed in: count what is picked
+        let picked: Int = answers.filter { $0.selected != nil }.count
         let detail: String = ChartQuiz.detail(examMode: examMode, resuming: pendingResume != nil,
-                                              correct: s.correct, checked: s.checked)
+                                              correct: s.correct, checked: examMode ? picked : s.checked)
         let status: String = ChartQuiz.status(current: current, total: total)
         let fraction: Double = ChartQuiz.fraction(current: current, total: total)
         return StudyProgressHeader(status, detail: detail, fraction: fraction) {
@@ -994,7 +1008,7 @@ struct MCQQuizView: View {
     private func answerButtons(_ proxy: ScrollViewProxy) -> some View {
         let explains: Bool = ChartQuiz.explains(checked: a.checked, examMode: examMode)
         let symbol: String = a.checked ? "arrow.right" : "checkmark"
-        let waiting: Bool = !a.checked && (a.selected == nil || holding)
+        let waiting: Bool = !a.checked && (holding || (a.selected == nil && !examMode))
         // says what to do, rather than sitting there grey with no reason
         let title: String = ChartQuiz.primaryTitle(checked: a.checked, picked: a.selected != nil, holding: holding,
                                                    examMode: examMode, last: current == questions.count - 1)
@@ -1040,15 +1054,15 @@ struct MCQQuizView: View {
     }
 
     private func onCheckOrNext() {
+        if examMode && !a.checked {
+            // a paper: one tap moves on, picked or skipped, and the answer
+            // stays open to change until the paper is handed in
+            UISelectionFeedbackGenerator().selectionChanged()
+            if current < questions.count - 1 { current += 1 } else { handIn() }
+            return
+        }
         if !a.checked {
             let right = commit(current)
-            if examMode {
-                // nothing to read after answering in a paper, so one tap
-                // answers and moves on - and the buzz gives nothing away
-                UISelectionFeedbackGenerator().selectionChanged()
-                advance()
-                return
-            }
             // felt as well as seen (and, with Sounds on, heard): right and
             // wrong answers buzz differently
             SpaceFeedback.play(right ? .correct : .wrong)
@@ -1067,8 +1081,10 @@ struct MCQQuizView: View {
         answers[qi].checked = true
         let right: Bool = isRight(qi)
         StudyLog.shared.record()
-        // the save that follows writes the history too, when there is one
-        if shuffle {
+        // the save that follows writes the history too, when there is one;
+        // a re-test answered right minutes after the miss is not recorded,
+        // or it would wipe the miss from every follow-up queue
+        if shuffle && !isRetest(qi) {
             let question: MCQQuestion = questions[qi]
             let picked: Int? = OptionOrder.original(ofSlot: answers[qi].selected, in: order(qi))
             let sure: AnswerConfidence? = confidences[question.id]
@@ -1092,7 +1108,7 @@ struct MCQQuizView: View {
     }
 
     private func finish() {
-        store.clearProgress(for: studySet.id)
+        forgetPlace()
         // the paper is over: coming back from the results shows the
         // answers and explanations it was holding back
         examEndsAt = nil

@@ -238,3 +238,14 @@ enum CoverageEngine {
         return w
     }
 }
+
+/// What a kept AI coverage check is filed under: the track, and the exams
+/// picked under it. A picked exam maps its own blueprint, so a check run for
+/// NEET-PG is not the check for FMGE though both sit under one track.
+enum CoverageScope {
+    static func key(track: ExamTrack, exam: String? = nil) -> String {
+        guard let exam, !exam.isEmpty else { return track.rawValue }
+        let safe: String = exam.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? String($0) : "_" }.joined()
+        return track.rawValue + "-" + safe
+    }
+}

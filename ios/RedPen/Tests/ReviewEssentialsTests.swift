@@ -231,6 +231,12 @@ stale.add(PendingSupport(kind: .contact, reason: "other", note: "old", itemJSON:
                          createdAt: now.addingTimeInterval(-40 * day)), now: now.addingTimeInterval(-40 * day))
 stale.prune(now: now)
 check("a month-old unsent message is let go", stale.pending.isEmpty)
+check("a device started without an account is not told to sign in",
+      !SupportOutbox.waitingNote(canSend: false, localOnly: true, app: "App").contains("signed in")
+      && SupportOutbox.waitingNote(canSend: false, localOnly: true, app: "App").contains("Link another device"))
+check("a signed-out device is", SupportOutbox.waitingNote(canSend: false, localOnly: false, app: "App").contains("signed in to App"))
+check("one with a way to send waits for signal",
+      SupportOutbox.waitingNote(canSend: true, localOnly: true, app: "App").contains("back online"))
 
 // MARK: when to ask for a rating
 

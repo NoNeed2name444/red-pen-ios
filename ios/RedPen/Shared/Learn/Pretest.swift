@@ -221,17 +221,24 @@ enum Pretest {
 
     /// The sentence with the term replaced by a blank, once.
     /// Whole words only: "renal" is not blanked inside "adrenal".
+    /// Every time it appears: a term the sentence says twice would otherwise
+    /// give its own answer away in the second half.
     static func blanked(_ term: String, in sentence: String) -> String {
+        var out = ""
         var from = sentence.startIndex
         while let r = sentence.range(of: term, options: .caseInsensitive, range: from..<sentence.endIndex) {
-            from = r.upperBound
             let before: Character? = r.lowerBound > sentence.startIndex ? sentence[sentence.index(before: r.lowerBound)] : nil
             let after: Character? = r.upperBound < sentence.endIndex ? sentence[r.upperBound] : nil
-            if let b = before, b.isLetter { continue }
-            if let a = after, a.isLetter { continue }
-            return sentence.replacingCharacters(in: r, with: "_____")
+            out += sentence[from..<r.lowerBound]
+            if before?.isLetter == true || after?.isLetter == true {
+                out += sentence[r]
+            } else {
+                out += "_____"
+            }
+            from = r.upperBound
         }
-        return sentence
+        out += sentence[from...]
+        return out
     }
 
     /// A small seeded generator, so a set's pretest is the same each time.

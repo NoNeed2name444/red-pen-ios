@@ -39,6 +39,8 @@ final class LecturePlayer: NSObject, ObservableObject {
     private var ticker: Timer?
     private var timeline: [TranscriptWord] = []
     private var remote: [Any] = []
+    private var watching: [NSObjectProtocol] = []
+    private var resumeLater = false
     private var title = "Lecture"
 
     /// How often the highlight is allowed to move. Fifteen times a second is
@@ -59,10 +61,8 @@ final class LecturePlayer: NSObject, ObservableObject {
         stop()
         title = newTitle
         do {
-            // .playback so the lecture keeps going with the phone locked and
-            // is not silenced by the ring switch - a student listens with the
-            // screen off more often than not.
-            NowPlaying.activate()
+            // the audio is taken on Play, not here: opening a set stopped
+            // the student's music before anything played (audit #78)
             let made = try AVAudioPlayer(contentsOf: url)
             made.enableRate = true
             made.prepareToPlay()
@@ -81,7 +81,12 @@ final class LecturePlayer: NSObject, ObservableObject {
 
     func play(rate: Double = 1) {
         guard let player else { return }
+        // .playback so the lecture keeps going with the phone locked and
+        // is not silenced by the ring switch - a student listens with the
+        // screen off more often than not.
         NowPlaying.activate()
+        if watching.isEmpty { watching = NowPlaying.watch { [weak self] in self?.react($0) } }
+        resumeLater = false
         player.rate = Float(rate)
         player.play()
         playing = true
@@ -126,6 +131,19 @@ final class LecturePlayer: NSObject, ObservableObject {
         spot = nil
         NowPlaying.release(remote)
         remote = []
+        NowPlaying.unwatch(watching)
+        watching = []
+    }
+
+    /// A call stops it and it carries on after; headphones going stop it.
+    private func react(_ signal: AudioEvents.Signal) {
+        let (reaction, later) = AudioEvents.reaction(to: signal, playing: playing, resumeLater: resumeLater)
+        switch reaction {
+        case .pause: pause()
+        case .resume: play(rate: currentRate)
+        case .nothing: break
+        }
+        resumeLater = later
     }
 
     private func startTicking() {

@@ -26,16 +26,21 @@ enum OsceStations {
     static func clean(_ steps: [String]) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
-        for raw in steps {
-            var step = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            step = stripLeadingMarker(step)
-            step = step.replacingOccurrences(of: "\n", with: " ")
+        let tidied: [String] = steps.map { raw in
+            let step = stripLeadingMarker(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+            return step.replacingOccurrences(of: "\n", with: " ")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard step.count >= 3, step.count <= maxStepLength else { continue }
+        }.filter { $0.count >= 3 && $0.count <= maxStepLength }
+        for (index, step) in tidied.enumerated() {
             // Case-insensitively unique: a model asked twice for the same
-            // station tends to return "Wash hands" and "Wash Hands".
+            // station tends to return "Wash hands" and "Wash Hands". The one
+            // repeat kept is the closing step: "Wash hands" at the start and
+            // again at the end are two marks on the scheme.
             let key = step.lowercased()
-            guard !seen.contains(key) else { continue }
+            if seen.contains(key) {
+                let closing: Bool = index == tidied.count - 1 && out.last?.lowercased() != key
+                guard closing, out.count < maxSteps else { continue }
+            }
             seen.insert(key)
             out.append(step)
             if out.count >= maxSteps { break }

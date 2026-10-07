@@ -7,7 +7,7 @@
 
 import worker from '../worker.js';
 import { TERMS, PRIVACY, legalPage } from '../legal.js';
-import { SUPPORT_KEEP_DAYS, REPORTS_KEEP_DAYS } from '../limits.js';
+import { SUPPORT_KEEP_DAYS, REPORTS_KEEP_DAYS, RELEASED_KEEP_DAYS } from '../limits.js';
 import { KEEP_DAYS as DIAGNOSTICS_KEEP_DAYS } from '../diagnostics.js';
 import { LIMITS as JOB_LIMITS } from '../jobs.js';
 
@@ -29,6 +29,7 @@ const days = n => `${n} days`;
 ok(PRIVACY.includes(`up to ${days(REPORTS_KEEP_DAYS)}`), 'question reports: the policy states the period limits.js keeps them');
 ok(PRIVACY.includes(`kept for up to ${days(SUPPORT_KEEP_DAYS)}.</li>`), 'Contact us messages: likewise');
 ok(PRIVACY.includes(`kept for up to ${days(DIAGNOSTICS_KEEP_DAYS)}`), 'crash and failure reports: the period diagnostics.js keeps them');
+ok(PRIVACY.includes(`purchase, with no name or email, for up to ${days(RELEASED_KEEP_DAYS)}`), "a deleted account's sign-in identifier: the period limits.js keeps it");
 const words = { 7: 'seven' };
 ok(PRIVACY.includes(`at most ${words[JOB_LIMITS.keepDays] || JOB_LIMITS.keepDays} days`), 'uncollected generations: the period jobs.js keeps them');
 ok(TERMS.includes('It is not a medical tool') && PRIVACY.includes('no tracking'), 'the two promises the app makes on its first screen are here too');

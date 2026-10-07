@@ -188,3 +188,23 @@ export async function verifyApple(identityToken, expectedNonce, bundleId) {
   if (claims.nonce !== await sha256Hex(expectedNonce)) return null;
   return claims;
 }
+
+/// Marks an Apple sign-in's nonce used, so the same identity token cannot sign
+/// anyone in a second time: the app makes a fresh nonce for every sign-in, but
+/// both the token and its nonce arrive in the same request, so without a
+/// record of nonces already seen a captured pair could be posted again for as
+/// long as the token lives. `hashed` is the nonce as the token carries it.
+/// False when it was already used. A database that does not have the table yet
+/// (a deploy ahead of its migration) lets the sign-in through as before.
+export async function spendNonce(env, hashed, at = Math.floor(Date.now() / 1000)) {
+  if (typeof hashed !== 'string' || !hashed) return false;
+  try {
+    const result = await env.DB.prepare(
+      'INSERT INTO used_nonces (nonce, used_at) VALUES (?, ?) ON CONFLICT (nonce) DO NOTHING')
+      .bind(hashed, at).run();
+    return (result.meta?.changes ?? 0) > 0;
+  } catch (error) {
+    if (/no such table/i.test(String(error?.message || error))) return true;
+    throw error;
+  }
+}

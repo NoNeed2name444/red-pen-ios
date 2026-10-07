@@ -46,8 +46,17 @@ final class ImportRouter: ObservableObject {
     private var waiting: [IncomingFile] = []
 
     /// How long a file waits for a preview to register before the inbox
-    /// sheet shows it instead.
+    /// sheet shows it instead - counted from when the library is on screen.
     static let graceSeconds: Double = 2.5
+
+    /// Whether the signed-in library is on screen (AppRouter.attach). Until
+    /// it is, a file waits for it (AppLink.fileToInbox).
+    var libraryReady = false {
+        didSet {
+            guard libraryReady, !oldValue else { return }
+            for file in waiting { wait(for: file) }
+        }
+    }
 
     // MARK: for the import preview
 
@@ -97,10 +106,16 @@ final class ImportRouter: ObservableObject {
             return
         }
         waiting.append(file)
-        // give the library a moment to come up and its preview to register
+        if libraryReady { wait(for: file) }
+    }
+
+    /// Gives the library's preview a moment to register; the inbox shows the
+    /// file after that only if the library is still the screen up.
+    private func wait(for file: IncomingFile) {
         Task {
             try? await Task.sleep(nanoseconds: UInt64(ImportRouter.graceSeconds * 1_000_000_000))
-            guard let index = waiting.firstIndex(where: { $0.id == file.id }) else { return }
+            guard let index = waiting.firstIndex(where: { $0.id == file.id }),
+                  AppLink.fileToInbox(previewRegistered: handler != nil, libraryOnScreen: libraryReady) else { return }
             waiting.remove(at: index)
             deliver(file)
         }

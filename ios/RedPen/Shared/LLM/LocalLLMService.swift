@@ -104,6 +104,9 @@ final class LocalLLMService: ObservableObject {
         return Self.ownerKey
     }
 
+    /// Started "on this device only": no server account behind it.
+    var isLocalOnly: Bool { account?.token == Session.localToken }
+
     /// Whose background jobs a bearer reaches: "owner" for the owner key, or
     /// the signed-in account's id. The server keeps jobs per identity, so a
     /// job is only ever asked about with the one it was made under.

@@ -4,6 +4,9 @@ import SwiftUI
 @main
 struct RedPenApp: App {
     @Environment(\.scenePhase) private var phase
+    /// The phase as state: the minute loop's closure holds a copy of this
+    /// struct, whose `phase` stays what it was when the loop began (audit #6).
+    @State private var appActive = false
     @StateObject private var store: Store
     // What the phone has learned about a lecturer outlives any one set, so it
     // is owned here rather than by the screen that happens to teach it.
@@ -165,11 +168,11 @@ struct RedPenApp: App {
                         .task {
                             while !Task.isCancelled {
                                 try? await Task.sleep(nanoseconds: 60_000_000_000)
-                                if phase == .active { await sync.syncNow() }
+                                if appActive { await sync.syncNow() }
                                 // a finished cloud job whose result its screen
                                 // could not download: asked for again while
                                 // the app is open, not left for a relaunch
-                                if phase == .active && CloudJobs.handedOver {
+                                if appActive && CloudJobs.handedOver {
                                     await CloudJobCollector.collect(into: store)
                                 }
                             }
@@ -267,6 +270,7 @@ struct RedPenApp: App {
             // the running marker follows the app to and from the background,
             // and waiting reports go a little after it comes back
             .onChange(of: phase, initial: true) { _, new in
+                appActive = new == .active
                 DiagnosticsRuntime.phaseChanged(new, token: { account.token })
             }
             // the launch screen's picture, dissolving over the app that is

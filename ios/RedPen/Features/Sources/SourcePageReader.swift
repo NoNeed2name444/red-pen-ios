@@ -67,9 +67,7 @@ struct SourcePageReader: View {
     private var fromHere: [String] {
         guard let set else { return [] }
         let labels = set.cards.compactMap(\.source) + set.questions.compactMap(\.source)
-        return labels.enumerated().compactMap { _, label in
-            Citation.read(label)?.page == page ? label : nil
-        }
+        return Citation.citing(source, page: page, among: labels, sources: set.sources)
     }
 
     @ViewBuilder

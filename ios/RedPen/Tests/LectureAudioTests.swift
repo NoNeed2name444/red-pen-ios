@@ -56,6 +56,14 @@ let theirs = put("someone else's lecture", "\(other.uuidString).m4a")
 _ = try! LectureAudio.store(imported: picked, for: set, in: dir)
 ok(text(theirs) == "someone else's lecture", "another set's recording is left alone")
 
+// MARK: recordings are not in the phone's backup (audit #81)
+
+LectureAudio.keepOutOfBackup(dir)
+#if canImport(Darwin)
+ok(LectureAudio.isOutOfBackup(dir), "the recordings folder is kept out of the backup")
+#endif
+ok(LectureAudio.recordings(for: set, in: dir).count == 1, "and its recordings are still found")
+
 try? FileManager.default.removeItem(at: dir)
 print(failures == 0 ? "\nALL LECTURE AUDIO TESTS PASS" : "\n\(failures) LECTURE AUDIO TEST FAILURE(S)")
 exit(failures == 0 ? 0 : 1)

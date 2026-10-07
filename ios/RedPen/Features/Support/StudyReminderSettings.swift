@@ -52,6 +52,7 @@ struct StudyReminderSettings: View {
             if on {
                 let allowed = await LearnNotifications.requestPermission()
                 denied = !allowed
+                if !allowed { ReminderSettings.refused() }
             }
             LearnNotifications.reschedule(store: store)
         }

@@ -89,5 +89,24 @@ check("the side is saved with the card", decoded.pictureOnBack == true)
 let older = try JSONDecoder().decode(AnkiCard.self, from: Data(#"{"type":"qa","front":"Q","imageIndex":0}"#.utf8))
 check("a card saved before the side existed reads as a front picture", older.pictureOnBack == nil && older.pictureOnFront)
 
+// MARK: a picture is decoded once, not on every redraw (audit #67)
+
+final class Decoded { let bytes: Data; init(_ bytes: Data) { self.bytes = bytes } }
+let cache = PictureCache<Decoded>()
+var decodes = 0
+let jpegish = Data((0..<300).map { UInt8($0 % 251) })
+let stored = jpegish.base64EncodedString()
+let first = cache.picture(for: stored) { decodes += 1; return Decoded($0) }
+let again = cache.picture(for: stored) { decodes += 1; return Decoded($0) }
+check("the same picture is decoded once", decodes == 1 && first === again && first?.bytes == jpegish, "\(decodes)")
+let uri = cache.picture(for: "data:image/jpeg;base64," + stored) { decodes += 1; return Decoded($0) }
+check("a data: URI decodes to the same bytes", uri?.bytes == jpegish)
+var middle = Array(stored)
+middle[200] = middle[200] == "A" ? "B" : "A"
+let changed = cache.picture(for: String(middle)) { decodes += 1; return Decoded($0) }
+check("a picture differing only in the middle is not mistaken for another",
+      changed != nil && changed !== first && changed?.bytes != jpegish)
+check("text that is not a picture gives none", cache.picture(for: "%%%") { _ in nil } == nil)
+
 print(failures.isEmpty ? "\nALL PICTURE TESTS PASS" : "\n\(failures.count) PICTURE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

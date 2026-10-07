@@ -43,6 +43,9 @@ struct LinkDeviceView: View {
             .studyBar { primary }
         }
         .environment(\.windowSpan, sheetSpan)
+        // its error was shown here; left in the account store, it came up
+        // again as an alert on the screen behind (audit #38)
+        .onDisappear { account.trouble = nil }
     }
 
     // MARK: This device shows a code

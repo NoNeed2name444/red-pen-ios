@@ -104,7 +104,8 @@ struct MockPaperView: View {
         }
         resuming = save
         sitting = MockSitting(title: save.title, specs: save.specs, picks: sections, wanted: save.wanted,
-                              track: ExamTrack(rawValue: save.track) ?? .general, passMark: save.passMark)
+                              track: ExamTrack(rawValue: save.track) ?? .general, passMark: save.passMark,
+                              penalty: MockMarking.penalty(target?.negativeMarking))
     }
 
     private var intro: some View {
@@ -262,7 +263,8 @@ struct MockPaperView: View {
         saved = nil
         resuming = nil
         sitting = MockSitting(title: spec.title, specs: made.sections, picks: sections,
-                              wanted: made.wanted, track: track, passMark: target?.passMark)
+                              wanted: made.wanted, track: track, passMark: target?.passMark,
+                              penalty: MockMarking.penalty(target?.negativeMarking))
     }
 
     /// With an exam chosen, the paper's questions are drawn in its
@@ -302,4 +304,6 @@ struct MockSitting: Identifiable {
     let track: ExamTrack
     /// The chosen exam's pass mark, when there is one.
     var passMark: Double? = nil
+    /// A wrong answer's cost against a right one's (MockMarking.penalty).
+    var penalty: Double = 0
 }

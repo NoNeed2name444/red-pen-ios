@@ -103,6 +103,12 @@ check("bold still works inside a cloze",
       AnkiFields.cloze("{{c1::**aorta**}}") == "{{c1::<b>aorta</b>}}")
 check("each cN is one card", AnkiFields.clozeOrdinals("{{c1::a}} {{c2::b}} {{c1::c}}") == [0, 1])
 check("a c0 is not a card at ordinal -1", AnkiFields.clozeOrdinals("{{c0::a}}") == [0])
+let split = AnkiFields.clozeCards("{{c1::Digoxin}} inhibits {{c2::Na/K ATPase::pump}}, raising {{c1::Ca}}")
+check("an Anki cloze note is a card per cN, each hiding only its own",
+      split.map(\.number) == [1, 2]
+      && split.map(\.text) == ["{{c1::Digoxin}} inhibits Na/K ATPase, raising {{c1::Ca}}",
+                                "Digoxin inhibits {{c2::Na/K ATPase::pump}}, raising Ca"], "\(split)")
+check("a single-cN note is left as it is", AnkiFields.clozeCards("{{c1::a}} b").map(\.text) == ["{{c1::a}} b"])
 // a cloze whose braces were edited away is a basic note, not an empty card
 let lostBraces = AnkiFields.clozeNote("The aorta carries oxygenated blood", why: "Left ventricle out")
 check("a cloze with no deletion becomes a basic note", !lostBraces.isCloze, "\(lostBraces)")

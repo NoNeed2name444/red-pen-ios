@@ -64,6 +64,7 @@ final class AppRouter: ObservableObject {
     func attach(store: Store, ready: Bool) {
         self.store = store
         self.ready = ready
+        ImportRouter.shared.libraryReady = ready
         IntentLibrary.forget()
         guard ready, let link = pending else { return }
         pending = nil
@@ -231,7 +232,10 @@ private struct PlatformRoutes: ViewModifier {
             } message: {
                 Text(router.notice ?? "")
             }
-            .onAppear { router.attach(store: store, ready: ready) }
+            .onAppear {
+                router.attach(store: store, ready: ready)
+                LearnNotifications.openLink = { AppRouter.shared.open($0) }
+            }
             .onChange(of: ready) { _, now in router.attach(store: store, ready: now) }
             .onChange(of: phase) { _, now in
                 guard ready, now != .inactive else { return }

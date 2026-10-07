@@ -101,6 +101,15 @@ struct DiagDevice: Codable, Equatable {
     /// "1.2 (45)", the way the server names a build.
     var buildName: String { "\(app) (\(build))" }
 
+    /// Which kind of build this is. A Playgrounds build (no dSYMs, so no
+    /// symbols) says so even when it is the owner's personal one, which an
+    /// Xcode build can be too.
+    static func flavour(personal: Bool, package: Bool, debug: Bool) -> String {
+        if package { return "playgrounds" }
+        if personal { return "personal" }
+        return debug ? "dev" : "store"
+    }
+
     static func thermalName(_ raw: Int) -> String {
         switch raw {
         case 1: return "fair"

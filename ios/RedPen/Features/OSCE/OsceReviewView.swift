@@ -407,15 +407,16 @@ struct OsceReviewView: View {
     private func remember() {
         // The whole set finished is not a position to come back to; it is the
         // one state where starting again is what somebody wants.
-        if complete && checklistIndex >= checklists.count - 1 {
+        guard let point = run.resumePoint(station: checklistIndex, of: checklists.count) else {
             store.clearOsce(for: studySet.id)
             return
         }
-        guard let checklist else { return }
-        store.saveOsce(OsceProgress(checklistIndex: checklistIndex,
-                                    checklistTitle: checklist.title,
-                                    stepIndex: run.stepIndex,
-                                    missed: run.misses),
+        // a station just finished is saved as the start of the next one
+        guard checklists.indices.contains(point.station) else { return }
+        store.saveOsce(OsceProgress(checklistIndex: point.station,
+                                    checklistTitle: checklists[point.station].title,
+                                    stepIndex: point.step,
+                                    missed: point.misses),
                        for: studySet.id)
     }
 

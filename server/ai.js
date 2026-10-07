@@ -40,6 +40,11 @@ const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 const ANTHROPIC_THINKING_ROOM = 4_000;
 /// How long a confirmed subscription is trusted before Apple is asked again.
 const RECHECK_SECONDS = 6 * 60 * 60;
+// A lapsed or never-valid subscription is asked about again sooner (a renewal
+// should not wait hours), but not on every request: a fake or expired
+// transaction id would otherwise send each gated call to Apple and rewrite the
+// accounts row every time.
+const LAPSED_RECHECK_SECONDS = 10 * 60;
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
@@ -56,7 +61,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   // The owner key (the app owner's own builds) skips the account and the
   // subscription check, but not a daily allowance of its own.
   if (!owner) {
-    const refused = await proGate(env, accountId, fetcher, 'Vignette Cloud is part of Pro.');
+    const refused = await proGate(env, accountId, fetcher, 'Stethoscore Cloud is part of Pro.');
     if (refused) return refused;
   }
 
@@ -326,7 +331,7 @@ export async function transcribeChunk(env, accountId, body, fetcher = fetch, { o
 /// (once its key exists), then Gemini, then Cloudflare's free models. Only
 /// "busy / out of quota / down" moves on; a real refusal stops.
 async function complete(env, route, messages, maxTokens, temperature, fetcher) {
-  let result = { ok: false, status: 503, detail: 'Vignette Cloud is not set up yet.' };
+  let result = { ok: false, status: 503, detail: 'Stethoscore Cloud is not set up yet.' };
   const failures = [];
   // Paid calls hold back their worst case before they go, so requests arriving
   // together cannot all spend the same last dollar; the difference is settled
@@ -1087,27 +1092,38 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
   const skipped = resting(env, lane, trace, `Workers AI ${model}`);
   if (skipped) return skipped;
   const [rateIn, rateOut] = NEURON_RATES[model] || NEURON_RATES['@cf/nvidia/nemotron-3-120b-a12b'];
-  const neurons = (chars / 4) * rateIn / 1e6 + maxTokens * rateOut / 1e6;
+  let neurons = (chars / 4) * rateIn / 1e6 + maxTokens * rateOut / 1e6;
   if (!await takeNeurons(env, account, neurons, owner)) {
     breakers.release(lane);
     return { ok: false, status: 429, detail: "Workers AI: this account's share of today's free allowance is used." };
   }
   if (trace) trace.calls += 1;
   let out;
+  let spentBefore = 0;
   try {
     out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature));
+    // Nemotron can still think through every token it was given and answer
+    // nothing; asked once more with its thinking off it answers, so the check
+    // keeps its third family (bench run 37613939679: 7 of 15 batches lost
+    // Nemotron this way). The retry takes its own neurons first.
+    if (!workersText(out) && /nemotron/.test(model) && await takeNeurons(env, account, neurons, owner)) {
+      spentBefore = usedNeurons(out?.usage, rateIn, rateOut) ?? Math.ceil(neurons);
+      neurons *= 2;
+      out = await env.AI.run(model, workersInput(model, messages, maxTokens, temperature, { thinking: false }));
+    }
   } catch (error) {
     // down, over capacity, or the account's free neurons gone: all "failed"
     // as far as the chain is concerned
     breakers.failure(env, lane);
-    await giveNeurons(env, account, neurons, owner).catch(() => {});
+    if (neurons - spentBefore >= 1) await giveNeurons(env, account, neurons - spentBefore, owner).catch(() => {});
     return { ok: false, status: 503, detail: String(error?.message || error).slice(0, 300) };
   }
   breakers.success(env, lane);
   // what was taken assumed the whole max_tokens came back; when the model
   // says what it used, the rest goes back to the pool, or the day's
   // allowance runs out at a fraction of what was really spent
-  const spent = usedNeurons(out?.usage, rateIn, rateOut);
+  const used = usedNeurons(out?.usage, rateIn, rateOut);
+  const spent = used === null ? null : used + spentBefore;
   const back = spent === null ? 0 : Math.floor(Math.ceil(neurons) - spent);
   if (back >= 1) await giveNeurons(env, account, back, owner).catch(() => {});
   const content = workersText(out);
@@ -1121,9 +1137,20 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
 /// max_tokens: a 200- or 900-token call came back with the answer empty
 /// (content null, the tokens all in reasoning_content) - "sent back nothing
 /// usable", again and again. Cloudflare's own example turns it off this way.
-export function workersInput(model, messages, maxTokens, temperature) {
+///
+/// Nemotron 3 thinks at full effort by default and, given a few hundred tokens
+/// an item, often spent them all thinking ("sent back nothing usable"). It is
+/// asked to think briefly (low_effort) and always to answer
+/// (force_nonempty_content), as Cloudflare's model page describes; `thinking:
+/// false` turns its thinking off for the one retry askWorkersAI makes.
+export function workersInput(model, messages, maxTokens, temperature, { thinking = true } = {}) {
   const input = { messages, max_tokens: maxTokens, temperature };
   if (/gemma-4/.test(model)) input.chat_template_kwargs = { enable_thinking: false };
+  if (/nemotron-3/.test(model)) {
+    input.chat_template_kwargs = thinking
+      ? { enable_thinking: true, low_effort: true, force_nonempty_content: true }
+      : { enable_thinking: false, force_nonempty_content: true };
+  }
   return input;
 }
 
@@ -1171,7 +1198,7 @@ export function routeFor(env, name) {
   switch (name) {
     case 'cramdown-writer':
     case 'cramdown-checker':
-      return { name: 'Vignette Cloud', base: sources.length ? 'set' : '', sources };
+      return { name: 'Stethoscore Cloud', base: sources.length ? 'set' : '', sources };
     default:
       return null;
   }
@@ -1219,6 +1246,7 @@ export async function isPro(env, account, fetcher = fetch) {
   if (owners.includes(account.id) || account.owner === 1) return true;
   if ((account.verified_until || 0) > now() && now() - (account.checked_at || 0) < RECHECK_SECONDS) return true;
   if (!account.original_transaction_id) return false;
+  if ((account.verified_until || 0) <= now() && now() - (account.checked_at || 0) < LAPSED_RECHECK_SECONDS) return false;
   const apple = await askApple(env, account.original_transaction_id, fetcher);
   if (apple === null) return (account.verified_until || 0) > now();
   const until = (await mayUse(env, apple, account)).ok ? apple.until : 0;
@@ -1295,14 +1323,16 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   if (!account) return fail(401, 'Please sign in again.');
   // Already linked here and confirmed within the last few hours: that answer
   // stands, and Apple is not asked again (the app reports its plan often).
-  if (account.original_transaction_id === original && now() - (account.checked_at || 0) < RECHECK_SECONDS) {
+  const live = (account.verified_until || 0) > now();
+  if (account.original_transaction_id === original
+      && now() - (account.checked_at || 0) < (live ? RECHECK_SECONDS : LAPSED_RECHECK_SECONDS)) {
     return json({ ok: true, pro: (account.verified_until || 0) > now() });
   }
   // one subscription unlocks one account: a transaction id is not a secret
   // (it is in every receipt), so without this anyone given one gets Pro
   const holder = await env.DB.prepare('SELECT id FROM accounts WHERE original_transaction_id = ? AND id != ?')
     .bind(original, accountId).first();
-  if (holder) return fail(409, 'This subscription is already linked to another Vignette account. Sign in with that account, or contact support to move it.');
+  if (holder) return fail(409, 'This subscription is already linked to another Stethoscore account. Sign in with that account, or contact support to move it.');
   const apple = await askApple(env, original, fetcher);
   if (apple === null) return fail(503, "Apple couldn't be reached to confirm the subscription. Try again in a minute.");
   // checked whenever Apple names an owner, live or lapsed: otherwise anyone
@@ -1310,7 +1340,7 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
   // owner out when they renew
   const allowed = await mayUse(env, apple, account);
   if ((apple.until > now() || apple.tokens.length) && !allowed.ok) {
-    return fail(403, 'This subscription was bought while signed in to a different Vignette account. Sign in with that account to use it.');
+    return fail(403, 'This subscription was bought while signed in to a different Stethoscore account. Sign in with that account to use it.');
   }
   if (allowed.retag) await retag(env, original, accountId, apple.environment, fetcher);
   try {
@@ -1319,7 +1349,7 @@ export async function linkSubscription(env, accountId, body, fetcher = fetch) {
       .bind(original, apple.until, now(), accountId).run();
   } catch {
     // the unique index: another account linked it a moment ago
-    return fail(409, 'This subscription is already linked to another Vignette account.');
+    return fail(409, 'This subscription is already linked to another Stethoscore account.');
   }
   await recordEnvironment(env, accountId, apple.environment);
   return json({ ok: true, pro: apple.until > now() });

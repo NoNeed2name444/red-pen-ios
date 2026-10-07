@@ -180,6 +180,17 @@ let savedNote = ("{\"title\":\"Kept\",\"source\":" + sourceJSON + "}").data(usin
 check("a note's own source reads back", (try? JSONDecoder().decode(NoteLike.self, from: savedNote))?.source == q1,
       String(data: savedNote, encoding: .utf8) ?? "")
 
+// the board's links, each pair once (audit #106)
+let ideaA = UUID(), ideaB = UUID(), ideaC = UUID(), gone = UUID()
+let boardEdges = IdeaEdges.pairs([(id: ideaA, to: [ideaB, ideaB, ideaA, gone]),
+                                  (id: ideaB, to: [ideaA, ideaC]),
+                                  (id: ideaC, to: [])])
+let edgeKeys: Set<String> = Set(boardEdges.map { $0.0.uuidString + $0.1.uuidString })
+check("each pair once, both ways counted once", boardEdges.count == 2 && edgeKeys.count == 2)
+check("no line to itself or to a note that is gone",
+      boardEdges.allSatisfy { $0.0 != $0.1 && $0.0 != gone && $0.1 != gone })
+check("each pair in id order", boardEdges.allSatisfy { $0.0.uuidString < $0.1.uuidString })
+
 if failures.isEmpty {
     print("all save-to-ideas checks passed")
 } else {
