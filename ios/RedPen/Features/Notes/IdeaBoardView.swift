@@ -20,8 +20,9 @@ import SwiftUI
 /// little and is drawn over every other card.
 ///
 /// The canvas runs on under the bottom glass, but its middle - where the
-/// board's origin sits, and where "Back to the middle" returns to - is the
-/// middle of the part that is not under glass.
+/// board's origin sits - is the middle of the part that is not under glass.
+/// It opens, and "Back to the middle" returns, with every card in view
+/// (IdeaBoardFit), clear of the edges and the tool circles.
 struct IdeaBoardView: View {
     @EnvironmentObject private var notes: NoteStore
     let open: (UUID) -> Void
@@ -42,6 +43,11 @@ struct IdeaBoardView: View {
     @State private var adding: BoardSpot?
     /// "Lines": Curved (false, a gentle bow) or Straight (GraphLineStyle).
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+    /// The canvas's size and how much of it is under glass, for the fit.
+    @State private var frame: CGSize = .zero
+    @State private var underGlass: CGFloat = 0
+    /// Once the board has been dragged or pinched, it stays where it was put.
+    @State private var moved = false
 
     /// Where a new idea was asked for, in board points.
     struct BoardSpot: Identifiable {
@@ -72,7 +78,8 @@ struct IdeaBoardView: View {
         }
         .ideaTools {
             IdeaToolButton(symbol: "scope", label: "Back to the middle", ward: true) {
-                withAnimation(.snappy) { pan = .zero; zoom = 1 }
+                moved = false
+                withAnimation(.snappy) { fitAll() }
             }
             IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting, ward: true) {
                 connecting.toggle()
@@ -147,7 +154,31 @@ struct IdeaBoardView: View {
             .coordinateSpace(.named(Self.space))
             .simultaneousGesture(pinchGesture)
             .clipped()
+            .onChange(of: [size.width, size.height, hidden], initial: true) {
+                fitFirst(size: size, hidden: hidden)
+            }
         }
+    }
+
+    /// Every card in view as the canvas gets (or changes) its size, until
+    /// the board has been moved by hand.
+    private func fitFirst(size: CGSize, hidden: CGFloat) {
+        frame = size
+        underGlass = hidden
+        guard !moved, size.width > 0, size.height > 0 else { return }
+        fitAll()
+    }
+
+    /// Zoom and pan so every card is on screen, clear of the edges and the
+    /// tool circles on the trailing side (16 + 44 + 16).
+    private func fitAll() {
+        let centres: [CGPoint] = notes.notes.map { CGPoint(x: $0.boardX, y: $0.boardY) }
+        let margins = IdeaBoardFit.Margins(top: 16, leading: 16, bottom: 16, trailing: 76)
+        let card = CGSize(width: Self.cardWidth, height: 88)
+        let cam = IdeaBoardFit.camera(centres: centres, card: card, view: frame,
+                                      hidden: Double(underGlass), margins: margins)
+        zoom = cam.zoom
+        pan = CGSize(width: cam.panX, height: cam.panY)
     }
 
     // MARK: cards
@@ -317,6 +348,7 @@ struct IdeaBoardView: View {
             .onEnded { value in
                 pan.width += value.translation.width
                 pan.height += value.translation.height
+                moved = true
             }
     }
 
@@ -327,6 +359,7 @@ struct IdeaBoardView: View {
             }
             .onEnded { value in
                 zoom = min(max(zoom * value.magnification, 0.3), 2.5)
+                moved = true
             }
     }
 

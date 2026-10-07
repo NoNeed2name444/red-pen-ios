@@ -113,8 +113,25 @@ struct IdeaToolWardFace: ViewModifier {
 /// redraws its links on the next frame, the board at once.
 struct IdeaLinesPicker: View {
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+    /// Two segments side by side, for the board's small popover.
+    var segmented: Bool = false
 
     var body: some View {
+        if segmented {
+            Picker("Lines", selection: straightBinding) {
+                ForEach(GraphLineStyle.allCases) { style in
+                    Text(style.title)
+                        .tag(style.isStraight)
+                        .accessibilityIdentifier("lookLines-" + style.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+        } else {
+            menuSection
+        }
+    }
+
+    private var menuSection: some View {
         Section("Lines") {
             Picker("Lines", selection: straightBinding) {
                 ForEach(GraphLineStyle.allCases) { style in
@@ -146,16 +163,24 @@ struct IdeaLinesPicker: View {
 }
 
 /// The board's Look tool: how its connectors are drawn (IdeaLinesPicker).
-/// Tinted while it is off the standard (Straight).
+/// Tinted while it is off the standard (Straight). A small popover pointing
+/// at the button, beside the tool circles, rather than a menu that grows out
+/// over the cards.
 struct IdeaBoardLookTool: View {
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+    @State private var showing = false
 
     var body: some View {
         let straight: Bool = GraphLineStyle.inForce(straightLines).isStraight
-        Menu {
-            IdeaLinesPicker()
-        } label: {
+        Button { showing = true } label: {
             IdeaToolFace(symbol: "paintpalette")
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showing, arrowEdge: .trailing) {
+            IdeaLinesPicker(segmented: true)
+                .frame(width: 200)
+                .padding(12)
+                .presentationCompactAdaptation(.popover)
         }
         .modifier(IdeaToolWardFace(active: straight))
         .hoverEffect(.highlight)
