@@ -1,9 +1,0 @@
-# Suites that need Apple frameworks Linux lacks; they run on macOS CI.
-# Rewritten by tools/swift_suites.py --classify on Linux.
-account
-dataio
-docx
-imports
-sync
-zip
-ocr

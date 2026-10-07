@@ -1,6 +1,0 @@
-# A small pilot list for the question-bank workflow; one topic per line.
-asthma
-heart failure
-type 2 diabetes
-pneumonia
-sepsis
