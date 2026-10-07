@@ -398,7 +398,7 @@ struct AnkiRatingBar: View {
             }
             if !when.isEmpty {
                 HStack(spacing: 3) {
-                    Text("back in").font(.caption)
+                    Text("back").font(.caption)
                     Text(when)
                         .font(.system(.caption, design: .monospaced).weight(.semibold))
                         .monospacedDigit()
