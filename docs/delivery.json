@@ -1,5 +1,5 @@
 {
-  "format": "red-pen-prework-delivery/v2",
+  "format": "red-pen-prework-delivery/v3",
   "updated_at": "2026-10-07",
   "staging": {
     "repository": "/workspace/medical-assistant",
@@ -9,13 +9,11 @@
   },
   "native_source": {
     "repository": "NoNeed2name444/red-pen-ios",
-    "local_branch": "design/prework-20261006",
-    "local_working_head_before_metadata": "07d09ee1d280ee0f5a9e6a3186ae5358425bd3d5",
-    "source_code_head": "8e8627f433e07984dffaab560a4e6fac62456c75",
     "remote_branch": "design/prework-20261006",
-    "remote_head": "065214bd2a3a9b624af7e1fe1f033f084a0946b8",
-    "remote_tree": "7cfeecd56c072bb4edc925511b9a8a728d3229fd",
-    "delivery": "Root performed force=false Git API pushes with exact expected heads and verified tree identity."
+    "completion_base": "1715b83efea25ba014d6f9678451db456e033506",
+    "source_head_before_final_handoff": "38c11fb84733a13f5d98b6d76ac8cb3caaabdae3",
+    "final_revision": "The Git commit containing this manifest records the final handoff revision.",
+    "delivery": "Normal Git fast-forward pushes; no force push or orchestrator dispatch."
   },
   "native_source_commit_map": [
     {
@@ -111,8 +109,9 @@
       "pre_commit": "4.2.0 existing hooks passed",
       "npm_check": "passed",
       "tests": {
-        "python": 25,
-        "node": 8,
+        "python": 29,
+        "node": 10,
+        "chromium": 5,
         "status": "passed"
       },
       "native_root_hook": "unchanged"
@@ -131,11 +130,8 @@
         "iPhone tour",
         "iPad"
       ],
-      "full_workflow_complete": false,
-      "pending_jobs": [
-        "graph",
-        "iPad"
-      ],
+      "full_workflow_complete": true,
+      "pending_jobs": [],
       "tour_test": "RedPenUITests.DesignTourUITests.testDesignTour",
       "tour_result": "passed",
       "tour_duration_seconds": 524.454,
@@ -144,7 +140,14 @@
       "artifact_bytes": 25084462,
       "artifact_sha256": "0fc9cc5b31ba7076a35020db6550498e2eb6b0e6959e94df1304bd90cd68645f",
       "screenshots": 8,
-      "fresh_capture_files": 10
+      "fresh_capture_files": 10,
+      "conclusion": "success",
+      "jobs": {
+        "iphone-tour": "success",
+        "iphone-graph": "success",
+        "ipad": "success",
+        "publish": "success"
+      }
     }
   },
   "artifacts": [
@@ -157,11 +160,20 @@
       "source": "red-pen-ios final code head 8e8627f433e07984dffaab560a4e6fac62456c75"
     },
     {
+      "path": ".github/workflows/prework-scaffold.yml",
+      "category": "completion-pass",
+      "bytes": 952,
+      "sha256": "014b94eaf5426acfacc58eaf4c59f3df997299658cd4a2ccdaf160a23d8a0265",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
+    },
+    {
       "path": "HANDOFF.md",
-      "category": "root-handoff",
-      "bytes": 3239,
-      "sha256": "d41ad839b22e5b5ed184613a87405a0f7e592ffad4e7cdb668cf0bab6ac7d026",
-      "mode": "100644"
+      "category": "completion-pass",
+      "bytes": 3060,
+      "sha256": "19734eb0012512b1c94c49aeedc08cd0d6daf68efa7d3840d02fbace05c3b2c8",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "docs/delivery.json",
@@ -178,11 +190,11 @@
     },
     {
       "path": "docs/prework-log.md",
-      "category": "task-routing-log",
-      "bytes": 26522,
-      "sha256": "9c8901624390084a0645e1935463ad46e564c5f7864f85319aa44c0325e76a04",
+      "category": "completion-pass",
+      "bytes": 34974,
+      "sha256": "4b5c3a2e65c72bed5f599a4e00ba20dd6477cb84d29b0dca2dda2d7f2fe06f1b",
       "mode": "100644",
-      "source": "merged staging and native task records"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "docs/screenshots/native-prework-2026-10-07/01-library-questions.png",
@@ -322,11 +334,11 @@
     },
     {
       "path": "prework/medical-assistant/README.md",
-      "category": "staging-prework",
-      "bytes": 10768,
-      "sha256": "0a3b3c66019b1d0e70dee9e2ff3a02f3dc9afb261a778d53a5e10b725aa35034",
+      "category": "completion-pass",
+      "bytes": 12004,
+      "sha256": "1435f0a101a94e0cc28fb460f463ee416e9d14512317bde2dbd7df4aa1e17e2b",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:README.md"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/app/.gitkeep",
@@ -338,11 +350,19 @@
     },
     {
       "path": "prework/medical-assistant/app/annotation.html",
-      "category": "staging-prework",
-      "bytes": 6273,
-      "sha256": "ab82b58b9bea2465ec346a407e5eb171f9f39d875f0e2c5ea57fa7a9fceb9756",
+      "category": "completion-pass",
+      "bytes": 811,
+      "sha256": "14d97fa979997fb6b2947cc8ecceaf357e36974772be71c0c2ab8a1c6b7bb60c",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:app/annotation.html"
+      "source": "2026-10-07 completion pass"
+    },
+    {
+      "path": "prework/medical-assistant/app/annotation.js",
+      "category": "completion-pass",
+      "bytes": 6427,
+      "sha256": "53bcb713a58c0d197d54ae24b06262347a23dd97edc7c0efc5ac4e77b38cebd7",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/app/design-system.js",
@@ -362,11 +382,11 @@
     },
     {
       "path": "prework/medical-assistant/app/main.js",
-      "category": "staging-prework",
-      "bytes": 14133,
-      "sha256": "8ede60871d3cb490f05098a991a35f64b4cb2c65dc43bf04b788daf6ef57a624",
+      "category": "completion-pass",
+      "bytes": 15303,
+      "sha256": "e2f6f55f6ad6fee778b96ebfecfc3bbacee2525238e9e240b8ebb6bb1b1f516e",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:app/main.js"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/data/.gitkeep",
@@ -378,11 +398,11 @@
     },
     {
       "path": "prework/medical-assistant/data/manifests/license-report.json",
-      "category": "staging-prework",
-      "bytes": 2528,
-      "sha256": "22ed36db9a4ac1f0579b9fb716ef613604f7794372d108ea7ab9e7bfd94458db",
+      "category": "completion-pass",
+      "bytes": 8900,
+      "sha256": "451ea354a9d23a49424d0482d02ed73058f6e6792b0a415a3162a6f308ebac52",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:data/manifests/license-report.json"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/data/manifests/triplets.jsonl",
@@ -391,6 +411,14 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "mode": "100644",
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:data/manifests/triplets.jsonl"
+    },
+    {
+      "path": "prework/medical-assistant/docs/app-completion.md",
+      "category": "completion-pass",
+      "bytes": 3115,
+      "sha256": "e509a628c86360fd4152e7afee83757388db15dbafd40dd466c935270f1d0cb0",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/artifacts.json",
@@ -402,35 +430,35 @@
     },
     {
       "path": "prework/medical-assistant/docs/deepseek-harness-integration.md",
-      "category": "staging-prework",
-      "bytes": 11764,
-      "sha256": "7d6fa1156af944dceb8b2b78d66a3a85a69f5f89e73bc7696cb581948070d2db",
+      "category": "completion-pass",
+      "bytes": 12728,
+      "sha256": "fa8dd42583ece0ee0a7ecb3a28235be55cbc99a7b7b9eb63de937883a8b14926",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/deepseek-harness-integration.md"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/deepseek-harness-source-evidence.json",
-      "category": "staging-prework",
-      "bytes": 7255,
-      "sha256": "2c83189ed5fba6442231cefde20e30ce95c1f467b6e989c2bc55f5b0a4f1eee2",
+      "category": "completion-pass",
+      "bytes": 7922,
+      "sha256": "8f455534a9d6f20273a09a6584b0e46d1c5057c34506d01071c129e9c64e0068",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/deepseek-harness-source-evidence.json"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/freellmapi-integration.md",
-      "category": "staging-prework",
-      "bytes": 7089,
-      "sha256": "e6e7fa25e0f52722e5d43240631440ff9b14693aac21af582f071859b5a81d35",
+      "category": "completion-pass",
+      "bytes": 8298,
+      "sha256": "40049a9277737648c1d87045938cbbc14b7417de00b6af2884f6d2c1f36f5aef",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/freellmapi-integration.md"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/freellmapi-source-evidence.json",
-      "category": "staging-prework",
-      "bytes": 7364,
-      "sha256": "dd4284fc4d3b04ae70e83475ee653acdd38f5e038a30036a22e28684bc420989",
+      "category": "completion-pass",
+      "bytes": 7874,
+      "sha256": "622ab2445a159dbf7d807d1adf4ab6898f12d49285906ca1246ecfb0cd9fe97d",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/freellmapi-source-evidence.json"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/latest-backend-read-coverage.json",
@@ -561,12 +589,28 @@
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/latest-widget-source-map.md"
     },
     {
+      "path": "prework/medical-assistant/docs/license-evidence.md",
+      "category": "completion-pass",
+      "bytes": 5241,
+      "sha256": "127fac553fcb40c24d70d2c026401fcc480998d5a1d934d787a867931f77f6ce",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
+    },
+    {
       "path": "prework/medical-assistant/docs/phase0-3-prework-handoff.md",
       "category": "staging-prework",
       "bytes": 3072,
       "sha256": "625fa50197c0a60bf590ba3e2abcad6e628263bf030088c83b38f01401122d92",
       "mode": "100644",
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/phase0-3-prework-handoff.md"
+    },
+    {
+      "path": "prework/medical-assistant/docs/pipeline-completion.md",
+      "category": "completion-pass",
+      "bytes": 4670,
+      "sha256": "81acbd43910d789e134b4e386f36a35d371fe3427ea96ca4949bcb7c400324c8",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/prework-log.md",
@@ -578,11 +622,11 @@
     },
     {
       "path": "prework/medical-assistant/docs/prework-tooling.md",
-      "category": "staging-prework",
-      "bytes": 4395,
-      "sha256": "19bcae953768c509b7eb451956a20f2113afd58b6d57076743ec60df8b1850ad",
+      "category": "completion-pass",
+      "bytes": 5014,
+      "sha256": "0043f3833a1bfe3f7ebf26a80c05dc7a3f9be0693de81033fd0faab943af1ae6",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/prework-tooling.md"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/proposals/chat-me-container-entrypoint.patch",
@@ -591,6 +635,14 @@
       "sha256": "afa6a69bdcf47ff9b9e85660e19e607d4a4ecade00b58125c9eabf366c1ffda7",
       "mode": "100644",
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/proposals/chat-me-container-entrypoint.patch"
+    },
+    {
+      "path": "prework/medical-assistant/docs/provider-completion.md",
+      "category": "completion-pass",
+      "bytes": 3931,
+      "sha256": "c064012df931253b9c4a70944f2793a20e4b32513f45d8278533058a82e35129",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/docs/red-pen-ios-source-map.md",
@@ -697,6 +749,14 @@
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/screenshots/native-existing-2026-10-05/31-exam-plan.png"
     },
     {
+      "path": "prework/medical-assistant/docs/supporting-completion.md",
+      "category": "completion-pass",
+      "bytes": 2524,
+      "sha256": "62108719f1d61f92b07e1aad6a5912f0f5eb139ac2c6e45b6f5d2a22096a9277",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
+    },
+    {
       "path": "prework/medical-assistant/docs/supporting-read-ledger.json",
       "category": "staging-prework",
       "bytes": 15068,
@@ -713,20 +773,28 @@
       "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:docs/supporting-repositories-source-map.md"
     },
     {
-      "path": "prework/medical-assistant/package.json",
-      "category": "staging-prework",
-      "bytes": 377,
-      "sha256": "f81db750c4f8b473caa8e7fb2f74ad7a31f04695e2f7bbdea416f919add3ecd3",
+      "path": "prework/medical-assistant/package-lock.json",
+      "category": "completion-pass",
+      "bytes": 1775,
+      "sha256": "abf48bf7e9bed7eb0fc9f389c9b95de4a6596c45f5fc5d8ff5be9fdda0a70179",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:package.json"
+      "source": "2026-10-07 completion pass"
+    },
+    {
+      "path": "prework/medical-assistant/package.json",
+      "category": "completion-pass",
+      "bytes": 572,
+      "sha256": "aafdf2cae3e84436c5df54e463c5cbc02cafca91dd5b4630bb34393bb1d981f2",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/pyproject.toml",
-      "category": "staging-prework",
-      "bytes": 206,
-      "sha256": "ffe9f02ec3ace28db17bf6c5523661e07bcbdd42fb8f058048d6903846f1140a",
+      "category": "completion-pass",
+      "bytes": 224,
+      "sha256": "d1d2604286b64dece029b734a74be162cc019dea3507b5c37ecb081c7e229a82",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:pyproject.toml"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/scripts/graph.cypher",
@@ -738,43 +806,51 @@
     },
     {
       "path": "prework/medical-assistant/scripts/prework.py",
-      "category": "staging-prework",
-      "bytes": 35964,
-      "sha256": "065684705f8e12287b2025e88b2a986be5e29ec3b684ca1d40c29bc8c440ef71",
+      "category": "completion-pass",
+      "bytes": 39773,
+      "sha256": "e1232ace2b2501913dcb44e4b35e6647488ee518e7dc9f3d9281f38a0c172831",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:scripts/prework.py"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/scripts/setup-deepseek-harness.sh",
-      "category": "staging-prework",
-      "bytes": 2110,
-      "sha256": "252f3016d0147d4cb8720bd4cde1360d761097d1c13b978ae1f003ee5f7fdeec",
+      "category": "completion-pass",
+      "bytes": 2375,
+      "sha256": "9bf04765ecc1c7bd879fd02428ce1181916722033c27516fb3284443b586d2c9",
       "mode": "100755",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:scripts/setup-deepseek-harness.sh"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/scripts/setup-freellmapi.sh",
-      "category": "staging-prework",
-      "bytes": 1367,
-      "sha256": "366ff86d4edbcbe61e781d3c99cad9ee88c57eea7669608f2a930a6924c369c6",
+      "category": "completion-pass",
+      "bytes": 2284,
+      "sha256": "fc53e7641be5cc69e3797698c992e08a41fe83976bc6be74a6a6a7f5d1e4d1b3",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:scripts/setup-freellmapi.sh"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/tests/app.test.mjs",
-      "category": "staging-prework",
-      "bytes": 7203,
-      "sha256": "1ce4c50e73cc043601717c850422e7db134e413ef348d0938d641412f48b09a0",
+      "category": "completion-pass",
+      "bytes": 8704,
+      "sha256": "c8835153a77fbd9854cd9c051f92c2eb116708be00fa222df8e78c60a7f41021",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:tests/app.test.mjs"
+      "source": "2026-10-07 completion pass"
+    },
+    {
+      "path": "prework/medical-assistant/tests/browser.test.mjs",
+      "category": "completion-pass",
+      "bytes": 11878,
+      "sha256": "9a31abdb0f1dacfcd72f4b6d2dc2169fb14b7dfb95fded233c2ecc378878065c",
+      "mode": "100644",
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "prework/medical-assistant/tests/test_prework.py",
-      "category": "staging-prework",
-      "bytes": 21691,
-      "sha256": "258fa45f31da6360660acad72593b157d208ff40179d0e446f8a8078746b6923",
+      "category": "completion-pass",
+      "bytes": 30713,
+      "sha256": "af7dedb8924989edbe6208f28845bbc2233195dc9dc231b9c85724567506e619",
       "mode": "100644",
-      "source": "/workspace/medical-assistant@e84f9c1d94cebddc65ae2d6a0780d499e1361322:tests/test_prework.py"
+      "source": "2026-10-07 completion pass"
     },
     {
       "path": "server/tests/tts.test.mjs",
@@ -871,5 +947,82 @@
         "mode": "100644"
       }
     ]
+  },
+  "previous_delivery_native_source": {
+    "repository": "NoNeed2name444/red-pen-ios",
+    "local_branch": "design/prework-20261006",
+    "local_working_head_before_metadata": "07d09ee1d280ee0f5a9e6a3186ae5358425bd3d5",
+    "source_code_head": "8e8627f433e07984dffaab560a4e6fac62456c75",
+    "remote_branch": "design/prework-20261006",
+    "remote_head": "065214bd2a3a9b624af7e1fe1f033f084a0946b8",
+    "remote_tree": "7cfeecd56c072bb4edc925511b9a8a728d3229fd",
+    "delivery": "Root performed force=false Git API pushes with exact expected heads and verified tree identity."
+  },
+  "completion_pass": {
+    "scope": "Mechanical prework; live provider calls excluded by user",
+    "changed_artifact_count": 28,
+    "changed_paths": [
+      ".github/workflows/prework-scaffold.yml",
+      "HANDOFF.md",
+      "docs/delivery.json",
+      "docs/prework-log.md",
+      "prework/medical-assistant/README.md",
+      "prework/medical-assistant/app/annotation.html",
+      "prework/medical-assistant/app/annotation.js",
+      "prework/medical-assistant/app/main.js",
+      "prework/medical-assistant/data/manifests/license-report.json",
+      "prework/medical-assistant/docs/app-completion.md",
+      "prework/medical-assistant/docs/deepseek-harness-integration.md",
+      "prework/medical-assistant/docs/deepseek-harness-source-evidence.json",
+      "prework/medical-assistant/docs/freellmapi-integration.md",
+      "prework/medical-assistant/docs/freellmapi-source-evidence.json",
+      "prework/medical-assistant/docs/license-evidence.md",
+      "prework/medical-assistant/docs/pipeline-completion.md",
+      "prework/medical-assistant/docs/prework-tooling.md",
+      "prework/medical-assistant/docs/provider-completion.md",
+      "prework/medical-assistant/docs/supporting-completion.md",
+      "prework/medical-assistant/package-lock.json",
+      "prework/medical-assistant/package.json",
+      "prework/medical-assistant/pyproject.toml",
+      "prework/medical-assistant/scripts/prework.py",
+      "prework/medical-assistant/scripts/setup-deepseek-harness.sh",
+      "prework/medical-assistant/scripts/setup-freellmapi.sh",
+      "prework/medical-assistant/tests/app.test.mjs",
+      "prework/medical-assistant/tests/browser.test.mjs",
+      "prework/medical-assistant/tests/test_prework.py"
+    ],
+    "scaffold_tests": {
+      "python": 29,
+      "javascript": 10,
+      "chromium": 5,
+      "failed": 0
+    },
+    "local_integrations": {
+      "freellmapi_cli_tests": 156,
+      "freellmapi_status_http": 200,
+      "freellmapi_needs_setup": true,
+      "deepseek_health_http": 200,
+      "deepseek_models_http": 200,
+      "deepseek_settings_models_free_visible": true,
+      "provider_inference_requests": 0
+    },
+    "supporting_checks": {
+      "Chat-me": "170 tests passed",
+      "Claude-Code": "local health200; unauthorized request401; no task executed",
+      "red-pen-transcribe": "10/11 scripts pass; existing medical verdict failure retained for Claude",
+      "red-pen-ios": "23 server/governance test files passed including sandbox-adjusted reruns"
+    },
+    "remaining": [
+      "Provider credentials and Claude setup deferred",
+      "Item-specific license evidence and external contracts absent",
+      "Existing transcribe MedGemma verdict/test mismatch requires Claude",
+      "DSH default workspace auto-creation failed; select a writable folder before sessions"
+    ],
+    "handoff_tokens": {
+      "o200k_base": 786,
+      "cl100k_base": 791
+    },
+    "orchestrator_triggered": false,
+    "workflow_dispatched": false
   }
 }

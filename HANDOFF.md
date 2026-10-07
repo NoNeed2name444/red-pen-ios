@@ -9,51 +9,85 @@ PHASE: Phase 0–3 pre-work
 
 ## Deliverables Produced
 
-- Native mechanical fixes, staging scaffold, source maps, test evidence and eight CI screenshots. `docs/delivery.json` inventories 84 native paths plus four changed Chat-me source files.
-- Historical handoff preserved at `prework/medical-assistant/HANDOFF.md`.
+- ../../HANDOFF.md
+- ../../docs/delivery.json
+- ../../docs/prework-log.md
+- ../../.github/workflows/prework-scaffold.yml
+- README.md
+- app/annotation.html
+- app/annotation.js
+- app/main.js
+- data/manifests/license-report.json
+- docs/license-evidence.md
+- docs/pipeline-completion.md
+- docs/app-completion.md
+- docs/provider-completion.md
+- docs/supporting-completion.md
+- docs/prework-tooling.md
+- docs/freellmapi-integration.md
+- docs/freellmapi-source-evidence.json
+- docs/deepseek-harness-integration.md
+- docs/deepseek-harness-source-evidence.json
+- package.json
+- package-lock.json
+- pyproject.toml
+- scripts/prework.py
+- scripts/setup-freellmapi.sh
+- scripts/setup-deepseek-harness.sh
+- tests/test_prework.py
+- tests/app.test.mjs
+- tests/browser.test.mjs
 
 ## Evidence
 
-- Offline: 23/23 server/governance tests; three package assemblies, two workflow regressions, scaffold lint/hooks, 25 Python and 8 Node tests pass.
-- Container health 200. Mac run 37552836652 compiled three targets; iPhone tour passed (524.454s), with eight provenance-verified PNGs. Graph/iPad jobs pending.
-- Coverage: 1,140 text across six snapshots; 24 binary, protobuf cells undecoded. No provider calls; commute microphone behavior untested.
+- docs/*-completion.md: 29 Python, 10 JS, 5 Chromium, 156 CLI, 170 verifier tests pass; 23 native test files pass; 10/11 transcription scripts pass.
+- docs/provider-completion.md: local HTTP 200, authenticated Models/Free visible; zero inference.
+- docs/prework-tooling.md: lint/hooks pass; manual CI only. Previous preview 37552836652 succeeded.
 
 ## Acceptance Criteria Check
 
-- A1 FreeLLMAPI — PARTIAL: API status returned HTTP 200 with `needsSetup=true`; provider keys and Claude tooling setup are absent.
-- A2 DeepSeek — PARTIAL: plugin endpoints pass; browser Settings/Models visibility and inference unverified.
-- A3 Rootstock — DONE: pinned raw source gathered; no assessment/integration.
-- A4 scaffold — DONE: scoped offline tooling and checks pass.
-- B1–B5 — PARTIAL: qualified evidence, schemas, adapters, services or inputs remain absent.
-- C1–C2 — DONE: caller-defined mechanical checks only; C3–C5 PARTIAL, detector/evaluator and Claude evidence absent.
-- D1–D3, E1–E3 — PARTIAL: scaffolds exist; design, record, curriculum, classifier, evidence and generator contracts remain open.
-- INT-QBANK/TTS/COMMUTE/CONTAINER — DONE mechanically; microphone persistence untested. INT-PREVIEW regression checks pass; graph/iPad CI pending.
-- R-READ, R-SCREENSHOTS, DELIVERY — DONE: coverage audit, fresh captures and pushes are recorded.
+- A1 gateway — PARTIAL: local ready; Claude/provider setup deferred.
+- A2 harness — PARTIAL: local ready; provider configuration deferred.
+- A3 raw gathering — DONE: retained.
+- A4 tooling — DONE: pinned/checks pass.
+- B1 licenses — PARTIAL: catalogs checked; items absent.
+- B2 ETL — DONE: resumable skeleton tested.
+- B3 annotations — DONE: browser/export tested.
+- B4 extraction — DONE: adapter pipeline tested.
+- B5 graph — DONE: scaffold/readback tested.
+- C1 schema — DONE: tests pass.
+- C2 numeric — DONE: tests pass.
+- C3 negation — DONE: scaffold tested.
+- C4 grounding — DONE: scaffold tested.
+- C5 evidence — DONE: packager tested; L4 pending.
+- D1 shell — DONE: browser tested.
+- D2 records — DONE: injected transport tested.
+- D3 BKT — DONE: replay tested.
+- E1 intent — DONE: adapter tested.
+- E2 rendering — DONE: literal output tested.
+- E3 MCQ — DONE: references tested.
 
 ## Model Routing Log
 
-- S=gpt-6.1-sol (code); L=gpt-6-luna (mechanical); no escalations.
-- A1–A2:S/medium; A3:L/low; A4:S/high; B1:L/low; B2–B5,C3–C5,D1–D3,E1–E3:S/high; C1–C2:L/low.
-- INT-QBANK/TTS/COMMUTE/CONTAINER/PREVIEW:S/high; R-SCREENSHOTS, DELIVERY, HANDOFF:L/low. Full source-read routing: `docs/prework-log.md`.
+- B1:Luna6/low;A1–A2,D1–E3:Sol6.1/high drafts;remaining work:inherited executor. Root finished after worker limits;no escalation. Full routing:../../docs/prework-log.md.
 
 ## Tradeoffs Made
 
-- Referenced inventory keeps this handoff under 800 tokens; source contracts are retained; clinical, schema and design decisions await Claude.
+- Paths above relative to prework/medical-assistant. User excludes live calls; contracts stay injected.
 
 ## Edge Cases Handled
 
-- Four-item Qbank batches, cached TTS usage, original commute IDs, isolated health, and screenshot provenance are recorded in integration evidence.
+- Duplicate IDs,stale responses,quota writes,corrupt images,provenance joins.
 
 ## Open Questions / Uncertainties
 
-- Clinical judgment, item qualifications, authoritative schemas, classifier/generator contracts, provider setup, external review and on-device commute behavior remain unresolved. Source reading is complete; binary protobuf semantics are not.
+- Claude must resolve schemas,medical judgments and existing MedGemma verdict failure; see docs/supporting-completion.md.
 
 ## Blockers
 
-- Provider keys and Claude tooling setup are absent; graph/iPad CI tests remain pending. Required content decisions and external contracts are not available.
+- Exact licensed inputs and external contracts absent; live configuration deferred.
 
 ## Suggested Next Step
 
-1. Review provenance, item qualifications and authoritative contracts in the source handoffs.
-2. Configure provider tooling and complete graph/iPad CI plus on-device commute verification.
+1. Resolve recorded rule failure/contracts; then configure providers when authorized. Orchestrator not triggered.
 ---
