@@ -52,14 +52,6 @@
     "semantic_coverage": "partial",
     "limit": "Anki fixture tables, rows, note fields, media maps and media bytes were read; small text/blob config cells were read. Binary protobuf config cells were identified by stored type and size but were not decoded into semantic fields."
   },
-  "excluded_sensitive_paths": [
-    {
-      "repository": "Chat-me-personal",
-      "path": ".env.example",
-      "status": "excluded_sensitive_path",
-      "handling": "raw credential-template path excluded; root separately reviewed redacted template keys"
-    }
-  ],
   "paths": [
     {
       "path": ".github/workflows/accuracy-model.yml",
@@ -1177,7 +1169,7 @@
           "evidence": {
             "bytes": 8334,
             "lines": 61,
-            "read_range": "1–61"
+            "read_range": "1\u201361"
           }
         }
       ]
@@ -1214,7 +1206,7 @@
           "evidence": {
             "bytes": 8788,
             "lines": 155,
-            "read_range": "1–155"
+            "read_range": "1\u2013155"
           }
         }
       ]
@@ -1251,7 +1243,7 @@
           "evidence": {
             "bytes": 9075,
             "lines": 133,
-            "read_range": "1–133"
+            "read_range": "1\u2013133"
           }
         }
       ]
@@ -1288,7 +1280,7 @@
           "evidence": {
             "bytes": 25885,
             "lines": 236,
-            "read_range": "1–236"
+            "read_range": "1\u2013236"
           }
         }
       ]
@@ -1314,7 +1306,7 @@
           "evidence": {
             "bytes": 68326,
             "lines": 766,
-            "read_range": "1–766"
+            "read_range": "1\u2013766"
           }
         }
       ]
@@ -1340,7 +1332,7 @@
           "evidence": {
             "bytes": 6498,
             "lines": 71,
-            "read_range": "1–71"
+            "read_range": "1\u201371"
           }
         }
       ]
@@ -1366,7 +1358,7 @@
           "evidence": {
             "bytes": 44778,
             "lines": 553,
-            "read_range": "1–553"
+            "read_range": "1\u2013553"
           }
         }
       ]
@@ -1392,7 +1384,7 @@
           "evidence": {
             "bytes": 6962,
             "lines": 194,
-            "read_range": "1–194"
+            "read_range": "1\u2013194"
           }
         }
       ]
@@ -1418,7 +1410,7 @@
           "evidence": {
             "bytes": 66117,
             "lines": 906,
-            "read_range": "1–906"
+            "read_range": "1\u2013906"
           }
         }
       ]
@@ -1444,7 +1436,7 @@
           "evidence": {
             "bytes": 66267,
             "lines": 819,
-            "read_range": "1–819"
+            "read_range": "1\u2013819"
           }
         }
       ]
@@ -1470,7 +1462,7 @@
           "evidence": {
             "bytes": 37053,
             "lines": 413,
-            "read_range": "1–413"
+            "read_range": "1\u2013413"
           }
         }
       ]
@@ -1496,7 +1488,7 @@
           "evidence": {
             "bytes": 55207,
             "lines": 711,
-            "read_range": "1–711"
+            "read_range": "1\u2013711"
           }
         }
       ]
@@ -1522,7 +1514,7 @@
           "evidence": {
             "bytes": 46043,
             "lines": 650,
-            "read_range": "1–650"
+            "read_range": "1\u2013650"
           }
         }
       ]
@@ -1548,7 +1540,7 @@
           "evidence": {
             "bytes": 51190,
             "lines": 607,
-            "read_range": "1–607"
+            "read_range": "1\u2013607"
           }
         }
       ]
@@ -1574,7 +1566,7 @@
           "evidence": {
             "bytes": 136304,
             "lines": 2160,
-            "read_range": "1–2,160"
+            "read_range": "1\u20132,160"
           }
         }
       ]
@@ -1600,7 +1592,7 @@
           "evidence": {
             "bytes": 59557,
             "lines": 691,
-            "read_range": "1–691"
+            "read_range": "1\u2013691"
           }
         }
       ]
@@ -1626,7 +1618,7 @@
           "evidence": {
             "bytes": 25861,
             "lines": 516,
-            "read_range": "1–516"
+            "read_range": "1\u2013516"
           }
         }
       ]
@@ -1652,7 +1644,7 @@
           "evidence": {
             "bytes": 37033,
             "lines": 366,
-            "read_range": "1–366"
+            "read_range": "1\u2013366"
           }
         }
       ]
@@ -1678,7 +1670,7 @@
           "evidence": {
             "bytes": 51311,
             "lines": 498,
-            "read_range": "1–498"
+            "read_range": "1\u2013498"
           }
         }
       ]
@@ -1704,7 +1696,7 @@
           "evidence": {
             "bytes": 50903,
             "lines": 538,
-            "read_range": "1–538"
+            "read_range": "1\u2013538"
           }
         }
       ]
@@ -1730,7 +1722,7 @@
           "evidence": {
             "bytes": 866,
             "lines": 14,
-            "read_range": "1–14"
+            "read_range": "1\u201314"
           }
         }
       ]
@@ -1756,7 +1748,7 @@
           "evidence": {
             "bytes": 319,
             "lines": 3,
-            "read_range": "1–3"
+            "read_range": "1\u20133"
           }
         }
       ]
@@ -1782,7 +1774,7 @@
           "evidence": {
             "bytes": 608,
             "lines": 17,
-            "read_range": "1–17"
+            "read_range": "1\u201317"
           }
         }
       ]
@@ -1808,7 +1800,7 @@
           "evidence": {
             "bytes": 15047,
             "lines": 424,
-            "read_range": "1–424"
+            "read_range": "1\u2013424"
           }
         }
       ]
@@ -1834,7 +1826,7 @@
           "evidence": {
             "bytes": 3814,
             "lines": 49,
-            "read_range": "1–49"
+            "read_range": "1\u201349"
           }
         }
       ]
@@ -19392,6 +19384,19 @@
           }
         }
       ]
+    }
+  ],
+  "separately_reviewed_sensitive_templates": [
+    {
+      "repository": "Chat-me-personal",
+      "snapshot_commit": "4aa7e0641f84acf296c0df18335c6f1ff1006f10",
+      "path": ".env.example",
+      "status": "fully_read_template_api_keys_blank",
+      "git_blob_sha1": "ae26a7ca6bb1d8ac3c4594c6acafb32884d2aac3",
+      "bytes": 259,
+      "reader": "gpt-6.1-sol container agent",
+      "evidence": "Full UTF-8 read recorded in docs/supporting-read-ledger.json and docs/supporting-repositories-source-map.md; API-key values are blank.",
+      "aggregate_scope": "Supporting snapshot coverage only; the 673/673 current-native text-path aggregate above is unchanged."
     }
   ]
 }

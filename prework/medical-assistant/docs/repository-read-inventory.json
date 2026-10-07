@@ -8209,8 +8209,15 @@
       "sha": "ae26a7ca6bb1d8ac3c4594c6acafb32884d2aac3",
       "size": 259,
       "mode": "100644",
-      "status": "excluded_sensitive_path",
-      "reason": "Credential or key-like path excluded without inspecting content"
+      "status": "fully_read_sensitive_template",
+      "reason": "Full UTF-8 template read completed by gpt-6.1-sol container agent; API-key values are blank. Git blob and size retained from pinned inventory.",
+      "full_read_evidence": {
+        "reader": "gpt-6.1-sol container agent",
+        "bytes": 259,
+        "git_blob_sha1": "ae26a7ca6bb1d8ac3c4594c6acafb32884d2aac3",
+        "api_key_values_blank": true,
+        "coverage_source": "docs/supporting-read-ledger.json"
+      }
     },
     {
       "repository": "Chat-me-personal",
