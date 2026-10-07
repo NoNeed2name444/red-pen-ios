@@ -77,12 +77,16 @@ private final class AppLockState: ObservableObject {
     /// Locked until the owner is confirmed; a cold launch starts locked.
     @Published var locked = true
     @Published var asking = false
+    /// The last ask was cancelled or failed: only the Unlock button asks
+    /// again, until the app goes to the background (AppLockRule).
+    var cancelled = false
 
     func unlock() async {
         guard locked, !asking else { return }
         asking = true
         let ok: Bool = await AppLock.unlock()
         asking = false
+        cancelled = !ok
         if ok {
             withAnimation(.easeOut(duration: 0.2)) { locked = false }
         }
@@ -109,7 +113,9 @@ private struct AppLockShield: ViewModifier {
                 }
             }
             .onAppear {
-                if enabled && locked { Task { await unlock() } }
+                if enabled && AppLockRule.asksOnReturn(locked: locked, cancelled: state.cancelled) {
+                    Task { await unlock() }
+                }
             }
             .onChange(of: lockOn) { _, on in
                 // turning the lock on in Settings does not lock the app at once
@@ -126,9 +132,12 @@ private struct AppLockShield: ViewModifier {
                 case .background:
                     covered = true
                     state.locked = true
+                    state.cancelled = false
                 case .active:
                     covered = false
-                    if locked { Task { await unlock() } }
+                    if AppLockRule.asksOnReturn(locked: locked, cancelled: state.cancelled) {
+                        Task { await unlock() }
+                    }
                 @unknown default:
                     break
                 }

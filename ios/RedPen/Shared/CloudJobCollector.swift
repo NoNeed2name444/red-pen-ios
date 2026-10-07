@@ -190,7 +190,7 @@ enum CloudJobCollector {
                 store.withdraw(made.id)
                 return
             }
-            AppNotifications.generationFinished("\(made.name) is ready", body: body)
+            AppNotifications.generationFinished("\(made.name) is ready", body: body, link: .openSet(made.id))
         }
         CloudJobs.remove(pending.id)
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["job-" + pending.id])

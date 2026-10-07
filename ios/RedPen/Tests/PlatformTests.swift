@@ -182,6 +182,28 @@ check("no ends known says nothing", AgeSignal.from(lowerBound: nil, upperBound: 
 check("only a minor loses community", !AgeSignal.minor.allowsCommunity
       && AgeSignal.adult.allowsCommunity && AgeSignal.unknown.allowsCommunity)
 
+// MARK: app lock (audit #8)
+
+check("a locked app asks on return", AppLockRule.asksOnReturn(locked: true, cancelled: false))
+check("not again after a cancel", !AppLockRule.asksOnReturn(locked: true, cancelled: true))
+check("an open app never asks", !AppLockRule.asksOnReturn(locked: false, cancelled: false))
+
+// MARK: files before the library (audit #3)
+
+check("a file waits out the sign-in screen", !AppLink.fileToInbox(previewRegistered: false, libraryOnScreen: false))
+check("with the library up and no preview, the inbox", AppLink.fileToInbox(previewRegistered: false, libraryOnScreen: true))
+check("a preview takes it", !AppLink.fileToInbox(previewRegistered: true, libraryOnScreen: true))
+
+// MARK: notification links (audit #7)
+
+let readySet = UUID()
+check("the review reminder opens the due cards",
+      AppLink.fromNotification([AppLink.notificationKey: AppLink.reviewDue.url.absoluteString]) == .reviewDue)
+check("a ready set opens that set",
+      AppLink.fromNotification([AppLink.notificationKey: AppLink.openSet(readySet).url.absoluteString]) == .openSet(readySet))
+check("no link, nowhere", AppLink.fromNotification(["kind": "qotd"]) == nil)
+check("a foreign link is not followed", AppLink.fromNotification([AppLink.notificationKey: "https://example.com"]) == nil)
+
 if failures.isEmpty {
     print("all platform checks passed")
 } else {

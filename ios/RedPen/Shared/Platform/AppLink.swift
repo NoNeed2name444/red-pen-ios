@@ -70,6 +70,22 @@ enum AppLink: Equatable {
         }
     }
 
+    /// The notification field that carries a link (audit #7).
+    static let notificationKey = "link"
+
+    /// Where a tapped notification leads, from its fields.
+    static func fromNotification(_ fields: [String: String]) -> AppLink? {
+        fields[notificationKey].flatMap(URL.init(string:)).flatMap(parse)
+    }
+
+    /// A file that came with no import preview to take it (ImportRouter)
+    /// goes to the inbox only with the library on screen: over the sign-in,
+    /// terms or exam screen it waits for the library, so a deck keeps its
+    /// preview (audit #3).
+    static func fileToInbox(previewRegistered: Bool, libraryOnScreen: Bool) -> Bool {
+        !previewRegistered && libraryOnScreen
+    }
+
     /// The link that leads here, for widgets and Spotlight.
     var url: URL {
         var components = URLComponents()

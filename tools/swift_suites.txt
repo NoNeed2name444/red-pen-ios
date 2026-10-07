@@ -290,7 +290,7 @@ suite photoocclusion PhotoOcclusionTests.swift $M/AnkiCard.swift $S/OcclusionFil
 # the platform lane: links and where they go, "quiz me on cardio",
 # what kind of file arrived, the widgets' digest, the exam-day
 # window and the age signal
-suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/GlanceDigest.swift \
+suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/AppLockRule.swift $S/Platform/GlanceDigest.swift \
       $S/Platform/AgeSignal.swift $S/Ideas/SaveToIdeas.swift
 # Study Lens: questions found in camera text (typed, numbered,
 # two-column, cases, T/F, calculations, OCR noise), one chip per
