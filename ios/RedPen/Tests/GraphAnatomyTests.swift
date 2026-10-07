@@ -345,15 +345,23 @@ for n in 0..<5_000 {
                     tags: n % 7 == 0 ? ["hy"] : [], source: n % 3 == 0 ? "Set \(n % 11)" : nil,
                     hand: hand, written: written, body: body))
 }
-let started: Date = Date()
+/// This process's own CPU time, in seconds. The big vault is timed by it, not
+/// by the wall clock: preflight runs eight suites at once on a four-core
+/// machine, and time spent waiting for a core is not the work's cost.
+func cpuSeconds() -> Double {
+    var now = timespec()
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now)
+    return Double(now.tv_sec) + Double(now.tv_nsec) / 1e9
+}
+let started: Double = cpuSeconds()
 let bigIndex = AnatomyIndex(AnatomyInput(notes: big, folders: bigFolders))
 let bigFibers = GraphAnatomy.fibers(bigIndex)
 var bigCells: [AnatomyCell] = []
 for f in bigFolders.prefix(12) {
     if let cell = GraphAnatomy.cell(f.id, in: bigIndex, levels: 4) { bigCells.append(cell) }
 }
-let took: Double = Date().timeIntervalSince(started)
-print("5,000 notes: index, \(bigFibers.count) fibres and 12 cells at level 4 in \(String(format: "%.3f", took)) s")
+let took: Double = cpuSeconds() - started
+print("5,000 notes: index, \(bigFibers.count) fibres and 12 cells at level 4 in \(String(format: "%.3f", took)) s of CPU")
 check("5,000 notes in under 2 s", took < 2, "\(took)")
 check("every big cell bounded", bigCells.allSatisfy { $0.parts.allSatisfy {
     $0.files.count <= GraphAnatomy.maxFiles && $0.files.allSatisfy { $0.bullets.count <= GraphAnatomy.maxBullets } } })
