@@ -277,6 +277,8 @@ check("too little text gives none rather than a bad one",
 check("blanks match whole words",
       Pretest.blanked("renal", in: "The adrenal gland sits on the renal pole.") == "The adrenal gland sits on the _____ pole.")
 check("markdown marks are stripped", Pretest.plain("## **Bold** heading") == "Bold heading")
+check("a term said twice is blanked both times, so the stem does not give it away",
+      Pretest.blanked("lupus", in: "Lupus nephritis is common in lupus.") == "_____ nephritis is common in _____.")
 
 // MARK: the daily rhythm
 

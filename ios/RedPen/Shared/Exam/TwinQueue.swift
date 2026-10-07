@@ -36,13 +36,21 @@ struct TwinQueue: Codable, Hashable {
         return 2
     }
 
+    /// The start of the day `days` days after `now`, on the student's
+    /// calendar: "tomorrow" for a miss at nine at night is tomorrow morning,
+    /// not nine tomorrow night.
+    static func dueDate(after now: Date, days: Int, calendar: Calendar = .current) -> Date {
+        let today: Date = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: days, to: today) ?? now.addingTimeInterval(Double(days) * 86_400)
+    }
+
     /// Adds a twin; one per missed question - a newer twin replaces an
     /// unanswered older one for the same parent.
     mutating func add(twin id: UUID, parent: UUID, now: Date = Date(), confident: Bool = false,
-                      guessed: Bool = false) {
+                      guessed: Bool = false, calendar: Calendar = .current) {
         entries.removeAll { $0.parentId == parent && $0.answeredAt == nil }
         let days: Int = Self.delayDays(confident: confident, guessed: guessed)
-        let due: Date = now.addingTimeInterval(Double(days) * 86_400)
+        let due: Date = Self.dueDate(after: now, days: days, calendar: calendar)
         entries.append(TwinEntry(id: id, parentId: parent, createdAt: now, dueAt: due))
     }
 
@@ -64,7 +72,7 @@ struct TwinQueue: Codable, Hashable {
 
     /// Records the twin's answer. A missed twin comes back once more, a day
     /// later, rather than leaving the queue.
-    mutating func answered(_ id: UUID, correct: Bool, now: Date = Date()) {
+    mutating func answered(_ id: UUID, correct: Bool, now: Date = Date(), calendar: Calendar = .current) {
         guard let i = entries.firstIndex(where: { $0.id == id && $0.answeredAt == nil }) else { return }
         if correct {
             entries[i].answeredAt = now
@@ -74,7 +82,7 @@ struct TwinQueue: Codable, Hashable {
             entries[i].answeredAt = now
         } else {
             entries[i].answeredCorrectly = false
-            entries[i].dueAt = now.addingTimeInterval(86_400)
+            entries[i].dueAt = Self.dueDate(after: now, days: 1, calendar: calendar)
         }
     }
 

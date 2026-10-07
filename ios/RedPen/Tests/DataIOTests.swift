@@ -164,6 +164,10 @@ check("progress: a new card brings nothing", AnkiProgress.from(type: 0, queue: 0
 let learning = AnkiProgress.from(type: 1, queue: 1, due: 1_790_400_000, interval: -600, reps: 1, lapses: 0, created: created)
 check("progress: a learning card's due is a moment", learning?.due == Date(timeIntervalSince1970: 1_790_400_000))
 check("progress: suspended is kept", AnkiProgress.from(type: 2, queue: -1, due: 1, interval: 3, reps: 2, lapses: 0, created: created)?.suspended == true)
+check("progress: last reviewed is the due day less the interval, not the import",
+      review?.lastReviewed(now: created.addingTimeInterval(40 * 86_400)) == created.addingTimeInterval(-7 * 86_400))
+check("progress: and never later than now",
+      review?.lastReviewed(now: created.addingTimeInterval(-30 * 86_400)) == created.addingTimeInterval(-30 * 86_400))
 
 // MARK: - real packages
 

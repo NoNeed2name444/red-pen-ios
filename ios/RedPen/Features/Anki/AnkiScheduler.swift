@@ -28,6 +28,14 @@ enum AnkiScheduler {
     /// traps the rating buttons' label.
     static let maxIntervalMin: Double = 36_500 * 1440
 
+    /// Where a card leaves learning: Good on its last learning step (ten
+    /// minutes or more, under a day) brings it back tomorrow, as Anki's
+    /// default "graduating interval" of one day does. Grown by 2.5 from ten
+    /// minutes instead it came back in 25 min, an hour, 2.6 h, 6.5 h, 16 h -
+    /// a week of same-day "learning" reviews, none of them counted against
+    /// the daily review limit.
+    static let graduatingMin: Double = 1440
+
     /// Matches `formatInterval()`: minutes -> "N min" / "N hr" / "N d".
     static func formatInterval(_ minutes: Double) -> String {
         // clamped before any Int conversion: a runaway interval (or a stored
@@ -46,7 +54,9 @@ enum AnkiScheduler {
         switch rating {
         case .again: next = baseMinutes[.again]!
         case .hard: next = max(baseMinutes[.hard]!, cur * 1.2)
-        case .good: next = max(baseMinutes[.good]!, cur * 2.5)
+        case .good:
+            let learning: Bool = cur >= baseMinutes[.good]! && cur < graduatingMin
+            next = learning ? graduatingMin : max(baseMinutes[.good]!, cur * 2.5)
         case .easy: next = max(baseMinutes[.easy]!, cur * 4)
         }
         return min(maxIntervalMin, next)

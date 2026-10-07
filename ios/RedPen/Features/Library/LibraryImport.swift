@@ -321,9 +321,12 @@ enum LibraryImport {
         var out: [UUID: ReviewRecord] = [:]
         for (id, known) in progress {
             let intervalMin: Double = known.intervalDays * 1_440
+            // rated when Anki last showed it, so FSRS sees the real gap; the
+            // import itself is the change that wins a merge
+            let seen: Date = known.lastReviewed(now: now)
             var record = ReviewRecord(due: known.due, intervalMin: intervalMin,
-                                      reviews: known.reviews, lapses: known.lapses, ratedAt: now)
-            let seen: Date = known.due.addingTimeInterval(-known.intervalDays * 86_400)
+                                      reviews: known.reviews, lapses: known.lapses, ratedAt: seen)
+            record.changedAt = now
             record.introducedAt = min(seen, now.addingTimeInterval(-86_400))
             if known.suspended { record.suspended = true }
             out[id] = record

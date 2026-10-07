@@ -85,19 +85,25 @@ check("pacing: halfway through PLAB is Q90", MockPacing.target(elapsed: 5_400, q
 // MARK: twins
 
 var queue = TwinQueue()
-let now = Date(timeIntervalSince1970: 1_000_000)
+var utc = Calendar(identifier: .gregorian)
+utc.timeZone = TimeZone(identifier: "UTC")!
+let midnight = Date(timeIntervalSince1970: 1_000_000 - 1_000_000.truncatingRemainder(dividingBy: 86_400))
+let now = midnight.addingTimeInterval(21 * 3_600) // nine in the evening
 let parent = UUID(), twin = UUID()
-queue.add(twin: twin, parent: parent, now: now, confident: true)
-check("a confident mistake's twin is due in a day", queue.entries.first?.dueAt == now.addingTimeInterval(86_400))
+queue.add(twin: twin, parent: parent, now: now, confident: true, calendar: utc)
+check("a confident mistake's twin is due the next day, from its start",
+      queue.entries.first?.dueAt == midnight.addingTimeInterval(86_400))
+check("so an evening miss is ready the next morning",
+      queue.due(now: midnight.addingTimeInterval(86_400 + 7 * 3_600)).map(\.id) == [twin])
 check("not due at once", queue.due(now: now).isEmpty)
 check("due the next day", queue.due(now: now.addingTimeInterval(90_000)).map(\.id) == [twin])
 check("the question has a twin on the way", queue.hasTwin(for: parent))
 let twin2 = UUID()
-queue.add(twin: twin2, parent: parent, now: now, guessed: true)
+queue.add(twin: twin2, parent: parent, now: now, guessed: true, calendar: utc)
 check("one waiting twin per missed question", queue.waiting.map(\.id) == [twin2])
-check("a guess waits three days", queue.entries.first?.dueAt == now.addingTimeInterval(3 * 86_400))
+check("a guess waits three days", queue.entries.first?.dueAt == midnight.addingTimeInterval(3 * 86_400))
 let later = now.addingTimeInterval(4 * 86_400)
-queue.answered(twin2, correct: false, now: later)
+queue.answered(twin2, correct: false, now: later, calendar: utc)
 check("a missed twin comes back a day later", queue.due(now: later.addingTimeInterval(86_400)).map(\.id) == [twin2])
 queue.answered(twin2, correct: true, now: later.addingTimeInterval(86_400))
 check("a twin got right leaves the queue", queue.waiting.isEmpty && queue.isTwin(twin2))
@@ -148,6 +154,13 @@ cache.store("one", for: hid)
 check("a hint is kept", cache.hint(for: hid) == "one")
 for _ in 0..<(HintCache.cap + 5) { cache.store("x", for: UUID()) }
 check("the oldest go past the cap", cache.hint(for: hid) == nil && cache.hints.count == HintCache.cap)
+var fixed = HintCache()
+let before = HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "A")
+let after = HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "B")
+fixed.store("points to A", for: hid, version: before)
+check("a hint is kept for the wording it was written for", fixed.hint(for: hid, version: before) == "points to A")
+check("a corrected key does not get the old hint", before != after && fixed.hint(for: hid, version: after) == nil)
+check("the fingerprint is the same every launch", before == HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "A"))
 
 // MARK: calculator
 
