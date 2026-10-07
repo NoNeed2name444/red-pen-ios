@@ -188,7 +188,9 @@ struct RiseIn: ViewModifier {
 }
 
 /// A thin, rounded, tinted progress bar — replaces the stock `ProgressView`
-/// so every mode's progress reads the same way.
+/// so every mode's progress reads the same way. It fills from the leading
+/// edge: the ZStack's `.leading` is the right-hand side right to left, so
+/// Arabic fills from the right with nothing more said.
 struct ThinProgress: View {
     let fraction: Double
 
@@ -223,6 +225,8 @@ struct ScoreRing: View {
                 .trim(from: 0, to: max(0, min(1, shown)))
                 .stroke(Color.wardPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                // clockwise from the top, anticlockwise right to left
+                .fillsFromLeading()
                 .padding(3)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
@@ -436,7 +440,8 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// still works as the last child of a VStack.
 ///
 /// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
-/// under the right hand.
+/// under the right hand (the left hand, right to left: `.trailing` turns
+/// round with the language, as the buttons' order in it does).
 struct StudyActionBar<Content: View>: View {
     private let content: Content
     @Environment(\.windowSpan) private var span

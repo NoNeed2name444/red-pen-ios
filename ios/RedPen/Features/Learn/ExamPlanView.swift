@@ -253,7 +253,7 @@ private struct DueBars: View {
             if isExam {
                 Image(systemName: "flag.fill")
                     .font(.caption2)
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(fill)
             }
             Capsule().fill(fill.opacity(count == 0 ? 0.25 : 1)).frame(height: height)
         }
@@ -298,12 +298,15 @@ private struct SubjectRing: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle().stroke(Color.wardHairline, lineWidth: 7)
+                // both arcs clockwise from the top, anticlockwise right to left
                 Circle().trim(from: 0, to: building)
                     .stroke(tint.opacity(0.3), style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .fillsFromLeading()
                 Circle().trim(from: 0, to: secured)
                     .stroke(tint, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .fillsFromLeading()
                 Text(RetentionForecast.percent(secured))
                     .font(.system(.caption, design: .monospaced).weight(.bold))
                     .monospacedDigit()

@@ -667,8 +667,8 @@ struct CategoryDock: View {
                 .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(IdeasPlace.title)
-        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
+        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
         .wardShadow()
@@ -719,8 +719,8 @@ struct CategoryDock: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
-        .accessibilityLabel(IdeasPlace.title)
-        .accessibilityHint("Your idea dump, board and 3D map")
+        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
+        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
     }
@@ -735,7 +735,7 @@ struct CategoryDock: View {
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
         let ink: Color = chosen ? Color.wardOnPrimary : Color.wardInkSecondary
-        return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink)
+        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), ink: ink)
     }
 
     private func item(_ category: StudyCategory) -> some View {
@@ -746,7 +746,7 @@ struct CategoryDock: View {
         return Button {
             withAnimation(change) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
+            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
@@ -767,7 +767,7 @@ struct CategoryDock: View {
         .buttonStyle(.plain)
         .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
         .accessibilityLabel(spoken(category))
-        .accessibilityHint("Shows these sets and ways to practise")
+        .accessibilityHint(L10n.string("Shows these sets and ways to practise"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-\(category.rawValue)")
     }
@@ -779,8 +779,11 @@ struct CategoryDock: View {
         return KeyEquivalent(character)
     }
 
+    /// "Cards, 3 sets", its plural and digits from the catalog.
     private func spoken(_ category: StudyCategory) -> String {
-        "\(category.title), " + SpokenText.count(count(category), "set")
+        let n: Int = count(category)
+        let title: String = L10n.lookup(category.title)
+        return L10n.string("\(title), \(n) sets")
     }
 }
 
@@ -798,13 +801,13 @@ private struct DockListSheet: View {
                 ForEach(StudyCategory.allCases) { category in
                     let chosen: Bool = !inIdeas && category == selection
                     let detail: String = SpokenText.count(count(category), "set")
-                    row(title: category.title, detail: detail, symbol: category.symbol,
+                    row(title: L10n.lookup(category.title), detail: detail, symbol: category.symbol,
                         tint: category.tint, chosen: chosen, id: "dockCategory-\(category.rawValue)") {
                         selection = category
                         inIdeas = false
                     }
                 }
-                row(title: IdeasPlace.title, detail: "Your idea dump, board and 3D map",
+                row(title: L10n.lookup(IdeasPlace.title), detail: L10n.string("Your idea dump, board and 3D map"),
                     symbol: IdeasPlace.symbol, tint: IdeasPlace.tint, chosen: inIdeas,
                     id: "dockCategory-ideas") {
                     inIdeas = true
@@ -854,7 +857,8 @@ private struct DockListSheet: View {
     }
 }
 
-/// One dock item's face: a symbol over its name.
+/// One dock item's face: a symbol over its name (already in the app's
+/// language: the dock's words are in the catalog).
 private struct DockItemFace: View {
     let symbol: String
     let title: String

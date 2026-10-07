@@ -184,7 +184,7 @@ private struct GenerationProgress: View {
     var body: some View {
         let scaled: Double = (fraction * 100).rounded()
         let percent: Int = Int(scaled)
-        let shown: String = "\(percent)%"
+        let shown: String = L10nFormat.percent(fraction, locale: L10n.locale)
         let spoken: String = "\(percent) percent done"
         HStack(spacing: WardSpace.s) {
             EcgStrip(progress: fraction)

@@ -49,9 +49,9 @@ struct NarrateAudioBar: View {
                 .accessibilityLabel("Position in the recording")
 
             HStack {
-                Text(LectureAudio.clock(position))
+                Text(LectureAudio.clock(position, locale: L10n.locale))
                 Spacer()
-                Text(LectureAudio.clock(player.duration))
+                Text(LectureAudio.clock(player.duration, locale: L10n.locale))
             }
             .font(.system(.subheadline, design: .monospaced))
             .monospacedDigit()

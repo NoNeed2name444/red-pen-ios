@@ -46,6 +46,8 @@ on:
       - 'ios/RedPen/Features/Notes/GraphPerf*.swift'
       - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
+      - 'ios/RedPen/Resources/**'
+      - 'tools/l10n_*.py'
       - '.github/workflows/swift-tests.yml'
       - 'tools/swift_suites*'
 permissions:
@@ -84,6 +86,21 @@ jobs:
           fi
           n=$(python3 tools/swift_suites.py --platform mac --affected "$before" --list-chosen | grep -c . || true)
           echo "run=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      # Localisation: whether the String Catalog is sound (every key
+      # translated, its format specifiers kept, Arabic's six plural forms),
+      # and the report of what the full string sweep still has to do -
+      # English glued into Text, hard-coded plurals, left/right symbols and
+      # offsets, literals not yet in the catalog. A report for now: it never
+      # fails the job. It is pushed with the logs as l10n-report.md.
+      - name: Localisation report
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          python3 tools/l10n_catalog.py check ios/RedPen/Resources/Localizable.xcstrings > out/l10n-catalog.txt 2>&1 || true
+          python3 tools/l10n_lint.py ios/RedPen --out out/l10n-report.md > out/l10n-lint.txt 2>&1 || true
+          { echo '### Localisation'; echo '```'; cat out/l10n-catalog.txt out/l10n-lint.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Push the logs
         if: always()
         run: |

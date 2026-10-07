@@ -146,7 +146,7 @@ struct SectionListSheet: View {
 
     private func row(_ i: Int, _ section: AudioChapter) -> some View {
         let playing: Bool = i == current
-        let when: String = section.start.map { LectureAudio.clock($0) } ?? ""
+        let when: String = section.start.map { LectureAudio.clock($0, locale: L10n.locale) } ?? ""
         return HStack(spacing: 12) {
             Text("\(i + 1)")
                 .font(.subheadline.monospacedDigit())

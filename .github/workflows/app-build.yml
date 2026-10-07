@@ -61,8 +61,10 @@ jobs:
       # on its own: an audit finding shows up here (and in the summary)
       # without turning the build above red. It must pass before the App
       # Store accessibility labels are claimed (docs/launch/accessibility.md).
+      # Like the tap-through, it waits for personal: a design branch gets the
+      # compile check only.
       - name: Accessibility at the largest text size
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && !startsWith(github.ref_name, 'design/') }}
         continue-on-error: true
         working-directory: ios
         run: |

@@ -258,7 +258,7 @@ extension LibraryView {
 
     private var selectionCount: some View {
         let count: Int = selected.count
-        let text: String = count == 0 ? "Select sets" : "\(count) selected"
+        let text: String = count == 0 ? "Select sets" : "\(L10n.count(count)) selected"
         return Text(text)
             .font(.footnote.weight(.medium))
             .foregroundStyle(.secondary)
@@ -380,6 +380,9 @@ extension LibraryView {
                     fannedTile(kind)
                 }
             }
+            // a picture, not a row: its tilts fan out the same way in
+            // either direction
+            .keepsLeftToRight()
             .accessibilityHidden(true)
             Text("Make your first set").font(.title2.weight(.bold))
             Text("Add a lecture and \(Brand.name) turns it into questions or flashcards to study.")

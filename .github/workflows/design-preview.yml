@@ -5,7 +5,10 @@
 # - a tour of the redesigned app (DesignTourUITests): the library on each of
 #   the dock's categories, a category's tiles, New set, a quiz, a card, Ideas
 #   in each view with its switcher open and folded, the menu, Settings and
-#   Progress.
+#   Progress;
+# - the first Arabic screens, right to left (ArabicUITests): sign-in, the
+#   recording terms, the dock and Settings, named ar-*, after the tour on
+#   the same iPhone.
 # A push to a preview/<name> branch runs it; the pictures land on the
 # shots/<name> branch (preview/graph's on design-preview), in shots/iphone/
 # and shots/ipad/, with a README that shows them all on one page.
@@ -162,6 +165,8 @@ jobs:
           GRAPH_TESTS=$(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPreviewUITests.swift | awk '{print $2}' | grep -E "${ONLY:-.}" || true)
           TOUR=""
           if echo testDesignTour | grep -qE "${ONLY:-.}"; then TOUR="-only-testing:RedPenUITests/DesignTourUITests"; fi
+          ARABIC=""
+          if echo testArabicRightToLeft | grep -qE "${ONLY:-.}"; then ARABIC="-only-testing:RedPenUITests/ArabicUITests"; fi
 
           echo "$PART on $NAME ($UDID)"
           xcrun simctl boot "$UDID" || true
@@ -182,7 +187,9 @@ jobs:
                 wait $REC || true
               done ;;
             iphone-tour)
-              if [ -n "$TOUR" ]; then run_tests iphone-tour.xcresult iphone-tour.log "$TOUR"; fi ;;
+              if [ -n "$TOUR" ]; then run_tests iphone-tour.xcresult iphone-tour.log "$TOUR"; fi
+              # then the same phone in Arabic (launch arguments only)
+              if [ -n "$ARABIC" ]; then run_tests iphone-arabic.xcresult iphone-arabic.log "$ARABIC"; fi ;;
             ipad)
               args=()
               for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
@@ -280,12 +287,12 @@ jobs:
             echo "== $log (the build failed)" >> log.txt
             cat "$log" >> log.txt
           done
-          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/ipad.log logs/videos.txt; do
+          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log logs/videos.txt; do
             [ -f "$log" ] || continue
             echo "== $log" >> log.txt
             grep -E "error:|Test Case|TEST (EXECUTE )?(SUCCEEDED|FAILED)|left out|no simulator" "$log" | tail -60 >> log.txt || true
           done
-          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/ipad.log; do
+          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log; do
             [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
           done | sort -u | head -40 >> log.txt || true
           # every failed test, with how many devices it failed on

@@ -1,0 +1,10 @@
+/* What iOS shows about Stethoscore, in Arabic: the name stays in Latin
+   script, as on the Home Screen of an Arabic iPhone. The English is in
+   ios/project.yml (info.properties). */
+"CFBundleDisplayName" = "Stethoscore";
+"NSMicrophoneUsageDescription" = "يستخدم Stethoscore الميكروفون لتسجيل المحاضرات، ولسماع إجاباتك في وضع التنقّل، وفي «اشرحها بصوتك»، وفي التدرّب الشفهي على محطات OSCE.";
+"NSSpeechRecognitionUsageDescription" = "يحوّل Stethoscore تسجيلات المحاضرات وإجاباتك المنطوقة إلى نص، على هذا الجهاز متى أمكن ذلك.";
+"NSCameraUsageDescription" = "يستخدم Stethoscore الكاميرا الأمامية لتتبّع موضع رأسك كي يتوافق تأثير البروز مع عينيك، ويستخدم الكاميرا لمسح الصفحات التي تختار تحويلها إلى بطاقات مصوّرة. لا يُسجَّل أي شيء ولا يُرسَل.";
+"NSFaceIDUsageDescription" = "يستخدم Stethoscore بصمة الوجه (Face ID) لفتح التطبيق عندما تفعّل قفل التطبيق.";
+"NSHealthUpdateUsageDescription" = "يحفظ Stethoscore جولات التركيز التي تُنهيها كدقائق يقظة ذهنية في تطبيق «صحتي»، إذا فعّلت ذلك.";
+"NSHealthShareUsageDescription" = "لا يقرأ Stethoscore أي شيء من تطبيق «صحتي».";
