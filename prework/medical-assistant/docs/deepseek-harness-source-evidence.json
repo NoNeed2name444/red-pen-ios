@@ -231,5 +231,23 @@
       "screenshotProduced": false,
       "providerInferenceInvoked": false
     }
+  },
+  "completionPass": {
+    "observedAt": "2026-10-07",
+    "scope": "local integration; live provider calls excluded by user",
+    "installExitCode": 0,
+    "setupScriptSha256": "9bf04765ecc1c7bd879fd02428ce1181916722033c27516fb3284443b586d2c9",
+    "providerInference": "not run",
+    "version": "0.2.0-rc.2",
+    "pluginVersion": "0.8.23",
+    "packagesInstalled": 540,
+    "authenticatedUiHttp": 200,
+    "pluginHealthHttp": 200,
+    "pluginModelsHttp": 200,
+    "settingsModelsVisible": true,
+    "freePanelVisible": true,
+    "freePanelRequests": 0,
+    "freePanelModelEntries": 0,
+    "workspaceAutoCreation": "failed; caller must select a writable folder"
   }
 }

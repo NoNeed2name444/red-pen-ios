@@ -5,11 +5,13 @@ umask 077
 # Prepare the verified CLI and web plugin. No credentials, model tasks, or probes.
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 harness_dir="${DEEPSEEK_HARNESS_DIR:-$project_dir/vendor/deepseek-harness}"
-for command in node npm pnpm; do
+setup_timeout="${SETUP_TIMEOUT_SECONDS:-180}"
+[[ "$setup_timeout" =~ ^[1-9][0-9]*$ ]] || { printf 'SETUP_TIMEOUT_SECONDS must be a positive integer.\n' >&2; exit 2; }
+for command in node npm pnpm timeout; do
   command -v "$command" >/dev/null || { printf 'Missing prerequisite: %s\n' "$command" >&2; exit 1; }
 done
 mkdir -p -- "$harness_dir"
-npm install --save-exact --prefix "$harness_dir" --cache "$harness_dir/.cache/npm" '@deepseek-ai/dsh@0.2.0-rc.2'
+timeout "$setup_timeout" npm install --fetch-retries=0 --fetch-timeout=30000 --save-exact --prefix "$harness_dir" --cache "$harness_dir/.cache/npm" '@deepseek-ai/dsh@0.2.0-rc.2'
 node --input-type=module - "$harness_dir" <<'JS'
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -22,7 +24,7 @@ JS
 harness_cli="$harness_dir/node_modules/@deepseek-ai/dsh/lib/bin.js"
 # DSH_HOME and PNPM_HOME are documented tool-specific directories; HOME is preserved.
 DSH_HOME="$harness_dir/state" PNPM_HOME="$harness_dir/.cache/pnpm-home" \
-  node "$harness_cli" plugin --profile web add 'dsh-freeroute@0.8.23' \
+  timeout "$setup_timeout" node "$harness_cli" plugin --profile web add 'dsh-freeroute@0.8.23' \
   --store-dir "$harness_dir/.cache/pnpm-store"
 node --input-type=module - "$harness_dir" <<'JS'
 import {readFileSync} from 'node:fs';

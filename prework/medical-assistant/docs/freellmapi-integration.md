@@ -1,6 +1,9 @@
 # A1: FreeLLMAPI integration
 
-Status: **partial: source and dependencies installed; provider credentials and Claude setup remain pending**. The retry obtained the requested repository and built/verified its CLI. Runtime validation is recorded below. No orchestrator was started.
+Status: **local integration prepared; live provider calls deferred by the user**. The retry obtained the requested repository and built/verified its CLI. Runtime validation is recorded below. No orchestrator was started.
+
+Current completion-pass installs, endpoint tests and browser outcomes are in
+[provider-completion.md](provider-completion.md); dated evidence below is historical.
 
 ## Retry on 2026-10-06
 
@@ -39,7 +42,7 @@ Relevant upstream excerpts and URLs are retained in [freellmapi-source-evidence.
 
 ## Resume provider and Claude setup
 
-To reuse the verified checkout, run `FREELLMAPI_SOURCE_DIR=/workspace/vendor/freellmapi bash scripts/setup-freellmapi.sh` from this project. The script clones the requested repository into `vendor/freellmapi`, runs `npm install`, copies `.env.example` only if `.env` is absent, replaces its example encryption placeholder with a locally generated encryption key, and binds the server to loopback. This encryption key is for local storage, not a fabricated provider or unified API key. An existing `.env` is preserved and must be checked locally for valid configuration. The script is syntax checked; the retry validated repository installation separately at `/workspace/vendor/freellmapi`. Set `FREELLMAPI_SOURCE_DIR=/workspace/vendor/freellmapi` to reuse that checkout.
+To reuse the verified checkout, run `FREELLMAPI_SOURCE_DIR=/workspace/vendor/freellmapi bash scripts/setup-freellmapi.sh` from this project. The script clones the requested repository into `vendor/freellmapi`, detaches at the inspected commit `a6b2158c7c36ce19f888d0411846a1a0f2aa3f06`, checks origin and HEAD before proceeding, runs lockfile-based `npm ci` with a project-local cache, copies `.env.example` only if `.env` is absent, replaces its example encryption placeholder with a locally generated encryption key, and binds the server to loopback. This encryption key is for local storage, not a fabricated provider or unified API key. An existing `.env` is preserved and must be checked locally for valid configuration. The script is syntax checked; the retry validated repository installation separately at `/workspace/vendor/freellmapi`. Set `FREELLMAPI_SOURCE_DIR=/workspace/vendor/freellmapi` to reuse that checkout.
 
 Start the gateway in a separate terminal:
 
@@ -62,3 +65,9 @@ npx freellmapi launch
 ```
 
 The requested `--api-key <unified-key>` flag is documented upstream; the environment variable shown above is also documented and avoids placing the credential in the command line. `setup-claude` changes Claude's configuration; `launch` starts Claude Code. These remain pending and were deliberately not executed in this blocked A1 run.
+
+## Completion continuation (2026-10-07)
+
+The user selected completion without live provider calls. Provider credential entry, provider probes/inference, gateway-backed Claude configuration, and Claude launch are deferred by that scope. Existing 2026-10-06/07 runtime evidence above is retained as historical evidence, not a fresh observation of this worker's filesystem.
+
+The preparation script now pins the verified source commit and refuses a different existing checkout rather than switching or overwriting it. `npm ci` uses the upstream lockfile and a local cache; network steps have a configurable `SETUP_TIMEOUT_SECONDS` bound (default 180 seconds), zero fetch retries, and a 30-second fetch timeout. Existing `.env` remains preserved. `bash -n` passed and an invalid timeout was rejected with exit 2 before acquisition. See [provider-completion.md](provider-completion.md) for current scope and observations.

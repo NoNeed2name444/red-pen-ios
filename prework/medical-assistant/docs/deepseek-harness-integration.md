@@ -1,6 +1,9 @@
 # A2: DeepSeek Harness integration
 
-Status: **PARTIAL: exact Harness and freeroute packages installed; authenticated plugin endpoints verified; provider credentials and final UI verification remain pending**. The requested CLI and web profile flags were verified locally. No Claude process or orchestrator was started.
+Status: **local integration prepared; live provider calls deferred by the user**. The requested CLI and web profile flags were verified locally. No Claude process or orchestrator was started.
+
+Current completion-pass installs, endpoint tests and browser outcomes are in
+[provider-completion.md](provider-completion.md); dated evidence below is historical.
 
 ## Retry (2026-10-06)
 
@@ -23,7 +26,7 @@ The earlier child network request stalled and was cancelled; acquisition was mov
 The verified launch command uses the installed exact npm binary, equivalent to the requested npx entry point while retaining its inspected version:
 
 ```bash
-cd /workspace/medical-assistant
+cd /workspace/red-pen-ios/prework/medical-assistant
 DSH_HOME=/workspace/vendor/deepseek-harness/state \
   node /workspace/vendor/deepseek-harness/node_modules/@deepseek-ai/dsh/lib/bin.js \
   web --host 127.0.0.1 --port 3080 --no-open
@@ -60,7 +63,7 @@ The official [Harness README](https://github.com/deepseek-ai/deepseek-harness/bl
 
 Use the verified isolated launch command in the retry section to reuse the installed package and preserve its profile. The upstream `npx @deepseek-ai/dsh web` command resolves the same npm CLI but does not pin this inspected version unless a version is included.
 
-Use the URL printed by the running process. Open Settings → Models; add the available real free-tier Groq, Gemini (Google), Cerebras, and OpenRouter credentials using the installed catalog's provider cards. If a provider is absent, use the documented Custom model API flow with that provider's verified endpoint, protocol, and model IDs. Do not invent provider IDs or assume all four ship in the installed catalog. Save credentials through the UI; do not commit credential files. Add/select `/workspace/medical-assistant` as the workspace without initiating an orchestrator task.
+Use the URL printed by the running process. Open Settings → Models; add the available real free-tier Groq, Gemini (Google), Cerebras, and OpenRouter credentials using the installed catalog's provider cards. If a provider is absent, use the documented Custom model API flow with that provider's verified endpoint, protocol, and model IDs. Do not invent provider IDs or assume all four ship in the installed catalog. Save credentials through the UI; do not commit credential files. Add/select `/workspace/red-pen-ios/prework/medical-assistant` as the workspace without initiating an orchestrator task.
 
 The [freeroute maintainer README](https://github.com/dushaobindoudou/dsh-freeroute/blob/main/README.md), read from mutable `main`, documents the requested installation:
 
@@ -73,3 +76,9 @@ If `dsh` is available only through npx, invoke the same subcommand through `npx 
 ## Completion criteria still pending
 
 The authenticated read-only HTTP checks above established that the web host and plugin loaded during the verified root session. Complete the live browser check and confirm Settings → Models shows the saved requested providers and selectable models with credentials redacted. Run each provider's connection/model probe and one small inference using a verified free model; record served provider/model and actual outcome without credential values. Confirm the Free panel and `freeroute/auto` selector if the installed plugin exposes them. These checks are required before marking A2 done; a listening web server alone is insufficient.
+
+## Completion continuation (2026-10-07)
+
+The user selected completion without live provider calls. Credential entry, provider probes, model discovery against upstream providers, and inference are deferred. The prior authenticated local plugin checks above remain historical evidence; a UI timeout does not imply plugin failure. This continuation does not claim a fresh browser success.
+
+The exact Harness/freeroute version and repository checks remain enforced. npm and plugin installation now have `SETUP_TIMEOUT_SECONDS` bounds (default 180 seconds); npm fetch retries are disabled with a 30-second fetch timeout. Tool-specific state/cache locations preserve system `HOME`. `bash -n` passed and an invalid timeout was rejected with exit 2 before acquisition. See [provider-completion.md](provider-completion.md) for current scope and observations.
