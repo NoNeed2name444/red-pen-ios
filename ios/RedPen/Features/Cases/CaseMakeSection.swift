@@ -191,10 +191,9 @@ struct CaseMakeSection: View {
                 }
                 // kept with a cloud job, so the set is still made if the app
                 // is closed before the server finishes (CloudJobCollector)
-                let recipe = CloudRecipe(kind: .cases, name: setName, subject: subj, count: wanted, source: doc,
-                                         check: nil).encoded
+                let recipe = CloudRecipe(kind: .cases, name: setName, subject: subj, count: wanted, source: doc).encoded
                 let made: CaseMaker.Made = try await CloudJobs.$context.withValue(
-                    CloudJobs.Context(recipe: recipe, serverCheck: false, checking: nil, delivery: delivery)) {
+                    CloudJobs.Context(recipe: recipe, delivery: delivery)) {
                     try await CaseMaker.write(count: wanted, source: text, lecture: lecture, subject: subj,
                                               using: writer, onProgress: progress)
                 }
