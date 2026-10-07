@@ -348,12 +348,6 @@ struct LectureWriterSection: View {
         return .word
     }
 
-    /// Where the accuracy check runs, for a cloud job's recipe: nil for none.
-    nonisolated static func checkPlace(_ checking: Bool, onServer: Bool) -> String? {
-        guard checking else { return nil }
-        return onServer ? "server" : "device"
-    }
-
     private var canWrite: Bool {
         if kind == .anki && style == .image { return !diagrams.cards.isEmpty }
         return hasSource
@@ -504,10 +498,8 @@ struct LectureWriterSection: View {
                     await pending.value
                 }
                 let figures = await MainActor.run { bookFigures }
-                let onServer: Bool = false
                 // kept with a cloud job, so the set is still made if the app
                 // is closed before the server finishes
-                let check: String? = nil
                 let recipe: Data? = await MainActor.run { () -> Data? in
                     let pictures: Bool = mode == .anki && diagrams.included
                     let figureImages: [String]? = mode == .book ? figures.map(\.imageBase64) : nil
@@ -515,12 +507,9 @@ struct LectureWriterSection: View {
                     let images: [String]? = pictures ? diagrams.images : nil
                     return CloudRecipe(kind: mode, name: suggestedName, subject: subj, count: asked,
                                        source: readSource?.doc(), figures: figureImages,
-                                       diagramCards: cards, diagramImages: images, check: check).encoded
+                                       diagramCards: cards, diagramImages: images).encoded
                 }
-                let result = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: onServer,
-                                                               checking: { done, total in
-                        Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
-                    }, delivery: delivery)) {
+                let result = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
                     try await LectureWriter.draft(
                         kind: mode, source: text, count: asked, subject: subj, using: backend, figures: figures, style: cardStyle,
                         already: already, parts: parts,

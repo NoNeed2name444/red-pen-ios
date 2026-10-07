@@ -16,9 +16,6 @@ struct CloudRecipe: Codable {
     /// Image occlusion cards that go with the written ones.
     var diagramCards: [AnkiCard]?
     var diagramImages: [String]?
-    /// The accuracy check it was asked for: "server" (checked in the cloud
-    /// job), "device" (a checker on this device), or nil for none.
-    var check: String?
     /// The exam it was written for (ExamCatalog id), for the set's badge.
     var exam: String? = nil
 

@@ -7,33 +7,27 @@ import LocalLLMClient
 import LocalLLMClientLlama
 #endif
 
-/// The two jobs a model does in the app.
-///
-/// `writer` writes questions, stations and plays the patient (Doctor-R1 on the
-/// device, or a hosted model such as Baichuan-M2-32B). `checker` reads what the
-/// writer produced and grades it for medical accuracy (MedVAL-4B on the device,
-/// or a hosted model given MedVAL's prompt).
+/// The job a model does in the app: `writer` writes questions, stations,
+/// cards and textbook pages (Doctor-R1 on the device, or a hosted model such
+/// as Baichuan-M2-32B). Checking is the verification layer's, not a model's.
 enum LLMRole: String, CaseIterable, Identifiable {
-    case writer, checker
+    case writer
     var id: String { rawValue }
-    var title: String { self == .writer ? "Writing & patient" : "Accuracy checker" }
-    var onDeviceModel: MedicalModel { self == .writer ? .doctorR1 : .medval }
+    var title: String { "Writer" }
+    var onDeviceModel: MedicalModel { .doctorR1 }
 }
 
 /// What a role is set to use. Stored as a plain string so it survives in
 /// UserDefaults: "off", "device", "cloud", or a hosted provider's id.
 ///
 /// The tiers: Apple's own model and the Gemma fallback are free. Pro buys the
-/// medical models - Doctor-R1 and MedVAL on the device, and CramDown Cloud,
+/// medical model - Doctor-R1 on the device - and CramDown Cloud,
 /// the larger hosted models through our own worker. A provider added with the
 /// student's own key is theirs to pay for, so it is not gated.
 enum LLMChoice: Hashable {
     case off
     case device
     case cloud
-    /// Doctor-R1 (writer) or MedVAL (checker), hosted - the on-device models
-    /// for devices too small to run them. Pro, like the rest of the cloud.
-    case cloudMedical
     case hosted(UUID)
 
     init(stored: String?) {
@@ -41,7 +35,6 @@ enum LLMChoice: Hashable {
         case nil, "off": self = .off
         case "device": self = .device
         case "cloud": self = .cloud
-        case "cloud-medical": self = .cloudMedical
         case let s?: self = UUID(uuidString: s).map { .hosted($0) } ?? .off
         }
     }
@@ -51,7 +44,6 @@ enum LLMChoice: Hashable {
         case .off: return "off"
         case .device: return "device"
         case .cloud: return "cloud"
-        case .cloudMedical: return "cloud-medical"
         case .hosted(let id): return id.uuidString
         }
     }
@@ -61,10 +53,6 @@ enum LLMChoice: Hashable {
 /// answers. Everything that wants a model asks here.
 @MainActor
 final class LocalLLMService: ObservableObject {
-    /// Whether the worker has Doctor-R1 and MedVAL hosts to send
-    /// "cloud-medical" to. Off until a host exists (server/spaces).
-    nonisolated static let cloudMedicalHosted = false
-
     static let shared = LocalLLMService()
 
     enum Status: Equatable {
@@ -79,7 +67,6 @@ final class LocalLLMService: ObservableObject {
     @Published private(set) var status: [MedicalModel: Status] = [:]
     @Published private(set) var providers: [HostedProvider] = []
     @Published var writerChoice: LLMChoice { didSet { save(writerChoice, for: .writer) } }
-    @Published var checkerChoice: LLMChoice { didSet { save(checkerChoice, for: .checker) } }
     /// Check generated questions and stations before they reach the set.
     @Published var checkGenerated: Bool {
         didSet { UserDefaults.standard.set(checkGenerated, forKey: Self.checkGeneratedKey) }
@@ -95,9 +82,9 @@ final class LocalLLMService: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         writerChoice = LLMChoice(stored: defaults.string(forKey: "llm.choice.writer"))
-        checkerChoice = LLMChoice(stored: defaults.string(forKey: "llm.choice.checker"))
         checkGenerated = defaults.object(forKey: Self.checkGeneratedKey) as? Bool ?? true
         providers = HostedProvider.loadAll()
+        MedicalModel.removeRetired()
         refreshStatus()
     }
 
@@ -152,7 +139,7 @@ final class LocalLLMService: ObservableObject {
     func needsPro(_ role: LLMRole) -> Bool {
         guard !isPro else { return false }
         switch choice(for: role) {
-        case .device, .cloud, .cloudMedical: return true
+        case .device, .cloud: return true
         case .off, .hosted: return false
         }
     }
@@ -164,10 +151,10 @@ final class LocalLLMService: ObservableObject {
         return nil
     }
 
-    func choice(for role: LLMRole) -> LLMChoice { role == .writer ? writerChoice : checkerChoice }
+    func choice(for role: LLMRole) -> LLMChoice { writerChoice }
 
     func setChoice(_ choice: LLMChoice, for role: LLMRole) {
-        if role == .writer { writerChoice = choice } else { checkerChoice = choice }
+        writerChoice = choice
     }
 
     // MARK: which backend answers
@@ -185,9 +172,6 @@ final class LocalLLMService: ObservableObject {
         case .cloud:
             guard cloudBlocker == nil, let token = cloudToken else { return nil }
             return HostedLLMClient(provider: .cloud(for: role), bearer: token)
-        case .cloudMedical:
-            guard cloudBlocker == nil, let token = cloudToken else { return nil }
-            return HostedLLMClient(provider: .cloudMedical(for: role), bearer: token)
         case .hosted(let id):
             guard let provider = providers.first(where: { $0.id == id }) else { return nil }
             return HostedLLMClient(provider: provider)
@@ -282,9 +266,8 @@ final class LocalLLMService: ObservableObject {
 
 // MARK: - running a GGUF on the device
 
-/// One on-device model at a time. Doctor-R1 and MedVAL together are larger
-/// than any iPhone's memory allowance, so asking for the other one unloads the
-/// first. The actor also keeps two screens from generating at once.
+/// One on-device model at a time; asking for another unloads the first. The
+/// actor also keeps two screens from generating at once.
 actor OnDeviceRunner {
     static let shared = OnDeviceRunner()
 
@@ -391,17 +374,3 @@ struct AppleFoundationBackend: LLMBackend {
     }
 }
 
-// MARK: - the checker the student chose, for screens that just want "check this"
-
-extension AccuracyChecker {
-    @MainActor static var backend: LLMBackend? { LocalLLMService.shared.backend(for: .checker) }
-    @MainActor static var isAvailable: Bool { backend != nil }
-
-    @MainActor
-    static func check(instruction: String, input: String, output: String) async throws -> AccuracyVerdict {
-        guard let backend else {
-            throw LLMError.notReady("Choose an accuracy checker in AI models first.")
-        }
-        return try await check(instruction: instruction, input: input, output: output, using: backend)
-    }
-}

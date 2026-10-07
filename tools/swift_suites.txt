@@ -81,7 +81,7 @@ suite osce OsceTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCar
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/PlainTextImport.swift $S/OsceStations.swift $S/ExamTrack.swift
-# the model layer's text handling: MedVAL's prompt and grade, JSON
+# the model layer's text handling: a reasoning model's working, JSON
 # out of prose, and which part of a lecture a check reads
 suite llm LLMTests.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift
 suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift $S/BookFigures.swift
@@ -123,9 +123,8 @@ suite answers AnswerCheckingTests.swift $M/MCQQuestion.swift $M/Differential.swi
       $S/Voice/SpokenAnswer.swift $S/Reasoning/ReasoningModels.swift $S/Reasoning/ReasoningExamples.swift \
       $S/Reasoning/ReasoningWriter.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/ExamTrack.swift
 # "How to reach it": the three-tier differential - old sets decode
-# without it, the tiers are read from a model's reply, and MedVAL's
-# grade reads the reasoning checks; and a library holding a set of the
-# removed "qa" kind still loads
+# without it, and the tiers are read from a model's reply; and a
+# library holding a set of the removed "qa" kind still loads
 suite differential DifferentialTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
       $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \

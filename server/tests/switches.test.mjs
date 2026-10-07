@@ -92,8 +92,8 @@ const call = (env, path, { method = 'POST', body = {}, auth = OWNER, headers = {
      && featuresOf('/tts', 'POST').join() === 'tts', 'the accuracy engine, transcription and the voice by path');
   ok(featuresOf('/accuracy/report', 'POST').length === 0 && featuresOf('/accuracy/model', 'POST').length === 0
      && featuresOf('/sync/push', 'POST').length === 0, 'reports, weights and sync are not AI features');
-  ok(featureOfModel('cramdown-writer') === 'write' && featureOfModel('cramdown-doctor') === 'write'
-     && featureOfModel('cramdown-checker') === 'check' && featureOfModel('cramdown-medval') === 'check' && featureOfModel('x') === null,
+  ok(featureOfModel('cramdown-writer') === 'write' && featureOfModel('cramdown-checker') === 'check'
+     && featureOfModel('cramdown-medval') === null && featureOfModel('x') === null,
      'the cloud models by name: writers write, checkers check');
 }
 
@@ -162,7 +162,6 @@ async function refused(r, feature, what) {
   const { env, touched } = freshEnv('check');
   const ask = model => call(env, '/v1/chat/completions', { body: { model, messages: [{ role: 'user', content: 'hi' }] } });
   await refused(await ask('cramdown-checker'), 'check', 'the cloud checker');
-  await refused(await ask('cramdown-medval'), 'check', 'MedVAL');
   ok(touched.ai === 0, 'no model asked');
   const w = await ask('cramdown-writer');
   ok(w.status === 200 && (await w.json()).choices[0].message.content.startsWith('from @cf/') && touched.ai === 1,
