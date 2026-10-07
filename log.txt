@@ -1,0 +1,84 @@
+== logs/build-ipad.log (the build failed)
+
+Creating working copy of package ‘swift-numerics’
+
+Checking out 1.1.1 of package ‘swift-numerics’
+
+Creating working copy of package ‘swift-crypto’
+
+Checking out 4.5.2 of package ‘swift-crypto’
+
+Creating working copy of package ‘swift-transformers’
+
+Checking out 1.3.4 of package ‘swift-transformers’
+
+Creating working copy of package ‘LocalLLMClient’
+
+Checking out b68f71244baf308469a190cce4f54edf2fde4887 of package ‘LocalLLMClient’
+
+Creating working copy of package ‘yyjson’
+
+Checking out 0.12.0 of package ‘yyjson’
+
+Creating working copy of package ‘swift-collections’
+
+Checking out 1.7.2 of package ‘swift-collections’
+
+Creating working copy of package ‘swift-huggingface’
+
+Checking out 0.13.0 of package ‘swift-huggingface’
+
+Creating working copy of package ‘swift-asn1’
+
+Checking out 1.7.3 of package ‘swift-asn1’
+
+Creating working copy of package ‘EventSource’
+
+Checking out 1.5.1 of package ‘EventSource’
+
+Creating working copy of package ‘mlx-swift-lm’
+
+Checking out 3.32.3 of package ‘mlx-swift-lm’
+== logs/build-iphone-graph.log (the build failed)
+
+Fetching from https://github.com/ml-explore/mlx-swift
+
+Fetching from https://github.com/apple/swift-numerics
+
+Fetching from https://github.com/apple/swift-crypto.git
+
+Fetching from https://github.com/apple/swift-collections.git
+
+Fetching from https://github.com/ibireme/yyjson.git
+
+Fetching from https://github.com/huggingface/swift-huggingface.git
+
+Fetching from https://github.com/mattt/EventSource.git
+
+Fetching from https://github.com/apple/swift-asn1.git
+
+Creating working copy of package ‘swift-numerics’
+
+Checking out 1.1.1 of package ‘swift-numerics’
+
+Creating working copy of package ‘mlx-swift-lm’
+
+Checking out 3.32.3 of package ‘mlx-swift-lm’
+
+Creating working copy of package ‘swift-asn1’
+
+Checking out 1.7.3 of package ‘swift-asn1’
+
+Creating working copy of package ‘swift-crypto’
+
+Checking out 4.5.2 of package ‘swift-crypto’
+
+Creating working copy of package ‘swift-collections’
+
+Checking out 1.7.2 of package ‘swift-collections’
+
+Creating working copy of package ‘LocalLLMClient’
+
+Checking out b68f71244baf308469a190cce4f54edf2fde4887 of package ‘LocalLLMClient’
+== logs/iphone-tour.log
+no simulator for iphone-tour on this runner
