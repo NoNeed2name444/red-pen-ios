@@ -73,9 +73,14 @@ func solve(_ model: String, _ answer: String, evidence: String = "supports") -> 
 }
 let gModel = "gemini-3.5-flash-lite", gmModel = "gemma-4-31b-it", oModel = "@cf/openai/gpt-oss-120b", nModel = "@cf/nvidia/nemotron-3-120b-a12b"
 let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A")],
-                                       evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+                                       evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A", sourceProof: true)
 let p1 = AccuracyModel.probability(pass)
-check("three blind solves from three families reach the key, with support: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+check("three blind solves from three families reach the key, proven by an official source: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+let unproven = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A")],
+                                           evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+check("the same votes with no official source stating it: Check this, the score unchanged",
+      unproven["source_proof"] == 0 && pass["source_proof"] == 1 && AccuracyModel.grade(p1, unproven) == .check
+      && AccuracyModel.probability(unproven) == p1)
 // the briefs' rules for questions, as the server has them (server/accuracy-model.js verdict)
 func mcqVotes(_ votes: [AccuracyVote], rules: [AccuracyRules.Hit] = []) -> [String: Double] {
     AccuracyModel.featureValues(kind: .mcq, rules: rules, votes: votes, evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
@@ -116,8 +121,8 @@ check("two families judging it wrong: Check this", AccuracyModel.grade(AccuracyM
 let threeCards = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"),
                                                                             AccuracyVote(model: oModel, risk: 1, evidence: "supports"),
                                                                             AccuracyVote(model: nModel, risk: 1, evidence: "supports")],
-                                             evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
-check("three passing families verify a card", threeCards["families"] == 3 && AccuracyModel.grade(0.99, threeCards) == .verified)
+                                             evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil, sourceProof: true)
+check("three passing families verify a card an official source states", threeCards["families"] == 3 && AccuracyModel.grade(0.99, threeCards) == .verified)
 let decodedBlind = try? JSONDecoder().decode(AccuracyVote.self, from: Data(#"{"model":"m","risk":1,"answer":"A","blind":true}"#.utf8))
 check("the blind mark comes from the server's reply", decodedBlind?.blind == true)
 // two votes from one family are one witness (independence), as on the server
@@ -152,7 +157,7 @@ check("a single vote, however sure, is Check this, never Verified", AccuracyMode
 let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gmModel, risk: 1, evidence: "none"), AccuracyVote(model: nModel, risk: 1, evidence: "none"),
                                                                           AccuracyVote(model: oModel, risk: 1, evidence: "none")],
                                            evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
-check("any item passed by three families but with nothing in the literature or its lecture stays Check this",
+check("any item passed by three families but with no official source stating it stays Check this",
       AccuracyModel.grade(0.99, unbacked) == .check && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
 let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
                                                                             AccuracyVote(model: nModel, risk: 1, evidence: "none")],
@@ -160,8 +165,13 @@ let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [Acc
 let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "none"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
                                                                          AccuracyVote(model: nModel, risk: 1, evidence: "none")],
                                           evidenceCount: 0, sourceMatch: AccuracyModel.oathSourceMatch, keyLetter: nil)
-check("with the literature or its own lecture behind it, an oath item can be Verified",
-      AccuracyModel.grade(0.99, literature, oath: true) == .verified && AccuracyModel.grade(0.99, lecture, oath: true) == .verified)
+check("the literature or its own lecture behind it is no longer proof: Check this",
+      AccuracyModel.grade(0.99, literature, oath: true) == .check && AccuracyModel.grade(0.99, lecture, oath: true) == .check
+      && AccuracyModel.grade(0.99, literature) == .check)
+let proven = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "none"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                        AccuracyVote(model: nModel, risk: 1, evidence: "none")],
+                                         evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil, sourceProof: true)
+check("an oath item an official source states word for word can be Verified", AccuracyModel.grade(0.99, proven, oath: true) == .verified)
 // server/tests/oath-vectors.mjs, text for text
 let doseVectors: [(String, Bool)] = [
     ("Give amoxicillin 500 mg PO three times a day", true),
@@ -239,11 +249,12 @@ check("a note is its own kind", AccuracyItem.note(id: UUID(), title: "T", body: 
 
 var ledger = AccuracyLedger()
 let item0 = AccuracyItem.items(in: mcqSet)[0]
+let fullProof = AccuracyProof(v: 1, claims: 1, proven: 1)
 check("an unchecked item with no rule hits is Not checked yet", ledger.assess(item0).grade == .unchecked)
 ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true),
                    AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports", blind: true)],
-           evidence: [AccuracyEvidence(id: "S1", source: "MedlinePlus", title: "t", url: "https://medlineplus.gov")], sourceMatch: 0.8, for: item0.contentHash)
-check("three families' blind solves make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
+           evidence: [AccuracyEvidence(id: "S1", source: "MedlinePlus", title: "t", url: "https://medlineplus.gov")], sourceMatch: 0.8, proof: fullProof, for: item0.contentHash)
+check("three families' blind solves, proven by an official source, make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
 let checkTime = Date(timeIntervalSince1970: 2_000_000)
 var shortLedger = AccuracyLedger()
 shortLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)],
@@ -259,17 +270,18 @@ ledger.add(votes: [AccuracyVote(model: "a", risk: 4, answer: "B", evidence: "con
 check("a model's new vote replaces its old one", ledger.records[item0.contentHash]?.votes.count == 3 && ledger.assess(item0).grade != .verified)
 check("and its concern is a reason", ledger.assess(item0).reasons.contains("a: Wrong"))
 var reported = AccuracyLedger()
-reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)], sourceMatch: 0.8, for: item0.contentHash)
+reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)], sourceMatch: 0.8, proof: fullProof, for: item0.contentHash)
 reported.markReported(item0.contentHash)
 check("a reported item is never shown as Verified again", reported.assess(item0).grade == .check)
 // the claim gate (server/claims.js): the server's reply, as it sends it
-func gateReply(_ claims: String) -> AccuracyCheckReply? {
+let provenJSON = #","proof":{"v":1,"claims":1,"proven":1,"quotes":[{"claim":"c","quote":"q","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov/x.html"}]}"#
+func gateReply(_ claims: String, proof: String = provenJSON) -> AccuracyCheckReply? {
     let json: String = """
     {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
       "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
                           {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
                           {"model":"c","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true}],
-      "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)}]}
+      "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)\(proof)}]}
     """
     return try? JSONDecoder().decode(AccuracyCheckReply.self, from: Data(json.utf8))
 }
@@ -314,6 +326,50 @@ failing.records["old"] = AccuracyRecord(hash: "old")
 failing.prune(keeping: ["h"])
 check("records of edited or deleted items are pruned", failing.records.isEmpty && failing.failed["h"] != nil)
 
+// the source proof (server/proof.js): only an official source's own words verify
+var proofs = AccuracyLedger()
+proofs.record(gateReply("", proof: ""), for: [hash0], at: gateTime)
+check("three families with no proof in the reply: Check this, with the reason",
+      proofs.assess(item0).grade == .check && proofs.records[hash0]?.proof == nil
+      && proofs.assess(item0).reasons.contains("No official source states it word for word yet."))
+check("the server's proof decodes, quotes and all", gateReply("")?.items?.first?.proof?.isFull == true
+      && gateReply("")?.items?.first?.proof?.quotes?.first?.url == "https://medlineplus.gov/x.html")
+check("a proof is full only when every claim is proven, by this version, with nothing cut short",
+      fullProof.isFull && !AccuracyProof(v: 1, claims: 2, proven: 1).isFull && !AccuracyProof(v: 1, claims: 0, proven: 0).isFull
+      && !AccuracyProof(v: 2, claims: 1, proven: 1).isFull && !AccuracyProof(v: 1, claims: 1, proven: 1, why: "budget").isFull
+      && !AccuracyProof(v: 1, claims: 1, proven: 1, why: "stem").isFull)
+check("due again: cut short or an older version; not when it simply could not be proven",
+      AccuracyProof(v: 1, why: "lookup").due && AccuracyProof(v: 1, why: "budget").due && AccuracyProof(v: 1, why: "timeout").due
+      && AccuracyProof(v: 1, why: "error").due && AccuracyProof(v: 0).due && !AccuracyProof(v: 1, claims: 1, proven: 0, why: "unproven").due
+      && !AccuracyProof(v: 1, why: "stem").due && !fullProof.due)
+let lookupJSON = #","proof":{"v":1,"claims":1,"proven":0,"why":"lookup"}"#
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("a source that could not be read: Check this, saying it will be checked again",
+      proofs.assess(item0).grade == .check && proofs.records[hash0]?.proofTries == 2
+      && proofs.assess(item0).reasons.contains("An official source could not be read this time; it will be checked again."))
+check("asked again after a few hours, not at once", proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(3600))
+      && !proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(7 * 3600)))
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("then left at Check this after a few tries", proofs.records[hash0]?.proofTries == 4
+      && proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(30 * 86400)))
+proofs.record(gateReply(""), for: [hash0], at: gateTime)
+check("proven on a later check: Verified, the tries cleared", proofs.assess(item0).grade == .verified
+      && proofs.records[hash0]?.proofTries == nil && proofs.assess(item0).reasons.isEmpty)
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("a later check cut short does not take the proof away", proofs.assess(item0).grade == .verified && proofs.records[hash0]?.proof?.isFull == true)
+var budgeted = AccuracyLedger()
+budgeted.record(gateReply("", proof: #","proof":{"v":1,"claims":1,"proven":0,"why":"budget"}"#), for: [hash0], at: gateTime)
+check("sources too long for the batch: said so",
+      budgeted.assess(item0).reasons.contains("Its official sources were too long to read in this batch; it will be checked again on its own."))
+check("an oath item gets the oath's words", AccuracyAssessment.proofReasons(nil, oath: true) == ["A dose, diagnosis or treatment no official source states word for word yet."]
+      && AccuracyAssessment.proofReasons(fullProof, oath: true).isEmpty)
+var unprovable = AccuracyLedger()
+unprovable.record(gateReply("", proof: #","proof":{"v":1,"claims":0,"proven":0,"why":"stem"}"#), for: [hash0], at: gateTime)
+check("an item no wording could be formed for is not asked again", unprovable.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(30 * 86400)))
+let olderRecord = try? JSONDecoder().decode(AccuracyRecord.self, from: Data(#"{"hash":"h","votes":[],"evidence":[],"checkedAt":0,"reported":false}"#.utf8))
+check("a record saved before the proof still loads, with none", olderRecord != nil && olderRecord?.proof == nil && olderRecord?.proofTries == nil)
+
 // MARK: the schedule
 
 let now = Date(timeIntervalSince1970: 2_000_000)
@@ -345,6 +401,12 @@ var twin = set("twin", updated: 100 * 86400, n: 1)
 twin.cards = justMade.cards.prefix(1).map { var c = $0; c.id = UUID(); return c }
 let deduped = AccuracySchedule.plan(sets: [justMade, twin], items: { AccuracyItem.items(in: $0) }, ledger: AccuracyLedger(), now: now)
 check("the same content in two sets is checked once", deduped.reduce(0) { $0 + $1.items.count } == 5)
+var tooLong = AccuracyLedger()
+let longHash: String = AccuracyItem.items(in: justMade)[1].contentHash
+tooLong.add(votes: [AccuracyVote(model: "a", risk: 1)], proof: AccuracyProof(v: 1, claims: 1, proven: 0, why: "budget"), for: longHash, at: now.addingTimeInterval(-7 * 3600))
+let alonePlan = AccuracySchedule.plan(sets: [justMade], items: { AccuracyItem.items(in: $0) }, ledger: tooLong, now: now)
+check("an item whose sources were too long for a batch goes on its own", alonePlan.map(\.items.count) == [4, 1]
+      && alonePlan[1].items[0].contentHash == longHash && !alonePlan[0].items.contains { $0.contentHash == longHash })
 
 // MARK: one-tap corrections
 

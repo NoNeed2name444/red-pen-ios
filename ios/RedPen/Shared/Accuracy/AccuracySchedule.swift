@@ -15,7 +15,8 @@ struct AccuracyBatch: Hashable {
 /// New and just-edited sets first - their items are what the student is about
 /// to study - then the rest of the library, most-studied first, then newest.
 /// Nothing is sent twice: an item a model has already voted on (by content
-/// hash) is skipped, and one whose last check failed waits a few hours.
+/// hash) is skipped, and one whose last check failed waits a few hours. One
+/// whose official sources were too long to read in a batch is sent alone.
 /// Notes are never in here; they are checked only when the student asks.
 enum AccuracySchedule {
 
@@ -39,20 +40,25 @@ enum AccuracySchedule {
             if planned >= limit { break }
             let fresh: Bool = now.timeIntervalSince(set.updatedAt) < freshWindow
             var pending: [AccuracyItem] = []
+            var alone: [AccuracyItem] = []
             for item in items(set) {
-                if planned + pending.count >= limit { break }
+                if planned + pending.count + alone.count >= limit { break }
                 let hash: String = item.contentHash
                 if ledger.isChecked(hash, question: item.kind == .mcq) || !ledger.mayRetry(hash, now: now) || hashes.contains(hash) { continue }
                 hashes.insert(hash)
-                pending.append(item)
+                // its official sources were too long to read beside others
+                if ledger.records[hash]?.proof?.why == "budget" { alone.append(item) } else { pending.append(item) }
             }
-            planned += pending.count
+            planned += pending.count + alone.count
             var start = 0
             while start < pending.count {
                 let end: Int = min(start + batchSize, pending.count)
                 out.append(AccuracyBatch(setID: set.id, items: Array(pending[start..<end]),
                                          priority: fresh ? "foreground" : "background"))
                 start = end
+            }
+            for item in alone {
+                out.append(AccuracyBatch(setID: set.id, items: [item], priority: fresh ? "foreground" : "background"))
             }
         }
         // just-made content first, whatever the order above

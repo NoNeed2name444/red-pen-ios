@@ -159,8 +159,11 @@ enum AccuracyModel {
     private static func clamp01(_ x: Double) -> Double { min(1, max(0, x)) }
 
     /// The feature values for one item (the same as features() on the server).
+    /// `sourceProof`: every claim of the item is stated word for word by an
+    /// official source (AccuracyProof.isFull).
     static func featureValues(kind: AccuracyKind, rules: [AccuracyRules.Hit], votes: [AccuracyVote],
-                              evidenceCount: Int, sourceMatch: Double?, keyLetter: String?) -> [String: Double] {
+                              evidenceCount: Int, sourceMatch: Double?, keyLetter: String?,
+                              sourceProof: Bool = false) -> [String: Double] {
         let risks: [Double] = votes.map { clamp01(Double($0.risk - 1) / 3) }
         let flags: [Bool] = votes.map { $0.risk >= 3 }
         let answered: [AccuracyVote] = votes.filter { v in
@@ -190,6 +193,7 @@ enum AccuracyModel {
         f["ev_count"] = Double(min(5, evidenceCount)) / 5
         f["source_match"] = sourceMatch.map(clamp01) ?? 0
         f["no_source"] = sourceMatch == nil ? 1 : 0
+        f["source_proof"] = sourceProof ? 1 : 0
         f["no_models"] = votes.isEmpty ? 1 : 0
         f["kind_mcq"] = kind == .mcq ? 1 : 0
         f["kind_card"] = kind == .card ? 1 : 0
@@ -299,7 +303,8 @@ enum AccuracyModel {
     static let minVerifyVoters: Int = 3
 
     /// How much of an oath item its own lecture must contain to stand for the
-    /// evidence behind it (OATH_SOURCE_MATCH).
+    /// evidence behind it (OATH_SOURCE_MATCH). No longer enough for Verified:
+    /// only an official source's own words are (source_proof).
     static let oathSourceMatch: Double = 0.5
 
     /// A specific dose: an amount in a dose unit beside a route or a
@@ -335,11 +340,10 @@ enum AccuracyModel {
     }
 
     /// Verified needs three model families passing the item with no concern
-    /// raised and no sensor firing; and an oath item needs evidence behind it
-    /// - the literature the voters were shown supporting it, or its own
-    /// lecture saying it. Flagged needs proof from two directions; rules
-    /// alone flag an item only before any model has looked. Everything else
-    /// is Check this. server/accuracy-model.js verdict, rule for rule.
+    /// raised and no sensor firing, and every item needs an official source
+    /// stating it word for word - proof, not the models' agreement. Flagged
+    /// needs proof from two directions; rules alone flag an item only before
+    /// any model has looked. Everything else is Check this. server/accuracy-model.js verdict, rule for rule.
     static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled,
                       oath: Bool = false) -> AccuracyGrade {
         let severe: Bool = (f["rule_severe"] ?? 0) > 0
@@ -354,8 +358,9 @@ enum AccuracyModel {
         // every voter, from three families, judged it wrong
         if !question && (f["flag_families"] ?? 0) >= need && (f["flag_frac"] ?? 0) == 1 && p < w.thresholds.flagged { return .flagged }
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
-        // every item needs the literature or its own lecture behind it
-        let backed: Bool = (f["ev_support"] ?? 0) > 0 || (f["source_match"] ?? 0) >= oathSourceMatch
+        // every item needs an official source stating it word for word (the
+        // owner: "they need to be PROVEN 99.999% right", 7 Oct)
+        let backed: Bool = (f["source_proof"] ?? 0) == 1
         let independent: Bool = (f["families"] ?? 0) >= need
         // no voter raised a concern or read the literature against it, and
         // no sensor fired, however mildly
