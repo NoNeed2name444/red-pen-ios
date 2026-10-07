@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createState, createApi, createController, createRecords, bktUpdate, createBKT, classifyIntent, renderEvidence, generateMCQ} from "../app/main.js";
+import {eligibleManifest} from "../app/annotation.js";
 
 test("caller routing, isolated state and absent transport", async () => {
   const state = createState(["synthetic-route"]);
@@ -21,6 +22,24 @@ test("older asynchronous responses cannot replace newer state", async () => {
   resolveOld({status: "external_result", data: "old"});
   assert.equal(await old, false);
   assert.equal(state.snapshot().data, "new");
+});
+
+test("state publishes isolated changes and unsubscribes", () => {
+  const state = createState(["fixture"]), changes = [];
+  const unsubscribe = state.subscribe(snapshot => { changes.push(snapshot.status); snapshot.data = "modified"; });
+  state.navigate("fixture");
+  const token = state.begin(), response = {status: "external_result", data: {fixture: "original"}};
+  state.complete(token, response); response.data.fixture = "changed";
+  assert.equal(state.snapshot().data.fixture, "original");
+  assert.deepEqual(changes, ["idle", "loading", "external_result"]);
+  unsubscribe(); state.begin(); assert.equal(changes.length, 3);
+});
+
+test("annotation eligibility rechecks exact caller item attestations", () => {
+  const record = {manifest_id: "__proto__", item_id: "fixture", exclusion_flags: [], license: {id: "CC-BY-4.0", verified: true, scope: "item", item_id: "fixture", evidence: [{item_id: "fixture", url: "https://example.invalid/fixture", terms: "Synthetic attestation"}]}};
+  assert.equal(eligibleManifest(record), true);
+  for (const license of [null, {...record.license, id: "CC-BY-NC"}, {...record.license, scope: "source"}, {...record.license, item_id: "other"}, {...record.license, evidence: []}, {...record.license, evidence: [{item_id: "fixture", url: "", terms: "fixture"}]}]) assert.equal(eligibleManifest({...record, license}), false);
+  assert.equal(eligibleManifest({...record, exclusion_flags: ["excluded"]}), false);
 });
 
 test("caller-configured record access is read-only and checks exact IDs", async () => {

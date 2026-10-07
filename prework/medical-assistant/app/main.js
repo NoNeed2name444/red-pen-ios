@@ -4,17 +4,26 @@ export function createState(routes = []) {
   if (!Array.isArray(routes) || routes.some(route => typeof route !== "string" || !route) || new Set(routes).size !== routes.length) throw Error("Invalid caller routes");
   let revision = 0;
   let current = {route: null, status: "idle", data: null, error: null};
+  const listeners = new Set();
+  const publish = () => { for (const listener of listeners) listener(structuredClone(current)); };
   return {
     snapshot: () => structuredClone(current),
+    subscribe(listener) {
+      if (typeof listener !== "function") throw Error("State listener required");
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
     navigate(route) {
       if (!routes.includes(route)) throw Error("Unknown caller route");
       revision += 1;
       current = {route, status: "idle", data: null, error: null};
+      publish();
     },
-    begin() { revision += 1; current = {...current, status: "loading", error: null}; return revision; },
+    begin() { revision += 1; current = {...current, status: "loading", error: null}; const token = revision; publish(); return token; },
     complete(token, result) {
       if (token !== revision) return false;
-      current = {...current, status: result.status, data: result.data ?? null, error: result.error ?? null};
+      current = structuredClone({...current, status: result.status, data: result.data ?? null, error: result.error ?? null});
+      publish();
       return true;
     },
   };
@@ -203,21 +212,32 @@ export function createController(state, api) {
   };
 }
 
-export function mountShell(root, {routes = [], transport = null} = {}) {
+export function mountShell(root, {routes = [], transport = null, render = null} = {}) {
+  if (!root || !Array.isArray(routes) || routes.some(route => !route || typeof route !== "object")) throw Error("Shell root and caller routes required");
+  if (render !== null && typeof render !== "function") throw Error("Caller renderer must be a function");
   const state = createState(routes.map(route => route.id));
   const api = createApi(transport);
   const controller = createController(state, api);
   const navigation = root.querySelector("[data-routes]");
   const status = root.querySelector("[data-status]");
+  const content = root.querySelector("[data-content]");
+  if (!navigation || !status || !content) throw Error("Shell navigation, status and content elements required");
+  const update = snapshot => {
+    status.textContent = snapshot.status;
+    if (render) render(content, snapshot);
+    else content.textContent = snapshot.data === null ? "" : JSON.stringify(snapshot.data);
+  };
+  const unsubscribe = state.subscribe(update);
   const buttons = routes.map(route => {
     const button = root.ownerDocument.createElement("button");
     button.type = "button";
     button.textContent = route.label ?? route.id;
-    button.onclick = () => { state.navigate(route.id); status.textContent = state.snapshot().status; };
+    button.onclick = () => state.navigate(route.id);
     return button;
   });
   navigation.replaceChildren(...buttons);
-  return {state, api, controller};
+  update(state.snapshot());
+  return {state, api, controller, destroy() { unsubscribe(); for (const button of buttons) button.onclick = null; }};
 }
 
 if (typeof document !== "undefined") {
