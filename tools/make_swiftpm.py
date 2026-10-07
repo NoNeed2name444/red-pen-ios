@@ -81,7 +81,11 @@ CORE_DROP = [
     "Shared/PreviewExtras.swift",
 ]
 CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
-             "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift"]
+             "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift",
+             # Foundation only, shared by Settings and the Ideas map (the map itself stays out)
+             "GraphLineStyle.swift", "GraphicsQuality.swift",
+             # Foundation only: the core home's countdown and greeting (CoreLibrary.swift)
+             "WardWords.swift"]
 # The add-back order (playgrounds_stubs/README.md): each step puts one part of
 # CORE_DROP back into the core, as its own chunk, to find the iPad's ceiling
 # one zip at a time. core1 = the core plus step 1: lecture audio, the spoken
@@ -111,6 +115,35 @@ STEP2_BACK = [
 ]
 assert all(p in CORE1_DROP for p in STEP2_BACK), "STEP2_BACK names a path core1 does not drop"
 CORE2_DROP = [p for p in CORE1_DROP if p not in STEP2_BACK]
+# core3 = core2 plus step 3: the full shell, sessions, stats, editors and
+# sync. Ward Round's home (WardHome, merged after this ladder was measured)
+# builds today's beds from BedPlan, ExamWeekPlanner, RhythmReading and
+# WardWords, and opens the exam plan through LearnRouter, whose sheet is
+# Features/Learn. Those come back with the shell: a stand-in bed plan would
+# be a home that cannot plan a round. The core's own entry point and library
+# (CoreApp, CoreLibrary) are not copied in, and neither are the stand-ins
+# for SyncEngine, LinkDeviceView and ModelSettingsView, which the real files
+# replace.
+STEP3_BACK = [
+    "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift",
+    "Shared/SyncAPI.swift", "Shared/SyncRules.swift", "Shared/SyncMerge.swift",
+    "Features/Library/StatsView.swift", "Features/Library/CustomSessionSheet.swift",
+    "Features/Library/LibrarySearchResults.swift", "Features/Library/LibrarySearchModel.swift",
+    "Features/Library/CardEditSheets.swift", "Features/Library/CardsEditorView.swift",
+    "Features/Library/TagChips.swift", "Features/Library/LibraryView.swift",
+    "Features/Library/StudyCategory.swift", "Features/Library/LibraryRows.swift",
+    "Features/Library/CategoryShelves.swift", "Features/Library/CategoryPages.swift",
+    "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift",
+    "Features/Library/WardHome.swift",
+    "Shared/CustomSession.swift", "Shared/LibrarySearch.swift", "Shared/PreviewExtras.swift",
+    "RedPenApp.swift",
+    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/PlatformSettingsSection.swift", "Features/Support/StudyReminderSettings.swift",
+    "Features/Auth/LinkDeviceView.swift",
+    "Shared/Learn", "Features/Learn",
+]
+assert all(p in CORE2_DROP for p in STEP3_BACK), "STEP3_BACK names a path core2 does not drop"
+CORE3_DROP = [p for p in CORE2_DROP if p not in STEP3_BACK]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
     # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
@@ -119,9 +152,13 @@ CHUNKS = {
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
     # the core shell (core/) plus the variant's own piece: stand-ins for the
     # step-1 parts (core-audio-out) or the ways into them (core-audio-in)
-    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-out", "core-exports-out"]),
-    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in", "core-exports-out"]),
-    "core2": (CORE2_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-audio-in", "core-exports-in"]),
+    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-out", "core-exports-out"]),
+    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-in", "core-exports-out"]),
+    "core2": (CORE2_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-in", "core-exports-in"]),
+    # the real shell replaces CoreApp and CoreLibrary, so only the shared
+    # stand-ins are copied, plus the gaps the returning shell still names
+    "core3": (CORE3_DROP, CORE_KEEP, ["graph3d.swift", "lens.swift", "analytics.swift",
+                                      "core/CoreStandIns.swift", "core/CoreIdeas.swift", "core3"]),
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"

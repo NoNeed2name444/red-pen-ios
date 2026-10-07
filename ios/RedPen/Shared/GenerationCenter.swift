@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The one piece of generation running right now, shown as a floating card
-/// with a ring for how much is done and a Cancel that really stops it.
+/// with a strip for how much is done and a Cancel that really stops it.
 ///
 /// Every generator (MCQs, stations, cards, pages) reports here instead of
 /// drawing its own spinner, so there is one progress display and one cancel
@@ -16,8 +16,19 @@ final class GenerationCenter: ObservableObject {
         var done: Int
         var total: Int
         var phase: String?
+        /// When it began, for the time-left estimate.
+        var started: Date = Date()
 
         var fraction: Double { total > 0 ? min(1, Double(done) / Double(total)) : 0 }
+
+        /// Seconds left at the pace so far; nil until there is a pace to go on.
+        func secondsLeft(now: Date = Date()) -> Int? {
+            guard done > 0, total > done else { return nil }
+            let elapsed: Double = now.timeIntervalSince(started)
+            guard elapsed >= 5 else { return nil }
+            let perItem: Double = elapsed / Double(done)
+            return Int((perItem * Double(total - done)).rounded())
+        }
     }
 
     @Published private(set) var job: Job?
@@ -51,7 +62,7 @@ final class GenerationCenter: ObservableObject {
         // job to finish when the app can tell it was the system (stopAtExpiry).
         guard GenerationRules.admit(running: job?.title) == .start else { return nil }
         let id = UUID()
-        job = Job(id: id, title: title, done: 0, total: total, phase: nil)
+        job = Job(id: id, title: title, done: 0, total: total, phase: nil, started: Date())
         stop = onCancel
         keep = delivery
         self.owner = owner
@@ -115,10 +126,11 @@ final class GenerationCenter: ObservableObject {
     }
 }
 
-/// The floating card: a ring filling as the work gets done, what is being
-/// written, how many of how many, and Cancel - the one way to stop it.
+/// The floating card: the ECG loader while the work runs, what is being
+/// written, how many of how many and about how long is left, a strip filling
+/// as it gets done, and Cancel - the one way to stop it.
 ///
-/// A floating glass slab standing out of the screen, at the bottom where the
+/// A white card at the bottom where the
 /// thumb is. A screen with its own bottom slab (New set) shows this in place
 /// of that slab while a job runs; any other screen uses `generationHUD()`.
 struct GenerationHUD: View {
@@ -144,27 +156,29 @@ private struct GenerationCard: View {
     let cancel: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        HStack(spacing: 16) {
-            GenerationRing(fraction: job.fraction)
-            GenerationLines(job: job)
-            Spacer(minLength: 8)
-            Button(role: .destructive, action: cancel) {
-                Text("Cancel").font(.subheadline.weight(.semibold))
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        VStack(alignment: .leading, spacing: WardSpace.m) {
+            HStack(spacing: WardSpace.m) {
+                EcgLoader()
+                GenerationLines(job: job)
+                Spacer(minLength: 8)
+                Button(role: .destructive, action: cancel) {
+                    Text("Cancel")
+                }
+                .buttonStyle(.wardCompact)
+                .accessibilityIdentifier("cancelGeneration")
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .hoverEffect(.highlight)
-            .accessibilityIdentifier("cancelGeneration")
+            GenerationProgress(fraction: job.fraction)
         }
         .padding(14)
-        .liquidGlassPanel(cornerRadius: 20)
-        .popOut(.floating, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
     }
 }
 
-/// How much is done, as a ring with the percentage in it.
-private struct GenerationRing: View {
+/// How much is done, as the amber strip with the percentage beside it.
+private struct GenerationProgress: View {
     let fraction: Double
 
     var body: some View {
@@ -172,24 +186,20 @@ private struct GenerationRing: View {
         let percent: Int = Int(scaled)
         let shown: String = "\(percent)%"
         let spoken: String = "\(percent) percent done"
-        let line = StrokeStyle(lineWidth: 6, lineCap: .round)
-        ZStack {
-            Circle().stroke(.quaternary, lineWidth: 6)
-            Circle()
-                .trim(from: 0, to: fraction)
-                .stroke(Color.accentColor, style: line)
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.4), value: fraction)
+        HStack(spacing: WardSpace.s) {
+            EcgStrip(progress: fraction)
             Text(shown)
-                .font(.caption.weight(.semibold).monospacedDigit())
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInk)
+                .contentTransition(.numericText())
         }
-        .frame(width: 52, height: 52)
-        .accessibilityElement()
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)
     }
 }
 
-/// What is being written, and how many of how many.
+/// What is being written, how many of how many, and about how long is left.
 private struct GenerationLines: View {
     let job: GenerationCenter.Job
 
@@ -200,14 +210,32 @@ private struct GenerationLines: View {
         return "\(done) \u{00B7} \(left) left"
     }
 
+    /// "~2 min left", "<1 min left"; nil until there is a pace to go on.
+    private var timeLeft: String? {
+        guard let seconds = job.secondsLeft() else { return nil }
+        if seconds < 60 { return "<1 min left" }
+        let minutes: Int = (seconds + 30) / 60
+        return "~\(minutes) min left"
+    }
+
     var body: some View {
         let counted: String = counts
         VStack(alignment: .leading, spacing: 2) {
-            Text(job.title).font(.subheadline.weight(.semibold)).lineLimit(1)
-            Text(counted)
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            Text(job.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
+                .lineLimit(1)
+            HStack(spacing: 6) {
+                Text(counted)
+                if let timeLeft {
+                    Text("\u{00B7} \(timeLeft)")
+                }
+            }
+            .font(.system(.caption, design: .monospaced))
+            .monospacedDigit()
+            .foregroundStyle(Color.wardInkSecondary)
             if let phase = job.phase {
-                Text(phase).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                Text(phase).font(.caption2).foregroundStyle(Color.wardInkSecondary).lineLimit(1)
             }
         }
     }

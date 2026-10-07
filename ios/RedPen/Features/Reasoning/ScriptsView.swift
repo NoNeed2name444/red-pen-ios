@@ -27,9 +27,8 @@ struct ScriptsView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if scripts.isEmpty {
-                        Text("No scripts yet. Write them from this set\u{2019}s lecture below.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
+                        WardEmptyState(symbol: "doc.text.magnifyingglass", title: "No scripts yet",
+                                       message: "Write them from this set\u{2019}s lecture below.")
                             .padding(.top, 30)
                     }
                     ForEach(scripts) { script in
@@ -52,7 +51,7 @@ struct ScriptsView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .overlay(alignment: .top) {
             if let savedMessage {
                 SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
@@ -105,7 +104,7 @@ struct ScriptsView: View {
                 } label: {
                     Label("Save all to Ideas", systemImage: "lightbulb")
                 }
-                .buttonStyle(.bigSecondary)
+                .buttonStyle(.wardSecondary)
                 .accessibilityHint("Keeps every script here as a page in Ideas, with lookalikes linked")
             }
         }
@@ -148,25 +147,26 @@ struct ScriptsView: View {
     }
 }
 
-/// "Saved to Ideas", for two seconds, at the top: a glass slip that stands a
-/// little out of the screen and does not stop anything. A tap puts it away.
+/// "Saved to Ideas", for two seconds, at the top: a white slip that does not
+/// stop anything. A tap puts it away.
 private struct SavedToIdeasToast: View {
     let message: String
     let onDismiss: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
                 .font(.title3)
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.wardBeam)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Saved to Ideas")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
@@ -174,8 +174,9 @@ private struct SavedToIdeasToast: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: 520)
-        .liquidGlassPanel(cornerRadius: 18)
-        .popOut(.raised, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .contentShape(shape)
         .onTapGesture(perform: onDismiss)
         .accessibilityElement(children: .combine)
@@ -195,10 +196,9 @@ struct ScriptCard: View {
     let onJump: (String) -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
-                Text(script.disease).font(.title3.weight(.bold))
+                Text(script.disease).font(WardType.title).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 saveButton
             }
@@ -226,33 +226,32 @@ struct ScriptCard: View {
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: shape)
+        .wardCard()
     }
 
-    /// Save to Ideas as a 44-point icon on a frosted disc that stands out of
-    /// the card and sinks under the finger: a lightbulb, or a tick once it is
-    /// there.
+    /// Save to Ideas as a 44-point icon on a white disc with a hairline: a
+    /// lightbulb, or a tick once it is there.
     private var saveButton: some View {
         let symbol: String = saved ? "checkmark.circle.fill" : "lightbulb"
         let title: String = saved ? "In Ideas \u{2014} save again" : "Save to Ideas"
-        let colour: Color = saved ? Color.green : Color.accentColor
+        let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
         return Button(action: onSave) {
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(colour)
                 .frame(width: 44, height: 44)
-                .background(.regularMaterial, in: Circle())
+                .background(Color.wardSurface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
+                .contentShape(Circle())
         }
-        // a 22-point corner on a 44-point face is a circle
-        .buttonStyle(PopTileStyle(cornerRadius: 22))
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .help(title)
         .accessibilityLabel(title)
     }
 
-    /// A lookalike with a card on this screen is a glass chip standing out of
-    /// the card; one without sits flat, since it goes nowhere.
+    /// A lookalike with a card on this screen is a Theatre Blue chip; one
+    /// without is grey, since it goes nowhere.
     private func lookalikeChip(_ name: String) -> some View {
         let here: Bool = jumpable.contains(name.lowercased())
         return Button {
@@ -270,7 +269,7 @@ struct ScriptCard: View {
     private func heading(_ symbol: String, _ title: String) -> some View {
         Label(title, systemImage: symbol)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
     }
 
     @ViewBuilder
@@ -280,6 +279,7 @@ struct ScriptCard: View {
                 heading(symbol, title)
                 Text(text)
                     .font(strong ? .subheadline.weight(.semibold) : .subheadline)
+                    .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -292,8 +292,9 @@ struct ScriptCard: View {
                 heading(symbol, title)
                 ForEach(items, id: \.self) { item in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\u{2022}").foregroundStyle(.secondary)
-                        Text(item).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                        Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
+                        Text(item).font(.subheadline).foregroundStyle(Color.wardInk)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -301,8 +302,8 @@ struct ScriptCard: View {
     }
 }
 
-/// One lookalike's face: raised glass when it jumps to a card here, a flat
-/// grey capsule when it does not.
+/// One lookalike's face: Theatre Blue on a wash when it jumps to a card
+/// here, grey when it does not.
 private struct LookalikeChipFace: View {
     let name: String
     let here: Bool
@@ -313,9 +314,13 @@ private struct LookalikeChipFace: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         if here {
-            words.liquidGlassChip(tint: nil, plane: .raised)
+            words
+                .foregroundStyle(Color.wardPrimaryInk)
+                .background(Capsule().fill(Color.wardPrimary.opacity(0.12)))
         } else {
-            words.background(Capsule().fill(Color.secondary.opacity(0.12)))
+            words
+                .foregroundStyle(Color.wardInkSecondary)
+                .background(Capsule().fill(Color.wardHairline))
         }
     }
 }

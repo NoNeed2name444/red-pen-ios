@@ -20,13 +20,13 @@ struct SymptomBlocksView: View {
         List {
             Section {
                 Text("Questions from every set that start from the same complaint, mixed, so you learn to tell the lookalikes apart the way the exam asks.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
             if let last { mixUps(last.block, since: last.started) }
             if ready.isEmpty {
                 Section {
                     Text("No complaint has enough questions yet: a block needs \(SymptomBlocks.minimumQuestions) questions with at least \(SymptomBlocks.minimumCauses) different answers.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
             } else {
                 Section("Blocks") {
@@ -39,6 +39,7 @@ struct SymptomBlocksView: View {
                 }
             }
         }
+        .wardForm()
         .navigationTitle("Symptom blocks")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $quiz) { MCQQuizView(set: $0, keepsProgress: false) }
@@ -57,20 +58,16 @@ struct SymptomBlocksView: View {
             quiz = store.symptomQuiz(block)
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: p.symbol)
-                    .font(.title3)
-                    .foregroundStyle(.tint)
-                    .frame(width: 32)
-                    .accessibilityHidden(true)
+                WardIconSquare(symbol: p.symbol, size: 36)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(p.blockTitle).font(.body.weight(.semibold)).foregroundStyle(.primary)
+                    Text(p.blockTitle).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     Text("\(shown) questions \u{00B7} \(block.causes) different answers")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
                     Text(lookalikes + "\u{2026}")
-                        .font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(1)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "play.fill").font(.caption).foregroundStyle(.tint).accessibilityHidden(true)
+                Image(systemName: "play.fill").font(.caption).foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
             }
             .frame(minHeight: 56)
             .contentShape(Rectangle())
@@ -83,10 +80,11 @@ struct SymptomBlocksView: View {
         let p: SymptomBlocks.Presentation = block.presentation
         let plural: String = block.ids.count == 1 ? "" : "s"
         return HStack(spacing: 14) {
-            Image(systemName: p.symbol).foregroundStyle(.secondary).frame(width: 32).accessibilityHidden(true)
-            Text(p.name)
+            WardIconSquare(symbol: p.symbol, tone: .grey, size: 32)
+            Text(p.name).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
-            Text("\(block.ids.count) question\(plural)").font(.caption).foregroundStyle(.secondary)
+            Text("\(block.ids.count) question\(plural)").font(.system(.caption, design: .monospaced))
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(minHeight: 44)
     }
@@ -102,9 +100,10 @@ struct SymptomBlocksView: View {
             let right: Int = events.filter(\.correct).count
             Section {
                 Text("\(right) of \(events.count) right")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 if rows.isEmpty {
-                    Text("No mix-ups this time.").font(.subheadline).foregroundStyle(.secondary)
+                    Text("No mix-ups this time.").font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(rows.prefix(6)) { row in confusionRow(row) }
             } header: {
@@ -128,11 +127,13 @@ struct SymptomBlocksView: View {
 
     private func confusionRow(_ row: SymptomBlocks.Confusion) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(row.picked).foregroundStyle(.secondary).strikethrough()
-            Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary).accessibilityHidden(true)
-            Text(row.actual).fontWeight(.semibold)
+            Text(row.picked).foregroundStyle(Color.wardInkSecondary).strikethrough()
+            Image(systemName: "arrow.right").font(.caption).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
+            Text(row.actual).fontWeight(.semibold).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
-            if row.count > 1 { Text("\u{00D7}\(row.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
+            if row.count > 1 {
+                Text("\u{00D7}\(row.count)").font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+            }
         }
         .font(.subheadline)
         .accessibilityElement(children: .ignore)

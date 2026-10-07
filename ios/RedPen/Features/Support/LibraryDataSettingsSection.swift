@@ -107,11 +107,15 @@ struct LibraryDataSettingsSection: View {
         let date: Date? = lastBackupStamp > 0 ? Date(timeIntervalSince1970: lastBackupStamp) : nil
         let stale: Bool = date.map { Date().timeIntervalSince($0) > 14 * 86_400 } ?? true
         let value: String = date.map { $0.formatted(.relative(presentation: .named)) } ?? "Never"
+        let tone: WardTone = stale ? .warning : .green
         return LabeledContent {
-            Text(value)
-                .foregroundStyle(stale ? Color.orange : Color.secondary)
+            WardChip(text: value, tone: tone, symbol: stale ? "exclamationmark.triangle.fill" : "checkmark")
         } label: {
-            Label("Last backup", systemImage: stale ? "exclamationmark.triangle" : "checkmark.shield")
+            Label {
+                Text("Last backup")
+            } icon: {
+                Image(systemName: stale ? "exclamationmark.triangle" : "checkmark.shield").foregroundStyle(tone.color)
+            }
         }
         .accessibilityElement(children: .combine)
     }
@@ -121,7 +125,7 @@ struct LibraryDataSettingsSection: View {
             HStack {
                 Label(working == work ? work.rawValue : title, systemImage: symbol)
                 Spacer(minLength: 8)
-                if working == work { ProgressView() }
+                if working == work { EcgLoader() }
             }
         }
         .disabled(working != nil)

@@ -553,8 +553,8 @@ struct AnalyticsView: View {
     private func focusSection(_ items: [FocusItem], sparks: [String: [SparkPoint]]) -> some View {
         Section {
             if items.isEmpty {
-                ContentUnavailableView("Nothing to focus on yet", systemImage: "scope",
-                                       description: Text("Make an MCQ set and answer a few questions. The most useful next steps will show here, best first."))
+                WardEmptyState(symbol: "scope", title: "Nothing to focus on yet",
+                               message: "Make an MCQ set and answer a few questions. The most useful next steps will show here, best first.")
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     let spark: [SparkPoint] = item.subject.flatMap { sparks[$0] } ?? []
@@ -607,8 +607,8 @@ struct AnalyticsView: View {
     private func trendsSection(_ s: AnalyticsSnapshot) -> some View {
         Section {
             if s.weeks.isEmpty {
-                ContentUnavailableView("No trends yet", systemImage: "chart.xyaxis.line",
-                                       description: Text("Answer questions on a few different days and your weekly accuracy and daily practice will show here."))
+                WardEmptyState(symbol: "chart.xyaxis.line", title: "No trends yet",
+                               message: "Answer questions on a few different days and your weekly accuracy and daily practice will show here.")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Accuracy by week").font(.subheadline.weight(.semibold))
@@ -675,8 +675,9 @@ struct AnalyticsView: View {
             : s.wrong.filter { Store.subjectName($0.pick.set) == mistakeSubject }
         Section {
             if s.wrong.isEmpty && s.shares.isEmpty && s.calibration.isEmpty {
-                ContentUnavailableView("No mistakes yet", systemImage: "checkmark.seal",
-                                       description: Text("Questions you get wrong, and the reasons you give for them, will show here."))
+                WardEmptyState(symbol: "checkmark.seal", title: "No mistakes yet",
+                               message: "Questions you get wrong, and the reasons you give for them, will show here.",
+                               tone: .green)
             } else {
                 if !s.shares.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -791,8 +792,8 @@ struct AnalyticsView: View {
     private func subjectsSection(_ s: AnalyticsSnapshot) -> some View {
         Section {
             if s.stats.isEmpty {
-                ContentUnavailableView("No subjects yet", systemImage: "books.vertical",
-                                       description: Text("Make an MCQ set and each subject you study will show here with its accuracy."))
+                WardEmptyState(symbol: "books.vertical", title: "No subjects yet",
+                               message: "Make an MCQ set and each subject you study will show here with its accuracy.")
                     .id(AnalyticsAnchor.subjectsEmpty)
             } else {
                 ForEach(s.stats) { subject in
@@ -880,12 +881,12 @@ struct AnalyticsView: View {
                        symbol: "chart.bar.fill", color: Color.wardSuccess)
             }
             .padding(.vertical, 4)
-            StudyHeatmap(counts: s.dayCounts)
+            StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed, focusDays: Set(log.minutes.keys))
                 .padding(.vertical, 6)
         } header: {
             Text("Time")
         } footer: {
-            Text("The average is over the days in the last 30 you studied at all. The calendar is the last 12 weeks, a column a week, today outlined.")
+            Text("The average is over the days in the last 30 you studied at all. The calendar is the last 12 weeks, a column a week, today outlined; a moon marks a rest day that kept your streak.")
         }
     }
 

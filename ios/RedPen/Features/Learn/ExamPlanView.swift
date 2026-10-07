@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// The exam plan: where the run-up stands, what the student would remember
-/// on the day, the next two weeks of reviews, how much is locked in per
-/// subject, and what this phase asks for.
+/// The exam plan: where the run-up stands, today's goal and a ward round,
+/// what the student would remember on the day, the next two weeks of
+/// reviews, how much is locked in per subject, and what this phase asks for.
 ///
-/// Opened from Mission Control's "Plan". Everything on it is an estimate
+/// Opened from Today's ward round's "Plan". Everything on it is an estimate
 /// from the app's own schedule and answer history, and it says so.
 struct ExamPlanView: View {
     @EnvironmentObject private var store: Store
@@ -23,6 +23,20 @@ struct ExamPlanView: View {
         let rings: [SecuredRule.Ring] = SecuredRule.rings(subjects: store.questionSubjects(), standings: standings)
         List {
             Section { PhaseHero(phase: phase) }
+            // the streak, the goal ring and a ward round (WardRoundView.swift)
+            Section {
+                TodayGoalRow()
+            } header: {
+                Text("Today")
+            } footer: {
+                Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
+            }
+            // the tile is its own card, so no list row behind it
+            Section {
+                WardRoundTile()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            }
             // the chosen exam: countdown, blueprint coverage, readiness, study next
             Section {
                 ExamDashboardCard()
@@ -54,6 +68,7 @@ struct ExamPlanView: View {
                 Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")
             }
         }
+        .wardForm()
         .navigationTitle("Exam plan")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $quiz) { MCQQuizView(set: $0, keepsProgress: false) }
@@ -71,7 +86,7 @@ struct ExamPlanView: View {
     private func phaseActions(_ phase: ExamWeekPlanner.Phase) -> some View {
         Text(phase.advice)
             .font(.subheadline)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
         if phase.holdsNewMaterial {
             let confident: Int = store.confidentMistakePicks.count
@@ -101,7 +116,7 @@ struct ExamPlanView: View {
     }
 
     /// The real mock paper (Features/Mock), pushed here. It counts as sat -
-    /// and the lift-off button stops offering it - only once a sitting is
+    /// and the start button stops offering it - only once a sitting is
     /// finished (ExamStore.mocks, read by LearnMarks.mockDone).
     private func startMock() {
         showingMock = true
@@ -109,15 +124,8 @@ struct ExamPlanView: View {
 
     private func planRow(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: symbol).foregroundStyle(.tint).frame(width: 24).accessibilityHidden(true)
-                Text(title).foregroundStyle(.primary)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
-            }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            WardRow(symbol: symbol, title: title)
+                .frame(minHeight: 44)
         }
         .buttonStyle(.borderless)
     }
@@ -131,11 +139,12 @@ private struct PhaseHero: View {
         let big: String = phase.days.map { $0 == 0 ? "Today" : "T-\($0)" } ?? "\u{2014}"
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(big)
-                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 40, weight: .bold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(Color.wardInk)
             VStack(alignment: .leading, spacing: 2) {
-                Text(phase.headline).font(.headline)
+                Text(phase.headline).font(.headline).foregroundStyle(Color.wardInk)
                 if phase == .noDate {
-                    Text("Set it in Settings \u{2192} Your exam.").font(.caption).foregroundStyle(.secondary)
+                    Text("Set it in Settings \u{2192} Your exam.").font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
@@ -154,7 +163,7 @@ private struct ForecastCard: View {
         VStack(alignment: .leading, spacing: 8) {
             if forecast.studied == 0 {
                 Text("Review some cards and a forecast of what you would remember on the day will show here.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             } else {
                 filled
             }
@@ -167,11 +176,12 @@ private struct ForecastCard: View {
         let today: String = RetentionForecast.percent(forecast.today)
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("~" + today)
-                .font(.system(size: 36, weight: .bold, design: .rounded).monospacedDigit())
-            Text("if your exam were today").font(.subheadline).foregroundStyle(.secondary)
+                .font(.system(size: 36, weight: .bold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(Color.wardInk)
+            Text("if your exam were today").font(.subheadline).foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .combine)
-        ThinProgress(fraction: forecast.today)
+        WardProgressBar(value: forecast.today, label: "Remembered if your exam were today")
         if phase.days != nil && phase != .examDay {
             let onDay: String = RetentionForecast.percent(forecast.onExamDay)
             Text("On exam day with no more reviews: ~\(onDay).")
@@ -182,7 +192,7 @@ private struct ForecastCard: View {
         if forecast.unseen > 0 {
             let plural: String = forecast.unseen == 1 ? "" : "s"
             Text("\(forecast.unseen) card\(plural) not yet studied are not in these figures.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -213,9 +223,9 @@ private struct DueBars: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(total) cards due over the next two weeks, \(counts.first ?? 0) today")
             HStack {
-                Text("Today").font(.caption2).foregroundStyle(.secondary)
+                Text("Today").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 Spacer()
-                Text("+13 days").font(.caption2).foregroundStyle(.secondary)
+                Text("+13 days").font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 4)
@@ -225,7 +235,7 @@ private struct DueBars: View {
         let share: CGFloat = CGFloat(count) / CGFloat(top)
         let height: CGFloat = max(3, 64 * share)
         let isExam: Bool = examDay == day
-        let fill: Color = isExam ? Color.red : StudySetKind.anki.tint
+        let fill: Color = isExam ? Color.wardEcg : Color.wardPrimary
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             Capsule().fill(fill.opacity(count == 0 ? 0.25 : 1)).frame(height: height)
@@ -241,12 +251,14 @@ struct SecuredRingsView: View {
     var body: some View {
         if rings.isEmpty {
             Text("Answer some questions and each subject gets a ring here.")
-                .font(.subheadline).foregroundStyle(.secondary)
+                .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
         } else {
             let secured: Int = rings.reduce(0) { $0 + $1.secured }
             let total: Int = rings.reduce(0) { $0 + $1.total }
             Text("\(secured) of \(total) questions locked in")
                 .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInk)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 12)], spacing: 16) {
                 ForEach(rings) { ring in SubjectRing(ring: ring) }
             }
@@ -262,10 +274,10 @@ private struct SubjectRing: View {
         let total: Double = Double(max(1, ring.total))
         let secured: Double = Double(ring.secured) / total
         let building: Double = Double(ring.secured + ring.building) / total
-        let tint: Color = StudySetKind.mcq.tint
+        let tint: Color = Color.wardPrimary
         VStack(spacing: 6) {
             ZStack {
-                Circle().stroke(Color.primary.opacity(0.08), lineWidth: 7)
+                Circle().stroke(Color.wardHairline, lineWidth: 7)
                 Circle().trim(from: 0, to: building)
                     .stroke(tint.opacity(0.3), style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
@@ -273,11 +285,14 @@ private struct SubjectRing: View {
                     .stroke(tint, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Text(RetentionForecast.percent(secured))
-                    .font(.caption.weight(.bold).monospacedDigit())
+                    .font(.system(.caption, design: .monospaced).weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInk)
             }
             .frame(width: 60, height: 60)
-            Text(ring.subject).font(.caption).lineLimit(2).multilineTextAlignment(.center)
-            Text("\(ring.secured)/\(ring.total)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+            Text(ring.subject).font(.caption).lineLimit(2).multilineTextAlignment(.center).foregroundStyle(Color.wardInk)
+            Text("\(ring.secured)/\(ring.total)").font(.system(.caption2, design: .monospaced))
+                .monospacedDigit().foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(ring.subject): \(ring.secured) of \(ring.total) locked in, \(ring.building) on their way")

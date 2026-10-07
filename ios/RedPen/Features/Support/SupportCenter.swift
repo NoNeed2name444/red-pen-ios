@@ -130,11 +130,8 @@ struct SupportMenuItems: View {
 
 // MARK: - Settings
 
-// Settings, How it works and the common questions have no raised control on
-// purpose. Their rows are toggles, pickers and reading, and rows sit on the
-// SCREEN plane by design (see PopOut.swift): only something you press to
-// act - a bar, a tile, a big button - stands out of the glass. The mesh
-// backdrop behind each list is the deep plane, so the layering still reads.
+// Settings, How it works and the common questions are plain Ward Round
+// forms: white rows on the ECG grid, small-caps headers, no raised control.
 
 /// How the app looks and behaves, the exam it writes for, and where the AI
 /// models are chosen.
@@ -145,6 +142,7 @@ struct SettingsPage: View {
     @EnvironmentObject private var store: Store
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
+    @AppStorage(DailyGoal.key) private var dailyGoal: Int = 50
     @AppStorage(PopOutSettings.enabledKey) private var popOut = true
     @AppStorage(PopOutSettings.faceKey) private var face = false
     @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
@@ -183,9 +181,7 @@ struct SettingsPage: View {
             modelsSection
             versionSection
         }
-        .scrollContentBackground(.hidden)
-        .skyScroll()
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
@@ -230,7 +226,7 @@ struct SettingsPage: View {
                     Text("Link length")
                     Spacer()
                     Text(GraphLinkLength.word(linkLength))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 Slider(value: linkLengthBinding, in: GraphLinkLength.shortest...GraphLinkLength.longest,
                        step: GraphLinkLength.step) {
@@ -379,6 +375,9 @@ struct SettingsPage: View {
         Section {
             Toggle("Ask before deleting a set", isOn: $confirmDelete)
             Toggle("Open the last set on launch", isOn: $openLastSet)
+            Stepper("Daily goal: \(dailyGoal) a day", value: $dailyGoal, in: DailyGoal.range, step: 10)
+                .monospacedDigit()
+                .accessibilityIdentifier("dailyGoalStepper")
         } header: {
             Text("Study")
         } footer: {
@@ -440,8 +439,7 @@ struct HelpPage: View {
                 questionsSection
                 HelpContactSection()
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("How it works")
             .navigationBarTitleDisplayMode(.inline)
             .task { await jumpToQuestions(proxy) }
@@ -536,10 +534,10 @@ private struct HelpModeRow: View {
         HStack(alignment: .top, spacing: 12) {
             ModeTile(kind: kind, size: 34)
             VStack(alignment: .leading, spacing: 2) {
-                Text(kind.label).font(.headline)
+                Text(kind.label).font(.headline).foregroundStyle(Color.wardInk)
                 Text(detail)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 2)
@@ -551,7 +549,7 @@ private struct HelpBullet: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text("\u{2022}").foregroundStyle(.secondary)
+            Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
             Text(text).font(.footnote)
         }
     }
@@ -565,7 +563,7 @@ private struct HelpQuestionRow: View {
         DisclosureGroup {
             Text(answer)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .padding(.top, 2)
         } label: {
             Text(question).font(.subheadline.weight(.semibold))

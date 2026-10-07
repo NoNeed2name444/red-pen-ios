@@ -33,17 +33,24 @@ struct HelpContactSection: View {
                 Task { await send() }
             } label: {
                 Label(sending ? "Sending\u{2026}" : "Send", systemImage: "paperplane")
+                    .foregroundStyle(canSend ? Color.wardPrimaryInk : Color.wardInkSecondary)
             }
             .disabled(!canSend)
             .accessibilityIdentifier("contactSend")
             if let outcome {
-                Label(outcome, systemImage: "checkmark.circle")
-                    .font(.footnote)
+                Label {
+                    Text(outcome)
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
+                }
+                .font(.footnote)
             }
             if sender.waiting > 0 && outcome == nil {
-                Label("\(sender.waiting) waiting to send", systemImage: "tray.and.arrow.up")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: WardSpace.s) {
+                    WardChip(text: "\(sender.waiting) waiting to send", tone: .grey, symbol: "tray.and.arrow.up")
+                        .monospacedDigit()
+                    Spacer(minLength: 0)
+                }
             }
         } header: {
             Text("Contact us")

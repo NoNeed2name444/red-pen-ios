@@ -38,6 +38,10 @@ jobs:
           # and step 2 (imports and exports, backups, picture cards)
           - variant: core2
             without: core2
+          # step 3: the full shell, sessions, stats, editors, sync, and the
+          # learning pieces the Ward Round home calls
+          - variant: core3
+            without: core3
     steps:
       - uses: actions/checkout@v4
         with:

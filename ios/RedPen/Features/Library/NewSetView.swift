@@ -159,7 +159,7 @@ struct NewSetView: View {
     var body: some View {
         NavigationStack {
             form
-                .scrollContentBackground(.hidden)
+                .wardForm()
                 .floatingAction(id: "create", title: saveTitle, symbol: "checkmark",
                                 enabled: canCreate, run: create)
                 // the one bottom container: Back and the step's main button,
@@ -175,10 +175,6 @@ struct NewSetView: View {
                     FileReads.cancelAll()
                 }
                 .interactiveDismissDisabled(generation.job != nil)
-                .background(ModeBackdrop(kind: kind))
-                // the chosen kind's colour, for the big buttons at the bottom
-                // as much as for the backdrop
-                .tint(kind.tint)
                 .environment(\.modeTint, kind.tint)
                 // what the sections start belongs to this sheet
                 .environment(\.generationOwner, generationOwner)
@@ -267,16 +263,20 @@ struct NewSetView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Step \(step.rawValue) of 3")
-            Text(step.question)
-                .font(.title2.weight(.bold))
-                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("New admission").wardSmallCaps()
+                Text(step.question)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Color.wardInk)
+                    .accessibilityAddTraits(.isHeader)
+            }
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
     private func stepLink(after one: NewSetStep) -> some View {
         let passed: Bool = one < step
-        let fill: Color = passed ? kind.tint : Color.secondary.opacity(0.25)
+        let fill: Color = passed ? Color.wardPrimary : Color.wardHairline
         return Capsule()
             .fill(fill)
             .frame(height: 2)
@@ -285,7 +285,7 @@ struct NewSetView: View {
 
     @ViewBuilder
     private func stepDot(_ one: NewSetStep) -> some View {
-        let dot = NewSetStepDot(one: one, current: step, tint: kind.tint)
+        let dot = NewSetStepDot(one: one, current: step, tint: Color.wardPrimary)
         if one < step {
             let spoken: String = "Back to step \(one.rawValue), \(one.short)"
             // borderless, so in a Form row only the dot takes the tap
@@ -370,14 +370,14 @@ struct NewSetView: View {
         .listRowBackground(Color.clear)
     }
 
-    /// One kind of set, as a big tile standing out of the glass; the chosen
-    /// one stands higher. Tapping it chooses it and moves on.
+    /// One kind of set, as a white tile; the chosen one is edged in Theatre
+    /// Blue. Tapping it chooses it and moves on.
     private func modeTile(_ option: StudySetKind) -> some View {
         let chosen: Bool = kind == option
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        let plane: PopOutPlane = chosen ? .floating : .raised
-        let fill: AnyShapeStyle = Self.tileFill(chosen: chosen, tint: option.tint)
-        let edge: Color = chosen ? option.tint : Color.clear
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        let fill: Color = Self.tileFill(chosen: chosen)
+        let edge: Color = chosen ? Color.wardPrimary : Color.wardHairline
+        let edgeWidth: CGFloat = chosen ? 2 : 1
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button {
             withAnimation(.snappy) {
@@ -388,30 +388,33 @@ struct NewSetView: View {
             HStack(spacing: 16) {
                 ModeTile(kind: option, size: 44, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Self.plainName(option)).font(.headline)
+                    Text(Self.plainName(option)).font(.headline).foregroundStyle(Color.wardInk)
                     Text(Self.blurb(option))
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2).multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .accessibilityHidden(true)
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 2))
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: edgeWidth))
             .contentShape(shape)
+            .wardShadow()
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 16, plane: plane))
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)
     }
 
-    /// A chosen tile is washed in its colour; the others are frosted.
-    private static func tileFill(chosen: Bool, tint: Color) -> AnyShapeStyle {
-        if chosen { return AnyShapeStyle(tint.opacity(0.12)) }
-        return AnyShapeStyle(.regularMaterial)
+    /// A chosen tile is washed in Theatre Blue; the others are Clean Sheet.
+    private static func tileFill(chosen: Bool) -> Color {
+        chosen ? Color.wardPrimary.opacity(0.08) : Color.wardSurface
     }
 
     private var pathPicker: some View {
@@ -426,47 +429,49 @@ struct NewSetView: View {
 
     private func pathTile(_ option: Path) -> some View {
         let chosen: Bool = path == option
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        let plane: PopOutPlane = chosen ? .floating : .raised
-        let fill: AnyShapeStyle = Self.tileFill(chosen: chosen, tint: kind.tint)
-        let edge: Color = chosen ? kind.tint : Color.clear
-        let ink: Color = chosen ? kind.tint : Color.secondary
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        let fill: Color = Self.tileFill(chosen: chosen)
+        let edge: Color = chosen ? Color.wardPrimary : Color.wardHairline
+        let edgeWidth: CGFloat = chosen ? 2 : 1
         let mark: String = chosen ? "checkmark.circle.fill" : "circle"
+        let markInk: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button { withAnimation(.snappy) { path = option } } label: {
             HStack(spacing: 16) {
-                Image(systemName: option.symbol)
-                    .font(.title2)
-                    .frame(width: 32)
-                    .foregroundStyle(ink)
+                WardIconSquare(symbol: option.symbol, size: 40, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(option.title).font(.headline)
-                    Text(option.blurb).font(.subheadline).foregroundStyle(.secondary)
+                    Text(option.title).font(.headline).foregroundStyle(Color.wardInk)
+                    Text(option.blurb).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: mark)
                     .font(.title3)
-                    .foregroundStyle(ink)
+                    .foregroundStyle(markInk)
+                    .accessibilityHidden(true)
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 2))
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: edgeWidth))
             .contentShape(shape)
+            .wardShadow()
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 16, plane: plane))
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)
     }
 
     private var nameSection: some View {
         Section {
-            // the main field of New set: its own slab, standing out of the glass
             TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))
                 .font(.body)
-                .popFieldRow()
+                .wardField()
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
         } header: {
-            Text("Name your set")
+            WardSectionLabel("Name your set")
         }
     }
 
@@ -584,9 +589,6 @@ struct NewSetView: View {
     /// read, or why the chosen one could not be. The button that picks it is
     /// at the bottom, under the thumb.
     private var importSection: some View {
-        let message: String = importError ?? importSource.help
-        let ink: Color = importError == nil ? Color.secondary : Color.red
-        let symbol: String = importError == nil ? importSource.symbol : "exclamationmark.triangle"
         return Section {
             Picker("From", selection: $importSource) {
                 ForEach(ImportSource.allCases) { source in
@@ -598,16 +600,21 @@ struct NewSetView: View {
             .onChange(of: importSource) { _, _ in importError = nil }
             if let readingFile {
                 HStack(spacing: 12) {
-                    ProgressView()
+                    EcgLoader()
                     Text("Reading \u{201C}\(readingFile)\u{201D}\u{2026}")
                         .font(.footnote)
+                        .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                 }
                 .accessibilityElement(children: .combine)
+            } else if let importError {
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: importError)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             } else {
-                Label(message, systemImage: symbol)
+                Label(importSource.help, systemImage: importSource.symbol)
                     .font(.footnote)
-                    .foregroundStyle(ink)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -624,11 +631,11 @@ struct NewSetView: View {
                         .popField()
                 }
             }
-            // the hero slab, the same as its floating copy in the dock
+            // the same as its floating copy in the dock
             Button { create() } label: {
                 Label(saveTitle, systemImage: "checkmark")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .disabled(!canCreate)
             .keyboardShortcut("s", modifiers: .command)
             .frame(maxWidth: .infinity)
@@ -649,14 +656,14 @@ struct NewSetView: View {
             // what each line needs, before the box it goes in
             DisclosureGroup("How to lay it out", isExpanded: $showFormat) {
                 Text(formatHelp(for: kind))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             TextEditor(text: $bodyText)
                 .frame(minHeight: 180)
                 .font(.system(.footnote, design: .monospaced))
                 .popEditor()
         } header: {
-            Text(title)
+            WardSectionLabel(title)
         }
     }
 
@@ -765,11 +772,10 @@ struct NewSetView: View {
         }
     }
 
-    /// Everything in the preview into the library at once, then the
-    /// lift-off, and New set closes once the sheet has.
+    /// Everything in the preview into the library at once, and New set
+    /// closes once the sheet has.
     private func commitImport(_ preview: ImportPreview) {
         LibraryImport.commit(preview, store: store, reviews: reviews, into: preset?.folderId)
-        SpaceWarp.liftOff()
         imported = true
         importPreview = nil
     }

@@ -31,6 +31,9 @@ struct StudyLensView: View {
 
     private var smooth: Bool { graphics.tier == .smooth }
 
+    // The screen is the camera's picture, so the words and chips over it stay
+    // white on dark (or dark on white) rather than on Ward White: they must
+    // read over any page, light or dark.
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -88,7 +91,7 @@ struct StudyLensView: View {
                 .overlay { LensChipLayer(chips: model.chips, frame: model.frameSize, fill: true,
                                          outlines: true, reduceMotion: reduceMotion) { selected = $0 } }
         case (.notDetermined, _):
-            ProgressView().tint(.white)
+            EcgLoader()
         default:
             noCamera
         }
@@ -123,7 +126,7 @@ struct StudyLensView: View {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.wardSecondary)
             }
         }
         .padding(28)
@@ -192,7 +195,7 @@ struct StudyLensView: View {
             .font(.footnote.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .glassEffect(.regular.tint(.black.opacity(0.25)), in: .capsule)
+            .background(Color.wardMonitor.opacity(0.85), in: Capsule())
             .padding(.top, 8)
             .padding(.horizontal, 16)
     }
@@ -209,20 +212,19 @@ struct StudyLensView: View {
                     Button { backToLive() } label: {
                         Label("Live", systemImage: "camera.viewfinder")
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardCompact)
                 }
                 Button { choosingPhoto = true } label: {
                     Label("Scan a photo", systemImage: "photo")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.wardCompact)
                 // once Lens is familiar (StudyTips)
                 .studyTip(.lens)
                 Button { choosingFile = true } label: {
                     Label("PDF or file", systemImage: "doc.viewfinder")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.wardCompact)
             }
-            .controlSize(.large)
             if let still, still.pageCount > 1 { pageStepper(still) }
         }
         .padding(.horizontal, 16)
@@ -235,13 +237,14 @@ struct StudyLensView: View {
                 .disabled(still.page <= 0)
                 .accessibilityLabel("Previous page")
             Text("Page \(still.page + 1) of \(still.pageCount)")
-                .font(.footnote.monospacedDigit())
+                .font(.system(.footnote, design: .monospaced))
+                .monospacedDigit()
                 .foregroundStyle(.white)
             Button { showPage(still.page + 1) } label: { Image(systemName: "chevron.right") }
                 .disabled(still.page + 1 >= still.pageCount)
                 .accessibilityLabel("Next page")
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.wardCompact)
     }
 
     // MARK: stills
@@ -431,6 +434,7 @@ struct LensChip: View {
             HStack(spacing: 5) {
                 Image(systemName: question.type.symbol)
                     .font(.caption.weight(.bold))
+                    .foregroundStyle(tint)
                 Text(label)
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
@@ -439,7 +443,11 @@ struct LensChip: View {
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
             .fixedSize()
-            .glassEffect(.regular.tint(tint.opacity(0.55)).interactive(), in: .capsule)
+            // the monitor's dark capsule, in the dark palette, so the chip
+            // reads over any page the camera sees
+            .background(Color.wardMonitor.opacity(0.88), in: Capsule())
+            .overlay(Capsule().strokeBorder(tint, lineWidth: 1.5))
+            .environment(\.colorScheme, .dark)
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -462,7 +470,7 @@ enum LensStyle {
     }
 
     static func tint(_ destination: LensDestination) -> Color {
-        guard let kind = destination.kind else { return Color.yellow }
+        guard let kind = destination.kind else { return Color.wardBeam }
         return kind.tint
     }
 }

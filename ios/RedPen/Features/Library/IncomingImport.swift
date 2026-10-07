@@ -4,7 +4,7 @@ import SwiftUI
 //
 // The data lane's end of ImportRouter: an Anki deck, a Quizlet / CSV / TSV
 // table or a whole-library backup opened from Files, Mail or AirDrop (or
-// dropped on the window) gets the same glass preview as Cards ▸ Paste or
+// dropped on the window) gets the same preview as Cards ▸ Paste or
 // import, and a backup the same "Restore from this backup?" question as
 // Settings ▸ Your data. Nothing changes until the student taps (plan rule 8).
 // Anything else - a single shared set, a lecture, a picture - is declined
@@ -76,9 +76,12 @@ private struct IncomingImport: ViewModifier {
                 if let reading {
                     Label("Reading \(reading)\u{2026}", systemImage: "arrow.down.doc")
                         .font(.footnote.weight(.medium))
+                        .foregroundStyle(Color.wardInk)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .liquidGlassChip()
+                        .background(Color.wardSurface, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+                        .wardShadow()
                         .padding(.top, 8)
                         .transition(.opacity)
                         .accessibilityIdentifier("incomingImportReading")
@@ -177,7 +180,6 @@ private struct IncomingImport: ViewModifier {
 
     private func commit(_ shown: ImportPreview) {
         LibraryImport.commit(shown, store: store, reviews: reviews)
-        SpaceWarp.liftOff()
         preview = nil
     }
 

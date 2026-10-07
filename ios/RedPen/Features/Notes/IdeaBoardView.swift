@@ -16,8 +16,8 @@ import SwiftUI
 /// - double-tap empty space to put a new idea exactly there.
 ///
 /// Cards are tinted, faintly, by the folder they belong to. They lie flat on
-/// the glass; the one being dragged, or starting a connection, rises off it
-/// to the floating plane, over every other card.
+/// the chart paper; the one being dragged, or starting a connection, grows a
+/// little and is drawn over every other card.
 ///
 /// The canvas runs on under the bottom glass, but its middle - where the
 /// board's origin sits, and where "Back to the middle" returns to - is the
@@ -71,10 +71,10 @@ struct IdeaBoardView: View {
             }
         }
         .ideaTools {
-            IdeaToolButton(symbol: "scope", label: "Back to the middle") {
+            IdeaToolButton(symbol: "scope", label: "Back to the middle", ward: true) {
                 withAnimation(.snappy) { pan = .zero; zoom = 1 }
             }
-            IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting) {
+            IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting, ward: true) {
                 connecting.toggle()
                 source = nil
             }
@@ -112,7 +112,7 @@ struct IdeaBoardView: View {
                     }
 
                 Canvas { context, _ in
-                    let ink: Color = Color.primary.opacity(0.28)
+                    let ink: Color = Color.wardInkSecondary.opacity(0.55)
                     let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     for (k, edge) in edges.enumerated() {
                         guard let p = points[edge.0], let q = points[edge.1] else { continue }
@@ -139,7 +139,7 @@ struct IdeaBoardView: View {
                         Text("Double-tap anywhere to put an idea there.")
                             .font(.callout)
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .allowsHitTesting(false)
                     .position(x: size.width / 2, y: midY)
                 }
@@ -157,9 +157,8 @@ struct IdeaBoardView: View {
         let chosen: Bool = source == note.id
         // a card being dragged or starting a connection rises off the board
         let lifted: Bool = dragged == note.id || chosen
-        let plane: PopOutPlane = lifted ? .floating : .screen
         let grow: CGFloat = lifted ? 1.04 : 1
-        let ring: Color = chosen ? Color.accentColor : tone.opacity(0.4)
+        let ring: Color = chosen ? Color.wardPrimary : tone.opacity(0.4)
         let ringWidth: CGFloat = chosen ? 2 : 1
         let wash: Color = tone.opacity(0.14)
         let place: String = notes.folder(note.folderId)?.name ?? note.kind.label
@@ -172,10 +171,10 @@ struct IdeaBoardView: View {
                     .lineLimit(1)
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.wardInk)
                 .lineLimit(4)
                 .multilineTextAlignment(.leading)
         }
@@ -183,7 +182,7 @@ struct IdeaBoardView: View {
         .frame(width: Self.cardWidth, alignment: .leading)
         .background {
             ZStack {
-                shape.fill(.regularMaterial)
+                shape.fill(Color.wardSurface)
                 shape.fill(wash)
             }
         }
@@ -191,7 +190,7 @@ struct IdeaBoardView: View {
             shape.strokeBorder(ring, lineWidth: ringWidth)
         }
         .scaleEffect(grow)
-        .popOut(plane, in: shape)
+        .wardShadow()
         .animation(.snappy(duration: 0.2), value: lifted)
         .contentShape(shape)
         .contentShape(.hoverEffect, shape)
@@ -229,17 +228,21 @@ struct IdeaBoardView: View {
                 .accessibilityHidden(true)
             Text(words)
                 .font(.footnote)
+                .foregroundStyle(Color.wardInk)
             if source != nil {
                 Button("Cancel") { source = nil }
                     .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: .capsule)
-        .popOut(.raised, in: Capsule())
+        .foregroundStyle(Color.wardPrimaryInk)
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }

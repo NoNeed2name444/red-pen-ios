@@ -43,17 +43,20 @@ struct BookReaderView: View {
                         index = p.id; showToc = false
                     } label: {
                         HStack {
-                            Text("\(p.id + 1).").font(.body.monospacedDigit()).foregroundStyle(.secondary)
-                            Text(p.title).foregroundStyle(.primary)
+                            Text("\(p.id + 1).").font(.system(.body, design: .monospaced)).monospacedDigit()
+                                .foregroundStyle(Color.wardInkSecondary)
+                            Text(p.title).foregroundStyle(Color.wardInk)
                             Spacer()
                             if p.id == index {
-                                Image(systemName: "checkmark").foregroundStyle(.tint)
+                                Image(systemName: "checkmark").foregroundStyle(Color.wardPrimaryInk)
                                     .accessibilityLabel("You are here")
                             }
                         }
                         .frame(minHeight: 44)
                     }
+                    .wardRowBackground()
                 }
+                .wardForm()
                 .navigationTitle("Contents")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -82,9 +85,10 @@ struct BookReaderView: View {
                     AccuracyBadge(set: studySet, itemID: studySet.id.uuidString + "#p\(page.id)")
                         .padding(.top, 6)
                 } else {
-                    Text("This textbook is empty.").foregroundStyle(.secondary)
+                    Text("This textbook is empty.").foregroundStyle(Color.wardInkSecondary)
                 }
             }
+            .foregroundStyle(Color.wardInk)
             .contentCard()
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -124,7 +128,7 @@ struct BookReaderView: View {
             HStack(alignment: .top, spacing: 8) {
                 Text(marker ?? "\u{2022}")
                     .font(marker == nil ? .body : .body.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                 Text(md(text))
             }
         case .row(let cells, let header):
@@ -136,7 +140,7 @@ struct BookReaderView: View {
                 }
             }
             .padding(8)
-            .background(Color.primary.opacity(header ? 0.10 : 0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(header ? Color.wardHairline : Color.wardBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         case .paragraph(let text):
             Text(md(text)).font(.body).lineSpacing(3)
         case .callout(let kind, let text):
@@ -164,10 +168,10 @@ struct BookReaderView: View {
                     Image(uiImage: picture)
                         .resizable().scaledToFit()
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.quaternary))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.wardHairline, lineWidth: 1))
                         .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
                     if !caption.isEmpty {
-                        Text(md(caption)).font(.subheadline).foregroundStyle(.secondary)
+                        Text(md(caption)).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                     }
                     DrawFromMemoryButton(set: studySet, imageIndex: index, caption: caption)
                 }
@@ -194,10 +198,10 @@ struct BookReaderView: View {
 
     static func calloutColor(_ kind: String) -> Color {
         switch kind.lowercased() {
-        case let k where k.contains("red flag") || k.contains("warning"): return .red
-        case let k where k.contains("exam"): return .indigo
-        case let k where k.contains("mnemonic"): return .purple
-        default: return .orange
+        case let k where k.contains("red flag") || k.contains("warning"): return .wardDanger
+        case let k where k.contains("exam"): return .wardPrimaryInk
+        case let k where k.contains("mnemonic"): return .wardEcg
+        default: return .wardWarning
         }
     }
 
@@ -284,7 +288,7 @@ struct FlowchartView: View {
         VStack(spacing: 4) {
             ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                 if i > 0 {
-                    Image(systemName: "arrow.down").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                    Image(systemName: "arrow.down").font(.caption.weight(.bold)).foregroundStyle(Color.wardInkSecondary)
                         .accessibilityHidden(true)
                 }
                 box(step)
@@ -302,16 +306,17 @@ struct FlowchartView: View {
         let pieces = parts.count > 1 ? parts : step.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
         VStack(spacing: 2) {
             if branch, pieces.count > 1 {
-                Text(pieces[0]).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text(pieces[0]).font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
                 Text(pieces.dropFirst().joined(separator: " \u{2192} ")).font(.subheadline.weight(.semibold))
             } else {
                 Text(step).font(.subheadline.weight(.semibold))
             }
         }
+        .foregroundStyle(Color.wardInk)
         .multilineTextAlignment(.center)
         .padding(.horizontal, 14).padding(.vertical, 10)
         .frame(maxWidth: 420)
-        .background(Color.accentColor.opacity(branch ? 0.06 : 0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1))
+        .background(Color.wardPrimary.opacity(branch ? 0.06 : 0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.wardPrimary.opacity(0.35), lineWidth: 1))
     }
 }

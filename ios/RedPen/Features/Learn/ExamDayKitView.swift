@@ -70,6 +70,7 @@ struct ExamDayKitView: View {
                 Text("Some students find that writing their worries down just before an exam frees their head for the paper; the evidence is mixed, so skip it if it isn\u{2019}t for you. Nothing here is saved or sent, and it is gone when you close this screen.")
             }
         }
+        .wardForm()
         .navigationTitle("Exam-day kit")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
@@ -87,7 +88,7 @@ struct ExamDayKitView: View {
 
     private func tip(_ symbol: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol).foregroundStyle(.tint).frame(width: 24).accessibilityHidden(true)
+            Image(systemName: symbol).foregroundStyle(Color.wardPrimaryInk).frame(width: 24).accessibilityHidden(true)
             Text(text).font(.subheadline).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 2)
@@ -108,9 +109,9 @@ struct ExamDayKitView: View {
             HStack(spacing: 12) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(done ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(done ? Color.wardSuccess : Color.wardInkSecondary)
                     .accessibilityHidden(true)
-                Text(text).foregroundStyle(.primary)
+                Text(text).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 0)
             }
             .frame(minHeight: 44)
@@ -139,14 +140,16 @@ private struct PacingTable: View {
             ForEach(points, id: \.minute) { point in
                 HStack {
                     Text("By " + ExamWeekPlanner.clock(point.minute))
-                        .font(.body.monospacedDigit())
+                        .font(WardType.obs)
+                        .monospacedDigit()
                     Spacer()
                     Text("Q\(point.question)")
-                        .font(.body.weight(.semibold).monospacedDigit())
+                        .font(WardType.obs.weight(.semibold))
+                        .monospacedDigit()
                 }
                 .frame(minHeight: 36)
                 .accessibilityElement(children: .combine)
-                if point != points.last { Divider() }
+                if point != points.last { Rectangle().fill(Color.wardHairline).frame(height: 1) }
             }
         }
     }

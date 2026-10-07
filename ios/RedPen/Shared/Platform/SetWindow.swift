@@ -49,8 +49,10 @@ struct SetWindowRoot: View {
                 StudySetScreen(set: set)
                     .navigationTitle(set.name)
             } else {
-                ContentUnavailableView("This set is no longer in your library",
-                                       systemImage: "rectangle.stack.badge.minus")
+                WardEmptyState(symbol: "rectangle.stack.badge.minus",
+                               title: "This set is no longer in your library")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .wardScreen()
             }
         }
         .stillWhenNotKey()

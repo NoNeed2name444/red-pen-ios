@@ -7,8 +7,7 @@ import SwiftUI
 ///
 /// A minus and a plus sit either side of the number, each a full 44-point
 /// key, for the small nudge ("one more") that typing is clumsy for. Holding
-/// one repeats. The three stand out of the glass together, as one raised
-/// slab (popField).
+/// one repeats. The three sit together on one field (popField).
 struct CountField: View {
     let title: String
     @Binding var value: Int
@@ -36,8 +35,8 @@ struct CountField: View {
         let side: CGFloat = steppers ? 0 : 12
         let inside = EdgeInsets(top: 0, leading: side, bottom: 0, trailing: side)
         LabeledContent(title) {
-            // minus, number and plus stand out of the glass as ONE raised
-            // slab, so the keys ride with the field instead of apart from it
+            // minus, number and plus on ONE field, so the keys ride with
+            // the number instead of apart from it
             HStack(spacing: 6) {
                 if steppers {
                     CountStepButton(symbol: "minus", label: "One fewer", enabled: value > low) { nudge(-1) }
@@ -45,6 +44,7 @@ struct CountField: View {
                 TextField(placeholder, text: $text)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(steppers ? .center : .trailing)
+                    .font(.system(.body, design: .monospaced))
                     .monospacedDigit()
                     .focused($focused)
                     .frame(minWidth: 44, maxWidth: steppers ? 64 : 90, minHeight: 44)
@@ -92,10 +92,9 @@ struct CountField: View {
     }
 }
 
-/// A 44-point minus or plus beside the number: a small round key at one end
-/// of the field's raised slab (it rides with the slab, see PopOut.swift's
-/// nesting), sinking under the finger and sitting flat once it can go no
-/// further. Its own button style,
+/// A 44-point minus or plus beside the number: a small Clean Sheet disc
+/// with a hairline edge at one end of the field, sinking under the finger
+/// and going Biro Grey once it can go no further. Its own button style,
 /// so in a Form row only this key takes the tap, not the whole row.
 private struct CountStepButton: View {
     let symbol: String
@@ -106,11 +105,14 @@ private struct CountStepButton: View {
     var body: some View {
         // a 44-point face with a 22-point corner is a circle
         let style = PopTileStyle(cornerRadius: 22)
+        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
+                .foregroundStyle(ink)
                 .frame(width: 44, height: 44)
-                .background(.regularMaterial, in: Circle())
+                .background(Color.wardSurface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 .contentShape(Circle())
         }
         .buttonStyle(style)

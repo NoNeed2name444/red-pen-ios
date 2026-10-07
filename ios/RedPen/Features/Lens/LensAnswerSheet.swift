@@ -39,7 +39,7 @@ struct LensAnswerSheet: View {
                 .frame(maxWidth: 720, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
-            .background(LibraryBackdrop())
+            .wardScreen()
             .navigationTitle(question.type.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -47,7 +47,7 @@ struct LensAnswerSheet: View {
             }
             .safeAreaInset(edge: .bottom) { actionBar }
         }
-        .tint(tint)
+        .tint(Color.wardPrimary)
         .environment(\.modeTint, tint)
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
@@ -69,12 +69,9 @@ struct LensAnswerSheet: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Label(question.type.chipLabel, systemImage: question.type.symbol)
-                .font(.caption.weight(.bold))
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .liquidGlassChip(tint: tint)
+            WardChip(text: question.type.chipLabel, tone: .blue, symbol: question.type.symbol)
             if let number = question.number {
-                Text("Question " + number).font(.caption).foregroundStyle(.secondary)
+                Text("Question " + number).font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 0)
         }
@@ -87,6 +84,7 @@ struct LensAnswerSheet: View {
                 .font(.body)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(Color.wardInk)
             if question.type.hasOptions && answer == nil {
                 ForEach(Array(question.options.enumerated()), id: \.offset) { pair in
                     LensOptionRow(letter: LensHash.letter(pair.offset), text: pair.element.text,
@@ -94,7 +92,7 @@ struct LensAnswerSheet: View {
                 }
             }
         }
-        .contentCard()
+        .wardCard()
     }
 
     // MARK: the answer
@@ -109,7 +107,7 @@ struct LensAnswerSheet: View {
                 Label("Answered by " + a.answeredBy + ". Check anything that matters against your notes.",
                       systemImage: "sparkles")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         case .failed(let why):
             failure(why)
@@ -121,19 +119,17 @@ struct LensAnswerSheet: View {
 
     private func failure(_ why: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(why, systemImage: "exclamationmark.triangle")
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
+            WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: why)
             HStack {
                 Button("Try again") { model.answer(question, again: true) }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardCompact)
                 if why == LensModel.noModel {
                     Button("AI models") { showModels = true }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.wardCompact)
                 }
             }
         }
-        .contentCard()
+        .wardCard()
     }
 
     // MARK: actions
@@ -146,7 +142,7 @@ struct LensAnswerSheet: View {
                 Label("Add to\u{2026}", systemImage: "plus.circle.fill")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.wardPrimary)
             .disabled(answer == nil)
             .accessibilityHint("Keeps this question in Questions, Cards, OSCE, Ideas or Audio")
             Button {
@@ -154,10 +150,9 @@ struct LensAnswerSheet: View {
             } label: {
                 Label("Ask again", systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
             .disabled(model.state(for: question) == .loading)
         }
-        .controlSize(.large)
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
     }
@@ -205,7 +200,7 @@ struct LensAnswerBody: View {
 
     private var truth: some View {
         let isTrue: Bool = answer.verdict ?? false
-        let colour: Color = isTrue ? .green : .red
+        let colour: Color = isTrue ? Color.wardSuccess : Color.wardDanger
         return VStack(alignment: .leading, spacing: 12) {
             Label(isTrue ? "True" : "False", systemImage: isTrue ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.title2.weight(.bold))
@@ -270,7 +265,7 @@ struct LensAnswerBody: View {
                 Label("Answered from the question\u{2019}s words only; the picture itself is not sent.",
                       systemImage: "photo")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             explanation(title: "Why")
             keyPoints(title: "What a marker looks for")
@@ -303,29 +298,30 @@ struct LensAnswerBody: View {
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(tint)
+                .wardSmallCaps()
                 .accessibilityAddTraits(.isHeader)
             content()
                 .font(.body)
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
-        .contentCard()
+        .wardCard()
     }
 
     private func resultBox(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(title).wardSmallCaps()
             Text(value)
                 .font(.title3.weight(.bold))
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.green.opacity(0.14), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.green.opacity(0.55), lineWidth: 1.5))
+        .background(Color.wardSuccess.opacity(0.12), in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous).strokeBorder(Color.wardSuccess.opacity(0.55), lineWidth: 1.5))
         .accessibilityElement(children: .combine)
     }
 
@@ -334,8 +330,9 @@ struct LensAnswerBody: View {
             ForEach(Array(items.enumerated()), id: \.offset) { pair in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(pair.offset + 1)")
-                        .font(.callout.weight(.bold).monospacedDigit())
-                        .foregroundStyle(tint)
+                        .font(.system(.callout, design: .monospaced).weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.wardPrimaryInk)
                         .frame(minWidth: 22, alignment: .trailing)
                     Text(pair.element)
                 }
@@ -348,7 +345,7 @@ struct LensAnswerBody: View {
     private func highlighted(_ text: String, mark: String) -> AttributedString {
         var out = AttributedString(text)
         guard !mark.isEmpty, let range = out.range(of: mark, options: .caseInsensitive) else { return out }
-        out[range].foregroundColor = tint
+        out[range].foregroundColor = Color.wardPrimaryInk
         out[range].inlinePresentationIntent = .stronglyEmphasized
         return out
     }
@@ -367,29 +364,34 @@ struct LensOptionRow: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         let right: Bool = state == .right
-        let colour: Color = right ? .green : .secondary
+        let edge: Color = right ? Color.wardSuccess.opacity(0.8) : Color.wardHairline
+        let wash: Color = right ? Color.wardSuccess.opacity(0.12) : Color.wardSurface
+        let letterInk: Color = right ? Color.wardOnPrimary : Color.wardInk
+        let letterFill: Color = right ? Color.wardSuccess : Color.wardBackground
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Text(letter)
                     .font(.body.weight(.bold).monospaced())
-                    .foregroundStyle(right ? Color.white : Color.primary)
+                    .foregroundStyle(letterInk)
                     .frame(width: 32, height: 32)
-                    .background(right ? Color.green : Color.secondary.opacity(0.18), in: Circle())
+                    .background(letterFill, in: Circle())
+                    .overlay(Circle().strokeBorder(right ? Color.clear : Color.wardHairline, lineWidth: 1))
                     .accessibilityHidden(true)
                 Text(text)
                     .font(.body)
+                    .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 if right {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
                 } else if state == .wrong {
-                    Image(systemName: "xmark").foregroundStyle(.secondary).font(.caption.weight(.bold))
+                    Image(systemName: "xmark").foregroundStyle(Color.wardInkSecondary).font(.caption.weight(.bold))
                 }
             }
             if !note.isEmpty {
                 Text(note)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.leading, 44)
             }
@@ -397,8 +399,8 @@ struct LensOptionRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(right ? Color.green.opacity(0.14) : Color.clear, in: shape)
-        .overlay(shape.strokeBorder(colour.opacity(right ? 0.8 : 0.25), lineWidth: 1.5))
+        .background(wash, in: shape)
+        .overlay(shape.strokeBorder(edge, lineWidth: right ? 1.5 : 1))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spoken)
     }
@@ -416,7 +418,7 @@ struct LensOptionRow: View {
 struct LensBulletStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            configuration.icon.font(.system(size: 5)).foregroundStyle(.secondary)
+            configuration.icon.font(.system(size: 5)).foregroundStyle(Color.wardInkSecondary)
             configuration.title
         }
     }
@@ -434,9 +436,9 @@ struct LensShimmer: View {
             bar(0.75)
             bar(0.95)
             bar(0.6)
-            Text("Answering\u{2026}").font(.caption).foregroundStyle(.secondary)
+            Text("Answering\u{2026}").font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
-        .contentCard()
+        .wardCard()
         .onAppear {
             guard !reduceMotion else { return }
             withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) { phase = 1 }
@@ -447,9 +449,9 @@ struct LensShimmer: View {
         GeometryReader { geo in
             let w: CGFloat = geo.size.width * width
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.secondary.opacity(0.18))
+                .fill(Color.wardHairline)
                 .overlay(
-                    LinearGradient(colors: [.clear, Color.white.opacity(0.45), .clear],
+                    LinearGradient(colors: [.clear, Color.wardSurface.opacity(0.7), .clear],
                                    startPoint: .leading, endPoint: .trailing)
                         .frame(width: w * 0.4)
                         .offset(x: phase * w)
@@ -492,18 +494,17 @@ struct LensAccuracyRow: View {
                     Spacer(minLength: 0)
                     if assessment.grade == .unchecked && !working {
                         Button("Check now") { check(item) }
-                            .buttonStyle(.glass)
-                            .controlSize(.small)
+                            .buttonStyle(.wardCompact)
                     }
                 }
                 if let message {
-                    Text(message).font(.caption).foregroundStyle(.secondary)
+                    Text(message).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(evidence.prefix(4), id: \.id) { ref in
                     evidenceLink(ref)
                 }
             }
-            .contentCard()
+            .wardCard()
             .sheet(isPresented: $showing) {
                 AccuracyWhySheet(item: item).environmentObject(store)
             }

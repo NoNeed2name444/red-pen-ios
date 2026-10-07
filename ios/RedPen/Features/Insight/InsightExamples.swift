@@ -18,7 +18,7 @@ enum InsightExamples {
         var explanation: String
     }
 
-    /// Four short practice sets, one per subject, so the Progress screen has
+    /// Four short practice sets, one per subject, so the Vitals screen has
     /// several subjects to compare. Each is roughly how often that subject is
     /// got right in the made-up history.
     private static let subjects: [(subject: String, accuracy: Double, items: [Item])] = [

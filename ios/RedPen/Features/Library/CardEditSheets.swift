@@ -28,8 +28,8 @@ struct CardEditSheet: View {
             Form {
                 switch working.type {
                 case .cloze:
-                    // every box you type into is its own raised slab; the
-                    // hints sit under them as footers, on the glass
+                    // every box you type into is its own field; the hints
+                    // sit under them as footers, on the grid
                     Section {
                         TextEditor(text: $working.clozeText).frame(minHeight: 90)
                             .popEditorRow()
@@ -83,12 +83,11 @@ struct CardEditSheet: View {
                 }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {
-                        Text(source).font(.footnote).foregroundStyle(.secondary)
+                        Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Edit card")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -169,12 +168,11 @@ struct QuestionEditSheet: View {
                 }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {
-                        Text(source).font(.footnote).foregroundStyle(.secondary)
+                        Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle("Edit question")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -197,7 +195,7 @@ struct QuestionEditSheet: View {
     private func optionRow(_ index: Int) -> some View {
         let correct: Bool = working.correctIndex == index
         let mark: String = correct ? "checkmark.circle.fill" : "circle"
-        let ink: Color = correct ? Color.green : Color.secondary
+        let ink: Color = correct ? Color.wardSuccess : Color.wardInkSecondary
         let traits: AccessibilityTraits = correct ? .isSelected : []
         return HStack(spacing: 6) {
             // plain buttons, so in a Form row each takes only its own tap
@@ -218,14 +216,14 @@ struct QuestionEditSheet: View {
             }
             .accessibilityLabel("Mark correct")
             .accessibilityAddTraits(traits)
-            // the words are a raised field of their own between the two
-            // buttons; the row itself is clear, so the slabs sit on the glass
+            // the words are a field of their own between the two buttons;
+            // the row itself is clear, so the field sits on the grid
             TextField("Option", text: optionText(index), axis: .vertical)
                 .popField()
             Button { removeOption(index) } label: {
                 Image(systemName: "minus.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.wardDanger)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
