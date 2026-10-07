@@ -47,6 +47,23 @@ let cleaned = OsceStations.clean(messy)
 ok(cleaned == ["Wash your hands", "Introduce yourself to the patient"],
    "cleaning strips numbering, drops repeats, blanks, stubs and paragraphs")
 
+ok(OsceStations.clean(["Wash your hands", "Introduce yourself", "Examine the abdomen", "Wash your hands"])
+   == ["Wash your hands", "Introduce yourself", "Examine the abdomen", "Wash your hands"],
+   "the closing hand wash stays: it is a mark of its own")
+ok(OsceStations.clean(["Wash hands", "Palpate", "Thank the patient", "Wash hands", "Palpate", "Thank the patient"])
+   == ["Wash hands", "Palpate", "Thank the patient"],
+   "a station sent twice is still kept once")
+
+var finished = OsceRun(stepCount: 2)
+finished.gotIt(); finished.gotIt()
+ok(finished.resumePoint(station: 0, of: 3).map { [$0.station, $0.step] } == [1, 0],
+   "a station finished is picked back up at the next station's first step, not its own last")
+ok(finished.resumePoint(station: 2, of: 3) == nil, "the last station finished leaves nothing to resume")
+var partWay = OsceRun(stepCount: 4)
+partWay.gotIt(); partWay.startOver(); partWay.gotIt()
+ok(partWay.resumePoint(station: 1, of: 3).map { [$0.station, $0.step] + $0.misses } == [1, 1, 1],
+   "part way through, it is picked up where it was, misses and all")
+
 ok(OsceStations.clean(Array(repeating: "", count: 5)).isEmpty,
    "a station of nothing cleans to nothing")
 

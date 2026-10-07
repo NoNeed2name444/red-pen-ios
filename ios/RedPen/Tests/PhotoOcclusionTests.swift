@@ -83,8 +83,10 @@ check("a box drawn backwards is the same box", backwards.map { near($0.x, 0.2) &
 check("a tap draws nothing", PO.drawn(fromX: 0.5, y: 0.5, toX: 0.501, y: 0.502) == nil)
 let offEdge = PO.drawn(fromX: 0.9, y: 0.9, toX: 1.4, y: 1.3)
 check("a box drawn off the picture stays on it", offEdge.map(inPicture) ?? false)
-let line = PO.drawn(fromX: 0.1, y: 0.5, toX: 0.5, y: 0.5)
-check("a flat stroke still makes a findable box", (line?.h ?? 0) >= PO.minSide - 1e-9)
+check("a straight swipe (a scroll that began on the picture) draws nothing",
+      PO.drawn(fromX: 0.5, y: 0.1, toX: 0.505, y: 0.7) == nil && PO.drawn(fromX: 0.1, y: 0.5, toX: 0.5, y: 0.5) == nil)
+let label = PO.drawn(fromX: 0.1, y: 0.5, toX: 0.4, y: 0.52)
+check("a short wide box over a label is still a cover", label.map { near($0.w, 0.3) && $0.h >= PO.minSide - 1e-9 } ?? false)
 
 let middle = PO.added(aspect: 1)
 check("a new cover sits in the middle", near(middle.x + middle.w / 2, 0.5) && near(middle.y + middle.h / 2, 0.5))

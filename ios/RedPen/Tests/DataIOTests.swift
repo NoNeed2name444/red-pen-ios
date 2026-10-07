@@ -192,10 +192,11 @@ for name in ["anki-legacy.apkg", "anki-latest.apkg", "anki-latest.colpkg"] {
     check("\(name): a reversed note is two cards",
           cards.contains { $0.front == "Furosemide" && $0.bullets == ["Loop diuretic"] }
           && cards.contains { $0.front == "Loop diuretic" && $0.bullets == ["Furosemide"] })
-    let cloze = cards.first { $0.type == .cloze }
-    check("\(name): a cloze note keeps every cN and its hint",
-          cloze?.clozeText == "{{c1::Digoxin}} inhibits the {{c2::Na/K ATPase::pump}}" && cloze?.why == "Narrow window",
-          cloze?.clozeText ?? "none")
+    let clozes = cards.filter { $0.type == .cloze }.map(\.clozeText)
+    check("\(name): a cloze note is a card per cN, each hiding only its own, the hint kept",
+          clozes == ["{{c1::Digoxin}} inhibits the Na/K ATPase", "Digoxin inhibits the {{c2::Na/K ATPase::pump}}"]
+          && cards.first { $0.type == .cloze }?.why == "Narrow window",
+          "\(clozes)")
     let io = cards.filter { $0.type == .occlusion && $0.front == "Kidney" }
     check("\(name): Anki's image occlusion is a card per mask, each covering the others",
           io.count == 2 && io.allSatisfy { $0.siblings.count == 1 && $0.imageIndex != nil },

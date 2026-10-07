@@ -281,7 +281,7 @@ suite dataio DataIOTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/Ank
       $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/PlainTextImport.swift \
       $S/Zip.swift $S/MiniZip.swift $S/Zstd.swift $S/AnkiNoteText.swift $S/ApkgImport.swift \
-      $S/CardTags.swift $S/LibraryBackup.swift
+      $S/CardTags.swift $S/LibraryBackup.swift $S/AnkiFields.swift
 # picture cards from your own photo or scan: covers dragged, stretched
 # and drawn, and the cards they make
 suite photoocclusion PhotoOcclusionTests.swift $M/AnkiCard.swift $S/OcclusionFilter.swift \

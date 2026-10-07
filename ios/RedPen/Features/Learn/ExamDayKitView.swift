@@ -38,11 +38,8 @@ struct ExamDayKitView: View {
             Section("A question you can\u{2019}t crack") {
                 tip("flag.fill", "Flag it, pick your best answer now, and move on. Come back at the end with fresh eyes.")
                 tip("arrow.triangle.branch", "Rule out what you can. Two options left is a far better guess than five.")
-                if let negative = exam?.negativeMarking {
-                    tip("hourglass", "\(exam?.shortName ?? "Your exam") marks \(negative): guess when you are down to two options, leave it blank when you have no idea.")
-                } else {
-                    tip("hourglass", "Never leave one blank: an unanswered question scores nothing.")
-                }
+                tip("hourglass", MockMarking.guessAdvice(exam: exam?.shortName ?? "Your exam",
+                                                         marking: exam?.negativeMarking, options: exam?.options ?? 5))
             }
             Section {
                 tip("arrow.uturn.backward", "Changing an answer helps more often than it hurts in studies of medical exams \u{2014} when you have a reason, such as a detail you misread. Without a reason, leave it.")

@@ -560,11 +560,12 @@ struct MockSittingView: View {
         }
         store.save()
         let passMark: Double = sitting.passMark ?? PassMark.typical(for: sitting.track)
-        let made = MockResult(marks: marks, passMark: passMark)
+        let made = MockResult(marks: marks, passMark: passMark, penalty: sitting.penalty)
         let total: Int = made.total
         ExamStore.shared.record(MockRecord(title: sitting.title, track: sitting.track.rawValue,
                                            correct: made.correct, total: total, wanted: sitting.wanted,
-                                           passMark: passMark, minutesUsed: minutesUsed))
+                                           passMark: passMark, minutesUsed: minutesUsed,
+                                           score: made.penalty > 0 ? made.fraction : nil))
         // marked and kept in the history: nothing left to resume
         MockSittingStore.clear()
         UINotificationFeedbackGenerator().notificationOccurred(.success)

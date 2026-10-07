@@ -671,7 +671,7 @@ enum ApkgImport {
             return (front, back)
         }
 
-        // Cloze: one card per note, every cN in it
+        // Cloze: a card per cN, as Anki makes them, each with its own schedule
 
         mutating func cloze(_ cards: [CardRow], named: [String: String], type: NoteType, tags: [String]) {
             guard let first = cards.first else { return }
@@ -693,15 +693,18 @@ enum ApkgImport {
                 extras += extra.images
                 if !extra.text.isEmpty && why.count < 2 { why.append(extra.text) }
             }
-            var card = AnkiCard(type: .cloze, clozeText: plain.text)
-            card.why = AnkiNoteText.clipped(why.joined(separator: "\n"))
-            card.tags = tags.isEmpty ? nil : tags
             // a picture in the sentence is the question's; one in "Back Extra" the answer's
             let side = AnkiCard.picture(front: plain.images, back: extras, available: { media.has($0) })
-            if side.onBack { card.pictureOnBack = true }
-            // the schedule of the card Anki shows first
             let lead = cards.min { $0.ord < $1.ord } ?? first
-            add(card, row: lead, pictures: side.name.map { [$0] } ?? [])
+            for (number, text) in AnkiFields.clozeCards(plain.text) {
+                var card = AnkiCard(type: .cloze, clozeText: text)
+                card.why = AnkiNoteText.clipped(why.joined(separator: "\n"))
+                card.tags = tags.isEmpty ? nil : tags
+                if side.onBack { card.pictureOnBack = true }
+                // the schedule of Anki's card for this cN (ord counts from 0)
+                let row = cards.first { $0.ord == number - 1 } ?? lead
+                add(card, row: row, pictures: side.name.map { [$0] } ?? [])
+            }
         }
 
         // Anki's own image occlusion: a cloze number per mask

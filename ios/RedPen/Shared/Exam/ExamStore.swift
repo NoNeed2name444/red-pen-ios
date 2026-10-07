@@ -120,8 +120,11 @@ struct MockRecord: Codable, Hashable, Identifiable {
     var wanted: Int
     var passMark: Double
     var minutesUsed: Int
+    /// The marked score where it differs from the share right (negative
+    /// marking); nil in records kept before it was stored.
+    var score: Double? = nil
 
-    var fraction: Double { total == 0 ? 0 : Double(correct) / Double(total) }
+    var fraction: Double { score ?? (total == 0 ? 0 : Double(correct) / Double(total)) }
 }
 
 // MARK: - the library side

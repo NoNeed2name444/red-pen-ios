@@ -46,6 +46,32 @@ enum AnkiFields {
         return ords.isEmpty ? [0] : ords
     }
 
+    /// An Anki cloze note as the cards Anki makes of it: one per cN, each
+    /// hiding only its own deletions and showing the others' answers. The
+    /// app's review hides every {{c..}} in a card at once, so a c1-c5 note
+    /// kept as one card asked for all five blanks together.
+    static func clozeCards(_ text: String) -> [(number: Int, text: String)] {
+        guard let re = try? NSRegularExpression(pattern: #"\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}"#) else {
+            return [(1, text)]
+        }
+        let ns = text as NSString
+        let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let numbers: [Int] = Array(Set(matches.compactMap { Int(ns.substring(with: $0.range(at: 1))) }.filter { $0 > 0 })).sorted()
+        guard numbers.count > 1 else { return [(numbers.first ?? 1, text)] }
+        return numbers.map { number in
+            var out = ""
+            var at = 0
+            for m in matches {
+                out += ns.substring(with: NSRange(location: at, length: m.range.location - at))
+                let own: Bool = Int(ns.substring(with: m.range(at: 1))) == number
+                out += own ? ns.substring(with: m.range) : ns.substring(with: m.range(at: 2))
+                at = m.range.location + m.range.length
+            }
+            out += ns.substring(from: at)
+            return (number, out)
+        }
+    }
+
     /// Whether a cloze sentence still has a deletion Anki can make a card
     /// from: a closed {{c1::...}} (or higher) with something inside it. A
     /// half-deleted "{{c1::aorta" or an empty "{{c1::}}" is not one.
