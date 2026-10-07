@@ -225,6 +225,7 @@ enum CloudTranscriber {
         request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "audio": audio.base64EncodedString(), "prompt": prompt,
         ])

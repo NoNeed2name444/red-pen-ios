@@ -356,6 +356,7 @@ enum CloudJobs {
         request.httpMethod = method
         request.timeoutInterval = 60
         request.setValue("Bearer \(endpoint.bearer)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         if let body {
             request.httpBody = body
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

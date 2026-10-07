@@ -154,10 +154,7 @@ enum CaseMaker {
         let spec = CloudJobs.Spec(title: "Writing \(wanted) case\(wanted == 1 ? "" : "s")", mode: "each", extract: "pages",
                                   count: wanted, sources: sources, steps: steps)
         let replies: [String] = try await CloudJobs.run(spec, at: cloud, onProgress: onProgress)
-        var written: [CaseFile] = []
-        for reply in replies {
-            written.append(contentsOf: CaseWriting.parse(reply, lecture: lecture))
-        }
+        let written: [CaseFile] = replies.flatMap { CaseWriting.parse($0, lecture: lecture) }
         let screened = CaseChecks.screen(written)
         guard !screened.kept.isEmpty else { throw Trouble.nothingUsable(dropped: screened.dropped.count) }
         return Made(cases: Array(screened.kept.prefix(wanted)), dropped: screened.dropped.count)

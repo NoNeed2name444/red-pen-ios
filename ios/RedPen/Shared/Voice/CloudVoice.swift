@@ -136,6 +136,7 @@ final class CloudVoice: NSObject {
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        VignetteHeaders.apply(to: &request)
         let body: [String: String] = ["text": text, "voice": patient ? "patient" : "narrator"]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
