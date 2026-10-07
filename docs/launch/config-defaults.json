@@ -1,37 +1,51 @@
 {
-  "_about": "Unified remote-config defaults (design D config shape, keys from groups A-F). P0.1 copies flags, limits, freeShare, messages, app and cache into server/config.js DEFAULTS; _ranges, _public and _env drive validate(), publicView() and the env fallback. The Swift built-ins (Shared/RemoteConfig.swift) are checked against server/tests/fixtures/config-defaults.json, which config.test.mjs writes from DEFAULTS.",
+  "_about": "Unified remote-config defaults (design D config shape, keys from groups A, B, D and F). P0.1 copies flags, limits, freeShare, messages, app and cache into server/config.js DEFAULTS; _ranges, _public and _env drive validate(), publicView() and the env fallback. server/tests/config.test.mjs writes server/tests/fixtures/config-defaults.json from DEFAULTS and fails when this file and DEFAULTS drift apart. Owner decisions applied: no leaderboards or weekly stats, no telemetry, no assist flags yet, no surfaces flags (surfaces shipped without them), no item error_reports limits (item reports use /accuracy/report), and class access never carries paid AI (licencePaidModels and licenceMonthlyBudgetUsd are pinned to 0).",
   "flags": {
-    "share.links": { "on": true },
-    "share.classes": { "on": true },
-    "share.leaderboards": { "on": true },
-    "share.aiScreen": { "on": false },
-    "billing.referrals": { "on": true },
-    "billing.licences": { "on": true },
-    "billing.licenceOfferCodes": { "on": false },
-    "billing.examPass": { "on": true },
-    "surfaces.widgets": { "on": true },
-    "surfaces.widgetRatings": { "on": true },
-    "surfaces.liveActivity": { "on": true },
-    "surfaces.spotlight": { "on": true },
-    "surfaces.spotlightItems": { "on": true },
-    "assist.hint": { "on": true },
-    "assist.reword": { "on": true },
-    "assist.explain": { "on": true },
-    "assist.arabic": { "on": true },
-    "assist.cloudFallback": { "on": false },
-    "assist.pcc": { "on": true },
-    "assist.pccWriter": { "on": false },
-    "cloud.chat": { "on": true },
-    "cloud.jobs": { "on": true },
-    "cloud.transcribe": { "on": true },
-    "cloud.tts": { "on": true },
-    "cache.account": { "on": true },
-    "cache.class": { "on": false },
-    "usage.showAllowance": { "on": true },
-    "telemetry.crash": { "on": true },
-    "telemetry.usage": { "on": true },
-    "trust.reports": { "on": true },
-    "trust.aiConsentEnforced": { "on": false }
+    "share.links": {
+      "on": true
+    },
+    "share.classes": {
+      "on": true
+    },
+    "share.aiScreen": {
+      "on": false
+    },
+    "billing.referrals": {
+      "on": true
+    },
+    "billing.licences": {
+      "on": true
+    },
+    "billing.licenceOfferCodes": {
+      "on": false
+    },
+    "billing.examPass": {
+      "on": true
+    },
+    "cloud.chat": {
+      "on": true
+    },
+    "cloud.jobs": {
+      "on": true
+    },
+    "cloud.transcribe": {
+      "on": true
+    },
+    "cloud.tts": {
+      "on": true
+    },
+    "cache.account": {
+      "on": true
+    },
+    "cache.class": {
+      "on": false
+    },
+    "usage.showAllowance": {
+      "on": true
+    },
+    "trust.aiConsentEnforced": {
+      "on": false
+    }
   },
   "limits": {
     "sharesPerAccount": 100,
@@ -50,8 +64,6 @@
     "publicReadsPerMinute": 120,
     "wrongShareCodesPerHour": 60,
     "wrongGroupCodesPerHour": 30,
-    "statsPostsPerHour": 30,
-    "statsRetentionWeeks": 8,
     "autoSuspendReporters": 3,
     "moderationReportsPerHour": 30,
     "anonymousReportsPerHour": 10,
@@ -65,11 +77,10 @@
     "bankedCreditDays": 365,
     "licenceMaxSeats": 5000,
     "licenceMaxDays": 400,
+    "licencePaidModels": 0,
+    "licenceMonthlyBudgetUsd": 0,
     "giftsPerMonth": 20,
     "chatDaily": 400,
-    "microDaily": 60,
-    "microMaxTokens": 220,
-    "microMaxChars": 4000,
     "transcribeDaily": 36,
     "ttsDaily": 300,
     "jobsActive": 3,
@@ -86,14 +97,6 @@
     "cacheClaimNeedsPro": 1,
     "spotlightMaxItems": 5000,
     "siriQuizMax": 50,
-    "telemetryDailyRows": 10000,
-    "telemetryFlushHours": 20,
-    "diagPerHour": 12,
-    "diagNewPerHour": 5,
-    "usagePostsPerHour": 4,
-    "reportsPerHour": 20,
-    "reportsOpenMax": 200,
-    "reportsGlobalPerHour": 600,
     "supportPerHour": 3,
     "supportGlobalPerHour": 100,
     "benchPublishPerHour": 30
@@ -105,88 +108,244 @@
     "workers-ai": 80
   },
   "messages": [],
-  "app": { "configTtlSeconds": 21600, "minBuild": 0, "latestBuild": 0 },
-  "cache": { "salt": "v1" },
+  "app": {
+    "configTtlSeconds": 21600,
+    "minBuild": 0,
+    "latestBuild": 0
+  },
+  "cache": {
+    "salt": "v1"
+  },
   "_ranges": {
-    "sharesPerAccount": [0, 1000],
-    "shareManifestBytes": [100000, 20000000],
-    "shareBlobBytes": [100000, 1800000],
-    "shareBytesD1": [0, 50000000],
-    "shareBytesR2": [0, 200000000],
-    "shareStoreSoftCap": [0, 480000000],
-    "groupsPerAccount": [0, 100],
-    "groupMembers": [2, 5000],
-    "groupSets": [1, 2000],
-    "publishesPerHour": [1, 500],
-    "joinsPerHour": [1, 500],
-    "inviteDevicesPerHour": [5, 2000],
-    "inviteDevicesPerCodeHour": [1, 1000],
-    "publicReadsPerMinute": [10, 10000],
-    "wrongShareCodesPerHour": [5, 1000],
-    "wrongGroupCodesPerHour": [5, 1000],
-    "statsPostsPerHour": [1, 500],
-    "statsRetentionWeeks": [2, 52],
-    "autoSuspendReporters": [2, 50],
-    "moderationReportsPerHour": [1, 500],
-    "anonymousReportsPerHour": [1, 500],
-    "referralRewardDays": [0, 90],
-    "referralRefereeDays": [0, 30],
-    "referralMaxPerMonth": [0, 20],
-    "referralMaxPerYear": [0, 100],
-    "referralHoldHours": [0, 720],
-    "referralClaimWindowDays": [1, 30],
-    "referralClaimsPerHour": [1, 50],
-    "bankedCreditDays": [30, 730],
-    "licenceMaxSeats": [1, 20000],
-    "licenceMaxDays": [1, 730],
-    "giftsPerMonth": [0, 200],
-    "chatDaily": [0, 20000],
-    "microDaily": [0, 5000],
-    "microMaxTokens": [32, 600],
-    "microMaxChars": [500, 20000],
-    "transcribeDaily": [0, 500],
-    "ttsDaily": [0, 5000],
-    "jobsActive": [1, 10],
-    "jobsKept": [1, 100],
-    "jobSteps": [1, 500],
-    "jobCountMax": [1, 5000],
-    "proDailyUsd": [0, 50],
-    "globalDailyUsd": [0, 500],
-    "ownerMonthlyUsd": [0, 500],
-    "cacheTtlDays": [1, 730],
-    "cacheLookupsHourly": [1, 1000],
-    "cacheMaxSourceBytes": [10000, 10000000],
-    "cacheMaxBodyBytes": [10000, 1900000],
-    "cacheClaimNeedsPro": [0, 1],
-    "spotlightMaxItems": [0, 20000],
-    "siriQuizMax": [5, 100],
-    "telemetryDailyRows": [0, 90000],
-    "telemetryFlushHours": [1, 168],
-    "diagPerHour": [1, 200],
-    "diagNewPerHour": [1, 100],
-    "usagePostsPerHour": [1, 100],
-    "reportsPerHour": [1, 200],
-    "reportsOpenMax": [10, 5000],
-    "reportsGlobalPerHour": [10, 20000],
-    "supportPerHour": [1, 50],
-    "supportGlobalPerHour": [1, 5000],
-    "benchPublishPerHour": [1, 500],
-    "freeShare.*": [0, 1000]
+    "sharesPerAccount": [
+      0,
+      1000
+    ],
+    "shareManifestBytes": [
+      100000,
+      20000000
+    ],
+    "shareBlobBytes": [
+      100000,
+      1800000
+    ],
+    "shareBytesD1": [
+      0,
+      50000000
+    ],
+    "shareBytesR2": [
+      0,
+      200000000
+    ],
+    "shareStoreSoftCap": [
+      0,
+      480000000
+    ],
+    "groupsPerAccount": [
+      0,
+      100
+    ],
+    "groupMembers": [
+      2,
+      5000
+    ],
+    "groupSets": [
+      1,
+      2000
+    ],
+    "publishesPerHour": [
+      1,
+      500
+    ],
+    "joinsPerHour": [
+      1,
+      500
+    ],
+    "inviteDevicesPerHour": [
+      5,
+      2000
+    ],
+    "inviteDevicesPerCodeHour": [
+      1,
+      1000
+    ],
+    "publicReadsPerMinute": [
+      10,
+      10000
+    ],
+    "wrongShareCodesPerHour": [
+      5,
+      1000
+    ],
+    "wrongGroupCodesPerHour": [
+      5,
+      1000
+    ],
+    "autoSuspendReporters": [
+      2,
+      50
+    ],
+    "moderationReportsPerHour": [
+      1,
+      500
+    ],
+    "anonymousReportsPerHour": [
+      1,
+      500
+    ],
+    "referralRewardDays": [
+      0,
+      90
+    ],
+    "referralRefereeDays": [
+      0,
+      30
+    ],
+    "referralMaxPerMonth": [
+      0,
+      20
+    ],
+    "referralMaxPerYear": [
+      0,
+      100
+    ],
+    "referralHoldHours": [
+      0,
+      720
+    ],
+    "referralClaimWindowDays": [
+      1,
+      30
+    ],
+    "referralClaimsPerHour": [
+      1,
+      50
+    ],
+    "bankedCreditDays": [
+      30,
+      730
+    ],
+    "licenceMaxSeats": [
+      1,
+      20000
+    ],
+    "licenceMaxDays": [
+      1,
+      730
+    ],
+    "licencePaidModels": [
+      0,
+      0
+    ],
+    "licenceMonthlyBudgetUsd": [
+      0,
+      0
+    ],
+    "giftsPerMonth": [
+      0,
+      200
+    ],
+    "chatDaily": [
+      0,
+      20000
+    ],
+    "transcribeDaily": [
+      0,
+      500
+    ],
+    "ttsDaily": [
+      0,
+      5000
+    ],
+    "jobsActive": [
+      1,
+      10
+    ],
+    "jobsKept": [
+      1,
+      100
+    ],
+    "jobSteps": [
+      1,
+      500
+    ],
+    "jobCountMax": [
+      1,
+      5000
+    ],
+    "proDailyUsd": [
+      0,
+      50
+    ],
+    "globalDailyUsd": [
+      0,
+      500
+    ],
+    "ownerMonthlyUsd": [
+      0,
+      500
+    ],
+    "cacheTtlDays": [
+      1,
+      730
+    ],
+    "cacheLookupsHourly": [
+      1,
+      1000
+    ],
+    "cacheMaxSourceBytes": [
+      10000,
+      10000000
+    ],
+    "cacheMaxBodyBytes": [
+      10000,
+      1900000
+    ],
+    "cacheClaimNeedsPro": [
+      0,
+      1
+    ],
+    "spotlightMaxItems": [
+      0,
+      20000
+    ],
+    "siriQuizMax": [
+      5,
+      100
+    ],
+    "supportPerHour": [
+      1,
+      50
+    ],
+    "supportGlobalPerHour": [
+      1,
+      5000
+    ],
+    "benchPublishPerHour": [
+      1,
+      500
+    ],
+    "freeShare.*": [
+      0,
+      1000
+    ]
   },
   "_public": [
-    "chatDaily", "microDaily", "transcribeDaily", "ttsDaily", "jobsActive", "jobCountMax",
-    "spotlightMaxItems", "siriQuizMax", "telemetryFlushHours"
+    "chatDaily",
+    "transcribeDaily",
+    "ttsDaily",
+    "jobsActive",
+    "jobCountMax",
+    "spotlightMaxItems",
+    "siriQuizMax"
   ],
   "_env": {
     "AI_DAILY_LIMIT": "limits.chatDaily",
     "TRANSCRIBE_DAILY": "limits.transcribeDaily",
     "TTS_DAILY_LIMIT": "limits.ttsDaily",
     "OWNER_MONTHLY_USD": "limits.ownerMonthlyUsd",
-    "TELEMETRY": "flags.telemetry.crash+flags.telemetry.usage (value off turns both off)",
-    "TELEMETRY_DAILY_ROWS": "limits.telemetryDailyRows",
     "REFERRALS": "flags.billing.referrals",
     "GROUP_LICENCES": "flags.billing.licences",
-    "REPORTS": "flags.trust.reports",
     "AI_CONSENT_ENFORCED": "flags.trust.aiConsentEnforced",
     "any other limit": "UPPER_SNAKE_CASE of the limit name, e.g. SHARES_PER_ACCOUNT -> limits.sharesPerAccount",
     "any other flag": "FLAG_ + UPPER_SNAKE_CASE with dots as underscores, value on or off, e.g. FLAG_SHARE_LINKS -> flags.share.links"
