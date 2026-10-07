@@ -19,7 +19,8 @@ import Foundation
 // the final colour into `_surface.diffuse` (constant lighting, added to
 // what is behind), designed as it shows on screen and taken into linear
 // space at the end; time is `rpClock` times `rpMotion` (0 with Reduce
-// Motion); `rpProbe` is added at the end so a modifier that fails to
+// Motion, when no impulse runs: the chosen note's axons glow steadily
+// and their synapses stay lit instead); `rpProbe` is added at the end so a modifier that fails to
 // compile is caught; no helper functions. The two geometry modifiers
 // (the membrane's wobble, the dendrites' sway) read their own clock,
 // `rpSway`, set by NeuronImpulses each frame - an argument is never
@@ -449,7 +450,8 @@ nonisolated enum NeuronShaders {
     float rp_tau1 = rp_a1 - rp_D;
     float rp_tau2 = rp_a2 - rp_D;
     float rp_tau = rp_tau1 >= 0.0 ? rp_tau1 : rp_tau2;
-    float rp_act = step(0.0, rp_tau) * step(rp_tau, 5.0);
+    float rp_still = (1.0 - rpMotion) * rp_lit;
+    float rp_act = step(0.0, rp_tau) * step(rp_tau, 5.0) * rpMotion;
     float rp_tp = max(rp_tau, 0.0);
 
     float rp_jig = rp_act * rpMotion * rpDetail * exp(-rp_tp / 0.28) * cos(rp_tp * 16.0);
@@ -515,8 +517,9 @@ nonisolated enum NeuronShaders {
     float rp_bead = 1.0 + 0.12 * rp_node;
 
     float rp_in = 1.0 - smoothstep(0.92, 1.08, rp_x);
-    float rp_imp = min(rp_pulse * (1.0 + 0.7 * rp_node), 1.6) * rp_in;
-    float rp_flash = rp_tee * rp_act * exp(-rp_tp / 0.25);
+    float rp_imp = min(rp_pulse * rpMotion * (1.0 + 0.7 * rp_node), 1.6) * rp_in;
+    rp_imp = max(rp_imp, 0.5 * rp_still * rp_in);
+    float rp_flash = rp_tee * max(rp_act * exp(-rp_tp / 0.25), 0.6 * rp_still);
     float rp_fibre = (0.2 * rp_tube + 0.34 * rp_edge) * rp_in * rp_bead;
     float rp_gl = (rp_y / rp_wm - 0.42) / 0.16;
     float rp_gloss = exp(-rp_gl * rp_gl) * rp_myel * (1.0 - rp_node) * (1.0 - rpBundle) * rp_in;

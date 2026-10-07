@@ -1789,7 +1789,8 @@ struct GraphSCNView: UIViewRepresentable {
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = animated ? 0.6 : 0
+            // Reduce Motion: the camera jumps to its framing, as fly(to:) does
+            SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             sim.world.simdOrientation = turn
             camera.simdPosition = home

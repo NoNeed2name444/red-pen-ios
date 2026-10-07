@@ -20,7 +20,8 @@ import Foundation
 // shows on screen and taken into linear space at the end; the light is the
 // shaders' own (a lamp up and to the left, in view space), so nothing
 // depends on the scene's lights; time is `rpClock` times `rpMotion` (0 with
-// Reduce Motion); `rpProbe` is added at the end so a modifier that fails to
+// Reduce Motion, when no packet runs: the chosen note's traces carry a
+// steady current instead and their end pads stay lit); `rpProbe` is added at the end so a modifier that fails to
 // compile is caught; no helper functions. `rpDetail` 0 (the Smooth budget)
 // drops the mask's grain and the die's finest detail.
 //
@@ -224,12 +225,13 @@ nonisolated enum CircuitShaders {
         }
     }
 
-    float rp_imp = min(rp_pulse, 1.5);
+    float rp_still = (1.0 - rpMotion) * rp_lit;
+    float rp_imp = max(min(rp_pulse * rpMotion, 1.5), 0.55 * rp_still);
     float rp_core = 1.0 - smoothstep(0.35, 0.95, rp_x);
     rp_light = rp_light + rpTintB * (rp_imp * (0.9 * rp_core + 0.1) * rp_cu);
     rp_light = rp_light + rpTintC * (rp_imp * 0.22 * (1.0 - smoothstep(1.0, 1.8, rp_x)));
     float rp_endPad = 1.0 - smoothstep(rp_pr * 0.9, rp_pr * 1.9, rp_pb);
-    float rp_fl = min(rp_flash, 1.5) * rp_endPad;
+    float rp_fl = max(min(rp_flash * rpMotion, 1.5), 0.8 * rp_still) * rp_endPad;
     rp_light = rp_light + (rpTintB + rpTintC * 0.4) * (rp_fl * 0.7);
     float rp_in = smoothstep(0.0, 0.02, rp_along);
     rp_col = rp_col * (1.0 + 0.5 * rp_lit);
