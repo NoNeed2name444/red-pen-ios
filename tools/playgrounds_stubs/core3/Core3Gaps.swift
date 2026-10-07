@@ -220,6 +220,23 @@ extension View {
     func platformRoutes(libraryShowing: Bool) -> some View { self }
 }
 
+// MARK: - Exam formats (Shared/Exam/ExamFormats.swift): the kit's one overload
+
+extension ExamWeekPlanner {
+    /// The paper the exam-day kit paces for a chosen exam, as the real one
+    /// works it out: one block or paper when sat in parts, else the whole.
+    static func paper(for exam: TargetExam) -> Paper {
+        let first: MockSectionSpec = exam.sections.first ?? MockSectionSpec(title: exam.shortName, questions: 60, minutes: 60)
+        if exam.sitsBlockwise || exam.sitsSeparately {
+            return Paper(name: "\(exam.shortName) \(first.title.lowercased())", questions: first.questions,
+                         minutes: first.minutes, published: exam.formatConfirmed)
+        }
+        let q: Int = exam.sections.reduce(0) { $0 + $1.questions }
+        let m: Int = exam.sections.reduce(0) { $0 + $1.minutes }
+        return Paper(name: exam.shortName, questions: q, minutes: m, published: exam.formatConfirmed)
+    }
+}
+
 // MARK: - Screens a later zip puts back
 
 struct CoverageView: View {

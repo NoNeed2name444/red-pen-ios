@@ -58,8 +58,12 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -list 2>&1 | tail -20 || true
+          # keep compiling after the first failing file, so one run lists
+          # every error rather than one layer per run
           xcodebuild -scheme "Stethoscore Personal" -destination 'generic/platform=iOS' \
             -skipMacroValidation -skipPackagePluginValidation \
+            -IDEBuildingContinueBuildingAfterErrors=YES \
+            OTHER_SWIFT_FLAGS='$(inherited) -continue-building-after-errors' \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|warning: .*(deprecated|Swift 6)|BUILD " | head -150 || true
           { echo '### Playgrounds package (${{ matrix.variant }}) errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/Stethoscore Personal.swiftpm/##' | sort -u | head -80 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
