@@ -23,6 +23,12 @@ struct NoteEditorView: View {
     var body: some View { NotInThisBuild(feature: "Ideas") }
 }
 
+/// Which of Ideas' views is open (NotesShared.swift): the library reads it
+/// to keep the sky only under the 3D map, which never opens here.
+enum IdeasMode: String {
+    case list, board, space
+}
+
 enum NoteExamples {
     static func seedIfNeeded(into store: NoteStore) {}
 }
