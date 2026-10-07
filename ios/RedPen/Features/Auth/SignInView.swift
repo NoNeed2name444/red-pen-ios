@@ -5,7 +5,7 @@ import AuthenticationServices
 ///
 /// What the app is, up top; the doors at the bottom, under the thumb. The one
 /// that works on its own - start without an account - is the lowest and the
-/// one filled in Theatre Blue; above it Apple, which on this platform is one
+/// one raised highest, its words in Theatre Blue; above it Apple, which on this platform is one
 /// tap and gives away the least; Google, because most students are already
 /// signed in to it in Safari; and a code, for a second iPhone or iPad joining
 /// the library of the first.
@@ -18,8 +18,9 @@ struct SignInView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var joining = false
 
-    /// Theatre Blue, for the door that works on its own.
-    private static let pen = Color.wardPrimary
+    /// Theatre Blue, for the door that works on its own: the tone that reads
+    /// as words on the soft base.
+    private static let pen = Color.wardPrimaryInk
 
     private static let door = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
 
@@ -90,12 +91,12 @@ struct SignInView: View {
         }
     }
 
-    /// One of the three fanned tiles.
+    /// One of the three fanned tiles, big enough to stand a lift higher than
+    /// a row's.
     private func mastTile(_ kind: StudySetKind) -> some View {
         let angle: Double = SignInView.tileAngle(kind)
         let layer: Double = SignInView.tileLayer(kind)
-        return ModeTile(kind: kind, size: 52)
-            .wardShadow()
+        return ModeTile(kind: kind, size: 56)
             .rotationEffect(.degrees(angle))
             .zIndex(layer)
     }
@@ -148,7 +149,7 @@ struct SignInView: View {
     /// Top to bottom: a code, Google, Apple, and - lowest, under the thumb -
     /// straight in. Centred in the same 480-point column on an iPad.
     ///
-    /// On a Clean Sheet pane, so that when a large text size makes the story
+    /// On a soft pane raised high off the base, so that when a large text size makes the story
     /// scroll it goes under the pane rather than showing between the doors.
     /// The pane is a background (never over `localSignIn`), so every door
     /// keeps its full height above it.
@@ -160,9 +161,7 @@ struct SignInView: View {
             localDoor
         }
         .padding(12)
-        .background(Color.wardSurface, in: SignInView.pane)
-        .overlay(SignInView.pane.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: SignInView.pane, lift: .high)
         .padding(.horizontal, 12)
         .padding(.top, 4)
         .padding(.bottom, 8)

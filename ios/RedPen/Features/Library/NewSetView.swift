@@ -297,18 +297,23 @@ struct NewSetView: View {
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
+    /// Between two dots: a Theatre Blue line once the step is passed, before
+    /// that a groove etched into the base.
+    @ViewBuilder
     private func stepLink(after one: NewSetStep) -> some View {
-        let passed: Bool = one < step
-        let fill: Color = passed ? Color.wardPrimary : Color.wardHairline
-        return Capsule()
-            .fill(fill)
-            .frame(height: 2)
-            .accessibilityHidden(true)
+        if one < step {
+            Capsule()
+                .fill(Color.wardPrimaryInk)
+                .frame(height: 2)
+                .accessibilityHidden(true)
+        } else {
+            WardEtch()
+        }
     }
 
     @ViewBuilder
     private func stepDot(_ one: NewSetStep) -> some View {
-        let dot = NewSetStepDot(one: one, current: step, tint: Color.wardPrimary)
+        let dot = NewSetStepDot(one: one, current: step, tint: Color.wardPrimaryInk)
         if one < step {
             let spoken: String = "Back to step \(one.rawValue), \(one.short)"
             // borderless, so in a Form row only the dot takes the tap
@@ -393,14 +398,13 @@ struct NewSetView: View {
         .listRowBackground(Color.clear)
     }
 
-    /// One kind of set, as a white tile; the chosen one is edged in Theatre
-    /// Blue. Tapping it chooses it and moves on.
+    /// One kind of set, as a soft tile raised off the base; the chosen one is
+    /// pressed in, its glyph and name in Theatre Blue. Tapping it chooses it
+    /// and moves on.
     private func modeTile(_ option: StudySetKind) -> some View {
         let chosen: Bool = kind == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        let fill: Color = Self.tileFill(chosen: chosen)
-        let edge: Color = chosen ? Color.wardPrimary : Color.wardHairline
-        let edgeWidth: CGFloat = chosen ? 2 : 1
+        let title: Color = chosen ? Color.wardPrimaryInk : Color.wardInk
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button {
             withAnimation(.snappy) {
@@ -411,7 +415,7 @@ struct NewSetView: View {
             HStack(spacing: 16) {
                 ModeTile(kind: option, size: 44, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Self.plainName(option)).font(.headline).foregroundStyle(Color.wardInk)
+                    Text(Self.plainName(option)).font(.headline).foregroundStyle(title)
                     Text(Self.blurb(option))
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2).multilineTextAlignment(.leading)
@@ -424,20 +428,12 @@ struct NewSetView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .background(fill, in: shape)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: edgeWidth))
+            .wardRelief(in: shape, lift: .mid, pressed: chosen)
             .contentShape(shape)
-            .wardShadow()
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)
-    }
-
-    /// A chosen tile is washed in Theatre Blue; the others are Clean Sheet.
-    private static func tileFill(chosen: Bool) -> Color {
-        chosen ? Color.wardPrimary.opacity(0.08) : Color.wardSurface
     }
 
     private var pathPicker: some View {
@@ -450,12 +446,12 @@ struct NewSetView: View {
         .listRowBackground(Color.clear)
     }
 
+    /// One way to add material: raised off the base; the chosen one pressed
+    /// in, its name and tick in Theatre Blue.
     private func pathTile(_ option: Path) -> some View {
         let chosen: Bool = path == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        let fill: Color = Self.tileFill(chosen: chosen)
-        let edge: Color = chosen ? Color.wardPrimary : Color.wardHairline
-        let edgeWidth: CGFloat = chosen ? 2 : 1
+        let title: Color = chosen ? Color.wardPrimaryInk : Color.wardInk
         let mark: String = chosen ? "checkmark.circle.fill" : "circle"
         let markInk: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = chosen ? .isSelected : []
@@ -463,7 +459,7 @@ struct NewSetView: View {
             HStack(spacing: 16) {
                 WardIconSquare(symbol: option.symbol, size: 40, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(option.title).font(.headline).foregroundStyle(Color.wardInk)
+                    Text(option.title).font(.headline).foregroundStyle(title)
                     Text(option.blurb).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.leading)
                 }
@@ -475,11 +471,8 @@ struct NewSetView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-            .background(fill, in: shape)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: edgeWidth))
+            .wardRelief(in: shape, lift: .mid, pressed: chosen)
             .contentShape(shape)
-            .wardShadow()
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
@@ -639,6 +632,7 @@ struct NewSetView: View {
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
+        .wardRowBackground()
     }
 
     /// Save, with how much is ready under it. On the typing path this is

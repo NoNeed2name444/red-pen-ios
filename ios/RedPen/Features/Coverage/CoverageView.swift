@@ -465,7 +465,8 @@ struct CoverageView: View {
 }
 
 /// One of the three counts at the top, as a chip that filters the rows to
-/// its status. White with a hairline; the chosen one takes its tone.
+/// its status: raised off the base; the chosen one is pressed in and its
+/// words take its tone.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -473,8 +474,7 @@ private struct CoverageCountChip: View {
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
-        let fill: Color = chosen ? colour.opacity(0.12) : Color.clear
-        let edge: Color = chosen ? colour.opacity(0.6) : Color.wardHairline
+        let words: Color = chosen ? CoverageView.tone(status).ink : Color.wardInkSecondary
         let shape = Capsule()
         VStack(spacing: 2) {
             Text("\(count)")
@@ -484,21 +484,14 @@ private struct CoverageCountChip: View {
             Label(status.label, systemImage: CoverageView.symbol(status))
                 .labelStyle(.titleAndIcon)
                 .font(.caption)
-                .foregroundStyle(Color.wardInkSecondary)
+                .foregroundStyle(words)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 56)
-        .background {
-            ZStack {
-                shape.fill(Color.wardSurface)
-                shape.fill(fill)
-            }
-        }
-        .overlay(shape.strokeBorder(edge, lineWidth: 1))
-        .wardShadow()
+        .wardRelief(in: shape, pressed: chosen)
         .contentShape(shape)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)

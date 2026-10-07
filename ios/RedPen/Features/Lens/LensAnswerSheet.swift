@@ -47,7 +47,7 @@ struct LensAnswerSheet: View {
             }
             .safeAreaInset(edge: .bottom) { actionBar }
         }
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .environment(\.modeTint, tint)
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))

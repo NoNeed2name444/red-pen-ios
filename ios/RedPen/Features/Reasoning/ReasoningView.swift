@@ -129,7 +129,7 @@ private struct ReasoningSetBody: View {
                         } label: {
                             ReasoningToolTile(tool: tool, count: pack.count(of: tool), tall: broad)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
                     }
                 }
                 Text(footnote)
@@ -157,7 +157,8 @@ private struct ReasoningSetBody: View {
 }
 
 /// One tool as a tile: its symbol, its name, and one line - what it is
-/// before anything is written, how many there are after.
+/// before anything is written, how many there are after. Its face is the
+/// link's PopTileStyle: raised off the base, pressed in under the finger.
 private struct ReasoningToolTile: View {
     let tool: ReasoningTool
     let count: Int
@@ -194,18 +195,13 @@ private struct ReasoningToolTile: View {
         .multilineTextAlignment(.leading)
         .padding(16)
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
         .contentShape(shape)
-        .wardShadow()
-        .contentShape(.hoverEffect, shape)
-        .hoverEffect(.highlight)
     }
 }
 
 /// How many to write, the Write button, and what went wrong last time - the
 /// bottom slab of each tool's list. Give it to `.studyBar { }` (or use
-/// `reasoningWriteSlab(tool:set:)`), so the list scrolls under the glass.
+/// `reasoningWriteSlab(tool:set:)`), so the list scrolls under the slab.
 ///
 /// While anything is being written it shows that instead: how far it has
 /// got, and Stop - the slab stands in for the generation card on these
@@ -333,8 +329,7 @@ private struct ReasoningCountMenu: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(minWidth: 56, minHeight: 56)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardRaised(in: shape)
             .contentShape(shape)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.lift)
@@ -412,7 +407,7 @@ private struct ReasoningSheet: View {
                     }
                 }
         }
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .measuringWindow()
     }
 }

@@ -22,8 +22,8 @@ struct VoicePermissionNote: View {
         .padding(.horizontal, 10)
         .padding(.top, 10)
         .padding(.bottom, 2)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        // a note, so pressed into the base like a banner
+        .wardInset(in: shape)
     }
 }
 

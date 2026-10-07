@@ -154,13 +154,11 @@ struct PictureFromPhotoView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.plain)
+        // a soft tile raised off the base, pressed in under the finger
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
         .accessibilityIdentifier(id)
     }
 
@@ -300,7 +298,11 @@ struct PictureFromPhotoView: View {
                     pageChip(index)
                 }
             }
+            // room inside the scroll view for the chips' lights
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
         }
+        .padding(.horizontal, -6)
     }
 
     private func pageChip(_ index: Int) -> some View {
@@ -431,8 +433,7 @@ struct PictureFromPhotoView: View {
                     .frame(minHeight: 44, alignment: .leading)
             }
             .padding(.horizontal, 14)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardRaised(in: shape)
         }
     }
 
@@ -444,7 +445,7 @@ struct PictureFromPhotoView: View {
         } label: {
             HStack {
                 Image(systemName: chosen ? "largecircle.fill.circle" : "rectangle.fill")
-                    .foregroundStyle(chosen ? Color.wardPrimary : Color.wardBeam)
+                    .foregroundStyle(chosen ? Color.wardPrimaryInk : Color.wardBeam)
                     .accessibilityHidden(true)
                 Text(answer.isEmpty ? "No answer yet" : answer)
                     .foregroundStyle(answer.isEmpty ? Color.wardInkSecondary : Color.wardInk)

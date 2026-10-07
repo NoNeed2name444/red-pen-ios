@@ -130,7 +130,7 @@ final class GenerationCenter: ObservableObject {
 /// written, how many of how many and about how long is left, a strip filling
 /// as it gets done, and Cancel - the one way to stop it.
 ///
-/// A white card at the bottom where the
+/// A soft card raised high off the base, at the bottom where the
 /// thumb is. A screen with its own bottom slab (New set) shows this in place
 /// of that slab while a job runs; any other screen uses `generationHUD()`.
 struct GenerationHUD: View {
@@ -171,9 +171,7 @@ private struct GenerationCard: View {
             GenerationProgress(fraction: job.fraction)
         }
         .padding(14)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
     }
 }
 

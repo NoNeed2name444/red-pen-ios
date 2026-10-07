@@ -177,7 +177,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
     }
 
     /// A clear row as tall as the Library's dock, so the last row can scroll
@@ -229,7 +229,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .overlay {
             if notes.notes.isEmpty && notes.folders.isEmpty {
                 firstIdea

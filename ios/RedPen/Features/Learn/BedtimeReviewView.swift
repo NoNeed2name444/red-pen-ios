@@ -35,9 +35,9 @@ struct BedtimeReviewView: View {
             .frame(maxWidth: .infinity)
         }
         .background(Color.wardBackground.ignoresSafeArea())
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .environment(\.colorScheme, .dark)
-        .environment(\.modeTint, Color.wardPrimary)
+        .environment(\.modeTint, Color.wardPrimaryInk)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.wardBackground, for: .navigationBar)

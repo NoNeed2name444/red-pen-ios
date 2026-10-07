@@ -34,9 +34,9 @@ struct ProgressRing<Centre: View>: View {
     var spoken: String
     var size: CGFloat
     var lineWidth: CGFloat
-    /// A ring that can be pressed: it sits on a Clean Sheet disc with a
-    /// hairline edge (see `RingButtonStyle`). The ring itself and its fill
-    /// never move on their own.
+    /// A ring that can be pressed: it sits on a soft disc raised off the
+    /// base (see `RingButtonStyle`). The ring itself and its fill never move
+    /// on their own.
     var raised: Bool
     let centre: Centre
 
@@ -44,7 +44,7 @@ struct ProgressRing<Centre: View>: View {
     @Environment(\.ringPressed) private var pressed
     @State private var shown = false
 
-    init(value: Double, total: Double = 1, segments: [RingSegment] = [], tint: Color = .wardPrimary,
+    init(value: Double, total: Double = 1, segments: [RingSegment] = [], tint: Color = .wardPrimaryInk,
          label: String, marker: Double? = nil, spoken: String = "", size: CGFloat = 64,
          lineWidth: CGFloat = 7, raised: Bool = false, @ViewBuilder centre: () -> Centre) {
         self.value = value
@@ -123,7 +123,7 @@ struct ProgressRing<Centre: View>: View {
             if !label.isEmpty {
                 Text(label)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -142,8 +142,8 @@ struct ProgressRing<Centre: View>: View {
     }
 }
 
-/// A pressable ring's disc: a Clean Sheet face with a hairline edge under the
-/// ring, dimming a touch while pressed. A plain ring is left as it is.
+/// A pressable ring's disc: a soft disc raised under the ring, pressed into
+/// the base under the finger. A plain ring is left as it is.
 private struct RingDisc: ViewModifier {
     let raised: Bool
     let pressed: Bool
@@ -153,10 +153,7 @@ private struct RingDisc: ViewModifier {
         if raised {
             content
                 .padding(3)
-                .background(Color.wardSurface, in: Circle())
-                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
-                .wardShadow()
-                .opacity(pressed ? 0.85 : 1)
+                .wardRelief(in: Circle(), lift: .mid, pressed: pressed)
         } else {
             content
         }
@@ -207,7 +204,7 @@ struct RingCentre: View {
                 .font(.system(.subheadline, design: .monospaced).weight(.bold).monospacedDigit())
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let caption {
-                Text(caption).font(.system(size: 9)).foregroundStyle(.secondary)
+                Text(caption).font(.system(size: 9)).foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
         }
@@ -226,7 +223,7 @@ struct SparkPoint: Identifiable, Hashable {
 /// A tiny line of accuracy day by day, with no axes: the shape, not the numbers.
 struct Sparkline: View {
     var points: [SparkPoint]
-    var tint: Color = .wardPrimary
+    var tint: Color = .wardPrimaryInk
 
     var body: some View {
         Chart(points) { point in
@@ -259,7 +256,7 @@ struct ReasonDonut: View {
     /// strongest.
     private func shade(_ index: Int) -> Color {
         let strength: Double = 0.9 - Double(index) * 0.16
-        return Color.wardPrimary.opacity(max(0.25, strength))
+        return Color.wardPrimaryInk.opacity(max(0.25, strength))
     }
 
     var body: some View {
@@ -276,7 +273,7 @@ struct ReasonDonut: View {
                 }
                 VStack(spacing: 0) {
                     Text("\(total)").font(.system(.title3, design: .monospaced).weight(.bold).monospacedDigit())
-                    Text(total == 1 ? "reason" : "reasons").font(.caption2).foregroundStyle(.secondary)
+                    Text(total == 1 ? "reason" : "reasons").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .frame(height: 150)
@@ -288,7 +285,7 @@ struct ReasonDonut: View {
                         .font(.caption)
                     Spacer(minLength: 8)
                     Text("\(Int((share.share * 100).rounded()))%")
-                        .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
@@ -321,7 +318,7 @@ struct CalibrationChart: View {
             ForEach(rows) { row in
                 BarMark(x: .value("Confidence", row.confidence.title),
                         y: .value("Right", row.accuracy * 100))
-                    .foregroundStyle(Color.wardPrimary.opacity(0.7))
+                    .foregroundStyle(Color.wardPrimaryInk.opacity(0.7))
                     .cornerRadius(4)
             }
             ForEach(rows) { row in
@@ -408,14 +405,14 @@ struct StudyHeatmap: View {
     private static func legendShade(_ level: Double) -> Color {
         guard level > 0 else { return Color.wardHairline }
         let strength: Double = 0.25 + 0.7 * level
-        return Color.wardPrimary.opacity(strength)
+        return Color.wardPrimaryInk.opacity(strength)
     }
 
     private func shade(_ count: Int, busiest: Int) -> Color {
         guard count > 0, busiest > 0 else { return Color.wardHairline }
         let level: Double = Double(count) / Double(busiest)
         let strength: Double = 0.25 + 0.7 * min(1, level)
-        return Color.wardPrimary.opacity(strength)
+        return Color.wardPrimaryInk.opacity(strength)
     }
 
     var body: some View {
@@ -446,13 +443,13 @@ struct StudyHeatmap: View {
             }
             .frame(maxWidth: 320)
             HStack(spacing: 4) {
-                Text("Less").font(.caption2).foregroundStyle(.secondary)
+                Text("Less").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 ForEach(Self.legendLevels, id: \.self) { level in
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Self.legendShade(level))
                         .frame(width: 10, height: 10)
                 }
-                Text("More").font(.caption2).foregroundStyle(.secondary)
+                Text("More").font(.caption2).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .accessibilityElement(children: .ignore)

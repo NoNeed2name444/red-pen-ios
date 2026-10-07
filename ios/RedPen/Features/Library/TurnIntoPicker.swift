@@ -11,7 +11,8 @@ import SwiftUI
 ///
 /// The same sheet serves the long-press menu on a library row and the More
 /// menu on every mode's own screen, so turning works the same from anywhere.
-/// The tiles are white cards; this set's own mode is greyed out.
+/// The tiles are soft, raised off the base; this set's own mode lies low and
+/// faint.
 struct TurnIntoPicker: View {
     let source: StudySet
 
@@ -80,13 +81,12 @@ struct TurnIntoPicker: View {
         return (hasLecture ? "Written by AI from your lecture" : "Written by AI from this set", "sparkles")
     }
 
-    /// One mode, as a white card. The set's own mode is flat and faded, and
-    /// cannot be chosen.
+    /// One mode, as a soft tile raised off the base and pressed in under the
+    /// finger. The set's own mode lies low and faint, and cannot be chosen.
     private func tile(_ kind: StudySetKind) -> some View {
         let current: Bool = kind == source.kind
         let said = note(for: kind)
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        let fill: Color = current ? Color.wardBackground : Color.wardSurface
         let spoken: String = "\(kind.label). \(said.text)"
         let hint: String = current ? "The mode this set is in now" : "Makes a new set. This one stays as it is."
         return Button { pick(kind) } label: {
@@ -103,14 +103,10 @@ struct TurnIntoPicker: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
-            .background(fill, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
         .disabled(current)
-        .opacity(current ? 0.55 : 1)
         .accessibilityLabel(spoken)
         .accessibilityHint(hint)
         .accessibilityIdentifier("turnInto-\(kind.rawValue)")

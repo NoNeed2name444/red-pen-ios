@@ -18,8 +18,11 @@ extension LibraryView {
                         .accessibilityIdentifier("searchScope-\(scope.rawValue)")
                     }
                 }
+                // room inside the scroll view for the chips' lights
+                .padding(.horizontal, 6)
                 .padding(.vertical, 2)
             }
+            .padding(.horizontal, -6)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Search in")
             .accessibilityIdentifier("searchScope")
@@ -56,8 +59,7 @@ extension LibraryView {
             Section {
                 buildSessionButton(from: query)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .wardButtonRow()
         }
     }
 
@@ -72,6 +74,7 @@ extension LibraryView {
     }
 
     /// "Build a session": a filtered deck from this search, or from filters.
+    /// A soft tile raised off the base, pressed in under the finger.
     func buildSessionButton(from text: String) -> some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return Button { sessionText = text; buildingSession = true } label: {
@@ -95,12 +98,9 @@ extension LibraryView {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
         .accessibilityIdentifier("buildSession")
     }
 
@@ -259,8 +259,7 @@ struct FoundCardSheet: View {
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             if revealed {
-                Rectangle().fill(Color.wardHairline).frame(height: 1)
-                    .accessibilityHidden(true)
+                WardEtch()
                 ForEach(Array(answers.enumerated()), id: \.offset) { _, line in
                     Text(line).font(.body).foregroundStyle(Color.wardInk)
                 }

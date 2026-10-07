@@ -75,7 +75,7 @@ struct SourcePreviewView: View {
         NavigationStack {
             content
                 .background(WardBackground())
-                .tint(Color.wardPrimary)
+                .tint(Color.wardPrimaryInk)
                 .navigationTitle(source.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -156,7 +156,7 @@ struct SourcePreviewView: View {
         return NavigationStack {
             SourcePageList(source: source, selected: $page)
                 .background(WardBackground())
-                .tint(Color.wardPrimary)
+                .tint(Color.wardPrimaryInk)
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

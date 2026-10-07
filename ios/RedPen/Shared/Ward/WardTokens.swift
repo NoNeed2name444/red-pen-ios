@@ -85,19 +85,7 @@ struct WardSmallCaps: ViewModifier {
     }
 }
 
-/// The one shadow, in light mode only; at night edges come from the hairline.
-struct WardShadow: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-    func body(content: Content) -> some View {
-        let on: Bool = scheme == .light
-        content
-            .shadow(color: .black.opacity(on ? 0.04 : 0), radius: 2, y: 1)
-            .shadow(color: .black.opacity(on ? 0.06 : 0), radius: 16, y: 6)
-    }
-}
-
 extension View {
     func wardSmallCaps() -> some View { modifier(WardSmallCaps()) }
-    func wardShadow() -> some View { modifier(WardShadow()) }
 }
 #endif

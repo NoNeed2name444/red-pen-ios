@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// - the floating Document / Page switcher, which folds into a small circle
 ///   and opens again with a tap (held, it switches without opening);
-/// - the page list, as a glass circle at the leading end (left thumb) - on a
+/// - the page list, as a soft disc at the leading end (left thumb) - on a
 ///   wide iPad the list is already beside the reader, so it is not here;
 /// - in Page view, the pager at the trailing end (right thumb): back, where
 ///   you are, forward. The arrow keys turn the pages too.
@@ -77,7 +77,8 @@ struct ReaderBar: View {
     }
 }
 
-/// Every page, as a list: a 44-point white circle.
+/// Every page, as a list: a 44-point disc on the switcher's floating plane,
+/// pressed in under the finger.
 private struct ReaderPagesButton: View {
     let noun: String
     let action: () -> Void
@@ -89,19 +90,16 @@ private struct ReaderPagesButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 44, height: 44)
-                .background(Color.wardSurface, in: Circle())
-                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .wardShadow()
-        .hoverEffect(.lift)
+        // a 44-point square rounded by half its side: the disc
+        .buttonStyle(PopTileStyle(cornerRadius: 22, plane: .floating))
         .accessibilityLabel(label)
     }
 }
 
-/// "‹ Page 3 of 12 ›": a floating white capsule. The left and right arrow
-/// keys turn the pages as well.
+/// "‹ Page 3 of 12 ›": a soft capsule on the floating plane. The left and
+/// right arrow keys turn the pages as well.
 private struct ReaderPager: View {
     @Binding var page: Int
     let count: Int
@@ -129,9 +127,7 @@ private struct ReaderPager: View {
                              enabled: !atEnd) { turn(1) }
         }
         .padding(.horizontal, 2)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .popOut(.floating, in: Capsule())
     }
 
     private func turn(_ by: Int) {

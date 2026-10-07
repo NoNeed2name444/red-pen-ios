@@ -212,8 +212,8 @@ struct LibraryView: View {
                 .navigationDestination(item: pushedSupport) { $0.page }
         }
         // one accent for the whole library rather than a colour per mode:
-        // Theatre Blue
-        .tint(Color.wardPrimary)
+        // Theatre Blue, in the tone that reads as text on the soft base
+        .tint(Color.wardPrimaryInk)
         // "Turn into…": an instant set opens straight away, in place of
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
@@ -577,8 +577,7 @@ struct LibraryView: View {
                 Section {
                     buildSessionButton(from: "")
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .wardButtonRow()
             }
             featureSection
             moreSection
@@ -637,7 +636,6 @@ struct LibraryView: View {
             Label("New set", systemImage: "plus")
         }
         .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
-        .wardShadow()
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
         .keyboardShortcut("n", modifiers: .command)

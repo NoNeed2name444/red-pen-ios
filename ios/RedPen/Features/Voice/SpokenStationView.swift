@@ -49,7 +49,7 @@ struct SpokenStationView: View {
                 Label("Choose a model to play the patient", systemImage: "person.wave.2")
                     .font(.headline)
                 Text("The patient and the examiner are played by your writer model. With Pro, use \(Brand.name) Cloud or a model on this device; Apple's own model works for free where Apple Intelligence is on.")
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
             StationPastAttempts(title: station.title, shown: $shown)
@@ -114,7 +114,7 @@ private struct SpokenStationScreen: View {
                 if session.isCommunication {
                     Label("Also marked on SPIKES: setting, perception, invitation, knowledge, emotions, strategy and summary.",
                           systemImage: "bubble.left.and.bubble.right")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
             } footer: {
                 Text("Tap the microphone to speak; it sends when you pause. The patient answers in their own voice. You can type instead.")
@@ -254,7 +254,7 @@ private struct StationPastAttempts: View {
         Section("Past attempts") {
             if attempts.isEmpty {
                 Text("Your marked stations appear here.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(attempts) { attempt in
                 StationAttemptRow(attempt: attempt,
@@ -290,7 +290,7 @@ private struct StationAttemptRow: View {
                         if attempt.isExample { VoiceExampleTag() }
                     }
                     Text(attempt.date, format: .dateTime.day().month().hour().minute())
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer()
                 Text(score)
@@ -346,11 +346,12 @@ private struct SpokenStationComposer: View {
         let words: String = listener.text.isEmpty ? "Listening\u{2026}" : listener.text
         return Label(words, systemImage: "waveform")
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .truncationMode(.head)
     }
 
+    /// The typed box: a well pressed into the bar.
     private var field: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         return TextField("Or type what you say", text: $draft, axis: .vertical)
@@ -358,8 +359,7 @@ private struct SpokenStationComposer: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .frame(minHeight: 48)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardInset(in: shape)
     }
 
     private var speakerButton: some View {
@@ -369,7 +369,7 @@ private struct SpokenStationComposer: View {
         return Button(action: toggleVoice) {
             Image(systemName: symbol)
         }
-        .buttonStyle(StationCircleStyle(prominent: false, tint: Color.wardPrimaryInk))
+        .buttonStyle(StationCircleStyle(prominent: false, tint: Color.wardPrimaryInk, on: on))
         .accessibilityLabel(label)
     }
 
@@ -377,12 +377,12 @@ private struct SpokenStationComposer: View {
         let listening: Bool = listener.listening
         let symbol: String = listening ? "stop.fill" : "mic.fill"
         let label: String = listening ? "Stop and send" : "Speak"
-        let tint: Color = listening ? Color.wardDanger : Color.wardPrimary
+        let tint: Color = listening ? Color.wardDanger : Color.wardPrimaryInk
         let blocked: Bool = session.busy || session.hearing?.canHear != true
         return Button(action: talk) {
             Image(systemName: symbol)
         }
-        .buttonStyle(StationCircleStyle(prominent: true, tint: tint))
+        .buttonStyle(StationCircleStyle(prominent: true, tint: tint, on: listening))
         .disabled(blocked)
         .accessibilityLabel(label)
     }
@@ -391,7 +391,7 @@ private struct SpokenStationComposer: View {
         Button(action: send) {
             Image(systemName: "arrow.up")
         }
-        .buttonStyle(StationCircleStyle(prominent: true, tint: Color.wardPrimary))
+        .buttonStyle(StationCircleStyle(prominent: true, tint: Color.wardPrimaryInk))
         .keyboardShortcut(.return, modifiers: [.command])
         .disabled(session.busy)
         .accessibilityLabel("Send")
@@ -413,17 +413,20 @@ private struct SpokenStationComposer: View {
     }
 }
 
-/// A round 48-point composer button. The prominent one - the microphone, or
-/// Send - is filled with its colour and is the screen's hero, standing
-/// highest out of the glass; the quiet one - the speaker - is lightly tinted
-/// and raised. Pressed or disabled, either sinks flat.
+/// A round 48-point composer button: a soft circle raised off the bar with
+/// its glyph in its colour, never a fill. The prominent one - the
+/// microphone, or Send - is the screen's hero and stands a step higher; the
+/// quiet one - the speaker - is raised low. Held, or on (the speaker reading
+/// aloud, the microphone listening), it is pressed in; disabled, it lies low
+/// and faint.
 private struct StationCircleStyle: ButtonStyle {
     let prominent: Bool
     let tint: Color
+    var on = false
 
     func makeBody(configuration: Configuration) -> some View {
         StationCircleFace(label: configuration.label, isPressed: configuration.isPressed,
-                          prominent: prominent, tint: tint)
+                          prominent: prominent, tint: tint, on: on)
     }
 }
 
@@ -432,38 +435,36 @@ private struct StationCircleFace: View {
     let isPressed: Bool
     let prominent: Bool
     let tint: Color
+    let on: Bool
     @Environment(\.isEnabled) private var isEnabled
-
-    private var fill: Color {
-        if !isEnabled { return Color.wardHairline }
-        if prominent { return tint }
-        return Color.wardSurface
-    }
-
-    private var ink: Color {
-        if !isEnabled { return Color.wardInkSecondary }
-        if prominent { return Color.wardOnPrimary }
-        return tint
-    }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let edge: Color = prominent ? Color.clear : Color.wardHairline
-        let scale: CGFloat = isPressed ? 0.94 : 1
+        let down: Bool = isEnabled && (isPressed || on)
+        let rest: WardLift = prominent ? .mid : .low
+        let lift: WardLift = down ? rest.lower : rest
+        let ink: Color = isEnabled ? tint : Color.wardInkSecondary
         label
             .font(.title3.weight(.semibold))
             .foregroundStyle(ink)
             .frame(width: 48, height: 48)
-            .background(fill, in: Circle())
-            .overlay(Circle().strokeBorder(edge, lineWidth: 1))
+            .background {
+                if isEnabled {
+                    WardReliefFace(shape: Circle(), lift: lift, inset: down)
+                } else {
+                    WardReliefFace(shape: Circle(), lift: .low).opacity(0.5)
+                }
+            }
             .contentShape(Circle())
-            .scaleEffect(scale)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
-            .wardShadow()
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
             .contentShape(.hoverEffect, Circle())
-            .hoverEffect(.lift)
+            .hoverEffect(.highlight)
     }
 }
 
+/// One line said: the two speaking raised off the base (the student on the
+/// right, in Theatre Blue words; the patient on the left, in ink), the
+/// examiner's asides pressed into it.
 private struct SpokenLineBubble: View {
     let line: SpokenLine
 
@@ -476,21 +477,20 @@ private struct SpokenLineBubble: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(10)
-                .background(Color.wardInkSecondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .student:
             HStack {
                 Spacer(minLength: 40)
                 Text(line.text)
                     .padding(10)
-                    .foregroundStyle(Color.wardOnPrimary)
-                    .background(Color.wardPrimary, in: bubble)
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .wardRaised(in: bubble, lift: .low)
             }
         case .patient:
             Text(line.text)
                 .foregroundStyle(Color.wardInk)
                 .padding(10)
-                .background(Color.wardSurface, in: bubble)
-                .overlay(bubble.strokeBorder(Color.wardHairline, lineWidth: 1))
+                .wardRaised(in: bubble, lift: .low)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.trailing, 40)
         }
@@ -540,7 +540,7 @@ struct StationReportView: View {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(stage.name)
-                                Text(stage.meaning).font(.caption).foregroundStyle(.secondary)
+                                Text(stage.meaning).font(.caption).foregroundStyle(Color.wardInkSecondary)
                             }
                         } icon: {
                             Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -580,7 +580,7 @@ struct StationReportView: View {
                 ForEach(attempt.lines) { line in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(line.speaker.rawValue.capitalized)
-                            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
                         Text(line.text).font(.callout)
                     }
                 }
@@ -589,7 +589,7 @@ struct StationReportView: View {
 
             Section {
                 Text("A study aid, not an exam result. Marked by a model from a speech-recognition transcript, which can mishear.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
         }

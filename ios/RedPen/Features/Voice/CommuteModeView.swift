@@ -305,6 +305,7 @@ struct CommuteModeView: View {
                     CommuteLineRow(line: line)
                         .id(line.id)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
             .listStyle(.plain)
@@ -368,20 +369,17 @@ private struct CommutePlayControls: View {
             Button("Skip") { session.skip() }
                 .buttonStyle(.bigSecondary)
                 .keyboardShortcut(.rightArrow, modifiers: [])
+            // the hero: a soft circle standing highest, its glyph in Theatre
+            // Blue, pressed in while held
             Button {
                 session.toggle()
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(Color.wardOnPrimary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 84, height: 84)
-                    .background(Color.wardPrimary, in: Circle())
-                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
-            .wardShadow()
-            .contentShape(.hoverEffect, Circle())
-            .hoverEffect(.lift)
+            .buttonStyle(WardCircleButtonStyle(lift: .high))
             .keyboardShortcut(.space, modifiers: [])
             .accessibilityLabel(label)
         }

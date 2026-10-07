@@ -15,8 +15,8 @@ enum NewSetDockPrimary: Equatable {
 /// New set's one bottom container, under the thumb.
 ///
 /// Step 1 has none: tapping a kind moves on by itself. On steps 2 and 3 it is
-/// one white slab: Back at the leading end, the step's one main
-/// button at the trailing end (right thumb). While something is being
+/// one soft slab raised high off the base: Back at the leading end, the
+/// step's one main button at the trailing end (right thumb). While something is being
 /// written, the progress card - with its Cancel, the one way to stop -
 /// takes the slab's place, so there is never more than one thing floating
 /// at the bottom.
@@ -67,9 +67,7 @@ struct NewSetDock: View {
             }
         }
         .padding(12)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
         .frame(maxWidth: 600)
@@ -118,33 +116,33 @@ private struct NewSetDockPrimaryButton: View {
 }
 
 /// One step in "1 Choose - 2 Add - 3 Make": a numbered dot, ticked once the
-/// step is done, with its name beside it.
+/// step is done, with its name beside it. A done step is raised (it can be
+/// gone back to) with its tick in `tint`; the step being written is pressed
+/// in with its number in `tint`; one still to come is pressed in, in grey.
 struct NewSetStepDot: View {
     let one: NewSetStep
     let current: NewSetStep
     let tint: Color
 
     var body: some View {
-        let reached: Bool = one <= current
         let done: Bool = one < current
-        let fill: Color = reached ? tint : Color.wardHairline
-        let number: Color = reached ? Color.wardOnPrimary : Color.wardInkSecondary
-        let caption: Color = one == current ? Color.wardInk : Color.wardInkSecondary
+        let here: Bool = one == current
+        let ink: Color = done || here ? tint : Color.wardInkSecondary
+        let caption: Color = here ? Color.wardInk : Color.wardInkSecondary
         HStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .fill(fill)
-                    .frame(width: 28, height: 28)
+                WardReliefFace(shape: Circle(), lift: .low, inset: !done)
                 if done {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.wardOnPrimary)
+                        .foregroundStyle(ink)
                 } else {
                     Text("\(one.rawValue)")
                         .font(.system(.subheadline, design: .monospaced).weight(.bold))
-                        .foregroundStyle(number)
+                        .foregroundStyle(ink)
                 }
             }
+            .frame(width: 28, height: 28)
             Text(one.short)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(caption)

@@ -155,9 +155,8 @@ struct WardRoundChip: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Ward round: " + round.caption(at: now))
         }
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        // floating over every screen, so raised high off the base
+        .wardRaised(in: Capsule(), lift: .high)
         .contentShape(Capsule())
         .onTapGesture(perform: open)
         .sensoryFeedback(.success, trigger: notice) { _, new in new != nil }
