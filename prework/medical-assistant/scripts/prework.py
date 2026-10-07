@@ -17,7 +17,9 @@ NODE_KINDS = ("Disease", "Drug", "Symptom", "Procedure")
 
 
 def canonical(value) -> bytes:
-    return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    return json.dumps(
+        value, sort_keys=True, ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
 
 
 def digest(value: bytes) -> str:
@@ -90,7 +92,9 @@ def standardize_image(path: Path) -> bytes:
     try:
         from PIL import Image
     except ImportError as error:
-        raise RuntimeError("Image standardization unavailable: install Pillow") from error
+        raise RuntimeError(
+            "Image standardization unavailable: install Pillow"
+        ) from error
     import io
 
     with Image.open(path) as image:
@@ -100,7 +104,9 @@ def standardize_image(path: Path) -> bytes:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    records = [
+        json.loads(line) for line in path.read_text().splitlines() if line.strip()
+    ]
     if any(not isinstance(record, dict) for record in records):
         raise ValueError("Each JSONL record must be an object")
     return records
@@ -108,7 +114,14 @@ def read_jsonl(path: Path) -> list[dict]:
 
 def validate_labels(value, schema: dict) -> None:
     """Fail closed on unsupported schema features; no medical labels default."""
-    supported = {"type", "properties", "required", "additionalProperties", "items", "enum"}
+    supported = {
+        "type",
+        "properties",
+        "required",
+        "additionalProperties",
+        "items",
+        "enum",
+    }
     if not isinstance(schema, dict) or not schema or set(schema) - supported:
         raise ValueError("Caller schema required; unsupported schema keyword")
     types = {
@@ -124,7 +137,8 @@ def validate_labels(value, schema: dict) -> None:
     if kind not in types or not types[kind](value):
         raise ValueError("Value does not match caller schema type")
     if "enum" in schema and (
-        not isinstance(schema["enum"], list) or not schema["enum"]
+        not isinstance(schema["enum"], list)
+        or not schema["enum"]
         or canonical(value) not in [canonical(item) for item in schema["enum"]]
     ):
         raise ValueError("Value is outside caller schema enum")
@@ -133,7 +147,8 @@ def validate_labels(value, schema: dict) -> None:
         required = schema.get("required", [])
         extra = schema.get("additionalProperties", True)
         if (
-            not isinstance(properties, dict) or not isinstance(required, list)
+            not isinstance(properties, dict)
+            or not isinstance(required, list)
             or any(not isinstance(item, str) for item in required)
             or type(extra) is not bool
         ):
@@ -159,14 +174,23 @@ def validate_schema(schema: dict) -> None:
     """Check supported schema definitions independently of supplied values."""
     if not isinstance(schema, dict) or "type" not in schema:
         raise ValueError("Explicit caller schema required")
-    examples = {"object": {}, "array": [], "string": "", "number": 0.0,
-                "integer": 0, "boolean": False, "null": None}
+    examples = {
+        "object": {},
+        "array": [],
+        "string": "",
+        "number": 0.0,
+        "integer": 0,
+        "boolean": False,
+        "null": None,
+    }
     kind = schema["type"]
     if kind not in examples:
         raise ValueError("Unsupported schema type")
     probe = dict(schema)
     probe.pop("enum", None)
-    if "enum" in schema and (not isinstance(schema["enum"], list) or not schema["enum"]):
+    if "enum" in schema and (
+        not isinstance(schema["enum"], list) or not schema["enum"]
+    ):
         raise ValueError("Malformed enum")
     probe.pop("required", None)
     if "required" in schema and (
@@ -178,10 +202,13 @@ def validate_schema(schema: dict) -> None:
 
 
 def validate_l0(record, schema=None) -> dict:
-    """Run only caller-supplied supported schema checks; this is not a safety verdict."""
+    "Run only caller-supplied supported schema checks; this is not a safety verdict."
     if schema is None:
-        return {"status": "unresolved", "passed": False,
-                "errors": ["caller_schema_missing"]}
+        return {
+            "status": "unresolved",
+            "passed": False,
+            "errors": ["caller_schema_missing"],
+        }
     try:
         validate_schema(schema)
         validate_labels(record, schema)
@@ -194,11 +221,17 @@ def validate_l1(record, rules=None) -> dict:
     """Check caller-defined finite numeric bounds and optional exact units only."""
     errors = []
     if not isinstance(record, dict):
-        return {"status": "failed", "passed": False,
-                "errors": ["record_must_be_object"]}
+        return {
+            "status": "failed",
+            "passed": False,
+            "errors": ["record_must_be_object"],
+        }
     if not isinstance(rules, dict) or not rules:
-        return {"status": "failed", "passed": False,
-                "errors": ["caller_rules_required"]}
+        return {
+            "status": "failed",
+            "passed": False,
+            "errors": ["caller_rules_required"],
+        }
     for field, rule in rules.items():
         if not isinstance(field, str) or not field:
             errors.append("malformed_rule_field")
@@ -250,17 +283,29 @@ def validate_l1(record, rules=None) -> dict:
             errors.append(f"below_min:{field}")
         if "max" in bounds and supplied > bounds["max"]:
             errors.append(f"above_max:{field}")
-    return {"status": "passed" if not errors else "failed",
-            "passed": not errors, "errors": errors}
+    return {
+        "status": "passed" if not errors else "failed",
+        "passed": not errors,
+        "errors": errors,
+    }
 
 
-def annotate(manifests: list[dict], annotations: list[dict], schema: dict, output: Path):
+def annotate(
+    manifests: list[dict], annotations: list[dict], schema: dict, output: Path
+):
     """Validate complete caller labels before atomically exporting JSONL."""
     validate_schema(schema)
-    eligible = {item["manifest_id"] for item in manifests
-                if item.get("exclusion_flags") == [] and not license_flags({
-                    **item, "id": item.get("item_id"),
-                })}
+    eligible = {
+        item["manifest_id"]
+        for item in manifests
+        if item.get("exclusion_flags") == []
+        and not license_flags(
+            {
+                **item,
+                "id": item.get("item_id"),
+            }
+        )
+    }
     seen = set()
     for annotation in annotations:
         if set(annotation) != {"manifest_id", "labels"}:
@@ -288,8 +333,12 @@ def load_callback(specification: str):
 def observe_negation(text: str, detector=None, cue_config=None) -> dict:
     """L2 external cue/span observations; no semantic negation verdict."""
     if not callable(detector) or not isinstance(cue_config, dict) or not cue_config:
-        return {"layer": "L2", "status": "unresolved", "cues": [],
-                "reason": "external_detector_or_cue_config_missing"}
+        return {
+            "layer": "L2",
+            "status": "unresolved",
+            "cues": [],
+            "reason": "external_detector_or_cue_config_missing",
+        }
     if not isinstance(text, str):
         raise ValueError("Caller text must be a string")
     cues = detector(text, cue_config)
@@ -299,17 +348,22 @@ def observe_negation(text: str, detector=None, cue_config=None) -> dict:
         if not isinstance(cue, dict) or set(cue) != {"cue", "start", "end"}:
             raise ValueError("Cue requires cue/start/end")
         start, end = cue["start"], cue["end"]
-        if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(text):
+        if (
+            type(start) is not int
+            or type(end) is not int
+            or not 0 <= start < end <= len(text)
+        ):
             raise ValueError("Cue spans must be valid text offsets")
         if cue["cue"] != text[start:end]:
             raise ValueError("Cue must match exact source text span")
-    return {"layer": "L2", "status": "observed", "cues": cues,
-            "semantic_verdict": None}
+    return {"layer": "L2", "status": "observed", "cues": cues, "semantic_verdict": None}
 
 
 def exact_sources(source_ids: list[str], provenance: list[dict]) -> list[dict]:
     """Join only explicit, unique, exact source identifiers."""
-    if not isinstance(source_ids, list) or any(not isinstance(item, str) or not item for item in source_ids):
+    if not isinstance(source_ids, list) or any(
+        not isinstance(item, str) or not item for item in source_ids
+    ):
         raise ValueError("Explicit source ID list required")
     if len(set(source_ids)) != len(source_ids):
         raise ValueError("Duplicate evidence source IDs")
@@ -324,15 +378,25 @@ def exact_sources(source_ids: list[str], provenance: list[dict]) -> list[dict]:
     return [registry[identifier] for identifier in sorted(source_ids)]
 
 
-def evaluate_grounding(claim: str, source_ids=None, provenance=None, evaluator=None) -> dict:
+def evaluate_grounding(
+    claim: str, source_ids=None, provenance=None, evaluator=None
+) -> dict:
     """L3 external evaluation; no inferred score or semantic verdict."""
     if not source_ids or not provenance or not callable(evaluator):
-        return {"layer": "L3", "status": "unresolved", "reason": "external_evaluator_or_evidence_missing"}
+        return {
+            "layer": "L3",
+            "status": "unresolved",
+            "reason": "external_evaluator_or_evidence_missing",
+        }
     evidence = exact_sources(source_ids, provenance)
     if not isinstance(claim, str) or not claim.strip():
         raise ValueError("Caller claim required")
     result = evaluator(claim, evidence)
-    if not isinstance(result, dict) or set(result) != {"source_ids", "result"} or not isinstance(result["result"], dict):
+    if (
+        not isinstance(result, dict)
+        or set(result) != {"source_ids", "result"}
+        or not isinstance(result["result"], dict)
+    ):
         raise ValueError("Evaluator requires source_ids and external result object")
     if not result["source_ids"]:
         raise ValueError("Evaluator must cite supplied evidence")
@@ -341,7 +405,9 @@ def evaluate_grounding(claim: str, source_ids=None, provenance=None, evaluator=N
     return {"layer": "L3", "status": "external_result", "evaluation": result}
 
 
-def package_evidence(claim: str, source_ids: list[str], provenance: list[dict], layers: dict) -> dict:
+def package_evidence(
+    claim: str, source_ids: list[str], provenance: list[dict], layers: dict
+) -> dict:
     """L4 preparation only: join provenance and prior results, never approve."""
     if not isinstance(claim, str) or not claim.strip():
         raise ValueError("Caller claim required")
@@ -350,7 +416,9 @@ def package_evidence(claim: str, source_ids: list[str], provenance: list[dict], 
     joined = exact_sources(source_ids, provenance)
     normalized = {}
     for name in ("L0", "L1", "L2", "L3"):
-        result = layers.get(name, {"status": "unresolved", "reason": "layer_result_missing"})
+        result = layers.get(
+            name, {"status": "unresolved", "reason": "layer_result_missing"}
+        )
         if not isinstance(result, dict):
             raise ValueError("Layer result must be an object")
         normalized[name] = result
@@ -358,8 +426,12 @@ def package_evidence(claim: str, source_ids: list[str], provenance: list[dict], 
     if evaluation:
         exact_sources(evaluation.get("source_ids"), joined)
     package = {
-        "version": VERSION, "status": "pending", "claim": claim,
-        "source_ids": sorted(source_ids), "provenance": joined, "layers": normalized,
+        "version": VERSION,
+        "status": "pending",
+        "claim": claim,
+        "source_ids": sorted(source_ids),
+        "provenance": joined,
+        "layers": normalized,
         "L4": {"status": "pending", "authority": "Claude", "decision": None},
     }
     package = json.loads(canonical(package))
@@ -371,13 +443,21 @@ def resolve_entity(query: str, system: str, adapter=None) -> dict:
     if system not in {"UMLS", "SNOMED CT", "ICD11"}:
         raise ValueError("Unknown external terminology system")
     if adapter is None:
-        return {"system": system, "query": query, "status": "unresolved",
-                "reason": "External terminology adapter and credentials absent"}
+        return {
+            "system": system,
+            "query": query,
+            "status": "unresolved",
+            "reason": "External terminology adapter and credentials absent",
+        }
     result = adapter(query)
     if not isinstance(result, dict):
         raise ValueError("External entity adapter must return an object")
-    return {"system": system, "query": query, "status": "external_result",
-            "result": result}
+    return {
+        "system": system,
+        "query": query,
+        "status": "external_result",
+        "result": result,
+    }
 
 
 def extract_triplets(manifests: list[dict], extractor, output: Path) -> list[dict]:
@@ -386,11 +466,18 @@ def extract_triplets(manifests: list[dict], extractor, output: Path) -> list[dic
         raise ValueError("External extractor callback required")
     eligible = {}
     for item in manifests:
-        if item.get("exclusion_flags") == [] and not license_flags({
-            **item, "id": item.get("item_id"),
-        }):
+        if item.get("exclusion_flags") == [] and not license_flags(
+            {
+                **item,
+                "id": item.get("item_id"),
+            }
+        ):
             identifier = item.get("manifest_id")
-            if not isinstance(identifier, str) or not identifier or identifier in eligible:
+            if (
+                not isinstance(identifier, str)
+                or not identifier
+                or identifier in eligible
+            ):
                 raise ValueError("Invalid or duplicate manifest IDs")
             eligible[identifier] = item
     triples = {}
@@ -399,17 +486,26 @@ def extract_triplets(manifests: list[dict], extractor, output: Path) -> list[dic
         if not isinstance(supplied, list):
             raise ValueError("Extractor must return a list of triple objects")
         for triple in supplied:
-            if not isinstance(triple, dict) or set(triple) != {"head", "relation", "tail", "source_ids"}:
+            if not isinstance(triple, dict) or set(triple) != {
+                "head",
+                "relation",
+                "tail",
+                "source_ids",
+            }:
                 raise ValueError("Triple requires head, relation, tail, source_ids")
-            if any(not isinstance(triple[key], str) or not triple[key].strip()
-                   for key in ("head", "relation", "tail")):
+            if any(
+                not isinstance(triple[key], str) or not triple[key].strip()
+                for key in ("head", "relation", "tail")
+            ):
                 raise ValueError("Triple members must be nonempty strings")
             sources = triple["source_ids"]
             if (
-                not isinstance(sources, list) or not sources
+                not isinstance(sources, list)
+                or not sources
                 or any(not isinstance(source, str) for source in sources)
                 or len(set(sources)) != len(sources)
-                or identifier not in sources or set(sources) - set(eligible)
+                or identifier not in sources
+                or set(sources) - set(eligible)
             ):
                 raise ValueError("Triple evidence must cite qualified manifest IDs")
             normalized = {**triple, "source_ids": sorted(sources), "version": VERSION}
@@ -420,11 +516,17 @@ def extract_triplets(manifests: list[dict], extractor, output: Path) -> list[dic
     return result
 
 
-def graph_integrity(nodes: list[dict], relationships: list[dict], vectors: list[dict]) -> list[str]:
+def graph_integrity(
+    nodes: list[dict], relationships: list[dict], vectors: list[dict]
+) -> list[str]:
     """Compare caller graph/vector IDs without assigning medical semantics."""
     errors = []
     identifiers = {}
-    for kind, records in (("node", nodes), ("relationship", relationships), ("vector", vectors)):
+    for kind, records in (
+        ("node", nodes),
+        ("relationship", relationships),
+        ("vector", vectors),
+    ):
         seen = set()
         for record in records:
             identifier = record.get("id")
@@ -438,9 +540,17 @@ def graph_integrity(nodes: list[dict], relationships: list[dict], vectors: list[
     for relationship in relationships:
         for endpoint in ("head", "tail"):
             if relationship.get(endpoint) not in identifiers["node"]:
-                errors.append(f"dangling_relationship:{relationship.get('id')}:{endpoint}")
-    errors.extend(f"missing_vector:{identifier}" for identifier in sorted(identifiers["node"] - identifiers["vector"]))
-    errors.extend(f"missing_node:{identifier}" for identifier in sorted(identifiers["vector"] - identifiers["node"]))
+                errors.append(
+                    f"dangling_relationship:{relationship.get('id')}:{endpoint}"
+                )
+    errors.extend(
+        f"missing_vector:{identifier}"
+        for identifier in sorted(identifiers["node"] - identifiers["vector"])
+    )
+    errors.extend(
+        f"missing_node:{identifier}"
+        for identifier in sorted(identifiers["vector"] - identifiers["node"])
+    )
     return errors
 
 
@@ -458,7 +568,9 @@ def graph_plan(nodes, relationships, vectors, relation_types, dimensions: int) -
         raise ValueError("Caller relationship type allowlist required")
     for node in nodes:
         if node.get("kind") not in NODE_KINDS:
-            raise ValueError("Node kind must be caller-assigned Disease/Drug/Symptom/Procedure")
+            raise ValueError(
+                "Node kind must be caller-assigned Disease/Drug/Symptom/Procedure"
+            )
     for relation in relationships:
         if relation.get("type") not in relation_types:
             raise ValueError("Relationship type outside caller allowlist")
@@ -468,45 +580,99 @@ def graph_plan(nodes, relationships, vectors, relation_types, dimensions: int) -
             raise ValueError("Properties must be an object without an id override")
     for vector in vectors:
         values = vector.get("values")
-        if not isinstance(values, list) or len(values) != dimensions or any(
-            type(value) not in (int, float) or not math.isfinite(value) for value in values
+        if (
+            not isinstance(values, list)
+            or len(values) != dimensions
+            or any(
+                type(value) not in (int, float) or not math.isfinite(value)
+                for value in values
+            )
         ):
-            raise ValueError("Embedding must have caller dimensions and finite numeric values")
-    revision = digest(canonical({"nodes": nodes, "relationships": relationships, "vectors": vectors}))
+            raise ValueError(
+                "Embedding must have caller dimensions and finite numeric values"
+            )
+    revision = digest(
+        canonical({"nodes": nodes, "relationships": relationships, "vectors": vectors})
+    )
     writes = []
     for kind in NODE_KINDS:
-        rows = [{"id": item["id"], "properties": {**item.get("properties", {}), "_sync_revision": revision}}
-                for item in nodes if item["kind"] == kind]
+        rows = [
+            {
+                "id": item["id"],
+                "properties": {
+                    **item.get("properties", {}),
+                    "_sync_revision": revision,
+                },
+            }
+            for item in nodes
+            if item["kind"] == kind
+        ]
         if rows:
-            writes.append({
-                "query": f"UNWIND $rows AS row MERGE (n:Entity:{kind} {{id: row.id}}) SET n += row.properties",
-                "parameters": {"rows": rows},
-            })
+            writes.append(
+                {
+                    "query": (
+                        f"UNWIND $rows AS row MERGE (n:Entity:{kind} {{id: row.id}}) "
+                        "SET n += row.properties"
+                    ),
+                    "parameters": {"rows": rows},
+                }
+            )
     for kind in sorted(set(relation_types)):
-        rows = [{"id": item["id"], "head": item["head"], "tail": item["tail"],
-                 "properties": {**item.get("properties", {}), "_sync_revision": revision}}
-                for item in relationships if item["type"] == kind]
+        rows = [
+            {
+                "id": item["id"],
+                "head": item["head"],
+                "tail": item["tail"],
+                "properties": {
+                    **item.get("properties", {}),
+                    "_sync_revision": revision,
+                },
+            }
+            for item in relationships
+            if item["type"] == kind
+        ]
         if rows:
-            writes.append({
-                "query": "UNWIND $rows AS row MATCH (h:Entity {id: row.head}), "
-                         "(t:Entity {id: row.tail}) "
-                         f"MERGE (h)-[r:{kind} {{id: row.id}}]->(t) SET r += row.properties",
-                "parameters": {"rows": rows},
-            })
+            writes.append(
+                {
+                    "query": "UNWIND $rows AS row MATCH (h:Entity {id: row.head}), "
+                    "(t:Entity {id: row.tail}) "
+                    f"MERGE (h)-[r:{kind} {{id: row.id}}]->(t) SET r += row.properties",
+                    "parameters": {"rows": rows},
+                }
+            )
     return {
-        "version": VERSION, "revision": revision, "graph_writes": writes,
-        "vector_sync": {"revision": revision, "id_field": "id", "dimensions": dimensions,
-                        "upsert": [{"id": item["id"], "values": item["values"],
-                                    "metadata": {"_sync_revision": revision}} for item in vectors],
-                        "expected_ids": sorted(item["id"] for item in nodes)},
-        "protocol": ["caller applies graph transaction", "caller upserts vectors with same IDs and revision",
-                     "caller reads both stores and verifies expected IDs and revision before marking synchronized"],
+        "version": VERSION,
+        "revision": revision,
+        "graph_writes": writes,
+        "vector_sync": {
+            "revision": revision,
+            "id_field": "id",
+            "dimensions": dimensions,
+            "upsert": [
+                {
+                    "id": item["id"],
+                    "values": item["values"],
+                    "metadata": {"_sync_revision": revision},
+                }
+                for item in vectors
+            ],
+            "expected_ids": sorted(item["id"] for item in nodes),
+        },
+        "protocol": [
+            "caller applies graph transaction",
+            "caller upserts vectors with same IDs and revision",
+            "caller reads both stores and verifies expected IDs and revision "
+            "before marking synchronized",
+        ],
     }
 
 
 def etl(
-    input_path: Path, output: Path, assets: Path,
-    image_adapter=None, image_adapter_id: str | None = None,
+    input_path: Path,
+    output: Path,
+    assets: Path,
+    image_adapter=None,
+    image_adapter_id: str | None = None,
 ) -> list[dict]:
     """Normalize caller inputs with durable per-item checkpoints and stable IDs."""
     records = read_jsonl(input_path)
@@ -531,11 +697,16 @@ def etl(
         if not flags and record.get("image"):
             image_path = bounded_path(assets, record["image"])
             image_source_hash = digest(image_path.read_bytes())
-        key = digest(canonical({
-            "version": VERSION, "record": record,
-            "image_source_sha256": image_source_hash,
-            "image_adapter_id": image_adapter_id or "pillow-rgb-png-v1",
-        }))
+        key = digest(
+            canonical(
+                {
+                    "version": VERSION,
+                    "record": record,
+                    "image_source_sha256": image_source_hash,
+                    "image_adapter_id": image_adapter_id or "pillow-rgb-png-v1",
+                }
+            )
+        )
         cached = checkpoint.get(key)
         if cached:
             artifact = bounded_path(output, f"objects/{cached}.json")
@@ -579,7 +750,8 @@ def etl(
                 image_name = f"images/{image_hash}.png"
                 atomic_write(bounded_path(output, image_name), image_content)
                 entry["image"] = {
-                    "path": image_name, "sha256": image_hash,
+                    "path": image_name,
+                    "sha256": image_hash,
                     "source_sha256": image_source_hash,
                     "adapter_id": image_adapter_id or "pillow-rgb-png-v1",
                 }
@@ -637,7 +809,9 @@ def main() -> int:
     l3_parser = subcommands.add_parser("l3", help="external grounding evaluator")
     l3_parser.add_argument("input", type=Path)
     l3_parser.add_argument("--evaluator")
-    l4_parser = subcommands.add_parser("l4", help="package evidence for pending Claude review")
+    l4_parser = subcommands.add_parser(
+        "l4", help="package evidence for pending Claude review"
+    )
     l4_parser.add_argument("input", type=Path)
     l4_parser.add_argument("output", type=Path)
     arguments = parser.parse_args()
@@ -647,14 +821,19 @@ def main() -> int:
         return 0
     if arguments.command == "annotate":
         result = annotate(
-            read_jsonl(arguments.manifest), read_jsonl(arguments.annotations),
-            json.loads(arguments.schema.read_text()), arguments.output,
+            read_jsonl(arguments.manifest),
+            read_jsonl(arguments.annotations),
+            json.loads(arguments.schema.read_text()),
+            arguments.output,
         )
         print(json.dumps({"annotations": len(result)}))
         return 0
     if arguments.command == "triplets":
-        result = extract_triplets(read_jsonl(arguments.manifest),
-                                  load_callback(arguments.extractor), arguments.output)
+        result = extract_triplets(
+            read_jsonl(arguments.manifest),
+            load_callback(arguments.extractor),
+            arguments.output,
+        )
         print(json.dumps({"triplets": len(result)}))
         return 0
     if arguments.command == "entity-stub":
@@ -662,8 +841,13 @@ def main() -> int:
         return 0
     if arguments.command == "graph-plan":
         supplied = json.loads(arguments.input.read_text())
-        plan = graph_plan(supplied["nodes"], supplied["relationships"], supplied["vectors"],
-                          supplied["relation_types"], supplied["dimensions"])
+        plan = graph_plan(
+            supplied["nodes"],
+            supplied["relationships"],
+            supplied["vectors"],
+            supplied["relation_types"],
+            supplied["dimensions"],
+        )
         atomic_write(arguments.output, canonical(plan))
         print(json.dumps({"revision": plan["revision"], "execution": "not_performed"}))
         return 0
@@ -683,12 +867,22 @@ def main() -> int:
     if arguments.command == "l3":
         supplied = json.loads(arguments.input.read_text())
         evaluator = load_callback(arguments.evaluator) if arguments.evaluator else None
-        result = evaluate_grounding(supplied["claim"], supplied.get("source_ids"), supplied.get("provenance"), evaluator)
+        result = evaluate_grounding(
+            supplied["claim"],
+            supplied.get("source_ids"),
+            supplied.get("provenance"),
+            evaluator,
+        )
         print(json.dumps(result))
         return 1 if result["status"] == "unresolved" else 0
     if arguments.command == "l4":
         supplied = json.loads(arguments.input.read_text())
-        result = package_evidence(supplied["claim"], supplied["source_ids"], supplied["provenance"], supplied["layers"])
+        result = package_evidence(
+            supplied["claim"],
+            supplied["source_ids"],
+            supplied["provenance"],
+            supplied["layers"],
+        )
         atomic_write(arguments.output, canonical(result))
         print(json.dumps({"package_id": result["package_id"], "L4": "pending"}))
         return 0
