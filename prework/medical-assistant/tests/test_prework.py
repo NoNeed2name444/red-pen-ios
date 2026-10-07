@@ -1,6 +1,7 @@
 """Verify offline checks against isolated directories, without content or keys."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,9 +21,11 @@ from scripts.prework import (
     observe_negation,
     package_evidence,
     resolve_entity,
+    standardize_image,
     validate_l0,
     validate_l1,
     validate_labels,
+    verify_graph_sync,
 )
 
 
@@ -526,6 +529,221 @@ class EvidencePackageTests(unittest.TestCase):
                 ["synthetic-a"],
                 sources,
                 {"L3": {"evaluation": {"source_ids": ["synthetic-b"]}}},
+            )
+
+
+class PipelineCompletionTests(unittest.TestCase):
+    def test_default_pillow_adapter_produces_rgb_png_and_repairs_image(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Install Pillow to verify the default image adapter")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / "image.png"
+            Image.new("RGBA", (3, 2), (20, 30, 40, 128)).save(image)
+            record = ETLTests.record()
+            record["image"] = image.name
+            source = root / "input.jsonl"
+            source.write_text(json.dumps(record))
+            expected = etl(source, root / "etl", root)
+            output_image = root / "etl" / expected[0]["image"]["path"]
+            with Image.open(output_image) as decoded:
+                self.assertEqual(decoded.mode, "RGB")
+                self.assertEqual(decoded.format, "PNG")
+                self.assertEqual(decoded.size, (3, 2))
+            output_image.write_bytes(b"corrupt")
+            self.assertEqual(etl(source, root / "etl", root), expected)
+            self.assertEqual(output_image.read_bytes(), standardize_image(image))
+
+    def test_ambiguous_manifest_ids_rejected_before_annotation_export(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "input.jsonl"
+            source.write_text(json.dumps(ETLTests.record()))
+            manifests = etl(source, root / "etl", root)
+            with self.assertRaises(ValueError):
+                annotate(
+                    manifests * 2, [], AnnotationTests.schema, root / "labels.jsonl"
+                )
+            self.assertFalse((root / "labels.jsonl").exists())
+
+    def test_graph_revision_is_order_independent_and_readback_is_checked(self):
+        plan = graph_plan(
+            GraphTests.nodes,
+            GraphTests.relationships,
+            GraphTests.vectors,
+            ["SYNTHETIC_RELATION"],
+            2,
+        )
+        self.assertEqual(
+            plan,
+            graph_plan(
+                list(reversed(GraphTests.nodes)),
+                GraphTests.relationships,
+                list(reversed(GraphTests.vectors)),
+                ["SYNTHETIC_RELATION"],
+                2,
+            ),
+        )
+        nodes = [
+            {**item, "properties": {"_sync_revision": plan["revision"]}}
+            for item in GraphTests.nodes
+        ]
+        relations = [
+            {**item, "properties": {"_sync_revision": plan["revision"]}}
+            for item in GraphTests.relationships
+        ]
+        vectors = plan["vector_sync"]["upsert"]
+        self.assertEqual(
+            verify_graph_sync(plan, nodes, relations, vectors)["status"], "matched"
+        )
+        nodes[0]["properties"]["_sync_revision"] = "stale"
+        result = verify_graph_sync(plan, nodes, [], vectors)
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("revision_mismatch:node:synthetic-a", result["errors"])
+        self.assertIn("missing_readback:relationship:synthetic-r", result["errors"])
+
+    def test_synthetic_cli_pipeline_preserves_provenance_and_pending_review(self):
+        """Exercise real CLI boundaries with explicit synthetic provider adapters."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            adapter = root / "synthetic_adapters.py"
+            adapter.write_text(
+                "def extract(item):\n"
+                '    return [{"head":"fixture-a", "relation":"SYNTHETIC_RELATION", '
+                '"tail":"fixture-b", "source_ids":[item["manifest_id"]]}]\n'
+                "def detect(text, config):\n"
+                '    cue = config["cue"]; start = text.index(cue)\n'
+                '    return [{"cue":cue,"start":start,"end":start+len(cue)}]\n'
+                "def evaluate(claim, evidence):\n"
+                '    return {"source_ids":[item["source_id"] for item in evidence], '
+                '"result":{"synthetic":True}}\n'
+                "def resolve(query):\n"
+                '    return {"synthetic_identifier":"fixture-only", "query":query}\n'
+                "def image(path):\n"
+                '    return b"synthetic-image-adapter-output"\n'
+            )
+            env = {**os.environ, "PYTHONPATH": str(root)}
+
+            def write(name, value):
+                path = root / name
+                path.write_text(json.dumps(value))
+                return path
+
+            def run(*arguments):
+                result = subprocess.run(
+                    [sys.executable, "scripts/prework.py", *map(str, arguments)],
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                return json.loads(result.stdout)
+
+            record = ETLTests.record(text="SYNTHETIC fixture")
+            record["image"] = "fixture.bin"
+            (root / "fixture.bin").write_bytes(b"synthetic input")
+            source = write("input.jsonl", record)
+            output = root / "etl"
+            run(
+                "etl",
+                source,
+                output,
+                "--assets",
+                root,
+                "--image-adapter",
+                "synthetic_adapters:image",
+                "--image-adapter-id",
+                "synthetic-v1",
+            )
+            manifest = json.loads((output / "manifest.jsonl").read_text())
+            identifier = manifest["manifest_id"]
+            schema = write("schema.json", AnnotationTests.schema)
+            annotations = write(
+                "annotations.jsonl",
+                {"manifest_id": identifier, "labels": {"synthetic_tag": "fixture"}},
+            )
+            run(
+                "annotate",
+                output / "manifest.jsonl",
+                annotations,
+                schema,
+                root / "labels.jsonl",
+            )
+            run(
+                "triplets",
+                output / "manifest.jsonl",
+                root / "triplets.jsonl",
+                "--extractor",
+                "synthetic_adapters:extract",
+            )
+            triple = json.loads((root / "triplets.jsonl").read_text())
+            self.assertEqual(triple["source_ids"], [identifier])
+            self.assertEqual(
+                run(
+                    "entity-stub",
+                    "UMLS",
+                    "fixture",
+                    "--adapter",
+                    "synthetic_adapters:resolve",
+                )["status"],
+                "external_result",
+            )
+            l2 = run(
+                "l2",
+                write("text.json", {"text": manifest["text"]}),
+                "--config",
+                write("cue.json", {"cue": "fixture"}),
+                "--detector",
+                "synthetic_adapters:detect",
+            )
+            evidence = {
+                "claim": "synthetic claim",
+                "source_ids": [identifier],
+                "provenance": [{"source_id": identifier, "text": manifest["text"]}],
+            }
+            l3 = run(
+                "l3",
+                write("grounding.json", evidence),
+                "--evaluator",
+                "synthetic_adapters:evaluate",
+            )
+            run(
+                "l4",
+                write("evidence.json", {**evidence, "layers": {"L2": l2, "L3": l3}}),
+                root / "package.json",
+            )
+            package = json.loads((root / "package.json").read_text())
+            self.assertEqual(package["L4"]["status"], "pending")
+            self.assertIsNone(package["L4"]["decision"])
+            self.assertEqual(package["source_ids"], triple["source_ids"])
+            graph_input = {
+                "nodes": GraphTests.nodes,
+                "relationships": GraphTests.relationships,
+                "vectors": GraphTests.vectors,
+                "relation_types": ["SYNTHETIC_RELATION"],
+                "dimensions": 2,
+            }
+            run("graph-plan", write("graph.json", graph_input), root / "plan.json")
+            plan = json.loads((root / "plan.json").read_text())
+            readback = {
+                "nodes": [
+                    {**item, "properties": {"_sync_revision": plan["revision"]}}
+                    for item in GraphTests.nodes
+                ],
+                "relationships": [
+                    {**item, "properties": {"_sync_revision": plan["revision"]}}
+                    for item in GraphTests.relationships
+                ],
+                "vectors": plan["vector_sync"]["upsert"],
+            }
+            self.assertEqual(
+                run(
+                    "graph-check", root / "plan.json", write("readback.json", readback)
+                )["status"],
+                "matched",
             )
 
 

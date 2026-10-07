@@ -290,28 +290,48 @@ def validate_l1(record, rules=None) -> dict:
     }
 
 
+def qualified_manifests(manifests: list[dict]) -> dict:
+    """Index eligible items, rejecting ambiguous identities before any writes."""
+    if not isinstance(manifests, list):
+        raise ValueError("Manifest list required")
+    eligible, seen = {}, set()
+    for item in manifests:
+        if not isinstance(item, dict):
+            raise ValueError("Manifest must be an object")
+        identifier = item.get("manifest_id")
+        if (
+            not isinstance(identifier, str)
+            or not identifier.strip()
+            or identifier in seen
+        ):
+            raise ValueError("Invalid or duplicate manifest IDs")
+        seen.add(identifier)
+        if item.get("exclusion_flags") == [] and not license_flags(
+            {**item, "id": item.get("item_id")}
+        ):
+            eligible[identifier] = item
+    return eligible
+
+
 def annotate(
     manifests: list[dict], annotations: list[dict], schema: dict, output: Path
 ):
     """Validate complete caller labels before atomically exporting JSONL."""
     validate_schema(schema)
-    eligible = {
-        item["manifest_id"]
-        for item in manifests
-        if item.get("exclusion_flags") == []
-        and not license_flags(
-            {
-                **item,
-                "id": item.get("item_id"),
-            }
-        )
-    }
+    eligible = qualified_manifests(manifests)
     seen = set()
     for annotation in annotations:
-        if set(annotation) != {"manifest_id", "labels"}:
+        if not isinstance(annotation, dict) or set(annotation) != {
+            "manifest_id",
+            "labels",
+        }:
             raise ValueError("Annotation requires manifest_id and labels only")
         identifier = annotation["manifest_id"]
-        if identifier not in eligible or identifier in seen:
+        if (
+            not isinstance(identifier, str)
+            or identifier not in eligible
+            or identifier in seen
+        ):
             raise ValueError("Unknown, excluded, or duplicate manifest id")
         seen.add(identifier)
         validate_labels(annotation["labels"], schema)
@@ -367,8 +387,12 @@ def exact_sources(source_ids: list[str], provenance: list[dict]) -> list[dict]:
         raise ValueError("Explicit source ID list required")
     if len(set(source_ids)) != len(source_ids):
         raise ValueError("Duplicate evidence source IDs")
+    if not isinstance(provenance, list):
+        raise ValueError("Provenance list required")
     registry = {}
     for source in provenance:
+        if not isinstance(source, dict):
+            raise ValueError("Provenance record must be an object")
         identifier = source.get("source_id")
         if not isinstance(identifier, str) or not identifier or identifier in registry:
             raise ValueError("Missing or duplicate provenance source IDs")
@@ -440,6 +464,8 @@ def package_evidence(
 
 def resolve_entity(query: str, system: str, adapter=None) -> dict:
     """No terminology lookup occurs without a caller-supplied adapter."""
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("Nonempty terminology query required")
     if system not in {"UMLS", "SNOMED CT", "ICD11"}:
         raise ValueError("Unknown external terminology system")
     if adapter is None:
@@ -449,9 +475,12 @@ def resolve_entity(query: str, system: str, adapter=None) -> dict:
             "status": "unresolved",
             "reason": "External terminology adapter and credentials absent",
         }
+    if not callable(adapter):
+        raise ValueError("External entity adapter must be callable")
     result = adapter(query)
     if not isinstance(result, dict):
         raise ValueError("External entity adapter must return an object")
+    canonical(result)
     return {
         "system": system,
         "query": query,
@@ -464,22 +493,7 @@ def extract_triplets(manifests: list[dict], extractor, output: Path) -> list[dic
     """Validate external triples and exact evidence IDs; never invent relations."""
     if not callable(extractor):
         raise ValueError("External extractor callback required")
-    eligible = {}
-    for item in manifests:
-        if item.get("exclusion_flags") == [] and not license_flags(
-            {
-                **item,
-                "id": item.get("item_id"),
-            }
-        ):
-            identifier = item.get("manifest_id")
-            if (
-                not isinstance(identifier, str)
-                or not identifier
-                or identifier in eligible
-            ):
-                raise ValueError("Invalid or duplicate manifest IDs")
-            eligible[identifier] = item
+    eligible = qualified_manifests(manifests)
     triples = {}
     for identifier, item in eligible.items():
         supplied = extractor(item)
@@ -528,6 +542,10 @@ def graph_integrity(
         ("vector", vectors),
     ):
         seen = set()
+        if not isinstance(records, list) or any(
+            not isinstance(item, dict) for item in records
+        ):
+            raise ValueError("Graph records must be lists of objects")
         for record in records:
             identifier = record.get("id")
             if not isinstance(identifier, str) or not identifier.strip():
@@ -539,7 +557,10 @@ def graph_integrity(
         identifiers[kind] = seen
     for relationship in relationships:
         for endpoint in ("head", "tail"):
-            if relationship.get(endpoint) not in identifiers["node"]:
+            if (
+                not isinstance(relationship.get(endpoint), str)
+                or relationship.get(endpoint) not in identifiers["node"]
+            ):
                 errors.append(
                     f"dangling_relationship:{relationship.get('id')}:{endpoint}"
                 )
@@ -591,6 +612,9 @@ def graph_plan(nodes, relationships, vectors, relation_types, dimensions: int) -
             raise ValueError(
                 "Embedding must have caller dimensions and finite numeric values"
             )
+    nodes = sorted(nodes, key=lambda item: item["id"])
+    relationships = sorted(relationships, key=lambda item: item["id"])
+    vectors = sorted(vectors, key=lambda item: item["id"])
     revision = digest(
         canonical({"nodes": nodes, "relationships": relationships, "vectors": vectors})
     )
@@ -664,6 +688,50 @@ def graph_plan(nodes, relationships, vectors, relation_types, dimensions: int) -
             "caller reads both stores and verifies expected IDs and revision "
             "before marking synchronized",
         ],
+    }
+
+
+def verify_graph_sync(
+    plan: dict, nodes: list[dict], relationships: list[dict], vectors: list[dict]
+) -> dict:
+    """Verify caller readbacks against a plan; never claim a database was contacted."""
+    errors = graph_integrity(nodes, relationships, vectors)
+    revision = plan["revision"]
+    expected_nodes = set(plan["vector_sync"]["expected_ids"])
+    expected_relations = {
+        row["id"]
+        for write in plan["graph_writes"]
+        for row in write["parameters"]["rows"]
+        if "head" in row
+    }
+    for kind, records, expected, metadata_key in (
+        ("node", nodes, expected_nodes, "properties"),
+        ("relationship", relationships, expected_relations, "properties"),
+        ("vector", vectors, expected_nodes, "metadata"),
+    ):
+        actual = {
+            record["id"] for record in records if isinstance(record.get("id"), str)
+        }
+        errors.extend(
+            f"missing_readback:{kind}:{identifier}"
+            for identifier in sorted(expected - actual)
+        )
+        errors.extend(
+            f"unexpected_readback:{kind}:{identifier}"
+            for identifier in sorted(actual - expected)
+        )
+        for record in records:
+            metadata = record.get(metadata_key)
+            if (
+                not isinstance(metadata, dict)
+                or metadata.get("_sync_revision") != revision
+            ):
+                errors.append(f"revision_mismatch:{kind}:{record.get('id')}")
+    return {
+        "status": "matched" if not errors else "failed",
+        "revision": revision,
+        "errors": errors,
+        "scope": "caller_supplied_readback",
     }
 
 
@@ -781,6 +849,8 @@ def main() -> int:
     etl_parser.add_argument("input", type=Path)
     etl_parser.add_argument("output", type=Path)
     etl_parser.add_argument("--assets", type=Path, required=True)
+    etl_parser.add_argument("--image-adapter")
+    etl_parser.add_argument("--image-adapter-id")
     annotation_parser = subcommands.add_parser("annotate")
     annotation_parser.add_argument("manifest", type=Path)
     annotation_parser.add_argument("annotations", type=Path)
@@ -793,9 +863,13 @@ def main() -> int:
     entity_parser = subcommands.add_parser("entity-stub")
     entity_parser.add_argument("system", choices=["UMLS", "SNOMED CT", "ICD11"])
     entity_parser.add_argument("query")
+    entity_parser.add_argument("--adapter")
     graph_parser = subcommands.add_parser("graph-plan")
     graph_parser.add_argument("input", type=Path)
     graph_parser.add_argument("output", type=Path)
+    sync_parser = subcommands.add_parser("graph-check")
+    sync_parser.add_argument("plan", type=Path)
+    sync_parser.add_argument("readback", type=Path)
     l0_parser = subcommands.add_parser("l0", help="mechanically check caller schema")
     l0_parser.add_argument("record", type=Path)
     l0_parser.add_argument("--schema", type=Path)
@@ -816,7 +890,13 @@ def main() -> int:
     l4_parser.add_argument("output", type=Path)
     arguments = parser.parse_args()
     if arguments.command == "etl":
-        manifests = etl(arguments.input, arguments.output, arguments.assets)
+        manifests = etl(
+            arguments.input,
+            arguments.output,
+            arguments.assets,
+            load_callback(arguments.image_adapter) if arguments.image_adapter else None,
+            arguments.image_adapter_id,
+        )
         print(json.dumps({"records": len(manifests), "output": str(arguments.output)}))
         return 0
     if arguments.command == "annotate":
@@ -837,8 +917,17 @@ def main() -> int:
         print(json.dumps({"triplets": len(result)}))
         return 0
     if arguments.command == "entity-stub":
-        print(json.dumps(resolve_entity(arguments.query, arguments.system)))
+        adapter = load_callback(arguments.adapter) if arguments.adapter else None
+        print(json.dumps(resolve_entity(arguments.query, arguments.system, adapter)))
         return 0
+    if arguments.command == "graph-check":
+        plan = json.loads(arguments.plan.read_text())
+        supplied = json.loads(arguments.readback.read_text())
+        result = verify_graph_sync(
+            plan, supplied["nodes"], supplied["relationships"], supplied["vectors"]
+        )
+        print(json.dumps(result))
+        return 0 if result["status"] == "matched" else 1
     if arguments.command == "graph-plan":
         supplied = json.loads(arguments.input.read_text())
         plan = graph_plan(
