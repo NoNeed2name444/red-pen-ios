@@ -75,6 +75,7 @@ final class NarrateVoice: NSObject, ObservableObject {
     private var onCloud = false
     private var timeObserver: Any?
     private var observers: [NSObjectProtocol] = []
+    private var resumeLater = false
 
     // the phone's voice
     private struct PhoneLine {
@@ -100,13 +101,8 @@ final class NarrateVoice: NSObject, ObservableObject {
     private func listen() {
         guard observers.isEmpty else { return }
         let center: NotificationCenter = NotificationCenter.default
-        let interrupted: NSObjectProtocol = center.addObserver(
-            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
-            let raw: UInt = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) ?? 0
-            let began: Bool = AVAudioSession.InterruptionType(rawValue: raw) == .began
-            guard began else { return }
-            MainActor.assumeIsolated { self?.pause() }
-        }
+        // a call, and carrying on after it; headphones going (audit #77)
+        let watched: [NSObjectProtocol] = NowPlaying.watch { [weak self] in self?.react($0) }
         let ended: NSObjectProtocol = center.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] note in
             guard let item = note.object as? AVPlayerItem else { return }
@@ -121,7 +117,17 @@ final class NarrateVoice: NSObject, ObservableObject {
             let id = ObjectIdentifier(item)
             MainActor.assumeIsolated { self?.itemFailed(id) }
         }
-        observers = [interrupted, ended, broke]
+        observers = watched + [ended, broke]
+    }
+
+    private func react(_ signal: AudioEvents.Signal) {
+        let (reaction, later) = AudioEvents.reaction(to: signal, playing: playing, resumeLater: resumeLater)
+        switch reaction {
+        case .pause: pause()
+        case .resume: resume()
+        case .nothing: break
+        }
+        resumeLater = later
     }
 
     private func unlisten() {

@@ -121,7 +121,8 @@ suite answers AnswerCheckingTests.swift $M/MCQQuestion.swift $M/Differential.swi
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift $S/OptionOrder.swift \
       $S/Voice/SpokenAnswer.swift $S/Reasoning/ReasoningModels.swift $S/Reasoning/ReasoningExamples.swift \
-      $S/Reasoning/ReasoningWriter.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/ExamTrack.swift
+      $S/Reasoning/ReasoningWriter.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/ExamTrack.swift \
+      $S/Voice/AudioEvents.swift
 # "How to reach it": the three-tier differential - old sets decode
 # without it, the tiers are read from a model's reply, and MedVAL's
 # grade reads the reasoning checks; and a library holding a set of the

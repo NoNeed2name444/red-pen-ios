@@ -132,7 +132,7 @@ struct NarrateReviewView: View {
     private var screen: some View {
         stage
             .onAppear { importer.onScreen = true; seed() }
-            .onDisappear { importer.onScreen = false; voice.stop(); player.stop() }
+            .onDisappear { importer.onScreen = false; voice.stop(); player.stop(); NowPlaying.deactivate() }
             // a recording screen: the camera stays off while it is open
             .popOutFacePaused()
             // adding a recording is in the same More menu as every other

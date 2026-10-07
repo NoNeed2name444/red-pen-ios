@@ -322,6 +322,17 @@ let early = ReminderSettings.next(7 * 60, after: now, calendar: calendar)
 check("one already past is tomorrow's", calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                                   to: calendar.startOfDay(for: early)).day == 1)
 
+// refused permission turns every reminder off (audit #37)
+let reminderDefaults = UserDefaults(suiteName: "learn-tests-reminders")!
+for key in [ReminderSettings.questionKey, ReminderSettings.bedtimeKey, ReminderSettings.morningKey] {
+    reminderDefaults.set(true, forKey: key)
+}
+ReminderSettings.refused(reminderDefaults)
+check("a refusal turns the reminders off",
+      [ReminderSettings.questionKey, ReminderSettings.bedtimeKey, ReminderSettings.morningKey]
+        .allSatisfy { !reminderDefaults.bool(forKey: $0) })
+reminderDefaults.removePersistentDomain(forName: "learn-tests-reminders")
+
 print("\(passed) checks passed")
 print(failures.isEmpty ? "ALL LEARN TESTS PASS" : "\(failures.count) LEARN TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)
