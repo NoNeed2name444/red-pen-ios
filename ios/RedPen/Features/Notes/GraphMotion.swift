@@ -349,6 +349,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var nextOffsets: [SIMD3<Float>] = []
     /// The view's height in points, for names at a constant size.
     private var viewHeight: Float = 800
+    /// The theme's lens (GraphLens) and the point the camera orbits: with
+    /// depth of field on, each frame focuses there (setLens, setFocus).
+    private var lens: GraphLens = .off
+    private var focusPoint: SIMD3<Float> = .zero
     /// Above 150 bodies, a rocky planet's or moon's halo is hidden while its
     /// sphere is under 3 points on screen (shown again from 3.5).
     private let crowded: Bool
@@ -910,6 +914,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.unlock()
     }
 
+    /// The lens whose depth of field the frames keep focused.
+    func setLens(_ newLens: GraphLens) {
+        lock.lock()
+        lens = newLens
+        lock.unlock()
+    }
+
+    /// The point the camera orbits (world space): what stays in focus.
+    func setFocus(_ point: SIMD3<Float>) {
+        lock.lock()
+        focusPoint = point
+        lock.unlock()
+    }
+
     /// Gives note `i` the bright ring and disk, and the one that had them
     /// back its own. Main thread, without the lock.
     private func highlight(_ i: Int?) {
@@ -1226,7 +1244,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.lock()
         let held: Bool = grabbed != nil
         let skip: [Bool] = slowSkip
+        let lensNow: GraphLens = lens
+        let focusNow: SIMD3<Float> = focusPoint
         lock.unlock()
+        // depth of field: sharp on what the camera orbits, at any zoom
+        if lensNow.depthBlur > 0, let camera = pov?.camera {
+            lensNow.focus(camera, at: Double(simd_length(focusNow - eye)))
+        }
         tilt(right: right, up: up, held: held)
         if lively { tickShaders(pacedTime, step: raw, skip: skip) }
         // the sky stays centred on the camera, so it is at infinity

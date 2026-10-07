@@ -1576,6 +1576,11 @@ struct GraphSCNView: UIViewRepresentable {
             view.scene = built.scene
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
+            // the theme's lens at this Graphics tier (Smooth: none)
+            let lens: GraphLens = GraphLens.of(built.theme, tier: GraphQuality.current.tier)
+            if let camera = built.camera.camera { lens.apply(to: camera) }
+            built.sim.setLens(lens)
+            built.sim.setFocus(.zero)
             view.isPlaying = true
             view.antialiasingMode = GraphSCNView.antialiasing()
             view.preferredFramesPerSecond = GraphQuality.frameRate
@@ -1788,6 +1793,7 @@ struct GraphSCNView: UIViewRepresentable {
             let home: SIMD3<Float> = middle + GraphFraming.cameraHome(distance: distance, window: window)
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
+            sim.setFocus(middle)
             SCNTransaction.begin()
             // Reduce Motion: the camera jumps to its framing, as fly(to:) does
             SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
@@ -1829,6 +1835,7 @@ struct GraphSCNView: UIViewRepresentable {
             let still: Bool = !sim.lively || UIAccessibility.isReduceMotionEnabled
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
+            sim.setFocus(centre)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -2141,6 +2148,7 @@ struct GraphSCNView: UIViewRepresentable {
             let target: SCNVector3 = view.defaultCameraController.target
             let aim = SIMD3<Float>(target.x, target.y, target.z) + shift + closer
             view.defaultCameraController.target = SCNVector3(x: aim.x, y: aim.y, z: aim.z)
+            sim.setFocus(aim)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = still ? 0 : (glide ? 0.7 : 0.45)
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)

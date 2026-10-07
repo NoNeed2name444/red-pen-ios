@@ -189,6 +189,10 @@ suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
 # notes; links as fibres (strength, kind) or wires (resistance, current);
 # levels 3-4 built only up close, bounded, never smaller than a page
 suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift
+# each theme's lens: none at Smooth or in Performance, HDR, bloom and
+# depth of field only at High, lensing with the shaders' detail, and
+# the same blur at every zoom
+suite graphlens GraphLensTests.swift $F/Notes/GraphLens.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against
