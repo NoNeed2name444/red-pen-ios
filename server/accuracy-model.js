@@ -35,8 +35,10 @@ const clamp01 = x => Math.min(1, Math.max(0, x));
 
 /// The feature vector for one item, from its rule hits, its votes and its
 /// evidence. `votes`: [{ risk 1-4 | null, answer letter | null, evidence:
-/// 'supports' | 'contradicts' | 'none' }]; `keyLetter` for a question.
-export function features({ kind, rules = [], votes = [], evidenceCount = 0, sourceMatch = null, keyLetter = null }) {
+/// 'supports' | 'contradicts' | 'none' }]; `keyLetter` for a question;
+/// `sourceProof`: every claim of the item is stated word for word by an
+/// official source (proof.js fullyProven).
+export function features({ kind, rules = [], votes = [], evidenceCount = 0, sourceMatch = null, keyLetter = null, sourceProof = false }) {
   const read = votes.filter(v => Number.isFinite(v?.risk));
   const risks = read.map(v => (clamp01((v.risk - 1) / 3)));
   const flags = read.map(v => v.risk >= 3);
@@ -87,6 +89,9 @@ export function features({ kind, rules = [], votes = [], evidenceCount = 0, sour
   }
   // the families that flagged it
   f.flag_families = new Set(read.filter(v => v.risk >= 3).map(v => familyOf(v.model))).size;
+  // not weighted: proven word for word by an official source (proof.js), the
+  // one witness Verified needs that no model can stand in for
+  f.source_proof = sourceProof ? 1 : 0;
   return f;
 }
 
@@ -161,9 +166,10 @@ export const isOath = text => {
 
 /// Verified / Check this / Flagged, or unchecked when no model has looked.
 /// Verified needs three model families passing the item with no concern
-/// raised and no sensor firing; and an oath item (a dose, a diagnosis, a
-/// treatment) needs evidence behind it - the literature the voters were shown
-/// supporting it, or its own lecture saying it. Flagged needs proof from two
+/// raised and no sensor firing; and every item needs each of its claims
+/// stated word for word by an official source (an FDA label, a MedlinePlus
+/// summary: proof.js) - models agreeing, or the literature they were shown
+/// seeming to support it, never stand in for that. Flagged needs proof from two
 /// directions; rules alone flag an item only before any model has looked.
 /// Everything else is Check this. The app's AccuracyModel.grade, rule for rule.
 export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
@@ -182,10 +188,10 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   // every voter, from three families, judged it wrong
   if (!question && (Number(f.flag_families) || 0) >= need && Number(f.flag_frac) === 1 && p < t.flagged) return 'flagged';
   const enough = Math.round((Number(f.voters) || 0) * 3) >= need;
-  // every item, not only a dose, diagnosis or treatment, needs the
-  // literature or its own lecture behind it: a witness no model shares
-  // (the owner: 99.999% even if it takes a lot of time, 2 Oct)
-  const backed = (Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH;
+  // every item needs an official source stating it word for word: a
+  // witness no model shares, and proof rather than agreement (the owner:
+  // "they need to be PROVEN 99.999% right", 7 Oct)
+  const backed = Number(f.source_proof) === 1;
   const independent = (Number(f.families) || 0) >= need;
   // no voter raised a concern, none read the literature against it, and no
   // sensor fired, however mildly (0.5% of real questions; almost all real)
@@ -222,8 +228,8 @@ export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = fa
   if ((Number(f.families) || 0) < need && verdictName !== 'flagged') out.push(`Not yet passed by ${words[need]} model families.`);
   if (Number(f.flag_frac) > 0 && verdictName !== 'flagged' && !(question && against >= 2)) out.push('A checker raised a concern.');
   if (Number(f.ev_contradict) > 0) out.push('A checker found literature against it.');
-  if (verdictName !== 'verified' && !((Number(f.ev_support) || 0) > 0 || (Number(f.source_match) || 0) >= OATH_SOURCE_MATCH)) {
-    out.push(oath ? 'A dose, diagnosis or treatment without evidence behind it.' : 'Nothing in the literature or its lecture backs it yet.');
+  if (verdictName !== 'verified' && Number(f.source_proof) !== 1) {
+    out.push(oath ? 'A dose, diagnosis or treatment no official source states word for word yet.' : 'No official source states it word for word yet.');
   }
   if (p < t.flagged) out.push('The checkers judged it likely wrong.');
   else if (p < t.verified && verdictName !== 'verified') out.push('The checkers were not confident enough.');

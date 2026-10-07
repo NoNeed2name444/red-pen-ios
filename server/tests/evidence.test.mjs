@@ -79,6 +79,53 @@ ok(groundedMessages([{ role: 'user', content: 'x' }], []).length === 1, 'with no
   forgetEvidence();
 }
 
+// "nothing found" and "could not be read" are told apart: proof counts a
+// source it could not read as unread, never as one that says nothing
+{
+  forgetEvidence();
+  const asked = [];
+  const answering = (status, body = '') => async url => { asked.push(url); return new Response(body, { status }); };
+  const missing = answering(404, JSON.stringify({ error: { code: 'NOT_FOUND', message: 'No matches found!' } }));
+  const none = await openFDA('nosuchdrug', missing);
+  ok(Array.isArray(none) && none.length === 0, 'openFDA\'s 404 is "no label matches": nothing found, not a failure');
+  await openFDA('nosuchdrug', missing);
+  ok(asked.length === 1, 'and it is remembered like any answer');
+  for (const status of [500, 429]) {
+    forgetEvidence(); asked.length = 0;
+    const down = answering(status);
+    ok(await openFDA('metformin', down) === null, `openFDA answering ${status} is a failed lookup (null)`);
+    await openFDA('metformin', down);
+    ok(asked.length === 2, `and a ${status} is not remembered: the next check asks again`);
+  }
+  forgetEvidence();
+  ok(await openFDA('metformin', async () => { throw new Error('offline'); }) === null, 'openFDA that cannot be reached is a failed lookup');
+  ok(await openFDA('metformin', answering(200, 'not json')) === null, 'and so is an answer that is not JSON');
+
+  forgetEvidence();
+  const empty = await medlinePlus('zzz', answering(200, '<?xml version="1.0"?><nlmSearchResult><term>zzz</term><count>0</count><list num="0" start="0" per="1"/></nlmSearchResult>'));
+  ok(Array.isArray(empty) && empty.length === 0, 'MedlinePlus with no topic for the term: nothing found');
+  for (const status of [404, 503]) {
+    forgetEvidence();
+    ok(await medlinePlus('lupus', answering(status)) === null, `MedlinePlus answering ${status} is a failed lookup`);
+  }
+  forgetEvidence();
+  ok(await medlinePlus('lupus', async () => { throw new Error('offline'); }) === null, 'MedlinePlus that cannot be reached is a failed lookup');
+  ok(await medlinePlus('lupus', answering(200, '<html>maintenance</html>')) === null, 'and so is a page that is not its search result');
+
+  forgetEvidence();
+  const nothing = await europePMC('zzz', answering(200, JSON.stringify({ hitCount: 0, resultList: { result: [] } })));
+  ok(Array.isArray(nothing) && nothing.length === 0, 'Europe PMC with no result: nothing found');
+  forgetEvidence();
+  ok(await europePMC('zzz', answering(503)) === null, 'Europe PMC answering 503 is a failed lookup');
+  forgetEvidence();
+  ok(await europePMC('zzz', answering(200, '<html>oops')) === null, 'and so is an answer that is not JSON');
+  forgetEvidence();
+  const mixed = await gather({ queries: ['lupus'], drugs: ['hydroxychloroquine'] },
+    async url => (url.includes('api.fda.gov') ? new Response('', { status: 500 }) : fake(url)));
+  ok(mixed.length === 2 && !mixed.some(e => e.source === 'openFDA label'), 'gather keeps what was read when another source fails');
+  forgetEvidence();
+}
+
 // the full texts kept for proof: a label's sections only when the label is
 // the drug's alone, a summary whole or not at all, and neither ever shown to
 // a model or sent to the app

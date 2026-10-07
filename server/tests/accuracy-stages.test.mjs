@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
-  checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, claimsStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage,
+  checkBatch, STAGES, BUDGETS, budgetsFor, within, rulesStage, claimsStage, lookupStage, evidenceStage, votesStage, jevStage, cacheStage, proofStage, proofDue,
   BATCH, MAX_CALLS, cleanItem, itemHash, currentWeights, forgetWeights, evidenceFor, votePrompt, parseVotes, disagree, votersFor, suggestedFix, staleSignals } from '../accuracy.js';
 import { spend } from '../ai.js';
 import { resetBreakers } from '../breakers.js';
@@ -117,7 +117,8 @@ function world(extra = {}, plan = {}) {
     if (url.includes('wsearch.nlm')) {
       const q = new URL(url).searchParams.get('term');
       log.push(`medlineplus:${q}`);
-      const respond = () => new Response(`<nlmSearchResult><document url="https://medlineplus.gov/${q.replace(/\W+/g, '')}.html"><content name="title">${q}</content><content name="FullSummary">MedlinePlus on ${q}.</content></document></nlmSearchResult>`, { status: 200 });
+      if (plan.mlp === 'down') return new Response('busy', { status: 503 });
+      const respond = () => new Response(`<nlmSearchResult><document url="https://medlineplus.gov/${q.replace(/\W+/g, '')}.html"><content name="title">${plan.says ? 'Warfarin' : q}</content><content name="FullSummary">MedlinePlus on ${q}.${plan.says ? ' ' + plan.says : ''}</content></document></nlmSearchResult>`, { status: 200 });
       return plan.evidence === 'hang' ? hang(respond) : respond();
     }
     if (url.includes('api.fda.gov')) {
@@ -175,6 +176,11 @@ const card = t => ({ kind: 'card', text: `Q: ${t}\nA: y` });
 const CARDSPLIT = { id: 'cs1', kind: 'card', text: 'Q: Drug of choice for absence seizures? SPLIT\nA: Phenytoin', source: '' };
 // both checkers, solving blind, reach A; the key says B
 const KEYWRONG = { id: 'k1', kind: 'mcq', stem: 'First-line drug for absence seizures? KEYWRONG', options: ['Ethosuximide', 'Phenytoin', 'Carbamazepine'], key: 1, explanation: '', source: '' };
+// stated word for word by the MedlinePlus summary a world given SAYS sends back
+// (its Warfarin summary, whatever was searched)
+const SAYS = 'The drug of choice to reverse warfarin is prothrombin complex concentrate. Warfarin is reversed by vitamin K and PCC.';
+const PQ = { id: 'pq1', kind: 'mcq', stem: 'The drug of choice to reverse warfarin is:', options: ['Vitamin K', 'Prothrombin complex concentrate'], key: 1, explanation: '', source: '' };
+const PC = { id: 'pc1', kind: 'card', text: 'Cloze: Warfarin is reversed by {{c1::vitamin K}} and PCC.', source: '' };
 const EXPLAINED = { id: 'e1', kind: 'mcq', stem: 'A patient on warfarin bleeds. Best immediate reversal?', options: ['Vitamin K', 'Prothrombin complex concentrate'], key: 1,
   explanation: 'Prothrombin complex concentrate reverses warfarin within minutes; vitamin K takes hours.', source: '' };
 
@@ -210,7 +216,7 @@ async function play(check, extra, plan, calls) {
 
 // MARK: the stages, in order, with typed results
 {
-  ok(JSON.stringify(STAGES) === JSON.stringify(['rules', 'claims', 'lookup', 'evidence', 'votes', 'jev', 'verdict', 'cache']), `the stages: ${STAGES.join(', ')}`);
+  ok(JSON.stringify(STAGES) === JSON.stringify(['rules', 'claims', 'lookup', 'evidence', 'proof', 'votes', 'jev', 'verdict', 'cache']), `the stages: ${STAGES.join(', ')}`);
   ok(STAGES.every(s => BUDGETS[s] > 0), 'every stage has its own time budget');
   forgetWeights();
   const w = world();
@@ -234,15 +240,15 @@ async function play(check, extra, plan, calls) {
 
   t = await run({ items: [Q1, DOSE] });
   ok(t.trace.map(s => s.stage).join() === STAGES.join(), 'all cached: still every stage, in order');
-  ok(t.trace.filter(s => s.status === 'skipped').map(s => s.stage).join() === 'evidence,votes,jev,cache' && t.body.items.every(i => i.cached),
-     'with evidence, votes, Jev and the cache write skipped, nothing asked');
+  ok(t.trace.filter(s => s.status === 'skipped').map(s => s.stage).join() === 'evidence,proof,votes,jev,cache' && t.body.items.every(i => i.cached),
+     'with evidence, proof, votes, Jev and the cache write skipped, nothing asked');
 
   const pro = world({ ACCURACY_DAILY_BATCHES: '1' });
   forgetWeights();
   await checkBatch(pro.env, 'a1', { items: [card('first')] }, pro.fetcher);
   const trace = [];
   const r = await checkBatch(pro.env, 'a1', { items: [card('second')] }, pro.fetcher, { onStage: s => trace.push(s) });
-  ok(r.status === 429 && trace.map(s => s.stage).join() === STAGES.join() && trace.filter(s => s.status === 'skipped').length === 4,
+  ok(r.status === 429 && trace.map(s => s.stage).join() === STAGES.join() && trace.filter(s => s.status === 'skipped').length === 5,
      'no allowance left: every stage in order, the ones that would spend it skipped');
 }
 
@@ -261,8 +267,9 @@ async function play(check, extra, plan, calls) {
   };
   const quiet = () => ({ hard: [], soft: [], checks: 0, work: 0, complete: true });
   const open = await run([FLIP, DOSED, Q1], { gate: quiet });
-  ok(open.body.items[0].verdict === 'verified' && open.body.items[1].verdict === 'verified' && !('claims' in open.body.items[0]),
-     'without the gate, the votes alone would have Verified both');
+  const onlyProof = i => i.verdict === 'check' && i.p > 0.9 && i.reasons.length === 1 && /no official source states/i.test(i.reasons[0]);
+  ok(onlyProof(open.body.items[0]) && onlyProof(open.body.items[1]) && !('claims' in open.body.items[0]),
+     'without the gate, only the missing source proof holds both back: the votes alone pass them');
   const gated = await run([FLIP, DOSED, Q1]);
   const [flip, dosed, q1] = gated.body.items;
   ok(gated.trace.map(s => s.stage).join() === STAGES.join() && gated.at('claims').status === 'ok', 'the gate is a stage of its own, before lookup and the votes');
@@ -296,6 +303,58 @@ async function play(check, extra, plan, calls) {
   ok(partial.body.items[0].claims?.partial === true, 'and the reply says the gate did not finish');
 }
 
+// MARK: the source proof (plan SP2): only an official source stating it word for word verifies
+{
+  // a source that could not be read is 'lookup': Check this, said so, and proved again later without asking the voters
+  const plan = { says: SAYS, mlp: 'down' };
+  const w = world({}, plan);
+  forgetWeights();
+  let body = await (await checkBatch(w.env, 'owner', { items: [PC] }, w.fetcher, { owner: true })).json();
+  ok(body.items[0].verdict === 'check' && body.items[0].proof.why === 'lookup'
+     && body.items[0].reasons.includes('An official source could not be read this time; it will be checked again.'),
+     "MedlinePlus down: 'lookup', Check this, saying it will be checked again");
+  const before = w.db.prepare('SELECT hash, created_at, signals FROM accuracy_verdicts').all();
+  ok(before.length === 1 && JSON.parse(before[0].signals).proof.why === 'lookup', 'the proof is kept with the verdict');
+  plan.mlp = 'up';
+  const asked = w.log.length;
+  const trace = [];
+  const r = await checkBatch(w.env, 'owner', { items: [PC] }, w.fetcher, { owner: true, onStage: s => trace.push(s) });
+  body = await r.json();
+  const fresh = w.log.slice(asked);
+  ok(body.items[0].cached && body.items[0].verdict === 'verified' && body.items[0].proof.proven === 1
+     && !fresh.some(c => c.startsWith('gemini:') || c.startsWith('workers:')) && fresh.some(c => c.startsWith('medlineplus:')),
+     'checked again with MedlinePlus back: proved from the cache, no voter asked, Verified');
+  ok(trace.find(s => s.stage === 'proof').status === 'ok' && trace.find(s => s.stage === 'votes').status === 'skipped', 'the proof stage runs; the votes stage is skipped');
+  const after = w.db.prepare('SELECT hash, created_at, signals FROM accuracy_verdicts').all();
+  ok(after.length === 1 && after[0].created_at === before[0].created_at && JSON.parse(after[0].signals).proof.proven === 1
+     && JSON.stringify(JSON.parse(after[0].signals).votes) === JSON.stringify(JSON.parse(before[0].signals).votes),
+     'the new proof is written over the old, keeping the votes and the age of the check');
+  const t3 = [];
+  await checkBatch(w.env, 'owner', { items: [PC] }, w.fetcher, { owner: true, onStage: s => t3.push(s) });
+  ok(t3.find(s => s.stage === 'proof').status === 'skipped', 'and once proved, it is not proved again');
+  w.release();
+}
+{
+  // which cached proofs are due again
+  const p = why => ({ v: 1, claims: 1, proven: why ? 0 : 1, quotes: [], ...(why ? { why } : {}) });
+  ok(proofDue(undefined) && proofDue(null) && proofDue({ ...p(), v: 0 }), 'due: no proof yet, or one from an older prover');
+  ok(['budget', 'timeout', 'lookup', 'error'].every(why => proofDue(p(why))), 'due: one cut short (too long, out of time, a source not read, a failure)');
+  ok(!proofDue(p()) && !['unproven', 'no-source', 'stem', 'card', 'claim', 'many', 'empty'].some(why => proofDue(p(why))),
+     'not due: one proved, or one its sources were read in full and do not state');
+  // the stage's own results
+  const fails = async () => { throw new Error('down'); };
+  const failed = await proofStage([PC], fails, 2000);
+  ok(failed.value[0].why === 'lookup' && failed.value[0].proven === 0, "every lookup failing: 'lookup'");
+  const never = await proofStage([PC], () => new Promise(() => {}), 30);
+  ok(never.status === 'timeout' && never.value[0].why === 'timeout', "lookups that never end: 'timeout' at the budget");
+  const broke = await proofStage([{ kind: 'card', get text() { throw new Error('bad item'); } }], async () => new Response('{}', { status: 404 }), 2000);
+  ok(broke.value[0].why === 'error' && broke.status === 'error', "the prover failing on an item: 'error', and the stage says so");
+  const w = world({}, { says: SAYS });
+  const two = await proofStage([PQ, PC], w.fetcher, 2000);
+  ok(two.status === 'ok' && two.value.every(v => v.proven === 1 && !('read' in v)), 'proved, each its own proof, without the count of what was read');
+  w.release();
+}
+
 // MARK: a stage out of time gives its safe result
 {
   // within(): the value, or the safe result and why
@@ -313,13 +372,15 @@ async function play(check, extra, plan, calls) {
     const w = world({}, { evidence: 'hang' });
     const trace = [];
     started = Date.now();
-    const r = await checkBatch(w.env, 'owner', { items: [DOSE, Q1] }, w.fetcher, { owner: true, budgets: { evidence: 40 }, onStage: s => trace.push(s) });
+    const r = await checkBatch(w.env, 'owner', { items: [DOSE, Q1] }, w.fetcher, { owner: true, budgets: { evidence: 40, proof: 40 }, onStage: s => trace.push(s) });
     const body = await r.json();
-    const ev = trace.find(s => s.stage === 'evidence');
+    const ev = trace.find(s => s.stage === 'evidence'), pr = trace.find(s => s.stage === 'proof');
     ok(Date.now() - started < 3000 && ev.status === 'timeout' && ev.value.every(e => e.length === 0), 'evidence that never comes: out of time, no evidence');
+    ok(pr.status === 'timeout' && body.items.every(i => i.proof?.why === 'timeout' && i.verdict !== 'verified'),
+       "official sources that never come: the proof is out of time too, 'timeout', and nothing is Verified");
     ok(r.status === 200 && body.items.every(i => i.evidence.length === 0 && i.votes.length === 3), 'and the items are still voted on, shown none');
     ok(w.prompts.length === 3 && w.prompts.every(p => p.includes('(none found)')), 'the voters are told no evidence was found');
-    ok(body.stages?.[0]?.stage === 'evidence' && body.stages[0].status === 'timeout', 'the owner is told which stage ran out of time');
+    ok(body.stages?.[0]?.stage === 'evidence' && body.stages[0].status === 'timeout' && body.stages.some(x => x.stage === 'proof' && x.status === 'timeout'), 'the owner is told which stages ran out of time');
     w.release();
   }
 
@@ -471,8 +532,15 @@ async function play(check, extra, plan, calls) {
   const votes = body.items[0].votes;
   ok(votes.length === 3 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
   ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and come from three model families');
-  ok(body.items[0].verdict === 'verified', 'three independent blind solves reaching the key, passing it: Verified');
+  ok(body.items[0].verdict === 'check' && body.items[0].reasons.includes('No official source states it word for word yet.'),
+     'three independent blind solves reaching the key, passing it, with no official source stating it: still Check this');
   w.release();
+  const said = world({}, { says: SAYS });
+  forgetWeights();
+  const proven = JSON.parse(await (await checkBatch(said.env, 'owner', { items: [PQ] }, said.fetcher, { owner: true })).text()).items[0];
+  ok(proven.verdict === 'verified' && proven.votes.every(v => v.blind) && proven.proof.proven === proven.proof.claims,
+     `three blind solves reaching the key, which MedlinePlus states word for word: Verified (${proven.verdict}, ${JSON.stringify(proven.proof)})`);
+  said.release();
 }
 {
   // a question cached before blind-first voting is checked again, not graded on votes that saw the key
@@ -523,11 +591,12 @@ async function play(check, extra, plan, calls) {
 }
 {
   // a question beside a card: the card still gets three full votes, and the question its blind solves
-  const w = world();
+  const w = world({}, { says: SAYS });
   forgetWeights();
-  const r = await checkBatch(w.env, 'owner', { items: [Q1, C1] }, w.fetcher, { owner: true });
+  const r = await checkBatch(w.env, 'owner', { items: [PQ, PC] }, w.fetcher, { owner: true });
   const items = JSON.parse(await r.text()).items;
-  ok(items[0].verdict === 'verified' && items[1].verdict === 'verified' && items[1].votes.length === 3, 'a mixed batch verifies both kinds');
+  ok(items[0].verdict === 'verified' && items[1].verdict === 'verified' && items[1].votes.length === 3,
+     `a mixed batch, each stated word for word, verifies both kinds (${items.map(i => i.verdict + ' ' + JSON.stringify(i.proof))})`);
   w.release();
 }
 {

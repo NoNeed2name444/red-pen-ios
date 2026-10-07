@@ -209,6 +209,7 @@ const quoted = (r, srcs) => r.proven === r.claims && r.quotes.length === r.claim
     ['&lt;p&gt;Escaped&lt;/p&gt;&lt;p&gt;Twice &amp;amp; more&lt;/p&gt;', 'Escaped\nTwice & more'],
     ['<p>10<sup>9</sup> cells</p><p>&foo; and &#x3b1; and &#99999999;</p>', '10\u00009 cells\n\u0000 and α and \u0000'],
   ], 'MedlinePlus HTML as lines: a paragraph or heading each, list items led by a "•" a level, comments out; 10<sup>9</sup> and an entity not known unreadable');
+  ok(P.structuredText('<p>a &#x110000; b &#1114112; c &#x10FFFF;</p>') === 'a \u0000 b \u0000 c \u{10FFFF}', 'a character reference past the last code point is unreadable, not a throw');
   // a list nested past LIST_DEPTH (8): its items cannot be read for certain
   const nested = n => {
     let h = '<p>Asthma symptoms include:</p>';
@@ -342,6 +343,46 @@ const quoted = (r, srcs) => r.proven === r.claims && r.quotes.length === r.claim
   const both = P.prove(q, [LABEL, LABEL2]), other = P.prove(q, [LABEL2]);
   ok(both.why === 'distractor' && both.claims === 1 && both.proven === 1 && both.quotes.length === 1 && other.why === 'unproven',
     "a question's key stated by one label, a distractor by another: 'distractor', never proven");
+  // a summary as MedlinePlus sends it (escaped HTML), made text only when a
+  // claim asks: the same proofs as from its text
+  const SENT = HTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const asSent = () => ({ source: 'MedlinePlus', title: 'Asthma', url: MLP.url, html: SENT });
+  const differ = Object.entries(items).filter(([, [item]]) => {
+    const a = P.prove(item, [LABEL, MLP]), b = P.prove(item, [LABEL, asSent()]);
+    return a.why !== b.why || a.proven !== b.proven || !same(a.quotes, b.quotes);
+  });
+  for (const [what] of differ) console.log(`     ${what}`);
+  ok(!differ.length, 'a summary as sent proves what its text does');
+  const fromSent = Object.entries(unproven).every(([, [item]]) => P.prove(item, [LABEL, asSent()]).why === 'unproven');
+  ok(fromSent, 'and proves nothing its text does not');
+  {
+    const a = fact('Asthma is a chronic disease that affects your airways.'), b = fact('Asthma attacks can be triggered by allergens.');
+    const entry = asSent();
+    const alone = P.prove(b, [asSent()]);
+    const paid = new Map();
+    const first = P.prove(a, [entry], { paid }), second = P.prove(b, [entry], { paid });
+    ok(first.why === undefined && second.why === undefined && alone.why === undefined && alone.read - second.read >= P.htmlWork(SENT),
+      `made text once a batch, paid for by the first item that asks (${alone.read} alone, ${second.read} after another)`);
+    const poor = P.prove(b, [asSent()], { chars: alone.read - 1 });
+    ok(poor.why === 'budget', "a summary it cannot afford to read: 'budget', never 'unproven'");
+  }
+  ok(P.htmlWork('a&b<c\nd') === 7 + 3 * 2, 'the work of making HTML text: a character each, more for each "&", "<" and line break');
+  ok(same(P.drugTokens('Metformin Hydrochloride'), ['metformin']) && same(P.drugTokens('metformin'), ['metformin']),
+    'a drug named with its salt is the drug');
+  // a lookup that failed: what was not read might have proven it
+  {
+    const p = fact('Metformin decreases hepatic glucose production.'), u = fact('Metformin cures asthma.');
+    ok(P.prove(p, [], { unread: 1 }).why === 'lookup' && P.prove(p, []).why === 'no-source', "no source read because a lookup failed: 'lookup', not 'no-source'");
+    ok(P.prove(u, SRC, { unread: 1 }).why === 'lookup' && P.prove(u, SRC).why === 'unproven', "a claim not proven while a lookup failed: 'lookup', not 'unproven'");
+    ok(P.prove(p, SRC, { unread: 1 }).why === undefined, 'a fact proven stays proven');
+    ok(P.prove(q, [LABEL], { unread: 1 }).why === 'lookup' && P.prove(q, [LABEL]).why === undefined,
+      "a question proven while a lookup failed: 'lookup', as the source not read might state another option");
+    ok(P.prove(p, SRC, { chars: 0, unread: 1 }).why === 'budget', "and 'budget' stays 'budget'");
+    const proof = P.prove(p, SRC);
+    ok(P.fullyProven(proof) && !P.fullyProven(P.prove(u, SRC)) && !P.fullyProven({ ...proof, v: P.PROOF_VERSION + 1 })
+      && !P.fullyProven({ ...proof, claims: 0, proven: 0 }) && !P.fullyProven({ ...proof, proven: 0 }) && !P.fullyProven(null) && !P.fullyProven('x'),
+      'fully proven: this version, no why, every claim of at least one proven');
+  }
   // near misses
   const near = [
     ['The most common adverse reaction is diarrhea.', 'unproven'], ['Decreases hepatic glucose production.', 'unproven'],

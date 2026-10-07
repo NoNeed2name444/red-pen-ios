@@ -1100,13 +1100,17 @@ function sourceOf(entry) {
       src = { entry, name, topic: new Set(normalizeWords(name) || []), seq, anchor, sections,
         segment: (text, limit) => fdaSegments(text, anchor, limit) };
     }
-  } else if (entry.source === 'MedlinePlus' && typeof entry.full === 'string' && entry.full) {
+  } else if (entry.source === 'MedlinePlus' && ((typeof entry.full === 'string' && entry.full) || (typeof entry.html === 'string' && entry.html))) {
     const seq = content(normalize(structuredText(entry.title)) || []);
     const anchor = new Set(seq);
     if (seq.length) {
       const name = structuredText(entry.title);
-      src = { entry, name, topic: new Set(normalizeWords(name) || []), seq, anchor,
-        sections: [sectionOf('mlp', seq, 'summary', entry.full)],
+      // the summary as text (`full`), or as MedlinePlus sends it (`html`),
+      // made text only when a claim asks (ready)
+      const section = typeof entry.full === 'string' && entry.full
+        ? sectionOf('mlp', seq, 'summary', entry.full)
+        : { name: 'summary', html: entry.html, seq, text: null, lower: null, id: null, cost: 0 };
+      src = { entry, name, topic: new Set(normalizeWords(name) || []), seq, anchor, sections: [section],
         segment: (text, limit) => mlpSegments(text, anchor, limit) };
     }
   }
@@ -1172,6 +1176,31 @@ function probesOf(toks, folded) {
 const FOLD_SHARE = 8;
 const SCAN_SHARE = 128;
 const SEG_STEP = 8;
+
+// Summaries made text, kept for the next request with the same summary: the
+// last TEXT_KEEP. Kept or not, they are paid for the same (ready).
+const TEXTS = new Map();
+const TEXT_KEEP = 16;
+
+/// Whether a section is text to read: one sent as HTML is made text once a
+/// batch, paid for by the work that takes (htmlWork); false when the purse
+/// cannot pay.
+function ready(sec, purse) {
+  if (sec.html === undefined) return true;
+  if (!pay(purse, sec.html, (sec.work ??= htmlWork(sec.html)))) return false;
+  if (sec.text === null) {
+    let text = TEXTS.get(sec.html);
+    if (text === undefined) {
+      text = structuredText(sec.html);
+      if (TEXTS.size >= TEXT_KEEP) TEXTS.delete(TEXTS.keys().next().value);
+    } else {
+      TEXTS.delete(sec.html);
+    }
+    TEXTS.set(sec.html, text);
+    Object.assign(sec, sectionOf('mlp', sec.seq, 'summary', text));
+  }
+  return true;
+}
 
 /// Pays for `what` once a batch (`paid` is what the batch has paid for);
 /// false when the purse cannot.
@@ -1242,7 +1271,8 @@ function holdsAll(sec, probes, purse) {
 /// the headings above that statement in it. All the work is paid for from
 /// `purse`: the wording's key; folding and reading a section once a batch,
 /// scanning it for a probe once an item, a pass over its statements each
-/// wording, and a statement's key once a batch. A wording or a section it
+/// wording, a statement's key once a batch, and a summary sent as HTML made
+/// text once a batch. A wording or a section it
 /// cannot pay for, or a section cut before its end, is counted in
 /// `purse.short`.
 function provenBy(alt, srcs, purse) {
@@ -1266,6 +1296,10 @@ function provenBy(alt, srcs, purse) {
     const probes = probesOf(claimToks.filter(t => !src.anchor.has(t)), folded);
     const holds = lower => probes.every(p => lower.includes(p));
     for (const sec of src.sections) {
+      if (!ready(sec, purse)) {
+        purse.short++;
+        continue;
+      }
       const ok = holdsAll(sec, probes, purse);
       if (ok === false) continue;
       const segs = ok && read(src, sec, purse);
@@ -1688,7 +1722,11 @@ function itemChars(item) {
 /// agreeing never are. It reads at most `chars` characters of the sections
 /// not in `paid` (the batch's, shared), and `read` is how many it did; 'budget'
 /// when a section it could not pay for might have changed the answer.
-export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map() } = {}) {
+/// `unread` is how many of the item's official lookups failed (a source down,
+/// not one with nothing on it): 'lookup' when what was not read could have
+/// proven a claim, or stated another option. A MedlinePlus entry is read from
+/// `full` (its summary as text) or else `html` (as MedlinePlus sends it).
+export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map(), unread = 0 } = {}) {
   const srcs = (Array.isArray(officials) ? officials : []).map(sourceOf).filter(Boolean);
   const out = { v: PROOF_VERSION, claims: 0, proven: 0, quotes: [], read: 0 };
   const purse = { left: Math.max(0, chars), paid, short: 0, seen: new Map() };
@@ -1713,7 +1751,7 @@ export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map() }
     }
     claims = found.claims.filter(cl => !(cl.title && srcs.some(src => labelOnly(words, src))));
     out.claims = claims.length;
-    if (!srcs.length) return done('no-source');
+    if (!srcs.length) return done(unread ? 'lookup' : 'no-source');
     if (!claims.length) return done('empty');
     if (claims.length > MAX_CLAIMS) return done('many');
     for (const cl of claims) cl.alts = wordings(cl, spend);
@@ -1726,12 +1764,19 @@ export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map() }
     let q = null;
     const short = purse.short;
     for (const alt of cl.alts) if ((q = provenBy(alt, srcs, purse))) break;
-    if (!q) return done(purse.short > short ? 'budget' : 'unproven');
+    if (!q) return done(purse.short > short ? 'budget' : unread ? 'lookup' : 'unproven');
     out.proven++;
     out.quotes.push(q);
   }
   // a source stating another option makes the key one answer among two
   const short = purse.short;
   for (const alts of found.distractors || []) if (alts.some(a => provenBy(a, srcs, purse))) return done('distractor');
-  return done(purse.short > short ? 'budget' : null);
+  return done(purse.short > short ? 'budget' : unread && found.distractors?.length ? 'lookup' : null);
+}
+
+/// Whether a proof (as prove gives it, kept or sent) says every claim of the
+/// item is stated word for word by an official source: the only way to
+/// Verified.
+export function fullyProven(p) {
+  return !!p && typeof p === 'object' && p.v === PROOF_VERSION && !p.why && p.claims > 0 && p.proven === p.claims;
 }
