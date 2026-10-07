@@ -54,7 +54,7 @@ CORE_DROP = [
     "Shared/SyncAPI.swift", "Shared/SyncRules.swift", "Shared/SyncMerge.swift",
     # the audio pipeline
     "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
-    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift", "Shared/AudioControls.swift",
     "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
     "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
     # imports and exports beyond lectures, text and spreadsheets
@@ -93,7 +93,7 @@ CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", 
 STEP1_BACK = [
     "Features/Voice", "Shared/Voice", "Features/Recall", "Features/Narrate",
     "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
-    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift", "Shared/AudioControls.swift",
     "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
     "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
 ]

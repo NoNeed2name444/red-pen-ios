@@ -25,6 +25,9 @@ suite cloudtranscript CloudTranscriptTests.swift $S/CloudTranscript.swift $M/Nar
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
 suite ingest IngestTests.swift $S/SourceText.swift
 suite narrate NarrateTests.swift $S/NarratePlan.swift
+# the lecture player's speeds and the one remembered, the sleep
+# timer's countdown and fade, and a lecture cut into sections
+suite audiocontrols AudioControlsTests.swift $S/AudioControls.swift
 # a library file that is there but cannot be read (a launch before the
 # first unlock) is not empty, and a write that did not land is not a save
 suite storefiles StoreFileTests.swift $S/StoreFiles.swift
