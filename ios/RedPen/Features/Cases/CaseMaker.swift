@@ -151,21 +151,12 @@ enum CaseMaker {
             return CloudJobs.Step(system: CaseWriting.instructions(source: "{{SOURCE}}", subject: subject, brief: asked, json: true),
                                   user: CaseWriting.requestJSON, source: i % sources.count, maxTokens: 3_500, temperature: 0.7)
         }
-        var spec = CloudJobs.Spec(title: "Writing \(wanted) case\(wanted == 1 ? "" : "s")", mode: "each", extract: "pages",
+        let spec = CloudJobs.Spec(title: "Writing \(wanted) case\(wanted == 1 ? "" : "s")", mode: "each", extract: "pages",
                                   count: wanted, sources: sources, steps: steps)
-        if CloudJobs.context?.serverCheck == true {
-            spec.check = AccuracyChecker.serverCheck(instruction: CaseWriting.checkInstruction, limit: backend.promptBudgetChars)
-        }
         let replies: [String] = try await CloudJobs.run(spec, at: cloud, onProgress: onProgress)
         var written: [CaseFile] = []
-        for (i, reply) in replies.enumerated() {
-            for file in CaseWriting.parse(reply, lecture: lecture) {
-                // the server's verdict, where the accuracy check finds it
-                if let verdict = CloudChecks.reply(forKey: String(i)) {
-                    CloudChecks.remember(verdict, forOutput: CaseChecks.tidied(file).assertedText)
-                }
-                written.append(file)
-            }
+        for reply in replies {
+            written.append(contentsOf: CaseWriting.parse(reply, lecture: lecture))
         }
         let screened = CaseChecks.screen(written)
         guard !screened.kept.isEmpty else { throw Trouble.nothingUsable(dropped: screened.dropped.count) }

@@ -29,10 +29,6 @@ enum CaseWriting {
         var avoid: [String] = []
     }
 
-    /// The accuracy check's instruction for a case, as the server's checker
-    /// is told what the output was meant to be.
-    static let checkInstruction = "Write a clinical case for medical students from the source: a patient's presentation, the findings of history, examination and tests, the diagnosis, the next step and teaching points."
-
     /// Characters of lecture in one on-device prompt: the instructions and a
     /// whole case written back share a 4,096-token window.
     static let onDeviceSourceChars = 2_400

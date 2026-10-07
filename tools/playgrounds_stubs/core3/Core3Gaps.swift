@@ -283,7 +283,7 @@ struct InsightQuiz: Identifiable, Hashable {
     var set: StudySet
     var minReadSeconds = 0
     var timed = false
-    var id: UUID { set.id }
+    var id: UUID { self.set.id }
 }
 
 struct InsightQuestionList: View {
