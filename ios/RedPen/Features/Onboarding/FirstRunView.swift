@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The first run, once per account, straight after the recording terms
 /// (which stay first): the exam, its date, a daily goal, the study reminders,
-/// then an example set or an empty library. White cards on the ECG grid,
+/// then an example set or an empty library. Soft cards raised off the base,
 /// every one skippable; whatever is left unanswered keeps its default and can
 /// be changed in Settings or on today's ward round later.
 ///
@@ -133,7 +133,6 @@ private struct FirstRunGoalPage: View {
 
     private func presetButton(_ value: Int) -> some View {
         let picked: Bool = value == goal
-        let tint: Color? = picked ? Color.wardPrimary : nil
         let ink: Color = picked ? Color.wardPrimaryInk : Color.wardInk
         return Button {
             withAnimation(.snappy) { goal = value }
@@ -143,7 +142,7 @@ private struct FirstRunGoalPage: View {
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 14, tint: tint))
+        .buttonStyle(PopTileStyle(cornerRadius: 14, selected: picked))
         .accessibilityAddTraits(picked ? .isSelected : [])
         .accessibilityIdentifier("firstRunGoal-\(value)")
     }
@@ -168,7 +167,7 @@ private struct FirstRunRemindersPage: View {
             }
             StudyReminderSettings()
         }
-        .scrollContentBackground(.hidden)
+        .wardForm()
         .firstRunChrome(page: .reminders, nextTitle: "Next", next: next, skip: next)
     }
 }
@@ -226,7 +225,7 @@ private struct FirstRunExamplesPage: View {
                         .foregroundStyle(Color.wardInk)
                     Text(detail)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
             }
@@ -241,8 +240,8 @@ private struct FirstRunExamplesPage: View {
 
 // MARK: - The frame every page shares
 
-/// A symbol, a title and a line over the page's own controls, on one
-/// Clean Sheet card.
+/// A symbol, a title and a line over the page's own controls, on one soft
+/// card raised off the base.
 private struct FirstRunPageFrame<Content: View>: View {
     let page: FirstRunPage
     let symbol: String
@@ -261,9 +260,7 @@ private struct FirstRunPageFrame<Content: View>: View {
                 content()
                     .padding(16)
                     .frame(maxWidth: .infinity)
-                    .background(Color.wardSurface, in: shape)
-                    .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-                    .wardShadow()
+                    .wardRaised(in: shape)
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
@@ -290,14 +287,14 @@ private struct FirstRunHeading: View {
                 .accessibilityAddTraits(.isHeader)
             Text(detail)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
 private extension View {
-    /// The ECG grid behind, "2 of 5" and Skip at the top, and the page's
+    /// The matte base behind, "2 of 5" and Skip at the top, and the page's
     /// main button on the bar under the thumb.
     func firstRunChrome(page: FirstRunPage, nextTitle: String,
                         next: @escaping () -> Void, skip: @escaping () -> Void) -> some View {

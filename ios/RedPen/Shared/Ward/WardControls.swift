@@ -17,22 +17,23 @@ enum WardTone {
         }
     }
 
-    /// Small text on this tone's 12% wash. In the light scheme ECG Red,
-    /// Pager Amber and Discharge Green fall under 4.5:1 there (3.6 to 4.2),
-    /// so red reads in Resus Red, amber in Caution Amber and green in Chart
-    /// Ink; the wash and any glyph keep the tone's own colour.
+    /// Small text in this tone, on the base or in a well pressed into it.
+    /// Every tone clears 4.5:1 there but Pager Amber (3.3:1 in the light
+    /// scheme), so amber words read in Caution Amber; a glyph keeps the
+    /// tone's own colour.
     var ink: Color {
         switch self {
-        case .red, .danger: return .wardDanger
         case .amber, .warning: return .wardWarning
-        case .green: return .wardInk
-        case .blue, .grey: return color
+        case .blue, .red, .green, .danger, .grey: return color
         }
     }
 }
 
-/// The buttons: 56 points tall, 14-point corners, at most 360 points wide on
-/// a broad iPad; a disabled one goes Biro Grey so "not yet" is unmistakable.
+/// The buttons: soft capsules raised off the base, 56 points tall, at most
+/// 360 points wide on a broad iPad. The kind shows in the label's colour
+/// (Theatre Blue, Chart Ink, Resus Red), never a fill, and the primary
+/// stands a step higher; held, a button is pressed into the base; disabled,
+/// it sinks half away and goes Biro Grey, so "not yet" is unmistakable.
 struct WardButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, destructive, compact }
     var kind: Kind = .primary
@@ -50,20 +51,21 @@ private struct WardButtonFace: View {
     let fills: Bool
     @Environment(\.isEnabled) private var enabled
     @Environment(\.windowSpan) private var span
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var fill: Color {
-        if !enabled { return Color.wardHairline }
-        switch kind {
-        case .primary: return .wardPrimary
-        case .destructive: return .wardDanger
-        case .secondary, .compact: return .wardSurface
-        }
-    }
     private var ink: Color {
         if !enabled { return .wardInkSecondary }
         switch kind {
-        case .primary, .destructive: return .wardOnPrimary
-        case .secondary, .compact: return .wardPrimaryInk
+        case .primary, .compact: return .wardPrimaryInk
+        case .secondary: return .wardInk
+        case .destructive: return .wardDanger
+        }
+    }
+    private var font: Font {
+        switch kind {
+        case .primary: return .headline.weight(.bold)
+        case .secondary, .destructive: return .headline
+        case .compact: return .subheadline.weight(.semibold)
         }
     }
     private var maxWidth: CGFloat? {
@@ -72,22 +74,27 @@ private struct WardButtonFace: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let compact: Bool = kind == .compact
-        let edge: Color = (kind == .secondary || compact) && enabled ? .wardHairline : .clear
+        let height: CGFloat = compact ? 44 : 56
+        let shape = RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+        // the one main button stands a step higher than the rest
+        let lift: WardLift = kind == .primary ? .high : compact ? .low : .mid
         label
-            .font(compact ? .subheadline.weight(.semibold) : .headline)
+            .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
-            .padding(.horizontal, compact ? 12 : 16)
+            .padding(.horizontal, compact ? 14 : 20)
             .padding(.vertical, compact ? 8 : 12)
-            .frame(minWidth: compact ? 44 : 56, maxWidth: maxWidth, minHeight: compact ? 44 : 56)
-            .background(fill, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 1))
+            .frame(minWidth: height, maxWidth: maxWidth, minHeight: height)
+            .background {
+                if enabled {
+                    WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed)
+                } else {
+                    WardReliefFace(shape: shape, lift: .low).opacity(0.5)
+                }
+            }
             .contentShape(shape)
-            .opacity(pressed ? 0.85 : 1)
-            .scaleEffect(pressed ? 0.98 : 1)
-            .animation(.snappy(duration: 0.2), value: pressed)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
     }
@@ -100,7 +107,8 @@ extension ButtonStyle where Self == WardButtonStyle {
     static var wardCompact: WardButtonStyle { WardButtonStyle(kind: .compact) }
 }
 
-/// A status chip ("Due", "New", "Weak"): the tone's colour on a 12% wash.
+/// A status chip ("Due", "New", "Weak"): the tone's words in a capsule
+/// pressed into the surface, so it reads as a label, not a button.
 struct WardChip: View {
     let text: String
     var tone: WardTone = .blue
@@ -113,32 +121,29 @@ struct WardChip: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(tone.ink)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(tone.color.opacity(0.12), in: Capsule())
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .wardInset(in: Capsule())
         .accessibilityElement(children: .combine)
     }
 }
 
-/// A countdown pill ("Finals in 23 days") in Pager Amber.
-///
-/// White on Pager Amber is 4.2:1, enough only for large text, so the words
-/// are bold at the subheadline size (15 points and up), which counts as
-/// large; smaller would fail AA (docs/design/ward-round-rollout.md, risks).
+/// A countdown pill ("Finals in 23 days"): bold Caution Amber words (4.8:1
+/// on the base) and a Pager Amber clock in a pressed-in capsule.
 struct WardPill: View {
     let text: String
     var symbol: String? = "clock"
 
     var body: some View {
         HStack(spacing: 4) {
-            if let symbol { Image(systemName: symbol).imageScale(.small) }
+            if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(Color.wardBeam) }
             Text(text)
         }
         .font(.subheadline.weight(.bold))
-        .foregroundStyle(Color.wardOnPrimary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color.wardBeam, in: Capsule())
+        .foregroundStyle(Color.wardWarning)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .wardInset(in: Capsule())
         .accessibilityElement(children: .combine)
     }
 }
@@ -159,15 +164,15 @@ struct WardTimerPill: View {
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(low ? Color.wardDanger : Color.wardInk)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.wardSurface, in: Capsule())
-            .overlay(Capsule().strokeBorder(low ? Color.wardDanger.opacity(0.4) : Color.wardHairline, lineWidth: 1))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .wardInset(in: Capsule())
             .contentTransition(.numericText())
     }
 }
 
-/// A rounded icon square in a tone: the glyph in the tone on a 12% wash.
+/// A rounded icon square: the glyph in its tone on a soft raised square;
+/// chosen, the square is pressed in and the glyph goes Theatre Blue.
 struct WardIconSquare: View {
     let symbol: String
     var tone: WardTone = .blue
@@ -178,10 +183,129 @@ struct WardIconSquare: View {
         let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
         Image(systemName: symbol)
             .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(selected ? Color.wardOnPrimary : tone.color)
+            .foregroundStyle(selected ? Color.wardPrimaryInk : tone.color)
             .frame(width: size, height: size)
-            .background(selected ? Color.wardPrimary : tone.color.opacity(0.12), in: shape)
+            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
             .accessibilityHidden(true)
+    }
+}
+
+/// A switch in soft UI: a track pressed into the base, a raised knob, and
+/// the tint in the track only when it is on. The whole row toggles it;
+/// VoiceOver hears the system switch.
+struct WardToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        WardToggleFace(configuration: configuration)
+    }
+}
+
+private struct WardToggleFace: View {
+    let configuration: ToggleStyleConfiguration
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let on: Bool = configuration.isOn
+        HStack(spacing: WardSpace.m) {
+            configuration.label
+                .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack(alignment: on ? .trailing : .leading) {
+                Capsule()
+                    .fill(.tint)
+                    .padding(3)
+                    .opacity(on ? 1 : 0)
+                knob(on: on)
+                    .padding(4)
+            }
+            .frame(width: 52, height: 32)
+            .wardInset(in: Capsule())
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if enabled { configuration.isOn.toggle() }
+        }
+        .opacity(enabled ? 1 : 0.5)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: on)
+        .sensoryFeedback(.selection, trigger: on)
+        .accessibilityRepresentation {
+            Toggle(isOn: configuration.$isOn) { configuration.label }
+                .toggleStyle(.switch)
+        }
+    }
+
+    /// Raised off the well; over the tint its shade goes neutral, since the
+    /// base's cool grey would light the blue rather than shade it.
+    @ViewBuilder
+    private func knob(on: Bool) -> some View {
+        if on {
+            Circle()
+                .fill(Color.wardSurface.shadow(.drop(color: .black.opacity(0.3), radius: 2, x: 1, y: 1.5)))
+                .frame(width: 24, height: 24)
+        } else {
+            WardReliefFace(shape: Circle(), lift: .low)
+                .frame(width: 24, height: 24)
+        }
+    }
+}
+
+/// The soft progress bar: the label, a groove with the tint filling it and
+/// the value under it. Without a fraction it is the system's spinner;
+/// VoiceOver hears the system bar.
+struct WardProgressViewStyle: ProgressViewStyle {
+    @ViewBuilder
+    func makeBody(configuration: Configuration) -> some View {
+        if let fraction = configuration.fractionCompleted {
+            VStack(alignment: .leading, spacing: 6) {
+                configuration.label
+                WardGroove(fraction: fraction)
+                configuration.currentValueLabel
+                    .font(.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
+            .accessibilityRepresentation {
+                ProgressView(configuration).progressViewStyle(.linear)
+            }
+        } else {
+            ProgressView(configuration).progressViewStyle(.circular)
+        }
+    }
+}
+
+/// The app's segmented control: a soft capsule raised off the base, the
+/// chosen segment pressed into it with its label in Theatre Blue.
+struct WardSegmented<Value: Hashable, Label: View>: View {
+    @Binding var selection: Value
+    let options: [Value]
+    @ViewBuilder let label: (Value) -> Label
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(options, id: \.self) { option in
+                let chosen: Bool = option == selection
+                Button {
+                    selection = option
+                } label: {
+                    label(option)
+                        .font(.subheadline.weight(chosen ? .semibold : .regular))
+                        .foregroundStyle(chosen ? Color.wardPrimaryInk : Color.wardInk)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .background {
+                            if chosen { WardReliefFace(shape: Capsule(), lift: .low, inset: true) }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(chosen ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .wardRaised(in: Capsule(), lift: .low)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 

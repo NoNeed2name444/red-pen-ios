@@ -2,9 +2,10 @@
 import SwiftUI
 import UIKit
 
-// The Ward Round palette as SwiftUI colours, type, spacing, radii and the one
-// shadow. Every colour comes from WardPalette's table through a dynamic
-// UIColor, so light and dark have one source and no colour set can drift.
+// The Ward Round palette as SwiftUI colours, type, spacing and radii. Every
+// colour comes from WardPalette's table through a dynamic UIColor, so light
+// and dark have one source and no colour set can drift. The soft UI light
+// (WardRelief) is drawn by WardSurfaces.
 
 extension Color {
     static func ward(_ token: WardToken) -> Color {
@@ -28,9 +29,20 @@ extension Color {
     static let wardInkSecondary = ward(.inkSecondary)
     static let wardHairline = ward(.hairline)
     static let wardMonitor = ward(.monitor)
-    /// The ECG paper's lines: Theatre Blue, faint
-    static let wardGridMinor = ward(.primary).opacity(0.06)
-    static let wardGridMajor = ward(.primary).opacity(0.12)
+
+    /// Increase Contrast's edge: Chart Ink at WardRelief.highContrastEdge,
+    /// clear otherwise, so a line drawn with it shows only when asked for.
+    static let wardEdge = Color(uiColor: UIColor { traits in
+        guard traits.accessibilityContrast == .high else { return .clear }
+        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.ink, dark: traits.userInterfaceStyle == .dark))
+        return UIColor(red: r, green: g, blue: b, alpha: WardRelief.highContrastEdge)
+    })
+
+    /// One relief light at its strength.
+    init(relief light: WardReliefLight) {
+        let (r, g, b) = WardPalette.rgb(light.hex)
+        self.init(red: r, green: g, blue: b, opacity: light.alpha)
+    }
 }
 
 /// The type: system fonts only (SF Pro, SF Mono for observations), every one

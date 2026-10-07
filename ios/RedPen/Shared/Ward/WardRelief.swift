@@ -7,6 +7,10 @@ enum WardLift: Int, CaseIterable, Comparable, Sendable {
     case low = 1, mid, high, peak
 
     static func < (a: WardLift, b: WardLift) -> Bool { a.rawValue < b.rawValue }
+
+    /// One step nearer the base, never below low: what a raised surface
+    /// sinks to, pressed in, while it is held.
+    var lower: WardLift { WardLift(rawValue: rawValue - 1) ?? .low }
 }
 
 /// One of the two lights a relief is drawn with: a colour, how strong it
@@ -54,7 +58,7 @@ enum WardRelief {
     /// falls the same distance up and left.
     static func offset(_ lift: WardLift) -> Double {
         switch lift {
-        case .low: return 2.5
+        case .low: return 2
         case .mid: return 5
         case .high: return 8
         case .peak: return 11
@@ -63,7 +67,7 @@ enum WardRelief {
 
     static func radius(_ lift: WardLift) -> Double {
         switch lift {
-        case .low: return 4
+        case .low: return 3
         case .mid: return 8
         case .high: return 12
         case .peak: return 16

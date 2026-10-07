@@ -87,6 +87,8 @@ for dark in [false, true] {
 }
 
 check("the lifts are ordered low to peak", WardLift.allCases == WardLift.allCases.sorted() && WardLift.low < .peak)
+check("pressed in sinks one lift, never below low",
+      WardLift.peak.lower == .high && WardLift.high.lower == .mid && WardLift.mid.lower == .low && WardLift.low.lower == .low)
 check("a light on its own colour at full strength is that colour",
       WardRelief.composite(WardReliefLight(hex: 0x123456, alpha: 1, x: 0, y: 0, radius: 0), on: 0xFFFFFF) == 0x123456)
 check("a light at no strength leaves the base",

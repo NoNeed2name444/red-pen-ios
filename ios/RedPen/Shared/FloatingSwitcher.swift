@@ -2,12 +2,13 @@ import SwiftUI
 
 // MARK: - The collapsible floating switcher
 //
-// One floating glass strip at the bottom of a screen for choosing between a
-// few views of the same thing - Ideas' List / Board / Space, the reader's
-// Document / Page - under the thumb, instead of a segmented control up in
-// the navigation bar. It folds away into one small glass circle (showing
-// what is chosen) and opens again with a tap; a long press on the circle
-// chooses without opening it.
+// One soft strip raised high off the base at the bottom of a screen, for
+// choosing between a few views of the same thing - Ideas' List / Board /
+// Space, the reader's Document / Page - under the thumb, instead of a
+// segmented control up in the navigation bar. The chosen view is pressed
+// into the strip. It folds away into one small raised disc (showing what is
+// chosen) and opens again with a tap; a long press on the disc chooses
+// without opening it.
 //
 // The caller decides where each state sits: the expanded strip usually on
 // its own row above a bar, the circle at the leading end of that bar.
@@ -94,19 +95,17 @@ private struct SwitcherStrip<Value: Hashable>: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
-        GlassEffectContainer {
-            HStack(spacing: 2) {
-                ForEach(items) { item in
-                    SwitcherSegment(item: item, chosen: item.value == selection, tint: tint,
-                                    liftSpace: liftSpace) {
-                        choose(item.value)
-                    }
+        // the floating plane's relief is the strip's face
+        HStack(spacing: 2) {
+            ForEach(items) { item in
+                SwitcherSegment(item: item, chosen: item.value == selection, tint: tint,
+                                liftSpace: liftSpace) {
+                    choose(item.value)
                 }
-                SwitcherCollapseButton(identifier: identifier, action: collapse)
             }
-            .padding(5)
+            SwitcherCollapseButton(identifier: identifier, action: collapse)
         }
-        .liquidGlassPanel(cornerRadius: 26)
+        .padding(5)
         .popOut(.floating, in: shape)
     }
 }
@@ -149,17 +148,17 @@ private struct SwitcherSegment<Value: Hashable>: View {
     }
 }
 
-/// The soft capsule behind the chosen segment, which travels between them.
+/// The well the chosen segment is pressed into, which travels between them.
+/// The tint is the chosen segment's ink, not a fill.
 private struct SwitcherLift: View {
     let shape: RoundedRectangle
     let tint: Color
     let liftSpace: Namespace.ID
 
     // With Reduce Motion the choice changes without an animation, so the
-    // lift jumps rather than travels.
+    // well jumps rather than travels.
     var body: some View {
-        shape
-            .fill(tint.opacity(0.14))
+        WardReliefFace(shape: shape, lift: .low, inset: true)
             .matchedGeometryEffect(id: "switcherLift", in: liftSpace)
     }
 }
@@ -172,7 +171,7 @@ private struct SwitcherCollapseButton: View {
         Button(action: action) {
             Image(systemName: "chevron.down")
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
@@ -183,7 +182,8 @@ private struct SwitcherCollapseButton: View {
     }
 }
 
-/// The folded state: one white circle showing what is chosen.
+/// The folded state: one disc raised off the base, showing what is chosen;
+/// it sinks under the finger.
 private struct SwitcherBubble<Value: Hashable>: View {
     let items: [SwitcherItem<Value>]
     let chosen: SwitcherItem<Value>?
@@ -204,10 +204,9 @@ private struct SwitcherBubble<Value: Hashable>: View {
                 .overlay(alignment: .topTrailing) { SwitcherBadge() }
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .background(Color.wardSurface, in: Circle())
-        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        // a 48-point square rounded by half its side: the disc
+        .buttonStyle(PopTileStyle(cornerRadius: 24, plane: .floating))
+        .contentShape(.contextMenuPreview, Circle())
         .contextMenu {
             ForEach(items) { item in
                 Button {
@@ -220,7 +219,6 @@ private struct SwitcherBubble<Value: Hashable>: View {
         .accessibilityLabel(label)
         .accessibilityHint("Tap to show every view. Hold to switch straight away.")
         .accessibilityIdentifier(identifier)
-        .popOut(.floating, in: Circle())
     }
 }
 
@@ -230,7 +228,7 @@ private struct SwitcherBadge: View {
             .font(.system(size: 7, weight: .heavy))
             .foregroundStyle(Color.wardInkSecondary)
             .padding(3)
-            .background(Color.wardSurface, in: Circle())
+            .wardRaised(in: Circle(), lift: .low)
             .offset(x: -2, y: 2)
             .accessibilityHidden(true)
     }

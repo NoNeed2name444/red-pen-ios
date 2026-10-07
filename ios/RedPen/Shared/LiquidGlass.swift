@@ -1,61 +1,36 @@
 import SwiftUI
 
-// MARK: - Liquid Glass, Apple's own way
+// MARK: - Chrome, shaped from the base
 //
-// iOS 26's Liquid Glass is a real system material with a real API —
-// `View.glassEffect(_:in:)`, `GlassEffectContainer`, and the `.glass` /
-// `.glassProminent` button styles — so the app uses exactly those instead of
-// faking the look with blurs and gradients. The project's deployment target
-// is iOS 26, so nothing here needs an availability check.
-//
-// The two helpers below are just short names for the two shapes this app
-// uses everywhere (a floating control bar and a small capsule chip), so a
-// view can say `.liquidGlassPanel()` rather than spelling the shape out
-// each time. They add nothing of their own on top of Apple's effect.
-
-/// A glass capsule in the colour of the screen it sits on.
-private struct GlassChip: ViewModifier {
-    let tint: Color?
-    @Environment(\.modeTint) private var modeTint
-
-    func body(content: Content) -> some View {
-        // Ward Round: a white capsule with a hairline edge
-        content
-            .background(Color.wardSurface, in: Capsule())
-            .overlay(Capsule().strokeBorder((tint ?? Color.wardHairline).opacity(tint == nil ? 1 : 0.4), lineWidth: 1))
-    }
-}
+// The app was glass once; now its chrome is soft UI like everything else:
+// a floating bar or a small chip is the matte base raised off itself, lit
+// from the top left (WardSurfaces draws it). The names stay so the screens
+// that float a bar or a chip keep saying what they mean.
 
 extension View {
-    /// A floating bottom control bar — matches the way iOS 26's own toolbars
-    /// and tab bars sit as a rounded pane of glass over the content.
+    /// A floating bottom control bar: a soft slab raised high off the base.
+    /// `tint` is accepted for older callers; the bar is the base's colour.
     func liquidGlassPanel(cornerRadius: CGFloat = 22, tint: Color = .clear) -> some View {
-        // Ward Round: Clean Sheet with a hairline edge and the one shadow
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
+        return wardRaised(in: shape, lift: .high)
     }
 
-    /// A small glass capsule — for the score / progress chips in each mode's
-    /// header and the mode emoji on a library row.
-    /// `tint: nil` - the default - means "whatever colour this screen is",
-    /// which is nearly always what a chip wants.
+    /// A small capsule raised just off the base: the score / progress chips
+    /// in a mode's header. `tint` is accepted for older callers; a chip's
+    /// colour is in its label.
     func liquidGlassChip(tint: Color? = nil) -> some View {
-        modifier(GlassChip(tint: tint))
+        wardRaised(in: Capsule(), lift: .low)
     }
 
-    /// The glass panel, standing out of the screen at `plane` (see
-    /// PopOut.swift) as one unit.
+    /// The bar, standing out of the screen at `plane` (see PopOut.swift):
+    /// the plane's relief is its face, so it is never shaped twice.
     func liquidGlassPanel(cornerRadius: CGFloat = 22, tint: Color = .clear, plane: PopOutPlane) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return liquidGlassPanel(cornerRadius: cornerRadius, tint: tint)
-            .popOut(plane, in: shape)
+        return popOut(max(plane, .raised), in: shape)
     }
 
-    /// The glass chip, standing out of the screen at `plane`.
+    /// The chip, standing out of the screen at `plane`.
     func liquidGlassChip(tint: Color? = nil, plane: PopOutPlane) -> some View {
-        liquidGlassChip(tint: tint)
-            .popOut(plane, in: Capsule())
+        popOut(max(plane, .raised), in: Capsule())
     }
 }

@@ -39,7 +39,7 @@ extension View {
     func diagnosticsScreen(_ name: StaticString) -> some View { self }
 }
 
-// MARK: - The pop-out effect (Shared/PopOut.swift): flat here
+// MARK: - The pop-out effect (Shared/PopOut.swift): the soft relief, still here
 
 enum PopOutPlane: Int, Comparable, Sendable {
     case deep = -1, screen = 0, raised = 1, floating = 2, hero = 3
@@ -57,6 +57,7 @@ struct PopOutCues: OptionSet, Sendable {
     static let contact = PopOutCues(rawValue: 8)
     static let all: PopOutCues = [.lean, .sheen, .edge, .contact]
     static let translateOnly: PopOutCues = [.edge, .contact]
+    var shapesRelief: Bool { !isDisjoint(with: [.edge, .contact]) }
 }
 
 enum PopOutField {
@@ -68,15 +69,43 @@ struct PopTileStyle: ButtonStyle {
     var cornerRadius: CGFloat = 20
     var plane: PopOutPlane = .raised
     var tint: Color? = nil
+    var selected = false
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return configuration.label
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
+            .contentShape(shape)
+            .modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: configuration.isPressed || selected,
+                                          dims: true))
+    }
+}
+
+/// A surface's relief by its plane, as in the app: a well on the deep
+/// plane, raised above the screen plane, pressed in while held, low and
+/// faint when disabled (a tile's label too, `dims`).
+private struct PopOutReliefStandIn<S: InsettableShape>: ViewModifier {
+    let plane: PopOutPlane
+    let shape: S
+    let pressed: Bool
+    var dims = false
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let lift: WardLift = plane == .hero ? .peak : plane == .floating ? .high : plane == .raised ? .mid : .low
+        let deep: Bool = plane == .deep
+        return content
+            .opacity(enabled || !dims ? 1 : 0.55)
+            .background {
+                if deep {
+                    WardReliefFace(shape: shape, lift: lift, inset: true)
+                } else if !enabled {
+                    WardReliefFace(shape: shape, lift: .low).opacity(0.5)
+                } else {
+                    WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed)
+                }
+            }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
     }
 }
 
@@ -85,12 +114,19 @@ extension ButtonStyle where Self == PopTileStyle {
 }
 
 extension View {
+    @ViewBuilder
     func popOut<S: InsettableShape>(_ plane: PopOutPlane, in shape: S, tint: Color? = nil,
                                     pressed: Bool = false, cues: PopOutCues = .all) -> some View {
-        self
+        if plane != .screen && cues.shapesRelief {
+            modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: pressed))
+        } else {
+            self
+        }
     }
 
-    func popOut(_ plane: PopOutPlane) -> some View { self }
+    func popOut(_ plane: PopOutPlane) -> some View {
+        popOut(plane, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
 
     func deepParallax() -> some View { self }
 
@@ -109,8 +145,7 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return padding(insets)
             .frame(minHeight: 44)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardInset(in: shape)
     }
 
     func popFieldRow(cornerRadius: CGFloat = 12) -> some View {
@@ -125,8 +160,7 @@ extension View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .frame(minHeight: 44)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardInset(in: shape)
     }
 
     func popEditorRow(cornerRadius: CGFloat = 12) -> some View {

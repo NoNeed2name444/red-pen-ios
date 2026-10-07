@@ -50,7 +50,8 @@ extension WardEmptyState where Actions == EmptyView {
 }
 
 /// A line of news across a screen ("Offline: changes wait for a
-/// connection"), in a tone, with an optional action at its end.
+/// connection"), in a tone, with an optional action at its end: the tone's
+/// glyph and the words in a well pressed into the base.
 struct WardBanner: View {
     var tone: WardTone = .blue
     var symbol: String = "info.circle.fill"
@@ -59,7 +60,6 @@ struct WardBanner: View {
     var action: (() -> Void)?
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
             Image(systemName: symbol).foregroundStyle(tone.color).accessibilityHidden(true)
             Text(text)
@@ -73,13 +73,28 @@ struct WardBanner: View {
             }
         }
         .padding(WardSpace.m)
-        .background(tone.color.opacity(0.12), in: shape)
-        .overlay(shape.strokeBorder(tone.color.opacity(0.3), lineWidth: 1))
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Rows on one card, each divided from the next by an inset hairline.
+/// A line cut into the base between two rows: a shade line over a highlight
+/// line, so it reads as a groove in the surface rather than a rule drawn on it.
+struct WardEtch: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let spec: WardReliefSpec = WardRelief.raised(.low, dark: scheme == .dark, highContrast: contrast == .increased)
+        VStack(spacing: 0) {
+            Color(relief: spec.shade).frame(height: 1)
+            Color(relief: spec.highlight).frame(height: 1)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Rows on one raised card, each parted from the next by an etched groove.
 struct WardGroupedCard<Content: View>: View {
     private let content: Content
     init(@ViewBuilder content: () -> Content) { self.content = content() }
@@ -90,14 +105,43 @@ struct WardGroupedCard<Content: View>: View {
                 ForEach(rows.indices, id: \.self) { i in
                     rows[i].padding(.horizontal, WardSpace.gutter)
                     if i < rows.count - 1 {
-                        Rectangle().fill(Color.wardHairline).frame(height: 1)
-                            .padding(.leading, WardSpace.gutter + 52)
+                        WardEtch().padding(.leading, WardSpace.gutter + 52)
                     }
                 }
             }
         }
         .padding(.vertical, WardSpace.xs)
         .wardCard(padding: 0)
+    }
+}
+
+/// A groove pressed into the base, the tint filling it from the leading
+/// edge: progress, scores and the strip under the ECG. The fill keeps a
+/// round end however small the fraction, and none at all at zero.
+struct WardGroove: View {
+    var fraction: Double
+    var tint = AnyShapeStyle(.tint)
+    var height: CGFloat = 8
+
+    var body: some View {
+        let f = CGFloat(max(0, min(1, fraction)))
+        let pad: CGFloat = height >= 8 ? 2 : 1.5
+        let bar: CGFloat = max(0, height - 2 * pad)
+        GeometryReader { geo in
+            let inner: CGFloat = max(0, geo.size.width - 2 * pad)
+            Capsule()
+                .fill(tint)
+                .frame(width: f > 0 ? min(inner, max(bar, inner * f)) : 0, height: bar)
+                .padding(pad)
+        }
+        .frame(height: height)
+        .wardInset(in: Capsule())
+    }
+}
+
+extension WardGroove {
+    init(fraction: Double, tint: Color, height: CGFloat = 8) {
+        self.init(fraction: fraction, tint: AnyShapeStyle(tint), height: height)
     }
 }
 
@@ -114,21 +158,16 @@ struct WardProgressBar: View {
 
     var body: some View {
         let v: Double = max(0, min(1, value))
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline)
-                Capsule().fill(Self.tone(v).color).frame(width: v * geo.size.width)
-            }
-        }
-        .frame(height: 6)
-        .animation(.easeOut(duration: 0.3), value: v)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label ?? "Score")
-        .accessibilityValue("\(Int((v * 100).rounded())) percent")
+        WardGroove(fraction: v, tint: Self.tone(v).color)
+            .animation(.easeOut(duration: 0.3), value: v)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label ?? "Score")
+            .accessibilityValue("\(Int((v * 100).rounded())) percent")
     }
 }
 
-/// A white tile: the icon top left, the title and a detail line under it.
+/// A soft tile raised off the base: the icon top left, the title and a
+/// detail line under it.
 struct WardTile: View {
     let symbol: String
     var tone: WardTone = .blue
@@ -150,7 +189,8 @@ struct WardTile: View {
     }
 }
 
-/// A chip that filters: Theatre Blue when on, white with a hairline when off.
+/// A chip that filters: a soft capsule raised off the base; on, it is
+/// pressed in and its words go Theatre Blue.
 struct WardFilterChip: View {
     let text: String
     var symbol: String?
@@ -164,11 +204,10 @@ struct WardFilterChip: View {
                 Text(text)
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(selected ? Color.wardOnPrimary : Color.wardInk)
+            .foregroundStyle(selected ? Color.wardPrimaryInk : Color.wardInk)
             .padding(.horizontal, 12)
             .frame(minHeight: 36)
-            .background(selected ? Color.wardPrimary : Color.wardSurface, in: Capsule())
-            .overlay(Capsule().strokeBorder(selected ? Color.clear : Color.wardHairline, lineWidth: 1))
+            .wardRelief(in: Capsule(), pressed: selected)
             // the chip draws 36 points tall; the tap target is the full 44
             .frame(minHeight: 44)
             .contentShape(Rectangle())
@@ -179,14 +218,12 @@ struct WardFilterChip: View {
 }
 
 extension View {
-    /// A text field on Clean Sheet with a hairline edge.
+    /// A text field: a well pressed into the base.
     func wardField() -> some View {
-        let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
-        return self
+        self
             .padding(.horizontal, WardSpace.m)
             .padding(.vertical, 10)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 }
 #endif

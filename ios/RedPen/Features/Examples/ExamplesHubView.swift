@@ -7,7 +7,7 @@ import SwiftUI
 /// can add the example sets from here.
 ///
 /// A list on a phone. On a wide iPad the same links are tiles, a few across,
-/// white cards on the grid - with the same identifiers, so the
+/// soft tiles raised off the base - with the same identifiers, so the
 /// tour and its test find them either way.
 struct ExamplesHubView: View {
     @EnvironmentObject private var store: Store
@@ -41,23 +41,28 @@ struct ExamplesHubView: View {
             Section {
                 thinkingRows
             } header: { Text("Thinking") }
+            .wardRowBackground()
 
             Section {
                 standingRows
             } header: { Text("Where you stand") }
+            .wardRowBackground()
 
             Section {
                 voiceRows
             } header: { Text("Voice") }
+            .wardRowBackground()
 
             Section {
                 drawingRows
             } header: { Text("Drawing") }
+            .wardRowBackground()
 
             Section {
                 libraryNotes
             } header: { Text("In the library") }
             .font(.subheadline)
+            .wardRowBackground()
         }
         .wardForm()
     }
@@ -276,7 +281,8 @@ private struct ExampleRowLabel: View {
     }
 }
 
-/// An example as a tile: the same symbol, title and line, on a white card.
+/// An example as a tile: the same symbol, title and line. The tile style
+/// raises it, so it draws no card of its own.
 private struct ExampleTile: View {
     let title: String
     let symbol: String
@@ -298,6 +304,6 @@ private struct ExampleTile: View {
         }
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-        .wardCard()
+        .padding(WardSpace.gutter)
     }
 }

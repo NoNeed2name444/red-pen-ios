@@ -263,7 +263,8 @@ struct RedPenApp: App {
             .environmentObject(sync)
             .environmentObject(gemma)
             .environmentObject(llm)
-            .tint(Color.wardPrimary) // Theatre Blue
+            // the soft UI's Theatre Blue, switch and progress bar everywhere
+            .wardControls()
             // the one motion source for the pop-out: started while the app
             // is active, stopped in the background (see PopOut.swift)
             .popOutLifecycle()
@@ -298,7 +299,7 @@ struct RedPenApp: App {
                 .environmentObject(sync)
                 .environmentObject(gemma)
                 .environmentObject(llm)
-                .tint(Color.wardPrimary)
+                .wardControls()
         }
         // never the window a link or opened file lands in (it has no
         // routes): only its own openWindow requests open it
