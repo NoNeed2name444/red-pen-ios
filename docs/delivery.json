@@ -93,7 +93,7 @@
       "bytes": 2020,
       "sha256": "f73846d9ddf61050e454b13749df0b1214fb946567fcd5c85d7d678a3c12d311",
       "source": "Chat-me commit prework/container-20261007",
-      "mode": "000600"
+      "mode": "100644"
     },
     {
       "path": "prework/medical-assistant/.github/workflows/scaffold.yml",
