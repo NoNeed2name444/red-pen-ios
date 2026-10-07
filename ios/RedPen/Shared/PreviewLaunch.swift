@@ -84,7 +84,7 @@ enum PreviewLaunch {
         try? text.write(to: log, atomically: true, encoding: .utf8)
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished", "cases"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -266,7 +266,15 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology, endocrine, osce, narrate]
+    /// Two patients written for the app (CaseSamples), as a Cases set.
+    static let cases = StudySet(
+        name: "Example patients",
+        subject: "Acute medicine",
+        kind: .cases,
+        caseFiles: CaseSamples.all
+    )
+
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, osce, narrate, cases]
 
     /// Adds a copy of every example set, once, to a personal build's library -
     /// never to the App Store app, whose students start with their own.
@@ -345,6 +353,8 @@ struct PreviewRoot: View {
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: 3) }
         case "narrate-finished":
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: SampleData.narrate.narrateSegments.count - 1, startFinished: true) }
+        case "cases":
+            NavigationStack { CaseListView(set: SampleData.cases) }
         default:
             LibraryView()
         }

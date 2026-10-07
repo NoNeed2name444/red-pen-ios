@@ -31,6 +31,7 @@ struct DeckPalette: Equatable {
         case .book:    return DeckPalette(red: 0.10, green: 0.55, blue: 0.50)
         case .osce:    return DeckPalette(red: 0.20, green: 0.62, blue: 0.35)
         case .narrate: return DeckPalette(red: 0.55, green: 0.32, blue: 0.80)
+        case .cases:   return DeckPalette(red: 0.11, green: 0.37, blue: 0.69)
         }
     }
 

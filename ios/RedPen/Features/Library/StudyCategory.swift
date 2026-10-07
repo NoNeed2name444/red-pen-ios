@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// The four kinds of studying, and the only choice on the first screen.
+/// The five kinds of studying, and the only choice on the first screen.
 ///
 /// The app used to open on six modes, a Practice page of eight quick modes and
 /// six more cards, and a tab bar besides: every way in, all at once. Now the
-/// floating dock at the bottom of the library holds four big words -
-/// Questions, Cards, OSCE, Audio - and choosing one shows that one's sets
+/// floating dock at the bottom of the library holds five big words -
+/// Questions, Cards, Cases, OSCE, Audio - and choosing one shows that one's sets
 /// and, under them, everything that can be done with them.
 enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
-    case questions, cards, osce, audio
+    case questions, cards, cases, osce, audio
 
     var id: String { rawValue }
 
@@ -16,6 +16,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "Questions"
         case .cards: return "Cards"
+        case .cases: return "Cases"
         case .osce: return "OSCE"
         case .audio: return "Audio"
         }
@@ -25,6 +26,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "checklist.checked"
         case .cards: return "rectangle.on.rectangle.angled"
+        case .cases: return "stethoscope"
         case .osce: return "list.clipboard"
         case .audio: return "waveform"
         }
@@ -35,6 +37,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return [.mcq]
         case .cards: return [.anki, .book]
+        case .cases: return [.cases]
         case .osce: return [.osce]
         case .audio: return [.narrate]
         }
@@ -52,6 +55,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         case .anki, .book: self = .cards
         case .osce: self = .osce
         case .narrate: self = .audio
+        case .cases: self = .cases
         }
     }
 
@@ -61,6 +65,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         // the home's own list, under the ward round
         case .questions: return "Your sets"
         case .cards: return "Your decks and books"
+        case .cases: return "Your patients"
         case .osce: return "Your OSCE stations"
         case .audio: return "Your lectures"
         }
@@ -71,6 +76,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return "No question sets yet."
         case .cards: return "No flashcards or books yet."
+        case .cases: return "No patients yet."
         case .osce: return "No OSCE stations yet."
         case .audio: return "No lectures yet."
         }
@@ -97,6 +103,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return [.multipleChoice]
         case .cards: return [.flashcards, .textbooks, .pictures]
+        case .cases: return [.patients]
         case .osce: return [.stations]
         case .audio: return [.lectures]
         }
@@ -109,6 +116,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
             return [.mixed, .mistakes, .flagged, .timed, .mock, .twins, .symptomBlocks, .weakest, .confident, .slow,
                     .one, .bedtime]
         case .cards: return [.due, .draw, .duels, .scripts]
+        case .cases: return []
         case .osce: return [.patient]
         case .audio: return [.commute, .explain]
         }
@@ -120,6 +128,7 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .questions: return [.lens, .examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
         case .cards: return [.lens, .reasoning, .add, .turn]
+        case .cases: return [.turn]
         case .osce: return [.lens, .add, .turn]
         case .audio: return [.record, .add, .turn]
         }
@@ -148,7 +157,7 @@ enum FeatureGroup: String, CaseIterable, Identifiable {
 /// already chosen.
 enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     // The modes: one per kind of set (and the picture cards among the decks)
-    case multipleChoice, flashcards, textbooks, pictures, stations, lectures
+    case multipleChoice, flashcards, textbooks, pictures, stations, lectures, patients
     // Questions
     case mixed, mistakes, flagged, timed, weakest, confident, slow, one, rules, coverage, subjects, mock, twins
     // Questions: the learning screens LearnRouter shows in a sheet of its own
@@ -198,6 +207,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .textbooks: return .shelf(.book)
         case .stations: return .shelf(.osce)
         case .lectures: return .shelf(.narrate)
+        case .patients: return .shelf(.cases)
         case .mixed, .mistakes, .flagged, .timed, .weakest, .confident, .slow, .one, .twins: return .quiz
         case .due: return .due
         case .record: return .audioLecture
@@ -226,6 +236,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .pictures: return "Picture cards"
         case .stations: return "OSCE stations"
         case .lectures: return "Narrated lectures"
+        case .patients: return "Patient cases"
         case .mixed: return "Mixed quiz"
         case .mistakes: return "My mistakes"
         case .flagged: return "Flagged"
@@ -266,6 +277,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .pictures: return "Hide labels on a diagram"
         case .stations: return "Step-by-step checklists"
         case .lectures: return "Read along with the lecture"
+        case .patients: return "Work up, decide, debrief"
         case .mixed: return "20 from every set"
         case .mistakes: return "Last got wrong"
         case .flagged: return "The ones you flagged"
@@ -306,6 +318,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .pictures: return "photo.on.rectangle.angled"
         case .stations: return StudySetKind.osce.symbol
         case .lectures: return StudySetKind.narrate.symbol
+        case .patients: return StudySetKind.cases.symbol
         case .mixed: return "shuffle"
         case .mistakes: return "xmark.circle.fill"
         case .flagged: return "flag.fill"
@@ -358,7 +371,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     @ViewBuilder
     var page: some View {
         switch self {
-        case .multipleChoice, .flashcards, .textbooks, .pictures, .stations, .lectures:
+        case .multipleChoice, .flashcards, .textbooks, .pictures, .stations, .lectures, .patients:
             KindShelfView(feature: self)
         case .duels, .scripts:
             ReasoningToolPicker(feature: self)

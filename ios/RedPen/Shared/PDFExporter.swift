@@ -112,6 +112,12 @@ enum PDFExporter {
             }
         case .narrate:
             for seg in set.narrateSegments { out.append(body(seg.text)) }
+        case .cases:
+            for file in set.caseFiles {
+                out.append(heading(file.title))
+                out.append(body(file.assertedText))
+                out.append(spacer())
+            }
         }
         return out
     }

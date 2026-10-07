@@ -60,6 +60,8 @@ extension StudySet {
                 out.osceChecklists.append(contentsOf: m.osceChecklists.map { var c = $0; c.id = UUID(); return c })
             case .narrate:
                 out.narrateSegments.append(contentsOf: m.narrateSegments.map { var s = $0; s.id = UUID(); return s })
+            case .cases:
+                out.caseFiles.append(contentsOf: m.caseFiles.map { var c = $0; c.id = UUID(); return c })
             }
         }
         return out

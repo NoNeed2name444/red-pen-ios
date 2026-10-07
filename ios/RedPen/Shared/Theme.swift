@@ -18,6 +18,7 @@ extension StudySetKind {
         case .book: return .wardSuccess
         case .osce: return .wardWarning
         case .narrate: return .wardInkSecondary
+        case .cases: return .wardPrimary
         }
     }
 
@@ -28,6 +29,7 @@ extension StudySetKind {
         case .book: return "book.pages"
         case .osce: return "list.clipboard"
         case .narrate: return "waveform"
+        case .cases: return "stethoscope"
         }
     }
 

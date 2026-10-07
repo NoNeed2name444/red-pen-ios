@@ -357,3 +357,38 @@ final class AppRouter {
 
     func isFront(_ id: UUID) -> Bool { true }
 }
+
+// MARK: - Cases (Features/Cases): the patients are not in this build; a
+// Cases set's file (Shared/Cases/CaseFile.swift) still loads and syncs
+
+struct CaseListView: View {
+    let set: StudySet
+    var body: some View { NotInThisBuild(feature: "Cases") }
+}
+
+struct CaseMakeSection: View {
+    @Binding var subject: String
+    let name: String
+    let step: NewSetStep
+    var presetText: String = ""
+    var presetName: String = ""
+    let onMade: (StudySet) -> Void
+
+    var body: some View {
+        Section { Text("Writing cases is not in this build. The full app has it.") }
+    }
+}
+
+enum CaseSamples {
+    static let all: [CaseFile] = []
+}
+
+/// A cloud job of cases finished while the app was closed is kept as text.
+enum CaseWriting {
+    static func collect(_ replies: [String], count: Int, lecture: String = "") -> [CaseFile] { [] }
+}
+
+enum CaseChecks {
+    static func screen(_ files: [CaseFile]) -> (kept: [CaseFile], dropped: [(title: String, why: [String])]) { (files, []) }
+    static func note(kept: Int, dropped: Int) -> String { "" }
+}

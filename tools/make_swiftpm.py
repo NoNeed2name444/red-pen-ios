@@ -37,6 +37,10 @@ CORE_DROP = [
     "Features/Coverage", "Shared/Coverage/CoverageCloudCheck.swift", "Shared/Coverage/CoverageExamples.swift",
     "Shared/Learn", "Features/Learn",                             # exam plan, exam-day kit, reminders
     "Features/Examples", "Features/Insight",                      # the examples hub, mistake diagnosis
+    "Features/Cases", "Shared/Cases/CaseRun.swift", "Shared/Cases/CaseScore.swift",   # patient cases (a
+    "Shared/Cases/CaseDebrief.swift", "Shared/Cases/CaseSamples.swift",                # Cases set's file
+    "Shared/Cases/CaseChecks.swift", "Shared/Cases/CaseWriting.swift",                 # stays, CaseFile)
+    "Shared/Cases/CaseNames.swift",
     "Features/Mock", "Features/Exam/ExamDashboardCard.swift",
     "Shared/Exam/ExamFormats.swift",
     "Features/Exam/WardPocketView.swift", "Shared/WardPocket.swift", "Shared/WardPocketScores.swift",  # ward pocket

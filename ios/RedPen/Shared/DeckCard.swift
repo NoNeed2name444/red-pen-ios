@@ -60,6 +60,7 @@ enum DeckBuilder {
         case .book:    built = book(set.bookMarkdown)
         case .narrate: built = narrate(set.narrateSegments)
         case .anki:    built = anki(set.cards)
+        case .cases:   built = cases(set.caseFiles)
         }
         for i in built.indices { built[i].number = i + 1 }
         return built
@@ -115,6 +116,28 @@ enum DeckBuilder {
             }
         }
         return out
+    }
+
+    // MARK: Cases
+    //
+    // A case on paper loses its clock and its choices, so each patient prints
+    // as the one question the case ends on: who they are and what they say,
+    // then the diagnosis, the next step and the teaching on the back.
+
+    static func cases(_ files: [CaseFile]) -> [DeckCard] {
+        files.map { file in
+            let who: String = [file.patient.ageSex, file.setting.label].filter { !$0.isEmpty }.joined(separator: " \u{00B7} ")
+            var question: [DeckBlock] = [.text(who), .text("\u{201C}" + file.complaint + "\u{201D}")]
+            question.append(.text("What is the diagnosis, and the next step?"))
+            var answer: [DeckBlock] = [.bullet(lead: "Diagnosis", text: file.diagnosis.name)]
+            if file.nextStep.options.indices.contains(file.nextStep.key) {
+                answer.append(.bullet(lead: "Next step", text: file.nextStep.options[file.nextStep.key]))
+            }
+            for point in file.teaching { answer.append(.note(label: "Teaching", text: point)) }
+            let cited: String = file.source.cited
+            return DeckCard(topic: file.specialty.isEmpty ? file.title : file.specialty, kindLabel: "CASE",
+                            question: question, answer: answer, source: cited.isEmpty ? nil : cited)
+        }
     }
 
     // MARK: Textbook

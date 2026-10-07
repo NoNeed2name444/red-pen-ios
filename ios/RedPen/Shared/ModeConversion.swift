@@ -143,6 +143,8 @@ enum ModeConversion {
             }
         case .narrate:
             parts = [set.narrateSegments.map(\.text).joined(separator: " ")]
+        case .cases:
+            parts = set.caseFiles.map(\.assertedText)
         }
         return parts
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

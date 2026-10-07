@@ -19,6 +19,7 @@ struct StudySetScreen: View {
         case .book: BookReaderView(set: set)
         case .osce: OsceReviewView(set: set)
         case .narrate: NarrateReviewView(set: set)
+        case .cases: CaseListView(set: set)
         }
     }
 }
