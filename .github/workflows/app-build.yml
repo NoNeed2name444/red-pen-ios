@@ -19,14 +19,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      # actool in Xcode 26.5 and 26.6 crashes on any Icon Composer .icon
-      # ("attempt to insert nil object", Apple FB20183399); 26.4.1 compiles
-      # ios/AppResources/AppIcon.icon. Back to the default once Apple fixes it.
-      - name: Xcode with a working actool
-        run: |
-          if [ -d /Applications/Xcode_26.4.1.app ]; then
-            echo "DEVELOPER_DIR=/Applications/Xcode_26.4.1.app/Contents/Developer" >> "$GITHUB_ENV"
-          fi
       - name: Tools
         run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - name: Generate the project

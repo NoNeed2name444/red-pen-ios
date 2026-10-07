@@ -161,7 +161,9 @@ def icon_json():
     out = [{"layers": list(reversed(layers)), "name": g, "shadow": {"kind": "neutral", "opacity": 0.5},
             "specular": True, "translucency": {"enabled": False, "value": 0.5}}
            for g, layers in reversed(list(groups.items()))]
-    return json.dumps({"color-space-for-untagged-svg-colors": "srgb", "fill": FILL, "groups": out,
+    # No "color-space-for-untagged-svg-colors": actool in Xcode 26.4-26.6
+    # crashes on it ("attempt to insert nil object"); untagged SVG is sRGB anyway.
+    return json.dumps({"fill": FILL, "groups": out,
                        "supported-platforms": {"circles": ["watchOS"], "squares": "shared"}},
                       indent=2, sort_keys=True) + "\n"
 
