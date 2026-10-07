@@ -86,7 +86,9 @@ for dark in [false, true] {
     }
 }
 
-check("the lifts are ordered low to peak", WardLift.allCases == WardLift.allCases.sorted() && WardLift.low < .peak)
+let liftOrder: [Int] = WardLift.allCases.map { $0.rawValue }
+check("the lifts are ordered low to peak", liftOrder == liftOrder.sorted() && liftOrder.first == WardLift.low.rawValue
+      && liftOrder.last == WardLift.peak.rawValue)
 check("pressed in sinks one lift, never below low",
       WardLift.peak.lower == .high && WardLift.high.lower == .mid && WardLift.mid.lower == .low && WardLift.low.lower == .low)
 check("a light on its own colour at full strength is that colour",

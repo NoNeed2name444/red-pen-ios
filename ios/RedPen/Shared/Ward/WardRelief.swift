@@ -3,10 +3,11 @@ import Foundation
 /// How far a soft UI surface stands off the base: a row or a chip sits low,
 /// a card mid, a sheet or a floating bar high, the one hero of a screen at
 /// its peak.
-enum WardLift: Int, CaseIterable, Comparable, Sendable {
+///
+/// Not Comparable on purpose: a `<` of its own would join every `<` the
+/// compiler weighs app-wide; order by `rawValue` instead.
+enum WardLift: Int, CaseIterable, Sendable {
     case low = 1, mid, high, peak
-
-    static func < (a: WardLift, b: WardLift) -> Bool { a.rawValue < b.rawValue }
 
     /// One step nearer the base, never below low: what a raised surface
     /// sinks to, pressed in, while it is held.
