@@ -473,7 +473,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var labelSettings: GraphLabelSettings
     /// Each label's words, pill and rim materials (nil for wiring's empty
     /// holder), and its pill's half width and height in label units (a
-    /// label unit is 15 points on screen).
+    /// label unit is `labelPoints` on screen).
     private let labelParts: [GraphLabelParts?]
     private var labelTrackers: [Int: GraphLabelTracker] = [:]
     private var labelClock: Double = 0
@@ -1971,12 +1971,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let d: Float = max(simd_distance(eye, p), 0.05)
         let halfTan: Float = tan(GraphFraming.fieldOfView * Float.pi / 360)
         let perUnit: Float = viewHeight / (2 * d * halfTan)
-        let unit: Float = 15 / perUnit
+        let unit: Float = Self.labelPoints / perUnit
         let upward: SIMD3<Float> = simd_length_squared(up) > 0.000_001 ? simd_normalize(up) : SIMD3<Float>(0, 1, 0)
         let forward: SIMD3<Float> = simd_normalize(p - eye)
         let side: SIMD3<Float> = simd_cross(forward, upward)
         let right: SIMD3<Float> = simd_length_squared(side) > 0.000_001 ? simd_normalize(side) : SIMD3<Float>(1, 0, 0)
-        let lift: Float = pickRadius[i] * popScale[i] + 10 / perUnit + parts.half.y * unit
+        let lift: Float = pickRadius[i] * popScale[i] * Self.labelClear + Self.labelGap / perUnit + parts.half.y * unit
         let centre: SIMD3<Float> = p + upward * lift
         let c = SIMD3<Double>(Double(centre.x), Double(centre.y), Double(centre.z))
         let r = SIMD3<Double>(Double(right.x), Double(right.y), Double(right.z))
@@ -1989,17 +1989,26 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return GraphBackdropEstimate.measure(points: points, glows: glows, backdrop: labelBack)
     }
 
-    /// The Universe's names: always the size of a 15-point font, 10 points
-    /// above the body, above it on screen whichever way the camera is
-    /// turned (the camera's up), whatever the zoom.
+    /// How tall a name's line is on screen, in points: large enough to read
+    /// at a glance on a phone held at arm's length (it was 15, too small).
+    static let labelPoints: Float = 21
+    /// How far above the body's edge a name sits, in points, and how much
+    /// of the body's radius it clears: a bright body's glow reaches past
+    /// its edge, and a name on the glow is hard to read.
+    static let labelGap: Float = 16
+    static let labelClear: Float = 1.25
+
+    /// The Universe's names: always `labelPoints` tall, `labelGap` points
+    /// above the body's glow, above it on screen whichever way the camera
+    /// is turned (the camera's up), whatever the zoom.
     private func placeLabel(_ i: Int, eye: SIMD3<Float>, up: SIMD3<Float>) {
         let d: Float = max(simd_distance(eye, position[i]), 0.05)
         let halfTan: Float = tan(GraphFraming.fieldOfView * Float.pi / 360)
         let perUnit: Float = viewHeight / (2 * d * halfTan)
         let nodeScale: Float = max(popScale[i], 0.05)
-        let size: Float = 15 / perUnit / nodeScale * labelGrowth(i)
+        let size: Float = Self.labelPoints / perUnit / nodeScale * labelGrowth(i)
         labels[i].simdScale = SIMD3<Float>(size, size, size)
-        let lift: Float = (pickRadius[i] + 10 / perUnit) / nodeScale
+        let lift: Float = (pickRadius[i] * Self.labelClear + Self.labelGap / perUnit) / nodeScale
         let upward: SIMD3<Float> = simd_length_squared(up) > 0.000_001 ? simd_normalize(up) : SIMD3<Float>(0, 1, 0)
         labels[i].simdPosition = upward * lift
     }
@@ -2032,7 +2041,7 @@ nonisolated final class GraphLabelParts: @unchecked Sendable {
     let text: SCNMaterial
     let pill: SCNMaterial
     let rim: SCNMaterial
-    /// Half the rim's width and height, in label units (15 points).
+    /// Half the rim's width and height, in label units (GraphSim.labelPoints).
     let half: SIMD2<Float>
 
     init(text: SCNMaterial, pill: SCNMaterial, rim: SCNMaterial, half: SIMD2<Float>) {

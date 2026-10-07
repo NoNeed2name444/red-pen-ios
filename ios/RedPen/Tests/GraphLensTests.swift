@@ -107,5 +107,19 @@ check("L4i the aperture stays in SceneKit's range", tiny >= 0.02 && huge <= 32 &
 check("L4j a focus inside the lens stays finite",
       GraphLens.blur(fStop: 2, focus: 0, distance: 0, fieldOfView: fov).isFinite)
 
+// MARK: L5 framing: the Neurons fill the frame
+
+let neuronFit: GraphFit = GraphFit.of(.neurons, universe: true)
+check("L5a the Neurons fill the whole window, the near cells allowed past its edge",
+      neuronFit.fill >= 1 && neuronFit.depth < 0.5)
+check("L5b Space and the Circuit keep every point on screen",
+      GraphFit.of(.space, universe: true).depth == 1 && GraphFit.of(.circuit, universe: true).depth == 1)
+check("L5c the plain map keeps the usual framing", GraphFit.of(.neurons, universe: false) == .plain
+      && GraphFit.plain.fill == 0.8)
+let cloud: [SIMD3<Float>] = [SIMD3<Float>(1, 2, 3), SIMD3<Float>(-1, 0, -4)]
+let counted: [SIMD3<Float>] = neuronFit.counted(cloud)
+check("L5d only the depth is eased", counted[0].x == 1 && counted[0].y == 2 && abs(counted[0].z - 3 * neuronFit.depth) < 1e-6
+      && GraphFit.plain.counted(cloud) == cloud)
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED: \(failures.joined(separator: ", "))")
 exit(failures.isEmpty ? 0 : 1)

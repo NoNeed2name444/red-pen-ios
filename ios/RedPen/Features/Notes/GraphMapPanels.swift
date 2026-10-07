@@ -402,3 +402,23 @@ enum GraphMapTouch {
         return raw.isEmpty ? theme.rawValue : raw + "," + theme.rawValue
     }
 }
+
+/// The region the camera is flown in to, on a glass pill at the top of the
+/// map ("Examples · 14 notes"): large, plain type that stays readable over
+/// any glow, read by VoiceOver as a heading.
+struct GraphRegionPill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .glassEffect(.regular, in: .capsule)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityLabel("Zoomed in to " + text)
+            .accessibilityIdentifier("graphRegionPill")
+    }
+}

@@ -113,6 +113,36 @@ nonisolated struct GraphLens: Sendable, Equatable {
     }
 }
 
+/// How a theme's map fills the screen when framed whole (Graph3DView's
+/// frame()): `fill` of the part not under glass, and how much of the map's
+/// depth counts - 1 every point at its own depth, so nothing near the
+/// camera ever leaves the screen; less frames the map's middle layer, so
+/// the nearest cells run past the edges as a microscope's field does
+/// (the owner's board: the map fills the frame, the near cells cropped and
+/// soft in the depth of field).
+nonisolated struct GraphFit: Sendable, Equatable {
+    let fill: Float
+    let depth: Float
+
+    /// The usual framing: 80% of the window, every point at its depth.
+    static let plain = GraphFit(fill: 0.8, depth: 1)
+
+    static func of(_ theme: GraphTheme, universe: Bool) -> GraphFit {
+        guard universe else { return .plain }
+        switch theme {
+        case .neurons: return GraphFit(fill: 1.0, depth: 0.35)
+        case .circuit: return GraphFit(fill: 0.94, depth: 1)
+        case .space, .performance: return GraphFit(fill: 0.88, depth: 1)
+        }
+    }
+
+    /// A map's points (about its middle) as this fit counts them.
+    func counted(_ points: [SIMD3<Float>]) -> [SIMD3<Float>] {
+        guard depth != 1 else { return points }
+        return points.map { SIMD3<Float>($0.x, $0.y, $0.z * depth) }
+    }
+}
+
 #if canImport(SceneKit)
 import SceneKit
 
