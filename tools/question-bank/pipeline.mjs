@@ -14,6 +14,7 @@
 // its reasons) and <out>.metrics.json.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { buildPrompt, parseItems, novelty, blueprintTag, accuracyItem, decide, metrics, fnv, PIPELINE_VERSION } from './bank.mjs';
+import { BATCH } from '../../server/accuracy.js';
 
 const WORKER = (process.env.WORKER || 'https://redpen-auth.vv7sh4rnnw.workers.dev').replace(/\/$/, '');
 const arg = (argv, name, fallback = null) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -54,9 +55,10 @@ export async function validate(argv, key = process.env.QBANK_KEY, fetcher = fetc
   const topicsFile = arg(argv, '--topics-file', 'tools/question-bank/topics.txt');
   const topics = existsSync(topicsFile) ? readFileSync(topicsFile, 'utf8').split('\n').map(s => s.trim()).filter(s => s && !s.startsWith('#')) : [];
   const results = [];
-  // the accuracy engine in batches of 8, as the app sends them
-  for (let i = 0; i < candidates.length; i += 8) {
-    const batch = candidates.slice(i, i + 8).map((c, j) => ({ ...c, id: `q${fnv(c.item.stem).toString(16)}-${i + j}` }));
+  // /accuracy/check accepts at most BATCH items per request (server/accuracy.js).
+  const batchSize = BATCH;
+  for (let i = 0; i < candidates.length; i += batchSize) {
+    const batch = candidates.slice(i, i + batchSize).map((c, j) => ({ ...c, id: `q${fnv(c.item.stem).toString(16)}-${i + j}` }));
     const { status, json } = await post('/accuracy/check', { items: batch.map(c => accuracyItem(c.item, c.passage, c.id)), priority: 'background' }, key, fetcher);
     const verdicts = new Map((status === 200 ? json?.items || json?.results || [] : []).map(v => [v.id, v]));
     for (const c of batch) {
