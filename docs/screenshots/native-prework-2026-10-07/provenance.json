@@ -1,0 +1,105 @@
+{
+  "capture": "Native iPhone UI screenshots exported unchanged from a successful GitHub Actions DesignTourUITests run.",
+  "workflow": "Design preview",
+  "runId": "37552836652",
+  "artifactId": "11453943345",
+  "artifactFile": "stethoscore-prework-20261007-iphone-tour.zip",
+  "artifactBytes": 25084462,
+  "artifactSha256": "0fc9cc5b31ba7076a35020db6550498e2eb6b0e6959e94df1304bd90cd68645f",
+  "sourceRepository": "red-pen-ios",
+  "sourceGitCommit": "16b90842184103d0e9f080330345254042f78c3d",
+  "sourceRef": "preview/prework-20261006",
+  "test": "RedPenUITests.DesignTourUITests.testDesignTour",
+  "testResult": "passed",
+  "testDurationSeconds": 524.454,
+  "testCompletedAtUtc": "2026-10-07T00:51:43.429Z",
+  "extractedAtUtc": "2026-10-07T00:52:15Z",
+  "sourceArchiveEntriesAreUnmodified": true,
+  "screenshots": [
+    {
+      "file": "01-library-questions.png",
+      "archiveEntry": "shots/iphone/01-library-questions.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 766795,
+      "sha256": "4564fb49c19decf6e043b7ecbca7a2a1f03ac86bb4380a56d14ea5c169e7ce6f",
+      "byteIdenticalToPreviouslyStagedScreenshot": false
+    },
+    {
+      "file": "10-mcq-quiz.png",
+      "archiveEntry": "shots/iphone/10-mcq-quiz.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 667359,
+      "sha256": "8da7c01a7331e94db44ebc8db9f34f697b453cb87e22306875e37d37bddfd2f1",
+      "byteIdenticalToPreviouslyStagedScreenshot": false
+    },
+    {
+      "file": "12-anki-card.png",
+      "archiveEntry": "shots/iphone/12-anki-card.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 275305,
+      "sha256": "dd0ec39b5f511cff80db75414e6effa7b8d6f2d9e4fb938ff434b129960c0eca",
+      "byteIdenticalToPreviouslyStagedScreenshot": true
+    },
+    {
+      "file": "14-ideas-list.png",
+      "archiveEntry": "shots/iphone/14-ideas-list.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 2101943,
+      "sha256": "7a20c196164dc7963c405c6acfc40aeb31cae0f70fdeb3403a0fcbadd9da4afd",
+      "byteIdenticalToPreviouslyStagedScreenshot": false
+    },
+    {
+      "file": "16-ideas-space.png",
+      "archiveEntry": "shots/iphone/16-ideas-space.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 821364,
+      "sha256": "6fac8718100d875a8f08e5d998b0756be40ed7f7b2102056c2e3c223a98257d0",
+      "byteIdenticalToPreviouslyStagedScreenshot": false
+    },
+    {
+      "file": "22-settings.png",
+      "archiveEntry": "shots/iphone/22-settings.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 382266,
+      "sha256": "91f5ef595655b0ede2dd037de035679951a7afc999a88a45c0c47621c3cc1b80",
+      "byteIdenticalToPreviouslyStagedScreenshot": true
+    },
+    {
+      "file": "28-mission-control.png",
+      "archiveEntry": "shots/iphone/28-mission-control.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 766947,
+      "sha256": "2d18b870575064387e55bfa2d71ed1556a1282c4e651d6cef3aac1deef5e82ec",
+      "byteIdenticalToPreviouslyStagedScreenshot": false
+    },
+    {
+      "file": "31-exam-plan.png",
+      "archiveEntry": "shots/iphone/31-exam-plan.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "PNG",
+      "bytes": 237613,
+      "sha256": "7cceb252a77bf614116466b4aa0b5576b3d3d81586f7d382e5b23c5c581bb008",
+      "byteIdenticalToPreviouslyStagedScreenshot": true
+    }
+  ],
+  "notes": [
+    "The files were extracted directly from the named ZIP entries without resampling, editing, or image generation.",
+    "Some screens may be byte-identical to earlier staged screenshots because the same UI state rendered identically; each file here is independently present in this run artifact.",
+    "These are software UI captures, not medical advice, clinical validation, or an endorsement of any clinical content."
+  ]
+}
