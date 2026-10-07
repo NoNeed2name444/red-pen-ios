@@ -4,8 +4,6 @@ import Foundation
 /// Vignette Cloud's writer. `jobs` is where, and the session to ask with.
 protocol CloudJobBackend {
     var jobs: (base: URL, bearer: String)? { get }
-    /// Vignette Cloud's checker: a cloud job can be checked on the server.
-    var checksOnServer: Bool { get }
 }
 
 /// Generation that carries on when the app is closed.
@@ -26,10 +24,6 @@ enum CloudJobs {
     /// Set by the screen that starts a generation, for the jobs under it.
     struct Context: Sendable {
         var recipe: Data?
-        /// Check every item on the server (the chosen checker is Vignette Cloud's).
-        var serverCheck = false
-        /// Progress through the check: checked, of how many.
-        var checking: (@Sendable (Int, Int) -> Void)?
         /// Where a finished job's replies and verdicts are handed over, for
         /// this generation alone. With one, the job is kept - on this device
         /// and on the server - until `finish`; without one it is let go as
@@ -37,8 +31,8 @@ enum CloudJobs {
         var delivery: Delivery? = nil
     }
 
-    /// What finished jobs handed to one generation: their checker verdicts
-    /// (read through CloudChecks), and the jobs to let go once the screen is
+    /// What finished jobs handed to one generation: the evidence their
+    /// checks found (read through CloudChecks), and the jobs to let go once the screen is
     /// done with them.
     ///
     /// Held rather than let go at once because the replies are not a set yet.
@@ -48,7 +42,6 @@ enum CloudJobs {
     /// launch collects it (CloudJobCollector).
     final class Delivery: @unchecked Sendable {
         private let lock = NSLock()
-        private var byKey: [String: String] = [:]
         private var evidence: [String: [EvidenceRef]] = [:]
         private var held: [(id: String, base: URL, bearer: String)] = []
         private var stop: CloudJobRules.Stop = .student
@@ -70,14 +63,13 @@ enum CloudJobs {
         func receive(_ verdicts: [Verdict]) {
             lock.lock(); defer { lock.unlock() }
             for verdict in verdicts {
-                byKey[verdict.key] = verdict.reply
                 if let refs = verdict.evidence, !refs.isEmpty { evidence[verdict.key] = refs }
             }
         }
 
-        var tables: (byKey: [String: String], evidence: [String: [EvidenceRef]]) {
+        var evidenceByKey: [String: [EvidenceRef]] {
             lock.lock(); defer { lock.unlock() }
-            return (byKey, evidence)
+            return evidence
         }
 
         func hold(_ id: String, at endpoint: (base: URL, bearer: String)) {
@@ -115,11 +107,6 @@ enum CloudJobs {
         }
     }
 
-    struct Check: Encodable {
-        var template: String
-        var limit: Int
-    }
-
     struct Step: Encodable {
         var system: String
         var user: String
@@ -142,7 +129,6 @@ enum CloudJobs {
         var keyFields = 1
         var cloze = false
         var patience = 3
-        var check: Check?
     }
 
     struct Status: Codable, Equatable {
@@ -153,9 +139,6 @@ enum CloudJobs {
         var total: Int
         var error: String?
         var phase: String?
-        var checked: Int?
-        var checkTotal: Int?
-        var checkError: String?
     }
 
     /// The checker's answer for one item, under the item's key (its stem or
@@ -246,11 +229,7 @@ enum CloudJobs {
                     }
                     continue
                 }
-                if status.phase == "checking" {
-                    context?.checking?(status.checked ?? 0, status.checkTotal ?? 0)
-                } else {
-                    onProgress(status.done, status.total)
-                }
+                onProgress(status.done, status.total)
                 if status.done != pending.done {
                     pending.done = status.done
                     pending.total = status.total
@@ -446,13 +425,12 @@ enum CloudJobs {
     }
 }
 
-/// Verdicts the server's checker already gave, so the accuracy check does not
-/// ask again for an item the cloud job checked (AccuracyChecker.check looks
-/// here first).
+/// What a finished cloud job handed back beside its replies: the evidence
+/// its lookup found for each item, for "How to reach it" to cite. Jobs from
+/// apps built before the verification layer also carry a checker reply per
+/// item, which nothing reads any more.
 enum CloudChecks {
     private static let lock = NSLock()
-    private static var byKey: [String: String] = [:]
-    private static var byOutput: [String: String] = [:]
     private static var evidenceByKey: [String: [EvidenceRef]] = [:]
 
     /// The key the server files a question or station under.
@@ -473,7 +451,6 @@ enum CloudChecks {
             return
         }
         lock.lock(); defer { lock.unlock() }
-        byKey = Dictionary(verdicts.map { ($0.key, $0.reply) }, uniquingKeysWith: { _, last in last })
         var found: [String: [EvidenceRef]] = [:]
         for v in verdicts {
             if let refs = v.evidence, !refs.isEmpty { found[v.key] = refs }
@@ -481,16 +458,12 @@ enum CloudChecks {
         evidenceByKey = found
     }
 
-    /// The verdicts this generation reads: its own, or the last job's.
-    private static var current: (byKey: [String: String], evidence: [String: [EvidenceRef]]) {
-        if let delivery = CloudJobs.context?.delivery { return delivery.tables }
-        lock.lock(); defer { lock.unlock() }
-        return (byKey, evidenceByKey)
-    }
-
-    /// The evidence the server's check read for an item, if any.
+    /// The evidence the server's check read for an item, if any: this
+    /// generation's own, or the last job's.
     static func evidence(forKey key: String) -> [EvidenceRef] {
-        current.evidence[key] ?? []
+        if let delivery = CloudJobs.context?.delivery { return delivery.evidenceByKey[key] ?? [] }
+        lock.lock(); defer { lock.unlock() }
+        return evidenceByKey[key] ?? []
     }
 
     /// Questions with the evidence their check read attached to their
@@ -507,26 +480,5 @@ enum CloudChecks {
             cited.differential = tiers
             return cited
         }
-    }
-
-    static func reply(forKey key: String) -> String? {
-        current.byKey[key]
-    }
-
-    /// Every verdict of the job (a textbook's pages, a deck's batches).
-    static var allReplies: [String] {
-        Array(current.byKey.values)
-    }
-
-    /// The verdict for exactly this checked text.
-    static func remember(_ reply: String, forOutput output: String) {
-        lock.lock(); defer { lock.unlock() }
-        byOutput[output] = reply
-    }
-
-    /// Used once: the next check of the same text asks the checker again.
-    static func take(forOutput output: String) -> String? {
-        lock.lock(); defer { lock.unlock() }
-        return byOutput.removeValue(forKey: output)
     }
 }

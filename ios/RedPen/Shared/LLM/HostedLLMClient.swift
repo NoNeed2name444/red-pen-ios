@@ -45,7 +45,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
         HostedProvider(name: "Baichuan-M2-32B (Hugging Face)", kind: .openAICompatible,
                        baseURL: "https://router.huggingface.co/v1",
                        model: "baichuan-inc/Baichuan-M2-32B:featherless-ai"),
-        HostedProvider(name: "Doctor-R1 / MedVAL on my server", kind: .openAICompatible,
+        HostedProvider(name: "Doctor-R1 on my server", kind: .openAICompatible,
                        baseURL: "http://192.168.1.10:8080/v1",
                        model: "doctor-r1", needsKey: false),
         HostedProvider(name: "OpenRouter", kind: .openAICompatible,
@@ -67,18 +67,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
         HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10D")!,
                        name: "\(Brand.name) Cloud", kind: .openAICompatible,
                        baseURL: AuthAPI.baseURL.absoluteString + "/v1",
-                       model: role == .writer ? "cramdown-writer" : "cramdown-checker",
-                       needsKey: false)
-    }
-
-    /// Doctor-R1 or MedVAL on CramDown's own llama.cpp hosts, through the
-    /// same worker and the same Pro check as CramDown Cloud.
-    static func cloudMedical(for role: LLMRole) -> HostedProvider {
-        HostedProvider(id: UUID(uuidString: "00000000-0000-0000-0000-00000000C10E")!,
-                       name: role == .writer ? "Doctor-R1 (cloud)" : "MedVAL (cloud)",
-                       kind: .openAICompatible,
-                       baseURL: AuthAPI.baseURL.absoluteString + "/v1",
-                       model: role == .writer ? "cramdown-doctor" : "cramdown-medval",
+                       model: "cramdown-writer",
                        needsKey: false)
     }
 
@@ -99,7 +88,7 @@ struct HostedProvider: Identifiable, Codable, Hashable {
 }
 
 /// Talks to a hosted model. Same `LLMBackend` interface as the on-device
-/// models, so a device too small for Doctor-R1 or MedVAL uses one of these and
+/// models, so a device too small for Doctor-R1 uses one of these and
 /// nothing else in the app changes.
 struct HostedLLMClient: LLMBackend {
     let provider: HostedProvider
@@ -120,11 +109,7 @@ struct HostedLLMClient: LLMBackend {
         var request: URLRequest
         switch provider.kind {
         case .openAICompatible:
-            // Doctor-R1 and MedVAL skip their hidden reasoning in the cloud
-            // too, for the same reason as on the phone (LLMText.noThinking)
-            let qwen3 = provider.model == "cramdown-doctor" || provider.model == "cramdown-medval"
-            request = try openAIRequest(qwen3 ? LLMText.noThinking(turns) : turns, key: key,
-                                        maxTokens: maxTokens, temperature: temperature)
+            request = try openAIRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
         case .anthropic: request = try anthropicRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
         case .gemini: request = try geminiRequest(turns, key: key, maxTokens: maxTokens, temperature: temperature)
         }
@@ -262,6 +247,4 @@ extension HostedLLMClient: CloudJobBackend {
         guard provider.model == "cramdown-writer", let bearer, !bearer.isEmpty else { return nil }
         return (AuthAPI.baseURL, bearer)
     }
-
-    var checksOnServer: Bool { provider.model == "cramdown-checker" && bearer?.isEmpty == false }
 }

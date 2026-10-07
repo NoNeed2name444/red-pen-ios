@@ -167,49 +167,6 @@ check("femoral hernia is argued against by where the lump is",
 check("every entry has findings and a test", (example.mostLikely + example.expanded + example.cantMiss).allSatisfy { $0.hasDetail && !$0.test.isEmpty })
 check("nothing cites a source the lookup did not return", example.evidence.isEmpty)
 
-// MARK: - the reasoning checks in MedVAL's prompt and grade
-
-let prompt: String = MedVAL.prompt(instruction: "Write an MCQ.", input: "Lecture.", output: "Question.")
-check("the prompt asks for the reasoning checks", prompt.contains("4. `reasoning_issues'")
-      && prompt.contains("fit ALL the key findings") && prompt.contains("can't-miss") && prompt.contains("Unsupported claim"))
-let risk: Range<String.Index>? = prompt.range(of: "[[ ## risk_level ## ]]\n# TO_BE_FILLED_BY_MODEL")
-let issuesField: Range<String.Index>? = prompt.range(of: "[[ ## reasoning_issues ## ]]\n# TO_BE_FILLED_BY_MODEL")
-check("and its field comes after MedVAL's own three, so MedVAL's format is unchanged",
-      risk != nil && issuesField != nil && risk!.upperBound < issuesField!.lowerBound)
-
-let flagged: AccuracyVerdict = MedVAL.parse("""
-[[ ## reasoning ## ]]
-The keyed answer is femoral hernia.
-[[ ## errors ## ]]
-None
-[[ ## risk_level ## ]]
-1
-[[ ## reasoning_issues ## ]]
-Contradicting finding: the lump is above and medial to the pubic tubercle, which places it in the inguinal canal.
-Unsupported claim: "femoral hernias are commoner in men".
-[[ ## completed ## ]]
-""", checkedBy: "x")
-check("a finding that contradicts the answer raises the grade to at least moderate", flagged.riskLevel == 3, "\(flagged.riskLevel)")
-check("both issues are kept", flagged.reasoningIssues?.count == 2)
-check("and counted among the findings", flagged.findings.count == 2 && flagged.findings.allSatisfy { $0.category == .hallucination })
-let unsupportedOnly: AccuracyVerdict = MedVAL.parse("[[ ## errors ## ]]\nNone\n[[ ## risk_level ## ]]\n1\n[[ ## reasoning_issues ## ]]\n- Unsupported claim: the 5-year recurrence rate.", checkedBy: "x")
-check("an unsupported claim alone raises no risk to low", unsupportedOnly.riskLevel == 2)
-let cantMissOpen: AccuracyVerdict = MedVAL.parse("[[ ## errors ## ]]\nNone\n[[ ## risk_level ## ]]\n2\n[[ ## reasoning_issues ## ]]\nCan't miss: testicular torsion is not excluded despite sudden pain.", checkedBy: "x")
-check("a can't-miss diagnosis left open is at least moderate", cantMissOpen.riskLevel == 3 && cantMissOpen.categories == [.omission])
-let clean: AccuracyVerdict = MedVAL.parse("[[ ## errors ## ]]\nNone\n[[ ## risk_level ## ]]\n1\n[[ ## reasoning_issues ## ]]\nNone.\n[[ ## completed ## ]]", checkedBy: "x")
-check("\"None\" is no issue, and a clean grade stays clean", clean.riskLevel == 1 && clean.reasoningIssues == nil && clean.findings.isEmpty)
-for nothing in ["No issues.", "None found.", "- None", "N/A", "No issues found"] {
-    let v: AccuracyVerdict = MedVAL.parse("[[ ## risk_level ## ]]\n1\n[[ ## reasoning_issues ## ]]\n" + nothing, checkedBy: "x")
-    check("\"\(nothing)\" is no issue", v.riskLevel == 1 && v.reasoningIssues == nil)
-}
-check("but \"No\" starting a real issue is still one",
-      MedVAL.parse("[[ ## risk_level ## ]]\n1\n[[ ## reasoning_issues ## ]]\nNo test excludes testicular torsion (can't miss).", checkedBy: "x").riskLevel == 3)
-let oldReply: AccuracyVerdict = MedVAL.parse("[[ ## errors ## ]]\nError 1: Missing claim - dose.\n[[ ## risk_level ## ]]\n4\n[[ ## completed ## ]]", checkedBy: "x")
-check("a reply without the field reads exactly as before", oldReply.riskLevel == 4 && oldReply.reasoningIssues == nil && oldReply.findings.count == 1)
-check("a high grade is never lowered by an issue", MedVAL.parse("[[ ## risk_level ## ]]\n4\n[[ ## reasoning_issues ## ]]\nUnsupported claim: x", checkedBy: "").riskLevel == 4)
-let oldVerdict: String = #"{"riskLevel":2,"findings":[],"reasoning":"ok","checkedBy":"MedVAL-4B"}"#
-check("a verdict saved before the field decodes", (try? decoder.decode(AccuracyVerdict.self, from: Data(oldVerdict.utf8)))?.riskLevel == 2)
-
 print(failures.isEmpty ? "\nALL DIFFERENTIAL TESTS PASS"
                        : "\n\(failures.count) DIFFERENTIAL TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

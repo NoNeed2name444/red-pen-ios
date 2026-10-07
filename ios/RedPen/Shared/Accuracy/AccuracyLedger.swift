@@ -180,8 +180,8 @@ struct AccuracyLedger: Codable {
         return now.timeIntervalSince(when) > after
     }
 
-    /// A vote from a check made elsewhere - MedVAL screening a generated set,
-    /// or the server's batch check - added to the item's record.
+    /// A vote from a check made elsewhere - the server's batch check - added
+    /// to the item's record.
     /// `holds`: the claim gate's hard findings from that check, which replace
     /// any earlier ones (the server works them out afresh for every reply);
     /// nil from a check that has no gate, leaving them as they were.

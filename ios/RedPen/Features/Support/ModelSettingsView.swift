@@ -104,18 +104,11 @@ struct ModelSettingsView: View {
     private func rolePicker(_ role: LLMRole) -> some View {
         let device: String = role.onDeviceModel.displayName
         let onDevice: String = "\(device) \u{00B7} Pro"
-        let medicalCloud: String = "\(device), cloud \u{00B7} Pro"
         let brandCloud: String = "\(Brand.name) Cloud \u{00B7} Pro"
         return Picker(role.title, selection: binding(for: role)) {
             Text("Off").tag(LLMChoice.off)
             if llm.status[role.onDeviceModel] != .unsupported {
                 Text(onDevice).tag(LLMChoice.device)
-            }
-            // Doctor-R1 and MedVAL in the cloud need a host: Hugging
-            // Face now charges for Docker Spaces, so the choice
-            // stays hidden until one is paid for
-            if LocalLLMService.cloudMedicalHosted {
-                Text(medicalCloud).tag(LLMChoice.cloudMedical)
             }
             Text(brandCloud).tag(LLMChoice.cloud)
             ForEach(llm.providers) { provider in
@@ -126,8 +119,7 @@ struct ModelSettingsView: View {
 
     private var deviceSection: some View {
         Section {
-            // MedVAL no longer checks anything: the verification layer does
-            ForEach(MedicalModel.allCases.filter { $0 != .medval }) { model in
+            ForEach(MedicalModel.allCases) { model in
                 modelRow(model)
             }
         } header: {
@@ -215,7 +207,7 @@ struct ModelSettingsView: View {
         Binding(get: { llm.choice(for: role) }, set: { choice in
             // CramDown Cloud only once it can actually answer: Pro opens the
             // paywall, a missing sign-in says so, and the choice stays put
-            if choice == .cloud || choice == .cloudMedical, let blocker = llm.cloudBlocker {
+            if choice == .cloud, let blocker = llm.cloudBlocker {
                 cloudNote = blocker
                 if !llm.isPro { showPaywall = true }
                 return

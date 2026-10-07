@@ -22,7 +22,7 @@ enum VoiceMarking {
                                 using backend: LLMBackend) async throws -> ExplainResult {
         let budget = backend.promptBudgetChars
         let spoken = String(transcript.prefix(max(800, budget / 3)))
-        var notesPart = AccuracyChecker.noSourceNote
+        var notesPart = AccuracyText.noSourceNote
         if let notes, !notes.isEmpty {
             notesPart = "LECTURE NOTES (mark against these):\n" + String(notes.prefix(max(1200, budget / 2)))
         }
