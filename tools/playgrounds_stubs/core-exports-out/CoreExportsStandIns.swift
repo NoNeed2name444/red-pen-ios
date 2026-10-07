@@ -112,6 +112,10 @@ struct AnkiProgress: Equatable {
     var reviews: Int
     var lapses: Int
     var suspended: Bool
+
+    func lastReviewed(now: Date = Date()) -> Date {
+        min(due.addingTimeInterval(-intervalDays * 86_400), now)
+    }
 }
 
 enum AnkiNoteText {

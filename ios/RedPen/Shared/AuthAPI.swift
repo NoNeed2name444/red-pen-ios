@@ -29,6 +29,13 @@ enum AuthAPI {
         case notConfigured
         /// Refused because the account has no Pro (sync, cloud models).
         case needsPro(String)
+        /// A consent is missing (428): `ai_consent_required`, `rules_required`.
+        case needsConsent(String)
+        /// A business answer with a `code` ("that group is full"): not a
+        /// signed-out session, whatever the status (plan R14).
+        case refused(code: String, message: String)
+        /// The thing asked for has ended (410 without a code).
+        case gone
         case server(String)
 
         var errorDescription: String? {
@@ -41,6 +48,12 @@ enum AuthAPI {
                 return "Too many requests just now. Try again in a moment."
             case .notConfigured:
                 return "Sign-in isn't set up in this build yet."
+            case .needsConsent:
+                return "Cloud AI needs your permission first."
+            case .refused(_, let message):
+                return message
+            case .gone:
+                return "That has ended or is no longer available."
             case .server(let message), .needsPro(let message):
                 return message
             }
@@ -55,6 +68,8 @@ enum AuthAPI {
         var token: String
         var refreshToken: String?
         var expiresIn: TimeInterval
+        /// Sent by workers that know it; older ones leave it out.
+        var owner: Bool?
     }
 
     private struct Problem: Decodable { var error: String?; var message: String? }
@@ -86,6 +101,17 @@ enum AuthAPI {
     /// `claim`: the one the owner's personal build carries (OwnerClaim).
     static func deviceAccount(claim: String? = nil) async throws -> Session {
         try await session(at: "/auth/device", body: claim.map { ["claim": $0] } ?? [:])
+    }
+
+    /// Who the server says this account is: the owner flag and the consent
+    /// versions agreed and in force. A worker without the route answers 404
+    /// "No such endpoint.", which reads as notConfigured.
+    static func me(token: String) async throws -> AccountMe {
+        let data = try await send("/account/me", body: [String: String](), token: token)
+        guard let me = try? JSONDecoder().decode(AccountMe.self, from: data) else {
+            throw Failure.server("The server sent something unexpected.")
+        }
+        return me
     }
 
     /// Joins the account a code from another device belongs to.
@@ -125,7 +151,8 @@ enum AuthAPI {
         }
         return Session(
             account: Account(id: decoded.userId, provider: provider,
-                             email: decoded.email, displayName: decoded.displayName),
+                             email: decoded.email, displayName: decoded.displayName,
+                             owner: decoded.owner),
             token: decoded.token, refreshToken: decoded.refreshToken,
             expiresAt: Date().addingTimeInterval(decoded.expiresIn))
     }
@@ -143,6 +170,7 @@ enum AuthAPI {
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         request.httpBody = try? JSONEncoder.sync.encode(body)
         request.timeoutInterval = timeout
+        VignetteHeaders.apply(to: &request)
 
         let data: Data, response: URLResponse
         do {
@@ -151,18 +179,27 @@ enum AuthAPI {
             throw Failure.offline
         }
         guard let http = response as? HTTPURLResponse else { throw Failure.offline }
-        switch http.statusCode {
-        case 200...299: return data
-        case 401, 403: throw Failure.signedOut
-        case 404: throw notFound(data)
-        case 429: throw Failure.tooManyTries
-        case 402:
-            let problem = try? JSONDecoder().decode(Problem.self, from: data)
-            throw Failure.needsPro(problem?.message ?? "That is part of Pro.")
-        default:
-            let problem = try? JSONDecoder().decode(Problem.self, from: data)
-            throw Failure.server(problem?.message ?? problem?.error
-                                 ?? "Something went wrong talking to the server.")
+        if let failure = failure(status: http.statusCode, data: data) { throw failure }
+        return data
+    }
+
+    /// What a reply means, or nil for success. `needsPro` and `fallback` are
+    /// the words used when the server gives none.
+    static func failure(status: Int, data: Data,
+                        needsPro: String = "That is part of Pro.",
+                        fallback: String = "Something went wrong talking to the server.") -> Failure? {
+        let problem = ServerVerdict.problem(in: data)
+        let said: String? = problem.message ?? problem.error
+        switch ServerVerdict.of(status: status, code: problem.code) {
+        case .ok: return nil
+        case .signedOut: return .signedOut
+        case .needsPro: return .needsPro(problem.message ?? needsPro)
+        case .needsConsent(let code): return .needsConsent(code)
+        case .tooManyTries: return .tooManyTries
+        case .refused(let code): return .refused(code: code, message: said ?? fallback)
+        case .notFound: return notFound(data)
+        case .gone: return .gone
+        case .server: return .server(said ?? fallback)
         }
     }
 

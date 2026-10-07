@@ -12,6 +12,8 @@ cd "$(git rev-parse --show-toplevel)"
 base="${1:-origin/personal}"
 export PATH="/opt/swift/usr/bin:$PATH"
 fail=0
+# This run's own scratch, so sessions running preflight side by side never share files.
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 echo "== Swift suites touched since $base"
 if command -v swiftc >/dev/null; then
   python3 tools/swift_suites.py --affected "$base" --platform linux -j 8 | tail -n 25 || fail=1
@@ -21,14 +23,16 @@ fi
 echo "== Server and governance tests"
 n=0; for t in server/tests/*.test.mjs tests/*/*.test.mjs; do
   [ -f "$t" ] || continue
-  if ! node "$t" > /tmp/preflight-node.log 2>&1; then echo "FAIL $t"; grep -E "^FAIL|Error" /tmp/preflight-node.log | head -5; fail=1; fi
+  if ! node "$t" > "$tmp/node.log" 2>&1; then echo "FAIL $t"; grep -E "^FAIL|Error" "$tmp/node.log" | head -5; fail=1; fi
   n=$((n+1))
 done; echo "$n files run"
 echo "== Playgrounds core packages"
 if git diff --name-only "$base" -- ios tools | grep -q .; then
   for v in core core1 core2 core3; do
-    out=$(python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "/tmp/preflight-$v.zip" --without "$v" 2>&1) \
-      && echo "$v: $(echo "$out" | head -1)" || { echo "$v: FAILED"; echo "$out" | tail -5; fail=1; }
+    out=$(python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "$tmp/$v.zip" --without "$v" 2>&1) \
+      && echo "$v: $(echo "$out" | head -1)" || { echo "$v: FAILED"; echo "$out" | tail -5; fail=1; continue; }
+    python3 tools/playgrounds_gaps.py ios/RedPen "$tmp/swiftpm_build/Stethoscore Personal.swiftpm" \
+      || { echo "$v: a kept file names a type only dropped files declare; add a stand-in (tools/playgrounds_stubs)"; fail=1; }
   done
 else echo "nothing under ios/ or tools/ changed"; fi
 [ $fail = 0 ] && echo "PREFLIGHT OK" || echo "PREFLIGHT FAILED"

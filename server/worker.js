@@ -25,6 +25,7 @@ import { examsRoute } from './exams.js';
 import { supportMessage, listSupportMessages, forgetSupport } from './support.js';
 import { featuresOf, featureOfModel, refuseIfOff, switchStates } from './switches.js';
 import { breakers } from './breakers.js';
+import { configRoute } from './config.js';
 
 // the Durable Object that runs generation jobs (see jobs.js)
 export { GenerationJobs } from './jobs.js';
@@ -140,6 +141,10 @@ export default {
         return await diagnosticsSummary(env, new URL(request.url), undefined,
           { switches: switchStates(env), breakers: breakers.snapshot(env) });
       }
+
+      // the remote config's public part (config.js): every flag, the limits
+      // an app may see and the owner's messages; read-only, no account
+      if (path === '/config' && request.method === 'GET') return await configRoute(request, env);
 
       if (request.method !== 'POST') return fail(405, 'POST only.');
       // Sized before it is read, since a body is read into memory whole:

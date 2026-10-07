@@ -23,6 +23,12 @@ struct NoteEditorView: View {
     var body: some View { NotInThisBuild(feature: "Ideas") }
 }
 
+/// Which of Ideas' views is open (NotesShared.swift): the library reads it
+/// to keep the sky only under the 3D map, which never opens here.
+enum IdeasMode: String {
+    case list, board, space
+}
+
 enum NoteExamples {
     static func seedIfNeeded(into store: NoteStore) {}
 }
@@ -34,6 +40,9 @@ extension View {
 extension LibraryView {
     /// Save to Ideas is left out (LibrarySavedIdeas.swift).
     func attachIdeaSaver() {}
+
+    /// A saved note's way back to its item: no notes are saved here.
+    func openSaved(_ source: NoteSource) {}
 }
 
 extension View {
@@ -140,7 +149,12 @@ enum InsightExamples {
 
 enum PlatformNotice {
     static let search = Notification.Name("stethoscore.command.search")
+    static let focusRoundEnded = Notification.Name("stethoscore.focusRoundEnded")
     static let openItem = Notification.Name("stethoscore.openItem")
+
+    static func post(_ name: Notification.Name, _ info: [String: Any] = [:]) {
+        NotificationCenter.default.post(name: name, object: nil, userInfo: info)
+    }
 
     static func publisher(_ name: Notification.Name) -> NotificationCenter.Publisher {
         NotificationCenter.default.publisher(for: name)
@@ -204,6 +218,23 @@ struct ReviewDueIntent: AppIntent {
 extension View {
     func appLockShield() -> some View { self }
     func platformRoutes(libraryShowing: Bool) -> some View { self }
+}
+
+// MARK: - Exam formats (Shared/Exam/ExamFormats.swift): the kit's one overload
+
+extension ExamWeekPlanner {
+    /// The paper the exam-day kit paces for a chosen exam, as the real one
+    /// works it out: one block or paper when sat in parts, else the whole.
+    static func paper(for exam: TargetExam) -> Paper {
+        let first: MockSectionSpec = exam.sections.first ?? MockSectionSpec(title: exam.shortName, questions: 60, minutes: 60)
+        if exam.sitsBlockwise || exam.sitsSeparately {
+            return Paper(name: "\(exam.shortName) \(first.title.lowercased())", questions: first.questions,
+                         minutes: first.minutes, published: exam.formatConfirmed)
+        }
+        let q: Int = exam.sections.reduce(0) { $0 + $1.questions }
+        let m: Int = exam.sections.reduce(0) { $0 + $1.minutes }
+        return Paper(name: exam.shortName, questions: q, minutes: m, published: exam.formatConfirmed)
+    }
 }
 
 // MARK: - Screens a later zip puts back
@@ -283,7 +314,7 @@ struct InsightQuiz: Identifiable, Hashable {
     var set: StudySet
     var minReadSeconds = 0
     var timed = false
-    var id: UUID { set.id }
+    var id: UUID { self.set.id }
 }
 
 struct InsightQuestionList: View {

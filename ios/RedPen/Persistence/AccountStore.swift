@@ -12,6 +12,10 @@ final class AccountStore: ObservableObject {
     @Published private(set) var state: AccountState = .signedOut
     @Published var busy = false
     @Published var trouble: String?
+    /// The last /account/me answer for the signed-in account: the consent
+    /// versions it agreed to and those in force. Nil until asked, and for a
+    /// this-device-only session, which never asks.
+    @Published private(set) var me: AccountMe?
 
     private let google = GoogleSignIn()
     /// The raw nonce for a sign-in in progress. Apple is given only its hash,
@@ -30,6 +34,7 @@ final class AccountStore: ObservableObject {
             // Apple or Google sign-in behind it, could never get back in.
             state = .signedIn(stored)
         }
+        OwnerGate.shared.update(account: state.account)
     }
 
     var isSignedIn: Bool { state.isSignedIn }
@@ -152,8 +157,39 @@ final class AccountStore: ObservableObject {
     }
 
     private func adopt(_ session: Session) {
+        if me?.userId != session.account.id { me = nil }
         Keychain.save(session)
         state = .signedIn(session)
+        OwnerGate.shared.update(account: session.account)
+    }
+
+    // MARK: who the server says this is
+
+    /// Asks /account/me for the owner flag and the consent versions, and
+    /// keeps the owner flag in the saved session - sessions made before the
+    /// worker sent it have none. Quietly does nothing when signed out,
+    /// offline, or on an older worker without the route.
+    ///
+    /// A this-device-only session never asks: it has no server account, and
+    /// its token is never sent anywhere. The owner's personal build is the
+    /// owner without asking (OwnerGate), so it has nothing to ask either.
+    func refreshMe() async {
+        guard let session = state.session, !session.isLocalOnly else { return }
+        let answer: AccountMe
+        do {
+            answer = try await AuthAPI.me(token: session.token)
+        } catch {
+            return
+        }
+        // signed out, or another account adopted, while the request was out
+        guard state.session == session, answer.userId == session.account.id else { return }
+        me = answer
+        OwnerGate.shared.update(me: answer, accountId: session.account.id)
+        guard session.account.owner != answer.owner else { return }
+        var updated = session
+        updated.account.owner = answer.owner
+        Keychain.save(updated)
+        state = .signedIn(updated)
     }
 
     // MARK: staying signed in
@@ -190,17 +226,23 @@ final class AccountStore: ObservableObject {
             var fresh = try await AuthAPI.refresh(refreshToken)
             // Somebody signed out or linked another account while the request
             // was out: the session it was for is gone, and must not come back.
-            guard state.session == session else { return }
+            // Compared by account and token, not whole: refreshMe may have
+            // noted the owner flag on it meanwhile, which is the same session.
+            guard let now = state.session, now.account.id == session.account.id,
+                  now.token == session.token else { return }
             // The server never knew a linked device's name - it was chosen on
             // this phone - so it is carried over rather than lost.
             if (fresh.account.displayName ?? "").isEmpty {
                 fresh.account.displayName = session.account.displayName
             }
+            // an older worker's refresh says nothing about the owner: what
+            // the session already knew stands
+            if fresh.account.owner == nil { fresh.account.owner = now.account.owner }
             adopt(fresh)
         } catch AuthAPI.Failure.signedOut {
             // the server refused the refresh token: that session is genuinely
             // over, and pretending otherwise only delays the sign-in screen
-            if state.session == session { signOut() }
+            if state.session?.token == session.token { signOut() }
         } catch {
             // offline, or the server could not answer: try again later
         }
@@ -214,6 +256,8 @@ final class AccountStore: ObservableObject {
     func signOut() {
         Keychain.clearSession()
         state = .signedOut
+        me = nil
+        OwnerGate.shared.update(account: nil)
     }
 
     /// Deleting the account, from inside the app.

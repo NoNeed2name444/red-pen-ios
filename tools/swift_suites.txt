@@ -69,6 +69,10 @@ suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift $M/Differen
       $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
 suite account AccountTests.swift $M/Account.swift $S/AuthRules.swift \
       $S/Entitlement.swift
+# the owner flag in old and new sessions, /account/me, what a refusal
+# means, the owner gate, the worker-only headers and the legal links
+suite gates GatesTests.swift $M/Account.swift $S/OwnerGate.swift $S/VignetteHeaders.swift \
+      $S/LegalLinks.swift
 # the merge, picture references, what the server will take, a
 # newer version's document, and what becomes of a cloud job
 suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift \
