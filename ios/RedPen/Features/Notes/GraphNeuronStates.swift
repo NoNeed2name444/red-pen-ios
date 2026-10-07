@@ -279,3 +279,46 @@ nonisolated enum NeuronBokeh {
         return out
     }
 }
+
+/// One out-of-focus orb floating in the fluid round the map (the owner's
+/// board: heavy bokeh in front of the cells and behind them): where, from
+/// the map's middle, in map reaches; how wide, likewise; its colour (sRGB)
+/// and how bright.
+nonisolated struct NeuronOrb: Sendable, Equatable {
+    let at: SIMD3<Float>
+    let size: Float
+    let colour: SIMD3<Float>
+    let strength: Float
+}
+
+extension NeuronBokeh {
+    static let orbCount: Int = 28
+    /// The nearest an orb comes towards the camera, in map reaches: it
+    /// never sits on the lens.
+    static let orbFront: Float = 0.9
+
+    /// Orbs all round the map, a shell from 0.7 to 1.4 of its reach, half
+    /// of them nearer the camera than the map's middle; most small, the
+    /// big ones fainter. The same every time.
+    static func orbs(count n: Int = NeuronBokeh.orbCount) -> [NeuronOrb] {
+        var random = UniverseRandom(0x0B5)
+        var out: [NeuronOrb] = []
+        out.reserveCapacity(n)
+        let tones: [SIMD3<Float>] = NeuronPalette.dyes.prefix(4).map { $0.main }
+            + [SIMD3<Float>(0.3, 0.45, 1.0)]
+        for k in 0..<n {
+            let d: SIMD3<Float> = GraphUniverse.float3(ThemeLayout.fibonacci(k, n))
+            let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
+            let v: SIMD3<Float> = d + jitter * 0.3
+            let length: Float = (v * v).sum().squareRoot()
+            let dir: SIMD3<Float> = length > 0.0001 ? v / length : d
+            var at: SIMD3<Float> = dir * (0.7 + 0.7 * Float(random.unit()))
+            at.z = min(at.z, orbFront)
+            let u: Float = Float(random.unit())
+            let size: Float = 0.05 + 0.12 * u * u * u
+            let strength: Float = (0.16 + 0.2 * Float(random.unit())) * (1 - 0.5 * (size - 0.05) / 0.12)
+            out.append(NeuronOrb(at: at, size: size, colour: tones[(k * 3) % tones.count], strength: strength))
+        }
+        return out
+    }
+}

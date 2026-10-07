@@ -409,6 +409,20 @@ private struct IdeasChrome: ViewModifier {
                 .background(LibraryBackdrop())
                 .navigationTitle("Ideas")
                 .navigationBarTitleDisplayMode(.inline)
+                // the title on its own glass pill, centred between Back's
+                // round glass chevron and the edge, as the design targets
+                // draw the Ideas screen
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("Ideas")
+                            .font(.headline)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 9)
+                            .glassEffect(.regular, in: .capsule)
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                }
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .automatic),
                             prompt: "Search ideas")
         }

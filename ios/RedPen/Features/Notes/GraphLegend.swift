@@ -67,18 +67,21 @@ struct GraphLegendSheet: View {
     /// bigger.
     private var ladder: some View {
         VStack(spacing: 10) {
-            HStack(alignment: .center, spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
                 ForEach(content.rungs, id: \.caption) { rung in
                     VStack(spacing: 8) {
                         rungCircle(rung)
-                            .frame(width: 44, height: 36)
+                            .frame(height: 36)
+                        // two lines rather than cut short or shrunk
                         Text(rung.caption)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .padding(.horizontal, 2)
                 }
             }
             Text(content.ladderCaption)
@@ -119,6 +122,24 @@ struct GraphLegendSheet: View {
     private static func lowered(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.lowercased() + text.dropFirst()
+    }
+}
+
+/// How the legend sheet is presented: half or full height on a phone; on
+/// a broad window (an iPad) a full page-sized sheet, never a small form
+/// that cuts the ladder and the rows short.
+struct GraphLegendPresentation: ViewModifier {
+    var regular: Bool
+
+    func body(content: Content) -> some View {
+        if regular {
+            content
+                .presentationSizing(.page)
+                .presentationDetents([.large])
+        } else {
+            content
+                .presentationDetents([.medium, .large])
+        }
     }
 }
 

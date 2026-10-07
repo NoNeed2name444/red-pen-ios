@@ -206,18 +206,20 @@ enum IdeaToolGlass {
 extension View {
     /// Puts a canvas's tools where they belong: bottom-trailing, just above
     /// the bottom container; on the trailing edge, vertically centred, on a
-    /// wide iPad.
-    func ideaTools<Tools: View>(@ViewBuilder _ tools: () -> Tools) -> some View {
-        modifier(IdeaToolsPlacement(tools: tools()))
+    /// wide iPad. `corner` keeps them stacked at the bottom-trailing corner
+    /// on every window (the 3D map, as the design targets draw it).
+    func ideaTools<Tools: View>(corner: Bool = false, @ViewBuilder _ tools: () -> Tools) -> some View {
+        modifier(IdeaToolsPlacement(tools: tools(), corner: corner))
     }
 }
 
 private struct IdeaToolsPlacement<Tools: View>: ViewModifier {
     let tools: Tools
+    var corner: Bool = false
     @Environment(\.windowSpan) private var span
 
     func body(content: Content) -> some View {
-        let broad: Bool = span == .broad
+        let broad: Bool = span == .broad && !corner
         let spot: Alignment = broad ? .trailing : .bottomTrailing
         content
             .overlay(alignment: spot) {

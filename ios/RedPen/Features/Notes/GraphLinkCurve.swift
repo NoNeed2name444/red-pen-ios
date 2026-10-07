@@ -195,6 +195,14 @@ nonisolated struct GraphLinkBoard: Sendable, Equatable {
     var corner: Float = 0.09
     /// How far the copper lies above the board.
     var lift: Float = 0.012
+    /// Each body's distance along the wiring from its circuit's power tap
+    /// (GraphCircuit.pulseSpots); a trace's travelling light starts from
+    /// its first end's, modulo `spacing`, so one pulse runs on round the
+    /// circuit from wire to wire. Empty, or a spacing of 0: every trace
+    /// starts at 0.
+    var phases: [Float] = []
+    /// How far apart the pulses run along the wiring.
+    var spacing: Float = 0
 }
 
 /// One trace's path across a board, routed the way a board's copper is:

@@ -67,6 +67,7 @@ struct Graph3DView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.layoutDirection) private var direction
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var built: GraphScene?
     /// The Performance theme's snapshot of the notes (GraphPerfAdapter):
     /// its own Metal engine builds the map, with no SceneKit scene.
@@ -117,6 +118,9 @@ struct Graph3DView: View {
     @State private var movingNote: GraphReading?
     @State private var addingInto: GraphOptionsTarget?
     @State private var deleting: GraphOptionsTarget?
+    /// The region the camera is flown in to, named on a pill at the top
+    /// ("Examples · 14 notes"); nil over the whole map.
+    @State private var flownRegion: UUID?
     @Namespace private var peekZoom
     @AccessibilityFocusState private var cardFocused: Bool
 
@@ -153,7 +157,7 @@ struct Graph3DView: View {
         }
         .sheet(isPresented: $showingLegend) {
             GraphLegendSheet(theme: built?.theme ?? theme)
-                .presentationDetents([.medium, .large])
+                .modifier(GraphLegendPresentation(regular: sizeClass == .regular))
         }
         // Open: the note, grown out of the peek card; closing it comes back
         // to the map with the same body still chosen
@@ -254,8 +258,13 @@ struct Graph3DView: View {
                 GraphEmptyHint(theme: built.theme) { addingFolder = true }
                     .padding(.horizontal, 24)
                     .padding(.top, 12)
+            } else if let id = flownRegion, let name = built.names[id] {
+                GraphRegionPill(text: name)
+                    .padding(.top, GraphPreview.isOn ? 60 : 8)
+                    .transition(.opacity)
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: flownRegion)
         .overlay(alignment: .bottomLeading) {
             if built.universe && hintShown(built.theme) && !GraphPreview.isOn && !selection.cardShown && !tuningLinks {
                 // sized to what the round tools (44 points, 12 from the
@@ -279,7 +288,7 @@ struct Graph3DView: View {
         .overlay {
             optionsLayer(built)
         }
-        .ideaTools { tools }
+        .ideaTools(corner: true) { tools }
         // the space is always night, whatever the phone's setting
         .environment(\.colorScheme, .dark)
         // the map is opaque and fills the screen: the backdrop under it
@@ -299,7 +308,7 @@ struct Graph3DView: View {
             .overlay {
                 optionsLayer(nil)
             }
-            .ideaTools { tools }
+            .ideaTools(corner: true) { tools }
             .environment(\.colorScheme, .dark)
             .coversSky()
     }
@@ -314,8 +323,9 @@ struct Graph3DView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             // it stays while its note is open over the map: the note grows
-            // out of it, and shrinks back into it
-            if let id = selection.selected, let content = peek(id, in: built) {
+            // out of it, and shrinks back into it; it steps aside while a
+            // body's options are up, so the menu never lies over it
+            if options == nil, let id = selection.selected, let content = peek(id, in: built) {
                 let folder: Bool = isFolder(id, in: built)
                 GraphPeekCardView(content: content, folder: folder, linksShown: selection.linksShown,
                                   zoom: peekZoom,
@@ -336,6 +346,7 @@ struct Graph3DView: View {
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.selected)
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.cardShown)
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: tuningLinks)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: options == nil)
     }
 
     /// A body's options, held still on it: a glass list beside where it
@@ -407,6 +418,7 @@ struct Graph3DView: View {
         out.double = { id in handle(.doubleTap(id)) }
         out.hold = { id, point in held(id, at: point) }
         out.voice = { id, action in voiceAction(id, action) }
+        out.flown = { id in flownRegion = id }
         return out
     }
 
@@ -644,7 +656,7 @@ struct Graph3DView: View {
                        showLegend: { showingLegend = true }, linkLength: linkValue,
                        tuneLinks: tuneLinksAction, cellState: cellStateBinding, cellFolders: cellFoldersBinding)
 
-        IdeaToolButton(symbol: "scope", label: "Recentre") {
+        IdeaToolButton(symbol: "smallcircle.filled.circle", label: "Recentre") {
             recenter += 1
         }
     }
@@ -1331,6 +1343,8 @@ struct GraphTouchHandlers {
     var double: (UUID) -> Void = { _ in }
     var hold: (UUID, CGPoint) -> Void = { _, _ in }
     var voice: (UUID, String) -> Void = { _, _ in }
+    /// The camera flew in to a region (its id) or back out to the whole map.
+    var flown: (UUID?) -> Void = { _ in }
 }
 
 struct GraphSCNView: UIViewRepresentable {
@@ -1505,6 +1519,8 @@ struct GraphSCNView: UIViewRepresentable {
         private var pad: Float = 0
         /// The Universe: framing fills 0.88; folders to fly into.
         private var universe: Bool = false
+        /// The theme on screen: how its map fills the frame (GraphFit).
+        private var theme: GraphTheme = .space
         private var systems: [[SIMD3<Float>]] = []
         private var folders: [UUID: Int] = [:]
         private var titles: [String: Int] = [:]
@@ -1512,10 +1528,22 @@ struct GraphSCNView: UIViewRepresentable {
         /// The folder body the camera has flown in to (its index and id),
         /// or nil at the whole map.
         private var flown: Int?
-        private var flownID: UUID?
+        private var flownID: UUID? {
+            didSet {
+                // the region pill over the map follows the camera in and out
+                guard flownID != oldValue else { return }
+                let report: (UUID?) -> Void = touch.flown
+                let id: UUID? = flownID
+                DispatchQueue.main.async { report(id) }
+            }
+        }
         /// Whether the graph was last framed for a wide (landscape) view;
         /// nil before the first framing.
         private var framedWide: Bool?
+        /// The view's size at the last framing: an iPad's first layout can
+        /// come at one size and settle at another of the same shape (the
+        /// split view, the sidebar), which must frame again.
+        private var framedSize: CGSize = .zero
         /// Where the last framing put the camera, to tell whether it has
         /// been turned or zoomed since.
         private var framedPose: simd_float4x4?
@@ -1564,11 +1592,13 @@ struct GraphSCNView: UIViewRepresentable {
             homes = built.homes
             pad = built.pad
             universe = built.universe
+            theme = built.theme
             systems = built.systems
             folders = built.folders
             titles = built.containerTitles
             dragTarget = built.dragTarget
             framedWide = nil
+            framedSize = .zero
             framedPose = nil
             shownFilter = nil
             // the simulation steps on SceneKit's render loop, once per frame
@@ -1576,6 +1606,11 @@ struct GraphSCNView: UIViewRepresentable {
             view.scene = built.scene
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
+            // the theme's lens at this Graphics tier (Smooth: none)
+            let lens: GraphLens = GraphLens.of(built.theme, tier: GraphQuality.current.tier)
+            if let camera = built.camera.camera { lens.apply(to: camera) }
+            built.sim.setLens(lens)
+            built.sim.setFocus(.zero)
             view.isPlaying = true
             view.antialiasingMode = GraphSCNView.antialiasing()
             view.preferredFramesPerSecond = GraphQuality.frameRate
@@ -1736,14 +1771,19 @@ struct GraphSCNView: UIViewRepresentable {
             return true
         }
 
-        /// The view changed size. The first time it has a size, and whenever
-        /// it turns between upright and wide, the graph is framed again.
+        /// The view changed size. The first time it has a size, whenever it
+        /// turns between upright and wide, and whenever it settles at a new
+        /// size while the camera is still where the framing left it, the
+        /// graph is framed again - so the first frame on an iPad shows the
+        /// whole map, not a framing made for a size the view no longer has.
         func resized(to size: CGSize) {
             guard size.width > 1, size.height > 1 else { return }
             sim?.setViewHeight(Float(size.height))
             let wide: Bool = size.width > size.height
-            guard framedWide != wide else { return }
-            refit(animated: framedWide != nil)
+            let moved: Bool = abs(size.width - framedSize.width) > 1 || abs(size.height - framedSize.height) > 1
+            let turned: Bool = framedWide != wide
+            guard turned || (moved && untouched) else { return }
+            refit(animated: framedWide != nil && turned)
         }
 
         /// Frames again what was framed: the flown-in folder, or everything.
@@ -1766,8 +1806,9 @@ struct GraphSCNView: UIViewRepresentable {
 
         /// Fits the whole graph to the screen (GraphFraming): its longest
         /// spread along the screen's long side, filling 80% of the shorter
-        /// one of the part not under glass (88% of the Universe's
-        /// envelope), centred in that part, seen from the front. It aims
+        /// one of the part not under glass (a theme's own share of the
+        /// Universe's envelope, GraphFit), centred in that part, seen from
+        /// the front. It aims
         /// at the middle of the map's box (GraphMapBounds), not the
         /// origin: a theme's plan (the Neurons' pathway running down, the
         /// Circuit's boards) need not be centred on it.
@@ -1777,25 +1818,40 @@ struct GraphSCNView: UIViewRepresentable {
             guard size.width > 1, size.height > 1 else { return }
             let wide: Bool = size.width > size.height
             framedWide = wide
+            framedSize = size
             let turn: simd_quatf = worldTurn(wide: wide)
             let turned: [SIMD3<Float>] = homes.map { turn.act($0) }
             let middle: SIMD3<Float> = GraphMapBounds.centre(turned)
             let around: [SIMD3<Float>] = turned.map { $0 - middle }
             let window: GraphWindow = GraphFraming.window(width: Float(size.width),
                                                           height: Float(size.height), insets: insets)
-            let fill: Float = universe ? 0.88 : GraphFraming.fill
-            let distance: Float = GraphFraming.distance(points: around, pad: pad, window: window, fill: fill)
+            let fit: GraphFit = GraphFit.of(theme, universe: universe)
+            let distance: Float = GraphFraming.distance(points: fit.counted(around), pad: pad, window: window,
+                                                        fill: fit.fill)
             let home: SIMD3<Float> = middle + GraphFraming.cameraHome(distance: distance, window: window)
+            reach(distance, around: around)
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
+            sim.setFocus(middle)
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = animated ? 0.6 : 0
+            // Reduce Motion: the camera jumps to its framing, as fly(to:) does
+            SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             sim.world.simdOrientation = turn
             camera.simdPosition = home
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
             framedPose = camera.simdTransform
+        }
+
+        /// Keeps the whole map inside the camera's far plane from `distance`:
+        /// the scene's own far plane was a guess for an upright phone.
+        private func reach(_ distance: Float, around: [SIMD3<Float>]) {
+            guard let lens = camera?.camera else { return }
+            var spread: Float = 1
+            for p in around { spread = max(spread, simd_length(p)) }
+            let need: Double = Double(distance + spread * 2 + 20)
+            if lens.zFar < need { lens.zFar = need }
         }
 
         /// Flies the camera in to frame folder body `i`'s whole system - its
@@ -1822,12 +1878,13 @@ struct GraphSCNView: UIViewRepresentable {
             let centre: SIMD3<Float> = turn.act(local)
             flown = i
             flownID = sim.ids[i]
-            // its name pill ("Examples - 14 notes") beside it while
-            // the camera is on it
-            sim.showName(i)
+            // its name ("Examples · 14 notes") is on the region pill over
+            // the map (Graph3DView), read in large type, not on a small
+            // pill in the scene
             let still: Bool = !sim.lively || UIAccessibility.isReduceMotionEnabled
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
+            sim.setFocus(centre)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -2140,6 +2197,7 @@ struct GraphSCNView: UIViewRepresentable {
             let target: SCNVector3 = view.defaultCameraController.target
             let aim = SIMD3<Float>(target.x, target.y, target.z) + shift + closer
             view.defaultCameraController.target = SCNVector3(x: aim.x, y: aim.y, z: aim.z)
+            sim.setFocus(aim)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = still ? 0 : (glide ? 0.7 : 0.45)
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)

@@ -25,8 +25,8 @@ import simd
 // A new theme adds its planner and look to GraphThemes, its legend to
 // GraphLegendContent, and flips GraphTheme.isReady - nothing here changes.
 // A look may also route its links on a board (GraphThemeLook.board: the
-// Circuit's traces) and add pieces of its own to the world (decorate: the
-// Circuit's motherboard).
+// Circuit's light guides) and add pieces of its own to the world (decorate:
+// the Circuit's motes of light).
 
 /// One body as a theme's look builds it. GraphSim drives the ring pieces as
 /// it does a planet's: `ringStretch` (inside a billboarded holder) is
@@ -86,7 +86,7 @@ protocol GraphThemeLook: AnyObject {
     var arbor: GraphLinkArbor? { get }
     var farArbor: GraphLinkArbor? { get }
     /// Anything the look adds to the world beside the bodies (the Circuit:
-    /// the motherboard under everything). Nothing by default.
+    /// motes of light drifting over the glass, at High). Nothing by default.
     func decorate(world: SCNNode, plan: ThemePlan)
 }
 

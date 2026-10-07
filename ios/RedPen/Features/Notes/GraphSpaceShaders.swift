@@ -277,6 +277,8 @@ nonisolated enum GraphStyleShaders {
     float rp_ze = rp_de / mix(0.7, 0.4, smoothstep(-0.2, 0.2, rp_de));
     float rp_he = fract(sin(floor(rp_qe) * 7.13 + rp_seed) * 43758.5453);
     float rp_arrive = exp(-rp_ze * rp_ze) * (0.45 + 0.55 * rp_he) * rp_m;
+    float rp_still = (1.0 - rp_m) * rp_lit;
+    rp_arrive = rp_arrive + 0.55 * rp_still;
 
     float3 rp_gold = float3(1.0, 0.753, 0.302);
     float3 rp_white = float3(1.0, 0.95, 0.84);
@@ -419,6 +421,8 @@ nonisolated enum GraphStyleShaders {
     rp_speck = rp_speck * step(0.72, rp_ch);
     float rp_twk = 0.5 + 0.5 * sin(rp_t * 5.0 + rp_ch * 40.0);
     rp_col = rp_col + float3(0.8, 1.0, 1.0) * (rp_speck * rp_twk * rp_cmW * 0.9 * rp_w);
+
+    rp_col = rp_col + mix(rp_gold, rp_white, 0.5) * (rp_still * (rp_core * 1.1 + rp_inner * 0.3));
 
     float rp_f = sin(rp_t * 4.1 + rp_seed * 3.1);
     rp_f = rp_f * sin(rp_t * 2.3 + rp_seed * 7.7);

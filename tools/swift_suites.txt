@@ -166,11 +166,12 @@ suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Gra
       $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
       $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
-# the Circuit theme: folders as processors and module chips on their
-# sub-boards, notes as capacitors, resistors, LEDs, diodes, headers
-# and edge fingers - the ladder, no overlapping footprints, flat on
-# the board, every trace routed square with rounded 45° corners, the
-# chips' markings and the parts' dressing clear of every part
+# the Circuit theme (glass tiles since 7 October): folders as chips on
+# their tiles and inlays, pages, ideas and loose notes as parts - the
+# ladder, no overlapping footprints, flat on the bench, every guide
+# routed square with rounded 45° corners, the chips' markings, the
+# parts' dressing clear of every part, and the one pulse of light a
+# beat round each circuit (every part lit, no wire outrun)
 suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
       $F/Notes/GraphTheme.swift $F/Notes/GraphCircuitDress.swift
@@ -188,6 +189,15 @@ suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
 suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
+# the themed hierarchy (plan §3d): each folder a cell or a circuit with
+# the same seven parts, files and bullets in both themes, read from the
+# notes; links as fibres (strength, kind) or wires (resistance, current);
+# levels 3-4 built only up close, bounded, never smaller than a page
+suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift
+# each theme's lens: none at Smooth or in Performance, HDR, bloom and
+# depth of field only at High, lensing with the shaders' detail, and
+# the same blur at every zoom
+suite graphlens GraphLensTests.swift $F/Notes/GraphLens.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against

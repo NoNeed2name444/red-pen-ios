@@ -565,13 +565,19 @@ final class GraphNeuronLook: GraphThemeLook {
         NeuronTissue.makeSky()
     }
 
-    /// Motes drifting through the fluid, at the High budget in a moving
-    /// space.
+    /// At the High budget: big soft orbs of light out of focus in the
+    /// fluid in front of the cells and behind them (still, so Reduce Motion
+    /// keeps them), and motes drifting through it in a moving space.
     func decorate(world: SCNNode, plan: ThemePlan) {
-        guard lively, budget.tier == .high else { return }
+        guard budget.tier == .high, !plan.envelope.isEmpty else { return }
+        let middle: SIMD3<Float> = GraphMapBounds.centre(plan.envelope)
         var reach: Float = 1
-        for p in plan.envelope { reach = max(reach, simd_length(p)) }
-        world.addChildNode(NeuronTissue.motes(reach: reach))
+        for p in plan.envelope { reach = max(reach, simd_length(p - middle)) }
+        world.addChildNode(NeuronTissue.orbs(around: middle, reach: reach))
+        guard lively else { return }
+        var spread: Float = 1
+        for p in plan.envelope { spread = max(spread, simd_length(p)) }
+        world.addChildNode(NeuronTissue.motes(reach: spread))
     }
 }
 
@@ -927,6 +933,48 @@ enum NeuronTissue {
     /// sRGB to linear: vertex colours are taken as linear.
     private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
         SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
+    }
+
+    /// The orbs (NeuronBokeh.orbs) round a map's `middle`, `reach` its
+    /// radius: each a camera-facing bokeh disc, added on, one material per
+    /// colour, its brightness its opacity.
+    static func orbs(around middle: SIMD3<Float>, reach: Float) -> SCNNode {
+        let holder = SCNNode()
+        holder.name = "orbs"
+        holder.categoryBitMask = 2
+        var looks: [SIMD3<Float>: SCNGeometry] = [:]
+        for orb in NeuronBokeh.orbs() {
+            let shape: SCNGeometry
+            if let made = looks[orb.colour] {
+                shape = made
+            } else {
+                let look = SCNMaterial()
+                look.lightingModel = .constant
+                look.diffuse.contents = NeuronArt.bokehDisc
+                look.multiply.contents = UIColor(red: CGFloat(orb.colour.x), green: CGFloat(orb.colour.y),
+                                                 blue: CGFloat(orb.colour.z), alpha: 1)
+                look.blendMode = .add
+                look.isDoubleSided = true
+                look.writesToDepthBuffer = false
+                let plane = SCNPlane(width: 2, height: 2)
+                plane.materials = [look]
+                looks[orb.colour] = plane
+                shape = plane
+            }
+            let node = SCNNode(geometry: shape)
+            node.simdPosition = middle + orb.at * reach
+            let side: Float = orb.size * reach
+            node.simdScale = SIMD3<Float>(side, side, side)
+            node.opacity = CGFloat(orb.strength)
+            node.renderingOrder = 9
+            node.categoryBitMask = 2
+            node.castsShadow = false
+            let facing = SCNBillboardConstraint()
+            facing.freeAxes = .all
+            node.constraints = [facing]
+            holder.addChildNode(node)
+        }
+        return holder
     }
 
     /// Motes drifting slowly through the map, near and far (High budget,

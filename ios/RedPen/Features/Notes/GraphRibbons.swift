@@ -325,7 +325,13 @@ nonisolated final class GraphRibbonWriter {
         }
         let lowV: Float = band + 0.002
         let highV: Float = band + 0.998
-        let u0: Float = Float(code * 64 + 1)
+        var u0: Float = Float(code * 64 + 1)
+        if let board, board.spacing > 0, link.a < board.phases.count {
+            // the Circuit's pulse runs on from the wire before: start this
+            // one's light where the light has got to at its first end
+            let start: Float = board.phases[link.a] + radius[link.a] * GraphShape.linkTrim
+            u0 += max(start, 0).truncatingRemainder(dividingBy: board.spacing)
+        }
         for k in 0...n {
             let tangent: SIMD3<Float> = GraphLinkCurve.tangent(points, k, n, fallback: dir)
             let p: SIMD3<Float> = points[k]
