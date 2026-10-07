@@ -12,12 +12,13 @@
 // explained there.
 import { legalPage } from './legal.js';
 import { pruneStores } from './limits.js';
-import { sign, verify, verifyApple, decodeClaims } from './tokens.js';
+import { sign, verify, verifyApple, decodeClaims, spendNonce } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
 import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
 import { jobsRoute } from './jobs.js';
 import { checkBatch, report as reportError, modelWeights, setWeights, listReports } from './accuracy.js';
 import { speech } from './tts.js';
+import { useOpenFDAKey } from './evidence.js';
 import { allowed, startPairing, finishPairing, DEVICES_PER_HOUR } from './pair.js';
 import { diagnosticsRoute, diagnosticsSummary, forgetDiagnostics, pruneDiagnostics, isOwnerAccount, MAX_BODY as DIAGNOSTICS_MAX } from './diagnostics.js';
 import { examsRoute } from './exams.js';
@@ -82,12 +83,13 @@ const BLOB_BUDGET = 2 * 1024 * 1024 * 1024;
 /// themselves. The key now stays on the server (see transcribeChunk), so this
 /// only says so: an old build falls back to transcribing on the phone.
 export async function transcribeConfig() {
-  return fail(410, 'Cloud transcription now goes through Vignette; update the app.');
+  return fail(410, 'Cloud transcription has moved: update the app.');
 }
 
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+    useOpenFDAKey(env?.OPENFDA_API_KEY);
 
     // the Terms of use and the Privacy policy (legal.js), plain pages
     if (request.method === 'GET') {
@@ -289,6 +291,7 @@ async function withApple(body, env) {
   if (!identityToken || !nonce) return fail(400, 'Missing sign-in details.');
   const claims = await verifyApple(identityToken, nonce, env.APPLE_BUNDLE_ID);
   if (!claims) return fail(401, "That Apple sign-in couldn't be verified.");
+  if (!await spendNonce(env, claims.nonce)) return fail(401, 'That Apple sign-in was already used. Try signing in again.');
   const account = await upsert(env, {
     provider: 'apple', subject: claims.sub,
     // Apple only sends the address when the student allows it, and "hide my

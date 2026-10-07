@@ -101,6 +101,21 @@ const a1Token = await accountToken('a1');
   ok((await chat(env, 'a1', request, fakeFetch(apple))).status === 402, 'and is refused');
 }
 
+// a lapsed (or made-up) subscription is not re-asked on every request
+{
+  const env = freshEnv(asc);
+  const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
+    { status: 2, signedTransactionInfo: jws({ expiresDate: Date.now() - 1000, appAccountToken: a1Token }) }] }] };
+  await linkSubscription(env, 'a1', { originalTransactionId: '2000000126' }, fakeFetch(apple));
+  let asked = 0;
+  const counting = async (url, init) => { if (url.includes('storekit')) asked++; return fakeFetch(apple)(url, init); };
+  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, counting);
+  ok(asked === 0, 'a lapsed subscription checked minutes ago is not sent to Apple again on each request');
+  env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
+  await chat(env, 'a1', request, counting);
+  ok(asked > 0, 'but it is asked again once the short recheck has passed, so a renewal is noticed');
+}
+
 // another app's subscription: refused
 {
   const env = freshEnv(asc);

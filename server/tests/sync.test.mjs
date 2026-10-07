@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { changes, push, missingBlobs, putBlob, wipe } from '../sync.js';
-import { sign, verify, decodeClaims } from '../tokens.js';
+import { sign, verify, decodeClaims, spendNonce } from '../tokens.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -285,6 +285,22 @@ ok(tooMuch.status === 507, 'one that would go over the budget is refused');
 const wrongName = await putBlob(env, 'acc', 'f'.repeat(64), req(big), Infinity);
 ok(wrongName.status === 400, 'and a picture filed under a name that is not its hash is refused');
 
+// a chunked upload (no content-length) is cut off at the limit, not buffered whole
+{
+  let pulled = 0;
+  const endless = new ReadableStream({
+    pull(controller) { pulled += 1 << 20; controller.enqueue(new Uint8Array(1 << 20)); },
+  });
+  const chunked = new Request('https://x/blob', { method: 'PUT', body: endless, duplex: 'half' });
+  const r = await putBlob(env, 'acc', 'a'.repeat(64), chunked, Infinity);
+  ok(r.status === 413, 'a chunked upload with no length is refused once it passes the limit');
+  ok(pulled <= 14 * (1 << 20), 'and is not read much past that limit');
+  const fine = new Request('https://x/blob', { method: 'PUT',
+    body: new ReadableStream({ start(c) { c.enqueue(new Uint8Array(small)); c.close(); } }), duplex: 'half' });
+  const stored = await body(await putBlob(env, 'acc2', n1, fine, Infinity));
+  ok(stored.ok === true, 'while a small chunked upload is still stored');
+}
+
 // MARK: the revision is taken in the same transaction as the write
 //
 // Taken separately, a device pulling between the two could see a later
@@ -432,6 +448,17 @@ const forever = await (async () => {
 })();
 ok(decodeClaims(forever)?.sub === 'acc', 'the never-expiring token really is well formed');
 ok(await verify(forever, secret) === null, 'but a token with no expiry is refused, not honoured for ever');
+
+// MARK: an Apple sign-in nonce signs in once
+
+{
+  const e = freshEnv();
+  ok(await spendNonce(e, 'abc123') === true, 'a fresh Apple nonce is accepted');
+  ok(await spendNonce(e, 'abc123') === false, 'the same nonce posted again (a replayed token) is refused');
+  ok(await spendNonce(e, '') === false, 'a token without a nonce is refused');
+  const missing = { DB: { prepare() { return { bind() { return { run() { throw new Error('D1_ERROR: no such table: used_nonces'); } }; } }; } } };
+  ok(await spendNonce(missing, 'abc123') === true, 'before the table exists, sign-in works as it did');
+}
 
 console.log(failures === 0 ? '\nALL SERVER TESTS PASS' : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

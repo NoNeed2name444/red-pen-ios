@@ -3,7 +3,7 @@
 //
 // Run: node server/tests/evidence.test.mjs
 
-import { medvalParts, parseTerms, gather, groundedMessages, europePMC, medlinePlus, openFDA, workKey } from '../evidence.js';
+import { medvalParts, parseTerms, gather, groundedMessages, europePMC, medlinePlus, openFDA, workKey, forgetEvidence, useOpenFDAKey } from '../evidence.js';
 
 let failures = 0;
 const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failures++; };
@@ -45,6 +45,7 @@ const twice = async (url) => (url.includes('europepmc') ? new Response(JSON.stri
   { title: 'Eular recommendations for SLE - 2023 update.', journalTitle: 'medRxiv', pubYear: '2023', doi: '10.1101/pre-2023', abstractText: 'Hydroxychloroquine for all (preprint).', source: 'PPR', id: '2' },
   { title: 'Lupus nephritis: a review', journalTitle: 'Lancet', pubYear: '2024', doi: '10.1016/ln', abstractText: 'Mycophenolate or cyclophosphamide.', source: 'MED', id: '3' },
 ] } }), { status: 200 }) : new Response('', { status: 404 }));
+forgetEvidence(); // a different service answering the same lookups
 const once = await gather({ queries: ['lupus', 'lupus treatment'], drugs: [] }, twice);
 ok(once.length === 2 && once.map(e => e.url).join(' ') === 'https://doi.org/10.1136/ard-2023 https://doi.org/10.1016/ln',
    'one work counts once: found twice, or as a preprint and as published, it is one source (' + once.length + ')');
@@ -58,6 +59,25 @@ ok(grounded[0].role === 'system' && grounded[0].content.includes('[S1]') && grou
 ok(grounded[0].content.includes('reasoning_issues') && grounded[0].content.includes('Unsupported claim'),
    'and to name a claim neither the lecture nor the evidence supports in the reasoning checks');
 ok(groundedMessages([{ role: 'user', content: 'x' }], []).length === 1, 'with no evidence the check is unchanged');
+
+// a day's answers are kept in memory: caches.default does nothing on workers.dev
+{
+  forgetEvidence();
+  const asked = [];
+  const counting = async (url, init) => { asked.push(url); return fake(url, init); };
+  await openFDA('metformin', counting);
+  await openFDA('metformin', counting);
+  ok(asked.length === 1, 'the same lookup within a day is answered from memory, not fetched again');
+  forgetEvidence();
+  useOpenFDAKey('k3y');
+  asked.length = 0;
+  await openFDA('metformin', counting);
+  ok(asked[0]?.endsWith('&api_key=k3y'), 'openFDA is called with the key when one is set');
+  await openFDA('metformin', counting);
+  ok(asked.length === 1, 'and the answer is kept under the address without the key');
+  useOpenFDAKey(undefined);
+  forgetEvidence();
+}
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

@@ -169,12 +169,21 @@ CREATE TABLE IF NOT EXISTS deleted_accounts (
 
 -- The purchase tag (appAccountToken) of a deleted account, with the sign-in it
 -- belonged to: the same person signing in again with the same Apple or Google
--- account may link the subscription they bought before (ai.js mayUse).
+-- account may link the subscription they bought before (ai.js mayUse). Kept a
+-- year (limits.js RELEASED_KEEP_DAYS).
 CREATE TABLE IF NOT EXISTS released_tokens (
   token        TEXT PRIMARY KEY,
   provider     TEXT NOT NULL,
   subject      TEXT NOT NULL,
   released_at  INTEGER NOT NULL
+);
+
+-- Apple sign-in nonces (their SHA-256, as the identity token carries them)
+-- that have signed someone in, so one captured token cannot be posted twice.
+-- Kept a day (limits.js pruneStores), as a token lives ten minutes.
+CREATE TABLE IF NOT EXISTS used_nonces (
+  nonce    TEXT PRIMARY KEY,
+  used_at  INTEGER NOT NULL
 );
 
 -- The accuracy engine (accuracy.js). A verdict's signals - each checker
