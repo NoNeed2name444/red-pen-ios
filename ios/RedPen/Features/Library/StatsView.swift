@@ -142,7 +142,7 @@ struct StatsView: View {
         let name: String = subject.subject
         return Button { drillSubject(name) } label: {
             subjectRow(subject)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.wardInk)
         }
         .accessibilityHint("Drills up to 20 questions in this subject")
         .contextMenu {

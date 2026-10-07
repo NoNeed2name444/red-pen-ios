@@ -26,11 +26,13 @@ struct WardEmptyState<Actions: View>: View {
                 .font(WardType.title)
                 .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
             if let message {
                 Text(message)
                     .font(.subheadline)
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: WardSpace.s) { actions }
                 .padding(.top, WardSpace.xs)
@@ -167,6 +169,9 @@ struct WardFilterChip: View {
             .frame(minHeight: 36)
             .background(selected ? Color.wardPrimary : Color.wardSurface, in: Capsule())
             .overlay(Capsule().strokeBorder(selected ? Color.clear : Color.wardHairline, lineWidth: 1))
+            // the chip draws 36 points tall; the tap target is the full 44
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
