@@ -227,7 +227,7 @@ struct ScoreRing: View {
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
-                Text(label).font(.system(size: 38, weight: .semibold, design: .monospaced))
+                Text(label).scaledFont(38, relativeTo: .largeTitle, weight: .semibold, design: .monospaced, maxSize: 52)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
@@ -659,7 +659,7 @@ struct FinishSymbol: View {
     let name: String
     var body: some View {
         Image(systemName: name)
-            .font(.system(size: 64, weight: .semibold))
+            .scaledFont(64, relativeTo: .largeTitle, weight: .semibold, maxSize: 96)
             .foregroundStyle(.tint)
             .accessibilityHidden(true)
     }

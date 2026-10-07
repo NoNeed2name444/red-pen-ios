@@ -69,6 +69,7 @@ struct AppBackdrop: View {
     @Environment(\.spaceQuality) private var quality
     @Environment(\.graphics) private var graphics
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     /// Where the current fade started from, and when.
     @State private var fadeFrom: BackdropTone?
     @State private var fadeStart: Date
@@ -85,7 +86,9 @@ struct AppBackdrop: View {
     /// root (SkyRoot), so the scheme alone decides - text stays readable.
     private var night: Bool { scheme == .dark }
 
-    private var strong: Bool { contrast == .increased }
+    /// Increase Contrast or Reduce Transparency: the nebula at half strength
+    /// and more ink behind the text, so nothing bright moves behind words.
+    private var strong: Bool { contrast == .increased || reduceTransparency }
 
     var body: some View {
         let night: Bool = self.night
@@ -145,7 +148,7 @@ struct AppBackdrop: View {
     }
 
     /// Dark ink behind the text column at night (a soft light behind it by
-    /// day), stronger with Increase Contrast.
+    /// day), stronger with Increase Contrast or Reduce Transparency.
     private var inkColumn: some View {
         let base: Double = night ? 0.30 : 0.16
         let alpha: Double = strong ? base + 0.2 : base

@@ -459,10 +459,14 @@ struct FeatureTile: View {
     let tint: Color
     /// Said in place of the feature's own line - a mode's count of sets.
     var detail: String? = nil
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
+        // two lines each, or all of it at the accessibility sizes, where the
+        // tiles go one across (LibraryCategory)
+        let lines: Int? = typeSize.isAccessibilitySize ? nil : 2
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: feature.symbol)
                 .font(.system(size: 16, weight: .semibold))
@@ -474,12 +478,12 @@ struct FeatureTile: View {
                 Text(feature.title)
                     .font(.headline)
                     .foregroundStyle(Color.wardInk)
-                    .lineLimit(2)
+                    .lineLimit(lines)
                     .multilineTextAlignment(.leading)
                 Text(detail ?? feature.detail)
                     .font(.caption)
                     .foregroundStyle(Color.wardInkSecondary)
-                    .lineLimit(2)
+                    .lineLimit(lines)
                     .multilineTextAlignment(.leading)
             }
         }
@@ -533,6 +537,11 @@ enum IdeasPlace {
 ///
 /// The chosen one is a Theatre Blue segment, white on blue, that travels
 /// between them; the others are Biro Grey on the white panel.
+///
+/// At the accessibility text sizes six names cannot share one strip without
+/// shrinking past reading, so the dock folds into one wide button that
+/// names where you are, and opens a list of every place as a sheet - the same
+/// identifiers on its rows, so everything that finds a dock item still does.
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
     /// Whether Ideas, rather than a category, is the page on show.
@@ -543,6 +552,10 @@ struct CategoryDock: View {
     var count: (StudyCategory) -> Int
 
     @Namespace private var lift
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The list of places, open at the accessibility text sizes.
+    @State private var listing = false
 
     init(selection: Binding<StudyCategory>, inIdeas: Binding<Bool>, axis: Axis = .horizontal,
          count: @escaping (StudyCategory) -> Int) {
@@ -557,10 +570,57 @@ struct CategoryDock: View {
     }
 
     var body: some View {
-        if axis == .vertical {
+        if typeSize.isAccessibilitySize {
+            listButton
+        } else if axis == .vertical {
             rail
         } else {
             bar
+        }
+    }
+
+    /// A category change: the lifted capsule travels, unless Reduce Motion.
+    private var change: Animation? { reduceMotion ? nil : .snappy(duration: 0.3) }
+
+    // MARK: at the accessibility text sizes
+
+    /// One wide Ward button: where you are, and a tap for every place.
+    private var listButton: some View {
+        let shape: RoundedRectangle = panelShape
+        let here: String = inIdeas ? IdeasPlace.title : selection.title
+        let symbol: String = inIdeas ? IdeasPlace.chosenSymbol : selection.symbol
+        return Button { listing = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .accessibilityHidden(true)
+                Text(here)
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInk)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.up")
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Sections, now \(here)")
+        .accessibilityHint("Lists every section to choose from")
+        .accessibilityIdentifier("dockList")
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+        .sheet(isPresented: $listing) {
+            DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
         }
     }
 
@@ -668,7 +728,7 @@ struct CategoryDock: View {
     // MARK: the pieces
 
     private func chooseIdeas() {
-        withAnimation(.snappy(duration: 0.3)) { inIdeas = true }
+        withAnimation(change) { inIdeas = true }
     }
 
     /// The lightbulb over the word Ideas, white on Theatre Blue when chosen.
@@ -684,7 +744,7 @@ struct CategoryDock: View {
         let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
-            withAnimation(.snappy(duration: 0.3)) { selection = category }
+            withAnimation(change) { selection = category }
         } label: {
             DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
                 .frame(maxWidth: .infinity, minHeight: 52)
@@ -720,9 +780,77 @@ struct CategoryDock: View {
     }
 
     private func spoken(_ category: StudyCategory) -> String {
-        let n: Int = count(category)
-        let plural: String = n == 1 ? "" : "s"
-        return "\(category.title), \(n) set\(plural)"
+        "\(category.title), " + SpokenText.count(count(category), "set")
+    }
+}
+
+/// The dock as a list, at the accessibility text sizes: every section and
+/// Ideas, one to a row, with room for the whole name at any size.
+private struct DockListSheet: View {
+    @Binding var selection: StudyCategory
+    @Binding var inIdeas: Bool
+    var count: (StudyCategory) -> Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(StudyCategory.allCases) { category in
+                    let chosen: Bool = !inIdeas && category == selection
+                    let detail: String = SpokenText.count(count(category), "set")
+                    row(title: category.title, detail: detail, symbol: category.symbol,
+                        tint: category.tint, chosen: chosen, id: "dockCategory-\(category.rawValue)") {
+                        selection = category
+                        inIdeas = false
+                    }
+                }
+                row(title: IdeasPlace.title, detail: "Your idea dump, board and 3D map",
+                    symbol: IdeasPlace.symbol, tint: IdeasPlace.tint, chosen: inIdeas,
+                    id: "dockCategory-ideas") {
+                    inIdeas = true
+                }
+            }
+            .wardForm()
+            .navigationTitle("Sections")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func row(title: String, detail: String, symbol: String, tint: Color, chosen: Bool,
+                     id: String, choose: @escaping () -> Void) -> some View {
+        Button {
+            choose()
+            dismiss()
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .frame(minWidth: 28)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.headline).foregroundStyle(Color.wardInk)
+                    Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                }
+                Spacer(minLength: 8)
+                if chosen {
+                    Image(systemName: "checkmark")
+                        .font(.headline)
+                        .foregroundStyle(Color.wardPrimaryInk)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
+        }
+        .wardRowBackground()
+        .accessibilityAddTraits(chosen ? [.isSelected] : [])
+        .accessibilityIdentifier(id)
     }
 }
 
@@ -735,8 +863,8 @@ private struct DockItemFace: View {
     var body: some View {
         VStack(spacing: 3) {
             Image(systemName: symbol)
-                .font(.system(size: 19, weight: .semibold))
-                .frame(height: 24)
+                .scaledFont(19, relativeTo: .body, weight: .semibold, maxSize: 30)
+                .frame(minHeight: 24)
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)

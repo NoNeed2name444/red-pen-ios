@@ -126,6 +126,6 @@ struct FixReport: View {
         .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .wardShadow()
         .padding(.horizontal)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.slideFade(.bottom))
     }
 }

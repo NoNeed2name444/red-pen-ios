@@ -42,6 +42,9 @@ struct WardOptionRow: View {
     var mark: ChartQuiz.Mark = .idle
     var struck = false
     @ScaledMetric(relativeTo: .body) private var badge: CGFloat = 32
+    /// Differentiate Without Colour: the chosen edge thicker, and right and
+    /// wrong said in a word beside their marks.
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
 
     private var tone: Color? {
         switch mark {
@@ -80,8 +83,13 @@ struct WardOptionRow: View {
                 .foregroundStyle(mark == .past ? Color.wardInkSecondary : Color.wardInk)
                 .strikethrough(struck, color: .wardInkSecondary)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let symbol {
+                if noColour {
+                    Text(mark == .right ? "Right" : "Your pick")
+                        .font(.caption.weight(.semibold)).foregroundStyle(edge).accessibilityHidden(true)
+                }
                 Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(edge).accessibilityHidden(true)
             }
         }
@@ -90,7 +98,7 @@ struct WardOptionRow: View {
         .frame(minHeight: 56)
         .background(wash, in: shape)
         .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(edge, lineWidth: tone == nil ? 1 : 1.5))
+        .overlay(shape.strokeBorder(edge, lineWidth: tone == nil ? 1 : (noColour && mark == .chosen ? 3 : 1.5)))
         .wardShadow()
         .opacity(ChartQuiz.faded(struck: struck, mark: mark) ? 0.45 : 1)
     }

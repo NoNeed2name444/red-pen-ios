@@ -59,7 +59,8 @@ struct ReadinessCard: View {
         let track = ExamTrack.current
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(Self.percent(e.center))
-                .font(.system(size: 40, weight: .bold, design: .monospaced).monospacedDigit())
+                .scaledFont(40, relativeTo: .largeTitle, weight: .bold, design: .monospaced)
+                .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
             VStack(alignment: .leading, spacing: 1) {
                 Text("likely \(Self.percent(e.low))\u{2013}\(Self.percent(e.high))")

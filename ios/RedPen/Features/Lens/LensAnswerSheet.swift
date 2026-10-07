@@ -418,7 +418,7 @@ struct LensOptionRow: View {
 struct LensBulletStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            configuration.icon.font(.system(size: 5)).foregroundStyle(Color.wardInkSecondary)
+            configuration.icon.scaledFont(5, relativeTo: .body).foregroundStyle(Color.wardInkSecondary)
             configuration.title
         }
     }

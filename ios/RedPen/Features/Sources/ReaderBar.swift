@@ -66,12 +66,12 @@ struct ReaderBar: View {
             }
             if collapsed {
                 switcher
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.growFade(0.6))
             }
             Spacer(minLength: 0)
             if !whole {
                 ReaderPager(page: $page, count: pageCount, noun: pageNoun)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .transition(.slideFade(.trailing))
             }
         }
     }
@@ -86,7 +86,7 @@ private struct ReaderPagesButton: View {
         let label: String = "All \(noun.lowercased())s"
         Button(action: action) {
             Image(systemName: "sidebar.squares.left")
-                .font(.system(size: 17, weight: .semibold))
+                .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 26)
                 .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 44, height: 44)
                 .background(Color.wardSurface, in: Circle())
@@ -152,7 +152,7 @@ private struct ReaderPagerArrow: View {
         let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary.opacity(0.5)
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .semibold))
+                .scaledFont(16, relativeTo: .body, weight: .semibold, maxSize: 26)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }

@@ -503,7 +503,8 @@ struct StationReportView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.mark.done.count)")
-                        .font(.system(size: 54, weight: .bold, design: .monospaced).monospacedDigit())
+                        .scaledFont(54, relativeTo: .largeTitle, weight: .bold, design: .monospaced)
+                        .monospacedDigit()
                         .foregroundStyle(Color.wardInk)
                     Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(Color.wardInkSecondary)
                     Spacer()

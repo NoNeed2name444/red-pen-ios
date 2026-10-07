@@ -224,9 +224,9 @@ struct SignInView: View {
             if busy {
                 EcgLoader()
             } else {
-                Image(systemName: symbol).font(.system(size: 17, weight: .semibold))
+                Image(systemName: symbol).scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 28)
             }
-            Text(title).font(.system(size: 19, weight: .medium))
+            Text(title).scaledFont(19, relativeTo: .body, weight: .medium)
         }
         .frame(maxWidth: .infinity)
     }

@@ -147,7 +147,7 @@ struct OsceReviewView: View {
                     WardTimerPill(seconds: left, warnBelow: warnBelow)
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Station clock, \(left / 60) minutes \(left % 60) seconds")
+                .accessibilityLabel("Station clock, " + SpokenText.duration(seconds: left))
                 .accessibilityHint(running ? "Pauses the clock" : (left == 0 ? "Resets the clock" : "Starts the clock"))
             }
             .frame(minHeight: 44)
@@ -215,7 +215,7 @@ struct OsceReviewView: View {
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 10)
                         .contentCard()
-                        .transition(.scale(scale: 0.96).combined(with: .opacity))
+                        .transition(.growFade(0.96))
                 } else {
                     Text(promptLine)
                         .font(.title3)
@@ -234,7 +234,7 @@ struct OsceReviewView: View {
             .padding(16)
             // a start over slides the station back in from the top
             .id(run.restarts)
-            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+            .transition(.asymmetric(insertion: .slideFade(.top), removal: .opacity))
             .frame(minHeight: 220)
             .padding(.bottom, 12)
             .readableColumn()
@@ -273,7 +273,7 @@ struct OsceReviewView: View {
                 .accessibilityHint("On to the next step")
             }
         } else {
-            Button { withAnimation(.snappy) { revealed = true } } label: {
+            Button(action: reveal) {
                 Label("Reveal", systemImage: "eye")
             }
             .buttonStyle(.bigPrimary)
@@ -362,6 +362,13 @@ struct OsceReviewView: View {
     }
 
     // MARK: logic - OsceRun
+
+    /// Shows the step - and reads it out, since the button VoiceOver was on
+    /// has just given way to two others.
+    private func reveal() {
+        withAnimation(Motion.gentle(.snappy)) { revealed = true }
+        if let text = currentStepText { Announce.say("Step \(run.stepIndex + 1): " + text) }
+    }
 
     private func gotIt() {
         StudyLog.shared.record()

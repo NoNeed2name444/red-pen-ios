@@ -287,7 +287,7 @@ struct ExplainBackView: View {
         let edge: Color = quiet ? Color.wardHairline : Color.clear
         return Button(action: toggleRecording) {
             Image(systemName: symbol)
-                .font(.system(size: 30, weight: .bold))
+                .scaledFont(30, relativeTo: .title, weight: .bold, maxSize: 44)
                 .foregroundStyle(ink)
                 .frame(width: 76, height: 76)
                 .background(fill, in: Circle())
@@ -566,7 +566,7 @@ struct ExplainResultView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.result.score)")
-                        .font(.system(size: 54, weight: .bold, design: .monospaced))
+                        .scaledFont(54, relativeTo: .largeTitle, weight: .bold, design: .monospaced)
                         .monospacedDigit()
                         .foregroundStyle(Self.scoreColor(attempt.result.score))
                     Text("/ 100")

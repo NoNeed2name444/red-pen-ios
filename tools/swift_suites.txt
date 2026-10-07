@@ -28,6 +28,10 @@ suite narrate NarrateTests.swift $S/NarratePlan.swift
 # the lecture player's speeds and the one remembered, the sleep
 # timer's countdown and fade, and a lecture cut into sections
 suite audiocontrols AudioControlsTests.swift $S/AudioControls.swift
+# what VoiceOver says on the study screens: rating intervals in
+# words, answers announced when checked, options' state, clocks,
+# cloze blanks and the study calendar's five steps
+suite accessibility AccessibilityTextTests.swift $S/AccessibilityText.swift
 # a library file that is there but cannot be read (a launch before the
 # first unlock) is not empty, and a write that did not land is not a save
 suite storefiles StoreFileTests.swift $S/StoreFiles.swift
