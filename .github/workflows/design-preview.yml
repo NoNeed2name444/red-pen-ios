@@ -201,7 +201,7 @@ jobs:
           # name each picture after its attachment; the 3D map's with graph-
           # in front, so they sort apart from the tour's numbered steps
           cat > "$RUNNER_TEMP/name_shots.py" <<'PY'
-          import json, os, shutil, sys
+          import json, os, re, shutil, sys
           raw, dest = sys.argv[1], sys.argv[2]
           m = json.load(open(os.path.join(raw, 'manifest.json')))
           for test in m:
@@ -210,6 +210,9 @@ jobs:
                   name = a.get('suggestedHumanReadableName') or a['exportedFileName']
                   base = name.split('_')[0] if '_' in name else name
                   base = os.path.splitext(base)[0]
+                  # the upload refuses " : < > | * ? and line breaks in a name, as
+                  # in a failed query's 'Debug description for `"graph3D" Any`'
+                  base = re.sub(r'[^\w .,()+-]+', '', base).strip() or 'attachment'
                   if graph:
                       base = 'graph-' + base
                   ext = os.path.splitext(a['exportedFileName'])[1] or '.png'
