@@ -47,9 +47,9 @@ struct WardPocketSheet: View {
                     .accessibilityIdentifier("wardPocketTabs")
                     if tab != .scores { WardUnitsPicker(conventional: $conventional) }
                 }
-                // the switches sit on the base itself, not on tiles
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                // the switches sit on the base itself, not on tiles, where
+                // the tiles' edges are
+                .wardCardRow()
                 switch tab {
                 case .labs: LabRangesSections(query: query, conventional: conventional)
                 case .calculators: calculatorRows
@@ -247,7 +247,7 @@ struct WardCalcView: View {
         Form {
             if hasUnits {
                 Section { WardUnitsPicker(conventional: $conventional) }
-                    .listRowBackground(Color.clear)
+                    .wardCardRow()
             }
             Section("Values") {
                 ForEach(calc.fields) { field in

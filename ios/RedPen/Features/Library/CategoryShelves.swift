@@ -164,9 +164,10 @@ struct PhotoCardsTile: View {
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
+        // as low as the decks' tiles and as wide, so the cell never cuts it
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityIdentifier("pictureFromPhoto")
-        .wardButtonRow()
+        .wardCardRow()
     }
 }
 

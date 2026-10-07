@@ -53,7 +53,7 @@ struct CustomSessionSheet: View {
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Take")
-                .listRowBackground(Color.clear)
+                .wardCardRow()
             }
             Section {
                 Toggle("Missed this week", isOn: missedThisWeek)
@@ -85,7 +85,7 @@ struct CustomSessionSheet: View {
                 Section {
                     WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: note)
                 }
-                .listRowBackground(Color.clear)
+                .wardWellRow()
             }
             // room to scroll clear of the bar
             Color.clear.frame(height: 110)

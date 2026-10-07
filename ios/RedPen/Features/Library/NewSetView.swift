@@ -484,8 +484,7 @@ struct NewSetView: View {
             TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))
                 .font(.body)
                 .wardField()
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .wardWellRow()
         } header: {
             WardSectionLabel("Name your set")
         }
@@ -611,7 +610,7 @@ struct NewSetView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("From")
-            .listRowBackground(Color.clear)
+            .wardCardRow()
             .onChange(of: importSource) { _, _ in importError = nil }
             if let readingFile {
                 HStack(spacing: 12) {
@@ -624,8 +623,7 @@ struct NewSetView: View {
                 .accessibilityElement(children: .combine)
             } else if let importError {
                 WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: importError)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .wardWellRow()
             } else {
                 Label(importSource.help, systemImage: importSource.symbol)
                     .font(.footnote)

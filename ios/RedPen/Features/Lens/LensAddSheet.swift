@@ -53,8 +53,7 @@ struct LensAddSheet: View {
                     Section {
                         WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: problem)
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    .wardWellRow()
                 }
             }
             .wardForm()

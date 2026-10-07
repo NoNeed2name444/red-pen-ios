@@ -188,8 +188,7 @@ struct LabRangesSheet: View {
                 Section {
                     WardUnitsPicker(conventional: $conventional)
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .wardCardRow()
                 LabRangesSections(query: query, conventional: conventional)
             }
             .wardForm()

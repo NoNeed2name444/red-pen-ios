@@ -408,8 +408,7 @@ struct AnalyticsView: View {
                                     target: goal.target, streak: log.streak)
         return Section {
             monitor
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
+                .wardCardRow()
         }
     }
 
@@ -467,8 +466,7 @@ struct AnalyticsView: View {
                                onDrill: { subject in startQuiz(store.drill(subject: subject)) })
         return Section {
             card
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
+                .wardCardRow()
         }
     }
 

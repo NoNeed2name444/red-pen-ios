@@ -21,7 +21,8 @@ struct RhythmMonitor: View {
     let streak: Int
 
     var body: some View {
-        MonitorCard {
+        // a List row: the bezel as low as the tiles round it
+        MonitorCard(lift: .low) {
             VStack(alignment: .leading, spacing: WardSpace.m) {
                 Text("Study rhythm \u{00B7} " + reading.words)
                     .wardSmallCaps()
@@ -213,7 +214,8 @@ struct ConsultCard: View {
                 treatButton(first)
             }
         }
-        .wardCard()
+        // a List row: as low as the tiles round it, the button proud of it
+        .wardCard(lift: .low)
     }
 
     private func chip(_ spot: BedPlan.Topic) -> some View {

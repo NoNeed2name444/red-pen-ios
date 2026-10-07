@@ -78,8 +78,7 @@ struct AccountView: View {
                               isPro: subscriptions.isPro) {
                 headerButton
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            .wardCardRow()
         }
     }
 
@@ -281,7 +280,8 @@ private struct AccountHeaderCard<Action: View>: View {
             }
             action
         }
-        .wardCard()
+        // as low as the tiles round it, the button proud of it
+        .wardCard(lift: .low)
     }
 
     private func identity(_ person: Account) -> some View {

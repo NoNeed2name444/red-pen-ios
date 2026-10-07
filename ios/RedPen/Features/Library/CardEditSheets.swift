@@ -156,7 +156,7 @@ struct QuestionEditSheet: View {
                     .onDelete { offsets in working = MCQEdit.removing(offsets, from: working) }
                     Button("Add an option", systemImage: "plus") { working.options.append("") }
                         .buttonStyle(.bigSecondary)
-                        .listRowBackground(Color.clear)
+                        .wardButtonRow()
                 } header: {
                     Text("Options")
                 } footer: {
@@ -241,8 +241,7 @@ struct QuestionEditSheet: View {
             .hoverEffect(.highlight)
             .accessibilityLabel("Delete option")
         }
-        .listRowBackground(Color.clear)
-        .listRowInsets(PopOutField.rowInsets)
+        .wardWellRow()
     }
 
     /// The words of one option, checked against the list each time, so a row

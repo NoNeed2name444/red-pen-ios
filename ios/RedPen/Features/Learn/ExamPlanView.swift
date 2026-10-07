@@ -33,13 +33,10 @@ struct ExamPlanView: View {
                 Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
             }
             .wardRowBackground()
-            // the tile is its own card, so no list row behind it; it stands
-            // where the tiles do, clear of the cell's edges by its lights
+            // the tile is its own card, so no list row behind it
             Section {
                 WardRoundTile()
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-                    .listRowSeparator(.hidden)
+                    .wardCardRow()
             }
             // the chosen exam: countdown, blueprint coverage, readiness, study next
             Section {

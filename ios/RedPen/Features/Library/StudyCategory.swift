@@ -452,8 +452,9 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 
 // MARK: - The pieces on screen
 
-/// One feature, as a tile: a soft card raised off the base, the symbol in
-/// its colour in a small well pressed into it, a name and one line.
+/// One feature, as a tile: the symbol in its colour in a small well, a name
+/// and one line. Its face is its button's: a soft tile raised low off the
+/// base, pressed in under the finger (PopTileStyle).
 struct FeatureTile: View {
     let feature: CategoryFeature
     let tint: Color
@@ -485,7 +486,6 @@ struct FeatureTile: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-        .wardRaised(in: shape)
         .contentShape(shape)
         .accessibilityElement(children: .combine)
     }

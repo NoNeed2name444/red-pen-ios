@@ -83,10 +83,15 @@ struct WardCardStyle: ViewModifier {
 }
 
 /// The vitals monitor: a dark well (Chart Ink in both modes, light text on
-/// it) pressed into a raised bezel.
+/// it) pressed into a raised bezel. In a List row the bezel stands as low
+/// as the tiles do (`.low`, with wardCardRow).
 struct MonitorCard<Content: View>: View {
+    private let lift: WardLift
     private let content: Content
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    init(lift: WardLift = .mid, @ViewBuilder content: () -> Content) {
+        self.lift = lift
+        self.content = content()
+    }
 
     var body: some View {
         let bezel: CGFloat = 6
@@ -98,7 +103,7 @@ struct MonitorCard<Content: View>: View {
                        fill: .wardMonitor)
             .environment(\.colorScheme, .dark)
             .padding(bezel)
-            .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+            .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: lift)
     }
 }
 
@@ -115,6 +120,9 @@ struct WardRowTile: View {
     /// A row that is one big raised button: as far in on every side as the
     /// highest button's lights reach, so the cell never cuts them.
     static let buttonInsets = EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
+    /// A row that is a card of its own, raised as low as the tiles: its
+    /// edges where the tiles' are, its lights clear of the cell's.
+    static let cardInsets = EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
 
     var body: some View {
         WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous),
@@ -191,6 +199,26 @@ extension View {
         self
             .listRowBackground(Color.clear)
             .listRowInsets(WardRowTile.buttonInsets)
+            .listRowSeparator(.hidden)
+    }
+
+    /// A List or Form row that is a card of its own (wardCard or a
+    /// MonitorCard, lifted `.low`): no tile under it, and it stands where
+    /// the tiles do. A card lifted higher would be cut by the cell.
+    func wardCardRow() -> some View {
+        self
+            .listRowBackground(Color.clear)
+            .listRowInsets(WardRowTile.cardInsets)
+            .listRowSeparator(.hidden)
+    }
+
+    /// A List or Form row that is a well of its own (a WardBanner, a
+    /// field): pressed into the base rather than into a tile, its edges
+    /// where the tiles' are and its words where theirs are.
+    func wardWellRow() -> some View {
+        self
+            .listRowBackground(Color.clear)
+            .listRowInsets(PopOutField.rowInsets)
             .listRowSeparator(.hidden)
     }
 }

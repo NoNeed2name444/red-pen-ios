@@ -46,7 +46,8 @@ extension LibraryView {
                             .frame(minHeight: 44, alignment: .leading)
                     }
                     .accessibilityIdentifier("morePractise")
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    // its words where the rows' words are
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 }
@@ -68,17 +69,16 @@ extension LibraryView {
         }
     }
 
-    /// Tiles two across a phone, more on a wider window, in one clear row.
+    /// Tiles two across a phone, more on a wider window, in one clear row:
+    /// raised as low as the rows' tiles, their edges where theirs are, so
+    /// the cell never cuts their lights.
     private func tileGrid(_ features: [CategoryFeature]) -> some View {
         LazyVGrid(columns: tileColumns, spacing: 12) {
             ForEach(features) { feature in
                 tileButton(feature)
             }
         }
-        .padding(.vertical, 4)
-        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .wardCardRow()
     }
 
     private func tileButton(_ feature: CategoryFeature) -> some View {
@@ -87,9 +87,9 @@ extension LibraryView {
             FeatureTile(feature: feature, tint: category.tint, detail: line)
         }
         // a style of its own, so each tile in the one list row is its own
-        // button rather than the row being one; it gives a little under the
+        // button rather than the row being one; it is pressed in under the
         // finger
-        .buttonStyle(.pressableRow)
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         // the page this tile opens zooms out of it (featurePageView)
         .skyZoomSource(Self.zoomID(feature))
         .accessibilityIdentifier("feature-\(feature.rawValue)")

@@ -59,9 +59,10 @@ struct TagChipsField: View {
                             .accessibilityLabel("Add tag \(tag)")
                         }
                     }
-                    // room inside the scroll view for the chips' lights
+                    // room inside the scroll view for the chips' lights,
+                    // which it would cut
                     .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 6)
                 }
                 .padding(.horizontal, -6)
             }

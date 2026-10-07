@@ -61,7 +61,7 @@ struct PopOutCues: OptionSet, Sendable {
 }
 
 enum PopOutField {
-    static let rowInsets = EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
+    static let rowInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     static let insets = EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
 }
 
@@ -70,13 +70,14 @@ struct PopTileStyle: ButtonStyle {
     var plane: PopOutPlane = .raised
     var tint: Color? = nil
     var selected = false
+    var lift: WardLift? = nil
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return configuration.label
             .contentShape(shape)
             .modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: configuration.isPressed || selected,
-                                          dims: true))
+                                          dims: true, chosenLift: lift))
     }
 }
 
@@ -88,11 +89,13 @@ private struct PopOutReliefStandIn<S: InsettableShape>: ViewModifier {
     let shape: S
     let pressed: Bool
     var dims = false
+    var chosenLift: WardLift? = nil
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
-        let lift: WardLift = plane == .hero ? .peak : plane == .floating ? .high : plane == .raised ? .mid : .low
+        let own: WardLift = plane == .hero ? .peak : plane == .floating ? .high : plane == .raised ? .mid : .low
+        let lift: WardLift = chosenLift ?? own
         let deep: Bool = plane == .deep
         return content
             .opacity(enabled || !dims ? 1 : 0.55)
@@ -116,9 +119,10 @@ extension ButtonStyle where Self == PopTileStyle {
 extension View {
     @ViewBuilder
     func popOut<S: InsettableShape>(_ plane: PopOutPlane, in shape: S, tint: Color? = nil,
-                                    pressed: Bool = false, cues: PopOutCues = .all) -> some View {
+                                    pressed: Bool = false, cues: PopOutCues = .all,
+                                    lift: WardLift? = nil) -> some View {
         if plane != .screen && cues.shapesRelief {
-            modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: pressed))
+            modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: pressed, chosenLift: lift))
         } else {
             self
         }

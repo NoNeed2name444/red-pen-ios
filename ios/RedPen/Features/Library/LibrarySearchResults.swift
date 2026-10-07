@@ -26,7 +26,8 @@ extension LibraryView {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Search in")
             .accessibilityIdentifier("searchScope")
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            // the first chip's edge where the tiles' are
+            .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         }

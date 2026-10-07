@@ -160,9 +160,12 @@ extension View {
     /// disabled control lies low). `pressed` sinks it into the base.
     /// `tint` is accepted for callers written for the glass slabs; every
     /// face is shaped from the base, so a tint says itself on the content.
+    /// `lift` stands the relief lower (or higher) than the plane's own
+    /// where there is no room for it; the surface still moves as its plane.
     func popOut<S: InsettableShape>(_ plane: PopOutPlane, in shape: S, tint: Color? = nil,
-                                    pressed: Bool = false, cues: PopOutCues = .all) -> some View {
-        modifier(PopOutModifier(plane: plane, shape: shape, pressed: pressed, cues: cues))
+                                    pressed: Bool = false, cues: PopOutCues = .all,
+                                    lift: WardLift? = nil) -> some View {
+        modifier(PopOutModifier(plane: plane, shape: shape, pressed: pressed, cues: cues, lift: lift))
     }
 
     /// Shapes this surface at `plane`, in a 20-point rounded rectangle.
@@ -238,8 +241,9 @@ extension View {
 
 /// Shared numbers for fields.
 enum PopOutField {
-    /// Room round a field row, so its well sits clear of the row's edges.
-    static let rowInsets = EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
+    /// Room round a field row: its well's edges where the tiles' are (8 in
+    /// from the cell) and, with `insets`, its words where theirs are.
+    static let rowInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     /// Room inside a field's well: a multi-line field never touches its wall.
     static let insets = EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
 }
@@ -254,17 +258,22 @@ struct PopTileStyle: ButtonStyle {
     var tint: Color? = nil
     /// The chosen one of a set: pressed in until another is chosen.
     var selected = false
+    /// The relief's lift in place of the plane's: `.low` for a tile in a
+    /// List row, which cuts anything that reaches further.
+    var lift: WardLift? = nil
 
-    init(cornerRadius: CGFloat = 20, plane: PopOutPlane = .raised, tint: Color? = nil, selected: Bool = false) {
+    init(cornerRadius: CGFloat = 20, plane: PopOutPlane = .raised, tint: Color? = nil, selected: Bool = false,
+         lift: WardLift? = nil) {
         self.cornerRadius = cornerRadius
         self.plane = plane
         self.tint = tint
         self.selected = selected
+        self.lift = lift
     }
 
     func makeBody(configuration: Configuration) -> some View {
         PopTileFace(label: configuration.label, isPressed: configuration.isPressed,
-                    selected: selected, cornerRadius: cornerRadius, plane: plane)
+                    selected: selected, cornerRadius: cornerRadius, plane: plane, lift: lift)
     }
 }
 
@@ -278,6 +287,7 @@ private struct PopTileFace: View {
     let selected: Bool
     let cornerRadius: CGFloat
     let plane: PopOutPlane
+    let lift: WardLift?
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
@@ -285,7 +295,7 @@ private struct PopTileFace: View {
         label
             .opacity(isEnabled ? 1 : 0.55)
             .contentShape(shape)
-            .popOut(plane, in: shape, pressed: isPressed || selected)
+            .popOut(plane, in: shape, pressed: isPressed || selected, lift: lift)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
     }
@@ -383,6 +393,7 @@ private struct PopOutModifier<S: InsettableShape>: ViewModifier {
     let shape: S
     let pressed: Bool
     let cues: PopOutCues
+    let lift: WardLift?
 
     @Environment(\.popOutBase) private var base
     @Environment(\.windowSpan) private var span
@@ -400,7 +411,7 @@ private struct PopOutModifier<S: InsettableShape>: ViewModifier {
             // under the content and moving with it
             .background {
                 if shows {
-                    PopOutRelief(shape: shape, plane: plane, pressed: pressed, enabled: isEnabled)
+                    PopOutRelief(shape: shape, plane: plane, pressed: pressed, enabled: isEnabled, chosenLift: lift)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
@@ -425,16 +436,23 @@ struct PopOutSetup: Equatable {
 }
 
 /// A surface's relief, by its plane: a well on the deep plane, nothing on
-/// the screen plane, raised above it, higher with each plane. Held, it
-/// sinks one lift nearer the base; disabled, it lies low and faint.
+/// the screen plane, raised above it, higher with each plane (or as high as
+/// `chosenLift`). Held, it sinks one lift nearer the base; disabled, it
+/// lies low and faint.
 private struct PopOutRelief<S: InsettableShape>: View {
     let shape: S
     let plane: PopOutPlane
     let pressed: Bool
     let enabled: Bool
+    let chosenLift: WardLift?
+
+    private var reliefLift: WardLift? {
+        guard let own = PopOutTuning.relief(plane) else { return nil }
+        return chosenLift ?? own
+    }
 
     var body: some View {
-        if let lift = PopOutTuning.relief(plane) {
+        if let lift = reliefLift {
             if plane == .deep {
                 WardReliefFace(shape: shape, lift: lift, inset: true)
             } else if !enabled {
