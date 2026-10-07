@@ -102,6 +102,14 @@ enum AccuracyFix {
             .filter { !$0.isEmpty }
     }
 
+    /// Every set in `library` that holds the item, corrected. A question
+    /// practised from "Mistakes" keeps its id in both sets (so the practice
+    /// counts towards the original), and a key fixed in one copy only would
+    /// leave the other teaching the wrong answer.
+    static func applyEverywhere(_ s: AccuracySuggestion, toItem itemID: String, in library: [StudySet]) -> [StudySet] {
+        library.compactMap { apply(s, toItem: itemID, in: $0) }
+    }
+
     /// The set with the correction made to the item `itemID`, or nil when it
     /// does not apply. Editing the item changes its hash, so it is checked again.
     static func apply(_ s: AccuracySuggestion, toItem itemID: String, in set: StudySet) -> StudySet? {

@@ -52,23 +52,67 @@ export function parseTerms(reply) {
   }
 }
 
-async function getJSON(url, fetcher) {
-  const text = await getText(url, fetcher);
+async function getJSON(url, fetcher, sendAs = url) {
+  const text = await getText(url, fetcher, sendAs);
   try { return text ? JSON.parse(text) : null; } catch { return null; }
 }
 
-async function getText(url, fetcher) {
+// Answers already fetched, kept in this isolate for the same day. The edge
+// cache (caches.default) does nothing on a workers.dev host, which is the one
+// the app calls, so without this every batch asked the same sources again.
+// Kept per fetcher, so one service's answers are never handed to another
+// (the worker always passes fetch, tests their own fakes).
+const MEMORY_ENTRIES = 300;
+let memories = new WeakMap();
+const memoryOf = fetcher => {
+  if (!memories.has(fetcher)) memories.set(fetcher, new Map());
+  return memories.get(fetcher);
+};
+
+function recall(remembered, url, at = Date.now()) {
+  const hit = remembered.get(url);
+  if (!hit) return null;
+  if (at - hit.at > CACHE_SECONDS * 1000) { remembered.delete(url); return null; }
+  // most recently used last, so the oldest is the one dropped
+  remembered.delete(url);
+  remembered.set(url, hit);
+  return hit.text;
+}
+
+function remember(remembered, url, text, at = Date.now()) {
+  remembered.delete(url);
+  remembered.set(url, { text, at });
+  while (remembered.size > MEMORY_ENTRIES) remembered.delete(remembered.keys().next().value);
+}
+
+/// Tests only: start from an empty memory.
+export function forgetEvidence() { memories = new WeakMap(); }
+
+// openFDA allows 1,000 calls a day per address without a key and 120,000
+// with one (free, from open.fda.gov). worker.js passes env.OPENFDA_API_KEY.
+let openFDAKey = '';
+export function useOpenFDAKey(key) { openFDAKey = typeof key === 'string' ? key.trim() : ''; }
+
+async function getText(url, fetcher, sendAs = url) {
+  const remembered = memoryOf(fetcher);
+  const known = recall(remembered, url);
+  if (known !== null) return known;
   const cache = globalThis.caches?.default;
   if (cache) {
     const hit = await cache.match(url).catch(() => null);
-    if (hit) return hit.text();
+    if (hit) {
+      const text = await hit.text();
+      remember(remembered, url, text);
+      return text;
+    }
   }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetcher(url, { signal: controller.signal, headers: { 'user-agent': 'CramDown/1.0 (study app)' } });
+    const response = await fetcher(sendAs, { signal: controller.signal, headers: { 'user-agent': 'CramDown/1.0 (study app)' } });
     if (!response.ok) return null;
     const text = await response.text();
+    remember(remembered, url, text);
     if (cache) {
       await cache.put(url, new Response(text, { headers: { 'cache-control': `max-age=${CACHE_SECONDS}` } })).catch(() => {});
     }
@@ -117,7 +161,8 @@ export async function medlinePlus(query, fetcher = fetch) {
 /// openFDA: the current label of a drug, the parts a question would test.
 export async function openFDA(drug, fetcher = fetch) {
   const url = `https://api.fda.gov/drug/label.json?search=openfda.generic_name:%22${encodeURIComponent(drug)}%22&limit=1`;
-  const data = await getJSON(url, fetcher);
+  // cached under the address without the key, so the key is never stored
+  const data = await getJSON(url, fetcher, openFDAKey ? `${url}&api_key=${encodeURIComponent(openFDAKey)}` : url);
   const label = data?.results?.[0];
   if (!label) return [];
   const part = key => trim(unhtml((label[key] || []).join(' ')), 350);

@@ -36,13 +36,21 @@ struct TwinQueue: Codable, Hashable {
         return 2
     }
 
+    /// The start of the day `days` days after `now`, on the student's
+    /// calendar: "tomorrow" for a miss at nine at night is tomorrow morning,
+    /// not nine tomorrow night.
+    static func dueDate(after now: Date, days: Int, calendar: Calendar = .current) -> Date {
+        let today: Date = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: days, to: today) ?? now.addingTimeInterval(Double(days) * 86_400)
+    }
+
     /// Adds a twin; one per missed question - a newer twin replaces an
     /// unanswered older one for the same parent.
     mutating func add(twin id: UUID, parent: UUID, now: Date = Date(), confident: Bool = false,
-                      guessed: Bool = false) {
+                      guessed: Bool = false, calendar: Calendar = .current) {
         entries.removeAll { $0.parentId == parent && $0.answeredAt == nil }
         let days: Int = Self.delayDays(confident: confident, guessed: guessed)
-        let due: Date = now.addingTimeInterval(Double(days) * 86_400)
+        let due: Date = Self.dueDate(after: now, days: days, calendar: calendar)
         entries.append(TwinEntry(id: id, parentId: parent, createdAt: now, dueAt: due))
     }
 
@@ -64,7 +72,7 @@ struct TwinQueue: Codable, Hashable {
 
     /// Records the twin's answer. A missed twin comes back once more, a day
     /// later, rather than leaving the queue.
-    mutating func answered(_ id: UUID, correct: Bool, now: Date = Date()) {
+    mutating func answered(_ id: UUID, correct: Bool, now: Date = Date(), calendar: Calendar = .current) {
         guard let i = entries.firstIndex(where: { $0.id == id && $0.answeredAt == nil }) else { return }
         if correct {
             entries[i].answeredAt = now
@@ -74,7 +82,7 @@ struct TwinQueue: Codable, Hashable {
             entries[i].answeredAt = now
         } else {
             entries[i].answeredCorrectly = false
-            entries[i].dueAt = now.addingTimeInterval(86_400)
+            entries[i].dueAt = Self.dueDate(after: now, days: 1, calendar: calendar)
         }
     }
 
@@ -91,6 +99,25 @@ enum TwinRetest {
 
     static func slot(after current: Int, count: Int) -> Int {
         min(current + 1 + gap, count)
+    }
+
+    /// The slots of a sitting that are a question's first showing; a
+    /// re-test repeats an id already seen.
+    static func firstShowings(_ ids: [UUID]) -> [Int] {
+        var seen = Set<UUID>()
+        return ids.indices.filter { seen.insert(ids[$0]).inserted }
+    }
+
+    /// A sitting with its re-tests taken out: each question's first answer
+    /// and option order, in the set's own order, and the position as the
+    /// next of the set's own questions. A re-test is practice straight after
+    /// a miss, not a second question: it must not score, and the place it
+    /// leaves is the set's, so a sitting with one in can still be resumed.
+    static func collapse<Answer>(ids: [UUID], answers: [Answer], orders: [[Int]],
+                                 current: Int) -> (answers: [Answer], orders: [[Int]], current: Int) {
+        let keep: [Int] = firstShowings(ids).filter { $0 < answers.count && $0 < orders.count }
+        let at: Int = keep.filter { $0 < current }.count
+        return (keep.map { answers[$0] }, keep.map { orders[$0] }, min(at, max(0, keep.count - 1)))
     }
 }
 

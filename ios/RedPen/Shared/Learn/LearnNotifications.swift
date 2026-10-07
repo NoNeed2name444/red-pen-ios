@@ -24,6 +24,18 @@ enum LearnNotifications {
     /// (RedPenApp); weak so a screenshot run's throwaway store can go.
     static weak var store: Store?
 
+    /// Opens a link from a tapped notification (the review reminder, a set
+    /// that is ready); set by the router once it is on screen. A tap that
+    /// launched the app waits here for it (audit #7).
+    static var openLink: (@MainActor (AppLink) -> Void)? {
+        didSet {
+            guard let openLink, let link = waitingLink else { return }
+            waitingLink = nil
+            openLink(link)
+        }
+    }
+    private static var waitingLink: AppLink?
+
     /// The one line that makes the app the notification centre's delegate,
     /// with the store answers go to. Call from the app's init, before launch
     /// finishes, so an answer tapped while the app was not running is
@@ -150,7 +162,8 @@ enum LearnNotifications {
         case "morning":
             LearnRouter.shared.open(.morningCheck)
         default:
-            break
+            guard let link = AppLink.fromNotification(fields) else { break }
+            if let openLink { openLink(link) } else { waitingLink = link }
         }
     }
 

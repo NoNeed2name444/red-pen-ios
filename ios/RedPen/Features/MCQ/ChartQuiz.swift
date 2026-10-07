@@ -127,8 +127,10 @@ enum ChartQuiz {
     /// reason given.
     static func primaryTitle(checked: Bool, picked: Bool, holding: Bool, examMode: Bool, last: Bool) -> String {
         if holding && !checked { return "Keep reading" }
+        // a paper is sat as on the day: a question can be skipped and come
+        // back to, and nothing is marked until the paper is handed in
+        if examMode && !checked { return last ? "Finish paper" : (picked ? "Next patient" : "Skip for now") }
         if !checked && !picked { return "Pick an answer" }
-        if examMode && !checked { return last ? "Finish paper" : "Next patient" }
         if !checked { return "Check answer" }
         return last ? "See results" : "Next patient"
     }

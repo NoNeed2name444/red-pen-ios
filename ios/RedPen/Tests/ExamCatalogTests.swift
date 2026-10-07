@@ -58,6 +58,12 @@ let ck: TargetExam = ExamCatalog.step2ck
 check("Step 2 CK: normalised from the published midpoints", near(ck.percent(.ethics), 12.5 / 112.5 * 100))
 check("MRCP Part 1 is out of 200", near(ExamCatalog.mrcp1.totalWeight, 200) && near(ExamCatalog.mrcp1.percent(.cardio), 7.5))
 check("NEET-PG: four options, negative marking", ExamCatalog.neetpg.options == 4 && ExamCatalog.neetpg.negativeMarking != nil)
+check("a kept AI coverage check is filed per picked exam, not per track",
+      CoverageScope.key(track: .general, exam: "neetpg+") != CoverageScope.key(track: .general, exam: "fmge+")
+      && CoverageScope.key(track: .general) == ExamTrack.general.rawValue
+      && !CoverageScope.key(track: .general, exam: "a/b").contains("/"))
+check("the catalog's marking lines are read as numbers", MockMarking.penalty(ExamCatalog.neetpg.negativeMarking) == 0.25
+      && abs(MockMarking.penalty(ExamCatalog.inicet.negativeMarking) - 1.0 / 3) < 1e-9 && MockMarking.penalty(ExamCatalog.plab1.negativeMarking) == 0)
 check("FMGE passes at 50%", near(ExamCatalog.fmge.passMark, 0.5))
 check("Step 2 CK and 3 are stricter than Step 1", ck.accuracyStrictness > step1.accuracyStrictness
       && ExamCatalog.step3.accuracyStrictness >= ck.accuracyStrictness)

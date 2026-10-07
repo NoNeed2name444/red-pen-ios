@@ -115,7 +115,12 @@ check("rated when due, the interval grows as before",
 // later and rated Good, leaves the sitting instead of looping at 10 minutes
 let stepped = ReviewPlan.after(rating: .good, record: ReviewRecord(due: now, intervalMin: 0), now: now)
 let steppedAgain = ReviewPlan.after(rating: .good, record: stepped, now: now.addingTimeInterval(60))
-check("a learning step shown early still moves on", steppedAgain.intervalMin == 25, "\(steppedAgain.intervalMin)")
+check("a learning step shown early still moves on, out of learning", steppedAgain.intervalMin == AnkiScheduler.graduatingMin, "\(steppedAgain.intervalMin)")
+// Good, Good, Good from new: ten minutes, then tomorrow, then 2.5 days -
+// not a week of same-day reviews at 25 min, an hour, 2.6 h, 6.5 h, 16 h
+let goods: [Double] = [0, 10, 1440].map { AnkiScheduler.nextInterval(rating: .good, currentIntervalMin: $0) }
+check("Good graduates a card on its last learning step, as Anki does", goods == [10, 1440, 3600], "\(goods)")
+check("Hard on a learning step stays a learning step", AnkiScheduler.nextInterval(rating: .hard, currentIntervalMin: 10) < 1440)
 
 // the buttons promise what an early rating stores
 let promisedEarly = ReviewPlan.previewLabels(for: earnedMonth, now: now, exam: nil)

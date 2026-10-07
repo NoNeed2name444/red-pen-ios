@@ -46,6 +46,8 @@ enum DiagnosticsRuntime {
         #if canImport(MetricKit)
         MetricKitBridge.shared.start()
         #endif
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification,
+                                               object: nil, queue: nil) { _ in Diagnostics.center.terminating() }
     }
 
     /// Keeps the running marker in step, and sends a little after the app
@@ -202,14 +204,17 @@ enum DiagnosticsDevice {
     /// Which kind of build this is, so the owner can tell a Playgrounds
     /// build (no dSYMs, so no symbols) from an Xcode one.
     static var flavour: String {
-        if PersonalBuild.isOn { return "personal" }
         #if SWIFT_PACKAGE
-        return "playgrounds"
-        #elseif DEBUG
-        return "dev"
+        let package = true
         #else
-        return "store"
+        let package = false
         #endif
+        #if DEBUG
+        let debug = true
+        #else
+        let debug = false
+        #endif
+        return DiagDevice.flavour(personal: PersonalBuild.isOn, package: package, debug: debug)
     }
 
     /// "iPhone17,3" - the model, never the name somebody gave their phone.

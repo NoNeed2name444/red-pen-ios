@@ -25,6 +25,13 @@ final class LectureImporter: ObservableObject {
     /// True while Gemini has the recording, so the screen says where it went.
     @Published var inCloud = false
 
+    /// Whether the Narrate screen is showing; it says so as it comes and
+    /// goes. A transcript finishing after it has gone is handed to `keep`,
+    /// which saves it to the set: nobody is left to adopt `produced`, and the
+    /// Gemini chunks it was made from are already deleted (audit #70).
+    var onScreen = true
+    var keep: (@MainActor ([NarrateSegment], LectureLanguage) -> Void)?
+
     /// Who does the listening.
     enum Engine { case cloud, device }
 
@@ -61,15 +68,13 @@ final class LectureImporter: ObservableObject {
         }
     }
 
-    /// The lecture's own slide terms first, so Gemini spells them as the
-    /// slides do.
+    /// The lecture's own slide terms, so Gemini spells them as the slides do.
     static func vocabulary(for set: StudySet) -> [String] {
-        CloudTranscript.vocabulary(from: set.sources.flatMap { $0.pages.map(\.text) },
-                                   extra: MedicalTerms.common)
+        CloudTranscript.lectureTerms(slides: set.sources.flatMap { $0.pages.map(\.text) })
     }
 
     func transcribe(_ url: URL, learned: PronunciationLibrary,
-                    engine: Engine = .cloud, vocabulary: [String] = MedicalTerms.common) async {
+                    engine: Engine = .cloud, vocabulary: [String] = []) async {
         trouble = nil
         notice = nil
         do {
@@ -122,6 +127,7 @@ final class LectureImporter: ObservableObject {
             _ = learned.applyLearned(to: &texts)
             for i in segments.indices { segments[i].text = texts[i] }
 
+            if !onScreen { keep?(segments, language) }
             produced = segments
             working = nil
         } catch {

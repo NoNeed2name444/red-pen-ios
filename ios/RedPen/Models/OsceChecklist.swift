@@ -37,6 +37,16 @@ struct OsceRun: Hashable {
     /// How many times the station was started over.
     var restarts: Int { misses.count }
 
+    /// Where to pick a set back up after this run of station `station` (of
+    /// `count`): here, part way through; the next station from its first
+    /// step once this one is done; nil once the last is done. Saved as this
+    /// station's place, a finished station reopened on its last step.
+    func resumePoint(station: Int, of count: Int) -> (station: Int, step: Int, misses: [Int])? {
+        guard complete else { return (station, stepIndex, misses) }
+        guard station + 1 < count else { return nil }
+        return (station + 1, 0, [])
+    }
+
     /// Got the step: on to the next one, or done after the last.
     mutating func gotIt() {
         guard !complete else { return }

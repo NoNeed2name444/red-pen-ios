@@ -196,8 +196,10 @@ final class SpotlightIndexer {
         UserDefaults.standard.object(forKey: key) as? Bool ?? true
     }
 
-    /// What was last sent, per set: "name|kind|count".
+    /// What Spotlight confirmed holding, per set: "name|kind|count".
     private var indexed: [UUID: String] = SpotlightIndexer.loadIndexed()
+    /// What the run in flight is sending, so a repeat call does not restart it.
+    private var pending: [UUID: String]?
     private var running: Task<Void, Never>?
     private var subjects: [String] = []
 
@@ -207,28 +209,39 @@ final class SpotlightIndexer {
             return
         }
         var now: [UUID: String] = [:]
-        var changed: [StudySetEntity] = []
+        var entities: [StudySetEntity] = []
         for set in library {
             let entity = StudySetEntity(set)
-            let signature: String = entity.name + "|" + entity.kind + "|" + String(entity.cards)
-            now[set.id] = signature
-            if indexed[set.id] != signature { changed.append(entity) }
+            now[set.id] = entity.name + "|" + entity.kind + "|" + String(entity.cards)
+            entities.append(entity)
         }
-        let gone: [UUID] = indexed.keys.filter { now[$0] == nil }
         refreshPhrases(library)
+        let plan = SpotlightPlan.diff(confirmed: indexed, now: now)
+        let changed: [StudySetEntity] = entities.filter { plan.changed.contains($0.id) }
+        let gone: [UUID] = plan.gone
         guard !changed.isEmpty || !gone.isEmpty else { return }
-        indexed = now
+        guard pending != now else { return }
+        // Nothing counts as indexed until Spotlight has it: a run cancelled
+        // by the next one leaves its sets unconfirmed, so that run sends them.
+        pending = now
         let snapshot: [UUID: String] = now
         running?.cancel()
         running = Task.detached(priority: .background) {
-            await SpotlightIndexer.send(changed, removing: gone)
+            guard await SpotlightIndexer.send(changed, removing: gone) else { return }
             SpotlightIndexer.saveIndexed(snapshot)
+            await MainActor.run { SpotlightIndexer.shared.confirm(snapshot) }
         }
+    }
+
+    private func confirm(_ snapshot: [UUID: String]) {
+        indexed = snapshot
+        if pending == snapshot { pending = nil }
     }
 
     /// Everything out of Spotlight (the toggle turned off).
     func clear() {
         indexed = [:]
+        pending = nil
         running?.cancel()
         running = Task.detached(priority: .background) {
             try? await CSSearchableIndex.default().deleteAllSearchableItems()
@@ -246,19 +259,22 @@ final class SpotlightIndexer {
         RedPenShortcuts.updateAppShortcutParameters()
     }
 
-    nonisolated static func send(_ entities: [StudySetEntity], removing gone: [UUID]) async {
+    /// False when cancelled part way, so nothing is marked as indexed.
+    nonisolated static func send(_ entities: [StudySetEntity], removing gone: [UUID]) async -> Bool {
         let index = CSSearchableIndex.default()
         var start: Int = 0
         while start < entities.count {
-            if Task.isCancelled { return }
+            if Task.isCancelled { return false }
             let end: Int = min(start + 500, entities.count)
             let batch: [StudySetEntity] = Array(entities[start..<end])
             try? await index.indexAppEntities(batch)
             start = end
         }
+        if Task.isCancelled { return false }
         if !gone.isEmpty {
             try? await index.deleteAppEntities(identifiedBy: gone, ofType: StudySetEntity.self)
         }
+        return !Task.isCancelled
     }
 
     // MARK: what was sent, across launches

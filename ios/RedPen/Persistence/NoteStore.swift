@@ -103,8 +103,10 @@ extension NoteFolder {
 /// the disk.
 @MainActor
 final class NoteStore: ObservableObject {
-    @Published private(set) var notes: [Note] = []
+    @Published private(set) var notes: [Note] = [] { didSet { edgeCache = nil } }
     @Published private(set) var folders: [NoteFolder] = []
+    /// allEdges, kept until a note changes: the board draws them every frame.
+    private var edgeCache: [(UUID, UUID)]?
 
     private let fileURL: URL
     /// One queue, so two quick saves land in the order they were made.
@@ -348,18 +350,11 @@ final class NoteStore: ObservableObject {
     /// Every connection in the dump, each once, whichever way it was made -
     /// what the board and the 3D space draw.
     func allEdges() -> [(UUID, UUID)] {
+        if let edgeCache { return edgeCache }
         let index = titleIndex()
-        var seen = Set<String>()
-        var edges: [(UUID, UUID)] = []
-        for note in notes {
-            for other in outgoing(of: note.id, index: index) {
-                let pair = note.id.uuidString < other.uuidString ? (note.id, other) : (other, note.id)
-                if seen.insert(pair.0.uuidString + pair.1.uuidString).inserted {
-                    edges.append(pair)
-                }
-            }
-        }
-        return edges
+        let made = IdeaEdges.pairs(notes.map { (id: $0.id, to: $0.links + resolve(wikiLinksIn: $0.body, index: index)) })
+        edgeCache = made
+        return made
     }
 
     /// The titles written as `[[Title]]` in a body, trimmed. `[[Title|shown

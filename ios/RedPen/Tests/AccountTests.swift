@@ -94,6 +94,13 @@ check("never subscribed is free",
 let renewing = EntitlementRecord(plan: .yearly, expiresAt: now.addingTimeInterval(86_400),
                                  verifiedAt: now)
 check("a live subscription is pro", Entitlement.access(renewing, now: now).isPro)
+check("only the personal build opens Pro without a subscription",
+      Entitlement.unlocked(.free, personal: true) && !Entitlement.unlocked(.free, personal: false)
+      && Entitlement.unlocked(Entitlement.access(renewing, now: now), personal: false))
+check("the personal build's account line does not say 'No subscription yet'",
+      Entitlement.accountLine(.free, personal: true) == "Everything is unlocked in this build."
+      && Entitlement.accountLine(.free, personal: false) == "No subscription yet.")
+check("the status check asks for the group by id", SubscriptionPlan.groupID.allSatisfy(\.isNumber))
 
 // a bounced card is not a cancellation, and the month is already paid for
 let retrying = EntitlementRecord(plan: .monthly, expiresAt: now.addingTimeInterval(-86_400),

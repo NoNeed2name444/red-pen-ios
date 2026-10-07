@@ -80,24 +80,44 @@ check("unanswered are counted", result.unanswered == 1)
 check("50% does not pass a 60% mark", !result.passed)
 check("subjects are listed", result.bySubject.map(\.subject).sorted() == ["Cardio", "Renal"])
 check("renal answered once of twice", result.bySubject.first { $0.subject == "Renal" }?.answered == 1)
+// negative marking: one right, one wrong, one blank, one right
+check("NEET-PG's -1 of +4 is a quarter", abs(MockMarking.penalty("-1 of +4 for a wrong answer") - 0.25) < 1e-9)
+check("INI-CET's -1/3 is a third", abs(MockMarking.penalty("-1/3 for a wrong answer") - 1.0 / 3) < 1e-9)
+check("no negative marking costs nothing", MockMarking.penalty(nil) == 0)
+let neetResult = MockResult(marks: marks, passMark: 0.6, penalty: 0.25)
+check("a wrong answer costs a quarter of a mark", neetResult.wrong == 1 && abs(neetResult.fraction - 1.75 / 4) < 1e-9)
+check("a blank costs nothing", abs(MockResult(marks: [marks[2]], passMark: 0.5, penalty: 0.25).fraction) < 1e-9)
+check("the marked score never goes below nothing", MockResult(marks: [marks[1]], passMark: 0.5, penalty: 1).fraction == 0)
+let neetAdvice = MockMarking.guessAdvice(exam: "NEET-PG", marking: "-1 of +4 for a wrong answer", options: 4)
+check("NEET-PG: a blind guess still pays, so answer everything", neetAdvice.contains("answer every question") && !neetAdvice.contains("blank when"))
+let iniAdvice = MockMarking.guessAdvice(exam: "INI-CET", marking: "-1/3 for a wrong answer", options: 4)
+check("INI-CET: a blind guess breaks even", iniAdvice.contains("breaks even"))
+check("a full mark off: guess only down to two", MockMarking.guessAdvice(exam: "X", marking: "-1 for a wrong answer", options: 4).contains("down to 2 options"))
+check("no penalty: never leave a blank", MockMarking.guessAdvice(exam: "PLAB", marking: nil, options: 5).hasPrefix("Never leave one blank"))
 check("pacing: halfway through PLAB is Q90", MockPacing.target(elapsed: 5_400, questions: 180, minutes: 180) == 90)
 
 // MARK: twins
 
 var queue = TwinQueue()
-let now = Date(timeIntervalSince1970: 1_000_000)
+var utc = Calendar(identifier: .gregorian)
+utc.timeZone = TimeZone(identifier: "UTC")!
+let midnight = Date(timeIntervalSince1970: 1_000_000 - 1_000_000.truncatingRemainder(dividingBy: 86_400))
+let now = midnight.addingTimeInterval(21 * 3_600) // nine in the evening
 let parent = UUID(), twin = UUID()
-queue.add(twin: twin, parent: parent, now: now, confident: true)
-check("a confident mistake's twin is due in a day", queue.entries.first?.dueAt == now.addingTimeInterval(86_400))
+queue.add(twin: twin, parent: parent, now: now, confident: true, calendar: utc)
+check("a confident mistake's twin is due the next day, from its start",
+      queue.entries.first?.dueAt == midnight.addingTimeInterval(86_400))
+check("so an evening miss is ready the next morning",
+      queue.due(now: midnight.addingTimeInterval(86_400 + 7 * 3_600)).map(\.id) == [twin])
 check("not due at once", queue.due(now: now).isEmpty)
 check("due the next day", queue.due(now: now.addingTimeInterval(90_000)).map(\.id) == [twin])
 check("the question has a twin on the way", queue.hasTwin(for: parent))
 let twin2 = UUID()
-queue.add(twin: twin2, parent: parent, now: now, guessed: true)
+queue.add(twin: twin2, parent: parent, now: now, guessed: true, calendar: utc)
 check("one waiting twin per missed question", queue.waiting.map(\.id) == [twin2])
-check("a guess waits three days", queue.entries.first?.dueAt == now.addingTimeInterval(3 * 86_400))
+check("a guess waits three days", queue.entries.first?.dueAt == midnight.addingTimeInterval(3 * 86_400))
 let later = now.addingTimeInterval(4 * 86_400)
-queue.answered(twin2, correct: false, now: later)
+queue.answered(twin2, correct: false, now: later, calendar: utc)
 check("a missed twin comes back a day later", queue.due(now: later.addingTimeInterval(86_400)).map(\.id) == [twin2])
 queue.answered(twin2, correct: true, now: later.addingTimeInterval(86_400))
 check("a twin got right leaves the queue", queue.waiting.isEmpty && queue.isTwin(twin2))
@@ -105,6 +125,15 @@ queue.prune(keeping: [])
 check("twins gone from the library are forgotten", queue.entries.isEmpty)
 check("the re-test comes a few questions on", TwinRetest.slot(after: 2, count: 20) == 6)
 check("or at the end", TwinRetest.slot(after: 18, count: 20) == 20)
+let qa = UUID(), qb = UUID(), qc = UUID()
+check("a re-test is not a first showing", TwinRetest.firstShowings([qa, qb, qa, qc]) == [0, 1, 3])
+let folded = TwinRetest.collapse(ids: [qa, qb, qa, qc], answers: ["miss", "right", "retest", ""],
+                                 orders: [[0, 1], [1, 0], [1, 0], [0, 1]], current: 3)
+check("a re-test is left out of the answers kept", folded.answers == ["miss", "right", ""])
+check("its option order goes with it", folded.orders == [[0, 1], [1, 0], [0, 1]])
+check("the place is the set's own: question 3", folded.current == 2)
+check("standing on the re-test resumes at the next of the set's own",
+      TwinRetest.collapse(ids: [qa, qb, qa, qc], answers: ["a", "b", "c", "d"], orders: [[], [], [], []], current: 2).current == 2)
 
 let input = TwinPrompt.input(stem: "A 24-year-old woman has palpitations.", options: ["Graves disease", "Toxic adenoma"],
                              correctIndex: 0, explanation: "Diffuse uptake.", picked: 1, reason: "Mixed up lookalikes")
@@ -148,6 +177,13 @@ cache.store("one", for: hid)
 check("a hint is kept", cache.hint(for: hid) == "one")
 for _ in 0..<(HintCache.cap + 5) { cache.store("x", for: UUID()) }
 check("the oldest go past the cap", cache.hint(for: hid) == nil && cache.hints.count == HintCache.cap)
+var fixed = HintCache()
+let before = HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "A")
+let after = HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "B")
+fixed.store("points to A", for: hid, version: before)
+check("a hint is kept for the wording it was written for", fixed.hint(for: hid, version: before) == "points to A")
+check("a corrected key does not get the old hint", before != after && fixed.hint(for: hid, version: after) == nil)
+check("the fingerprint is the same every launch", before == HintCache.version(stem: "Which drug?", options: ["A", "B"], answer: "A"))
 
 // MARK: calculator
 

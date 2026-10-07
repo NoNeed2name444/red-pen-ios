@@ -140,6 +140,13 @@ enum CloudTranscript {
     /// Words from the lecture's own slides worth telling the model about:
     /// long, Latin-script and repeated, which is what a medical term on a
     /// slide looks like. The common list fills any room left.
+    /// What the prompt calls "terms from this lecture's slides": this
+    /// lecture's own, and nothing else. A built-in list (MedicalTerms is a
+    /// lupus lecture's) would tell Gemini a cardiology talk is about lupus.
+    static func lectureTerms(slides: [String]) -> [String] {
+        vocabulary(from: slides)
+    }
+
     static func vocabulary(from texts: [String], extra: [String] = [], limit: Int = 80) -> [String] {
         var counts: [String: Int] = [:]
         var spelling: [String: String] = [:]

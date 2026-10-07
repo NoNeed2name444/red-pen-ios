@@ -146,6 +146,14 @@ const today = new Date().toISOString().slice(0, 10);
   ins('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, ?)', 'a', day(at - 86400), 3);
   ins('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, ?)', 'gemini:billed', 'seen', 1);
   ins('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, ?)', 'month-kept', '2020-01', 1);
+  ins('INSERT INTO pair_attempts (ip, hour, what, n) VALUES (?, ?, ?, ?)', 'old-ip', Math.floor(at / 3600) - 48, 'pair', 1);
+  ins('INSERT INTO pair_attempts (ip, hour, what, n) VALUES (?, ?, ?, ?)', 'new-ip', Math.floor(at / 3600), 'pair', 1);
+  ins('INSERT INTO accuracy_verdicts (hash, signals, created_at) VALUES (?, ?, ?)', 'v-old', '{}', at - 400 * 86400);
+  ins('INSERT INTO accuracy_verdicts (hash, signals, created_at) VALUES (?, ?, ?)', 'v-new', '{}', at - 86400);
+  ins('INSERT INTO released_tokens (token, provider, subject, released_at) VALUES (?, ?, ?, ?)', 't-old', 'apple', 's', at - 400 * 86400);
+  ins('INSERT INTO released_tokens (token, provider, subject, released_at) VALUES (?, ?, ?, ?)', 't-new', 'apple', 's', at - 30 * 86400);
+  ins('INSERT INTO used_nonces (nonce, used_at) VALUES (?, ?)', 'n-old', at - 2 * 86400);
+  ins('INSERT INTO used_nonces (nonce, used_at) VALUES (?, ?)', 'n-new', at - 60);
   const removed = await pruneStores(env, () => at);
   const left = q => env.db.prepare(q).all().map(r => Object.values(r)[0]);
   ok(left('SELECT message FROM support_messages').join() === 'new', 'support messages past their time go, recent ones stay');
@@ -155,6 +163,18 @@ const today = new Date().toISOString().slice(0, 10);
      && left("SELECT day FROM ai_usage WHERE account_id = 'month-kept'").join() === '2020-01',
      'rows kept under names that are not days are never touched');
   ok(removed.support === 1 && removed.reports === 1 && removed.counters === 1, 'and the prune says what it removed');
+  ok(left('SELECT ip FROM pair_attempts').join() === 'new-ip', "pairing tries from days ago go, this hour's stay");
+  ok(left('SELECT hash FROM accuracy_verdicts').join() === 'v-new', 'verdicts older than the cache period go');
+  ok(left('SELECT token FROM released_tokens').join() === 't-new', "a deleted account's sign-in is kept a year, not for ever");
+  ok(left('SELECT nonce FROM used_nonces').join() === 'n-new', 'used sign-in nonces go after a day');
+}
+
+// a table the deploy has not created yet does not stop the rest of the prune
+{
+  const env = freshEnv();
+  env.db.exec('DROP TABLE used_nonces');
+  const removed = await pruneStores(env, () => 2_000_000_000);
+  ok(removed.nonces === 0 && removed.released === 0, 'a missing table is skipped and the others still pruned');
 }
 
 console.log(failures ? `\n${failures} LIMITS TEST FAILURE(S)` : '\nALL LIMITS TESTS PASS');

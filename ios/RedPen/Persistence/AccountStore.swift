@@ -224,6 +224,12 @@ final class AccountStore: ObservableObject {
     @discardableResult
     func deleteAccount() async -> Bool {
         guard let session = state.session else { return false }
+        // "Start without an account": the server has never heard of it, so
+        // there is nothing there to delete (audit #30)
+        if session.isLocalOnly {
+            signOut()
+            return true
+        }
         busy = true
         trouble = nil
         defer { busy = false }

@@ -21,6 +21,9 @@ final class ReasoningStore: ObservableObject {
     @Published var trouble: [String: String] = [:]
 
     private var running: Task<Void, Never>?
+    /// Which run `running` is, so a cancelled one ending late cannot clear
+    /// a newer one (GenerationRules.endingClears).
+    private var runID: UUID?
     private let fileURL: URL
     private let writer = DispatchQueue(label: "vignette.reasoning.save", qos: .utility)
 
@@ -139,6 +142,7 @@ final class ReasoningStore: ObservableObject {
         guard let job = GenerationCenter.shared.begin(title, total: count, onCancel: {
             self.running?.cancel()
             self.running = nil
+            self.runID = nil
             self.writing = nil
         }) else {
             trouble[key] = GenerationCenter.shared.busy
@@ -148,6 +152,8 @@ final class ReasoningStore: ObservableObject {
         let progress: (Int, Int) -> Void = { done, total in
             GenerationCenter.shared.update(job, done: done, total: total)
         }
+        let run = UUID()
+        runID = run
         running = Task {
             do {
                 switch tool {
@@ -175,8 +181,10 @@ final class ReasoningStore: ObservableObject {
                 GenerationCenter.shared.end(job)
                 if !Task.isCancelled { self.trouble[key] = error.localizedDescription }
             }
+            guard GenerationRules.endingClears(ended: run, current: self.runID) else { return }
             self.writing = nil
             self.running = nil
+            self.runID = nil
         }
     }
 

@@ -62,4 +62,36 @@ enum NowPlaying {
         center.togglePlayPauseCommand.removeTarget(tokens[2])
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
+
+    /// Hands the audio back, so the music or podcast it stopped can carry
+    /// on. Call when the screen that played goes (audit #78).
+    static func deactivate() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    /// Calls (or alarms) taking the audio, and headphones going, as
+    /// AudioEvents signals on the main actor (audit #76, #77). Hand what
+    /// comes back to `unwatch` when the player goes.
+    static func watch(_ react: @escaping @MainActor (AudioEvents.Signal) -> Void) -> [NSObjectProtocol] {
+        let center: NotificationCenter = NotificationCenter.default
+        let interrupted: NSObjectProtocol = center.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
+            let type: UInt = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) ?? 0
+            let options: UInt = (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt) ?? 0
+            let resume: Bool = AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume)
+            let signal: AudioEvents.Signal = AVAudioSession.InterruptionType(rawValue: type) == .began
+                ? .interruptionBegan : .interruptionEnded(shouldResume: resume)
+            MainActor.assumeIsolated { react(signal) }
+        }
+        let rerouted: NSObjectProtocol = center.addObserver(
+            forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { note in
+            let reason: UInt = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) ?? 0
+            MainActor.assumeIsolated { react(.routeChanged(reason: reason)) }
+        }
+        return [interrupted, rerouted]
+    }
+
+    static func unwatch(_ tokens: [NSObjectProtocol]) {
+        for token in tokens { NotificationCenter.default.removeObserver(token) }
+    }
 }

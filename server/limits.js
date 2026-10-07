@@ -28,6 +28,16 @@ export const DIAGNOSTICS_PER_DAY = 2_000;
 export const SUPPORT_KEEP_DAYS = 120;
 export const REPORTS_KEEP_DAYS = 120;
 export const COUNTERS_KEEP_DAYS = 7;
+/// A deleted account's purchase tag and sign-in (released_tokens): long enough
+/// to come back within a subscription year and keep what was bought, not for
+/// ever.
+export const RELEASED_KEEP_DAYS = 365;
+/// A checked item's verdict is reused this long (accuracy.js reads the same
+/// setting); older ones would be checked again anyway, so they go.
+export const VERDICTS_KEEP_DAYS = 365;
+/// Apple sign-in nonces already used (worker.js): an identity token lives ten
+/// minutes, so a day is plenty.
+export const NONCES_KEEP_SECONDS = 86400;
 export const PRUNE_ROWS = 5_000;
 
 /// Adds `n` to a counter for today, all or nothing, while it stays within
@@ -71,5 +81,28 @@ export async function pruneStores(env, clock = nowSeconds) {
        SELECT rowid FROM ai_usage
        WHERE day GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND day < ? LIMIT ?)`)
     .bind(before, PRUNE_ROWS).run()).meta?.changes ?? 0;
+  // tables a deploy may not have created yet are skipped, not fatal
+  const prune = async (name, sql, ...args) => {
+    try {
+      removed[name] = (await env.DB.prepare(sql).bind(...args, PRUNE_ROWS).run()).meta?.changes ?? 0;
+    } catch (error) {
+      console.error('prune', name, error?.message || error);
+      removed[name] = 0;
+    }
+  };
+  // pairing and device-account tries, counted per address per hour
+  await prune('attempts',
+    `DELETE FROM pair_attempts WHERE rowid IN (SELECT rowid FROM pair_attempts WHERE hour < ? LIMIT ?)`,
+    Math.floor(at / 3600) - 24);
+  const verdictDays = Number(env.ACCURACY_CACHE_DAYS) || VERDICTS_KEEP_DAYS;
+  await prune('verdicts',
+    `DELETE FROM accuracy_verdicts WHERE hash IN (SELECT hash FROM accuracy_verdicts WHERE created_at < ? LIMIT ?)`,
+    at - verdictDays * 86400);
+  await prune('released',
+    `DELETE FROM released_tokens WHERE token IN (SELECT token FROM released_tokens WHERE released_at < ? LIMIT ?)`,
+    at - RELEASED_KEEP_DAYS * 86400);
+  await prune('nonces',
+    `DELETE FROM used_nonces WHERE nonce IN (SELECT nonce FROM used_nonces WHERE used_at < ? LIMIT ?)`,
+    at - NONCES_KEEP_SECONDS);
   return removed;
 }

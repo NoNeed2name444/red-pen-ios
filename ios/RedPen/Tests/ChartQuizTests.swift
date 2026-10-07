@@ -106,6 +106,8 @@ check("then Check answer", title() == "Check answer")
 check("checked: Next patient", title(checked: true) == "Next patient")
 check("and See results on the last", title(checked: true, last: true) == "See results")
 check("a paper answers and moves on", title(exam: true) == "Next patient" && title(exam: true, last: true) == "Finish paper")
+check("a paper's question can be skipped", title(picked: false, exam: true) == "Skip for now"
+      && title(picked: false, exam: true, last: true) == "Finish paper")
 check("Explain once checked", ChartQuiz.explains(checked: true, examMode: false))
 check("not before, nor in a paper",
       !ChartQuiz.explains(checked: false, examMode: false) && !ChartQuiz.explains(checked: true, examMode: true))

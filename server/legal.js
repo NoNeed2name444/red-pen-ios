@@ -91,7 +91,7 @@ export const PRIVACY = page('Privacy policy', `
 </ul>
 
 <h2>Deleting your account</h2>
-<p>Deleting your account in the app removes it at once, with your synced library and pictures, lines read aloud, generations, reports, messages and crash reports; a nightly pass removes anything still arriving. Kept afterwards: the sign-in's identifier, linked to your subscription, so that signing in again keeps your purchase, with no name or email; and counts that hold nothing about you, such as how many cloud requests were used in a month.</p>
+<p>Deleting your account in the app removes it at once, with your synced library and pictures, lines read aloud, generations, reports, messages and crash reports; a nightly pass removes anything still arriving. Kept afterwards: the sign-in's identifier, linked to your subscription, so that signing in again keeps your purchase, with no name or email, for up to 365 days; and counts that hold nothing about you, such as how many cloud requests were used in a month.</p>
 
 <h2>Where it is kept</h2>
 <p>Our server runs on Cloudflare. Requests travel encrypted.</p>

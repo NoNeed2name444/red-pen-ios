@@ -261,13 +261,12 @@ struct AccuracyWhySheet: View {
     // MARK: actions
 
     private func accept(_ fix: AccuracySuggestion) {
-        for set in store.library {
-            if let changed = AccuracyFix.apply(fix, toItem: item.id, in: set) {
-                store.update(changed)
-                message = "Corrected. It will be checked again."
-                AccuracyStore.shared.kick()
-                return
-            }
+        let changed: [StudySet] = AccuracyFix.applyEverywhere(fix, toItem: item.id, in: store.library)
+        if !changed.isEmpty {
+            changed.forEach { store.update($0) }
+            message = "Corrected. It will be checked again."
+            AccuracyStore.shared.kick()
+            return
         }
         message = "This \(item.kind.noun) isn't in your library, so it can't be changed here."
     }
