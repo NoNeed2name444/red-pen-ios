@@ -1,0 +1,1299 @@
+{
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "scope_count": 76,
+  "entries": [
+    {
+      "path": ".github/workflows/accuracy-model.yml",
+      "bytes": 3369,
+      "sha256": "08dba33e0dcd71a50c5be5ee9fbcab15a51442f77e9df1928580f967fb320780",
+      "lines": 74,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3369
+        ]
+      ],
+      "chars": 3369,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/app-build.yml",
+      "bytes": 3168,
+      "sha256": "b24b04c62b23e3763b74cda742c50bb0e4a1d821e7e8066d585938b6bc57960b",
+      "lines": 63,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3168
+        ]
+      ],
+      "chars": 3168,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/asr-bench.yml",
+      "bytes": 4461,
+      "sha256": "4bd48e61994693e1c81f53500f1310a0cc26e28866144c37f1d4e3a6f067c758",
+      "lines": 95,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          4461
+        ]
+      ],
+      "chars": 4461,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/decks.yml",
+      "bytes": 1946,
+      "sha256": "5bb4452ccaf0737ea472e9667d0bf50ccbf200dd3678aa149a7d7a61832ba663",
+      "lines": 59,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1946
+        ]
+      ],
+      "chars": 1946,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/design-preview.yml",
+      "bytes": 16498,
+      "sha256": "9c8fdc3d79c342a3bfe63035a6717ac977b6badf2075424e7c6ba8d845c90309",
+      "lines": 357,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          357
+        ]
+      ],
+      "chars": 16498,
+      "model_read_char_ranges": [
+        [
+          0,
+          16498
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": ".github/workflows/diagnostics-triage.yml",
+      "bytes": 2426,
+      "sha256": "0eb4661f1af20c01fef5397d5e8ea71a337b216895bd55112288668d94f7759f",
+      "lines": 59,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2426
+        ]
+      ],
+      "chars": 2426,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/icon.yml",
+      "bytes": 1132,
+      "sha256": "e230351263b64427c5a98adfb71e2d8eabbf17abfc627a0ee9bb11fe08124179",
+      "lines": 32,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1132
+        ]
+      ],
+      "chars": 1132,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ios-preview.yml",
+      "bytes": 9051,
+      "sha256": "d9707c4f16571b5ab0befdea3171f404bda80d00df456bbdf31a4e1130cc899c",
+      "lines": 187,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          9051
+        ]
+      ],
+      "chars": 9051,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-devices.yml",
+      "bytes": 5831,
+      "sha256": "14bc87039b68d3a10672b42873ef361a4867f6bc547bdf0b9288dea73bb9665a",
+      "lines": 126,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5831
+        ]
+      ],
+      "chars": 5831,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-preview.yml",
+      "bytes": 9824,
+      "sha256": "8afdba6d76dbcd7f0124a007f798513d0750c425f789b6de97b735a4250e0cbd",
+      "lines": 204,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          9824
+        ]
+      ],
+      "chars": 9824,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-widths.yml",
+      "bytes": 4899,
+      "sha256": "4e36a3b2039a8e76ae21db55538c510d9b05dabb9d935f598bd1b3dc044e631c",
+      "lines": 113,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          4899
+        ]
+      ],
+      "chars": 4899,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/live-tests.yml",
+      "bytes": 5603,
+      "sha256": "0b305058159c582a525f62ac18bb21013a6f9ba15d018438b6a2db5a42e80541",
+      "lines": 101,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5603
+        ]
+      ],
+      "chars": 5603,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/live.yml",
+      "bytes": 6850,
+      "sha256": "b7d89e2728380630eb71f39dc6ca3450e0fc33533d3faceadec09e57b5d99d90",
+      "lines": 160,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          6850
+        ]
+      ],
+      "chars": 6850,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/question-bank.yml",
+      "bytes": 3211,
+      "sha256": "0d1f137ccead1043bbedd86e13eb3a33da1cf4a2045d60c5f44e2c2660c43c09",
+      "lines": 76,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3211
+        ]
+      ],
+      "chars": 3211,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/server-tests.yml",
+      "bytes": 1444,
+      "sha256": "ff817261cf068913239b08eb2abca0725e247af125c9472b194b3c622436f776",
+      "lines": 37,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          37
+        ]
+      ],
+      "chars": 1444,
+      "model_read_char_ranges": [
+        [
+          0,
+          1444
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": ".github/workflows/spaces-deploy.yml",
+      "bytes": 2528,
+      "sha256": "0985037e83613c0867dd0631274e8d92ae5df9fdbfcf0934359c83eed6394b70",
+      "lines": 51,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2528
+        ]
+      ],
+      "chars": 2528,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/speech-ci-test.yml",
+      "bytes": 1873,
+      "sha256": "8400e1ac00c023bfea4fbea014679395d66fd92df3224c0819b7b95b262892b8",
+      "lines": 52,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1873
+        ]
+      ],
+      "chars": 1873,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/swift-tests.yml",
+      "bytes": 5257,
+      "sha256": "cbe910bad390be404a241f1ab0b82c35c6dc033a9fa340bd3100be704c07585e",
+      "lines": 111,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5257
+        ]
+      ],
+      "chars": 5257,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/swiftpm-check.yml",
+      "bytes": 3039,
+      "sha256": "c2507768372c83e3ce086411f6864badca1373893a3426d9b6bd0385152517ed",
+      "lines": 66,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3039
+        ]
+      ],
+      "chars": 3039,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/verification-bench.yml",
+      "bytes": 4198,
+      "sha256": "a3a5e9ae162fca3f22174f0f1f1a0f0d41a592682067886c799b5b07280470e4",
+      "lines": 85,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          4198
+        ]
+      ],
+      "chars": 4198,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/walkthrough.yml",
+      "bytes": 6675,
+      "sha256": "ca9f87cacba09e47c520c7b0421174dd3ed268d0a90620adeaf6b6e8078a34c0",
+      "lines": 161,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          6675
+        ]
+      ],
+      "chars": 6675,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/worker-deploy.yml",
+      "bytes": 9221,
+      "sha256": "e16b2adfc2c791e109002fc37f20bc79b13ccd078bc247bf6c1ed49f105d7341",
+      "lines": 152,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          9221
+        ]
+      ],
+      "chars": 9221,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 208,
+      "sha256": "09373c7ed67e05cfeebb6db0559521acc7ca6e3b8debfbacf08087b8ae097e0b",
+      "lines": 13,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          13
+        ]
+      ],
+      "chars": 208,
+      "model_read_char_ranges": [
+        [
+          0,
+          208
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "ci/speech_ci_test.swift",
+      "bytes": 3704,
+      "sha256": "1b767f9c3934e4b3d252214ed62f366187dfb4fae08f7589bd2b49e6a0aa64c2",
+      "lines": 106,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3696
+        ]
+      ],
+      "chars": 3696,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "governance/licences/allowlist.json",
+      "bytes": 3610,
+      "sha256": "99f0bd0da72fa52ed1b4d1f8eee050c0deb81c526d72d1f88c8143e2d8d50f5c",
+      "lines": 48,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          48
+        ]
+      ],
+      "chars": 3609,
+      "model_read_char_ranges": [
+        [
+          0,
+          3609
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "governance/licences/licences.mjs",
+      "bytes": 3310,
+      "sha256": "e766741327b91a3bce1428110d6f8bf9e9a6b603a1278e718263eead84c51df1",
+      "lines": 55,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          55
+        ]
+      ],
+      "chars": 3309,
+      "model_read_char_ranges": [
+        [
+          0,
+          3309
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "governance/licences/read-live.mjs",
+      "bytes": 872,
+      "sha256": "3b0df86b7ba066d4c1510a7830b5aeccf3787cd910f80b40e7b2e4f07f709801",
+      "lines": 20,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          20
+        ]
+      ],
+      "chars": 872,
+      "model_read_char_ranges": [
+        [
+          0,
+          872
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "pipeline/tests/test_card_quality.py",
+      "bytes": 8592,
+      "sha256": "4ad1a4858504a40469370d51f460ced40aeb2d4d8d5e59a0736203bfd843e2e0",
+      "lines": 173,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          173
+        ]
+      ],
+      "chars": 8592,
+      "model_read_char_ranges": [
+        [
+          0,
+          8592
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "pipeline/tools/card_quality.py",
+      "bytes": 9091,
+      "sha256": "d5545ad5af1a1753a35b260acf7c263cc23bbc7e2eb1ce146f3e4441cecd8263",
+      "lines": 205,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          205
+        ]
+      ],
+      "chars": 9091,
+      "model_read_char_ranges": [
+        [
+          0,
+          9091
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "pipeline/tools/quiz_from_cards.py",
+      "bytes": 9190,
+      "sha256": "37db57d32701ca312436ad0dd14690c802b1ef479480f9b8a7fd81219eb73dc1",
+      "lines": 212,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          212
+        ]
+      ],
+      "chars": 9188,
+      "model_read_char_ranges": [
+        [
+          0,
+          9188
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "prompts/question-bank/generate.md",
+      "bytes": 1245,
+      "sha256": "ed16cc1b1283ca4822dd455b71c2f6422095bf10ab76c9ba5197f347187d9486",
+      "lines": 22,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          22
+        ]
+      ],
+      "chars": 1245,
+      "model_read_char_ranges": [
+        [
+          0,
+          1245
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tests/asr/asr-bench.test.mjs",
+      "bytes": 11029,
+      "sha256": "1390d63fbbecbfdb79bd2900b09697716f4c33cbc1689cbb59dc0dd0c7cf9418",
+      "lines": 173,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          10933
+        ]
+      ],
+      "chars": 10933,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/governance/licences.test.mjs",
+      "bytes": 5274,
+      "sha256": "0bcd120d722628533fa7cf37ad86677e4db2e7b8fb08fe6ac3f7a9229baa277a",
+      "lines": 57,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "chars": 5274,
+      "model_read_char_ranges": [
+        [
+          0,
+          5274
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tests/question-bank/bank.test.mjs",
+      "bytes": 7742,
+      "sha256": "c0ab1deb1f31d150d4e6404211a19b85738c4e0d51275d113de3a396cf482675",
+      "lines": 92,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          92
+        ]
+      ],
+      "chars": 7742,
+      "model_read_char_ranges": [
+        [
+          0,
+          7742
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tests/question-bank/fetch.test.mjs",
+      "bytes": 16497,
+      "sha256": "bb7ea826d27efc2072a66155a189c32665a19c40a10607ed2a444881f4d6cffc",
+      "lines": 173,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          16497
+        ]
+      ],
+      "chars": 16497,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/question-bank/fixtures/medlineplus-asthma-topic.xml",
+      "bytes": 18304,
+      "sha256": "44dbe1c30a235b455ccd10d4f5ad611d441a84b8009327fc70c92bde853acfda",
+      "lines": 202,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          18303
+        ]
+      ],
+      "chars": 18303,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/question-bank/fixtures/pmc-cc-by-4.0.xml",
+      "bytes": 60573,
+      "sha256": "cfa015beef2574de9fe2596f8e375c8d38baca6ebc9920ad051326a2bfc25a41",
+      "lines": 164,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          36000
+        ],
+        [
+          36000,
+          54000
+        ],
+        [
+          54000,
+          60250
+        ]
+      ],
+      "chars": 60250,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/question-bank/fixtures/pmc-cc-by-nc-4.0.xml",
+      "bytes": 30589,
+      "sha256": "66fdc4534dbdd38350f7f5ebf34b94fccce77b94ffab5e9f2373dd509724e45f",
+      "lines": 55,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          30250
+        ]
+      ],
+      "chars": 30250,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/question-bank/fixtures/pmc-esearch-asthma.json",
+      "bytes": 237,
+      "sha256": "e4639d95736506190a8c0ef4eab68ca6099d0fcc61e6dfbc801ad3fd758cca99",
+      "lines": 1,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          237
+        ]
+      ],
+      "chars": 237,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tests/question-bank/fixtures/pmc-no-licence.xml",
+      "bytes": 11327,
+      "sha256": "1e9cb0224d2bd3636adc9f9f5b9912eb78d09215a98c9dc56e0d736c669c9e26",
+      "lines": 1,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          11316
+        ]
+      ],
+      "chars": 11316,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/asr_bench.mjs",
+      "bytes": 14266,
+      "sha256": "ae11e91a51749498de7b12388ffc6cf5b27daf3318b3afc1c144d5d2f1c97b81",
+      "lines": 282,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          14259
+        ]
+      ],
+      "chars": 14259,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/ci_status.py",
+      "bytes": 2814,
+      "sha256": "c194ae20150ad5d708ac570df3c700621869f9aea5286249f30209e977eee23d",
+      "lines": 61,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2814
+        ]
+      ],
+      "chars": 2814,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/deck_pdf.py",
+      "bytes": 46794,
+      "sha256": "4a9b7a25874f7bb055e96db6c03d0ee75819acd3b8cda115830766549a8d3c8d",
+      "lines": 1078,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          36000
+        ],
+        [
+          36000,
+          46782
+        ]
+      ],
+      "chars": 46782,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/make_icon.py",
+      "bytes": 11024,
+      "sha256": "723ec928ef2425d653a95a1061f4d646453a6160d83d870e62e645bd9ab9b4ed",
+      "lines": 266,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          11022
+        ]
+      ],
+      "chars": 11022,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/make_swiftpm.py",
+      "bytes": 16039,
+      "sha256": "f689d4b9456c02fc0ab968a76f93586cb26740ec4ae1d784a733068288574308",
+      "lines": 253,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          253
+        ]
+      ],
+      "chars": 16039,
+      "model_read_char_ranges": [
+        [
+          0,
+          16039
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/playgrounds_cut.py",
+      "bytes": 6404,
+      "sha256": "9a23b89582e86f78410824954b9206f9f4286d6be413e47fe856783b23cb186c",
+      "lines": 120,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          120
+        ]
+      ],
+      "chars": 6404,
+      "model_read_char_ranges": [
+        [
+          0,
+          6404
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/playgrounds_stubs/README.md",
+      "bytes": 6193,
+      "sha256": "9decd393dc9a9cec85bd5462cdfb4615e8510fbdc5ec94dd4800596f1f090c6a",
+      "lines": 113,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          6193
+        ]
+      ],
+      "chars": 6193,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/_common.swift",
+      "bytes": 690,
+      "sha256": "e37780640309e7c2a30d3dac039310b6540c9f7a3a0dd3ee3ca532fd5fbf78c9",
+      "lines": 18,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          690
+        ]
+      ],
+      "chars": 690,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/analytics.swift",
+      "bytes": 338,
+      "sha256": "e2abea92cd19fb6b0b0716f0a978e553062095ea9283f5cd6e642f474f5b8f3d",
+      "lines": 9,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          338
+        ]
+      ],
+      "chars": 338,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core/CoreApp.swift",
+      "bytes": 5133,
+      "sha256": "e99fd7eafd19ce24e5bbc106e17e6adce2d1a276c1a02578f3ed6d61d3ee73f7",
+      "lines": 103,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5133
+        ]
+      ],
+      "chars": 5133,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core/CoreIdeas.swift",
+      "bytes": 2735,
+      "sha256": "7d09705101e767ab1131ffc7857a3a9f8284638986e97440876661ae1bf7949b",
+      "lines": 96,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2735
+        ]
+      ],
+      "chars": 2735,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core/CoreLibrary.swift",
+      "bytes": 7720,
+      "sha256": "534d7cc72ded834aa21be1431e3eb2d3888bc883ca87276abf5c252517cf67dd",
+      "lines": 201,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          7720
+        ]
+      ],
+      "chars": 7720,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core/CoreStandIns.swift",
+      "bytes": 12511,
+      "sha256": "768af1de6cb71b09f5671d12e9fce6e2e8600d726bfba179405f0d73f703c64d",
+      "lines": 403,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          12511
+        ]
+      ],
+      "chars": 12511,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core-audio-in/CoreAudio.swift",
+      "bytes": 2051,
+      "sha256": "4640004649b41e8c9762399236a67a91b0746ad5bd582aec132069c1204825ef",
+      "lines": 58,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2051
+        ]
+      ],
+      "chars": 2051,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core-audio-out/CoreAudioStandIns.swift",
+      "bytes": 2342,
+      "sha256": "9b9e8cf24d0ae2e2efaa0f57cffeab2609177fdb334be5a06ac7398fe9608ada",
+      "lines": 78,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2342
+        ]
+      ],
+      "chars": 2342,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core-exports-in/CoreExports.swift",
+      "bytes": 4285,
+      "sha256": "18572b4d3d091639440328e2615ce52963be16ddd2adbc12751465e4e0ae7164",
+      "lines": 130,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          4285
+        ]
+      ],
+      "chars": 4285,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/core-exports-out/CoreExportsStandIns.swift",
+      "bytes": 5890,
+      "sha256": "e80a76da3317a2f9ce7101817648877de13ac590f3b2ffdd5ce0668bfc6823ba",
+      "lines": 170,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5890
+        ]
+      ],
+      "chars": 5890,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/graph3d.swift",
+      "bytes": 1480,
+      "sha256": "3471fe309f4f3f94d49a544aa17945430deba3c67f5a3ab4b12f8570333a721b",
+      "lines": 39,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1480
+        ]
+      ],
+      "chars": 1480,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/playgrounds_stubs/lens.swift",
+      "bytes": 345,
+      "sha256": "042046f78b4c7977d019f353ab48f304f98e5c701199687de48c7f472a808db4",
+      "lines": 9,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          345
+        ]
+      ],
+      "chars": 345,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/preflight.sh",
+      "bytes": 1717,
+      "sha256": "2f605299ecd5e5e18146aa8c81985877b3183fabfd92a2d3ea86fe3296ea1a8f",
+      "lines": 35,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          35
+        ]
+      ],
+      "chars": 1717,
+      "model_read_char_ranges": [
+        [
+          0,
+          1717
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/question-bank/README.md",
+      "bytes": 7263,
+      "sha256": "4d0366b95c74ee23b344e9913f0e19d7f9b83eb2f2ed41e9c30c7de4d90c5cf6",
+      "lines": 64,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          7263
+        ]
+      ],
+      "chars": 7263,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/question-bank/bank.mjs",
+      "bytes": 7877,
+      "sha256": "e6ef6a2e54c44cd8d9f411bc1d07b6dba3193b8d9ee81bceb29afa5cf05b799c",
+      "lines": 142,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          142
+        ]
+      ],
+      "chars": 7877,
+      "model_read_char_ranges": [
+        [
+          0,
+          7877
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/question-bank/fetch.mjs",
+      "bytes": 23221,
+      "sha256": "ef5c91525ee5dc3aaef2a372ed3611cc948049c899eae959f29ee621868745d7",
+      "lines": 417,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          23196
+        ]
+      ],
+      "chars": 23196,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/question-bank/pipeline.mjs",
+      "bytes": 5515,
+      "sha256": "d8b3c1911f2a724032f65a1646d5a210f8715ae2ade42c2b125acdfc20a82757",
+      "lines": 88,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          88
+        ]
+      ],
+      "chars": 5515,
+      "model_read_char_ranges": [
+        [
+          0,
+          5515
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/question-bank/topics.txt",
+      "bytes": 127,
+      "sha256": "6012bf88ce6e6bf987e328b202bb44a150dd9529fea27bbd66a46883e4ee32b6",
+      "lines": 6,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          127
+        ]
+      ],
+      "chars": 127,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/shader_check.py",
+      "bytes": 15853,
+      "sha256": "6948a29679117ffac3ec0f0c4d35ae07e6c9fd3809b28198f8a3cc8ed922983d",
+      "lines": 287,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          15853
+        ]
+      ],
+      "chars": 15853,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/swift_suites.py",
+      "bytes": 7158,
+      "sha256": "5d6dbe220442059732d51e32aea39cb1a19b413ec856ecafe1bf149c76dddf98",
+      "lines": 125,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          125
+        ]
+      ],
+      "chars": 7158,
+      "model_read_char_ranges": [
+        [
+          0,
+          7158
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/swift_suites.txt",
+      "bytes": 26012,
+      "sha256": "c4ba3e20b52685fe392ac58b7b366a0cb0d59a78d4a91d7ab65582589ec7effb",
+      "lines": 351,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18000
+        ],
+        [
+          18000,
+          26011
+        ]
+      ],
+      "chars": 26011,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/swift_suites_mac_only.txt",
+      "bytes": 170,
+      "sha256": "6ff433f631be520bd11120febb78a3fae55a2b0f2c978863c1d95f2964e32b56",
+      "lines": 9,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          9
+        ]
+      ],
+      "chars": 170,
+      "model_read_char_ranges": [
+        [
+          0,
+          170
+        ]
+      ],
+      "reader": "read_native_backend"
+    },
+    {
+      "path": "tools/verification-bench/datasets.mjs",
+      "bytes": 3537,
+      "sha256": "5ca054f9b17812623630e45555991bbfce5a7c2104e0438a889cd484c10de338",
+      "lines": 65,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3537
+        ]
+      ],
+      "chars": 3537,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/fetch.sh",
+      "bytes": 998,
+      "sha256": "758f6b1aa896b0c01499083b3830d74de26270980d698b8ed2f467ced48ca693",
+      "lines": 15,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          998
+        ]
+      ],
+      "chars": 998,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/layer.mjs",
+      "bytes": 13242,
+      "sha256": "c42f0b59edcfb076c39562f898fc44e25a7d5818a29010c42e262615946f5bd9",
+      "lines": 208,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          13242
+        ]
+      ],
+      "chars": 13242,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/parity.sh",
+      "bytes": 1081,
+      "sha256": "693c5cde83a822b152922e36880896b6d7f561aef477eb9fe531a04b5ac92d50",
+      "lines": 28,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1081
+        ]
+      ],
+      "chars": 1081,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/parity.swift",
+      "bytes": 1505,
+      "sha256": "685e1f260415f1c96038bea90b9b51f990de7c26c106b362fe1865b7b9fa48b6",
+      "lines": 36,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          1505
+        ]
+      ],
+      "chars": 1505,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/policy.mjs",
+      "bytes": 6107,
+      "sha256": "5d0073f26e97f6944115d9aa1dcfb9adc911412a3e0ea3992dec19ac72030a82",
+      "lines": 112,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          6107
+        ]
+      ],
+      "chars": 6107,
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "tools/verification-bench/sensors.mjs",
+      "bytes": 14589,
+      "sha256": "f154fe994fa72d12794f319a707fc96ed7ab8205c21e45b08f27ecf07d5d1118",
+      "lines": 233,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          14589
+        ]
+      ],
+      "chars": 14589,
+      "reader": "read_ios_app"
+    }
+  ],
+  "complete_count": 76,
+  "complete_bytes": 598924,
+  "validation": "SHA256 and byte counts match all 76 pinned files; 57 fully consumed here, 19 reused from read_native_backend model_read_complete status only. No execution of tests or workflows."
+}

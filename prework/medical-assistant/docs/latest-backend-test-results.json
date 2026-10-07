@@ -1,0 +1,204 @@
+{
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "node": "v24.19.0",
+  "offline_guard": "External global fetch denied; loopback allowed for fake ASR HTTP server. Injected fetchers run unchanged.",
+  "results": [
+    {
+      "path": "server/tests/accuracy-stages.test.mjs",
+      "exit_code": 0,
+      "seconds": 1.0,
+      "ok_lines": 92,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/accuracy.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.4,
+      "ok_lines": 229,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/ai.test.mjs",
+      "exit_code": 0,
+      "seconds": 95.3,
+      "ok_lines": 138,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/bench.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.04,
+      "ok_lines": 14,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/breakers.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 59,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/claims.test.mjs",
+      "exit_code": 1,
+      "seconds": 0.51,
+      "ok_lines": 54,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/diagnostics.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.16,
+      "ok_lines": 88,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/evidence.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.06,
+      "ok_lines": 16,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/exams.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 126,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/faults.test.mjs",
+      "exit_code": 0,
+      "seconds": 15.14,
+      "ok_lines": 25,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/jev.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 10,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/jobs.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.16,
+      "ok_lines": 56,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/legal.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.11,
+      "ok_lines": 11,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/limits.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 27,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/pair.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.14,
+      "ok_lines": 28,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/support.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.11,
+      "ok_lines": 10,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/switches.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.18,
+      "ok_lines": 57,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/sync.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.2,
+      "ok_lines": 59,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "server/tests/tts.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 40,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "tests/asr/asr-bench.test.mjs",
+      "exit_code": 1,
+      "seconds": 0.12,
+      "ok_lines": 42,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "tests/governance/licences.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.05,
+      "ok_lines": 30,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "tests/question-bank/bank.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.12,
+      "ok_lines": 27,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "tests/question-bank/fetch.test.mjs",
+      "exit_code": 0,
+      "seconds": 0.09,
+      "ok_lines": 62,
+      "external_fetch_blocks": 0
+    },
+    {
+      "path": "pipeline/tests/test_card_quality.py",
+      "exit_code": 0,
+      "ok_lines": 24
+    }
+  ],
+  "limitations": {
+    "server/tests/claims.test.mjs": "Cold-isolate execFileSync Node subprocess fails EPERM after 54 assertions; no source assertion failure established.",
+    "tests/asr/asr-bench.test.mjs": "spawnSync Node CLI fails EPERM, resulting empty output fails JSON parsing after 42 assertions; loopback test requires centrally granted sandbox network.",
+    "retries": "Child sandbox network permission calls remained pending until interrupted; did not execute or return test results. Root owns retry."
+  },
+  "summary": {
+    "files": 24,
+    "passed": 22,
+    "environment_failed": 2
+  },
+  "final_reruns": {
+    "commit": "8e8627f433e07984dffaab560a4e6fac62456c75",
+    "node": "v24.19.0",
+    "command_context": "NODE_OPTIONS=/tmp/redpen-offline-preload.cjs; offline network guard active",
+    "results": [
+      {
+        "path": "server/tests/claims.test.mjs",
+        "exit_code": 0,
+        "result": "ALL CLAIM GATE TESTS PASS",
+        "log": "/tmp/redpen-final-claims.log"
+      },
+      {
+        "path": "tests/asr/asr-bench.test.mjs",
+        "exit_code": 0,
+        "result": "all asr bench tests pass",
+        "log": "/tmp/redpen-final-asr.log"
+      }
+    ],
+    "baseline": "The initial run passed 21 of 23 Node test files; claims and ASR subprocess runs were blocked by environment EPERM. Both were rerun successfully, giving 23 of 23 Node test files passing.",
+    "external_network": "offline guard retained; no live provider calls"
+  }
+}

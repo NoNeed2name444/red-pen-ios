@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Provisional annotation interface</title>
+<h1>Annotation</h1>
+<p>Import a qualified manifest and an external label schema. No default labels are provided.</p>
+<label>Manifest JSONL <input id="manifest" type="file" accept=".jsonl"></label>
+<label>Label schema JSON <input id="schema" type="file" accept=".json"></label>
+<p><label>Item <select id="item"></select></label></p>
+<p><label>Labels JSON <textarea id="labels" rows="8" cols="60"></textarea></label></p>
+<button id="save" type="button">Validate and save locally</button>
+<button id="export" type="button">Export JSONL</button>
+<p id="status" role="status"></p>
+<script>
+"use strict";
+const ui = Object.fromEntries(["manifest", "schema", "item", "labels", "save", "export", "status"].map(id => [id, document.getElementById(id)]));
+let records = [], schema = null, annotations = {}, storageKey = "";
+const supported = ["type", "properties", "required", "additionalProperties", "items", "enum"];
+const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map(key => [key, stable(value[key])])) : value;
+function validate(value, rule) {
+  if (!rule || typeof rule !== "object" || Array.isArray(rule) || !Object.keys(rule).length || Object.keys(rule).some(key => !supported.includes(key))) throw Error("Caller schema required; unsupported schema keyword");
+  const kinds = {object: value !== null && typeof value === "object" && !Array.isArray(value), array: Array.isArray(value), string: typeof value === "string", number: typeof value === "number" && Number.isFinite(value), integer: Number.isInteger(value), boolean: typeof value === "boolean", null: value === null};
+  if (!kinds[rule.type]) throw Error("Value does not match caller schema type");
+  if ("enum" in rule && (!Array.isArray(rule.enum) || !rule.enum.length || !rule.enum.some(item => JSON.stringify(stable(item)) === JSON.stringify(stable(value))))) throw Error("Value outside caller schema enum");
+  if (rule.type === "object") {
+    const properties = rule.properties || {}, required = rule.required || [], extra = rule.additionalProperties ?? true;
+    if (!properties || typeof properties !== "object" || Array.isArray(properties) || !Array.isArray(required) || required.some(key => typeof key !== "string") || typeof extra !== "boolean") throw Error("Malformed object schema");
+    if (required.some(key => !(Object.hasOwn(value, key)))) throw Error("Required label missing");
+    if (!extra && Object.keys(value).some(key => !Object.hasOwn(properties, key))) throw Error("Unexpected label fields");
+    for (const [key, child] of Object.entries(properties)) { checkSchema(child); if (Object.hasOwn(value, key)) validate(value[key], child); }
+  }
+  if (rule.type === "array") { if (!rule.items) throw Error("Array schema requires items"); checkSchema(rule.items); value.forEach(item => validate(item, rule.items)); }
+}
+function checkSchema(rule) {
+  const examples = {object: {}, array: [], string: "", number: 0, integer: 0, boolean: false, null: null};
+  if (!rule || !Object.hasOwn(examples, rule.type)) throw Error("Explicit caller schema required");
+  if ("enum" in rule && (!Array.isArray(rule.enum) || !rule.enum.length)) throw Error("Malformed enum");
+  if ("required" in rule && (!Array.isArray(rule.required) || rule.required.some(key => typeof key !== "string"))) throw Error("Malformed required fields");
+  const probe = {...rule}; delete probe.enum; delete probe.required; validate(examples[rule.type], probe);
+}
+function report(error) { ui.status.textContent = error.message; }
+function refresh() {
+  ui.item.replaceChildren(...records.map(record => { const option = document.createElement("option"); option.value = record.manifest_id; option.textContent = `${record.item_id} (${record.manifest_id})`; return option; }));
+  storageKey = "provisional-annotations:" + JSON.stringify(stable({schema, ids: records.map(item => item.manifest_id)}));
+  annotations = JSON.parse(localStorage.getItem(storageKey) || "{}");
+  show();
+}
+function show() { ui.labels.value = JSON.stringify(annotations[ui.item.value]?.labels ?? {}, null, 2); }
+ui.manifest.onchange = async () => { try {
+  const input = (await ui.manifest.files[0].text()).split(/\r?\n/).filter(line => line.trim()).map(line => JSON.parse(line));
+  if (input.some(item => !item.manifest_id || !Array.isArray(item.exclusion_flags))) throw Error("Malformed manifest");
+  records = input.filter(item => !item.exclusion_flags.length);
+  if (new Set(records.map(item => item.manifest_id)).size !== records.length) throw Error("Duplicate manifest IDs");
+  refresh(); ui.status.textContent = `Loaded ${records.length} eligible items.`;
+} catch (error) { records = []; ui.item.replaceChildren(); report(error); } };
+ui.schema.onchange = async () => { try { const candidate = JSON.parse(await ui.schema.files[0].text()); checkSchema(candidate); schema = candidate; refresh(); ui.status.textContent = "Caller schema loaded."; } catch (error) { schema = null; report(error); } };
+ui.item.onchange = show;
+ui.save.onclick = () => { try {
+  if (!schema || !records.some(item => item.manifest_id === ui.item.value)) throw Error("Import a manifest and caller schema first");
+  const labels = JSON.parse(ui.labels.value); validate(labels, schema);
+  annotations[ui.item.value] = {manifest_id: ui.item.value, labels};
+  localStorage.setItem(storageKey, JSON.stringify(annotations)); ui.status.textContent = "Saved locally.";
+} catch (error) { report(error); } };
+ui.export.onclick = () => { try {
+  checkSchema(schema);
+  const eligible = new Set(records.map(item => item.manifest_id));
+  const values = Object.values(annotations);
+  values.forEach(item => { if (!eligible.has(item.manifest_id)) throw Error("Unknown manifest ID"); validate(item.labels, schema); });
+  const url = URL.createObjectURL(new Blob([values.map(item => JSON.stringify(item)).join("\n") + (values.length ? "\n" : "")], {type: "application/x-ndjson"}));
+  const link = document.createElement("a"); link.href = url; link.download = "annotations.jsonl"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+} catch (error) { report(error); } };
+</script>
+</html>

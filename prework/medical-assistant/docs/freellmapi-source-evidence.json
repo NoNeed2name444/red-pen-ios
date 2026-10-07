@@ -1,0 +1,118 @@
+{
+  "observedAt": "2026-10-06",
+  "repository": "https://github.com/tashfeenahmed/freellmapi",
+  "ref": "main",
+  "observedHead": "a6b2158c7c36ce19f888d0411846a1a0f2aa3f06",
+  "note": "Files fetched through GitHub connector from main before head lookup; main is mutable. This is source inspection, not a local clone or runtime validation.",
+  "package": {
+    "engines": {
+      "node": ">=20.18.0 <25.0.0",
+      "npm": ">=10.0.0"
+    },
+    "workspaces": [
+      "shared",
+      "server",
+      "client",
+      "cli"
+    ],
+    "dev": "concurrently --kill-others-on-fail --names server,client \"npm run dev -w server\" \"npm run dev -w client\""
+  },
+  "cli": {
+    "version": "0.7.0",
+    "bin": {
+      "freellmapi": "dist/index.js"
+    }
+  },
+  "envExample": "# Server encryption key for API key storage (generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\").\n# Required in production. Outside production it is optional: when unset, a key is\n# auto-generated and written to a file named .encryption-key next to the SQLite\n# database (not inside it), with 0600 permissions. Precedence: this env var, then\n# that key file, then a legacy key found in the old settings table (migrated to\n# the file on first boot), then a freshly generated key.\nENCRYPTION_KEY=your-64-char-hex-key-here\n\n# Server port (default: 3001)\nPORT=3001\n\n# Network interface the server listens on. Default '::' (dual-stack IPv4+IPv6);\n# hosts with IPv6 disabled fall back to IPv4 automatically. Set 0.0.0.0 for\n# IPv4-only or 127.0.0.1 to restrict to localhost. (Different from HOST_BIND\n# below, which only affects Docker port publishing.)\n# HOST=::\n\n# First-run setup: the first account is created through the dashboard. A browser\n# on the same machine as the server can do this with no extra step. If the server\n# is reachable from other devices, creating that first account also requires a\n# one-time setup code, printed in the server logs at startup while no account\n# exists. This stops a stranger from claiming a freshly exposed install.\n",
+  "cliDocExcerpt": "# freellmapi\n\nPoint your coding agent at a [FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi)\ngateway in one command. The generators read the models your server is actually\nserving and write the config file each tool expects.\n\n```bash\nnpx freellmapi setup-claude --url http://localhost:3001 --api-key <your-key>\n```\n\nNo install step, no account. The unified API key comes from your FreeLLMAPI\ndashboard (or the tray popover in the desktop app).\n\n## Commands\n\n| Command | Tool |\n| --- | --- |\n| `setup-claude` | Claude Code |\n| `setup-codex` | Codex CLI |\n| `setup-cline` | Cline |\n| `setup-continue` | Continue |\n| `setup-aider` | Aider |\n| `setup-opencode` | OpenCode |\n| `setup-goose` | Goose |\n| `setup-qwen` | Qwen Code |\n| `setup-roo` | Roo Code |\n| `setup-kilo` | Kilo Code |\n| `setup-crush` | Crush |\n| `setup-dsh` | DeepSeek Harness (`dsh`) |\n| `setup-mimo` | MiMo Code (`mimo`) |\n| `setup-atomcode` | AtomCode (`atomcode`) |\n| `setup-openclaw` | OpenClaw |\n| `setup-hermes` | Hermes Agent (`hermes`) |\n| `setup-pi` | Pi (`pi`) |\n| `setup-cursor` | Cursor |\n| `setup-generic` | Any OpenAI-compatible client |\n| `launch` | Run Claude Code with credentials injected into the child process |\n| `launch-codex` | Run Codex the same way |\n| `list` | Print the supported tools and their base URLs |\n| `keys` | Add, list, remove, or test provider keys (`keys --help`) |\n\n## Options\n\n| Flag | Meaning |\n| --- | --- |\n| `--url URL` | Gateway base URL (default `http://localhost:3001`) |\n| `--api-key KEY` | Unified API key |\n| `--profile NAME` | Name the generated profile/provider entry |\n| `--model ID` | Pin a specific model instead of the catalog default |\n| `--dry-run` | Print the diff and write nothing |\n\n`FREELLMAPI_URL` and `FREELLMAPI_API_KEY` work in place of `--url` / `--api-key`.\n\n## Provider keys\n\nThe `keys` commands use a **dashboard session token**. Set\n`FREELLMAPI_DASHBOARD_TOKEN`, or pass `--token TOKEN` to override it. This is the\nsession returned by dashboard sign-in (stored in the signed-in browser's local\nstorage as `freellmapi_dashboard_token`). The unified `--api-key` /\n`FREELLMAPI_API_KEY` used by coding agents cannot authenticate these commands.\nThe ",
+  "sources": [
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/README.md",
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/package.json",
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/.env.example",
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/docs/en/install/01-install.md",
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/cli/package.json",
+    "https://github.com/tashfeenahmed/freellmapi/blob/main/cli/README.md"
+  ],
+  "localRetry": {
+    "observedAt": "2026-10-06",
+    "checkout": "/workspace/vendor/freellmapi",
+    "head": "a6b2158c7c36ce19f888d0411846a1a0f2aa3f06",
+    "npmInstall": {
+      "exitCode": 0,
+      "packagesAdded": 839,
+      "executor": "root sandbox with additional network permission"
+    },
+    "cliBuildExitCode": 0,
+    "cliHelpExitCode": 0,
+    "localEnv": {
+      "created": true,
+      "ignored": true,
+      "mode": "0600",
+      "host": "127.0.0.1",
+      "port": 3001,
+      "encryptionKey": "generated locally; value omitted"
+    },
+    "defaultSandboxDev": {
+      "exitCode": 1,
+      "reason": "tsx IPC listen EPERM at /tmp/tsx-1000/17710.pipe"
+    },
+    "sourceFiles": [
+      {
+        "path": "README.md",
+        "bytes": 60006,
+        "sha256": "8e2dffec3a48893a19fcb8fd9b2d8e565ca6e9126a33b22b99ccb4ba471ff7c6"
+      },
+      {
+        "path": "package.json",
+        "bytes": 1988,
+        "sha256": "d3121c43f3c5eabb4fd0a7a2efc2e46586232b628fbd2f333626e8c7ab94c631"
+      },
+      {
+        "path": ".env.example",
+        "bytes": 21547,
+        "sha256": "e02ca1a1246a3705f6abc015a8fdaee544abed32b77e53eb5b8d60e96fc77a78"
+      },
+      {
+        "path": "cli/README.md",
+        "bytes": 4870,
+        "sha256": "96283047ae8a24335dc0814c12aa4b5df696d376b9eedd3e615e69f988618765"
+      },
+      {
+        "path": "cli/package.json",
+        "bytes": 1631,
+        "sha256": "db07a99b141934b9c41463cd4fd583f86bfcd1a7eaac4ccdd01036dc431ef399"
+      },
+      {
+        "path": "server/src/routes/auth.ts",
+        "bytes": 14095,
+        "sha256": "8618ff3218ad02a31847a3fe9041ced3dcb20659b44dc5c055d4ec013fd928a2"
+      },
+      {
+        "path": "cli/src/tools.ts",
+        "bytes": 41761,
+        "sha256": "85ccbdc200bfe31327e3ac853a9dda0fb2b5b16a28c66f860945e7a7043762a0"
+      },
+      {
+        "path": "cli/src/index.ts",
+        "bytes": 20893,
+        "sha256": "d5607f4e516906f9a885f2184183bc7d9cf5b82bf8e3911438e04c1352c55a93"
+      }
+    ],
+    "permittedRuntime": {
+      "command": "npm run dev",
+      "executor": "root sandbox with additional network permission",
+      "sessionId": 13213,
+      "apiPort": 3001,
+      "clientPort": 5173,
+      "authStatusHttpCode": 200,
+      "authStatus": {
+        "needsSetup": true,
+        "authenticated": false,
+        "email": null
+      },
+      "providerInference": "not run; provider keys absent",
+      "dashboardAccount": "not created",
+      "unifiedApiKey": "generated by gateway database initialization; not retrieved"
+    }
+  }
+}

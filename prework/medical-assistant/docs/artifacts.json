@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "description": "Exhaustive relative path inventory of prework artifacts. Paths are grouped by repository provenance; source changes are listed separately from staging documentation and scaffolding.",
+  "repositories": [
+    {
+      "scope": "staging-prework",
+      "root": "medical-assistant",
+      "artifacts": [
+        ".github/workflows/scaffold.yml",
+        ".gitignore",
+        ".pre-commit-config.yaml",
+        "HANDOFF.md",
+        "README.md",
+        "app/.gitkeep",
+        "app/annotation.html",
+        "app/design-system.js",
+        "app/index.html",
+        "app/main.js",
+        "data/.gitkeep",
+        "data/manifests/license-report.json",
+        "data/manifests/triplets.jsonl",
+        "docs/artifacts.json",
+        "docs/deepseek-harness-integration.md",
+        "docs/deepseek-harness-source-evidence.json",
+        "docs/freellmapi-integration.md",
+        "docs/freellmapi-source-evidence.json",
+        "docs/latest-backend-read-coverage.json",
+        "docs/latest-backend-source-map.md",
+        "docs/latest-backend-test-results.json",
+        "docs/latest-binary-asset-map.md",
+        "docs/latest-ideas-source-map.md",
+        "docs/latest-ios-runtime-read-coverage.json",
+        "docs/latest-native-documents-map.md",
+        "docs/latest-native-package-results.json",
+        "docs/latest-native-test-read-coverage.json",
+        "docs/latest-native-test-source-map.md",
+        "docs/latest-runtime-tail-source-map.md",
+        "docs/latest-server-full-read-coverage.json",
+        "docs/latest-tooling-read-coverage.json",
+        "docs/latest-tooling-source-map.md",
+        "docs/latest-widget-config-read-coverage.json",
+        "docs/latest-widget-source-map.md",
+        "docs/phase0-3-prework-handoff.md",
+        "docs/prework-log.md",
+        "docs/proposals/chat-me-container-entrypoint.patch",
+        "docs/red-pen-ios-source-map.md",
+        "docs/repository-complete-read-coverage.json",
+        "docs/repository-read-inventory.json",
+        "docs/rootstock-os-raw.md",
+        "docs/screenshots/README.md",
+        "docs/screenshots/native-existing-2026-10-05/01-library-questions.png",
+        "docs/screenshots/native-existing-2026-10-05/10-mcq-quiz.png",
+        "docs/screenshots/native-existing-2026-10-05/12-anki-card.png",
+        "docs/screenshots/native-existing-2026-10-05/14-ideas-list.png",
+        "docs/screenshots/native-existing-2026-10-05/16-ideas-space.png",
+        "docs/screenshots/native-existing-2026-10-05/22-settings.png",
+        "docs/screenshots/native-existing-2026-10-05/28-mission-control.png",
+        "docs/screenshots/native-existing-2026-10-05/31-exam-plan.png",
+        "docs/supporting-read-ledger.json",
+        "docs/supporting-repositories-source-map.md",
+        "package.json",
+        "pyproject.toml",
+        "scripts/graph.cypher",
+        "scripts/prework.py",
+        "scripts/setup-deepseek-harness.sh",
+        "scripts/setup-freellmapi.sh",
+        "tests/app.test.mjs",
+        "tests/test_prework.py"
+      ]
+    },
+    {
+      "scope": "native-source-patches",
+      "root": "red-pen-ios",
+      "branch": "design/prework-20261006",
+      "source_head": "faecd8cdccd92387ac777335588ebc548b0ab106",
+      "final_head": "8e8627f433e07984dffaab560a4e6fac62456c75",
+      "commits": [
+        "54ad83d",
+        "b691f21",
+        "8c45c92",
+        "8e8627f"
+      ],
+      "artifacts": [
+        ".github/workflows/design-preview.yml",
+        "docs/integration-results.md",
+        "docs/prework-log.md",
+        "ios/RedPen/Features/Voice/CommuteModeView.swift",
+        "ios/RedPen/Features/Voice/CommuteSession.swift",
+        "server/tests/tts.test.mjs",
+        "server/tts.js",
+        "tests/question-bank/bank.test.mjs",
+        "tests/workflows/design_preview_test.py",
+        "tools/question-bank/pipeline.mjs"
+      ],
+      "remote_production": {
+        "branch": "design/prework-20261006",
+        "head": "16b90842184103d0e9f080330345254042f78c3d",
+        "source_commit_map": [
+          {
+            "local": "54ad83d",
+            "remote": "696192f02cdaa0da27ebad5aaec360029dcd2b38"
+          },
+          {
+            "local": "b691f21",
+            "remote": "a0b70fb00db21d6e9fb9aeaa5c938ba38a8a8fe0"
+          },
+          {
+            "local": "8c45c92",
+            "remote": "7b32b06404d90c584274b68f9cf8741414f99820"
+          },
+          {
+            "local": "8e8627f433e07984dffaab560a4e6fac62456c75",
+            "remote": "16b90842184103d0e9f080330345254042f78c3d"
+          }
+        ]
+      }
+    }
+  ]
+}

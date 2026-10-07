@@ -1,0 +1,2831 @@
+{
+  "repository": "NoNeed2name444/red-pen-ios",
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "snapshot": "/workspace/repositories/red-pen-ios-latest",
+  "scope": "root/app/runtime except Features/Notes; other repository partitions recorded in linked source maps",
+  "file_count": 403,
+  "bytes": 4345655,
+  "entries": [
+    {
+      "path": ".github/workflows/accuracy-model.yml",
+      "bytes": 3369,
+      "sha256": "08dba33e0dcd71a50c5be5ee9fbcab15a51442f77e9df1928580f967fb320780",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/app-build.yml",
+      "bytes": 3168,
+      "sha256": "b24b04c62b23e3763b74cda742c50bb0e4a1d821e7e8066d585938b6bc57960b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/asr-bench.yml",
+      "bytes": 4461,
+      "sha256": "4bd48e61994693e1c81f53500f1310a0cc26e28866144c37f1d4e3a6f067c758",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/decks.yml",
+      "bytes": 1946,
+      "sha256": "5bb4452ccaf0737ea472e9667d0bf50ccbf200dd3678aa149a7d7a61832ba663",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/design-preview.yml",
+      "bytes": 16498,
+      "sha256": "9c8fdc3d79c342a3bfe63035a6717ac977b6badf2075424e7c6ba8d845c90309",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/diagnostics-triage.yml",
+      "bytes": 2426,
+      "sha256": "0eb4661f1af20c01fef5397d5e8ea71a337b216895bd55112288668d94f7759f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/icon.yml",
+      "bytes": 1132,
+      "sha256": "e230351263b64427c5a98adfb71e2d8eabbf17abfc627a0ee9bb11fe08124179",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ios-preview.yml",
+      "bytes": 9051,
+      "sha256": "d9707c4f16571b5ab0befdea3171f404bda80d00df456bbdf31a4e1130cc899c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-devices.yml",
+      "bytes": 5831,
+      "sha256": "14bc87039b68d3a10672b42873ef361a4867f6bc547bdf0b9288dea73bb9665a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-preview.yml",
+      "bytes": 9824,
+      "sha256": "8afdba6d76dbcd7f0124a007f798513d0750c425f789b6de97b735a4250e0cbd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/ipad-widths.yml",
+      "bytes": 4899,
+      "sha256": "4e36a3b2039a8e76ae21db55538c510d9b05dabb9d935f598bd1b3dc044e631c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/live-tests.yml",
+      "bytes": 5603,
+      "sha256": "0b305058159c582a525f62ac18bb21013a6f9ba15d018438b6a2db5a42e80541",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/live.yml",
+      "bytes": 6850,
+      "sha256": "b7d89e2728380630eb71f39dc6ca3450e0fc33533d3faceadec09e57b5d99d90",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/question-bank.yml",
+      "bytes": 3211,
+      "sha256": "0d1f137ccead1043bbedd86e13eb3a33da1cf4a2045d60c5f44e2c2660c43c09",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/server-tests.yml",
+      "bytes": 1444,
+      "sha256": "ff817261cf068913239b08eb2abca0725e247af125c9472b194b3c622436f776",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/spaces-deploy.yml",
+      "bytes": 2528,
+      "sha256": "0985037e83613c0867dd0631274e8d92ae5df9fdbfcf0934359c83eed6394b70",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/speech-ci-test.yml",
+      "bytes": 1873,
+      "sha256": "8400e1ac00c023bfea4fbea014679395d66fd92df3224c0819b7b95b262892b8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/swift-tests.yml",
+      "bytes": 5257,
+      "sha256": "cbe910bad390be404a241f1ab0b82c35c6dc033a9fa340bd3100be704c07585e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/swiftpm-check.yml",
+      "bytes": 3039,
+      "sha256": "c2507768372c83e3ce086411f6864badca1373893a3426d9b6bd0385152517ed",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/verification-bench.yml",
+      "bytes": 4198,
+      "sha256": "a3a5e9ae162fca3f22174f0f1f1a0f0d41a592682067886c799b5b07280470e4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/walkthrough.yml",
+      "bytes": 6675,
+      "sha256": "ca9f87cacba09e47c520c7b0421174dd3ed268d0a90620adeaf6b6e8078a34c0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".github/workflows/worker-deploy.yml",
+      "bytes": 9221,
+      "sha256": "e16b2adfc2c791e109002fc37f20bc79b13ccd078bc247bf6c1ed49f105d7341",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 208,
+      "sha256": "09373c7ed67e05cfeebb6db0559521acc7ca6e3b8debfbacf08087b8ae097e0b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 2712,
+      "sha256": "8905bbe97902176c565b0be1d972abeb2b7f6e2fc9da6744c37b288cfdfe70a4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "README.md",
+      "bytes": 601,
+      "sha256": "e6e115a27dc45c5fd68810fc75e538f2bc6fb22f07aaa0159925f8dab03cbd4b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ci/speech_ci_test.swift",
+      "bytes": 3704,
+      "sha256": "1b767f9c3934e4b3d252214ed62f366187dfb4fae08f7589bd2b49e6a0aa64c2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "docs/architecture/plans/tasks-5-to-5d.md",
+      "bytes": 8334,
+      "sha256": "fa07c12122a166e749cd051916ab52abbd417cbfc623fd3e932ad56c9dc427f5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "docs/design/cases-rebuild.md",
+      "bytes": 8788,
+      "sha256": "b861633a4f7a0306bb1ec18176da5923a72fbb832da565d4954300e3d0ca3b60",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "docs/design/targets-2026-10-01.md",
+      "bytes": 9075,
+      "sha256": "67984f3a2dc8d4f18bbadc6ae007f2d00f1c6315d9f3952309bdbf6d8f355626",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "docs/design/ward-round-rollout.md",
+      "bytes": 25885,
+      "sha256": "6aed559c64fbc7fa1cd5bdc8fb40389d54a50b40b8f3a8f36c2c65fc4e59fe23",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/README.md",
+      "bytes": 8156,
+      "sha256": "ae2dc50b5d476ea46ab6751bb5f6c406c4b8e69b881c7804c37e5fef2d25980f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Assets.xcassets/Contents.json",
+      "bytes": 40,
+      "sha256": "024743a8a079a91e13f392b07559d0405d348a394d16e7976289123294eba1a2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Account/RecordingTermsView.swift",
+      "bytes": 10572,
+      "sha256": "131325f17779596d14f1a5543e88db0bbd6fe6a4b453143a6878ed3b8a753135",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Analytics/AnalyticsView.swift",
+      "bytes": 46749,
+      "sha256": "3adfe5f97d73e3a3b16b68fe9492043155f2b1cdf960735f6252b52f4353f2c5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Analytics/AnalyticsVisuals.swift",
+      "bytes": 17422,
+      "sha256": "fc307f2ce54af356eab1efc89843c35403bbd70008476be84715bb391deea5fd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Analytics/VitalsParts.swift",
+      "bytes": 11337,
+      "sha256": "680b7eb175397795768527f29f9e7b5a082d3a152fc9d234259f896c0f1fc656",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Anki/AnkiCardFace.swift",
+      "bytes": 17121,
+      "sha256": "a049553422ef368a919e6c3ce6f58714100a35ddb8f14836ea204784245481a9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Anki/AnkiReviewView.swift",
+      "bytes": 13601,
+      "sha256": "a215f4c81c731b8a10343b635d739781a2bffa2498769391c2355395fdbf6ff0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Anki/AnkiScheduler.swift",
+      "bytes": 4376,
+      "sha256": "81c70fb3b37b9bc7750bedd29ca18949ec94ebd10ca9fea9d0d841194a5265a6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Anki/DueTodayView.swift",
+      "bytes": 9805,
+      "sha256": "83026efebdf3e9d63fff8661247db22475f8e27acb6bc709bdb19fbf9be85fb0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Anki/ReviewCardActions.swift",
+      "bytes": 4297,
+      "sha256": "5bc87c5ee4ad87fa281bf26c06fa3718ca2c697d234cdb46a164aa0cea8a489c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Auth/AccountView.swift",
+      "bytes": 12130,
+      "sha256": "a6956ca7b6bc835df7630bc36bd095f62699d6768c6c8b2c90e5eb662822e736",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Auth/LinkDeviceView.swift",
+      "bytes": 9700,
+      "sha256": "a91f7df0ca5dd5192a651037bf77bcf0d6f290276315fb6b9caf0b608083a278",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Auth/SignInView.swift",
+      "bytes": 9331,
+      "sha256": "d09ad2de9000e0cbdd23e17c89c500ca9f7c34222b1058ceab39bf718138aed3",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Book/BookReaderView.swift",
+      "bytes": 13242,
+      "sha256": "69395c085327e8c5aa71f036087b31500baf6117e3c8633c32e90bccdc3aa6f5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Coverage/CoverageChecker.swift",
+      "bytes": 5320,
+      "sha256": "8b4ff09e51d6baf230cad9f80e52f8594c4ed81c332a27d40bc511f5d63bc5aa",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Coverage/CoverageView.swift",
+      "bytes": 21548,
+      "sha256": "f44d7bd22a252a31f7c0253507c884c9478e0cbe4966659efa077955891c6986",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Exam/ExamDashboardCard.swift",
+      "bytes": 10061,
+      "sha256": "921de37e5090224a6b5b546dd5d2a8b74ba53f3fa8d4fe7d10a4af835687c952",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Exam/ExamPickerView.swift",
+      "bytes": 7436,
+      "sha256": "31e9ed3c4f421861a413474097231d66ec4ab5bf44e544a22bc1d74f6487c4fd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Exam/WardPocketView.swift",
+      "bytes": 19121,
+      "sha256": "eab14376244b524c69ea528f9087cd9822e702d4ada2ad8086efe5cc60ba22de",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Examples/ExamplesHubView.swift",
+      "bytes": 12450,
+      "sha256": "93b5151874dc36ee1f813d7fc2e74d428aad1ae6a0b4bc8dbe3635505a6ecf77",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Examples/OcclusionExample.swift",
+      "bytes": 15583,
+      "sha256": "80c051032528c8ed9a616566cafd73da752f1fbdc4c307ea2b4c45a4ba61c950",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Insight/InsightExamples.swift",
+      "bytes": 13499,
+      "sha256": "dc32357078469b4ef3ea09ea8704dd2b8f539ad08de570ae513e353d5e826f4d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Insight/InsightViews.swift",
+      "bytes": 12397,
+      "sha256": "78d1433f1fdc0a9ba58ba9aed699156a4625937de7c66e95f191a4a57a2cea14",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Insight/RuleSheetView.swift",
+      "bytes": 10289,
+      "sha256": "fcf1fc05b1e2dc78e82f4c45d815669f55dd737e1d185587a92d689058d56d74",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/BedtimeReviewView.swift",
+      "bytes": 5293,
+      "sha256": "a47fa8ffc614706cbd13793082fffe8f37bf02489c8e5886d6160846cc896047",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/ExamDayKitView.swift",
+      "bytes": 6733,
+      "sha256": "d7cefa1d727dd7daf7ccb4b926396c067c9def53802705872f2a4d6fa85582b9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/ExamPlanView.swift",
+      "bytes": 12620,
+      "sha256": "08aed09aa8490937bb34102d0898ce287933576409bce45c59b0c129ba10684a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/GuessFirstView.swift",
+      "bytes": 7537,
+      "sha256": "bf2ed7baec8891bdb3fc411c3f3fb0954969ff1a4459ac26fd0840ea716b9ab2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/LearnRoutes.swift",
+      "bytes": 2412,
+      "sha256": "b692f43506e0400c70db20e2c45c2924d88ad827354f553b15624e12fb391596",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Learn/SymptomBlocksView.swift",
+      "bytes": 6699,
+      "sha256": "609f0e5720bcf67a0e14537b662d1ef94512709a11e86a05ee9b13b69d2f4980",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Lens/LensAddSheet.swift",
+      "bytes": 8540,
+      "sha256": "5896e82421514fc2aae1da68b8d0cc0ca0cb2ef34170c95e1977eb470cffa371",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Lens/LensAnswerSheet.swift",
+      "bytes": 20641,
+      "sha256": "77289a3496e5e705b2e60c69441ec04394499127ff61b028b7b034452550f987",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Lens/LensCamera.swift",
+      "bytes": 13665,
+      "sha256": "fd8c11cfc43e52f36d846885c0855e2661b801b0b0811fce464eed2babcd5fd9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Lens/LensModel.swift",
+      "bytes": 9260,
+      "sha256": "ab9bb05038f8a6867a0fe8f18a5f2d42e5c3e3104bac19b158567aa53ba64ae9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Lens/StudyLensView.swift",
+      "bytes": 18581,
+      "sha256": "c0a54dba43edee3e8f153fd2f42e6ac63600fbef80d4badec7be1dbf7a41db3e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/CardEditSheets.swift",
+      "bytes": 11140,
+      "sha256": "dba9db363822f2aebd770fa88dcc6201b3539c6fd3731bb316c7c108ad246dd1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/CardsEditorView.swift",
+      "bytes": 8200,
+      "sha256": "990e29d74489eb6d8d8421d95d3e1a9ef7009aca79b23c58b0994d7761a78bb2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/CategoryPages.swift",
+      "bytes": 6569,
+      "sha256": "e26783ec79094af7c9f273974a8dbdfeef6f04ef1f1a81eab18eebf962396b4e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/CategoryShelves.swift",
+      "bytes": 10900,
+      "sha256": "24f935b1897d21db68912f58e1daacfef888af38fbb5d20b330137df8bccf76b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/CustomSessionSheet.swift",
+      "bytes": 9918,
+      "sha256": "7cbc21c57b8f31b3e393af9185138ff94f10f945a28fbf1a8d85097275f9ea2e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/DeckExportIntents.swift",
+      "bytes": 7717,
+      "sha256": "dadf01bd0d855c8c50c3e0932d35dbda7b44013cfaef3eb592f1dd39d30107c6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/DocumentScannerSheet.swift",
+      "bytes": 2638,
+      "sha256": "435d5ba87408ec95aba3adb59acf0f500fe9a678583c088420c843681b7e694b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/FileReads.swift",
+      "bytes": 1493,
+      "sha256": "30f7ad583c40a101e144a6bafa84bea2f0e41939c9eb26054a9a0a6d0fa58c2a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/ImportPreviewSheet.swift",
+      "bytes": 7161,
+      "sha256": "1dbf088d810fa6d26423285121f985d18e485dff30145204d52a83d4ab06aac7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/IncomingImport.swift",
+      "bytes": 8581,
+      "sha256": "4d8992466f755611420a930d638a778fba1eb9c84c85ed21432539f45fab3320",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LecturePDFSection.swift",
+      "bytes": 13691,
+      "sha256": "94c8f2fc4125c173a90a388183756231b351abce7cd22e711c4ad8760d8b9435",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LectureWriterSection.swift",
+      "bytes": 27462,
+      "sha256": "cd6a16bcb181970ab8b3d664947a6b8dd3a8ec2f118f5de16efdddfe5e9882a1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibraryCategory.swift",
+      "bytes": 8781,
+      "sha256": "a37b2cc60a3d99870d785004332fdd591e049e49246e2186e4e5b736cc3d0635",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibraryChrome.swift",
+      "bytes": 2751,
+      "sha256": "e1a8f6c8b7e975d3b9a7a487a32325901a5ff74a4bdbe13484380250df02e1a7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibraryImport.swift",
+      "bytes": 16299,
+      "sha256": "c7703a147fb3ed0fd6b51960d705b522dad88fe86364d31c24689f26939b9a9a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibraryRows.swift",
+      "bytes": 19811,
+      "sha256": "31040ddf4371c6177d9611abda27e312652a987360ed1c1fc29caccbeeae943a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibrarySavedIdeas.swift",
+      "bytes": 3291,
+      "sha256": "b7d2c1c4de3d315da536c06b7068f8df2ded0a590b7f73c34678c59c3380f06b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibrarySearchModel.swift",
+      "bytes": 3854,
+      "sha256": "25c799edab6401e5d13be0642c992bb210c98257e45e2572d01b9de4076dac48",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibrarySearchResults.swift",
+      "bytes": 10569,
+      "sha256": "8608c876865cab0d2f9cec2482455889131b4c56575e5b72d064b9a8d0fe7cc0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibrarySheets.swift",
+      "bytes": 6251,
+      "sha256": "0d9a3ac052dd3c9fccf3f9e9ceb30d8506899529334403910ec7b674d770e009",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/LibraryView.swift",
+      "bytes": 37489,
+      "sha256": "2f1584f2a1afe6440c6d3dad3191210bb655cb7e67a63de5382256ba1c73c168",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/MCQGenerateForm.swift",
+      "bytes": 17549,
+      "sha256": "ba4396e496bca5069f495e9fd7f92fd470c46ea23cb4ec7f837b5bb86bdab6c2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/NewSetDock.swift",
+      "bytes": 5541,
+      "sha256": "e88ac4402101708bdea0b7126dc390080984703e4ce14ac66abc019f8322026b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/NewSetView.swift",
+      "bytes": 34212,
+      "sha256": "3e79f19c4bf3c66e3066f0770e96dc130a19fd323cae6d8c9b2132b910f41c4a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/OcclusionCoverEditor.swift",
+      "bytes": 7938,
+      "sha256": "cce820c0b0cfa82afe9bd1ec88aedb4c93749a7ff5aa816157e9884f30e2fe44",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/PictureFromPhotoView.swift",
+      "bytes": 24061,
+      "sha256": "0052dc3e0fc1079fe8d9f83f2343a71cce194093dc71fcff847e91a40fc6958f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/StatsView.swift",
+      "bytes": 17080,
+      "sha256": "e28290ba47ffac9c79e9db0841c65abeb27c26efe60f6be37d456a249b8e7f27",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/StudyCategory.swift",
+      "bytes": 30006,
+      "sha256": "2b1f6723242bd423a13bd65970d0a063730e74203dcd41ff7fa1e3124a544104",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/TagChips.swift",
+      "bytes": 6333,
+      "sha256": "7ff010ef675f527db5b7321ff30591a879d33c086d2e59771bba2e1703418f3e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/TurnIntoPicker.swift",
+      "bytes": 8624,
+      "sha256": "c8c3a6f9dd89174920a59805f8c2d9fc2367993a5f3552cb2fd53f593558410c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Library/WardHome.swift",
+      "bytes": 29257,
+      "sha256": "4404c9a442b58f653c3fb58b82d099ebf5dd5224ea6e97c3953819b9d6e9b40e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/MCQ/ChartQuiz.swift",
+      "bytes": 6640,
+      "sha256": "0cdabdf9e366ba36a6b447f34f75da44160ea8a6a67c53c59e72d85767b76d43",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/MCQ/ChartQuizViews.swift",
+      "bytes": 6919,
+      "sha256": "9c22469a457f5a6d9d288e94b77ff0df461b2c40d452fde1cacb9101b5865eb2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/MCQ/MCQExamTools.swift",
+      "bytes": 13816,
+      "sha256": "debe5f5fc23659b3796c6ad78924dda4ebae0f5f487c0bae3e984b6220fd808a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/MCQ/MCQQuizView.swift",
+      "bytes": 51036,
+      "sha256": "9409a0a944bdda421f11acc22ff98a4eba8be880f8e378877de99ce31c25a9b1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/MCQ/MCQSummaryView.swift",
+      "bytes": 13019,
+      "sha256": "b214afef9af57a6d0a583f431bb96986f4b12d770fc2fe90a1cfe0a31bf3fbb1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Mock/MockPaperView.swift",
+      "bytes": 13293,
+      "sha256": "60714d7f3621995d4fab452f6e263147bd9bf5abd11ae3b5a1be21440efe9d13",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Mock/MockResultsView.swift",
+      "bytes": 7444,
+      "sha256": "9559b314c7679f0d875507f38fb4a7eeec312ec09329e638a6f26b1e3eb6723c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Mock/MockSittingSave.swift",
+      "bytes": 2762,
+      "sha256": "152582d6e5279d2e7b3fca5cac9370c997ad775aa78c598751bee4a2aed830b0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Mock/MockSittingView.swift",
+      "bytes": 24190,
+      "sha256": "bb79abed0c37cfddb7ae0c8cab2a2dd91b47253c30141cf65649d658796c650f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/FixWordSheet.swift",
+      "bytes": 4846,
+      "sha256": "0629fabcbdfb400f9a05477bb4b776653ca0e635a6760e1a93c856e2699e8d8e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/LectureImporter.swift",
+      "bytes": 10901,
+      "sha256": "ba80cf6a73c86ca86a9b2f6ff15c58cc6ffbf35dcf197fe5f301cbb7b0c02a28",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/NarrateAudioBar.swift",
+      "bytes": 5446,
+      "sha256": "e05ad0922e6f94105196ca6ffaa02648f2ccfdb6dd9a3f337c12a4e152c24f30",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/NarrateReading.swift",
+      "bytes": 1611,
+      "sha256": "2aa56254e8d206c6e53982fd78b05a5324dfdfb6b8bc6441b547cd3f2218dff9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/NarrateReviewView.swift",
+      "bytes": 17746,
+      "sha256": "832a2b5d984bd76f0dc0456cfa589e1dc537aae5ac4944eaebc9ab1da793020c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Narrate/NarrateWordFlow.swift",
+      "bytes": 7984,
+      "sha256": "6ff3529b9c6b417d7305fe17345b881930ab7c707dd2a0154e1a3fd0f1dd1253",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/OSCE/OsceGenerateSection.swift",
+      "bytes": 12936,
+      "sha256": "fbb06347b0015fd9bb45992a853876e775a36df0c25a2e162acc938736eed7f0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/OSCE/OsceReviewView.swift",
+      "bytes": 19038,
+      "sha256": "b2ff3c8d93721640c060c429242275a71c7c30a18d21a4a4e0260cb00f000c79",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Onboarding/FirstRunView.swift",
+      "bytes": 14697,
+      "sha256": "96c81c898a6d37a21e901feb6428f7a01fe7a265bfd872e1f82e810a678e0d49",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Onboarding/StudyTips.swift",
+      "bytes": 7414,
+      "sha256": "c42c4a3ac5039851b46eeee389117f064290d4115fe142afffb3372caff3aef5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Paywall/PaywallView.swift",
+      "bytes": 7753,
+      "sha256": "e4bf18ea34876ce934bae027df1834d54c808062c8c629e53c21f20a4bddd0a9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Reasoning/DuelView.swift",
+      "bytes": 17508,
+      "sha256": "87a99b4725fa6e59ecb7098bbd0394272d7c79cf0fa180e8db3b52b724749086",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Reasoning/HowToReachCard.swift",
+      "bytes": 5691,
+      "sha256": "4b33e71cc409c5baa1cb9959b720dccb4574545c109cb7d739254021688b1102",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Reasoning/ReasoningView.swift",
+      "bytes": 15572,
+      "sha256": "9a2e40e42b4491ffc171634e0ce27696e9d9c90362f6d0b8b5a371b8406dd36e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Reasoning/ScriptsView.swift",
+      "bytes": 13175,
+      "sha256": "410775e410500625051739abd0e77171cd938f337c4951a57d5d62fd259de1de",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Recall/DrawRecallView.swift",
+      "bytes": 31864,
+      "sha256": "009abdedd73a9d457c86449d1f71d2f3f4b14933c5cc7d128d7c3c102f53175d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Recall/RecallAttempts.swift",
+      "bytes": 4899,
+      "sha256": "dc02fb339608b058bdeae1996868f21b504eb520042a0c216d92615f142ebd9c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Recall/RecallExamples.swift",
+      "bytes": 8720,
+      "sha256": "de576e9f9c738f2d6f3fb8089f4a25e16eab0e6cf3605db86738484a37aa6b1f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/ReaderBar.swift",
+      "bytes": 5665,
+      "sha256": "9f6ed5b92c94b890735b4a2c9f5ed1ef8d8e82d9834344f86697c94af982f499",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/SourceDocumentView.swift",
+      "bytes": 11441,
+      "sha256": "2641b31703a3f48b6bbb867d707bfbd09f06b0de957dc172bc6c3e8d08c50ee9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/SourcePageReader.swift",
+      "bytes": 4764,
+      "sha256": "6d9866d6771cf9f6ca3ab01ca35a5307fcdad856da3a6d1cfb54070171e736a6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/SourcePreviewView.swift",
+      "bytes": 12162,
+      "sha256": "c33ca5b759b03826d4d1964a1c4adfbe27b97a231f281bb354ce3f978b77280f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/SourcesCreditsView.swift",
+      "bytes": 8987,
+      "sha256": "a8e7b48f155cf438439bf75634d54a9bffdbfa59ce45f55e27f6801d5162b3ec",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Sources/SourcesLibraryView.swift",
+      "bytes": 6229,
+      "sha256": "b3c984e91232bc3286cfa3e85f6200e27dd287ed8d03e67f1aea7fcfa9b6f312",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/AccuracyBadge.swift",
+      "bytes": 13998,
+      "sha256": "2a276f657297cdcd23016a0ccfbcb4600b3f1926eba52a90cdefc9b27aebb16d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/DiagnosticsSettingsView.swift",
+      "bytes": 6006,
+      "sha256": "36502ef2cf5d682a688acfe163c8efacb2bdb9c4c77b58c73995cb72045fba03",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/HelpContactSection.swift",
+      "bytes": 2363,
+      "sha256": "3c1708b564347ef091e47b410a0f8c576033933745f68ea6996a44352be5cf53",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/LibraryDataSettingsSection.swift",
+      "bytes": 7980,
+      "sha256": "2a7b40fa1ca79c49b3d62efb45846644260f7a83bc74533dc6e39902f44236c1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/ModelSettingsView.swift",
+      "bytes": 18895,
+      "sha256": "b8909615b580086b2e678b329866d6df6843f2b1d41499c918a134aae39b54b8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/PlatformSettingsSection.swift",
+      "bytes": 4453,
+      "sha256": "0cc979824b06e4a66d12d9a0617711e36f3ba3facf7274ebc27e363c2d630581",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/QuestionReportSheet.swift",
+      "bytes": 3171,
+      "sha256": "ed37ec62ddbd9d7f55d46d5e9f0aa59bc719fdedccbfe04639e580ee04f2d0bf",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/ReviewPromptModifier.swift",
+      "bytes": 2058,
+      "sha256": "d0f3d510a0d346d3865d6e61bb9b00cb41f495fe41a5f61ce435af9fb2ad3b81",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/ReviewSettingsSection.swift",
+      "bytes": 3023,
+      "sha256": "f7b30b43e04d2f51fd082ead5a92dab9efb176b1de4a4cde167186977a9501e4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/StudyReminderSettings.swift",
+      "bytes": 3664,
+      "sha256": "65fd62d22a33b466c822ff4e6719ef555c855fec0dc40d8ad7cb2295cb898d0a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Support/SupportCenter.swift",
+      "bytes": 23317,
+      "sha256": "50f835b6e0dd283dde089d1687c18c14d05995a0cf3ad89aa83329d9e7e1d498",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/CommuteModeView.swift",
+      "bytes": 16556,
+      "sha256": "11708a9185839edb070b8e37234e1a8fb065b8c1a27a7fae3ae71da2c29872ca",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/CommuteSession.swift",
+      "bytes": 14798,
+      "sha256": "4954a3278f2e118e65d335524186a53311bb5cc831f4ee42b88de43515d24631",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/ExplainBackView.swift",
+      "bytes": 24657,
+      "sha256": "37ed1129c62276bff8d18d2fb7644200ccb66e4a4f0fe4693cef897f25b0bf1a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/SpokenStationSession.swift",
+      "bytes": 7084,
+      "sha256": "3869db6fec3090a34c2bc1c14e75970bcc89d2ed395109ce01ee63bd9fa63d54",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/SpokenStationView.swift",
+      "bytes": 21409,
+      "sha256": "fa7e0214b494c6597a8d2f49cab3595eae1eac4be9d209eed3350057e5db2b13",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/VoiceEntryPoints.swift",
+      "bytes": 2255,
+      "sha256": "0f2d7ac908e66397ca915ee855a849a2ed1565734e02e9612ca2b783ec887347",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Features/Voice/VoiceParts.swift",
+      "bytes": 3319,
+      "sha256": "de29bd48ccd571438749394d96944b4049baba1d35dbf19ba1eaddb57b694f4d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Info.plist",
+      "bytes": 188,
+      "sha256": "d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/Account.swift",
+      "bytes": 3320,
+      "sha256": "97dfac139dd9afe0f88df945bf8b20965b63dfee867ebd963f935d01c3cefb05",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/AnkiCard.swift",
+      "bytes": 8071,
+      "sha256": "599ee9601b889d95f16959a7b211cd50c16368230f73c475604576c15c148c6c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/Differential.swift",
+      "bytes": 18839,
+      "sha256": "3bbfab8f2364d96ea0824a834e2915940529900a766eafc4ace67d5a3ad3d062",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/MCQQuestion.swift",
+      "bytes": 1719,
+      "sha256": "3165ca09b0f2ae5666742b7dcdedc0bec57710fb95941c363194a373cc8dccc5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/NarrateSegment.swift",
+      "bytes": 4239,
+      "sha256": "a3645156f130bb7fb54cb105be9aa8b24989414a5111e4982cf6ee188d2b4a24",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/OsceChecklist.swift",
+      "bytes": 2641,
+      "sha256": "c79079365f23d745e7c4a5949f0cd2309b3aca16f3ae1ea8a1ff8d03682b439b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/SourceDoc.swift",
+      "bytes": 3387,
+      "sha256": "13edc4235f70ccbfee1d19faaa37006e9580735357d1f9b10b3f5e3f00b755ab",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/StudySet.swift",
+      "bytes": 9106,
+      "sha256": "d0cb5e71f30e4cd5e84b9c07f3cb06e3c88f669898dab829a503ae861c20a1f3",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Models/SyncDoc.swift",
+      "bytes": 2554,
+      "sha256": "fe5ee1159093fbfbb6efb60d9465b9d5c3c80c68f2a208ec8e51753d0df43dd1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/AccountStore.swift",
+      "bytes": 9636,
+      "sha256": "564ae42c1dc6d5c1c961890c42cc254bce7db717f0a7efbcfe06100c97729012",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/BlobCache.swift",
+      "bytes": 4263,
+      "sha256": "c2cbeb472d9a5a5491111f710b6a207b06805ff4dfb0236b9be955f961a3f16a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/Keychain.swift",
+      "bytes": 2638,
+      "sha256": "b1bd6985477242039963c98f6ce9f5bb71d86ae5b62040f2dc34b77dfa5dc37d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/NoteStore.swift",
+      "bytes": 19532,
+      "sha256": "8921d84ab5b23bf18c16c0b593f26b8c9bdf45a1594da67ab5732c7dd1ba8650",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/ReviewStore.swift",
+      "bytes": 9530,
+      "sha256": "b1864030624c5f8549b997d9bf96ea86ce8ed71679b809031920f8503a18d108",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/SourceFiles.swift",
+      "bytes": 7390,
+      "sha256": "3db392f823d77f419ebde6c85b729f04dafae5b44f423b94b8d1ef4e9ba6c7c9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/Store.swift",
+      "bytes": 41058,
+      "sha256": "2ba609c9e5714c59df7e6ffbbff091a6c653b18d546d60a36775e1cba6518622",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/StoreStudy.swift",
+      "bytes": 9008,
+      "sha256": "c44f6dd4b82170ca316e182a9a520a8373af865b25ed2b2592a87ad29474c0fc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/StoreSync.swift",
+      "bytes": 3767,
+      "sha256": "0e185b125e54f0ff9d62fd9107cc6f9252d6ff07313327c7c5d240a027c380d5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/SyncEngine.swift",
+      "bytes": 26389,
+      "sha256": "189e2f34fffa72cf41ee6b60cfe57fe6c34989635be4d5a187d408bbeec3ae74",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/SyncPush.swift",
+      "bytes": 17552,
+      "sha256": "6ee9403fc8c458ba68137638867d9af19e835b6bf9ffa9c7ba6da1ea53566159",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Persistence/SyncState.swift",
+      "bytes": 10385,
+      "sha256": "970e03846ef6ba3085523c45044d292b82aef38a6401ac1996f541ea86fdd338",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/RedPen.storekit",
+      "bytes": 1954,
+      "sha256": "bbfd2ed73ae2bb051487d9ae61a01cabe0395d5f67fd9ad014dde4b9246f6b26",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/RedPenApp.swift",
+      "bytes": 17652,
+      "sha256": "67dc3d9424314caacb231659c96cf1554b9ee7c4cc520ff9926f7b4a22bdad7f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracyItem.swift",
+      "bytes": 8297,
+      "sha256": "8e7ed8e25bf41608c2fed09593b39c37b3d3ca8c00e409f675400b5566df887c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracyLedger.swift",
+      "bytes": 11764,
+      "sha256": "68cde5ba04346d7b35bb2375c7a793ab71a12565121e52aada0b233781909c62",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracyModel.swift",
+      "bytes": 18694,
+      "sha256": "02cd904dbcf79f1d7417368ea18757a898139d6ce614ca0c3043446eb637af5b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracyRules.swift",
+      "bytes": 46591,
+      "sha256": "0706fe77a64263372582fbaf187d98616bfea74f065c75ffcffe47ae5d0e2fe7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracySchedule.swift",
+      "bytes": 6370,
+      "sha256": "83d279b865b25cdec9218f912077faed943ea0bd9e8235b2e5891e4e33cf29dc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/AccuracyStore.swift",
+      "bytes": 15612,
+      "sha256": "bccb5161ee25bb5484336e164907d0a3aec8b2a961eafa6ce4fe71560d518e86",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Accuracy/VerificationScreen.swift",
+      "bytes": 4337,
+      "sha256": "0b266bcb8dad1c0b97e6839a0681bbb2e0883ad734d4616bd88a43919db3b6f6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AnkiExportSchedule.swift",
+      "bytes": 3171,
+      "sha256": "5c9b2608b516f40a124dadcf2779a4f746bad657091ce082b8f49d9fed56c51f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AnkiFields.swift",
+      "bytes": 4667,
+      "sha256": "135063143bc06f947a07ff5ec3a4af27fb1f349d419a602db6ec4b50a8ab774c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AnkiNoteText.swift",
+      "bytes": 32489,
+      "sha256": "0e20bb163fa26accee4016053e35205c189b7ad4b8f1a4a7db928f9993df1cda",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/ApkgExporter.swift",
+      "bytes": 29659,
+      "sha256": "796e455815536446f7c9364c53c5426d3583f0650fcf3141969cd07798e26a84",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/ApkgImport.swift",
+      "bytes": 42850,
+      "sha256": "42253010eaeec55470b341688f3b12ce521a4a2acfb9d5429710b7f7994c405a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AppBackdrop.swift",
+      "bytes": 17707,
+      "sha256": "816662bab53690430c0125cfa0b1c0677a54acd6ad588ba4ac446a97823879c7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AppIntents.swift",
+      "bytes": 10941,
+      "sha256": "b2874bb050103d26ea6fa058a544825f74471942a70ba728213e02aa3bc15993",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AppIntentsRouting.swift",
+      "bytes": 14212,
+      "sha256": "36dd6ea176135f1bc86ca233bf0106702a2e59a3b2e14785231e8e5fed812b0c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AppIntentsVisual.swift",
+      "bytes": 1617,
+      "sha256": "6cc11424acbb5b063d7299e270db67e724768e8444da80a9c9a76e05dc31e230",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AuthAPI.swift",
+      "bytes": 8438,
+      "sha256": "fdb60102f9499feb08531311f055326179a2bc71e93bfc11dad04b533365d533",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/AuthRules.swift",
+      "bytes": 2528,
+      "sha256": "366fd0a195c9589f50bad57da346b85b1649d876d660562d76db9c7b1a9df2db",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/BackgroundWork.swift",
+      "bytes": 6686,
+      "sha256": "bec3c1634d00b93e6711ab159039bb3649d2701643bdb71ba1dda0cb9b2e434c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/BlobRefs.swift",
+      "bytes": 7584,
+      "sha256": "d926aa1c391d49a68a94521d829a2b064cd7292db5b90ef7bda0800b73a10c76",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/BookFigures.swift",
+      "bytes": 4483,
+      "sha256": "a0e72638463b50cfe211d8ad61a4bb05443427103ac16a7b70f931d0ff1be446",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/BookPages.swift",
+      "bytes": 8526,
+      "sha256": "da6676f3b06d347edb809db449283431f3aeeb171689d7792b2d11220543b614",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Brand.swift",
+      "bytes": 4379,
+      "sha256": "c37242e3e1dd6d2f4507af4eff0314473c9799eb75bc714ab2d4c6f44b776fae",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CardQuality.swift",
+      "bytes": 12935,
+      "sha256": "765d65885c6cb3c068c24f7e98f68f670f400d820a8d2e97c9fc055c4cf106bc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CardStyle.swift",
+      "bytes": 973,
+      "sha256": "b14fa4d7f6ed4ef6966ba6562f0df34a9fac73bf8f21c7150cc20c24b0e175d9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CardTags.swift",
+      "bytes": 8160,
+      "sha256": "4888664335424aef99947f14c4b7673edb23aca6450c24707a0958d63a695ee1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CloudJobCollector.swift",
+      "bytes": 16416,
+      "sha256": "de6cc5d99178c78f484603b6d061e01499ee06b51ce0a197cee2355fb62e96d1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CloudJobRules.swift",
+      "bytes": 5734,
+      "sha256": "851135e9824c7c3697d305d1cddbd3dd71d980f16dcb8d66d96e5c296522fbad",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CloudTranscriber.swift",
+      "bytes": 18599,
+      "sha256": "debfa50125f245cd901b396763e8248ad4300b17c8a6f37e2cc8a9cecfe74746",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CloudTranscript.swift",
+      "bytes": 21030,
+      "sha256": "87399f3c623a99475e903fdccf3a0a802f6b824c8f606b1665852a12503b619d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/ContentCredits.swift",
+      "bytes": 10058,
+      "sha256": "990e1a5cfdb2fc5e8ef38653af9d1690cd49fbb4aec4cf9de8947800669a1cc4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Corrections.swift",
+      "bytes": 7886,
+      "sha256": "74941902239b637e98de73979c2cfc21588fd6d42d4dcf08c438edf3e375dbf4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CountField.swift",
+      "bytes": 4859,
+      "sha256": "fd7b41e4bfc3f5ca9a67415c7048044af30e4b45992d21e240b1eb126f8b9cb8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Coverage/CoverageCloudCheck.swift",
+      "bytes": 11616,
+      "sha256": "8bbfaefc8c25d0eae2640cdbc832ea772fac860a36ed23fe8b1ff26945dc582c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Coverage/CoverageEngine.swift",
+      "bytes": 10219,
+      "sha256": "ccda5e19042f9696acb436407b8a0be2972858ff506b0cbccb698467ee810419",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Coverage/CoverageExamples.swift",
+      "bytes": 2691,
+      "sha256": "6666947788e43157cc10cbd2ad0e4ff00ea23c938c9c2f4efbc4d7a79d3e99f4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Coverage/Syllabus.swift",
+      "bytes": 46737,
+      "sha256": "17761e90aa331d2585b5bbdf4739682e525c069d7b2c96f1fb63aefc8dd260c1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/CustomSession.swift",
+      "bytes": 14386,
+      "sha256": "e237a068ace77e8ba3b9b957d7f53f08db305ed40d6a4d6cdcd6e76d698b5007",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DailyGoal.swift",
+      "bytes": 766,
+      "sha256": "85faa95abe00b5f707a564d63c154c4ee3fb340c45978dedd1b6ddce53a8de81",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DeckCard.swift",
+      "bytes": 11345,
+      "sha256": "6718f6356f76b867033193eac30c643f88b0c50e86fa8f0e68d94b364376ee89",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DeckPDF.swift",
+      "bytes": 8682,
+      "sha256": "98433dacd2030052d1a3aa039a53c2ad69e4eecd6445dd27fc76948e48a9b95b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DeckPDFBlocks.swift",
+      "bytes": 20957,
+      "sha256": "eb6c62fda8ae007e186a59cc9adde6d07e3e96928acd63a172c6881b374c82cb",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DeckPDFPages.swift",
+      "bytes": 17156,
+      "sha256": "16d925a9f67342307887312455803605c9b0529f1d3a90559b810025f7089f3e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DeckPalette.swift",
+      "bytes": 3195,
+      "sha256": "fb2a84a0680d02ff033bc5bf235364968cc821768885d406ca80978614af5989",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Diagnostics/Diagnostics.swift",
+      "bytes": 9081,
+      "sha256": "af2f9e4523b521b843bef8faef5301819ec8b2c7536995965ff0122d2193b06b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Diagnostics/DiagnosticsModel.swift",
+      "bytes": 13115,
+      "sha256": "6192d0318e2884e84ee27eb6b8e80f3ec8da4768e97b64fd5e8aac50c37d6eb0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Diagnostics/DiagnosticsPlatform.swift",
+      "bytes": 13100,
+      "sha256": "40fdebcafa9a9fa92d07015b93ae2c9f21cd93efa3c9c8cec7acb2590be80d18",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Diagnostics/DiagnosticsQueue.swift",
+      "bytes": 9294,
+      "sha256": "d7e3403f86f198545155b8d36fa3db71d1e01e8e947d75f09722caef70a00189",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/DocxText.swift",
+      "bytes": 7647,
+      "sha256": "53fcf20c2ebc9bcb1993c17fe1d88d65843a1b3273d603133748af52fa66df57",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Entitlement.swift",
+      "bytes": 5453,
+      "sha256": "19919bbe002197ae8c708101e35ecc047778003ecc8a51914716360b33f3c3ed",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/AttendingHint.swift",
+      "bytes": 6745,
+      "sha256": "dc89ec8620e1073aad0df0e3f76150a1a44292b74249e3f56c2aa321f5348e26",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamBlueprint.swift",
+      "bytes": 14176,
+      "sha256": "7fd50676279be6dbb07eb9878a790be68af57c02b631090ebc8117999d76f87c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamCatalog.swift",
+      "bytes": 42083,
+      "sha256": "2f25c8d87bf8e7ad3251d0e25ff37594119a68afc480dfd5d6930f52b7f7306d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamChoice.swift",
+      "bytes": 4492,
+      "sha256": "82ede93c4bff9164c9b373bb0cc5f2c6795659e3702a34fc21e4c7fab7b174a8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamExemplarData.swift",
+      "bytes": 91577,
+      "sha256": "c28d6e408d0ba1e93234413cdaf94d8020fae60ae7822f2861417a6cb36405ad",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamExemplars.swift",
+      "bytes": 5552,
+      "sha256": "3444449b25d27013900a88d124c63e93f3bf04b7befa800f625aded57a791d40",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamFormats.swift",
+      "bytes": 5149,
+      "sha256": "dfc031e50e32acc10bb0c3e684e6e45c0fc9e579e024b4f5aebecc6c070c301a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamPrompt.swift",
+      "bytes": 5224,
+      "sha256": "5436bc0fb523ec633e2fa50fcb0013fd0bc1b66ce568be159c1553b853809a29",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamStore.swift",
+      "bytes": 10730,
+      "sha256": "36a0f097b925ce10231dbf347c0cfa4cbf0ab1d0d44f41e1a2eaa89382724dbb",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/ExamTools.swift",
+      "bytes": 12242,
+      "sha256": "f5303bf7612638f6e808424990c3cf1e6526d23f543d661d3733bf0f449b2e26",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/MockPaper.swift",
+      "bytes": 11985,
+      "sha256": "056c9a73ce93245197cd8f7da4df4ae1884e513825f165969b5175de838006df",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Exam/TwinQueue.swift",
+      "bytes": 6514,
+      "sha256": "bf6064cc7c31e42da6f04ec1c15dd4f753dcb2adb2d0150e229a3f613de0fc72",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/ExamTrack.swift",
+      "bytes": 6158,
+      "sha256": "cc0a02564bc7baaee6c6e41d255883da151ad94054c069f104bf8ba068257257",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Explanation.swift",
+      "bytes": 4884,
+      "sha256": "c282ec753bb82bbb18def564fe1e713b947a03c89cb5967cdcb625f592270f0b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/FSRS.swift",
+      "bytes": 7109,
+      "sha256": "c7b334e6077cc189b50e60506280f835e62365459e085c3143071877a3046732",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/FigureFinder.swift",
+      "bytes": 13840,
+      "sha256": "112c6ab8e145d6841652f55344ebaacd3ba4edeafdd119e31b6d6d01f8120ac9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/FigureGrid.swift",
+      "bytes": 9128,
+      "sha256": "e2f374ec6b67aefb35585bf033440cc966ccbbab09c32602a6a7c177b1f29a7a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/FirstRunRules.swift",
+      "bytes": 5772,
+      "sha256": "48601b8326800e1d7f02797594ae50a77566d897d2c571098083bfc9dfbaa622",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/FloatingAction.swift",
+      "bytes": 5532,
+      "sha256": "e8737c3c951f76f3b3789806ef365aff722f8111277bddde976bac6767d4d9e6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/FloatingSwitcher.swift",
+      "bytes": 8104,
+      "sha256": "9a929bc6f38ccb549aa909ac97a64807ac8b40e5a82d3704c9da8d0835c78320",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/GemmaDownload.swift",
+      "bytes": 4630,
+      "sha256": "a7f6d92cd477ef159588b74fde007f50a4f4ffb16a16c1b5968c451e3c0703c8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/GemmaGenerate.swift",
+      "bytes": 5769,
+      "sha256": "9de72ed42255f7fd660eede5376eb4f79de0714f1c4c005e1bcf39217d19f309",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/GemmaModel.swift",
+      "bytes": 4561,
+      "sha256": "c9799cf02cb5007f0b76b9d518e936f4af16e898826c4b996323717d293a9519",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/GenerationCenter.swift",
+      "bytes": 9122,
+      "sha256": "8427df33d91e9ada57ce81dd0af70535f6d1b40383b5687096f3f29b39c96c60",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/GenerationRules.swift",
+      "bytes": 2264,
+      "sha256": "7d941b3a42decf9b8a4fb9a53f54e4fb54da4134b8e89bef2c9a5ba2300cbd99",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/HeadTracker.swift",
+      "bytes": 3517,
+      "sha256": "6a3faf273d48b9f4659e9044ede8c5293b96d5a4eca5e7dd4f22745c863feddd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Highlight.swift",
+      "bytes": 3271,
+      "sha256": "ed08122372c2d159780c98cb76038cbc0b5ecf17596f1445d4bef687523086d4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ideas/SaveToIdeas.swift",
+      "bytes": 19427,
+      "sha256": "6fff359c3289af79e25b679d2178b7db6285e19f045816add517847ef431b656",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ideas/SaveToIdeasUI.swift",
+      "bytes": 26659,
+      "sha256": "722b41c29d1004362bceac33fa3171434d9a9e5a6873add8458ad9b35fad069a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ImageSpoiler.swift",
+      "bytes": 6458,
+      "sha256": "bf5cbb76286577f5d2e0d7ad074d9fa13a46667983184022d7892a123fa788ce",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ImportRouter.swift",
+      "bytes": 17452,
+      "sha256": "1c3304ba8bef90026096e8caa01aebea1d1073139bf8c3d847be8e7382d85043",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Insight/InsightModels.swift",
+      "bytes": 5239,
+      "sha256": "ff5a11bd35dfedc1cea799f8c15583897e4bbd198d77d6b305aba3d072d83f2e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Insight/Readiness.swift",
+      "bytes": 4963,
+      "sha256": "e951c9243b24c1a75a3cb399204d4a949c2f436b018022220f641f4afe24c254",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Insight/RuleWriter.swift",
+      "bytes": 5767,
+      "sha256": "7cb15d8a684be9ceca4c9e1cd59693f06d4332ccbd9d16d05ff6cc7d92be914e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Insight/StemKeyWords.swift",
+      "bytes": 2038,
+      "sha256": "331bdec086660119ec77b5e7f69ced3b8c647e4e6d06cfd80596891c5c05d4e8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Insight/StoreInsight.swift",
+      "bytes": 9684,
+      "sha256": "984e03821898c509e879ea300e48e2c1b748181f435fafdf867f370746a4b977",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/KeyboardShortcuts.swift",
+      "bytes": 751,
+      "sha256": "7ae08e62115c6637495113abb6744cc29dea6f56322d5994e3082b34ef564ed8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/AccuracyChecker.swift",
+      "bytes": 10124,
+      "sha256": "3aa2285739ee5ee117a1e14c123b90dfbbde3c05fbc1c06333af0fdb8df1e72a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/BatchWriting.swift",
+      "bytes": 9835,
+      "sha256": "8f5fb4e864fcf52afaf0feceeba8a1f11449b143cf613162151880df1d391a94",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/CloudJobs.swift",
+      "bytes": 23514,
+      "sha256": "3567538a79f1341e17e129cd6f5f6ec49c2e5b7a2810fe127ff70c73e229c5b9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/HostedLLMClient.swift",
+      "bytes": 13223,
+      "sha256": "addedf60966797fb4e3473ab7819b8b9b34b715f78c6f61bdead94e5a75ca1f3",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/LLMCore.swift",
+      "bytes": 2273,
+      "sha256": "ddaafabbc6fb98dd9a637464ab70637d6f66fe7fc831ad9ad0d13bd0930b553b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/LLMParsing.swift",
+      "bytes": 33125,
+      "sha256": "c34e322068366d85314fdb86ff208324bd3c0c9883048b1c57d20d29309fb461",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/LectureWriter.swift",
+      "bytes": 17852,
+      "sha256": "57cb130dacfb3b483fecd27f6d991797a1e4e969ebeb35da4ad63351b3526973",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/LocalLLMService.swift",
+      "bytes": 17126,
+      "sha256": "364155f17ecdb6b689b4bc9d80d0e48aa7a0df99c9c529cb2ee62a3f5d30083d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/MedicalGenerate.swift",
+      "bytes": 13444,
+      "sha256": "e571fee4255c188156279ec4d2ee22db12a900194b3412a3c492039e10be3878",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LLM/MedicalModelCatalog.swift",
+      "bytes": 4983,
+      "sha256": "ec3278276ce0150eefcd77cfb3c5a3448466ef5f2e84dc506fda4607d18b0588",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/LaunchSplash.swift",
+      "bytes": 2835,
+      "sha256": "bb713c9df449cdc93c21b3f606141a4f2b4f8f1d5f4718a452d668ac63db7c4c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/BedPlan.swift",
+      "bytes": 17730,
+      "sha256": "d09565575faeff23ee5104a936e0232bf24fa9521d014a1d44de350bd578c3db",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/ExamWeekPlanner.swift",
+      "bytes": 10858,
+      "sha256": "87636f3df9ac3832992ddf0034e6b9c78a5ecd593271faf4c400a9b929d615cc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/LearnNotifications.swift",
+      "bytes": 11013,
+      "sha256": "8724aafb12e998964f294d7c5b4814daeace938257cecf2258a110697e0b4233",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/LearnRouter.swift",
+      "bytes": 1989,
+      "sha256": "80c6c72a2e43f4559345114a8cae8320a0bd77a71dc37171e32f4981c2142df3",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/LearnStore.swift",
+      "bytes": 11520,
+      "sha256": "7e1f08b4e23c3dd83261e066b4742b397fe61c80490d480d51503a20bd8e19e1",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/Pretest.swift",
+      "bytes": 12539,
+      "sha256": "a9aa89ae31dabf17753f1ebea60bc98faea1664815012f6bbed32d7bb79302f6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/RetentionForecast.swift",
+      "bytes": 6923,
+      "sha256": "07a289ae9cd88a1288b7e2a38cc4eb3ec22c3c83eaac8dbc92a16e5856170191",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/RhythmReading.swift",
+      "bytes": 6739,
+      "sha256": "53841d5ba67984f47702c4443e59fb375fcce01d1d315a13018c202cda72e0cf",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/SecuredRule.swift",
+      "bytes": 4687,
+      "sha256": "5bb031f743f92a72c4ecf772c4be39bb70f2da0a7b0fb01fec09b8ac6f3a23f4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/StudyRhythm.swift",
+      "bytes": 7471,
+      "sha256": "47d1b55dff458492a5800624a23a48ec65011ef1850944f53726beae45a45e2a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/SymptomBlocks.swift",
+      "bytes": 17637,
+      "sha256": "ed4552c41fce24802879bbba3e8cd4bfc1cc8464133d23a9e697e9f6bc955caf",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Learn/WardWords.swift",
+      "bytes": 3001,
+      "sha256": "4f1cefa855fcf80c6bcebc108db5d207b319d92d52b351cd72cd71a18e93f517",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LectureAudio.swift",
+      "bytes": 5779,
+      "sha256": "7c18b07cc473366dd22f224bdf392bfa144f31b68c21e81c8eb0909bd0cb82d2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LecturePlayer.swift",
+      "bytes": 6637,
+      "sha256": "7c227af920a75f77ee0612e08e8a1029de3737bcb151867119814ca53f96b6a6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LectureTranscriber.swift",
+      "bytes": 7503,
+      "sha256": "53e3e5ec979ab1ab75881d10c628ab784c1e071984f1b45be31f5396266d1e1f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Lens/LensAnswer.swift",
+      "bytes": 17866,
+      "sha256": "7412f95ee21f64545f2f2ec8420a4f1a15b9ab45692987d8e9cf928cf2a6ab47",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Lens/LensConversion.swift",
+      "bytes": 16352,
+      "sha256": "3010c8b6586140a417812859916c577533df96b2ebe630c1354cda94a6b40cce",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Lens/LensTracking.swift",
+      "bytes": 11733,
+      "sha256": "0c4b7b012c618d40b20e522a4305031299dfd65a07631517b7d6fcadb12be004",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Lens/QuestionDetector.swift",
+      "bytes": 33773,
+      "sha256": "0b8d76e4ee1a4c40f62b96a1c7567cba26ce8a5515dca9900b6eda6ada532fc9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LibraryBackup.swift",
+      "bytes": 22002,
+      "sha256": "f77c9ffd0ba3d265924fa80ced41f293c1cf4ab9f554c7e94a40039dcc11f14f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LibraryBackupRunner.swift",
+      "bytes": 16727,
+      "sha256": "1f0f4e1b08485f474ee1484f2bfa5020a2c2623372d5783fa0c06a62969fecd6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LibraryFile.swift",
+      "bytes": 2642,
+      "sha256": "32e05c9d82576d34c5b7936a4818b710576f2ad665f079155f28b9ccd06f6faf",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LibrarySearch.swift",
+      "bytes": 18233,
+      "sha256": "474e8a368d6e5368bbe3c370ed531931e1e2b3b30b58fbd702413f743e70a4cc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/LiquidGlass.swift",
+      "bytes": 2791,
+      "sha256": "3fee603ebc2c31416a190d75b57c2588eabdb8ef7be584b6c1fe9d3454841251",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MCQCoverage.swift",
+      "bytes": 7986,
+      "sha256": "26986845f06418d7983b1e61b28b7689680cdc5ec4af43b2eba82d967157dd6d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MCQEdit.swift",
+      "bytes": 2925,
+      "sha256": "a2a2119c01f83c3ecbf1c0db315aa93520a99bb87fac2c7389dba6f29b08e07c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MCQGenerator.swift",
+      "bytes": 10150,
+      "sha256": "3be27674232b8b69961155885d99e6e79ac3e550d5c6ef89e0fa54ebd432c3a0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MCQPrompt.swift",
+      "bytes": 12563,
+      "sha256": "78842ce0eb3acf7c8790a2f2dfdeaa723061f6a5bcef136993a3ba75e852f4ff",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MCQRepair.swift",
+      "bytes": 11206,
+      "sha256": "a3422ad9a175f5caf4add6c6e72b1ce6492c2e38a7352ee8bbf75cb3bf5fa225",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/MiniZip.swift",
+      "bytes": 5435,
+      "sha256": "fcdc5deb9f3969d27a0fff5c348b4175a858157d5515c94da3348f82001afe51",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ModeConversion.swift",
+      "bytes": 6957,
+      "sha256": "745c3f5dd613430d5db9813415fc845cde432ed83c1af4c2ade84aa3b0487dc5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/NarratePlan.swift",
+      "bytes": 9637,
+      "sha256": "581d9480e2442fbd8ebb12854dec60420a28a91f000064dbe285c870a0fd1427",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/NetworkFaults.swift",
+      "bytes": 2520,
+      "sha256": "e9efd8a7711619b72191a4d9fa14151dc4b24766e755f29ee3cafdc351054b33",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OcclusionFilter.swift",
+      "bytes": 22649,
+      "sha256": "c09e30fa47b92975073f80a0f7fd80191d45ac0bf64661d48c6b2f6655c287bf",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OcclusionPhrases.swift",
+      "bytes": 31287,
+      "sha256": "399cf1eb4fb614d1f3d9bd8e55a4549bf4dcb2cc847e5b4a548afd645b7a220e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OfficeIngest.swift",
+      "bytes": 7598,
+      "sha256": "074a7c7404cb38fed4060c080ad66a0468d47598e701eb7cbae94998df79c5cc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OnDeviceLearning.swift",
+      "bytes": 5221,
+      "sha256": "e97588444815e7d366805894ce802d9bc2b2eab7888721035ecf6ac5d900711c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/OptionOrder.swift",
+      "bytes": 2229,
+      "sha256": "34120e69b4183e4f770a016584c67c1ff50948afd1625abb944e9489c610aa0d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OsceGenerator.swift",
+      "bytes": 5832,
+      "sha256": "521959767e2795d61764d178bc7d8c1198cb2c857ca59f78a13687407e6f9e14",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OsceStations.swift",
+      "bytes": 6997,
+      "sha256": "d0b498193827c7ae53db81850649a569f9cf2345cb25b678155e31dfe3bfb4e8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/OwnerClaim.swift",
+      "bytes": 659,
+      "sha256": "29910e3a83a27a284ab0d3fbe89823f3b5f2622a91fec275091e64e578e7b16b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PDFExporter.swift",
+      "bytes": 8256,
+      "sha256": "e8db5e2f3087341251401180692015fb98d2657aabce7edbea7610b6f2fa18fb",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PDFOcclusion.swift",
+      "bytes": 7854,
+      "sha256": "ab5a472d36de194f544f7e8143e70b4e2d0439b36faf92f5524d4aac6a426bc7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PatientChart.swift",
+      "bytes": 14788,
+      "sha256": "8e3a3bec240a5b15b46afa2cab155a75393d6f7f3c2d4443ab15afe8b4a6ff0a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PersonalBuild.swift",
+      "bytes": 1931,
+      "sha256": "e07cddc99e8f7d0520c9d32d5865188902050bcdffbd43fbda1cdc44e8437837",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PhotoOcclusion.swift",
+      "bytes": 10934,
+      "sha256": "ae10d382bc430c1b5f9ba1725b61693f1270c8c7299ee406c9694a74f6f34e79",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PhotoOcclusionReader.swift",
+      "bytes": 11029,
+      "sha256": "c6999e2259d6dd2ef4192c53b56c1f162e676c55ad897f8f5b36e3f19c0b3789",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PlainTextImport.swift",
+      "bytes": 22635,
+      "sha256": "f2c3e5c0a7e22522503c5d5588de18caa04e8939916b90aedc851056f6141263",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/AgeGate.swift",
+      "bytes": 3455,
+      "sha256": "cc4da70e943118f3302214dcb98d72e36424230e6e4bf293d4229ded92fac057",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/AgeSignal.swift",
+      "bytes": 1325,
+      "sha256": "4f4900114a2db3009a19050232f9f6f7e595ba28e3e0c45a0994b0e7a400be60",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/AppLink.swift",
+      "bytes": 13099,
+      "sha256": "269afb40ed2caa9542d87899c04dc2f29cd15b20c0b30136c8a0ddf347572d65",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/AppLock.swift",
+      "bytes": 5393,
+      "sha256": "365910bc11b4bacc7007bc9309409b02e59b7c1f2100755b583e868d9d14716c",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/ExamDayAttributes.swift",
+      "bytes": 891,
+      "sha256": "e6078e31587bea337e7b3c2a080335c306669c6e1acb4639ef8e891f715768d6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/GlanceDigest.swift",
+      "bytes": 8919,
+      "sha256": "ecefecdad0eacffe4c3d88446432780049036a34e3f90873736183f813164024",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/GlancePublisher.swift",
+      "bytes": 4031,
+      "sha256": "7a139d7848c8efb1bdb8e490861fab622b4779212f0b08e9bfb8b6ba55c9522a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/MindfulMinutes.swift",
+      "bytes": 2986,
+      "sha256": "aea8fbcac574044566675924056c2a1646ba3534e38a96fedab3e4dfe567e3fd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/ReviewDueIntent.swift",
+      "bytes": 1428,
+      "sha256": "c7e052b5bce98a1ecf3303657c1bd48cb594d684bf44f186434b9d20e9b2db01",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Platform/SetWindow.swift",
+      "bytes": 4924,
+      "sha256": "424e7dea31e40ae10feb82757d4e82d59b757fba4af49d477bf8f099430e0a4f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PopOut.swift",
+      "bytes": 27561,
+      "sha256": "b27f6e081433e49634cb84c64a10e262ea40927d250799c6d4690e12b95c7e32",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PopOutMotion.swift",
+      "bytes": 16162,
+      "sha256": "a70adf250d727801e8a5f5a8ba81230201bb7b29a7d80769a6247f07c059efd5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PptxText.swift",
+      "bytes": 5879,
+      "sha256": "a509c367a8bf883ef4cddfc6c3e926d3b0da8ed747d9db837485c71c8ce159de",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PreviewAccount.swift",
+      "bytes": 1177,
+      "sha256": "52d9eb0e6f1dcecac897eee6e0835f5180f1a36feb5aded811a6935bc2cf87ce",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/PreviewExtras.swift",
+      "bytes": 5312,
+      "sha256": "edd3bbbb8fbbe85c87ebf54b6838d68c41a3aadc6393c16c5913eb390f001d30",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PreviewLaunch.swift",
+      "bytes": 16815,
+      "sha256": "cb0145a1fe796a9f3e1ad2e1625283fecb41dca073b6371d2574d6b718a01681",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/PronunciationLibrary.swift",
+      "bytes": 3554,
+      "sha256": "d97eda9f33d2cf35951e3ccf50095cf0a026738666bc8edf287168b944604e52",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/PronunciationStore.swift",
+      "bytes": 8239,
+      "sha256": "ad7a313ef03fe984d952a1261f1d13411010200cc13e80813c38bf44798ae0aa",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Provenance.swift",
+      "bytes": 3570,
+      "sha256": "ef7d9ce499e347a2935d36ce67174995bd338f0e1638b201c00648a03eecaea0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/QuizFromCards.swift",
+      "bytes": 13352,
+      "sha256": "c33e86731cf0880046c797df9b662246751f67b0b40a7d526a43ed57d6de7c64",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Reasoning/ReasoningExamples.swift",
+      "bytes": 13707,
+      "sha256": "2892a29d2ad424317288e45f6a234ee486fb0fbe9db96bc454ca9f0e4a60b59b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Reasoning/ReasoningModels.swift",
+      "bytes": 5824,
+      "sha256": "d9826845b8569b79853e346c7d149eeba7fa95ea0fe3d2b4dac9e429c5e3493e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Reasoning/ReasoningStore.swift",
+      "bytes": 7515,
+      "sha256": "86e0293015c50db92c877e22807d2c79e8fbc3c7816d3128f4e0d628d0ac68ec",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Reasoning/ReasoningWriter.swift",
+      "bytes": 16037,
+      "sha256": "fa641be11260ff46711f6adcb2e07b7ab49ccf401f532c03887a00099f6a5bed",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/RecoveryFiles.swift",
+      "bytes": 4048,
+      "sha256": "0b972c77b1ec88eb80308bff3192e12c13823ee84e393c01dd37d0b7e16e9774",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/RedPenOCR.swift",
+      "bytes": 6252,
+      "sha256": "7ecbcaba08c65dae3e5963b0d3e6919f711cdaecfa01cc11d0e7bd993c8bd66f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ReviewOptions.swift",
+      "bytes": 19200,
+      "sha256": "7aeace9f5e1cce44b9daba36a3afa64929f2aa25a9b5f6451e2c2714de09c6a6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ReviewPlan.swift",
+      "bytes": 13121,
+      "sha256": "0d6ccce3680f87ab2cfacd7c4bcab01979c8a35aa23ecb167139527c5ff054c7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SampleLectures.swift",
+      "bytes": 9900,
+      "sha256": "90eb7b9864a94d64e89723c0006f3a81002f4c0769e50be071dbd008aaa91a97",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SetImport.swift",
+      "bytes": 3862,
+      "sha256": "5888ee4e216404669113246b6c5f74c8a1bd0bb26a84187fba31365ae8cde1f8",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SetPictures.swift",
+      "bytes": 3279,
+      "sha256": "ea6b354f9d65d1dc84276e8ff0fd63fb2159ead94677bb9260705e5366159269",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/ShareSheet.swift",
+      "bytes": 588,
+      "sha256": "deedf9e1748ddfe5a1b813791efe993609d0ba0557fe1362924d69c71164773e",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/SocialSignIn.swift",
+      "bytes": 3791,
+      "sha256": "f7d06f83627357d50871ae500ad1c8a9b1f133a48d0a1dd696848106d3d2d64d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/SoundKey.swift",
+      "bytes": 6336,
+      "sha256": "336eb091ac3d401847def586cddc94e3d3b4e73cd3e5d60b6a2efea4daa49032",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SourceIngest.swift",
+      "bytes": 12389,
+      "sha256": "b26117cf238d725b9e9b30a986c09a588f5913ecbb32adfdadeae4838bd029ed",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SourceSearch.swift",
+      "bytes": 7480,
+      "sha256": "500bacbadd1cfdfca0c619ea5e0c71e38ae0e8b9f07380953e44dc175ba7eff9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/SourceText.swift",
+      "bytes": 5461,
+      "sha256": "2538c1b372f9c16d61cd7e2b00eaf061bd3e23341ed9ae64ace6680398e1e09f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/GraphicsQuality.swift",
+      "bytes": 11588,
+      "sha256": "3dc505e626c7f46ae9b61825312a8802ba79c3e51e54ea7d5fda81882ea71bd7",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/NebulaBaker.swift",
+      "bytes": 18278,
+      "sha256": "c640559ceb897a37d9a10d2a70552e744e9a7fb51e80cdea6387868bccbfca6b",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/PhotonRing.swift",
+      "bytes": 8709,
+      "sha256": "3f9e11d6503dbce937c5a3e6ca250e5326c2ff9153f9a3063d00582b02676956",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/SkyChart.swift",
+      "bytes": 6037,
+      "sha256": "4a910d488b92200d912e5c43cdc4b8a27d1190e1dea01157f50549c5c5793b37",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/SpaceFeedback.swift",
+      "bytes": 13261,
+      "sha256": "c257d8d4c523d0e9f1ad736df816701b159c4280f2c80336fda59b1932f26991",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/SpaceQuality.swift",
+      "bytes": 12301,
+      "sha256": "86a7c8d94c285d1af47114047f0da2d2dd583f2585007ea363a8317f5b547bfd",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/StarLayers.swift",
+      "bytes": 16048,
+      "sha256": "c01b8822cbf1b7a0ed50595350783ac60030024e6ce369de43aa40ca70d39ced",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Space/WarpEffect.swift",
+      "bytes": 6689,
+      "sha256": "b1c634f27d4b8f7f37d3c53d8b198afa5d95c11d192213fec7db3aa521a4fec2",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/StoreFiles.swift",
+      "bytes": 1604,
+      "sha256": "5d00fc3f7417de6fe5d54d7b3e4ffad510d9ab5e5e6e2966ff374000760bdbcb",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/StudyLog.swift",
+      "bytes": 3425,
+      "sha256": "319306ab6f2d47db2e71e617b415cb8bfb39782674e84698d18d013c7ba0ec88",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SubscriptionStore.swift",
+      "bytes": 9380,
+      "sha256": "e1756dda890e7a8b1fc34b45571e9694b7e4d511d8953d01a89db5a78bc00156",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SupportOutbox.swift",
+      "bytes": 5793,
+      "sha256": "cd622480314ac8386a2e68f5f5c2f17f45ba62a76031fd6573953dae60fa4221",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SupportSender.swift",
+      "bytes": 5664,
+      "sha256": "8441ffbc0aad380c032ebedf9c2a3c11f0700b396dd3241dd66e9847adfcb802",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SyncAPI.swift",
+      "bytes": 6746,
+      "sha256": "02c7dd85388f79e4960fb3cac8f793ed186aeca103bdd86e932e10b3904b88ca",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SyncDocuments.swift",
+      "bytes": 5354,
+      "sha256": "edd069b08e4b52f440c5c1dd28c5a604ed5216fbfb2be4d87e603eb98cb99664",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Shared/SyncMerge.swift",
+      "bytes": 6183,
+      "sha256": "039408eaa29481051b11ed7e6bb56bbf210476889c9e3b3eacc1599a88cdb8fa",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/SyncRules.swift",
+      "bytes": 10424,
+      "sha256": "c032584a8e636d403cec55646acfbc570c55bb0ee3bc8fb0f044bee76d81fb2f",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Theme.swift",
+      "bytes": 31714,
+      "sha256": "c96844bce247ee8fac80408c4d6171bb8d4e8ab19a215f0e7c3d7a2ecf27b477",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/CloudVoice.swift",
+      "bytes": 10674,
+      "sha256": "ad06e575b2509b3f09fcbe46003659a877e3178ecb052683b767f22bef4cff26",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/NarrateVoice.swift",
+      "bytes": 32300,
+      "sha256": "07881bac66f6d7340c7e9b0a2ecdd01e89e938a28ebf42613c70b4d6f3a37251",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/NowPlaying.swift",
+      "bytes": 2910,
+      "sha256": "dcb50d8f356c2c187bfa24023f41806d085b2cc8d1b8f608f31b5e7e4c8eb545",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/SpokenAnswer.swift",
+      "bytes": 22434,
+      "sha256": "50399276801459864226f814f388752c26ce21573f00e2a48f9ee2a3f8691fd0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceAccess.swift",
+      "bytes": 5220,
+      "sha256": "a0ae74967df3635cdfadb2b2c67dccab4bb0652fcfd72b8d61daccebbf1c3320",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceExamples.swift",
+      "bytes": 10256,
+      "sha256": "8aa40898d8bea9327fab7ebb19a59c4c22d226ca107fef024e5c692a4db51430",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceHistory.swift",
+      "bytes": 5329,
+      "sha256": "cbc31b9276e405f01d7dfd936d94a4528dfefd5b62f7a242a9d1275efc4e87ae",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceListener.swift",
+      "bytes": 6743,
+      "sha256": "205a2a212d8afe5317f79d7660fb526a6830c031225b572eae9432e9cdff4704",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceMarking.swift",
+      "bytes": 13074,
+      "sha256": "82ba29957eb649dd598b46d7923de5d20b13fc95a94e49ef0064834bbbd590b9",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Voice/VoiceSpeaker.swift",
+      "bytes": 9024,
+      "sha256": "a8c2e922f97ba35de45f590fb00555c2a175d6c200242bdf9551aabef207b597",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ward/WardControls.swift",
+      "bytes": 9341,
+      "sha256": "20318a93664e7512fe932f2bcaee5d765580a0de79237935c3bc1cb354dc6e7a",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ward/WardPalette.swift",
+      "bytes": 3488,
+      "sha256": "91f84c979b9d765c37b1d4f0dfb95f1876842ad4ebda5048f03abc6139553108",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ward/WardSurfaces.swift",
+      "bytes": 3487,
+      "sha256": "499baf6d44a2f228401a1d5ab095ff93d673d8ac1b56620af6561d6a9dbe1f59",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ward/WardTokens.swift",
+      "bytes": 3285,
+      "sha256": "db4172993a6daa0f3edb06c646fbbcef04cd06590dc03fe420984c2949a5dfbc",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Ward/WardVitals.swift",
+      "bytes": 5055,
+      "sha256": "1d6d1820c5e4ad8a24a8f647cea3edcd8817d4515a94d0bb4d28ee826f4199f5",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/WardPocket.swift",
+      "bytes": 42248,
+      "sha256": "eb45745cdde70d57523517cc3c275f17ff4d5b59d43b570d6a733ed0cabc5efa",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/WardPocketScores.swift",
+      "bytes": 32789,
+      "sha256": "cbc84bc014fb78add901c9df93fc33b4e85aa10d27db2adee5d74b6b4e985d90",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/WordTiming.swift",
+      "bytes": 6682,
+      "sha256": "9d2623c904cd30e6e47d5be978340f4fed599823b4913db861f1066c618a2144",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Zip.swift",
+      "bytes": 15692,
+      "sha256": "754d77964a6c7be44d360c281c399692cc534131ae43188e8736a2e587143b5d",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Shared/Zstd.swift",
+      "bytes": 32357,
+      "sha256": "fdea925ce0f3c98fde38adc68011b7df706d20c7920607f2f738d476189f2ee4",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_native_tail"
+    },
+    {
+      "path": "ios/RedPen/Tests/DocxTests.swift",
+      "bytes": 4251,
+      "sha256": "ce3cbbab415cebe662a1ad88135060ab84ebe6397204aba0c13297c80fce0a12",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Tests/FigureTests.swift",
+      "bytes": 5744,
+      "sha256": "00dcaf4a943b0e18f071d8c1376433d8e5646cfcefc212280fea1bfccba0d1ae",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Tests/IngestTests.swift",
+      "bytes": 4060,
+      "sha256": "a56867c53b5fae3d3144b06abacbe4292f788afea4a2547e16cfe153db92e0a6",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Tests/SourceTests.swift",
+      "bytes": 3973,
+      "sha256": "bc80a331b6c073f3606496ea986f0a2431c8e2962c4efb0350275d3ddb47af99",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "ios/RedPen/Tests/TranscriberTests.swift",
+      "bytes": 5281,
+      "sha256": "54331ad38c71f88eb13b713f4f84b79df01d6b8f69ea256d20897a5d85625493",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "pipeline/tests/test_card_quality.py",
+      "bytes": 8592,
+      "sha256": "4ad1a4858504a40469370d51f460ced40aeb2d4d8d5e59a0736203bfd843e2e0",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "pipeline/tools/card_quality.py",
+      "bytes": 9091,
+      "sha256": "d5545ad5af1a1753a35b260acf7c263cc23bbc7e2eb1ce146f3e4441cecd8263",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "server/README.md",
+      "bytes": 9514,
+      "sha256": "5418284df00d509e0fe8377e8f6e85e2ce83bd6c5ba9f0ed669c5c1f5ebadc54",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "server/accuracy-model.js",
+      "bytes": 22127,
+      "sha256": "413c129d8a7a5d4efb6140e5d8b8ef4ea0995b68e94bb3212b9d71a3ba641566",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    },
+    {
+      "path": "server/accuracy-rules.js",
+      "bytes": 36023,
+      "sha256": "7d546ac92253d4d483b8257597e467d03a223392b8b366b2a37f22d0c4429891",
+      "coverage": "complete decoded UTF-8 text",
+      "reader": "read_ios_app"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Caches and generated test/runtime data
+.cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+.nyc_output/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/

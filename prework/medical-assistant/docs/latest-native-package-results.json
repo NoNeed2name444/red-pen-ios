@@ -1,0 +1,24 @@
+{
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "scope": "Source-defined Python packaging only; no Swift compilation or simulator tests.",
+  "results": [
+    {
+      "variant": "core",
+      "exit_code": 0,
+      "zip_bytes": 648518,
+      "output": "without core: 246 files, 82142 lines left out; graph3d.swift, core, core-audio-out, core-exports-out stand in\nok /tmp/redpen-package-check/core.zip\n"
+    },
+    {
+      "variant": "core1",
+      "exit_code": 0,
+      "zip_bytes": 788606,
+      "output": "without core1: 209 files, 72660 lines left out; graph3d.swift, core, core-audio-in, core-exports-out stand in\nok /tmp/redpen-package-check/core1.zip\n"
+    },
+    {
+      "variant": "core2",
+      "exit_code": 0,
+      "zip_bytes": 918482,
+      "output": "without core2: 184 files, 63656 lines left out; graph3d.swift, core, core-audio-in, core-exports-in stand in\nok /tmp/redpen-package-check/core2.zip\n"
+    }
+  ]
+}

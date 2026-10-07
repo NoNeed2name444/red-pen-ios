@@ -1,0 +1,70 @@
+{
+  "task": "INT-CONTAINER",
+  "checked_at_utc": "2026-10-07T00:46:00.640388+00:00",
+  "base_commit": "4aa7e0641f84acf296c0df18335c6f1ff1006f10",
+  "branch": "prework/container-20261007",
+  "status": "passed",
+  "scope": [
+    "Dockerfile",
+    "docs/architecture/verifier/README.md"
+  ],
+  "source_gate": "Full-source review completed by root before authorization; this check covers mechanical entrypoint and health behavior.",
+  "static": {
+    "docker_cmd": [
+      "uvicorn",
+      "api.main:app",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8000"
+    ],
+    "module_exists": true,
+    "obsolete_app_package_absent": true,
+    "readme_target_matches": true,
+    "compose_inherits_cmd": true,
+    "diff_check": "passed"
+  },
+  "runtime": {
+    "method": "uvicorn.importer.import_from_string + FastAPI/Starlette TestClient",
+    "module_target": "api.main:app",
+    "app_type": "FastAPI",
+    "callable": true,
+    "database_path": "/tmp/chatme-prework-health.sqlite3",
+    "database_created": false,
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status_code": 200,
+        "json": {
+          "status": "ok",
+          "version": "1.6.0",
+          "knowledge_snapshot": "LIVE-API"
+        }
+      }
+    ],
+    "external_socket_connection_attempts": 0
+  },
+  "dependencies": {
+    "fastapi": "0.141.1",
+    "starlette": "1.6.0",
+    "uvicorn": "0.52.1",
+    "pydantic": "2.13.4",
+    "pydantic-settings": "2.15.0",
+    "httpx": "0.28.1",
+    "pypdf": "6.10.0"
+  },
+  "template_review": {
+    "path": ".env.example",
+    "blob_sha": "ae26a7ca6bb1d8ac3c4594c6acafb32884d2aac3",
+    "bytes": 259,
+    "fully_read": true,
+    "api_key_fields_blank": true
+  },
+  "limits": [
+    "No Docker image build or live listener was exercised.",
+    "No verification, question, drug, ingestion or benchmark route was invoked.",
+    "No provider, model, orchestrator function, deployment or workflow was invoked.",
+    "Health result establishes entrypoint mechanics only."
+  ]
+}

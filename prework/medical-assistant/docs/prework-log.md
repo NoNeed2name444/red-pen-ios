@@ -1,24 +1,20 @@
-# Integration prework, 6 October 2026
-
-- INT-QBANK: Matched pilot requests to the existing four-item accuracy endpoint; nine-item ordering and failed-batch regressions pass offline.
-- INT-TTS: Checked both existing audio caches before spending daily usage; repeated MeloTTS audio succeeds under a one-line cap, with one synthesis call.
-- INT-COMMUTE: Connected spoken MCQ results to the existing answer-history store using original question IDs and option indexes; three Playgrounds packages assemble, Apple compilation/runtime verification remains pending CI.
-- INT-PREVIEW: Preserved the previous screenshot branch head as the next publication's parent and removed force-push; local two-run and remote-failure publication regressions pass, real simulator captures remain pending Mac CI.
-
-## Staging prework routing log merged 7 October 2026
-
 # Prework Log
+
 A1 | gpt-6.1-sol | medium | task-specific A1 instruction | no escalation
 A1 | gpt-6.1-sol | medium | PARTIAL | docs/freellmapi-integration.md; docs/freellmapi-source-evidence.json; scripts/setup-freellmapi.sh | proxy unavailable; provider keys absent; no remote
 A2 | gpt-6.1-sol | medium | task-specific A2 instruction; continued after blocked A1 | no model switch or escalation
 A2 | gpt-6.1-sol | medium | PARTIAL / BLOCKED | docs/deepseek-harness-integration.md | npm package acquisition failed (proxy connect EPERM); CLI/UI unavailable; provider keys absent; source inspection succeeded; git push exit 128: no configured push destination
+
 A3 | model switch to Luna low for bounded raw gathering | blocked: GitHub API proxy connection failed (exit 1); repository identity pending, no raw source collected
+
 A4 | gpt-6.1-sol | high | switched from Luna low because the user routes real code to Sol 6.1 high | no Claude judgment; design, medical safety, pedagogy, schemas, and architecture remain pending
 A4 | PARTIAL | README.md; app/.gitkeep; data/.gitkeep; scripts/prework.py; tests/test_prework.py; package.json; pyproject.toml; .pre-commit-config.yaml; .github/workflows/scaffold.yml; .gitignore; docs/prework-log.md | reversible local scaffold; manually dispatched workflow only; no provider/content logic or orchestrator
 A4 | verification | npm run check PASS; npm test PASS (3 stdlib tests); JSON/TOML/YAML configuration parsing PASS; git diff --check PASS | Python 3.12.14, Node v24.19.0, npm 11.9.0, pip 26.2.1 available; Ruff and pre-commit absent
 A4 | development tooling BLOCKED | pip install --target /tmp/medical-assistant-a4-tools --no-cache-dir --retries 0 --timeout 5 --group pyproject.toml:dev exited 1: "Could not find a version that satisfies the requirement ruff==0.11.13 (from versions: none)" / "No matching distribution found for ruff==0.11.13" | Ruff/pre-commit configuration only; no dependency installation, lint/formatter/hook verification or hook activation claimed
 A4 | git delivery PARTIAL | local commit created: "pre-work: A4 add provisional offline repository scaffold"; git push exited 128: "fatal: No configured push destination." | no original repository or configured remote; push failure recorded in amended local A4 commit
+
 B1 | model switch to Luna low for mechanical license-report assembly | source-level declarations recorded as user-provided; item-specific evidence and source URLs absent; all five sources remain unknown and excluded pending verification; no blanket approval or medical/safety assessment
+
 B2 | switch to gpt-6.1-sol high from Luna low | user routes real ETL code to Sol 6.1 high; mechanical plumbing only
 B2 | gpt-6.1-sol | high | PARTIAL | scripts/prework.py; tests/test_prework.py; README.md; docs/prework-log.md | scaffold verified: 8 offline tests PASS, CLI help PASS, diff check PASS; real item-license-qualified inputs and approved schema absent; Pillow optional/uninstalled by this step; caller attestations are not legal verification; no final architecture approval
 B2 | git delivery | local commit created; git push exit 128: "fatal: No configured push destination."; amended log records failure
@@ -55,6 +51,7 @@ E2 | gpt-6.1-sol | high | PARTIAL | app/main.js; tests/app.test.mjs; README.md; 
 E2 | verification/delivery | js offline tests PASS; git diff --check PASS; local commit created; git push exit 128: fatal: No configured push destination.
 E3 | gpt-6.1-sol | high | PARTIAL | app/main.js; tests/app.test.mjs; README.md; docs/prework-log.md | native collaboration worker gpt-6.1-sol high real-code route; external generator/question schema/field map absent; mechanical MCQ choice/correct-ID/schema checks implemented, content review pending; no question/taxonomy defaults or model calls
 E3 | verification/delivery | both offline tests PASS; git diff --check PASS; local commit created; git push exit 128: fatal: No configured push destination.
+
 Routing mechanism | Native collaboration worker model routing applied the assigned model/effort; no CLI environment or configuration pretended to switch models.
 Earlier setup/log writer | gpt-6-luna | low | initial local repository, ignore rules, and A1 routing entry
 A1 | gpt-6.1-sol | medium | PARTIAL | docs/freellmapi-integration.md; docs/freellmapi-source-evidence.json; scripts/setup-freellmapi.sh | proxy unavailable; provider keys and remote absent
@@ -83,19 +80,25 @@ R-IDEAS | gpt-6-luna | medium | DONE | docs/latest-ideas-source-map.md | native 
 R-SUPPORT | gpt-6.1-sol | high | DONE | docs/supporting-repositories-source-map.md; docs/supporting-read-ledger.json; docs/proposals/chat-me-container-entrypoint.patch | native worker route for complete supporting snapshot review; all 283 files (1489762 bytes) read; root separately reviewed redacted template keys
 R-DOCS/R-IDEAS/R-SUPPORT delivery | git push attempted once after commits; blocked because no push destination is configured
 A3-retry | gpt-6-luna | low | DONE | docs/rootstock-os-raw.md | native worker routed mechanical source gathering; public starred-list page had 64 entries and matched Mazhron/rootstock-os; pinned HEAD 0001a40c74a76d0ab7a8898778ac786e994bbb74; 29 raw docs (684879 bytes), 81 tracked paths; no assessment or integration
+
 A1-retry | gpt-6.1-sol | medium | PARTIAL | docs/freellmapi-integration.md; docs/freellmapi-source-evidence.json; docs/prework-log.md | source HEAD a6b2158c7c36ce19f888d0411846a1a0f2aa3f06 cloned at /workspace/vendor/freellmapi; root sandboxed-network npm install exit0 (839 packages); ignored 0600 loopback .env with generated encryption key; CLI build/help/syntax PASS and 156 mocked tests PASS; permitted root npm dev session13213, API3001 auth/status HTTP200 needsSetup=true; Vite5173 ready; real provider keys/account setup/unified credential retrieval and Claude executable absent, setup-claude/launch pending; no global config or model inference
 A1-retry | delivery | local task commit; staging repository has no configured remote; root will deliver reviewed integration artifacts through native prework folder
 R-WIDGET | gpt-6.1-sol | high | DONE | docs/latest-widget-source-map.md; docs/latest-widget-config-read-coverage.json | native reader completed all final 16 materialized paths (47,701 bytes) at faecd8cdccd92387ac777335588ebc548b0ab106; character ranges, SHA-256 and Git blob IDs verified
 R-READ | gpt-6-luna | low | DONE | docs/repository-complete-read-coverage.json | verified direct full-read union for all 673/673 UTF-8 paths at faecd8cdccd92387ac777335588ebc548b0ab106; 711 source memberships, 38 overlaps, 0 gaps or cross-snapshot reuse; 13 latest binary paths separate with protobuf semantic decoding limitation; Chat-me-personal .env.example raw path excluded after root redacted-template review
+
 R-RUNTIME | gpt-6.1-sol | high | DONE | docs/red-pen-ios-source-map.md; docs/latest-ios-runtime-read-coverage.json; docs/latest-runtime-tail-source-map.md | latest native app/runtime partition fully read by two readers: all 403 UTF-8 files covered (266 + 137); per-file source hashes and consumed ranges recorded; source review only, no product/design decisions or edits
 R-SERVER | gpt-6.1-sol | high | DONE with environment-limited verification | docs/latest-backend-source-map.md; docs/latest-server-full-read-coverage.json; docs/latest-backend-read-coverage.json; docs/latest-backend-test-results.json; docs/latest-native-package-results.json | all 53 server UTF-8 files fully read; source test runs: 22/24 test files passed, two subprocess runs blocked by Node EPERM after 54 and 42 checks; all three source-defined Python Swift-package variants assembled; no live providers, deployment or orchestration
 R-TOOLING | gpt-6.1-sol | high | DONE | docs/latest-tooling-source-map.md; docs/latest-tooling-read-coverage.json | all 76 assigned text files (598,924 bytes) fully covered with source hashes/ranges; 19 files reuse backend reader full-read evidence; no test, workflow, provider request, deployment or orchestration run
 R-NATIVE-TESTS | gpt-6.1-sol | high | DONE | docs/latest-native-test-source-map.md; docs/latest-native-test-read-coverage.json | all 76 current native Tests/UITests Swift files fully read (1,034,273 bytes); existing expectations recorded as contracts, no test execution or clinical/design/pedagogic approval
 R-BINARY | gpt-6-luna | medium | DONE with decoding limit recorded | docs/latest-binary-asset-map.md; docs/repository-read-inventory.json | inspected 24 binary assets across pinned snapshots, including visual inspection and fixture decompression/table reads; binary protobuf config cells were identified but not decoded into semantic fields
+
 A2-retry | gpt-6.1-sol | medium | PARTIAL | docs/deepseek-harness-integration.md; docs/deepseek-harness-source-evidence.json; scripts/setup-deepseek-harness.sh; docs/prework-log.md | root sandboxed-network install of exact @deepseek-ai/dsh 0.2.0-rc.2 (540 packages), supported profile install dsh-freeroute 0.8.23 from verified maintainer; isolated DSH_HOME and PNPM_HOME, preserved system HOME, no compatibility exemption; CLI/help/syntax/config composition PASS, authenticated historical UI GET200 and plugin health/models GET200 (auto model); 15 source/install/script hashes match and script bash-n PASS; worker namespace showed no listeners (corrected below), bounded Chromium startup fails on sandbox setsockopt EPERM before navigation, live Models/Free UI unverified; real provider keys/model probes/inference and orchestrator remain absent
 A2-retry | delivery | local task commit; staging repository has no configured remote; root will deliver integration artifacts through native prework folder
+
 A2-runtime-follow-up | gpt-6.1-sol | medium | PARTIAL | docs/deepseek-harness-integration.md; docs/deepseek-harness-source-evidence.json; docs/prework-log.md | corrected worker-namespace inference: original service PID22093 network namespace still listened on3080; root retry EADDRINUSE produced no auth URL; root stopped only owned old process and restarted pinned CLI with isolated profile, supported private auth URL ready; 2026-10-07 authenticated documented plugin health/models HTTP200 (0.8.23, one auto), no inference; current browser result pending, provider keys/model probes/configuration remain absent
+
 DELIVERY | gpt-6-luna | low | DONE | docs/artifacts.json; docs/supporting-read-ledger.json; docs/supporting-repositories-source-map.md; docs/prework-log.md | completed Chat-me-personal template coverage at 194/194 (996,290 bytes); the 259-byte .env.example has blank API-key values and blob ae26a7ca6bb1d8ac3c4594c6acafb32884d2aac3
 DELIVERY-VERIFY | root | execution | DONE | docs/latest-backend-test-results.json; docs/latest-native-package-results.json; docs/prework-log.md | Node baseline rerun: 23/23 pass including formerly environment-blocked claims and ASR subprocess tests; three Swift package variants assemble; two workflow regressions pass; no screenshots produced by this local verification
 DELIVERY-IMPORT | gpt-6-luna | low | DONE | docs/delivery.json; prework/medical-assistant/; prework/docs/prework-container-check.json; docs/prework-log.md | imported all 60 tracked staging artifacts with preserved relative paths plus the Chat-me container health evidence; CI screenshots remain pending
+
 A2-browser-follow-up | gpt-6.1-sol | medium | PARTIAL | docs/deepseek-harness-integration.md; docs/deepseek-harness-source-evidence.json; docs/prework-log.md | root permitted browser initial networkidle TimeoutError; one revised domcontentloaded/targeted readiness attempt reached HTTP200 and Settings-navigation stage then TimeoutError; Settings/Models/Free panel visibility unverified, no screenshot or requested-provider visibility claimed, no credentials supplied/logged or inference; current authenticated plugin endpoints verified separately; no further browser loops

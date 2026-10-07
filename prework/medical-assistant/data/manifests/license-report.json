@@ -1,0 +1,78 @@
+{
+  "report_version": 1,
+  "purpose": "Pre-ETL license screening; user-declared source-level licenses are recorded separately from item-specific verification.",
+  "policy": {
+    "allowed": [
+      {
+        "license_family": "CC-BY",
+        "condition": "Allow only after the license is verified for each specific item and its scope is established."
+      },
+      {
+        "license_family": "unrestricted",
+        "condition": "Allow only after unrestricted terms and their scope are verified for each specific item."
+      }
+    ],
+    "rejected": [
+      {
+        "license_family": "CC-BY-NC",
+        "reason": "Non-commercial restriction is disallowed."
+      },
+      {
+        "license_family": "CC-BY-NC-SA",
+        "reason": "Non-commercial and share-alike restrictions are disallowed."
+      },
+      {
+        "license_family": "unknown",
+        "reason": "Missing or unverified item-level license evidence is not eligible for inclusion."
+      }
+    ],
+    "unverified_item_rule": "A user-declared source-level license does not establish an item's license or scope; items remain excluded pending item-specific evidence."
+  },
+  "sources": [
+    {
+      "source": "IDC",
+      "id": "IDC",
+      "declared_license": "CC-BY",
+      "verified_license": null,
+      "evidence": [],
+      "status": "unknown",
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+    },
+    {
+      "source": "NIH",
+      "id": "NIH",
+      "declared_license": "unrestricted",
+      "verified_license": null,
+      "evidence": [],
+      "status": "unknown",
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "scope_unverified"]
+    },
+    {
+      "source": "CBIS-DDSM",
+      "id": "CBIS-DDSM",
+      "declared_license": "CC-BY",
+      "verified_license": null,
+      "evidence": [],
+      "status": "unknown",
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+    },
+    {
+      "source": "LibreTexts",
+      "id": "LibreTexts",
+      "declared_license": "CC BY 4.0",
+      "verified_license": null,
+      "evidence": [],
+      "status": "unknown",
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+    },
+    {
+      "source": "Springer OA",
+      "id": "Springer OA",
+      "declared_license": "CC-BY",
+      "verified_license": null,
+      "evidence": [],
+      "status": "unknown",
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+    }
+  ]
+}

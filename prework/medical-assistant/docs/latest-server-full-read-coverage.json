@@ -1,0 +1,739 @@
+{
+  "repository": null,
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "scope": "server/**",
+  "files": [
+    {
+      "path": "server/README.md",
+      "bytes": 9514,
+      "sha256": "5418284df00d509e0fe8377e8f6e85e2ce83bd6c5ba9f0ed669c5c1f5ebadc54",
+      "lines": 170,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          170
+        ]
+      ]
+    },
+    {
+      "path": "server/accuracy-model.js",
+      "bytes": 22127,
+      "sha256": "413c129d8a7a5d4efb6140e5d8b8ef4ea0995b68e94bb3212b9d71a3ba641566",
+      "lines": 411,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          380
+        ],
+        [
+          390,
+          411
+        ]
+      ],
+      "model_read_char_ranges": [
+        [
+          0,
+          22119
+        ]
+      ]
+    },
+    {
+      "path": "server/accuracy-rules.js",
+      "bytes": 36023,
+      "sha256": "7d546ac92253d4d483b8257597e467d03a223392b8b366b2a37f22d0c4429891",
+      "lines": 556,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          35941
+        ]
+      ]
+    },
+    {
+      "path": "server/accuracy.js",
+      "bytes": 44285,
+      "sha256": "c62541727cefa3054bb2aa926c995edeefe317cb61cbdc0beb2ecdccc8260c16",
+      "lines": 800,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          150
+        ],
+        [
+          170,
+          800
+        ]
+      ],
+      "model_read_char_ranges": [
+        [
+          0,
+          44285
+        ]
+      ]
+    },
+    {
+      "path": "server/ai.js",
+      "bytes": 76142,
+      "sha256": "8f9972ef21e17e71927f14469ad5de193fba426dbd78b3186440d12de1413c3f",
+      "lines": 1414,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          320
+        ]
+      ],
+      "model_read_char_ranges": [
+        [
+          0,
+          76142
+        ]
+      ]
+    },
+    {
+      "path": "server/bench/claim-vectors.py",
+      "bytes": 11441,
+      "sha256": "7f32dbf974d06b0e2b7b4ae49cb95ed26193885b8483f8a5907790c98d4ba1bb",
+      "lines": 187,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          187
+        ]
+      ]
+    },
+    {
+      "path": "server/bench/exam-exemplars.mjs",
+      "bytes": 10349,
+      "sha256": "285ed442fca4f308fa1b03f448a4b6141c95c26a62da3440effe294fe98356b8",
+      "lines": 215,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          10349
+        ]
+      ]
+    },
+    {
+      "path": "server/bench/stats.mjs",
+      "bytes": 2615,
+      "sha256": "68b327b6ef11b3b65785de8d46d7c74f7f0133cbb153b944549b38040a6de0c9",
+      "lines": 56,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2615
+        ]
+      ]
+    },
+    {
+      "path": "server/bench/train-accuracy.mjs",
+      "bytes": 21407,
+      "sha256": "67bd0ae5447dc704d6762bedeaf00c71bfcdf3f99e685a8ac70022543076cb07",
+      "lines": 377,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          21394
+        ]
+      ]
+    },
+    {
+      "path": "server/breakers.js",
+      "bytes": 7647,
+      "sha256": "7b9b60956eab12860b8d1f14612ca22b4fac303ac9f4aed06459ac48bbf85f7c",
+      "lines": 184,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          184
+        ]
+      ]
+    },
+    {
+      "path": "server/claims.js",
+      "bytes": 50515,
+      "sha256": "4ea39aef4abaa6837727aa86fcfcb01a9b13fc8b42f87ea3b15b00c70ac71aea",
+      "lines": 970,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          50509
+        ]
+      ]
+    },
+    {
+      "path": "server/diagnostics.js",
+      "bytes": 19976,
+      "sha256": "d4631f1d98581b999283123ca65bc8188f009980cf3775e158bb469bb3ece673",
+      "lines": 407,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          19976
+        ]
+      ]
+    },
+    {
+      "path": "server/evidence.js",
+      "bytes": 10621,
+      "sha256": "e5b19eda9eee2b7d1ac1eeebeb9767eb9a3fcdb1388bdf9ba2f9c8ac6c50e7f7",
+      "lines": 210,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          210
+        ]
+      ]
+    },
+    {
+      "path": "server/exam-exemplars.js",
+      "bytes": 91332,
+      "sha256": "2c0b7e3ceeaeb9f179101ee9f790b58538311fbe9a1dd85ad5d5b9c4eb9b9d67",
+      "lines": 3,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          91236
+        ]
+      ]
+    },
+    {
+      "path": "server/exams.js",
+      "bytes": 19007,
+      "sha256": "bc0211c9db24782fb9da15dd3d7323fb52be7e78e0a14ca975760bb5817ff87b",
+      "lines": 248,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          19005
+        ]
+      ]
+    },
+    {
+      "path": "server/jev.js",
+      "bytes": 3333,
+      "sha256": "09d1ba3cf7d711350d2caded6d04505c728c1b91f37e167769ea31471734e781",
+      "lines": 73,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          73
+        ]
+      ]
+    },
+    {
+      "path": "server/jobs.js",
+      "bytes": 37390,
+      "sha256": "28458c006cd90ef85502e165268a5e51f8ebefce5bac63a7d31182a0cde28310",
+      "lines": 766,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          766
+        ]
+      ]
+    },
+    {
+      "path": "server/legal.js",
+      "bytes": 7577,
+      "sha256": "df3da407940ecd77f0b40dc7654ca93511bef0948d156e19ca80856fd7b08e39",
+      "lines": 113,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          7576
+        ]
+      ]
+    },
+    {
+      "path": "server/limits.js",
+      "bytes": 3671,
+      "sha256": "259ac99c422ba776df6599f9da78004eaf9d49ccf8bb867a0f35722b196f5058",
+      "lines": 75,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          75
+        ]
+      ]
+    },
+    {
+      "path": "server/pair.js",
+      "bytes": 3284,
+      "sha256": "0bf4ebcca465ea91021f403da50c279d858f196982e8f5a6485489d97360ddb7",
+      "lines": 70,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          70
+        ]
+      ]
+    },
+    {
+      "path": "server/schema.sql",
+      "bytes": 11654,
+      "sha256": "cc8f4d95e5328df46bef9c5ea71362b0ab1de7ac49f8918d631aab7ff4bb2cf2",
+      "lines": 275,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          275
+        ]
+      ]
+    },
+    {
+      "path": "server/spaces/Dockerfile",
+      "bytes": 664,
+      "sha256": "9a21e311507c4a5a00469b7020517c883bbd6fd8e6a38d28f04ddc9ec8bee8d5",
+      "lines": 11,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          11
+        ]
+      ]
+    },
+    {
+      "path": "server/spaces/README.md",
+      "bytes": 349,
+      "sha256": "160ed13b4008cbf6ea3563102870246ceac9e02e16d57ced37b34a4b8dda7e8e",
+      "lines": 14,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          14
+        ]
+      ]
+    },
+    {
+      "path": "server/support.js",
+      "bytes": 2688,
+      "sha256": "dab95170a962e247d620fd7413e91981919687498c0a7ff05b67ce024f790186",
+      "lines": 57,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          49
+        ],
+        [
+          55,
+          57
+        ]
+      ],
+      "model_read_char_ranges": [
+        [
+          0,
+          2688
+        ]
+      ]
+    },
+    {
+      "path": "server/switches.js",
+      "bytes": 5253,
+      "sha256": "d409e0a01664e1320409aef80de8411e25c3a300ed45bac97a0443e526bb3525",
+      "lines": 119,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          119
+        ]
+      ]
+    },
+    {
+      "path": "server/sync.js",
+      "bytes": 22400,
+      "sha256": "96c13d750dec960420473c0916365878178fd3c3e978da814c360592f2e9185d",
+      "lines": 461,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          22400
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/accuracy-stages.test.mjs",
+      "bytes": 40196,
+      "sha256": "21050a802f93204a8d36648ad5c63c74736a609b25b3f01170663e1fb1fd2a00",
+      "lines": 616,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          40196
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/accuracy.test.mjs",
+      "bytes": 40091,
+      "sha256": "05696de4dbcf8b94b4d6792f02b17a08491d3ba560ef389dfa27973f799ecd42",
+      "lines": 434,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          40090
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/ai.test.mjs",
+      "bytes": 48149,
+      "sha256": "906a8d069b8d989154c388e195fe4cbcb63132a380489e25f4468f00751b93d5",
+      "lines": 720,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          48149
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/bench.test.mjs",
+      "bytes": 3635,
+      "sha256": "10a44041fa8541832cb70c340251c3753f7d3a0770aef431e84f666aaf315a62",
+      "lines": 58,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          58
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/breakers.test.mjs",
+      "bytes": 17306,
+      "sha256": "62d6b074d8c5f608651f0bcde1ee17776b89979530ba55b33094a7ce559e443f",
+      "lines": 325,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          17306
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/claim-vectors.json",
+      "bytes": 226458,
+      "sha256": "c1ffe98ec1b5f05dd65e287057ef7fb16ad88345c07edfa6aadfa4641d6c00af",
+      "lines": 11376,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          226454
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/claims.test.mjs",
+      "bytes": 19749,
+      "sha256": "0ee37f57d4e2ca261d6bd298a56bd55990c52aee917ed4b500c1bb96ef8fe6b2",
+      "lines": 215,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          215
+        ]
+      ],
+      "model_read_char_ranges": [
+        [
+          0,
+          19732
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/diagnostics.test.mjs",
+      "bytes": 19055,
+      "sha256": "1b10b6aeab010539ad860729f4f8caaf3cd6d315a449a4d8fd3853111cf0d253",
+      "lines": 234,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          19055
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/evidence.test.mjs",
+      "bytes": 5676,
+      "sha256": "2fdfbfbc356e43cf1582876a8bf387313e344bf52fc3c4893e843044672d0059",
+      "lines": 63,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          5676
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/exams.test.mjs",
+      "bytes": 15759,
+      "sha256": "32acc9f5d5bfc70cd932266ee26f2f9025be8f3eccb08d2f7835155f7026fbca",
+      "lines": 205,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          15759
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/faults.test.mjs",
+      "bytes": 4948,
+      "sha256": "8ea0128b83db4a441b1cdc0f0876ce3a310bf65028ffc872e021963d624e48f4",
+      "lines": 97,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          97
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/jev.test.mjs",
+      "bytes": 2648,
+      "sha256": "e7bc408942dc57994d3d6503665f088134231c24990e5fbb69420bd29281541c",
+      "lines": 47,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2648
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/jobs.test.mjs",
+      "bytes": 25705,
+      "sha256": "bf2a51c8b92ace236c064e2b60044859354d115e0c804f695a602cf7b789971e",
+      "lines": 406,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          25705
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/legal.test.mjs",
+      "bytes": 2232,
+      "sha256": "5540fbd81907f82898200fc141b0dbe13739dd32bdafc19f94650874078af5f5",
+      "lines": 37,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          2232
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/limits.test.mjs",
+      "bytes": 9015,
+      "sha256": "b27c326a1941b898aceddaa75fec0b271dc282e0e1d01d808811c44d814f5e9d",
+      "lines": 161,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          9015
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/oath-vectors.mjs",
+      "bytes": 806,
+      "sha256": "666a424b7b60eed68e383627b681641f00d9ef87191e57aa5f5b748d3ed9ff38",
+      "lines": 17,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          806
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/pair.test.mjs",
+      "bytes": 9506,
+      "sha256": "1034bb6c95f17fd1dbdda13b16e8bf58e821f76d3d1041fe2292dbd5bba87fe6",
+      "lines": 140,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          9506
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/rule-vectors.json",
+      "bytes": 8953,
+      "sha256": "3101d66d400b7b2b1b9ffcfddda07954b613fc4dc146315f8b91babdfced9c82",
+      "lines": 80,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          8935
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/support.test.mjs",
+      "bytes": 3557,
+      "sha256": "1ed94084c5f30e8d4db5e05778fc741a0d98d9fed1ba04982b2d563bdc4e887a",
+      "lines": 54,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          3557
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/switches.test.mjs",
+      "bytes": 20551,
+      "sha256": "5ae90f81a03347103d5dba2b732e7ae58bf72aa363f6903c9ef60fb659870862",
+      "lines": 368,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          20551
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/sync.test.mjs",
+      "bytes": 20046,
+      "sha256": "5bafbd3036ae9e76d2e6794b2fb363bbf60866b45f48c76cf99785a66d642a43",
+      "lines": 437,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          20046
+        ]
+      ]
+    },
+    {
+      "path": "server/tests/tts.test.mjs",
+      "bytes": 11104,
+      "sha256": "8d8e581c88a9fd5e736a80b18588986eabd3b540da9b4d3d729cb7cbbcc469bd",
+      "lines": 223,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          11104
+        ]
+      ]
+    },
+    {
+      "path": "server/tokens.js",
+      "bytes": 7952,
+      "sha256": "310fbd7c7e54e85d86e24bfcfe5c09d9de5b2aeafa10dd1aa52604fe6306930c",
+      "lines": 190,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          190
+        ]
+      ]
+    },
+    {
+      "path": "server/triage/diagnostics-triage.mjs",
+      "bytes": 18114,
+      "sha256": "b14ceaf8a343ee290933f099438ce2ae5b452d4fe93866e796e5ddda005c7afa",
+      "lines": 368,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          18105
+        ]
+      ]
+    },
+    {
+      "path": "server/tts.js",
+      "bytes": 10821,
+      "sha256": "bdecc5c118ab8dfc6073ed8aa3ce90c571fada8f868265635c26e5304000797a",
+      "lines": 230,
+      "read_status": "model_read_complete",
+      "model_read_char_ranges": [
+        [
+          0,
+          10821
+        ]
+      ]
+    },
+    {
+      "path": "server/worker.js",
+      "bytes": 29272,
+      "sha256": "17314ab54ff76ee7aa5dc5d1f6e23502cc36bf9249db9f615d4fc93de736f4b6",
+      "lines": 559,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          559
+        ]
+      ]
+    },
+    {
+      "path": "server/wrangler.toml",
+      "bytes": 8911,
+      "sha256": "251c4393563ad4ef737861b125af39265d299ffd9edaf12c55e43f77ea932f99",
+      "lines": 161,
+      "read_status": "model_read_complete",
+      "model_read_line_ranges": [
+        [
+          1,
+          161
+        ]
+      ]
+    }
+  ],
+  "method": "Actual bounded source outputs consumed by the model; original line ranges plus contiguous character ranges, no truncation. Decode/hash inventory alone is not comprehension."
+}

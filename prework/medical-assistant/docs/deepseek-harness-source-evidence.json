@@ -1,0 +1,235 @@
+{
+  "observedAt": "2026-10-06",
+  "package": "@deepseek-ai/dsh",
+  "version": "0.2.0-rc.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "apps/cli"
+  },
+  "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.0-rc.2.tgz",
+  "installedAt": "/workspace/vendor/deepseek-harness",
+  "install": {
+    "executor": "root sandbox with additional network permission",
+    "npmLogExitCode": 0,
+    "packagesAdded": 540
+  },
+  "isolatedProfileHome": "/workspace/vendor/deepseek-harness/state",
+  "verification": {
+    "versionExitCode": 0,
+    "launcherHelpExitCode": 0,
+    "webHelpExitCode": 0,
+    "nodeCheckExitCode": 0,
+    "defaultConfigExitCode": 0,
+    "defaultConfigBytes": 45644,
+    "providerInference": "not run; credentials absent"
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "bytes": 7333,
+      "sha256": "0a85203e3e907dd2e3bec34324a2494758ca6cdee234b07090a7c8df0b11acac"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7224,
+      "sha256": "4888e4e05d413915aaf013d6dea00278b251adbf16045d0048ac2242851a03c7"
+    },
+    {
+      "path": "lib/bin.js",
+      "bytes": 11697,
+      "sha256": "1a03dee18683483ff6a1b27b2a1e650230da6bcca9a0f55f7d81b3308c3f307f"
+    },
+    {
+      "path": "lib/plugin-BGnVfe_D.js",
+      "bytes": 5928,
+      "sha256": "300438e9e181847cff2e01b8bc404806da532c0801a505a2dc94a94c14c72836"
+    }
+  ],
+  "freeroute": {
+    "name": "dsh-freeroute",
+    "version": "0.8.23",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/dushaobindoudou/dsh-freeroute.git"
+    },
+    "peerDependencies": {
+      "react": ">=18",
+      "@deepseek-ai/dsh-typert-protocol": ">=0.1.5-rc.2"
+    },
+    "initialInstall": {
+      "exitCode": 254,
+      "reason": "pnpm data directory ENOENT /home/agent/.local/share/pnpm"
+    },
+    "retry": {
+      "pnpmHome": "/tmp/dsh-pnpm-home",
+      "storeDir": "/tmp/dsh-pnpm-store",
+      "filesPresent": true,
+      "addedToProfileBundles": true,
+      "configCompositionExitCode": 0,
+      "configBytes": 45701,
+      "compatibilityExemptions": "none",
+      "exitCode": 0
+    },
+    "runtimeLoad": {
+      "verified": true,
+      "readOnlyEndpointResults": {
+        "/freeroute/health": {
+          "httpStatus": 200,
+          "bytes": 84,
+          "ok": true,
+          "route": "freeroute",
+          "version": "0.8.23"
+        },
+        "/freeroute/v1/models": {
+          "httpStatus": 200,
+          "bytes": 72,
+          "modelCount": 1,
+          "autoPresent": true
+        },
+        "inferenceInvoked": false
+      }
+    },
+    "providerInference": "not run; no keys",
+    "files": [
+      {
+        "path": "package.json",
+        "sha256": "375da2318ead0d9475e6a150405df496aca6ea48fda50a4e068622898791177a",
+        "bytes": 2418
+      },
+      {
+        "path": "README.md",
+        "sha256": "44b02cdc667046fa9a574d3a8a8754a8ec79dacb244f4256391dd25c2a0a57cb",
+        "bytes": 9557
+      },
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "df70a16442fa0782389bf6e645c91c5eee162b0ed31315233f5e4c721b772cac",
+        "bytes": 123
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "567c9c0b96c129dc13f580244fc7a50a53084fd4e1edb703416681710c1c1639",
+        "bytes": 144652
+      },
+      {
+        "path": "lib/client.js",
+        "sha256": "a3450638931eff2c6c6770b3ab8a7208ec9ed3a3971f764c344326e1dd240e05",
+        "bytes": 65478
+      }
+    ]
+  },
+  "artifactManifest": [
+    {
+      "path": "package.json",
+      "bytes": 66,
+      "sha256": "f57603ec833547088cbc39c8d2fdc1a30c4bd816619e8150c09304e400ff650d"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 372449,
+      "sha256": "4949f85200eaec0d26427fdf7c4a2f59a2d41b27460f7fbf4d5d829d473f1da4"
+    },
+    {
+      "path": "state/profiles/web/package.json",
+      "bytes": 265,
+      "sha256": "672dea2a7f5272d88a13523fc1a03d0066841ea6510c5b2eec09bb89e7e1ab71"
+    },
+    {
+      "path": "state/profiles/web/pnpm-lock.yaml",
+      "bytes": 591,
+      "sha256": "2613330658a4074d3ebdb18efd10750b3656c4e58f98da5f9ab71ce39466e09a"
+    },
+    {
+      "path": "state/profiles/web/pnpm-workspace.yaml",
+      "bytes": 61,
+      "sha256": "ae7c5b68e2f157528e62885804e69e88583897b775e03c86fcbe52feaf498aba"
+    }
+  ],
+  "reproductionScript": {
+    "path": "scripts/setup-deepseek-harness.sh",
+    "syntaxCheckExitCode": 0,
+    "endToEndRun": "not repeated; root separately installed and verified the same pinned packages",
+    "bytes": 2110,
+    "sha256": "252f3016d0147d4cb8720bd4cde1360d761097d1c13b978ae1f003ee5f7fdeec"
+  },
+  "resumeObservation": {
+    "observedAt": "2026-10-07",
+    "listenersAtResume": {
+      "workerNamespace": {
+        "3001": false,
+        "3080": false
+      },
+      "originalServiceNamespace": {
+        "processId": 22093,
+        "3080": true
+      }
+    },
+    "priorHttpResults": "historical root HTTP verification; worker namespace absence did not establish service termination",
+    "browserCheck": {
+      "completed": false,
+      "errorType": "TargetClosedError",
+      "stage": "Chromium startup before navigation",
+      "reason": "crashpad socket setsockopt Operation not permitted; SIGTRAP",
+      "credentialsLogged": false,
+      "screenshotProduced": false,
+      "attempt": "initial default worker"
+    },
+    "credentialsConfigured": false,
+    "providerInferenceInvoked": false,
+    "rootLauncherRetry": {
+      "startupFailed": true,
+      "errorCode": "EADDRINUSE",
+      "port": 3080,
+      "supportedAuthenticationUrlProduced": false,
+      "browserRequestSent": false
+    },
+    "rootRestart": {
+      "observedAt": "2026-10-07",
+      "priorOwnedProcessStopped": true,
+      "pinnedCliRelaunched": true,
+      "isolatedProfilePreserved": true,
+      "supportedPrivateAuthenticationUrlProduced": true,
+      "authenticatedPluginEndpointsVerifiedAgain": true,
+      "readOnlyEndpointResults": {
+        "/freeroute/health": {
+          "httpStatus": 200,
+          "bytes": 84,
+          "ok": true,
+          "route": "freeroute",
+          "version": "0.8.23"
+        },
+        "/freeroute/v1/models": {
+          "httpStatus": 200,
+          "bytes": 72,
+          "modelCount": 1,
+          "autoPresent": true
+        },
+        "inferenceInvoked": false
+      },
+      "providerInferenceInvoked": false
+    },
+    "centralBrowserChecks": {
+      "observedAt": "2026-10-07",
+      "executor": "root sandbox with additional network permission",
+      "initialWaitStrategy": "networkidle",
+      "initialOutcome": "TimeoutError",
+      "revisedAttemptCount": 1,
+      "revisedWaitStrategy": "domcontentloaded; bounded body/Settings readiness and Settings navigation",
+      "revisedResult": {
+        "browserCheckErrorType": "TimeoutError",
+        "failedStage": "settings-navigation",
+        "httpStatus": 200,
+        "credentialValuesLogged": false,
+        "credentialsSuppliedInThisTask": false,
+        "inferenceInvoked": false
+      },
+      "settingsViewConfirmed": false,
+      "modelsViewConfirmed": false,
+      "requestedProviderVisibilityVerified": false,
+      "freePanelVerified": false,
+      "screenshotProduced": false,
+      "providerInferenceInvoked": false
+    }
+  }
+}

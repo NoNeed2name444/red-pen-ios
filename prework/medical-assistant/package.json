@@ -1,0 +1,11 @@
+{
+  "name": "medical-student-assistant-staging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Provisional offline preparation scaffold; application decisions pending",
+  "scripts": {
+    "check": "python3 scripts/prework.py",
+    "test": "python3 -m unittest discover -s tests -v && node --test --test-isolation=none tests/app.test.mjs"
+  }
+}

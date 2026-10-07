@@ -1,0 +1,19 @@
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -15,4 +15,4 @@
+ 
+ EXPOSE 8000
+ 
+-CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
++CMD ["uvicorn","api.main:app","--host","0.0.0.0","--port","8000"]
+--- a/docs/architecture/verifier/README.md
++++ b/docs/architecture/verifier/README.md
+@@ -23,7 +23,7 @@
+ python -m venv .venv
+ source .venv/bin/activate
+ pip install -e ".[dev]"
+-uvicorn app.main:app --reload
++uvicorn api.main:app --reload
+ ```
+ 
+ Open http://127.0.0.1:8000/docs

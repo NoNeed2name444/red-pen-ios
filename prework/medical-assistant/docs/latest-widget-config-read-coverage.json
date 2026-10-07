@@ -1,0 +1,265 @@
+{
+  "commit": "faecd8cdccd92387ac777335588ebc548b0ab106",
+  "scope_count": 16,
+  "complete_count": 16,
+  "complete_bytes": 47701,
+  "validation": "All 16 files fully consumed; bytes and Git blob SHA-1 match the pinned materialization inventory. Source review only; no tests, workflows or source edits.",
+  "entries": [
+    {
+      "path": "ios/AppResources/PrivacyInfo.xcprivacy",
+      "bytes": 6853,
+      "chars": 6853,
+      "sha256": "d39e11edffad36152c060b925de41fcc652c9abb59bdc2073927b3fbf9421238",
+      "git_blob_sha": "7e4c3d2128fa362e900822773757eda9f7ad4bf5",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          6853
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/RedPen/Assets.xcassets/AccentColor.colorset/Contents.json",
+      "bytes": 541,
+      "chars": 541,
+      "sha256": "145429d28947e2ca97170bb8ee8696db8738476b2d9d08c825f42a1d82bec877",
+      "git_blob_sha": "447cc2f47adbf7d7b524a8534e33d47bb86bfe1d",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          541
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/RedPen/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "bytes": 205,
+      "chars": 205,
+      "sha256": "a39c3c91e5da9ea0ae17deaa9a8946f37413cf00101d27c3070bbb9fa8bc0b37",
+      "git_blob_sha": "30af79d60498ad019a21427f43445bd8b091e4e6",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          205
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/RedPen/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+      "bytes": 313,
+      "chars": 313,
+      "sha256": "14a03aaf9114939b0718797c05002069cf49782bd81fd259d7f2e2787b71cc73",
+      "git_blob_sha": "760056c1c7297a8f523e457773f3634753348090",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          313
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/RedPen/Assets.xcassets/LaunchLogo.imageset/Contents.json",
+      "bytes": 381,
+      "chars": 381,
+      "sha256": "1e2aab192d13318474e5aef0bf2095949aa601a6ed7767ea9fad7f3c611ada1c",
+      "git_blob_sha": "d0988134c82990beaddc24c02f426c440de8e8f7",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          381
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/DueCardsWidget.swift",
+      "bytes": 3690,
+      "chars": 3690,
+      "sha256": "5a8c5e02cfff6f3dd15d790f9106d9cc8c9c3b14b5348f3615f3b8adbe14d9aa",
+      "git_blob_sha": "da3e1118395b5a3a0863052579f46c3d87bf99da",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          3690
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/ExamCountdownWidget.swift",
+      "bytes": 2628,
+      "chars": 2628,
+      "sha256": "c490757f9bee400093fa104dbd136944480b143f0bee75020cfa2a4848c7c6e2",
+      "git_blob_sha": "be605849ec1b48ab458f5aa7deedfbe282b3113d",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          2628
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/ExamDayLiveActivity.swift",
+      "bytes": 3733,
+      "chars": 3733,
+      "sha256": "154b8607add8773f649bf9e42b51fa7dfa72139ba5957dfe00b58d8dc8241094",
+      "git_blob_sha": "442a1912825426cb36491f3f89cbc65969812743",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          3733
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/GlanceTimeline.swift",
+      "bytes": 2831,
+      "chars": 2831,
+      "sha256": "a4e0754d77c42e0cf24c069d77d145c7c8ee1a7886ddf6a203e923ae28717c9e",
+      "git_blob_sha": "8edf5a18f84d5988ebc6d7b71cd66aa342d1eb5c",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          2831
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/Info.plist",
+      "bytes": 188,
+      "chars": 188,
+      "sha256": "d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3",
+      "git_blob_sha": "6631ffa6f24265b2e341ccb354d8a5983a7f106a",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          188
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/ReviewDueControl.swift",
+      "bytes": 621,
+      "chars": 621,
+      "sha256": "4e65eb6c58646af607fa3fa1e1397acbdb06141f4e479ba60347b90f1b0294fc",
+      "git_blob_sha": "d8591f626e168685d58d229c1758ed81b86e1954",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          621
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/StethoscoreWidgets.entitlements",
+      "bytes": 188,
+      "chars": 188,
+      "sha256": "d9b06c202956033b01e62b21c727eea89b6a4fd456ef71d420c39f460426b9f3",
+      "git_blob_sha": "6631ffa6f24265b2e341ccb354d8a5983a7f106a",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          188
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/StethoscoreWidgetsBundle.swift",
+      "bytes": 677,
+      "chars": 677,
+      "sha256": "a2201e2787343b357a810ef37ace00982f057596b58e278805589c7d183d811a",
+      "git_blob_sha": "0c002a51c35ebba78d119c8f11159bc1c1c34104",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          677
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/StethoscoreWidgets/TodayStreakWidget.swift",
+      "bytes": 2199,
+      "chars": 2199,
+      "sha256": "31584ea29819c742eceb682064a2cb400b5d2790c7c6365fac75ccddbd118eb2",
+      "git_blob_sha": "31c91f622b290d5435830d7dafaf31a3867bcb3d",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          2199
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "ios/project.yml",
+      "bytes": 13505,
+      "chars": 13505,
+      "sha256": "b82a19666ffadcaa262c4549cd06fada6a192ffda5e281ac9221ce64b4384d2f",
+      "git_blob_sha": "f8fefd19bff00a8269b0030e4404d9d9a5344701",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          13505
+        ]
+      ],
+      "pinned_blob_verified": true
+    },
+    {
+      "path": "swiftbuilder-flat/README.txt",
+      "bytes": 9148,
+      "chars": 9086,
+      "sha256": "3beeb187fe1dcd3e374a76ae9ea9a28fe34b54c4bb7906a22be5b4cfec8c8db3",
+      "git_blob_sha": "c58e76d5a0ba4e194d384b0cdd038403ea10eb3f",
+      "read_status": "model_read_complete",
+      "reader": "read_ios_app",
+      "model_read_char_ranges": [
+        [
+          0,
+          9086
+        ]
+      ],
+      "pinned_blob_verified": true
+    }
+  ]
+}
