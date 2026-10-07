@@ -506,6 +506,7 @@ struct HelpPage: View {
         case .book: return "Your material as a textbook you read straight through, a page at a time."
         case .osce: return "A clinical skill broken into steps, marked the way an examiner would."
         case .narrate: return "A recorded lecture written out, so you can study what was actually said."
+        case .cases: return "Patients to work up against the clock: read the clerking, choose what to examine and test, rank your diagnoses, decide, then see what mattered."
         }
     }
 

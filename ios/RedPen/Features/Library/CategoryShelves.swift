@@ -118,6 +118,7 @@ extension CategoryFeature {
         case .pictures: return "picture card deck"
         case .stations: return "OSCE station"
         case .lectures: return "narrated lecture"
+        case .patients: return "Cases set"
         default: return "set"
         }
     }

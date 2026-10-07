@@ -386,6 +386,8 @@ struct ExplainBackView: View {
             return set.osceChecklists.map { AccuracyChecker.checkText($0) }.joined(separator: "\n\n")
         case .narrate:
             return set.narrateSegments.map(\.text).joined(separator: "\n")
+        case .cases:
+            return set.caseFiles.map(\.assertedText).joined(separator: "\n\n")
         }
     }
 }

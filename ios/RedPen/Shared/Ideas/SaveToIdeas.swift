@@ -16,6 +16,8 @@ import Foundation
 struct NoteSource: Codable, Hashable, Sendable {
     enum Kind: String, Codable, CaseIterable, Sendable {
         case question, card, osce, lecture
+        /// A patient case, saved from its debrief.
+        case patientCase = "case"
 
         /// How the chip names it: "Question", "Card"...
         var label: String {
@@ -24,6 +26,7 @@ struct NoteSource: Codable, Hashable, Sendable {
             case .card: return "Card"
             case .osce: return "OSCE station"
             case .lecture: return "Lecture"
+            case .patientCase: return "Case"
             }
         }
 
@@ -41,6 +44,7 @@ struct NoteSource: Codable, Hashable, Sendable {
             case .card: return "rectangle.on.rectangle"
             case .osce: return "list.clipboard"
             case .lecture: return "doc.richtext"
+            case .patientCase: return "stethoscope"
             }
         }
     }
