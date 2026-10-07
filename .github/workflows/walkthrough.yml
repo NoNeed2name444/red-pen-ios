@@ -48,7 +48,8 @@ jobs:
 
       - name: Generate the project
         working-directory: ios
-        run: xcodegen generate
+        # the default Xcode's actool crashes on the .icon (see app-build.yml); the AppIcon set stands in
+        run: rm -rf AppResources/AppIcon.icon && xcodegen generate
 
       - name: Pick a simulator
         id: sim

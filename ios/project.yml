@@ -46,10 +46,12 @@ targets:
       # The layered iOS 26 icon (Icon Composer; tools/icon_layers.py). Named
       # like the AppIcon set in Assets.xcassets, so Xcode 26 uses this one and
       # the set stays the fallback. Outside RedPen/, so the Playgrounds
-      # package (which copies RedPen/) keeps the set alone.
+      # package (which copies RedPen/) keeps the set alone. Optional: CI on an
+      # Xcode whose actool crashes on .icon files deletes it first.
       - path: AppResources/AppIcon.icon
         type: file
         buildPhase: resources
+        optional: true
     dependencies:
       - package: LocalLLMClient
         product: LocalLLMClient
