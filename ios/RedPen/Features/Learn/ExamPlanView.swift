@@ -245,7 +245,7 @@ private struct DueBars: View {
         let share: CGFloat = CGFloat(count) / CGFloat(top)
         let height: CGFloat = max(3, 64 * share)
         let isExam: Bool = examDay == day
-        let fill: Color = isExam ? Color.wardEcg : Color.wardPrimary
+        let fill: Color = isExam ? Color.wardEcg : Color.wardPrimaryInk
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             Capsule().fill(fill.opacity(count == 0 ? 0.25 : 1)).frame(height: height)
@@ -284,7 +284,7 @@ private struct SubjectRing: View {
         let total: Double = Double(max(1, ring.total))
         let secured: Double = Double(ring.secured) / total
         let building: Double = Double(ring.secured + ring.building) / total
-        let tint: Color = Color.wardPrimary
+        let tint: Color = Color.wardPrimaryInk
         VStack(spacing: 6) {
             ZStack {
                 Circle().stroke(Color.wardHairline, lineWidth: 7)

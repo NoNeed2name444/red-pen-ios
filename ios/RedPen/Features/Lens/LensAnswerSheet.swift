@@ -206,7 +206,7 @@ struct LensAnswerBody: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(colour)
                 .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(colour.opacity(0.14), in: Capsule())
+                .wardInset(in: Capsule())
             if !answer.correction.isEmpty {
                 section("Put right") { Text(answer.correction) }
             }
@@ -320,7 +320,8 @@ struct LensAnswerBody: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wardSuccess.opacity(0.12), in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+        // a well pressed into the base with a green rim: the answer
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous).strokeBorder(Color.wardSuccess.opacity(0.55), lineWidth: 1.5))
         .accessibilityElement(children: .combine)
     }
@@ -352,7 +353,8 @@ struct LensAnswerBody: View {
 }
 
 /// One option: its letter, its words, and - once answered - whether it is
-/// the answer and why.
+/// the answer and why. A plate pressed into the card, since it is read and
+/// not tapped; the answer is pressed in deeper, its letter and tick in green.
 struct LensOptionRow: View {
     enum Mark { case plain, right, wrong }
 
@@ -364,18 +366,14 @@ struct LensOptionRow: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         let right: Bool = state == .right
-        let edge: Color = right ? Color.wardSuccess.opacity(0.8) : Color.wardHairline
-        let wash: Color = right ? Color.wardSuccess.opacity(0.12) : Color.wardSurface
-        let letterInk: Color = right ? Color.wardOnPrimary : Color.wardInk
-        let letterFill: Color = right ? Color.wardSuccess : Color.wardBackground
+        let letterInk: Color = right ? Color.wardSuccess : Color.wardInk
+        let depth: WardLift = right ? .mid : .low
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Text(letter)
                     .font(.body.weight(.bold).monospaced())
                     .foregroundStyle(letterInk)
                     .frame(width: 32, height: 32)
-                    .background(letterFill, in: Circle())
-                    .overlay(Circle().strokeBorder(right ? Color.clear : Color.wardHairline, lineWidth: 1))
                     .accessibilityHidden(true)
                 Text(text)
                     .font(.body)
@@ -399,8 +397,7 @@ struct LensOptionRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(wash, in: shape)
-        .overlay(shape.strokeBorder(edge, lineWidth: right ? 1.5 : 1))
+        .wardInset(in: shape, lift: depth)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spoken)
     }
@@ -424,8 +421,8 @@ struct LensBulletStyle: LabelStyle {
     }
 }
 
-/// Grey bars that shimmer while the answer is written; still under Reduce
-/// Motion.
+/// Grooves pressed into the card that shimmer while the answer is written;
+/// still under Reduce Motion.
 struct LensShimmer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = -1
@@ -448,15 +445,16 @@ struct LensShimmer: View {
     private func bar(_ width: CGFloat) -> some View {
         GeometryReader { geo in
             let w: CGFloat = geo.size.width * width
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.wardHairline)
+            let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+            Color.clear
                 .overlay(
                     LinearGradient(colors: [.clear, Color.wardSurface.opacity(0.7), .clear],
                                    startPoint: .leading, endPoint: .trailing)
                         .frame(width: w * 0.4)
                         .offset(x: phase * w)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(shape)
+                .wardInset(in: shape, fill: .wardHairline)
                 .frame(width: w)
         }
         .frame(height: 14)

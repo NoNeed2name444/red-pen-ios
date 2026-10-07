@@ -96,7 +96,7 @@ struct CategoryRowLabel: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 40, height: 40)
-                .background(tint.opacity(0.12), in: square)
+                .wardRaised(in: square, lift: .low)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)

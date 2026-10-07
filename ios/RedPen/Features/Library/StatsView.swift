@@ -182,7 +182,7 @@ struct StatsView: View {
                                 .font(.body.weight(.semibold).monospacedDigit())
                                 .foregroundStyle(.tint)
                         }
-                        AccuracyBar(fraction: row.accuracy, color: Color.wardPrimary)
+                        AccuracyBar(fraction: row.accuracy, color: Color.wardPrimaryInk)
                         Text(Self.counted(row.answered, "answer"))
                             .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
@@ -254,7 +254,7 @@ struct StatsView: View {
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.tint)
             }
-            AccuracyBar(fraction: share.share, color: Color.wardPrimary)
+            AccuracyBar(fraction: share.share, color: Color.wardPrimaryInk)
             reasonAction(share.reason, count: share.count)
         }
         .padding(.vertical, 2)
@@ -384,21 +384,14 @@ struct StatsView: View {
     }
 }
 
-/// A thin bar filled to a fraction, in a colour of its own - ThinProgress
+/// A groove filled to a fraction, in a colour of its own - ThinProgress
 /// always takes the screen's tint, and here the colour is the verdict.
 private struct AccuracyBar: View {
     let fraction: Double
     let color: Color
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline)
-                Capsule().fill(color)
-                    .frame(width: max(0, min(1, fraction)) * geo.size.width)
-            }
-        }
-        .frame(height: 6)
-        .accessibilityHidden(true)
+        WardGroove(fraction: fraction, tint: color, height: 8)
+            .accessibilityHidden(true)
     }
 }

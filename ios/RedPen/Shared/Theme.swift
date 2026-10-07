@@ -250,7 +250,7 @@ struct ScoreRing: View {
 /// the middle of the indigo Anki screen: the accent is the app's colour, not
 /// the screen's.
 private struct ModeTintKey: EnvironmentKey {
-    static let defaultValue: Color = .wardPrimary
+    static let defaultValue: Color = .wardPrimaryInk
 }
 
 extension EnvironmentValues {

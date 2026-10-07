@@ -118,7 +118,7 @@ extension LibraryView {
                 Button { support = page } label: {
                     CategoryRowLabel(title: page.title, symbol: page.symbol,
                                      detail: Self.moreDetail(page), tint: category.tint)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
                 .frostedListRow()
@@ -165,7 +165,7 @@ extension LibraryView {
                 .accessibilityHidden(true)
             Text(category.emptySets)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             Spacer(minLength: 8)
             Button("Make one") { newSetKind = category.mainKind }
                 .buttonStyle(.wardCompact)

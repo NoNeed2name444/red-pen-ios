@@ -104,7 +104,8 @@ struct RecordingTermsView: View {
         .foregroundStyle(Color.wardInk)
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wardDanger.opacity(0.12), in: shape)
+        // a well pressed into the base, rimmed in red
+        .wardInset(in: shape)
         .overlay(shape.strokeBorder(Color.wardDanger.opacity(0.55), lineWidth: 1.5))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("medicalWarning")

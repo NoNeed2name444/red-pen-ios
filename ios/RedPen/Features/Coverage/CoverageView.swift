@@ -404,23 +404,16 @@ struct CoverageView: View {
                 }
             }
             if isGap {
-                // a small capsule on the row; the finger's worth of target
-                // is taller than the capsule
+                // a small capsule raised off the row; the finger's worth of
+                // target is taller than the capsule
                 Button {
                     generate(sub, area: area)
                 } label: {
                     Label("Generate questions", systemImage: "wand.and.stars")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.wardPrimaryInk)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(Color.wardSurface, in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-                        .frame(minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
-                .hoverEffect(.highlight)
+                .buttonStyle(WardChipButtonStyle())
             }
         }
         .padding(.vertical, 2)

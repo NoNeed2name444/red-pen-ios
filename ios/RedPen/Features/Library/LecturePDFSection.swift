@@ -132,7 +132,7 @@ struct LecturePDFSection: View {
                     Text("They are saved as a Cards set of their own, and New set closes. Make the questions first if you want those too.")
                 }
                 Text("One card per label on the diagrams, masking the label itself. Nothing was generated \u{2014} the labels are the slide's own words.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("Add a file")

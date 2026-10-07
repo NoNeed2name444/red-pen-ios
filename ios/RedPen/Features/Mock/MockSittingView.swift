@@ -438,7 +438,6 @@ struct MockSittingView: View {
         let answered: Bool = selected[id] != nil
         let marked: Bool = flagged.contains(id)
         let here: Bool = i == current
-        let tint: Color = Color.wardPrimary
         let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         let state: String = (answered ? "answered" : "unanswered") + (marked ? ", flagged" : "")
         return Button {
@@ -449,15 +448,15 @@ struct MockSittingView: View {
                 Text("\(i + 1)")
                     .font(.system(.body, design: .monospaced).weight(.semibold))
                     .monospacedDigit()
-                    .foregroundStyle(answered ? Color.wardOnPrimary : Color.wardInk)
+                    .foregroundStyle(answered ? Color.wardPrimaryInk : Color.wardInk)
                     .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(answered ? tint : Color.wardSurface, in: shape)
-                    .overlay(shape.strokeBorder(answered ? Color.clear : Color.wardHairline, lineWidth: 1))
+                    // raised to be tapped; answered, pressed in, its number blue
+                    .wardRelief(in: shape, lift: .low, pressed: answered)
                     .overlay(shape.strokeBorder(here ? Color.wardInk : Color.clear, lineWidth: 2))
                 if marked {
                     Image(systemName: "flag.fill")
                         .font(.caption2)
-                        .foregroundStyle(answered ? Color.wardOnPrimary : Color.wardWarning)
+                        .foregroundStyle(Color.wardWarning)
                         .padding(4)
                 }
             }

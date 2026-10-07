@@ -190,13 +190,13 @@ struct AccuracyWhySheet: View {
                                  symbol: vote.risk >= 3 ? "xmark.circle.fill" : "checkmark.circle.fill")
                     }
                     if let answer = vote.answer, item.kind == .mcq {
-                        Text("Its own answer: " + answer).font(.caption).foregroundStyle(.secondary)
+                        Text("Its own answer: " + answer).font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     ForEach(vote.issues, id: \.self) { issue in
                         Text(issue).font(.footnote)
                     }
                     if !vote.cites.isEmpty {
-                        Text("Cites " + vote.cites.joined(separator: ", ")).font(.caption2).foregroundStyle(.secondary)
+                        Text("Cites " + vote.cites.joined(separator: ", ")).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
@@ -254,7 +254,7 @@ struct AccuracyWhySheet: View {
                 Button("Send report") { Task { await sendReport() } }
                     .disabled(working)
             } else if assessment.record?.reported == true {
-                Label("You reported this \(item.kind.noun)", systemImage: "flag.fill").foregroundStyle(.secondary)
+                Label("You reported this \(item.kind.noun)", systemImage: "flag.fill").foregroundStyle(Color.wardInkSecondary)
             } else {
                 Button { reporting = true } label: {
                     Label("Report an error", systemImage: "flag")

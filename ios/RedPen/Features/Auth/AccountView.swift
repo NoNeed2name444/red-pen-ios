@@ -115,10 +115,10 @@ struct AccountView: View {
             }
             if !subscriptions.isPro {
                 Text("Keeping your iPhone and iPad the same is part of Pro.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             } else if isLocalOnly {
                 Text("This library is only on this device. Link another device to keep them the same.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if headerAction != .link {
                 Button { if subscriptions.isPro { linking = true } else { showPaywall = true } } label: {
@@ -132,7 +132,7 @@ struct AccountView: View {
                 // somebody else's library is on this device: nothing of it
                 // goes into this account until the student says so
                 Text("The library on this device was synced with another account. Nothing syncs until you choose.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 Button("Add it to this account") {
                     Task { await sync.chooseLibrary(addToAccount: true) }
                 }
@@ -141,7 +141,7 @@ struct AccountView: View {
                 }
             } else if sync.setsKeptHere > 0 {
                 Text(keptNote)
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 Button("Add them to this account") {
                     Task { await sync.addKeptSets() }
                 }
@@ -297,7 +297,7 @@ private struct AccountHeaderCard<Action: View>: View {
                     .lineLimit(1)
                 Text(Self.how(person, localOnly: localOnly))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             if isPro { ProBadge() }
@@ -311,15 +311,11 @@ private struct AccountHeaderCard<Action: View>: View {
     }
 }
 
-/// A small capsule saying the account has Pro.
+/// A small capsule saying the account has Pro: a label pressed into the
+/// card, its word in Theatre Blue.
 private struct ProBadge: View {
     var body: some View {
-        Text("Pro")
-            .font(.caption.weight(.bold))
-            .foregroundStyle(Color.wardOnPrimary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.wardPrimary, in: Capsule())
+        WardChip(text: "Pro", tone: .blue)
             .accessibilityLabel("Pro subscription")
     }
 }

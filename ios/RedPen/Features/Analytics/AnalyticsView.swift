@@ -580,7 +580,7 @@ struct AnalyticsView: View {
                 .font(.caption.weight(.bold).monospacedDigit())
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.wardHairline))
+                .wardInset(in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Label(item.title, systemImage: item.symbol)
                     .font(.body.weight(.semibold))
@@ -636,9 +636,9 @@ struct AnalyticsView: View {
             ForEach(weeks) { week in
                 LineMark(x: .value("Week", week.start), y: .value("Accuracy", week.accuracy * 100))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(Color.wardPrimary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                 PointMark(x: .value("Week", week.start), y: .value("Accuracy", week.accuracy * 100))
-                    .foregroundStyle(Color.wardPrimary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .symbolSize(30)
             }
             RuleMark(y: .value("Pass mark", passMark))
@@ -660,7 +660,7 @@ struct AnalyticsView: View {
     private func dailyChart(_ days: [DayPoint]) -> some View {
         Chart(days) { day in
             BarMark(x: .value("Day", day.day, unit: .day), y: .value("Studied", day.count))
-                .foregroundStyle(Color.wardPrimary.opacity(0.7))
+                .foregroundStyle(Color.wardPrimaryInk.opacity(0.7))
         }
         .frame(height: 120)
     }
@@ -768,17 +768,14 @@ struct AnalyticsView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens this question on its own")
             if store.ruleSheet[q.id] != nil {
-                // a Clean Sheet disc with a hairline edge, giving a little
-                // under the finger
+                // a soft disc raised off the row, pressed in under the finger
                 Button { route = .rules } label: {
                     Image(systemName: "list.bullet.rectangle")
                         .font(.body)
                         .foregroundStyle(Color.wardPrimaryInk)
                         .frame(width: 44, height: 44)
-                        .background(Color.wardSurface, in: Circle())
-                        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 }
-                .buttonStyle(.pressableRow)
+                .buttonStyle(.wardCircle)
                 .accessibilityLabel("Rule sheet")
                 .help("Rule sheet")
             }

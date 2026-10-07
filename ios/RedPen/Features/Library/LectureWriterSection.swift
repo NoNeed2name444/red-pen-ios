@@ -151,7 +151,7 @@ struct LectureWriterSection: View {
                 .disabled(working)
                 if style.usesDiagrams, readSource != nil {
                     Text(diagramNote)
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             if style.writesText || kind != .anki {
@@ -172,10 +172,10 @@ struct LectureWriterSection: View {
             .wardButtonRow()
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let status, !working {
-                Text(status).font(.footnote).foregroundStyle(.secondary)
+                Text(status).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             // what the last run could not write, and only that, again
             if let missing, !working, canWriteMissing(missing) {
@@ -197,7 +197,7 @@ struct LectureWriterSection: View {
                     .popField()
                     .disabled(working)
                 Text(modelLine)
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .wardRowBackground()

@@ -143,7 +143,7 @@ struct CaseDebriefView: View {
                     findingRow(item)
                 }
             }
-            Divider()
+            WardEtch()
             CaseLabel("Next step")
             if let chosen = debrief.chosenNextStep, !debrief.nextStepRight {
                 WardOptionRow(letter: AccuracyItem.letter(run.decision?.nextStep ?? 0), text: chosen, mark: .wrong)

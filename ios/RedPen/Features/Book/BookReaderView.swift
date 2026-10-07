@@ -140,7 +140,12 @@ struct BookReaderView: View {
                 }
             }
             .padding(8)
-            .background(header ? Color.wardHairline : Color.wardBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            // the header row pressed into the page, the others flat on it
+            .background {
+                if header {
+                    WardReliefFace(shape: RoundedRectangle(cornerRadius: 8, style: .continuous), lift: .low, inset: true)
+                }
+            }
         case .paragraph(let text):
             Text(md(text)).font(.body).lineSpacing(3)
         case .callout(let kind, let text):
@@ -156,7 +161,7 @@ struct BookReaderView: View {
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .background(Self.calloutColor(kind).opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(alignment: .leading) {
                 Rectangle().fill(Self.calloutColor(kind)).frame(width: 3).padding(.vertical, 6)
             }
@@ -168,7 +173,7 @@ struct BookReaderView: View {
                     Image(uiImage: picture)
                         .resizable().scaledToFit()
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.wardHairline, lineWidth: 1))
+                        .wardRaised(in: RoundedRectangle(cornerRadius: 10, style: .continuous), lift: .low)
                         .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
                     if !caption.isEmpty {
                         Text(md(caption)).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
@@ -316,7 +321,6 @@ struct FlowchartView: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, 14).padding(.vertical, 10)
         .frame(maxWidth: 420)
-        .background(Color.wardPrimary.opacity(branch ? 0.06 : 0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.wardPrimary.opacity(0.35), lineWidth: 1))
+        .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

@@ -275,7 +275,7 @@ struct MCQSummaryView: View {
             ForEach(studySet.questions.indices, id: \.self) { i in
                 reviewRow(i)
                 if i < studySet.questions.count - 1 {
-                    Rectangle().fill(Color.wardHairline).frame(height: 1).accessibilityHidden(true)
+                    WardEtch()
                 }
             }
         }

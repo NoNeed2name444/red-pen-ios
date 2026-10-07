@@ -38,7 +38,7 @@ struct CaseLabel: View {
     }
 }
 
-/// The initials in a circle, for the patient.
+/// The initials in a circle pressed into the card, for the patient.
 struct CaseAvatar: View {
     let initials: String
     @ScaledMetric(relativeTo: .headline) private var size: CGFloat = 44
@@ -48,7 +48,7 @@ struct CaseAvatar: View {
             .font(.headline.weight(.semibold))
             .foregroundStyle(Color.wardPrimaryInk)
             .frame(width: size, height: size)
-            .background(Color.wardPrimary.opacity(0.12), in: Circle())
+            .wardInset(in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -69,8 +69,8 @@ struct CaseClockPill: View {
             .foregroundStyle(over ? Color.wardDanger : Color.wardInk)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.wardSurface, in: Capsule())
-            .overlay(Capsule().strokeBorder(over ? Color.wardDanger.opacity(0.4) : Color.wardHairline, lineWidth: 1))
+            // pressed in, like the kit's timer pill: read, not touched
+            .wardInset(in: Capsule())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(spoken)
     }

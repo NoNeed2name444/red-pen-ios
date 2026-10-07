@@ -127,7 +127,7 @@ struct NoteEditorView: View {
     private var form: some View {
         Form {
             Section {
-                // the title is a field you touch: its own raised slab
+                // the title is a field you touch: a well pressed into the base
                 TextField("Title", text: $title, axis: .vertical)
                     .font(.title3.weight(.semibold))
                     .focused($editing, equals: .title)
@@ -592,8 +592,7 @@ private struct NoteChipLabel: View {
         .foregroundStyle(Color.wardInk)
         .padding(.horizontal, 12)
         .frame(minHeight: 36)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: Capsule(), lift: .low)
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .hoverEffect(.highlight)

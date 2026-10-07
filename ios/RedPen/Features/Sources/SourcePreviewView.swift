@@ -126,7 +126,7 @@ struct SourcePreviewView: View {
                 if sidebar {
                     SourcePageList(source: source, selected: $page)
                         .frame(width: 240)
-                    Rectangle().fill(Color.wardHairline).frame(width: 1)
+                    WardEtch(vertical: true)
                 }
                 reading
             }

@@ -80,15 +80,29 @@ struct WardBanner: View {
 
 /// A line cut into the base between two rows: a shade line over a highlight
 /// line, so it reads as a groove in the surface rather than a rule drawn on it.
+/// `vertical` stands it upright between two columns, the shade on the left
+/// and the highlight on the right, as the light falls from the top left.
 struct WardEtch: View {
+    var vertical = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let spec: WardReliefSpec = WardRelief.raised(.low, dark: scheme == .dark, highContrast: contrast == .increased)
-        VStack(spacing: 0) {
-            Color(relief: spec.shade).frame(height: 1)
-            Color(relief: spec.highlight).frame(height: 1)
+        let shade = Color(relief: spec.shade)
+        let highlight = Color(relief: spec.highlight)
+        Group {
+            if vertical {
+                HStack(spacing: 0) {
+                    shade.frame(width: 1)
+                    highlight.frame(width: 1)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    shade.frame(height: 1)
+                    highlight.frame(height: 1)
+                }
+            }
         }
         .accessibilityHidden(true)
     }

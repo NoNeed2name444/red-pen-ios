@@ -45,7 +45,8 @@ struct OcclusionCoverEditor: View {
                 }
             }
             .clipShape(shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            // the picture raised just off the base
+            .wardRaised(in: shape, lift: .low)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Picture with \(covers.count) covers")
             .accessibilityHint("Drag across the picture to draw a cover. Each cover's answer can also be edited in the list below.")

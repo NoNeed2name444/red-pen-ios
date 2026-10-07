@@ -55,7 +55,7 @@ struct ModelSettingsView: View {
             .wardRowBackground()
             Section {
                 Text("A study aid, not medical advice. Generated text can be wrong even when checked.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
         }
@@ -181,8 +181,7 @@ struct ModelSettingsView: View {
                     .padding(.horizontal, 16)
                     .frame(minHeight: 44)
                     .foregroundStyle(Color.wardPrimaryInk)
-                    .background(Color.wardSurface, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+                    .wardRaised(in: Capsule(), lift: .low)
             }
         } header: {
             Text("Your own key \u{00B7} advanced")
@@ -199,7 +198,7 @@ struct ModelSettingsView: View {
         } label: {
             LabeledContent(provider.name, value: provider.model)
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(Color.wardInk)
         .contextMenu {
             Button("Edit", systemImage: "pencil") { edit(provider) }
             Button("Delete", systemImage: "trash", role: .destructive) { llm.remove(provider) }
@@ -246,10 +245,10 @@ struct ModelSettingsView: View {
                 Spacer()
                 if let variant = model.variant() {
                     Text("\(variant.quant) \u{00B7} \(variant.bytes.gigabytes)")
-                        .font(.system(.caption, design: .monospaced)).monospacedDigit().foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced)).monospacedDigit().foregroundStyle(Color.wardInkSecondary)
                 }
             }
-            Text(model.purpose).font(.caption).foregroundStyle(.secondary)
+            Text(model.purpose).font(.caption).foregroundStyle(Color.wardInkSecondary)
             switch llm.status[model] ?? .notDownloaded {
             case .unsupported:
                 Label("Too large for this device \u{2014} add a hosted model below.", systemImage: "exclamationmark.triangle.fill")
@@ -362,7 +361,7 @@ private struct ProviderEditor: View {
                         }
                     }
                     .disabled(testing)
-                    if let testResult { Text(testResult).font(.footnote).foregroundStyle(.secondary) }
+                    if let testResult { Text(testResult).font(.footnote).foregroundStyle(Color.wardInkSecondary) }
                 }
                 .wardRowBackground()
             }
@@ -443,7 +442,7 @@ private struct AccuracyEngineSection: View {
             }
             LabeledContent("Accuracy model", value: accuracy.weights.version)
             if let reason = accuracy.pausedReason {
-                Text(reason).font(.footnote).foregroundStyle(.secondary)
+                Text(reason).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("Accuracy engine")

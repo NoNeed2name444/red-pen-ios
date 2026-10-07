@@ -71,13 +71,13 @@ struct CaseWardView: View {
                 .frame(maxWidth: .infinity)
             }
             if wide && !arriving {
-                Divider()
+                WardEtch(vertical: true)
                 CaseLadderPanel(file: file, run: $run)
                     .frame(width: 340)
             }
         }
         .wardScreen()
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .studyBar { bottomBar }
         .sheet(isPresented: $showingLadder) {
             NavigationStack {
                 CaseLadderPanel(file: file, run: $run)
@@ -179,7 +179,7 @@ struct CaseWardView: View {
             CaseLabel("Your shift")
             Text("You have \(file.budgetMinutes) minutes. Every examination and test costs time. Keep a ranked differential as you go, then decide the diagnosis and the next step.")
                 .font(.subheadline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .caseCard()
@@ -214,7 +214,7 @@ struct CaseWardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(step.label)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(done ? CaseInk.biro : Color.primary)
+                        .foregroundStyle(done ? CaseInk.biro : Color.wardInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(step.minutes) min")
@@ -225,8 +225,8 @@ struct CaseWardView: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(done ? CaseInk.ward : CaseInk.surface, in: shape)
-            .overlay(shape.strokeBorder(done ? Color.clear : CaseInk.hairline, lineWidth: 1))
+            // raised to be tapped; once taken, pressed into the card
+            .wardRelief(in: shape, lift: .low, pressed: done)
             .contentShape(shape)
         }
         .buttonStyle(.plain)
@@ -277,6 +277,8 @@ struct CaseWardView: View {
 
     // MARK: the bar at the bottom
 
+    /// The buttons in the study bar: the soft slab raised under the thumb,
+    /// as on every study screen.
     private var bottomBar: some View {
         HStack(spacing: 12) {
             if arriving {
@@ -299,12 +301,6 @@ struct CaseWardView: View {
                 .accessibilityHint("Confirm the diagnosis and choose the next step")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: 760)
-        .frame(maxWidth: .infinity)
-        .background(Color.wardSurface.ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .top) { Divider().overlay(Color.wardHairline) }
     }
 
     private var ladderTitle: String {
@@ -386,9 +382,7 @@ struct CaseLadderPanel: View {
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 .padding(.horizontal, 10)
-                                .background(Color.wardSurface, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
-                                    .strokeBorder(Color.wardHairline, lineWidth: 1))
+                                .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low)
                         }
                         .buttonStyle(.plain)
                         .accessibilityHint("Adds it to your ladder")
@@ -410,9 +404,9 @@ struct CaseLadderPanel: View {
         return HStack(spacing: 8) {
             Text("\(index + 1)")
                 .font(.system(.headline, design: .monospaced))
-                .foregroundStyle(leading ? Color.wardOnPrimary : Color.wardPrimaryInk)
+                .foregroundStyle(leading ? Color.wardPrimaryInk : Color.wardInkSecondary)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(leading ? Color.wardPrimary : Color.wardPrimary.opacity(0.12)))
+                .wardInset(in: Circle())
                 .accessibilityHidden(true)
             Text(name)
                 .font(.body.weight(leading ? .semibold : .regular))
@@ -434,7 +428,7 @@ struct CaseLadderPanel: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(enabled ? CaseInk.theatre : CaseInk.hairline)
+        .foregroundStyle(enabled ? CaseInk.theatre : Color.wardInkSecondary.opacity(0.5))
         .disabled(!enabled)
         .accessibilityLabel(label)
     }

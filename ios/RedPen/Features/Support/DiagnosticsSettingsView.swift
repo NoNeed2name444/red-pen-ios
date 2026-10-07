@@ -77,7 +77,7 @@ struct DiagnosticsSettingsView: View {
             Button("Simulate a hang (4 seconds)") { DiagnosticsRuntime.simulateHang() }
             Button("Simulate a crash", role: .destructive) { confirmCrash = true }
             if !status.isEmpty {
-                Text(status).font(.footnote).foregroundStyle(.secondary)
+                Text(status).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("Developer \u{00B7} personal build")
@@ -102,7 +102,7 @@ struct DiagnosticsSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(DiagFingerprint.title(event, binary: event.device?.binary ?? "RedPen"))
                             .font(.footnote.weight(.semibold))
-                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(.secondary)
+                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }

@@ -151,7 +151,7 @@ private struct PacingTable: View {
                 }
                 .frame(minHeight: 36)
                 .accessibilityElement(children: .combine)
-                if point != points.last { Rectangle().fill(Color.wardHairline).frame(height: 1) }
+                if point != points.last { WardEtch() }
             }
         }
     }
