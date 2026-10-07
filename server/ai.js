@@ -14,10 +14,6 @@
 //   cramdown-checker    the same, given MedVAL's prompt; then Gemini through
 //                       CramDown's Firebase project, then Cloudflare Workers AI,
 //                       each taking over when the one before is busy or out of quota
-//   cramdown-doctor  -> Doctor-R1 on its own host  (AI_DOCTOR_URL, AI_DOCTOR_KEY)
-//   cramdown-medval  -> MedVAL-4B on its own host  (AI_MEDVAL_URL, AI_MEDVAL_KEY)
-// The last two are llama.cpp servers (see server/spaces/) - no provider offers
-// these models, so they run where we put them.
 
 import { decodeClaims } from './tokens.js';
 import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages, answerWithEvidence } from './evidence.js';
@@ -1176,12 +1172,6 @@ export function routeFor(env, name) {
     case 'cramdown-writer':
     case 'cramdown-checker':
       return { name: 'Vignette Cloud', base: sources.length ? 'set' : '', sources };
-    case 'cramdown-doctor':
-      return { name: 'Doctor-R1', base: env.AI_DOCTOR_URL,
-               sources: [{ kind: 'openai', base: env.AI_DOCTOR_URL, key: env.AI_DOCTOR_KEY, model: 'doctor-r1' }] };
-    case 'cramdown-medval':
-      return { name: 'MedVAL', base: env.AI_MEDVAL_URL,
-               sources: [{ kind: 'openai', base: env.AI_MEDVAL_URL, key: env.AI_MEDVAL_KEY, model: 'medval' }] };
     default:
       return null;
   }

@@ -15,6 +15,7 @@ import SwiftUI
 struct KindShelfView: View {
     let feature: CategoryFeature
     @EnvironmentObject private var store: Store
+    @EnvironmentObject private var reviews: ReviewStore
     @State private var making: StudySetKind?
     /// For "Open the last set on launch": these links carry their own
     /// destination, so they do not pass through the library's, which is
@@ -34,9 +35,8 @@ struct KindShelfView: View {
             }
             Section {
                 if sets.isEmpty {
-                    Text("None yet \u{2014} tap New to make one.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: kind.symbol, title: "None yet",
+                                   message: "Tap New to make one.")
                         .listRowBackground(Color.clear)
                 }
                 ForEach(sets) { set in
@@ -50,7 +50,7 @@ struct KindShelfView: View {
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: kind.tint))
+        .wardForm()
         .navigationTitle(feature.title)
         .navigationBarTitleDisplayMode(.inline)
         .studyBar { shelfBar(newest: sets.first) }
@@ -84,10 +84,15 @@ struct KindShelfView: View {
         NavigationLink {
             opened(set)
         } label: {
-            ShelfSetRow(set: set)
+            SetRow(set: set, due: due(in: set), progress: nil)
         }
         .accessibilityIdentifier(id)
         .frostedListRow()
+    }
+
+    /// Cards due now, for a deck; nothing for any other mode.
+    private func due(in set: StudySet) -> Int {
+        set.kind == .anki ? reviews.dueCount(for: set.cards) : 0
     }
 
     /// A set's screen, remembered as the last set opened.
@@ -124,62 +129,48 @@ extension CategoryFeature {
     }
 }
 
-/// Picture cards: "From a photo or scan", a tile above the decks, standing
-/// out of the glass like the category's own tiles. Its page is pushed with
-/// its destination, as every link on this page is.
+/// Picture cards: "From a photo or scan", a white card above the decks. Its
+/// page is pushed with its destination, as every link on this page is.
 struct PhotoCardsTile: View {
     let tint: Color
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         NavigationLink {
             PictureFromPhotoView()
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: WardSpace.m) {
                 Image(systemName: "camera.viewfinder")
-                    .font(.title2.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(tint)
-                    .frame(width: 36)
+                    .frame(width: 40, height: 40)
+                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("From a photo or scan").font(.headline).foregroundStyle(.primary)
+                    Text("From a photo or scan").font(.headline).foregroundStyle(Color.wardInk)
                     Text("Labels read and covered for you, then adjust")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .accessibilityHidden(true)
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .glassEffect(.regular.tint(tint.opacity(0.14)), in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.popTile)
+        .buttonStyle(.plain)
         .accessibilityIdentifier("pictureFromPhoto")
         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
-    }
-}
-
-/// A set as one row: its mode's tile, its name and how much is in it.
-struct ShelfSetRow: View {
-    let set: StudySet
-
-    var body: some View {
-        let count: Int = set.itemCount
-        let plural: String = count == 1 ? "" : "s"
-        HStack(spacing: 14) {
-            ModeTile(kind: set.kind, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(set.name).font(.body.weight(.semibold)).lineLimit(2)
-                Text("\(count) \(set.itemNoun)\(plural)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(minHeight: 48)
     }
 }
 
@@ -213,9 +204,8 @@ struct ReasoningToolPicker: View {
             }
             Section {
                 if sets.isEmpty {
-                    Text("Make a set from a lecture first, then come back here.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: tool.symbol, title: "No sets yet",
+                                   message: "Make a set from a lecture first, then come back here.")
                         .listRowBackground(Color.clear)
                 }
                 ForEach(sets) { set in
@@ -229,7 +219,7 @@ struct ReasoningToolPicker: View {
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: StudySetKind.anki.tint))
+        .wardForm()
         .navigationTitle(tool.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -269,16 +259,15 @@ struct TurnIntoListView: View {
         List {
             Section {
                 if sets.isEmpty {
-                    Text("Make a set here first. Then any of them can become questions, flashcards, an OSCE station or a textbook.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "arrow.triangle.2.circlepath", title: "Nothing to turn yet",
+                                   message: "Make a set here first. Then any of them can become questions, flashcards, an OSCE station or a textbook.")
                         .listRowBackground(Color.clear)
                 }
                 ForEach(sets) { set in
                     Button { turning = set } label: {
-                        ShelfSetRow(set: set)
-                            .foregroundStyle(.primary)
+                        SetRow(set: set, due: 0, progress: nil)
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("turnPick-\(set.kind.rawValue)")
                     .frostedListRow()
                 }
@@ -292,7 +281,7 @@ struct TurnIntoListView: View {
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity)
-        .background(AppBackdrop(tint: Color.accentColor))
+        .wardForm()
         .navigationTitle("Turn into\u{2026}")
         .navigationBarTitleDisplayMode(.inline)
         .turnIntoPicker(for: $turning)

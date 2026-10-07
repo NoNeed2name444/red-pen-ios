@@ -158,8 +158,10 @@ struct MCQQuizView: View {
         // a set with no questions has nothing to index into: say so rather
         // than crash on questions[0]
         if studySet.questions.isEmpty {
-            ContentUnavailableView("No questions", systemImage: "questionmark.square.dashed",
-                                   description: Text("This set has no questions yet."))
+            WardEmptyState(symbol: "questionmark.square.dashed", title: "No questions",
+                           message: "This set has no questions yet.")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .wardScreen()
         } else {
             quiz
         }
@@ -193,10 +195,9 @@ struct MCQQuizView: View {
                         Label(saved.wrappedValue ? "Saved" : "Save", systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
                             .labelStyle(.titleAndIcon)
                     }
-                    // a ternary between .glass and .glassProminent won't type-check
-                    // (each is a different opaque `some ButtonStyle`) — one fixed
-                    // style plus .disabled() conveys the "already saved" state instead
-                    .buttonStyle(.glassProminent)
+                    // one fixed style plus .disabled() conveys the "already
+                    // saved" state: a disabled Ward button goes Biro Grey
+                    .buttonStyle(.wardCompact)
                     .disabled(saved.wrappedValue)
                 }
             }
@@ -788,7 +789,7 @@ struct MCQQuizView: View {
                 }
                 .padding(.vertical, 4)
             }
-            // the chips stand out of the glass; nothing of them is cut off
+            // the chips' edges and shadows are not cut off
             .scrollClipDisabled()
         }
         .transition(.opacity)
@@ -1109,20 +1110,36 @@ struct MCQQuizView: View {
     }
 }
 
-/// A control that stands out of the glass at `plane` and sinks flat under the
-/// finger, the way PopTileStyle does: the mock paper's options and Flag, the
-/// calculator's keys (this screen's own are on the Ward kit now: WardOptionRow,
-/// WardChipButtonStyle). A disabled one sits flat too (popOut reads isEnabled).
+/// A control that carries the Ward shadow and dims and shrinks a touch under
+/// the finger: the mock paper's options and Flag, the calculator's keys (this
+/// screen's own are on the Ward kit now: WardOptionRow, WardChipButtonStyle).
+/// A control on the screen's own plane (or below it) has no shadow.
 struct PopPressStyle<S: InsettableShape>: ButtonStyle {
     let plane: PopOutPlane
     let shape: S
 
     func makeBody(configuration: Configuration) -> some View {
-        let pressed: Bool = configuration.isPressed
-        let scale: CGFloat = pressed ? 0.975 : 1
-        return configuration.label
+        PopPressFace(label: configuration.label, pressed: configuration.isPressed,
+                     raised: plane.rawValue > PopOutPlane.screen.rawValue)
+    }
+}
+
+private struct PopPressFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let raised: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let scale: CGFloat = pressed && !reduceMotion ? 0.975 : 1
+        let face = label
             .scaleEffect(scale)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
-            .popOut(plane, in: shape, pressed: pressed)
+            .opacity(pressed ? 0.85 : 1)
+            .animation(.snappy(duration: 0.2), value: pressed)
+        if raised {
+            face.wardShadow()
+        } else {
+            face
+        }
     }
 }

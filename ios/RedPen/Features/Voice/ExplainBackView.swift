@@ -114,25 +114,22 @@ struct ExplainBackView: View {
     // MARK: what to explain
 
     private var topicBar: some View {
-        let field = RoundedRectangle(cornerRadius: 14, style: .continuous)
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             setMenu
             TextField("Topic, e.g. the inguinal canal", text: $topic)
                 .focused($focus, equals: .topic)
                 .submitLabel(.next)
                 .onSubmit { focus = .transcript }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 48)
-                .background(.regularMaterial, in: field)
-                .popOut(.raised, in: field, cues: .translateOnly)
+                .frame(minHeight: 28)
+                .wardField()
             Text(sourceNote)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(2)
         }
     }
 
-    /// The set the explanation is marked against, as a glass chip.
+    /// The set the explanation is marked against, as a white chip.
     private var setMenu: some View {
         let title: String = chosenSet?.name ?? "No set - standard teaching"
         return Menu {
@@ -146,7 +143,7 @@ struct ExplainBackView: View {
         } label: {
             ExplainSetChipLabel(title: title)
         }
-        .liquidGlassChip(plane: .raised)
+        .contentShape(.hoverEffect, Capsule())
         .hoverEffect(.highlight)
         .accessibilityLabel("Marked against")
         .accessibilityValue(title)
@@ -182,7 +179,8 @@ struct ExplainBackView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 110, maxHeight: .infinity, alignment: .topLeading)
-        .background(.regularMaterial, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     @ViewBuilder
@@ -192,6 +190,7 @@ struct ExplainBackView: View {
             ScrollView {
                 Text(words)
                     .font(.body)
+                    .foregroundStyle(Color.wardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .defaultScrollAnchor(.bottom)
@@ -204,7 +203,7 @@ struct ExplainBackView: View {
                     .scrollContentBackground(.hidden)
                 if transcript.isEmpty {
                     Text(Self.placeholder)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .padding(.top, 8)
                         .padding(.horizontal, 5)
                         .allowsHitTesting(false)
@@ -220,17 +219,17 @@ struct ExplainBackView: View {
     private var notes: some View {
         if listener.listening && !listener.onDevice {
             Text("This iPhone recognises speech on Apple's servers, which stop after about a minute. Stop and carry on in parts - each part is added to the end.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let heardFailure = listener.failure {
-            Text(heardFailure).font(.caption).foregroundStyle(.orange)
+            WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: heardFailure)
         }
         if let failure {
-            Text(failure).font(.footnote).foregroundStyle(.red)
+            WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: failure)
         }
         if needsMore {
             Text("Say a little more first - at least a few sentences.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -281,17 +280,23 @@ struct ExplainBackView: View {
         let listening: Bool = listener.listening
         let symbol: String = listening ? "stop.fill" : "mic.fill"
         let label: String = listening ? "Stop recording" : "Start explaining"
-        let tint: Color? = listening ? Color.red : nil
-        let plane: PopOutPlane = markIsNext ? .raised : .hero
+        let quiet: Bool = markIsNext && !listening
+        let raised: Color = quiet ? Color.wardSurface : Color.wardPrimary
+        let fill: Color = listening ? Color.wardDanger : raised
+        let ink: Color = quiet ? Color.wardPrimaryInk : Color.wardOnPrimary
+        let edge: Color = quiet ? Color.wardHairline : Color.clear
         return Button(action: toggleRecording) {
             Image(systemName: symbol)
                 .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(ink)
                 .frame(width: 76, height: 76)
+                .background(fill, in: Circle())
+                .overlay(Circle().strokeBorder(edge, lineWidth: 1))
+                .contentShape(Circle())
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.circle)
-        .tint(tint)
-        .popOut(plane, in: Circle())
+        .buttonStyle(.plain)
+        .wardShadow()
+        .contentShape(.hoverEffect, Circle())
         .hoverEffect(.lift)
         .accessibilityLabel(label)
     }
@@ -409,8 +414,11 @@ private struct ExplainSetChipLabel: View {
                 .font(.caption2)
         }
         .font(.subheadline.weight(.semibold))
+        .foregroundStyle(Color.wardPrimaryInk)
         .padding(.horizontal, 14)
         .frame(minHeight: 44)
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .contentShape(Capsule())
     }
 }
@@ -423,12 +431,13 @@ private struct ExplainBoxHeader: View {
         let count: String = words == 1 ? "1 word" : "\(words) words"
         HStack {
             Text("Your explanation")
-                .font(.footnote.weight(.semibold))
+                .wardSmallCaps()
             Spacer(minLength: 8)
             Text(count)
-                .font(.footnote.monospacedDigit())
+                .font(.system(.footnote, design: .monospaced))
+                .monospacedDigit()
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.wardInkSecondary)
     }
 }
 
@@ -440,9 +449,11 @@ private struct ExplainMarkLabel: View {
         let title: String = marking ? "Marking\u{2026}" : "Mark my explanation"
         HStack(spacing: 8) {
             if marking {
+                // a spinner inside the filled button: the ECG loader's red
+                // would not read on Theatre Blue
                 ProgressView()
                     .controlSize(.small)
-                    .tint(.white)
+                    .tint(Color.wardOnPrimary)
             }
             Text(title)
         }
@@ -460,8 +471,9 @@ private struct ExplainHistorySheet: View {
         NavigationStack {
             List {
                 if history.explainList.isEmpty {
-                    Text("Your marked explanations appear here.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    WardEmptyState(symbol: "person.wave.2", title: "No explanations yet",
+                                   message: "Your marked explanations appear here.")
+                        .listRowBackground(Color.clear)
                 }
                 ForEach(history.explainList) { attempt in
                     ExplainHistoryRow(attempt: attempt,
@@ -469,7 +481,7 @@ private struct ExplainHistorySheet: View {
                                       delete: deleteAction(for: attempt))
                 }
             }
-            .scrollContentBackground(.hidden)
+            .wardForm()
             .modeScreen(.narrate)
             .navigationTitle("Past attempts")
             .navigationBarTitleDisplayMode(.inline)
@@ -524,15 +536,16 @@ private struct ExplainAttemptLabel: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(attempt.topic).foregroundStyle(.primary)
+                    Text(attempt.topic).foregroundStyle(Color.wardInk)
                     if attempt.isExample { VoiceExampleTag() }
                 }
                 Text(attempt.date, format: .dateTime.day().month().hour().minute())
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer()
             Text("\(score)")
-                .font(.headline.monospacedDigit())
+                .font(.system(.headline, design: .monospaced))
+                .monospacedDigit()
                 .foregroundStyle(ExplainResultView.scoreColor(score))
         }
     }
@@ -553,29 +566,33 @@ struct ExplainResultView: View {
             Section {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(attempt.result.score)")
-                        .font(.system(size: 54, weight: .bold, design: .rounded).monospacedDigit())
+                        .font(.system(size: 54, weight: .bold, design: .monospaced))
+                        .monospacedDigit()
                         .foregroundStyle(Self.scoreColor(attempt.result.score))
-                    Text("/ 100").font(.title3).foregroundStyle(.secondary)
+                    Text("/ 100")
+                        .font(.system(.title3, design: .monospaced))
+                        .foregroundStyle(Color.wardInkSecondary)
                     Spacer()
                     if attempt.isExample { VoiceExampleTag() }
                 }
                 if !attempt.result.oneTip.isEmpty {
                     Label(attempt.result.oneTip, systemImage: "lightbulb")
                         .font(.callout)
+                        .foregroundStyle(Color.wardInk)
                 }
             } header: {
                 Text(attempt.topic)
             }
 
-            points("Covered", attempt.result.covered, symbol: "checkmark.circle.fill", color: .green)
-            points("Missed", attempt.result.missed, symbol: "circle.dashed", color: .orange)
-            points("Wrong", attempt.result.wrong, symbol: "xmark.circle.fill", color: .red)
+            points("Covered", attempt.result.covered, symbol: "checkmark.circle.fill", color: Color.wardSuccess)
+            points("Missed", attempt.result.missed, symbol: "circle.dashed", color: Color.wardWarning)
+            points("Wrong", attempt.result.wrong, symbol: "xmark.circle.fill", color: Color.wardDanger)
 
             Section("What you said") {
-                Text(attempt.transcript).font(.callout).foregroundStyle(.secondary)
+                Text(attempt.transcript).font(.callout).foregroundStyle(Color.wardInkSecondary)
             }
         }
-        .scrollContentBackground(.hidden)
+        .wardForm()
         .modeScreen(.narrate)
         .navigationTitle("Marked")
         .navigationBarTitleDisplayMode(.inline)
@@ -595,7 +612,7 @@ struct ExplainResultView: View {
         let title: String = making ? "Writing cards\u{2026}" : "Make cards from what I missed"
         Text(note)
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
         Button(action: makeCards) {
@@ -603,7 +620,7 @@ struct ExplainResultView: View {
                 if making {
                     ProgressView()
                         .controlSize(.small)
-                        .tint(.white)
+                        .tint(Color.wardOnPrimary)
                 }
                 Label(title, systemImage: "rectangle.stack.badge.plus")
             }
@@ -617,7 +634,7 @@ struct ExplainResultView: View {
     private func points(_ title: String, _ items: [String], symbol: String, color: Color) -> some View {
         Section("\(title) (\(items.count))") {
             if items.isEmpty {
-                Text("Nothing").font(.footnote).foregroundStyle(.secondary)
+                Text("Nothing").font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 Label {
@@ -650,6 +667,7 @@ struct ExplainResultView: View {
     }
 
     static func scoreColor(_ score: Int) -> Color {
-        score >= 75 ? .green : (score >= 50 ? .orange : .red)
+        let tone: WardTone = score >= 75 ? .green : (score >= 50 ? .warning : .danger)
+        return tone.color
     }
 }

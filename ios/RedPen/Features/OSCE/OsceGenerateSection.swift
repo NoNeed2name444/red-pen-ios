@@ -72,16 +72,16 @@ struct OsceGenerateSection: View {
     /// Step 2: the skills lecture or mark sheet.
     private var addSection: some View {
         Section {
-            // raised, but second to the dock's Next
+            // second to the dock's Next
             Button { picking = true } label: {
                 Label(pickTitle, systemImage: "doc.badge.plus")
             }
-            .buttonStyle(.bigSecondary)
+            .buttonStyle(.wardSecondary)
             .disabled(working)
             .frame(maxWidth: .infinity)
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             messages
         } header: {
@@ -96,21 +96,21 @@ struct OsceGenerateSection: View {
         Section {
             if sourceName.isEmpty {
                 Text("Nothing to write from yet \u{2014} go Back and add a file.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             } else {
                 CountField(title: "How many stations", value: $stationCount,
                            range: 1...OsceGenerator.maxStationsTotal)
                     .disabled(working)
                 // stopping is the progress card's Cancel, at the bottom, so
                 // this never turns into a second Stop
-                // the hero slab, the same as its floating copy in the dock
+                // the same as its floating copy in the dock
                 Button { start() } label: {
                     HStack {
-                        if working { ProgressView().controlSize(.small) }
+                        if working { EcgLoader() }
                         Label(makeTitle, systemImage: "sparkles")
                     }
                 }
-                .buttonStyle(.bigPrimary)
+                .buttonStyle(.wardPrimary)
                 .disabled(!canGenerate)
                 .frame(maxWidth: .infinity)
                 .floatingActionAnchor("osce")
@@ -129,10 +129,10 @@ struct OsceGenerateSection: View {
     @ViewBuilder
     private var messages: some View {
         if let status {
-            Text(status).font(.caption).foregroundStyle(.secondary)
+            Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let trouble {
-            Text(trouble).font(.caption).foregroundStyle(.red)
+            WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
         }
     }
 
@@ -220,12 +220,8 @@ struct OsceGenerateSection: View {
                 }
                 var stations: [OsceChecklist]
                 if let writer {
-                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil,
-                                             check: nil).encoded
-                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, serverCheck: false,
-                                                               checking: { done, total in
-                        Task { @MainActor in GenerationCenter.shared.update(job, done: done, total: total, phase: "Checking accuracy in the cloud") }
-                    }, delivery: delivery)) {
+                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil).encoded
+                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
                         try await MedicalGenerate.osce(
                             sourceText: text, count: wanted, subject: subj,
                             using: writer, onProgress: progress)
@@ -277,11 +273,5 @@ struct OsceGenerateSection: View {
                 }
             }
         }
-    }
-
-    /// Where the accuracy check runs, for a cloud job's recipe: nil for none.
-    nonisolated static func checkPlace(_ checking: Bool, onServer: Bool) -> String? {
-        guard checking else { return nil }
-        return onServer ? "server" : "device"
     }
 }

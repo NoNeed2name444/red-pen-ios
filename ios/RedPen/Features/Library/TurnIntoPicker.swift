@@ -11,7 +11,7 @@ import SwiftUI
 ///
 /// The same sheet serves the long-press menu on a library row and the More
 /// menu on every mode's own screen, so turning works the same from anywhere.
-/// The tiles stand out of the glass; this set's own mode lies flat.
+/// The tiles are white cards; this set's own mode is greyed out.
 struct TurnIntoPicker: View {
     let source: StudySet
 
@@ -48,7 +48,7 @@ struct TurnIntoPicker: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\u{201C}\(source.name)\u{201D} stays as it is. The new set is added beside it, with the same subject and folder.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
                         ForEach(kinds) { kind in
                             tile(kind)
@@ -58,7 +58,7 @@ struct TurnIntoPicker: View {
                 .padding(20)
             }
             .accessibilityIdentifier("turnIntoPicker")
-            .background(ModeBackdrop(kind: source.kind))
+            .wardScreen()
             .navigationTitle("Turn into\u{2026}")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -80,13 +80,13 @@ struct TurnIntoPicker: View {
         return (hasLecture ? "Written by AI from your lecture" : "Written by AI from this set", "sparkles")
     }
 
-    /// One mode, as a tile standing out of the glass. The set's own mode lies
-    /// flat on the screen, and cannot be chosen.
+    /// One mode, as a white card. The set's own mode is flat and faded, and
+    /// cannot be chosen.
     private func tile(_ kind: StudySetKind) -> some View {
         let current: Bool = kind == source.kind
         let said = note(for: kind)
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        let plane: PopOutPlane = current ? .screen : .raised
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        let fill: Color = current ? Color.wardBackground : Color.wardSurface
         let spoken: String = "\(kind.label). \(said.text)"
         let hint: String = current ? "The mode this set is in now" : "Makes a new set. This one stays as it is."
         return Button { pick(kind) } label: {
@@ -94,20 +94,21 @@ struct TurnIntoPicker: View {
                 ModeTile(kind: kind, size: 40)
                 Text(kind.label)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                 Label(said.text, systemImage: said.symbol)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
-            .background(.regularMaterial, in: shape)
-            .overlay(shape.strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+            .background(fill, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardShadow()
             .contentShape(shape)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 20, plane: plane))
+        .buttonStyle(.plain)
         .disabled(current)
         .opacity(current ? 0.55 : 1)
         .accessibilityLabel(spoken)

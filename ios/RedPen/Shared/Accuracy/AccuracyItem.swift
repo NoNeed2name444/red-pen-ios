@@ -130,7 +130,7 @@ extension AccuracyItem {
     }
 
     /// Every checkable item of a set, in the set's own order. `source` finds
-    /// the lecture excerpt for an item's words (AccuracyChecker.reference on
+    /// the lecture excerpt for an item's words (AccuracyText.reference on
     /// the phone); nil means the set has no source.
     static func items(in set: StudySet, source: (String) -> String? = { _ in nil }) -> [AccuracyItem] {
         func src(_ words: String) -> String { source(words) ?? "" }

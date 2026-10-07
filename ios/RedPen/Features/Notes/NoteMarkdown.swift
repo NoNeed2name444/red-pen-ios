@@ -13,7 +13,7 @@ struct NoteMarkdownView: View {
         VStack(alignment: .leading, spacing: 10) {
             if blocks.isEmpty {
                 Text("Nothing written yet.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 blockView(block)
@@ -37,25 +37,26 @@ struct NoteMarkdownView: View {
                 .padding(.top, level == 1 ? 6 : 2)
         case .bullet(let depth, let marker, let line):
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(marker).foregroundStyle(.secondary)
+                Text(marker).foregroundStyle(Color.wardInkSecondary)
                 Text(NoteMarkdown.inline(line))
             }
             .padding(.leading, CGFloat(depth) * 18)
         case .quote(let line):
             Text(NoteMarkdown.inline(line))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .padding(.leading, 10)
                 .overlay(alignment: .leading) {
-                    Rectangle().fill(.tint).frame(width: 3)
+                    Rectangle().fill(Color.wardPrimary).frame(width: 3)
                 }
         case .code(let body):
             Text(body)
                 .font(.callout.monospaced())
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.wardHairline, lineWidth: 1))
         case .rule:
-            Divider()
+            Rectangle().fill(Color.wardHairline).frame(height: 1)
         case .paragraph(let line):
             Text(NoteMarkdown.inline(line))
         }

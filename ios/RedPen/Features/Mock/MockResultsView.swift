@@ -39,7 +39,7 @@ struct MockResultsView: View {
                     Label("A shortened paper: \(result.total) of the real \(sitting.wanted) questions.",
                           systemImage: "info.circle")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 facts
                 subjects
@@ -73,17 +73,16 @@ struct MockResultsView: View {
     private func factRow(_ title: String, _ value: String, symbol: String) -> some View {
         HStack {
             Label(title, systemImage: symbol)
+                .foregroundStyle(Color.wardInk)
             Spacer(minLength: 8)
-            Text(value).font(.body.monospacedDigit()).foregroundStyle(.secondary)
+            Text(value).font(WardType.obs).monospacedDigit().foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .combine)
     }
 
     private var subjects: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("By subject, weakest first")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+            WardSectionLabel("By subject, weakest first")
             ForEach(result.bySubject) { row in
                 subjectRow(row)
             }
@@ -97,13 +96,14 @@ struct MockResultsView: View {
         let line: String = "\(row.correct) of \(row.total)"
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(row.subject).font(.body)
+                Text(row.subject).font(.body).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 Text(line + " \u{00B7} \(share)%")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
             }
-            ThinProgress(fraction: row.fraction)
+            WardProgressBar(value: row.fraction, label: row.subject)
                 .accessibilityHidden(true)
         }
         .accessibilityElement(children: .combine)
@@ -114,19 +114,14 @@ struct MockResultsView: View {
     private var review: some View {
         let shown: [QuestionPick] = showAll ? allPicks : missed
         return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(showAll ? "Every question" : "The ones you missed")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
+            WardSectionLabel(showAll ? "Every question" : "The ones you missed") {
                 Button(showAll ? "Missed only" : "Show all") {
                     withAnimation(.snappy) { showAll.toggle() }
                 }
-                .font(.subheadline.weight(.semibold))
                 .frame(minHeight: 44)
             }
             if shown.isEmpty {
-                Text("Nothing missed. Well done.").foregroundStyle(.secondary)
+                Text("Nothing missed. Well done.").foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(Array(shown.enumerated()), id: \.offset) { _, pick in
                 reviewRow(pick)
@@ -144,22 +139,22 @@ struct MockResultsView: View {
         let yours: String = chosen.flatMap { q.options.indices.contains($0) ? q.options[$0] : nil } ?? "No answer"
         return DisclosureGroup {
             VStack(alignment: .leading, spacing: 6) {
-                Text(q.stem).font(.subheadline)
+                Text(q.stem).font(.subheadline).foregroundStyle(Color.wardInk)
                 Label("Answer: " + answer, systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.wardSuccess)
                 if !right {
                     Label("You: " + yours, systemImage: "xmark.circle.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.wardDanger)
                 }
-                Text(q.explanation).font(.subheadline).foregroundStyle(.secondary)
+                Text(q.explanation).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
             .padding(.top, 6)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: right ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(right ? Color.green : Color.red)
+                    .foregroundStyle(right ? Color.wardSuccess : Color.wardDanger)
                     .accessibilityHidden(true)
-                Text(q.stem).lineLimit(2).font(.subheadline)
+                Text(q.stem).lineLimit(2).font(.subheadline).foregroundStyle(Color.wardInk)
             }
         }
     }

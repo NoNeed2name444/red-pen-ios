@@ -301,3 +301,47 @@ nonisolated enum IdeaLinkShape {
         return (dx * dx + dy * dy).squareRoot()
     }
 }
+
+/// The board's opening view and "Back to the middle" (IdeaBoardView): the
+/// zoom and pan that put every card on screen, clear of the edges, the tool
+/// circles and the bottom glass. Never zoomed in past 1, nor out past the
+/// board's own floor. The board draws a card's centre at
+/// (width / 2 + pan.x + x * zoom, midY + pan.y + y * zoom), midY being the
+/// middle of the part not under glass.
+nonisolated enum IdeaBoardFit {
+    struct Camera: Equatable {
+        var zoom: Double
+        var panX: Double
+        var panY: Double
+    }
+
+    /// Room kept clear at each edge of the part not under glass, in points.
+    struct Margins: Equatable {
+        var top: Double
+        var leading: Double
+        var bottom: Double
+        var trailing: Double
+    }
+
+    static func camera(centres: [CGPoint], card: CGSize, view: CGSize, hidden: Double,
+                       margins: Margins, zoomRange: ClosedRange<Double> = 0.3...1) -> Camera {
+        guard let first = centres.first else { return Camera(zoom: 1, panX: 0, panY: 0) }
+        var minX = Double(first.x), maxX = minX, minY = Double(first.y), maxY = minY
+        for c in centres {
+            minX = min(minX, Double(c.x)); maxX = max(maxX, Double(c.x))
+            minY = min(minY, Double(c.y)); maxY = max(maxY, Double(c.y))
+        }
+        let width: Double = Double(view.width)
+        let seen: Double = max(Double(view.height) - hidden, 0)
+        let roomW: Double = max(width - margins.leading - margins.trailing, 1)
+        let roomH: Double = max(seen - margins.top - margins.bottom, 1)
+        let spanW: Double = maxX - minX + Double(card.width)
+        let spanH: Double = maxY - minY + Double(card.height)
+        let fit: Double = min(roomW / spanW, roomH / spanH)
+        let zoom: Double = min(max(fit, zoomRange.lowerBound), zoomRange.upperBound)
+        // the box's middle to the middle of the room
+        let panX: Double = margins.leading + roomW / 2 - width / 2 - (minX + maxX) / 2 * zoom
+        let panY: Double = margins.top + roomH / 2 - seen / 2 - (minY + maxY) / 2 * zoom
+        return Camera(zoom: zoom, panX: panX, panY: panY)
+    }
+}

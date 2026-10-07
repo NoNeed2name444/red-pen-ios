@@ -26,7 +26,7 @@ n=0; for t in server/tests/*.test.mjs tests/*/*.test.mjs; do
 done; echo "$n files run"
 echo "== Playgrounds core packages"
 if git diff --name-only "$base" -- ios tools | grep -q .; then
-  for v in core core1 core2; do
+  for v in core core1 core2 core3; do
     out=$(python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "/tmp/preflight-$v.zip" --without "$v" 2>&1) \
       && echo "$v: $(echo "$out" | head -1)" || { echo "$v: FAILED"; echo "$out" | tail -5; fail=1; }
   done

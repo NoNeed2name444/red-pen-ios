@@ -57,8 +57,7 @@ struct ModelSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("AI models")
         .navigationBarTitleDisplayMode(.inline)
         // the one way to Pro on this screen, under the thumb
@@ -75,7 +74,7 @@ struct ModelSettingsView: View {
         if !llm.isPro {
             StudyActionBar {
                 Button("See Pro") { showPaywall = true }
-                    .buttonStyle(.bigPrimary)
+                    .buttonStyle(.wardPrimary)
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -92,7 +91,7 @@ struct ModelSettingsView: View {
             }
             Toggle("Verify what is generated", isOn: $llm.checkGenerated)
             if let cloudNote {
-                Text(cloudNote).font(.footnote).foregroundStyle(.orange)
+                WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: cloudNote)
             }
         } header: {
             Text("Use")
@@ -104,18 +103,11 @@ struct ModelSettingsView: View {
     private func rolePicker(_ role: LLMRole) -> some View {
         let device: String = role.onDeviceModel.displayName
         let onDevice: String = "\(device) \u{00B7} Pro"
-        let medicalCloud: String = "\(device), cloud \u{00B7} Pro"
         let brandCloud: String = "\(Brand.name) Cloud \u{00B7} Pro"
         return Picker(role.title, selection: binding(for: role)) {
             Text("Off").tag(LLMChoice.off)
             if llm.status[role.onDeviceModel] != .unsupported {
                 Text(onDevice).tag(LLMChoice.device)
-            }
-            // Doctor-R1 and MedVAL in the cloud need a host: Hugging
-            // Face now charges for Docker Spaces, so the choice
-            // stays hidden until one is paid for
-            if LocalLLMService.cloudMedicalHosted {
-                Text(medicalCloud).tag(LLMChoice.cloudMedical)
             }
             Text(brandCloud).tag(LLMChoice.cloud)
             ForEach(llm.providers) { provider in
@@ -126,8 +118,7 @@ struct ModelSettingsView: View {
 
     private var deviceSection: some View {
         Section {
-            // MedVAL no longer checks anything: the verification layer does
-            ForEach(MedicalModel.allCases.filter { $0 != .medval }) { model in
+            ForEach(MedicalModel.allCases) { model in
                 modelRow(model)
             }
         } header: {
@@ -148,7 +139,15 @@ struct ModelSettingsView: View {
         Section {
             LabeledContent("Writer", value: "Gemini 3.5 Flash")
             LabeledContent("Verification", value: "Three model families solving blind, the literature, a calibrated verdict")
-            LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
+            LabeledContent {
+                if let blocker = llm.cloudBlocker {
+                    WardChip(text: blocker, tone: .warning, symbol: "exclamationmark.triangle.fill")
+                } else {
+                    WardChip(text: "Ready", tone: .green, symbol: "checkmark.circle.fill")
+                }
+            } label: {
+                Text("Status")
+            }
         } header: {
             Text("\(Brand.name) Cloud \u{00B7} Pro")
         } footer: {
@@ -166,7 +165,7 @@ struct ModelSettingsView: View {
                 for provider in doomed { llm.remove(provider) }
             }
             // the presets live in a system menu (its rows cannot be styled),
-            // so the chip that opens it is what stands out of the glass
+            // so the chip that opens it is what stands out
             Menu {
                 ForEach(HostedProvider.presets, id: \.name) { preset in
                     Button(preset.name) { add(preset) }
@@ -176,7 +175,9 @@ struct ModelSettingsView: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 16)
                     .frame(minHeight: 44)
-                    .liquidGlassChip(plane: .raised)
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .background(Color.wardSurface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
             }
         } header: {
             Text("Your own key \u{00B7} advanced")
@@ -215,7 +216,7 @@ struct ModelSettingsView: View {
         Binding(get: { llm.choice(for: role) }, set: { choice in
             // CramDown Cloud only once it can actually answer: Pro opens the
             // paywall, a missing sign-in says so, and the choice stays put
-            if choice == .cloud || choice == .cloudMedical, let blocker = llm.cloudBlocker {
+            if choice == .cloud, let blocker = llm.cloudBlocker {
                 cloudNote = blocker
                 if !llm.isPro { showPaywall = true }
                 return
@@ -239,39 +240,42 @@ struct ModelSettingsView: View {
                 Spacer()
                 if let variant = model.variant() {
                     Text("\(variant.quant) \u{00B7} \(variant.bytes.gigabytes)")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced)).monospacedDigit().foregroundStyle(.secondary)
                 }
             }
             Text(model.purpose).font(.caption).foregroundStyle(.secondary)
             switch llm.status[model] ?? .notDownloaded {
             case .unsupported:
-                Text("Too large for this device \u{2014} add a hosted model below.")
-                    .font(.footnote).foregroundStyle(.orange)
+                Label("Too large for this device \u{2014} add a hosted model below.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote).foregroundStyle(Color.wardWarning)
             case .notDownloaded:
                 Button { if llm.isPro { llm.download(model) } else { showPaywall = true } } label: {
                     Label("Download", systemImage: "arrow.down.circle")
                 }
-                .buttonStyle(.bigSecondary)
+                .buttonStyle(.wardSecondary)
             case .downloading(let fraction):
-                ProgressView(value: fraction) {
-                    Text("Downloading \u{2014} \(Int(fraction * 100))%").font(.footnote)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Downloading \u{2014} \(Int(fraction * 100))%")
+                        .font(.system(.footnote, design: .monospaced)).monospacedDigit()
+                    EcgStrip(progress: fraction, tone: .wardPrimary)
                 }
+                .accessibilityElement(children: .combine)
                 Button("Cancel download", role: .cancel) { llm.cancelDownload(model) }
             case .ready:
                 HStack {
-                    Label("Ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    WardChip(text: "Ready", tone: .green, symbol: "checkmark.circle.fill")
                     Spacer()
                     Button("Remove", role: .destructive) { llm.delete(model) }
                 }
                 .font(.footnote)
             case .failed(let message):
-                Text("Download failed: \(message)").font(.footnote).foregroundStyle(.red)
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: "Download failed: \(message)")
                 Button("Try again") { llm.download(model) }
-                    .buttonStyle(.bigSecondary)
+                    .buttonStyle(.wardSecondary)
             }
         }
         // the small ones (Cancel download, Remove) stay flat; the one thing
-        // to do next - Download, Try again - stands out of the glass
+        // to do next - Download, Try again - is a full button
         .buttonStyle(.borderless)
         .padding(.vertical, 4)
     }
@@ -345,7 +349,7 @@ private struct ProviderEditor: View {
                         Task { await test() }
                     } label: {
                         HStack {
-                            if testing { ProgressView().controlSize(.small) }
+                            if testing { EcgLoader() }
                             Text("Test")
                         }
                     }
@@ -353,8 +357,7 @@ private struct ProviderEditor: View {
                     if let testResult { Text(testResult).font(.footnote).foregroundStyle(.secondary) }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -423,7 +426,12 @@ private struct AccuracyEngineSection: View {
         let checked: Int = accuracy.ledger.records.values.filter { !$0.votes.isEmpty }.count
         Section {
             Toggle("Check my whole library in the background", isOn: $accuracy.background)
-            LabeledContent("Items checked", value: "\(checked)")
+            LabeledContent {
+                Text("\(checked)").font(.system(.body, design: .monospaced)).monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
+            } label: {
+                Text("Items checked")
+            }
             LabeledContent("Accuracy model", value: accuracy.weights.version)
             if let reason = accuracy.pausedReason {
                 Text(reason).font(.footnote).foregroundStyle(.secondary)

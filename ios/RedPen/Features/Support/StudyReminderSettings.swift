@@ -19,21 +19,20 @@ struct StudyReminderSettings: View {
     var body: some View {
         Section {
             Toggle(isOn: $questionOn) {
-                Label("Question of the day", systemImage: "questionmark.bubble")
+                Label { Text("Question of the day") } icon: { icon("questionmark.bubble") }
             }
             if questionOn { timeRow("Time", minutes: $questionTime) }
             Toggle(isOn: $bedtimeOn) {
-                Label("Bedtime lock-in", systemImage: "moon.stars")
+                Label { Text("Bedtime lock-in") } icon: { icon("moon.stars") }
             }
             if bedtimeOn { timeRow("Bedtime", minutes: $bedtime) }
             Toggle(isOn: $morningOn) {
-                Label("Morning check", systemImage: "sunrise")
+                Label { Text("Morning check") } icon: { icon("sunrise") }
             }
             if morningOn { timeRow("Time", minutes: $morningTime) }
             if denied {
-                Text("Notifications are off for this app. Turn them on in Settings \u{2192} Notifications.")
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+                WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill",
+                           text: "Notifications are off for this app. Turn them on in Settings \u{2192} Notifications.")
             }
         } header: {
             Text("Study reminders")
@@ -56,6 +55,10 @@ struct StudyReminderSettings: View {
             }
             LearnNotifications.reschedule(store: store)
         }
+    }
+
+    private func icon(_ symbol: String) -> some View {
+        Image(systemName: symbol).foregroundStyle(Color.wardPrimaryInk)
     }
 
     /// A time of day, stored as minutes after midnight.

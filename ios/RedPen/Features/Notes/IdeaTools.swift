@@ -4,15 +4,15 @@ import SwiftUI
 //
 // The Board (Recentre, Connect, Look) and the Space (Filter, Recentre) each have a
 // couple of small tools. They share one shape and one place: a vertical
-// cluster of 44-point glass circles, each standing on the floating plane, at the
-// bottom-trailing corner just above Ideas' bottom container - under the right
-// thumb on a phone - and on the trailing edge, vertically centred, on a wide
-// iPad, where the right hand rests.
+// cluster of 44-point circles at the bottom-trailing corner just above Ideas'
+// bottom container - under the right thumb on a phone - and on the trailing
+// edge, vertically centred, on a wide iPad, where the right hand rests. The
+// board's are white with a hairline (Ward Round); the 3D map keeps its glass
+// circles, part of its space look.
 
-/// A vertical cluster of glass tool circles. There is no backing pill, so
-/// each circle is lifted on its own (`.popOut(.floating, in: Circle())` on
-/// the tool itself): the sheen, rim and slab follow the circles that are
-/// really there, never the empty gap between them.
+/// A vertical cluster of tool circles, with no backing pill: each circle
+/// carries its own surface, so nothing is drawn in the gap between them.
+/// The glass container only matters to the 3D map's glass circles.
 struct IdeaToolCluster<Content: View>: View {
     private let content: Content
 
@@ -42,34 +42,68 @@ struct IdeaToolFace: View {
 }
 
 /// One round tool button. `active` tints it, for a tool that is switched on
-/// (Connect) or narrowing what is shown (Filter).
+/// (Connect) or narrowing what is shown (Filter). `ward` gives the board's
+/// white circle; without it, the 3D map's glass one.
 struct IdeaToolButton: View {
     let symbol: String
     let label: String
     var active: Bool = false
+    var ward: Bool = false
     let action: () -> Void
 
-    init(symbol: String, label: String, active: Bool = false, action: @escaping () -> Void) {
+    init(symbol: String, label: String, active: Bool = false, ward: Bool = false,
+         action: @escaping () -> Void) {
         self.symbol = symbol
         self.label = label
         self.active = active
+        self.ward = ward
         self.action = action
     }
 
     var body: some View {
-        let ink: Color = active ? Color.accentColor : Color.secondary
-        let glass: Glass = IdeaToolGlass.glass(active: active)
         let traits: AccessibilityTraits = active ? .isSelected : []
-        Button(action: action) {
-            IdeaToolFace(symbol: symbol)
+        face
+            .hoverEffect(.highlight)
+            .accessibilityLabel(label)
+            .accessibilityAddTraits(traits)
+    }
+
+    @ViewBuilder
+    private var face: some View {
+        if ward {
+            Button(action: action) {
+                IdeaToolFace(symbol: symbol)
+            }
+            .buttonStyle(.plain)
+            .modifier(IdeaToolWardFace(active: active))
+        } else {
+            // the 3D map's space look, which keeps its glass and system tint
+            let ink: Color = active ? Color.accentColor : Color.secondary
+            let glass: Glass = IdeaToolGlass.glass(active: active)
+            Button(action: action) {
+                IdeaToolFace(symbol: symbol)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(ink)
+            .glassEffect(glass, in: .circle)
+            .popOut(.floating, in: Circle())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(ink)
-        .glassEffect(glass, in: .circle)
-        .popOut(.floating, in: Circle())
-        .hoverEffect(.highlight)
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(traits)
+    }
+}
+
+/// The board's tool circle: Clean Sheet with a hairline, Theatre Blue when on.
+struct IdeaToolWardFace: ViewModifier {
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        let ink: Color = active ? Color.wardOnPrimary : Color.wardPrimaryInk
+        let fill: Color = active ? Color.wardPrimary : Color.wardSurface
+        let edge: Color = active ? Color.clear : Color.wardHairline
+        content
+            .foregroundStyle(ink)
+            .background(fill, in: Circle())
+            .overlay(Circle().strokeBorder(edge, lineWidth: 1))
+            .wardShadow()
     }
 }
 
@@ -79,8 +113,25 @@ struct IdeaToolButton: View {
 /// redraws its links on the next frame, the board at once.
 struct IdeaLinesPicker: View {
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+    /// Two segments side by side, for the board's small popover.
+    var segmented: Bool = false
 
     var body: some View {
+        if segmented {
+            Picker("Lines", selection: straightBinding) {
+                ForEach(GraphLineStyle.allCases) { style in
+                    Text(style.title)
+                        .tag(style.isStraight)
+                        .accessibilityIdentifier("lookLines-" + style.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+        } else {
+            menuSection
+        }
+    }
+
+    private var menuSection: some View {
         Section("Lines") {
             Picker("Lines", selection: straightBinding) {
                 ForEach(GraphLineStyle.allCases) { style in
@@ -112,22 +163,26 @@ struct IdeaLinesPicker: View {
 }
 
 /// The board's Look tool: how its connectors are drawn (IdeaLinesPicker).
-/// Tinted while it is off the standard (Straight).
+/// Tinted while it is off the standard (Straight). A small popover pointing
+/// at the button, beside the tool circles, rather than a menu that grows out
+/// over the cards.
 struct IdeaBoardLookTool: View {
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
+    @State private var showing = false
 
     var body: some View {
         let straight: Bool = GraphLineStyle.inForce(straightLines).isStraight
-        let ink: Color = straight ? Color.accentColor : Color.secondary
-        let glass: Glass = IdeaToolGlass.glass(active: straight)
-        Menu {
-            IdeaLinesPicker()
-        } label: {
+        Button { showing = true } label: {
             IdeaToolFace(symbol: "paintpalette")
         }
-        .foregroundStyle(ink)
-        .glassEffect(glass, in: .circle)
-        .popOut(.floating, in: Circle())
+        .buttonStyle(.plain)
+        .popover(isPresented: $showing, arrowEdge: .trailing) {
+            IdeaLinesPicker(segmented: true)
+                .frame(width: 200)
+                .padding(12)
+                .presentationCompactAdaptation(.popover)
+        }
+        .modifier(IdeaToolWardFace(active: straight))
         .hoverEffect(.highlight)
         .accessibilityLabel("Look")
         .accessibilityValue(straight ? "Straight lines" : "Curved lines")
@@ -135,7 +190,8 @@ struct IdeaBoardLookTool: View {
     }
 }
 
-/// The glass under a tool: plain, or faintly tinted when the tool is on.
+/// The glass under a 3D-map tool (its space look, which stays): plain, or
+/// faintly tinted when the tool is on.
 @MainActor
 enum IdeaToolGlass {
     static func glass(active: Bool) -> Glass {

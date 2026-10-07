@@ -41,8 +41,7 @@ struct CardsEditorView: View {
     var body: some View {
         NavigationStack {
             rows
-                .scrollContentBackground(.hidden)
-                .background(LibraryBackdrop())
+                .wardForm()
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -75,13 +74,14 @@ struct CardsEditorView: View {
                 TagChipsField(tags: setTags, known: knownTags)
                     .listRowBackground(Color.clear)
             } header: {
-                Text("Set tags")
+                WardSectionLabel("Set tags")
             }
             if working.kind == .anki {
                 ForEach(working.cards) { card in
                     Button { editingCard = card } label: { cardRow(card) }
                         .buttonStyle(.plain)
                         .hoverEffect(.highlight)
+                        .wardRowBackground()
                         .contextMenu {
                             Button("Delete", systemImage: "trash", role: .destructive) { delete(card) }
                         }
@@ -92,6 +92,7 @@ struct CardsEditorView: View {
                     Button { editingQuestion = question } label: { questionRow(question) }
                         .buttonStyle(.plain)
                         .hoverEffect(.highlight)
+                        .wardRowBackground()
                         .contextMenu {
                             Button("Delete", systemImage: "trash", role: .destructive) { delete(question) }
                         }
@@ -123,11 +124,12 @@ struct CardsEditorView: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(card.type == .cloze ? card.clozeText : card.displayFront)
                 .font(.subheadline).lineLimit(2)
+                .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
                 Text(card.type.rawValue).font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color.wardPrimaryInk)
                 if let source = card.source, !source.isEmpty {
-                    Text(source).font(.caption2).foregroundStyle(.tertiary)
+                    Text(source).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 }
                 TagLine(tags: card.tags)
             }
@@ -138,13 +140,15 @@ struct CardsEditorView: View {
     private func questionRow(_ question: MCQQuestion) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(question.stem).font(.subheadline).lineLimit(2)
+                .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
                 if question.options.indices.contains(question.correctIndex) {
-                    Text(question.options[question.correctIndex])
-                        .font(.caption2).foregroundStyle(.green).lineLimit(1)
+                    Label(question.options[question.correctIndex], systemImage: "checkmark")
+                        .font(.caption2).foregroundStyle(Color.wardSuccess).lineLimit(1)
+                        .accessibilityLabel("Answer: \(question.options[question.correctIndex])")
                 }
                 if let source = question.source, !source.isEmpty {
-                    Text(source).font(.caption2).foregroundStyle(.tertiary)
+                    Text(source).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 }
                 TagLine(tags: question.tags)
             }

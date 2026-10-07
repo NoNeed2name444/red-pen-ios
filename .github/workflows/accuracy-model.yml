@@ -14,6 +14,10 @@
 # management questions (server/exams.js) would have done on its slice.
 name: Accuracy model
 on:
+  # a push to accuracy-model/run starts it too: only the default branch's
+  # workflows can be started by hand or on a schedule, and this one is not there
+  push:
+    branches: ['accuracy-model/run']
   schedule:
     # Sundays, after the free limits reset at midnight UTC
     - cron: '41 2 * * 0'

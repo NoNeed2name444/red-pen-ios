@@ -21,7 +21,8 @@ struct LaunchSplash: View {
     static var total: Double { hold + fade }
 
     /// Midnight, #0A1628: the same as the LaunchBackground colour set, written
-    /// out so the splash never depends on the colour set being found.
+    /// out so the splash never depends on the colour set being found. The
+    /// launch colour is the owner's choice, outside the Ward palette.
     static let midnight = Color(red: 10 / 255, green: 22 / 255, blue: 40 / 255)
 
     /// Once per process: a second window on iPad, or a scene rebuilt after a

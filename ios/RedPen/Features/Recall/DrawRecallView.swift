@@ -105,7 +105,7 @@ struct DrawRecallView: View {
         if !comparing && !broad {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Compare") { compare() }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.wardCompact)
                     .keyboardShortcut(.return, modifiers: [])
             }
         }
@@ -145,10 +145,11 @@ struct DrawRecallView: View {
         if showTitle || comparing {
             Text(figure.title.isEmpty ? "Untitled figure" : figure.title)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
         } else {
             Text("Draw it as you remember it, labels and all.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -161,9 +162,11 @@ struct DrawRecallView: View {
         } label: {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
+                .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 40, height: 40)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .popOut(.raised, in: Circle())
+                .background(Color.wardSurface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
+                .wardShadow()
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -183,6 +186,8 @@ struct DrawRecallView: View {
     /// instead: it scales exactly as the original does.
     private var paper: some View {
         ZStack {
+            // the paper stays white in dark mode: the ink is black on it, and
+            // the original figure is laid over it at the same colours
             Color.white
             PencilCanvas(drawing: $drawing, enabled: !comparing, version: canvasVersion,
                          pickerFrame: $pickerFrame)
@@ -200,7 +205,7 @@ struct DrawRecallView: View {
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.quaternary))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.wardHairline, lineWidth: 1))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -260,14 +265,9 @@ struct DrawRecallView: View {
     private var comparePill: some View {
         Button(action: compare) {
             Label("Compare", systemImage: "square.on.square")
-                .font(.headline)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
         }
-        .buttonStyle(.glassProminent)
-        .controlSize(.large)
-        .popOut(.hero, in: Capsule())
-        .hoverEffect(.lift)
+        .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
+        .wardShadow()
         .keyboardShortcut(.return, modifiers: [])
     }
 
@@ -277,10 +277,7 @@ struct DrawRecallView: View {
             if attempts.count > 1 { pastAttempts }
             fadeRow
         }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        // the screen's bottom slab, floating like every study bar's
-        .popOut(.floating, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .wardCard(padding: 12)
     }
 
     @ViewBuilder
@@ -288,10 +285,11 @@ struct DrawRecallView: View {
         if figure.labels.isEmpty {
             Text("No labels are saved with this figure, so judge it by eye: shape, position, what connects to what.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         } else {
             Text("Tick the labels you got \u{2014} \(got.count) of \(figure.labels.count)")
                 .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(figure.labels, id: \.self) { label in
@@ -317,7 +315,7 @@ struct DrawRecallView: View {
                     Text("Original")
                 }
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
             }
             Button("Draw again") { startAgain() }
@@ -328,7 +326,7 @@ struct DrawRecallView: View {
 
     private var pastAttempts: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Earlier attempts").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text("Earlier attempts").wardSmallCaps()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(attempts) { attempt in
@@ -342,6 +340,7 @@ struct DrawRecallView: View {
 
     private func thumbnail(_ attempt: RecallAttempt) -> some View {
         let here = attempt.id == attemptID
+        let edge: Color = here ? Color.wardPrimary : Color.wardHairline
         return VStack(spacing: 2) {
             Group {
                 if let picture = Self.picture(of: attempt) {
@@ -351,16 +350,18 @@ struct DrawRecallView: View {
                 }
             }
             .frame(width: 64, height: 44)
+            // white like the paper the attempt was drawn on
             .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(here ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), lineWidth: here ? 2 : 1))
+                .strokeBorder(edge, lineWidth: here ? 2 : 1))
             Text(attempt.date.formatted(.dateTime.day().month(.abbreviated)))
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             if attempt.labelCount > 0 {
                 Text("\(attempt.got.count)/\(attempt.labelCount)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.caption2, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
         .accessibilityElement(children: .combine)
@@ -520,7 +521,7 @@ private struct RecallLabelTick: View {
 
     var body: some View {
         let symbol: String = ticked ? "checkmark.circle.fill" : "circle"
-        let ink: AnyShapeStyle = ticked ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary)
+        let ink: Color = ticked ? Color.wardSuccess : Color.wardInk
         Button(action: toggle) {
             Label(label, systemImage: symbol)
                 .font(.subheadline)
@@ -745,6 +746,7 @@ struct DrawFromMemoryButton: View {
         } label: {
             Label("Draw it from memory", systemImage: "pencil.and.scribble")
                 .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.wardPrimaryInk)
                 // a whole finger's worth of target, not just the words
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
@@ -773,13 +775,13 @@ struct DrawRecallExampleRow: View {
             HStack(spacing: 14) {
                 Image(systemName: "pencil.and.scribble")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 30)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Draw it from memory").font(.body.weight(.semibold))
+                    Text("Draw it from memory").font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     Text("An inguinal canal drawing ready to Compare")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
             }

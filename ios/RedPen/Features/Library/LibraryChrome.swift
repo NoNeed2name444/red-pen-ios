@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The backdrop of the pages that belong to no one mode: the same slow mesh
-/// as every mode's screen, as it is.
+/// The backdrop of the pages that belong to no one mode: the ECG grid paper.
 struct LibraryBackdrop: View {
     var body: some View {
         WardBackground()
@@ -11,11 +10,9 @@ struct LibraryBackdrop: View {
 /// A one-field naming sheet used for new folders, combined sets and renames -
 /// the native stand-in for the web app's inline save forms.
 ///
-/// One field on the backdrop rather than a one-row Form: the field is the
-/// only thing to touch, so it stands a little out of the glass - moving only
-/// sideways with the tilt, never leaning, so the caret holds still under the
-/// eye. Return saves; Cancel and the confirm button sit in the system's own
-/// places at the top.
+/// One field on the grid rather than a one-row Form: the field is the only
+/// thing to touch, a white field with a hairline edge. Return saves; Cancel
+/// and the confirm button sit in the system's own places at the top.
 struct NameSheet: View {
     let title: String
     let prompt: String
@@ -47,7 +44,7 @@ struct NameSheet: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(LibraryBackdrop())
+            .wardScreen()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -63,14 +60,12 @@ struct NameSheet: View {
     }
 
     private var field: some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        return TextField(prompt, text: $name)
+        TextField(prompt, text: $name)
             .focused($focused)
             .submitLabel(.done)
             .onSubmit(submit)
-            .padding(14)
-            .background(.regularMaterial, in: shape)
-            .popOut(.raised, in: shape, cues: .translateOnly)
+            .frame(minHeight: 44)
+            .wardField()
     }
 
     private func submit() {

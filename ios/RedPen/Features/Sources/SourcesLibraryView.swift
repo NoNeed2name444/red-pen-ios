@@ -54,7 +54,8 @@ struct SourcesLibraryView: View {
                 list(all)
             }
         }
-        .background(LibraryBackdrop())
+        .background(WardBackground())
+        .tint(Color.wardPrimary)
         .navigationTitle("Sources")
         .toolbar {
             // a wide iPad has the room for the words, at the top; the empty
@@ -78,16 +79,12 @@ struct SourcesLibraryView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No sources yet", systemImage: "doc.richtext")
-        } description: {
-            Text("Lectures, slides and notes you make sets from appear here, to read again page by page.")
-        } actions: {
+        WardEmptyState(symbol: "doc.richtext", title: "No sources yet",
+                       message: "Lectures, slides and notes you make sets from appear here, to read again page by page.") {
             Button("Add a lecture") { adding = true }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .popOut(.hero, in: Capsule())
+                .buttonStyle(.wardPrimary)
         }
+        .frame(maxHeight: .infinity)
     }
 
     private func list(_ all: [Entry]) -> some View {
@@ -99,6 +96,7 @@ struct SourcesLibraryView: View {
             .hoverEffect(.highlight)
             .contextMenu { setsMenu(entry) }
             .accessibilityIdentifier("source-row")
+            .wardRowBackground()
         }
         .scrollContentBackground(.hidden)
     }
@@ -161,19 +159,6 @@ private struct SourceRow: View {
 
     var body: some View {
         let line: String = detail
-        HStack(spacing: 14) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .foregroundStyle(.tint)
-                .frame(width: 32)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.source.name).font(.body.weight(.semibold)).lineLimit(2)
-                Text(line)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
+        WardRow(symbol: symbol, tone: .blue, title: entry.source.name, detail: line, chevron: false)
     }
 }

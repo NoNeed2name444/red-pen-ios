@@ -111,7 +111,7 @@ extension LibraryView {
                         Image(systemName: selected.contains(set.id) ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
                             .accessibilityHidden(true)
-                            .foregroundStyle(selected.contains(set.id) ? Color.accentColor : Color.secondary)
+                            .foregroundStyle(selected.contains(set.id) ? Color.wardPrimary : Color.wardInkSecondary)
                         setRow(set)
                     }
                 }
@@ -214,27 +214,24 @@ extension LibraryView {
         Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }
     }
 
-    /// The floating action bar shown in selection mode: one glass slab like
-    /// the dock, in the dock's place. Done at the leading end; Move, Quiz and
-    /// Combine, then Delete last, at the trailing end, and it asks first.
+    /// The floating action bar shown in selection mode: one Clean Sheet panel
+    /// like the dock, in the dock's place. Done at the leading end; Move, Quiz
+    /// and Combine, then Delete last, at the trailing end, and it asks first.
     var selectionBar: some View {
-        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
-        // the buttons' glass in a container of its own, as the dock's is, so
-        // it is drawn as glass on the slab rather than sampling the slab
-        return GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 8) {
-                selectionDoneButton
-                selectionCount
-                Spacer(minLength: 0)
-                ViewThatFits(in: .horizontal) {
-                    selectionActions(compact: false)
-                    selectionActions(compact: true)
-                }
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+        return HStack(spacing: 8) {
+            selectionDoneButton
+            selectionCount
+            Spacer(minLength: 0)
+            ViewThatFits(in: .horizontal) {
+                selectionActions(compact: false)
+                selectionActions(compact: true)
             }
-            .padding(10)
         }
-        .liquidGlassPanel(cornerRadius: 28)
-        .popOut(.floating, in: shape)
+        .padding(10)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .frame(maxWidth: 700)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
@@ -246,6 +243,7 @@ extension LibraryView {
         } label: {
             Image(systemName: "xmark")
                 .font(.body.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
@@ -299,7 +297,8 @@ extension LibraryView {
         } label: {
             ActionLabel(title: "Move", symbol: "folder", compact: compact)
         }
-        .buttonStyle(.glass)
+        .menuStyle(.button)
+        .buttonStyle(.wardCompact)
         .disabled(selected.isEmpty)
     }
 
@@ -307,7 +306,7 @@ extension LibraryView {
         Button { startMixedQuiz() } label: {
             ActionLabel(title: "Quiz", symbol: "shuffle", compact: compact)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.wardCompact)
         .disabled(!canMixQuiz)
     }
 
@@ -315,18 +314,19 @@ extension LibraryView {
         Button { naming = .combine } label: {
             ActionLabel(title: "Combine", symbol: "square.stack.3d.down.forward", compact: compact)
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.wardCompact)
         .disabled(!canCombine)
     }
 
-    /// Last, at the trailing end, away from Combine's glow by the bar's own
-    /// order; it asks first unless "Ask before deleting a set" is off.
+    /// Last, at the trailing end, away from Combine by the bar's own order;
+    /// it asks first unless "Ask before deleting a set" is off.
     private func deleteSelectedButton(compact: Bool) -> some View {
-        Button(role: .destructive) { delete(Array(selected)) } label: {
+        let ink: Color = selected.isEmpty ? Color.wardInkSecondary : Color.wardDanger
+        return Button(role: .destructive) { delete(Array(selected)) } label: {
             ActionLabel(title: "Delete", symbol: "trash", compact: compact)
-                .foregroundStyle(.red)
+                .foregroundStyle(ink)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.wardCompact)
         .disabled(selected.isEmpty)
     }
 
@@ -391,8 +391,7 @@ extension LibraryView {
                     .font(.headline)
                     .frame(maxWidth: 280, minHeight: 44)
             }
-            .buttonStyle(.glassProminent)
-            .popOut(.hero, in: Capsule(), tint: .accentColor)
+            .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
             .keyboardShortcut("n", modifiers: .command)
             .accessibilityHint("Make questions or cards from a lecture")
             .accessibilityIdentifier("newSetButton")
@@ -414,19 +413,14 @@ extension LibraryView {
         .frame(maxWidth: .infinity)
     }
 
-    /// One of the empty library's three fanned tiles, each at its own height
-    /// out of the glass, so the fan reads as three cards held up in the air.
-    ///
-    /// Lifted before it is turned, so the slab side and the sheen are turned
-    /// with the tile and stay the tile's own shape.
+    /// One of the empty library's three fanned tiles, so the fan reads as
+    /// three cards held in the hand.
     private func fannedTile(_ kind: StudySetKind) -> some View {
-        let corner: CGFloat = 52 * 0.28
-        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
         let plane: PopOutPlane = LibraryView.fanPlane(kind)
         let angle: Double = LibraryView.fanAngle(kind)
         let layer: Double = Double(plane.rawValue)
         return ModeTile(kind: kind, size: 52)
-            .popOut(plane, in: shape)
+            .wardShadow()
             .rotationEffect(.degrees(angle))
             // drawn in the order of their heights, so a higher tile is never
             // covered by a lower one where they overlap
@@ -454,7 +448,7 @@ extension LibraryView {
 }
 
 /// A selection bar action's face: its name and symbol, or the symbol alone
-/// (still named for VoiceOver), at least 44 points tall with the glass.
+/// (still named for VoiceOver), at least 44 points tall with the button.
 private struct ActionLabel: View {
     let title: String
     let symbol: String

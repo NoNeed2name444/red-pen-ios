@@ -54,8 +54,7 @@ struct WardPocketSheet: View {
                 case .scores: scoreRows
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(LibraryBackdrop())
+            .wardForm()
             .searchable(text: $query, prompt: Text(searchPrompt))
             .navigationTitle("Ward pocket")
             .navigationBarTitleDisplayMode(.inline)
@@ -119,14 +118,15 @@ struct WardPocketSheet: View {
             NavigationLink(value: score) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(score.name)
-                    Text(score.purpose).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    Text(score.purpose).font(.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(2)
                 }
             }
         case .formula(let calc):
             NavigationLink(value: calc) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(calc.title)
-                    Text("Liver disease severity and transplant priority").font(.caption).foregroundStyle(.secondary)
+                    Text("Liver disease severity and transplant priority").font(.caption)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
@@ -148,16 +148,20 @@ struct WardUnitsPicker: View {
     }
 }
 
-/// "For learning only - not for patient care", a small glass chip at the
+/// "For learning only - not for patient care", a small amber chip at the
 /// foot of the screen, always in view.
 private struct WardDisclaimer: ViewModifier {
     func body(content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
                 .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.wardWarning)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .liquidGlassChip(tint: .orange)
+                .background(Color.wardWarning.opacity(0.12), in: Capsule())
+                .background(Color.wardSurface, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.wardWarning.opacity(0.3), lineWidth: 1))
+                .wardShadow()
                 .padding(.bottom, 6)
                 .accessibilityIdentifier("wardDisclaimer")
         }
@@ -254,8 +258,7 @@ struct WardCalcView: View {
                 practice = NewSetPreset(wardPocket: calc.title, notes: WardPocket.practiceNotes(for: calc))
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(calc.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -278,19 +281,20 @@ struct WardCalcView: View {
                 ForEach(outcome.lines, id: \.self) { line in
                     LabeledContent(line.label) {
                         Text(line.value)
-                            .font(.title3.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(.primary)
+                            .font(WardType.obsLarge)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.wardInk)
                     }
                 }
                 if let verdict = outcome.verdict {
                     Text(verdict)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
                 Text("Fill in the values above.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
         .accessibilityElement(children: .combine)
@@ -322,14 +326,15 @@ struct WardCalcView: View {
             TextField(prompt, text: textBinding(field.id))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
-                .font(.body.monospacedDigit())
+                .font(WardType.obs)
+                .monospacedDigit()
                 .frame(maxWidth: 110)
                 .focused($focused, equals: field.id)
                 .accessibilityLabel(spoken)
             if !unitName.isEmpty {
                 Text(unitName)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .frame(minWidth: 44, alignment: .leading)
                     .accessibilityHidden(true)
             }
@@ -422,8 +427,7 @@ struct WardScoreView: View {
                 practice = NewSetPreset(wardPocket: score.name, notes: score.practiceNotes)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle(score.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -449,8 +453,8 @@ struct WardScoreView: View {
                     Text(choice.label)
                     Spacer(minLength: 8)
                     Text(WardScores.points(choice.points))
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 .tag(index)
             }
@@ -467,8 +471,8 @@ struct WardScoreView: View {
                 Text(item.label).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 Text(points)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(Color.wardInkSecondary)
             }
         }
     }
@@ -479,46 +483,54 @@ struct WardScoreView: View {
         let range: String = band.low == band.high ? low : low + "\u{2013}" + high
         return HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(range)
-                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .frame(minWidth: 44, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(band.title).font(.subheadline.weight(.semibold))
-                Text(band.detail).font(.caption).foregroundStyle(.secondary)
+                Text(band.detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if on {
+                Spacer(minLength: 0)
+                Image(systemName: "checkmark").font(.subheadline.weight(.bold)).accessibilityHidden(true)
+            }
         }
-        .foregroundStyle(on ? Color.accentColor : Color.primary)
+        .foregroundStyle(on ? Color.wardPrimaryInk : Color.wardInk)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 
-/// The running total and what it means, on a glass panel above the
-/// disclaimer.
+/// The running total and what it means, on a card above the disclaimer.
 private struct WardScoreTotal: View {
     let total: Double
     let band: WardBand?
 
     var body: some View {
         let number: String = WardScores.points(total)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(alignment: .center, spacing: 14) {
             Text(number)
-                .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 34, weight: .bold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(Color.wardInk)
                 .contentTransition(.numericText())
                 .frame(minWidth: 48)
             VStack(alignment: .leading, spacing: 2) {
                 Text(band?.title ?? "")
                     .font(.headline)
+                    .foregroundStyle(Color.wardInk)
                 Text(band?.detail ?? "")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(3)
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .liquidGlassPanel(cornerRadius: 20, plane: .raised)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .padding(.horizontal, 16)
         .padding(.bottom, 6)
         .animation(.snappy, value: total)

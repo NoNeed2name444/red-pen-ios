@@ -46,14 +46,18 @@ final class TurnIntoUITests: XCTestCase {
         snap(app, "1-library")
 
         // The personal build seeds an example of every mode; the MCQ one is
-        // "Example: Nephrology - glomerular disease".
+        // "Example: Nephrology - glomerular disease". The ward round sits
+        // above the sets, and a list only builds the rows it has scrolled
+        // to, so the row is looked for while the list moves. The design
+        // tour already does this; waiting in place reports a missing set.
         let row = app.descendants(matching: .any).matching(identifier: "setRow-mcq").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 15), "no MCQ set in the library")
         var swipes = 0
-        while !row.isHittable && swipes < 6 {
-            app.swipeUp()
+        while !row.isHittable && swipes < 10 {
+            app.swipeUp(velocity: .slow)
             swipes += 1
+            usleep(600_000)
         }
+        XCTAssertTrue(row.exists, "no MCQ set in the library")
         XCTAssertTrue(row.isHittable, "the MCQ set is off screen")
         row.press(forDuration: 1.2)
 

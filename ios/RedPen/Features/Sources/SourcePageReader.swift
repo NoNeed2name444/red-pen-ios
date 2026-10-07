@@ -26,15 +26,18 @@ struct SourcePageReader: View {
                 if let file, source.kind == .pdf {
                     SourcePDFPage(url: file, page: page)
                         .frame(minHeight: 420)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .background(Color.wardSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+                            .strokeBorder(Color.wardHairline, lineWidth: 1))
                 }
                 text
                 cards
             }
+            .foregroundStyle(Color.wardInk)
             .padding()
         }
-        .background(Color(.systemBackground))
+        .background(Color.wardBackground)
     }
 
     private var current: SourceDoc.Page? { source.page(page) }
@@ -46,13 +49,13 @@ struct SourcePageReader: View {
                 Label("No text on this \(source.kind.pageNoun.lowercased())",
                       systemImage: "photo")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             } else {
                 if current.recognised {
                     Label("Read by text recognition — worth checking against the original",
                           systemImage: "text.viewfinder")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardWarning)
                 }
                 LecturePassageText(text: current.text, page: page)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,11 +80,9 @@ struct SourcePageReader: View {
             let noun: String = found == 1 ? "card" : "cards"
             let place: String = source.kind.pageNoun.lowercased()
             let line: String = "\(found) \(noun) from this \(place)"
-            Divider()
+            Rectangle().fill(Color.wardHairline).frame(height: 1)
             VStack(alignment: .leading, spacing: 6) {
-                Text(line)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                WardSectionLabel(line)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

@@ -7,7 +7,7 @@ import UIKit
 //
 // Save to Ideas on a study screen: the button under an explanation, a card's
 // back, a case's answer or a finished station; "Save to Ideas" in the menu
-// over selected text; and the glass slip that says it is done, with Undo.
+// over selected text; and the slip that says it is done, with Undo.
 // What is saved, and where it is filed, is SaveToIdeas.swift.
 
 /// The one place a save happens, so the button, the selection menu and the
@@ -265,8 +265,8 @@ private struct SaveToIdeasHost: ViewModifier {
     }
 }
 
-/// "Saved to Ideas", at the top: a glass slip that stands a little out of
-/// the screen and stops nothing, with Undo. A tap elsewhere on it puts it away.
+/// "Saved to Ideas", at the top: a Clean Sheet slip with a hairline edge
+/// that stops nothing, with Undo. A tap elsewhere on it puts it away.
 private struct SavedIdeaToast: View {
     let toast: IdeaToast
     let onUndo: () -> Void
@@ -277,11 +277,12 @@ private struct SavedIdeaToast: View {
         HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
                 .font(.title3)
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.wardBeam)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(toast.title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Text(toast.message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -298,7 +299,7 @@ private struct SavedIdeaToast: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHint("Takes the save back")
                 .accessibilityIdentifier("ideaToastUndo")
             }
@@ -307,8 +308,9 @@ private struct SavedIdeaToast: View {
         .padding(.trailing, toast.undo == nil ? 16 : 4)
         .padding(.vertical, toast.undo == nil ? 12 : 4)
         .frame(maxWidth: 520)
-        .liquidGlassPanel(cornerRadius: 18)
-        .popOut(.raised, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .contentShape(shape)
         .onTapGesture(perform: onDismiss)
     }
@@ -357,27 +359,29 @@ struct SaveToIdeasButton: View {
     }
 
     private func disc(_ symbol: String, saved: Bool) -> some View {
-        let colour: Color = saved ? Color.green : Color.accentColor
+        let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
         return Image(systemName: symbol)
             .font(.title3)
             .foregroundStyle(colour)
             .frame(width: 44, height: 44)
-            .background(.regularMaterial, in: Circle())
+            .background(Color.wardSurface, in: Circle())
+            .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     private func capsule(_ symbol: String, title: String, saved: Bool) -> some View {
-        let colour: Color = saved ? Color.green : Color.accentColor
+        let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
         return HStack(spacing: 6) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
                 .accessibilityHidden(true)
             Text(title)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.wardInk)
         }
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, 16)
         .frame(minHeight: 44)
-        .background(.regularMaterial, in: Capsule())
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .contentShape(Capsule())
     }
 }
@@ -529,7 +533,7 @@ final class IdeaPDFView: PDFView {
 
 // MARK: - The backlink
 
-/// A saved note's way back: "Question · Cardiology" on a glass chip, opening
+/// A saved note's way back: "Question · Cardiology" on a white chip, opening
 /// the question in its set (AppLink.openItem, which the library acts on the
 /// way a search result is opened).
 struct NoteSourceChip: View {
@@ -545,7 +549,7 @@ struct NoteSourceChip: View {
                 .padding(.horizontal, 4)
                 .frame(minHeight: 32)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.wardCompact)
         .accessibilityLabel("From " + source.chipLabel)
         .accessibilityHint("Opens it where it is in your library")
         .accessibilityIdentifier("noteSourceChip")

@@ -16,9 +16,6 @@ struct CloudRecipe: Codable {
     /// Image occlusion cards that go with the written ones.
     var diagramCards: [AnkiCard]?
     var diagramImages: [String]?
-    /// The accuracy check it was asked for: "server" (checked in the cloud
-    /// job), "device" (a checker on this device), or nil for none.
-    var check: String?
     /// The exam it was written for (ExamCatalog id), for the set's badge.
     var exam: String? = nil
 
@@ -288,6 +285,7 @@ enum CloudJobCollector {
             content.title = job.what + " should be ready"
             content.body = "Open \(Brand.name) to add them to your library."
             content.sound = .default
+            content.filterCriteria = StudyFocus.other
             UNUserNotificationCenter.current().add(UNNotificationRequest(
                 identifier: "job-" + job.id, content: content,
                 trigger: UNTimeIntervalNotificationTrigger(timeInterval: max(60, left), repeats: false)))
@@ -330,6 +328,7 @@ enum CloudJobCollector {
                 : "Could not finish: \(job.title.lowercased())"
             content.body = status.status == "done" ? "Open \(Brand.name) to see them." : (status.error ?? "Open the app to try again.")
             content.sound = .default
+            content.filterCriteria = StudyFocus.other
             try? await UNUserNotificationCenter.current().add(
                 UNNotificationRequest(identifier: "job-done-" + job.id, content: content, trigger: nil))
         }

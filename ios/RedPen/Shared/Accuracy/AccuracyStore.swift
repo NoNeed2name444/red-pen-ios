@@ -97,7 +97,7 @@ final class AccuracyStore: ObservableObject {
         building.insert(set.id)
         Task.detached(priority: .utility) { [set] in
             let items: [AccuracyItem] = AccuracyItem.items(in: set) { words in
-                AccuracyChecker.reference(for: words, in: set, limit: AccuracyItem.sourceLimit)
+                AccuracyText.reference(for: words, in: set, limit: AccuracyItem.sourceLimit)
             }
             await MainActor.run {
                 AccuracyStore.shared.itemCache[set.id] = (stamp: set.updatedAt, items: items)

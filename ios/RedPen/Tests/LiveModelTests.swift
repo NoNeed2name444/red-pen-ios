@@ -8,7 +8,7 @@
 // served by llama.cpp on the runner.
 //
 // Environment:
-//   LIVE_URL, LIVE_KEY, LIVE_WRITER, LIVE_CHECKER, LIVE_LABEL, LIVE_ON_DEVICE (1/0)
+//   LIVE_URL, LIVE_KEY, LIVE_WRITER, LIVE_LABEL, LIVE_ON_DEVICE (1/0)
 //   LIVE_REPORT - where to append the Markdown report
 
 import Foundation
@@ -51,8 +51,6 @@ let key = env["LIVE_KEY"] ?? ""
 let label = env["LIVE_LABEL"] ?? "model"
 let onDevice = env["LIVE_ON_DEVICE"] == "1"
 let writer = WorkerBackend(url: url, key: key, model: env["LIVE_WRITER"] ?? "", label: label, isOnDevice: onDevice)
-let checkerURL = URL(string: env["LIVE_CHECKER_URL"] ?? "") ?? url
-let checker = WorkerBackend(url: checkerURL, key: key, model: env["LIVE_CHECKER"] ?? "", label: label, isOnDevice: onDevice)
 let only = Set((env["LIVE_ONLY"] ?? "").split(separator: ",").map(String.init))
 func wanted(_ part: String) -> Bool { only.isEmpty || only.contains(part) }
 
@@ -149,31 +147,6 @@ if wanted("book") {
     case .failure(let error):
         record("Textbook", false, "Error: \(error.localizedDescription)", seconds: seconds)
     }
-}
-
-// MARK: MedVAL accuracy check - one faithful statement, one planted error
-if wanted("check") {
-    let faithful = "The malar rash of SLE spares the nasolabial folds and is worsened by sunlight."
-    let wrong = "The malar rash of SLE involves the nasolabial folds, always scars, and is best treated with penicillin."
-    let (good, s1) = await timed {
-        try await AccuracyChecker.check(instruction: "Write a flashcard answer from the source.",
-                                        input: lecture, output: faithful, using: checker)
-    }
-    let (bad, s2) = await timed {
-        try await AccuracyChecker.check(instruction: "Write a flashcard answer from the source.",
-                                        input: lecture, output: wrong, using: checker)
-    }
-    func line(_ r: Result<AccuracyVerdict, Error>) -> String {
-        switch r {
-        case .success(let v): return "\(v.riskTitle) — \(v.findings.map(\.text).joined(separator: " | ").prefix(400))"
-        case .failure(let e): return "Error: \(e.localizedDescription)"
-        }
-    }
-    let okGood = (try? good.get())?.passed == true
-    let okBad = ((try? bad.get())?.riskLevel ?? 0) >= 3
-    record("Accuracy check (MedVAL rubric)", okGood && okBad,
-           "Faithful statement → \(line(good))\n\nPlanted error → \(line(bad))\n\n(Pass means the faithful one passed AND the planted error was graded level 3–4.)",
-           seconds: s1 + s2)
 }
 
 report += "**\(passed) passed, \(failed) failed.**\n"

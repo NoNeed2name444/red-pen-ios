@@ -16,6 +16,19 @@ enum WardTone {
         case .grey: return .wardInkSecondary
         }
     }
+
+    /// Small text on this tone's 12% wash. In the light scheme ECG Red,
+    /// Pager Amber and Discharge Green fall under 4.5:1 there (3.6 to 4.2),
+    /// so red reads in Resus Red, amber in Caution Amber and green in Chart
+    /// Ink; the wash and any glyph keep the tone's own colour.
+    var ink: Color {
+        switch self {
+        case .red, .danger: return .wardDanger
+        case .amber, .warning: return .wardWarning
+        case .green: return .wardInk
+        case .blue, .grey: return color
+        }
+    }
 }
 
 /// The buttons: 56 points tall, 14-point corners, at most 360 points wide on
@@ -95,11 +108,11 @@ struct WardChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            if let symbol { Image(systemName: symbol).imageScale(.small) }
+            if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(tone.color) }
             Text(text)
         }
         .font(.caption.weight(.semibold))
-        .foregroundStyle(tone.color)
+        .foregroundStyle(tone.ink)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(tone.color.opacity(0.12), in: Capsule())

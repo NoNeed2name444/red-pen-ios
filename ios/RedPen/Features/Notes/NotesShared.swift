@@ -4,6 +4,11 @@ import UIKit
 /// The quiet colour each top-level folder is known by, on the board and in the
 /// space alike. Muted on purpose: it is there to tell clusters apart at a
 /// glance, not to decorate.
+///
+/// Literal colours on purpose: these are the user's folder colours (stored
+/// order, matched by index), seven of them, and the 3D map's space look
+/// draws its clusters in the same ones; Ward Round has no seven like-weight
+/// tones to swap in without turning folders into warnings.
 enum NoteTone {
     private static let palette: [Color] = [
         Color(red: 0.36, green: 0.62, blue: 0.60),  // sea green

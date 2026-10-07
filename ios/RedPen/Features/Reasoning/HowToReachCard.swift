@@ -15,8 +15,7 @@ struct HowToReachCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("How to reach it", systemImage: "signpost.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .wardSmallCaps()
             ForEach(DifferentialTier.allCases) { tier in
                 let items: [DifferentialEntry] = differential.entries(tier)
                 if !items.isEmpty {
@@ -27,27 +26,27 @@ struct HowToReachCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
+            .strokeBorder(Color.wardHairline, lineWidth: 1))
         .accessibilityIdentifier("howToReach")
     }
 
     static func color(_ tier: DifferentialTier) -> Color {
+        tone(tier).color
+    }
+
+    static func tone(_ tier: DifferentialTier) -> WardTone {
         switch tier {
         case .mostLikely: return .green
-        case .expanded: return .gray
-        case .cantMiss: return .red
+        case .expanded: return .grey
+        case .cantMiss: return .danger
         }
     }
 
     private func tierBlock(_ tier: DifferentialTier, items: [DifferentialEntry]) -> some View {
-        let tint: Color = Self.color(tier)
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(tier.title)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(tint)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 3)
-                .background(tint.opacity(0.15), in: Capsule())
+        VStack(alignment: .leading, spacing: 6) {
+            WardChip(text: tier.title, tone: Self.tone(tier))
             ForEach(items, id: \.name) { entry in
                 entryRow(entry, key: tier.rawValue + "|" + entry.name)
             }
@@ -66,18 +65,19 @@ struct HowToReachCard: View {
                     HStack(spacing: 8) {
                         Text(entry.name)
                             .font(.body.weight(.medium))
+                            .foregroundStyle(Color.wardInk)
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                         Image(systemName: isOpen ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint(Text(isOpen ? "Hides the findings" : "Shows the findings for and against"))
             } else {
-                Text(entry.name).font(.body.weight(.medium))
+                Text(entry.name).font(.body.weight(.medium)).foregroundStyle(Color.wardInk)
             }
             if isOpen {
                 detail(entry)
@@ -90,13 +90,13 @@ struct HowToReachCard: View {
     private func detail(_ entry: DifferentialEntry) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if !entry.supporting.isEmpty {
-                findingLine("For", entry.supporting.joined(separator: ", "), symbol: "plus.circle.fill", tint: .green)
+                findingLine("For", entry.supporting.joined(separator: ", "), symbol: "plus.circle.fill", tint: Color.wardSuccess)
             }
             if !entry.against.isEmpty {
-                findingLine("Against", entry.against.joined(separator: ", "), symbol: "minus.circle.fill", tint: .red)
+                findingLine("Against", entry.against.joined(separator: ", "), symbol: "minus.circle.fill", tint: Color.wardDanger)
             }
             if !entry.test.isEmpty {
-                findingLine("Test", entry.test, symbol: "testtube.2", tint: .secondary)
+                findingLine("Test", entry.test, symbol: "testtube.2", tint: Color.wardInkSecondary)
             }
         }
         .font(.subheadline)
@@ -109,7 +109,7 @@ struct HowToReachCard: View {
         line += AttributedString(text)
         return HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: symbol).foregroundStyle(tint).font(.caption)
-            Text(line)
+            Text(line).foregroundStyle(Color.wardInk)
         }
     }
 
@@ -117,11 +117,11 @@ struct HowToReachCard: View {
 
     private var sources: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Sources").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text("Sources").font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
             if let lecture, !lecture.isEmpty {
                 Label(lecture, systemImage: "doc.text").font(.caption)
             } else {
-                Text("From the lecture").font(.caption).foregroundStyle(.secondary)
+                Text("From the lecture").font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(differential.evidence, id: \.self) { ref in
                 evidenceLink(ref)

@@ -237,5 +237,50 @@ check("L5 and the straight line where it is drawn",
       IdeaLinkShape.distance(from: onLine, to: .straight, from: p, to: q) < 1e-9
       && IdeaLinkShape.distance(from: onCurve, to: .straight, from: p, to: q) > 10)
 
+// MARK: L6 the board's first view fits every card
+
+/// Every card, drawn as the board draws it, inside the room the margins leave.
+func allInside(_ centres: [CGPoint], _ cam: IdeaBoardFit.Camera, card: CGSize, view: CGSize,
+               hidden: Double, _ m: IdeaBoardFit.Margins) -> Bool {
+    let midY: Double = (Double(view.height) - hidden) / 2
+    for c in centres {
+        let x: Double = Double(view.width) / 2 + cam.panX + Double(c.x) * cam.zoom
+        let y: Double = midY + cam.panY + Double(c.y) * cam.zoom
+        let halfW: Double = Double(card.width) * cam.zoom / 2
+        let halfH: Double = Double(card.height) * cam.zoom / 2
+        if x - halfW < m.leading - 1e-6 || x + halfW > Double(view.width) - m.trailing + 1e-6 { return false }
+        if y - halfH < m.top - 1e-6 || y + halfH > Double(view.height) - hidden - m.bottom + 1e-6 { return false }
+    }
+    return true
+}
+
+let card = CGSize(width: 150, height: 88)
+let room = IdeaBoardFit.Margins(top: 16, leading: 16, bottom: 16, trailing: 76)
+let spread: [CGPoint] = [CGPoint(x: -330, y: -120), CGPoint(x: 360, y: 40),
+                         CGPoint(x: 10, y: 300), CGPoint(x: -40, y: -260)]
+let phone = CGSize(width: 402, height: 760)
+let wide: IdeaBoardFit.Camera = IdeaBoardFit.camera(centres: spread, card: card, view: phone,
+                                                    hidden: 220, margins: room)
+check("L6 a wide board on a phone: zoomed out until every card is in, clear of the tools",
+      wide.zoom < 1 && allInside(spread, wide, card: card, view: phone, hidden: 220, room), "\(wide)")
+
+let pad = CGSize(width: 960, height: 1100)
+let few: [CGPoint] = [CGPoint(x: 80, y: 40), CGPoint(x: 240, y: 120)]
+let fitNear: IdeaBoardFit.Camera = IdeaBoardFit.camera(centres: few, card: card, view: pad,
+                                                    hidden: 180, margins: room)
+check("L6 a few cards on an iPad: never zoomed in past 1, centred in the room",
+      fitNear.zoom == 1 && allInside(few, fitNear, card: card, view: pad, hidden: 180, room)
+      && nearD(Double(pad.width) / 2 + fitNear.panX + 160, 16 + (960 - 92) / 2), "\(fitNear)")
+
+let fitNone: IdeaBoardFit.Camera = IdeaBoardFit.camera(centres: [], card: card, view: phone,
+                                                    hidden: 220, margins: room)
+check("L6 an empty board: the middle at zoom 1", fitNone == IdeaBoardFit.Camera(zoom: 1, panX: 0, panY: 0))
+
+let farApart: [CGPoint] = [CGPoint(x: -5000, y: 0), CGPoint(x: 5000, y: 0)]
+let fitFloor: IdeaBoardFit.Camera = IdeaBoardFit.camera(centres: farApart, card: card, view: phone,
+                                                     hidden: 220, margins: room)
+check("L6 a vast board stops at the board's own floor, centred",
+      fitFloor.zoom == 0.3 && nearD(fitFloor.panX, 16 + (402 - 92) / 2 - 201), "\(fitFloor)")
+
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

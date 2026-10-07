@@ -188,7 +188,7 @@ export function itemsIn(reply, spec) {
 
 /// A question's differential (most likely / expanded / can't miss, each with
 /// findings for and against and the test that settles it), as the checker is
-/// shown it - the app's AccuracyChecker.differentialBlock, word for word, so
+/// shown it - the app's AccuracyText.differentialBlock, word for word, so
 /// the reasoning checks can test the keyed answer against it.
 export function differentialBlock(d) {
   const text = differentialText(d);

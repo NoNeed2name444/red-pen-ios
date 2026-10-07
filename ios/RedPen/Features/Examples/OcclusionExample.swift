@@ -78,6 +78,8 @@ enum OcclusionExample {
         }
     }
 
+    // Fixed diagram colours, baked into the picture the OCR reads: the
+    // anatomy convention (right heart blue, left red), not the app's theme.
     static let blue = UIColor(red: 0.16, green: 0.33, blue: 0.62, alpha: 1)
     static let paleBlue = UIColor(red: 0.80, green: 0.87, blue: 0.97, alpha: 1)
     static let red = UIColor(red: 0.70, green: 0.15, blue: 0.15, alpha: 1)
@@ -301,19 +303,19 @@ struct OcclusionExampleView: View {
             if let made {
                 AnkiReviewView(set: made)
             } else if failed {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle").font(.largeTitle)
-                    Text("The diagram's labels could not be read on this device.")
-                        .multilineTextAlignment(.center)
-                }
-                .padding(24)
+                WardEmptyState(symbol: "exclamationmark.triangle",
+                               title: "The diagram's labels could not be read on this device.", tone: .warning)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .wardScreen()
             } else {
                 VStack(spacing: 12) {
-                    ProgressView()
+                    EcgLoader()
                     Text("Reading the heart diagram\u{2019}s labels\u{2026}")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .wardScreen()
             }
         }
         .navigationTitle(OcclusionExample.title)

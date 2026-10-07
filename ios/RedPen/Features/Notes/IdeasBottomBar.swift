@@ -113,8 +113,7 @@ struct IdeasBottomBar: View {
     }
 }
 
-/// "Dump an idea…": a glass capsule standing a little out of the glass. It
-/// only slides with the tilt - never leans - so the caret stays steady.
+/// "Dump an idea…": a white capsule with a hairline edge.
 private struct IdeaCaptureField: View {
     @Binding var draft: String
     let capturing: FocusState<Bool>.Binding
@@ -123,7 +122,7 @@ private struct IdeaCaptureField: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "lightbulb")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
             TextField("Dump an idea\u{2026}", text: $draft)
                 .focused(capturing)
@@ -133,8 +132,9 @@ private struct IdeaCaptureField: View {
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 48)
-        .glassEffect(.regular, in: .capsule)
-        .popOut(.raised, in: Capsule(), cues: .translateOnly)
+        .background(Color.wardSurface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
     }
 }
 
@@ -143,17 +143,16 @@ private struct IdeaSendButton: View {
     let action: () -> Void
 
     var body: some View {
-        let glass: Glass = Glass.regular.tint(Color.accentColor).interactive()
         Button(action: action) {
             Image(systemName: "arrow.up")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Color.wardOnPrimary)
                 .frame(width: 48, height: 48)
+                .background(Color.wardPrimary, in: Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(glass, in: .circle)
-        .popOut(.hero, in: Circle())
+        .wardShadow()
         .hoverEffect(.lift)
         .accessibilityLabel("Save idea")
     }
@@ -177,9 +176,10 @@ private struct IdeaAddMenu: View {
                 .frame(width: 48, height: 48)
                 .contentShape(Circle())
         }
-        .foregroundStyle(.primary)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .popOut(.raised, in: Circle())
+        .foregroundStyle(Color.wardPrimaryInk)
+        .background(Color.wardSurface, in: Circle())
+        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .hoverEffect(.highlight)
         .accessibilityLabel("Add")
     }

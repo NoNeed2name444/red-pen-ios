@@ -91,7 +91,7 @@ struct PlatformSettingsSection: View {
         if Self.isPlaygrounds {
             return "Widgets, Live Activities and Siri phrases come with the App Store version."
         }
-        return "Say \u{201C}Review my due cards in Stethoscore\u{201D} or \u{201C}Quiz me on cardiology in Stethoscore\u{201D}. Only set names and sizes go into Spotlight, on this device."
+        return "Say \u{201C}Review my due cards in \(Brand.name)\u{201D} or \u{201C}Quiz me on cardiology in \(Brand.name)\u{201D}. Only set names and sizes go into Spotlight, on this device."
     }
 
     private var privacyFooter: String {

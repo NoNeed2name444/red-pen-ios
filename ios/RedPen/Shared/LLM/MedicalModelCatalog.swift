@@ -3,31 +3,26 @@ import Foundation
 /// The medical models the app can download and run on the device, and which
 /// build of each suits this particular device.
 ///
-/// Both are GGUF files run by llama.cpp through LocalLLMClient, the same engine
-/// the Gemma fallback already uses, and the same files run on Android. Neither
-/// needs the tools used to train them: VeRL (Doctor-R1) and DSPy (MedVAL) are
-/// training frameworks, not something a phone runs.
+/// A GGUF file run by llama.cpp through LocalLLMClient, the same engine the
+/// Gemma fallback already uses, and the same file runs on Android. It does not
+/// need the tools used to train it: VeRL is a training framework, not
+/// something a phone runs.
 enum MedicalModel: String, CaseIterable, Identifiable, Hashable {
     /// Doctor-R1, 8B, trained for multi-turn clinical questioning. Writes
-    /// questions and stations, and plays the patient in a case.
+    /// questions and stations.
     case doctorR1
-    /// MedVAL-4B (Stanford MIMI), grades medical text against its source:
-    /// error categories plus a risk level of 1 to 4.
-    case medval
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .doctorR1: return "Doctor-R1 8B"
-        case .medval: return "MedVAL-4B"
         }
     }
 
     var purpose: String {
         switch self {
         case .doctorR1: return "Writes questions and stations."
-        case .medval: return "Checks generated text for hallucinations, omissions and overconfidence, with a risk level from 1 to 4."
         }
     }
 
@@ -55,16 +50,6 @@ enum MedicalModel: String, CaseIterable, Identifiable, Hashable {
                 Variant(quant: "Q3_K_M", filename: "Doctor-R1.Q3_K_M.gguf",
                         url: URL(string: base + "Doctor-R1.Q3_K_M.gguf")!,
                         bytes: 4_124_161_760, minimumMemoryGB: 7.3),
-            ]
-        case .medval:
-            let base = "https://huggingface.co/stanfordmimi/MedVAL-4B-GGUF/resolve/main/"
-            return [
-                Variant(quant: "Q4_K_M", filename: "MedVAL-4B.Q4_K_M.gguf",
-                        url: URL(string: base + "MedVAL-4B.Q4_K_M.gguf")!,
-                        bytes: 2_497_280_928, minimumMemoryGB: 7.3),
-                Variant(quant: "Q3_K_M", filename: "MedVAL-4B.Q3_K_M.gguf",
-                        url: URL(string: base + "MedVAL-4B.Q3_K_M.gguf")!,
-                        bytes: 2_075_618_208, minimumMemoryGB: 5.4),
             ]
         }
     }
@@ -97,6 +82,15 @@ enum MedicalModel: String, CaseIterable, Identifiable, Hashable {
         let path = localURL(variant).path
         let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int64) ?? 0
         return (size ?? 0) > Int64(Double(variant.bytes) * 0.9)
+    }
+
+    /// MedVAL-4B's files (up to 2.5 GB), left by a build that still offered
+    /// it as the accuracy checker; the verification layer replaced it.
+    static func removeRetired() {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in names where name.hasPrefix("MedVAL-4B.") {
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
+        }
     }
 
     /// Clears every build of this model except `keeping`, so switching builds

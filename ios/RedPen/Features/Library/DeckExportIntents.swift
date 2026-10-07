@@ -3,10 +3,9 @@ import Foundation
 
 /// Building decks without opening the app.
 ///
-/// The PDF builder has two implementations: tools/deck_pdf.py, for a Mac or a
-/// server, and DeckPDF.swift, for the phone. iOS cannot run Python at all -
+/// The PDF builder is DeckPDF.swift, on the phone. iOS cannot run Python at all -
 /// there is no interpreter an app may ship and no shell to run it in - so
-/// "automate it on the device" cannot mean running the script there. What it
+/// "automate it on the device" cannot mean running a script there. What it
 /// can mean is exposing the Swift builder to Shortcuts, which is the phone's
 /// own automation: once these intents exist, a shortcut can build a deck, save
 /// it to Files or iCloud Drive, mail it, or print it, and an automation can run
