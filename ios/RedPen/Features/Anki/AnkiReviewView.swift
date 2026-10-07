@@ -104,13 +104,13 @@ struct AnkiReviewView: View {
     @ViewBuilder
     private var nothingDue: some View {
         if studySet.cards.isEmpty {
-            FinishHero(symbol: "tray", title: "No cards yet",
-                       message: "This deck has no cards.")
+            WardEmptyState(symbol: "tray", title: "No cards yet",
+                           message: "This deck has no cards.", tone: .grey)
         } else if reviewedCount > 0 {
             FinishHero(symbol: "checkmark.seal.fill", title: "Done for now", message: doneLine)
         } else {
-            FinishHero(symbol: "clock", title: "Nothing to review",
-                       message: "No cards in this deck are due yet. " + nextLine)
+            WardEmptyState(symbol: "clock", title: "Nothing to review",
+                           message: "No cards in this deck are due yet. " + nextLine)
         }
     }
 

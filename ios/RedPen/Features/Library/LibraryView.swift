@@ -104,6 +104,8 @@ struct LibraryView: View {
     @AppStorage("cramdown.confirmDelete") var confirmDelete = true
     @AppStorage("cramdown.openLastSet") var openLastSet = false
     @AppStorage("cramdown.lastSetId") var lastSetId = ""
+    /// Which of Ideas' views is open (IdeasView): only the 3D map keeps the sky.
+    @AppStorage("vignette.ideas.mode") private var ideasModeRaw = IdeasMode.list.rawValue
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -164,7 +166,7 @@ struct LibraryView: View {
     /// How tall the dock actually is, measured rather than guessed.
     ///
     /// The first attempt padded the list by a round number and the last row
-    /// still ended up behind the glass. A floating bar's height depends on the
+    /// still ended up behind the bar. A floating bar's height depends on the
     /// text size the reader chose, so the only reliable number is the one the
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
@@ -438,16 +440,18 @@ struct LibraryView: View {
     /// nothing while the keyboard has put the dock away.
     private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
 
-    /// The ECG grid paper under every category's page; Ideas keeps the sky
-    /// its 3D map flies through.
+    /// The ECG grid paper under every page, Ideas' list and board too; only
+    /// the 3D map keeps the sky it flies through.
     @ViewBuilder
     private var backdrop: some View {
-        if inIdeas {
+        if underSky {
             AppBackdrop(tint: IdeasPlace.tint)
         } else {
             WardBackground()
         }
     }
+
+    private var underSky: Bool { inIdeas && ideasModeRaw == IdeasMode.space.rawValue }
 
     /// A category's page is titled by its own first row - the date, the
     /// app's name with its squiggle, a greeting (WardHome) - so the bar
@@ -592,7 +596,8 @@ struct LibraryView: View {
             // a search that found nothing says so, rather than leaving a
             // blank page
             Section {
-                ContentUnavailableView.search(text: query)
+                WardEmptyState(symbol: "magnifyingglass", title: "No results for \u{201C}\(query)\u{201D}",
+                               message: "Check the spelling or try a new search.")
                     .listRowBackground(Color.clear)
             }
         } else if shown.isEmpty && !store.library.isEmpty {
@@ -710,7 +715,7 @@ struct LibraryView: View {
                     }
                     Button("Ungroup", systemImage: "folder.badge.minus") { store.ungroup(folder.id) }
                 } label: {
-                    // a control, so it stands out of the glass
+                    // a control, so it stands out from the header
                     moreMenuFace
                 }
                 .menuStyle(.button)
@@ -732,8 +737,8 @@ struct LibraryView: View {
         // the thumb's way. The studying itself is in the dock; Select is
         // beside the sets it picks from.
         ToolbarItem(placement: .topBarTrailing) {
-            // toolbar items already sit in the system's glass on iOS 26;
-            // an extra .glass style here squashed the label into a circle
+            // toolbar items already sit in the system's own capsule on iOS 26;
+            // an extra button style here squashed the label into a circle
             Menu {
                 SupportMenuItems(chosen: $support)
             } label: {

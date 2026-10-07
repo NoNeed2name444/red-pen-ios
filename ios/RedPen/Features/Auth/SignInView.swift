@@ -5,7 +5,7 @@ import AuthenticationServices
 ///
 /// What the app is, up top; the doors at the bottom, under the thumb. The one
 /// that works on its own - start without an account - is the lowest and the
-/// highest out of the glass; above it Apple, which on this platform is one
+/// one filled in Theatre Blue; above it Apple, which on this platform is one
 /// tap and gives away the least; Google, because most students are already
 /// signed in to it in Safari; and a code, for a second iPhone or iPad joining
 /// the library of the first.
@@ -18,18 +18,17 @@ struct SignInView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var joining = false
 
-    /// The app's pen red, for the door that works on its own.
+    /// Theatre Blue, for the door that works on its own.
     private static let pen = Color.wardPrimary
 
-    private static let door = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    private static let door = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
 
-    /// The pane the doors stand on: their 12-point corners plus its 12-point
-    /// margin.
-    private static let pane = RoundedRectangle(cornerRadius: 24, style: .continuous)
+    /// The pane the doors stand on: their corners plus its 12-point margin.
+    private static let pane = RoundedRectangle(cornerRadius: WardRadius.button + 12, style: .continuous)
 
     var body: some View {
         ZStack {
-            LibraryBackdrop()
+            WardBackground()
             upper
                 // every door in one stack at the bottom; nothing is ever
                 // drawn over them
@@ -83,23 +82,19 @@ struct SignInView: View {
             }
             .padding(.bottom, 6)
             .accessibilityHidden(true)
-            Text(Brand.name).font(.largeTitle.weight(.bold))
+            Text(Brand.name).font(WardType.display).foregroundStyle(Color.wardInk)
             Text("Turn your lectures into questions and flashcards.")
-                .font(.body).foregroundStyle(.secondary)
+                .font(.body).foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
         }
     }
 
-    /// One of the three fanned tiles, each at its own height out of the
-    /// glass. Lifted before it is turned, so its slab side turns with it.
+    /// One of the three fanned tiles.
     private func mastTile(_ kind: StudySetKind) -> some View {
-        let corner: CGFloat = 52 * 0.28
-        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
-        let plane: PopOutPlane = SignInView.tilePlane(kind)
         let angle: Double = SignInView.tileAngle(kind)
         let layer: Double = SignInView.tileLayer(kind)
         return ModeTile(kind: kind, size: 52)
-            .popOut(plane, in: shape)
+            .wardShadow()
             .rotationEffect(.degrees(angle))
             .zIndex(layer)
     }
@@ -110,15 +105,6 @@ struct SignInView: View {
         case .anki: return 0
         case .mcq: return -10
         default: return 10
-        }
-    }
-
-    /// The middle tile highest, the right one next, the left one lowest.
-    private static func tilePlane(_ kind: StudySetKind) -> PopOutPlane {
-        switch kind {
-        case .anki: return .hero
-        case .osce: return .floating
-        default: return .raised
         }
     }
 
@@ -136,7 +122,7 @@ struct SignInView: View {
         // and that nothing is shared
         Text("No account needed to start \u{2014} you can link an iPad or another phone later in Account. Nothing is shared with anyone else.")
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
     }
 
@@ -145,10 +131,10 @@ struct SignInView: View {
     /// Top to bottom: a code, Google, Apple, and - lowest, under the thumb -
     /// straight in. Centred in the same 480-point column on an iPad.
     ///
-    /// On a pane of material, so that when a large text size makes the story
+    /// On a Clean Sheet pane, so that when a large text size makes the story
     /// scroll it goes under the pane rather than showing between the doors.
-    /// The pane is a background (never over `localSignIn`) and lies on the
-    /// glass, so every door keeps its full height above it.
+    /// The pane is a background (never over `localSignIn`), so every door
+    /// keeps its full height above it.
     private var doors: some View {
         VStack(spacing: 12) {
             codeDoor
@@ -157,7 +143,9 @@ struct SignInView: View {
             localDoor
         }
         .padding(12)
-        .background(.regularMaterial, in: SignInView.pane)
+        .background(Color.wardSurface, in: SignInView.pane)
+        .overlay(SignInView.pane.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardShadow()
         .padding(.horizontal, 12)
         .padding(.top, 4)
         .padding(.bottom, 8)
@@ -174,17 +162,13 @@ struct SignInView: View {
                 .font(.body.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 40)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.roundedRectangle(radius: 12))
-        .controlSize(.large)
-        .popOut(.raised, in: SignInView.door)
+        .buttonStyle(.wardSecondary)
         .disabled(account.busy)
         .accessibilityIdentifier("joinWithCode")
     }
 
     /// Drawn to match Apple's button - same height, corners, weight and
-    /// colours - so the two read as one pair, and moving the same way: only
-    /// sideways, never leaning.
+    /// colours - so the two read as one pair.
     private var googleDoor: some View {
         let dark: Bool = scheme == .dark
         let ink: Color = dark ? Color.black : Color.white
@@ -199,14 +183,13 @@ struct SignInView: View {
         }
         .buttonStyle(.plain)
         .contentShape(SignInView.door)
-        .popOut(.raised, in: SignInView.door, cues: [])
         // the iPad pointer lifts it like the other three doors
         .contentShape(.hoverEffect, SignInView.door)
         .hoverEffect(.lift)
         .disabled(account.busy)
     }
 
-    /// Apple's own button, left as Apple draws it: it only moves sideways.
+    /// Apple's own button, left as Apple draws it.
     private var appleDoor: some View {
         let style: SignInWithAppleButton.Style = scheme == .dark ? .white : .black
         return SignInWithAppleButton(.signIn) { request in
@@ -218,7 +201,6 @@ struct SignInView: View {
         .signInWithAppleButtonStyle(style)
         .frame(height: 56)
         .clipShape(SignInView.door)
-        .popOut(.raised, in: SignInView.door, cues: [])
     }
 
     /// Personal build: straight in, no Apple or Google account and no server.
@@ -230,11 +212,8 @@ struct SignInView: View {
             doorLabel("Start without an account", symbol: "iphone.gen3")
                 .frame(minHeight: 40)
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.roundedRectangle(radius: 12))
-        .controlSize(.large)
+        .buttonStyle(.wardPrimary)
         .tint(SignInView.pen)
-        .popOut(.hero, in: SignInView.door)
         .keyboardShortcut(.defaultAction)
         .accessibilityHint("Everything stays on this device")
         .accessibilityIdentifier("localSignIn")
@@ -243,7 +222,7 @@ struct SignInView: View {
     private func doorLabel(_ title: String, symbol: String, busy: Bool = false) -> some View {
         HStack(spacing: 8) {
             if busy {
-                ProgressView().controlSize(.small)
+                EcgLoader()
             } else {
                 Image(systemName: symbol).font(.system(size: 17, weight: .semibold))
             }

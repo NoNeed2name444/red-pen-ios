@@ -2,9 +2,9 @@ import SwiftUI
 
 /// The first run, once per account, straight after the recording terms
 /// (which stay first): the exam, its date, a daily goal, the study reminders,
-/// then an example set or an empty library. Glass pages on the night sky,
+/// then an example set or an empty library. White cards on the ECG grid,
 /// every one skippable; whatever is left unanswered keeps its default and can
-/// be changed in Settings or Mission Control later.
+/// be changed in Settings or on today's ward round later.
 ///
 /// When it is shown is FirstRun's decision (Shared/FirstRunRules.swift); the
 /// UI test that walks it launches with -showOnboarding.
@@ -68,7 +68,7 @@ enum FirstRunPage: Int, CaseIterable {
 
 // MARK: - The pages
 
-/// Page 2: the exam's date, which Mission Control counts down to.
+/// Page 2: the exam's date, which today's ward round counts down to.
 private struct FirstRunDatePage: View {
     let next: () -> Void
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
@@ -86,7 +86,7 @@ private struct FirstRunDatePage: View {
     var body: some View {
         FirstRunPageFrame(page: .date, symbol: "calendar",
                           title: "When is your exam?",
-                          detail: "Mission Control counts down to it and paces your reviews to be ready on the day.",
+                          detail: "Today\u{2019}s ward round counts down to it and paces your reviews to be ready on the day.",
                           nextTitle: "Save the date",
                           next: save, skip: next) {
             DatePicker("Exam date", selection: $chosen, in: Date()..., displayedComponents: .date)
@@ -111,12 +111,13 @@ private struct FirstRunGoalPage: View {
     var body: some View {
         FirstRunPageFrame(page: .goal, symbol: "target",
                           title: "A daily goal",
-                          detail: "Cards and questions a day. Mission Control shows how far through today you are.",
+                          detail: "Cards and questions a day. Today\u{2019}s ward round shows how far through today you are.",
                           nextTitle: "Set \(goal) a day",
                           next: save, skip: next) {
             VStack(spacing: 16) {
                 Text("\(goal)")
-                    .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 56, weight: .bold, design: .monospaced).monospacedDigit())
+                    .foregroundStyle(Color.wardInk)
                     .contentTransition(.numericText())
                     .accessibilityHidden(true)
                 Stepper("\(goal) a day", value: $goal.animation(.snappy), in: DailyGoal.range, step: 10)
@@ -132,12 +133,14 @@ private struct FirstRunGoalPage: View {
 
     private func presetButton(_ value: Int) -> some View {
         let picked: Bool = value == goal
-        let tint: Color? = picked ? Color.accentColor : nil
+        let tint: Color? = picked ? Color.wardPrimary : nil
+        let ink: Color = picked ? Color.wardPrimaryInk : Color.wardInk
         return Button {
             withAnimation(.snappy) { goal = value }
         } label: {
             Text("\(value)")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold).monospacedDigit())
+                .foregroundStyle(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(PopTileStyle(cornerRadius: 14, tint: tint))
@@ -220,7 +223,7 @@ private struct FirstRunExamplesPage: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.wardInk)
                     Text(detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -238,8 +241,8 @@ private struct FirstRunExamplesPage: View {
 
 // MARK: - The frame every page shares
 
-/// A symbol, a title and a line over the page's own controls, on one glass
-/// panel.
+/// A symbol, a title and a line over the page's own controls, on one
+/// Clean Sheet card.
 private struct FirstRunPageFrame<Content: View>: View {
     let page: FirstRunPage
     let symbol: String
@@ -251,13 +254,16 @@ private struct FirstRunPageFrame<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 FirstRunHeading(symbol: symbol, title: title, detail: detail)
                 content()
                     .padding(16)
                     .frame(maxWidth: .infinity)
-                    .liquidGlassPanel(cornerRadius: 22, plane: .raised)
+                    .background(Color.wardSurface, in: shape)
+                    .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+                    .wardShadow()
             }
             .padding(24)
             .frame(maxWidth: 560, alignment: .leading)
@@ -280,6 +286,7 @@ private struct FirstRunHeading: View {
                 .accessibilityHidden(true)
             Text(title)
                 .font(.largeTitle.bold())
+                .foregroundStyle(Color.wardInk)
                 .accessibilityAddTraits(.isHeader)
             Text(detail)
                 .font(.subheadline)
@@ -290,8 +297,8 @@ private struct FirstRunHeading: View {
 }
 
 private extension View {
-    /// The night sky behind, "2 of 5" and Skip at the top, and the page's
-    /// main button on the floating glass slab under the thumb.
+    /// The ECG grid behind, "2 of 5" and Skip at the top, and the page's
+    /// main button on the bar under the thumb.
     func firstRunChrome(page: FirstRunPage, nextTitle: String,
                         next: @escaping () -> Void, skip: @escaping () -> Void) -> some View {
         let bar = StudyActionBar {

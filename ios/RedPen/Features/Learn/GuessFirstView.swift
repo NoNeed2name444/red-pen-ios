@@ -20,7 +20,7 @@ struct GuessFirstView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if questions.isEmpty {
-                Text("Nothing to ask from this one yet.").font(.body).foregroundStyle(.secondary)
+                Text("Nothing to ask from this one yet.").font(.body).foregroundStyle(Color.wardInkSecondary)
             } else if !started {
                 intro
             } else if index < questions.count {
@@ -33,7 +33,7 @@ struct GuessFirstView: View {
         .padding(20)
         .frame(maxWidth: 640, alignment: .leading)
         .frame(maxWidth: .infinity)
-        .modeScreen(set.kind)
+        .wardScreen()
         .studyBar { bar }
         .navigationTitle("Guess first")
         .navigationBarTitleDisplayMode(.inline)
@@ -45,12 +45,13 @@ struct GuessFirstView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Take a guess").font(.largeTitle.weight(.bold))
+            Text("Take a guess").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)
             Text("\(questions.count) quick questions on \(set.name), before you read it. It\u{2019}s fine to be wrong.")
                 .font(.body)
+                .foregroundStyle(Color.wardInk)
             Text(Pretest.why)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -58,8 +59,10 @@ struct GuessFirstView: View {
     private func question(_ q: MCQQuestion) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(index + 1) of \(questions.count)")
-                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(q.stem).font(.title3.weight(.semibold))
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInkSecondary)
+            Text(q.stem).font(.title3.weight(.semibold)).foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(Array(q.options.enumerated()), id: \.offset) { item in
                 optionButton(q, item.offset, item.element)
@@ -67,9 +70,9 @@ struct GuessFirstView: View {
             if picked != nil {
                 Text(q.explanation)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .contentCard()
+                    .wardCard()
             }
         }
     }
@@ -80,8 +83,12 @@ struct GuessFirstView: View {
         let isPicked: Bool = picked == i
         let symbol: String = !answered ? StudyRhythm.letter(i).lowercased() + ".circle"
             : (isRight ? "checkmark.circle.fill" : (isPicked ? "xmark.circle.fill" : "circle"))
-        let tint: Color = !answered ? .secondary : (isRight ? .green : (isPicked ? .red : .secondary))
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let wrongTint: Color = isPicked ? Color.wardDanger : Color.wardInkSecondary
+        let answeredTint: Color = isRight ? Color.wardSuccess : wrongTint
+        let tint: Color = answered ? answeredTint : Color.wardInkSecondary
+        let markedEdge: Bool = answered && (isRight || isPicked)
+        let edge: Color = markedEdge ? answeredTint : Color.wardHairline
+        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         return Button {
             guard picked == nil else { return }
             picked = i
@@ -89,16 +96,16 @@ struct GuessFirstView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: symbol).foregroundStyle(tint).font(.title3).accessibilityHidden(true)
-                Text(text).foregroundStyle(.primary).multilineTextAlignment(.leading)
+                Text(text).foregroundStyle(Color.wardInk).multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 48)
-            .background(.regularMaterial, in: shape)
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: 1))
             .contentShape(shape)
         }
         .buttonStyle(.plain)
-        .popOut(.raised, in: shape, pressed: answered)
         .disabled(answered)
         .accessibilityLabel("\(StudyRhythm.letter(i)): \(text)")
         .accessibilityAddTraits(isPicked ? [.isSelected] : [])
@@ -106,9 +113,13 @@ struct GuessFirstView: View {
 
     private var finish: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("\(right) of \(questions.count)").font(.largeTitle.weight(.bold)).monospacedDigit()
+            Text("\(right) of \(questions.count)")
+                .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(Color.wardInk)
             Text("Whatever the score, you now know what to look out for. Watch for these as you read.")
                 .font(.body)
+                .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -116,21 +127,21 @@ struct GuessFirstView: View {
     @ViewBuilder
     private var bar: some View {
         if questions.isEmpty || index >= questions.count {
-            Button("Start reading") { dismiss() }.buttonStyle(.bigPrimary)
+            Button("Start reading") { dismiss() }.buttonStyle(.wardPrimary)
         } else if !started {
             HStack(spacing: 12) {
-                Button("Skip") { dismiss() }.buttonStyle(.bigCompanion)
-                Button("Guess") { started = true }.buttonStyle(.bigPrimary)
+                Button("Skip") { dismiss() }.buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
+                Button("Guess") { started = true }.buttonStyle(.wardPrimary)
             }
         } else {
             let nextTitle: String = index + 1 < questions.count ? "Next" : "Done"
             HStack(spacing: 12) {
-                Button("Skip") { dismiss() }.buttonStyle(.bigCompanion)
+                Button("Skip") { dismiss() }.buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 Button(nextTitle) {
                     picked = nil
                     index += 1
                 }
-                .buttonStyle(.bigPrimary)
+                .buttonStyle(.wardPrimary)
                 .disabled(picked == nil)
             }
         }

@@ -45,7 +45,7 @@ struct NarrateAudioBar: View {
                            player.seek(to: held)
                        }
                    })
-                .tint(StudySetKind.narrate.tint)
+                .tint(Color.wardPrimary)
                 .accessibilityLabel("Position in the recording")
 
             HStack {
@@ -53,8 +53,9 @@ struct NarrateAudioBar: View {
                 Spacer()
                 Text(LectureAudio.clock(player.duration))
             }
-            .font(.subheadline.monospacedDigit())
-            .foregroundStyle(.secondary)
+            .font(.system(.subheadline, design: .monospaced))
+            .monospacedDigit()
+            .foregroundStyle(Color.wardInkSecondary)
             .accessibilityHidden(true)
         }
     }
@@ -101,6 +102,7 @@ struct NarrateAudioBar: View {
             }
         } label: {
             Text(shown)
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .monospacedDigit()
         }
         .buttonStyle(.bigCompanion)
@@ -135,11 +137,11 @@ struct TranscribingBanner: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ProgressView()
+            EcgLoader()
             VStack(alignment: .leading, spacing: 2) {
-                Text(message).font(.headline)
+                Text(message).font(.headline).foregroundStyle(Color.wardInk)
                 Text(whereLine)
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 0)
         }

@@ -21,7 +21,7 @@ struct ExamPickerView: View {
                 Section {
                     Text("Questions, study plan, coverage map and mock papers will follow its format and blueprint. You can change it any time.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .listRowBackground(Color.clear)
                 }
             }
@@ -32,15 +32,16 @@ struct ExamPickerView: View {
                         row(exam)
                     }
                 }
+                .wardRowBackground()
             }
             Section {
                 Text("Formats and blueprints come from each exam's published outline; where an exam publishes no percentages the weights are our estimate and are marked approximate. Always check the official candidate guide.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle(isOnboarding ? "Which exam are you preparing for?" : "Your exam")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -78,6 +79,7 @@ struct ExamPickerView: View {
             } footer: {
                 Text("A second exam counts for 30% of what to study next and of a generated set's topics.")
             }
+            .wardRowBackground()
             .onAppear { choosingSecond = !secondary.isEmpty }
         }
     }
@@ -99,12 +101,12 @@ struct ExamPickerView: View {
         } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(exam.name).foregroundStyle(.primary)
-                    Text(detail).font(.caption).foregroundStyle(.secondary)
+                    Text(exam.name).foregroundStyle(Color.wardInk)
+                    Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 8)
                 if chosen {
-                    Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
+                    Image(systemName: "checkmark").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
                 }
             }
             .frame(minHeight: 44)
@@ -173,12 +175,7 @@ struct ExamBadge: View {
 
     var body: some View {
         if let exam = ExamCatalog.exam(examId) {
-            Text(exam.shortName)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.tint)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.accentColor.opacity(0.14), in: Capsule())
+            WardChip(text: exam.shortName, tone: .blue)
                 .fixedSize()
                 .accessibilityLabel("Written for \(exam.name)")
         }

@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// "Undo" for a few seconds after each rating: a small glass capsule, the same
-/// material as the floating switcher, at the top corner of the card. It is
-/// shown by a timestamp rather than an animation, so nothing runs while it
-/// waits; it simply goes when the time is up or the next card is rated.
+/// "Undo" for a few seconds after each rating: a small Clean Sheet capsule
+/// with a hairline edge, raised by the one shadow, at the top corner of the
+/// card. It is shown by a timestamp rather than an animation, so nothing runs
+/// while it waits; it simply goes when the time is up or the next card is
+/// rated.
 struct ReviewUndoChip: View {
     let action: () -> Void
 
@@ -11,12 +12,18 @@ struct ReviewUndoChip: View {
         Button(action: action) {
             Label("Undo", systemImage: "arrow.uturn.backward")
                 .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.wardPrimaryInk)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .background(Color.wardSurface, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+                .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .popOut(.floating, in: Capsule())
+        .buttonStyle(.pressableRow)
+        .wardShadow()
+        .contentShape(.hoverEffect, Capsule())
+        .hoverEffect(.highlight)
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
         .accessibilityLabel("Undo last rating")

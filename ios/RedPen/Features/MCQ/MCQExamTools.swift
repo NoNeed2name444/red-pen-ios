@@ -254,13 +254,16 @@ struct CalculatorSheet: View {
         NavigationStack {
             VStack(spacing: 14) {
                 Text(calc.display)
-                    .font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 44, weight: .semibold, design: .monospaced).monospacedDigit())
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(Color.wardSurface, in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+                        .strokeBorder(Color.wardHairline, lineWidth: 1))
                     .accessibilityLabel("Display, \(calc.display)")
                 LazyVGrid(columns: columns, spacing: 10) {
                     Group {
@@ -287,6 +290,8 @@ struct CalculatorSheet: View {
             }
             .padding(16)
             .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .wardScreen()
             .navigationTitle("Calculator")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -318,17 +323,19 @@ struct CalculatorSheet: View {
             Color.clear.frame(minHeight: 56)
         } else {
             let fill: Color = Self.fill(role)
-            let ink: Color = role == .equals ? Color.white : Color.primary
-            let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+            let ink: Color = Self.ink(role)
+            let edge: Color = role == .equals ? Color.clear : Color.wardHairline
+            let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
             Button {
                 UISelectionFeedbackGenerator().selectionChanged()
                 action()
             } label: {
                 Text(title)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(.title2, design: .monospaced).weight(.semibold))
                     .foregroundStyle(ink)
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .background(fill, in: shape)
+                    .overlay(shape.strokeBorder(edge, lineWidth: 1))
                     .contentShape(shape)
             }
             .buttonStyle(PopPressStyle(plane: .raised, shape: shape))
@@ -337,10 +344,18 @@ struct CalculatorSheet: View {
 
     private static func fill(_ role: KeyRole) -> Color {
         switch role {
-        case .digit, .blank: return Color.primary.opacity(0.07)
-        case .function: return Color.primary.opacity(0.14)
-        case .op: return Color.accentColor.opacity(0.2)
-        case .equals: return Color.accentColor
+        case .digit, .blank: return Color.wardSurface
+        case .function: return Color.wardBackground
+        case .op: return Color.wardPrimary.opacity(0.12)
+        case .equals: return Color.wardPrimary
+        }
+    }
+
+    private static func ink(_ role: KeyRole) -> Color {
+        switch role {
+        case .equals: return Color.wardOnPrimary
+        case .op: return Color.wardPrimaryInk
+        case .digit, .function, .blank: return Color.wardInk
         }
     }
 }

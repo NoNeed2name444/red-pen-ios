@@ -145,7 +145,8 @@ struct MockSittingView: View {
         } else if onBreak {
             breakScreen
         } else if picks.isEmpty {
-            ContentUnavailableView("No questions", systemImage: "questionmark.square.dashed")
+            WardEmptyState(symbol: "questionmark.square.dashed", title: "No questions", tone: .grey)
+                .frame(maxHeight: .infinity)
         } else {
             VStack(spacing: 0) {
                 header
@@ -211,19 +212,13 @@ struct MockSittingView: View {
         return parts.joined(separator: " \u{00B7} ")
     }
 
+    /// The section's clock: Resus Red for the last five minutes.
     private func clock(_ ends: Date) -> some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let left: Int = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
-            let ink: Color = left <= 300 ? Color.red : Color.primary
-            Label(Self.clockText(left), systemImage: "timer")
-                .labelStyle(.titleAndIcon)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(ink)
+            WardTimerPill(seconds: left, warnBelow: 301)
                 .accessibilityLabel("\(left / 60) minutes left in this section")
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 36)
-        .liquidGlassChip(plane: .raised)
     }
 
     static func clockText(_ seconds: Int) -> String {
@@ -267,8 +262,7 @@ struct MockSittingView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
                 Text("Pick the one best answer")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.tint)
+                    .wardSmallCaps()
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Button {
@@ -277,19 +271,14 @@ struct MockSittingView: View {
                 } label: {
                     Label(on ? "Flagged" : "Flag", systemImage: on ? "flag.fill" : "flag")
                         .labelStyle(.titleAndIcon)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(on ? Color.orange : Color.secondary)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 44)
-                        .background(Color.primary.opacity(0.06), in: Capsule())
-                        .contentShape(Capsule())
                 }
-                .buttonStyle(PopPressStyle(plane: .raised, shape: Capsule()))
+                .buttonStyle(WardChipButtonStyle(on: on, tone: .warning))
                 .accessibilityLabel(on ? "Remove flag" : "Flag for review")
             }
             HighlightableStem(stem: q.stem, plain: AttributedString(q.stem), marked: marked,
                               highlighting: highlighting)
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
             if let image = questionImage {
                 Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220)
@@ -321,44 +310,25 @@ struct MockSittingView: View {
         return q.options[i]
     }
 
+    /// One option as a Ward row (WardOptionRow): Theatre Blue once chosen,
+    /// and nothing about right or wrong until the end.
     private func optionRow(_ slot: Int) -> some View {
         let id: UUID = q.id
         let orig: Int? = original(slot)
         let chosen: Bool = orig != nil && selected[id] == orig
         let crossed: Set<Int> = struck[id] ?? []
         let out: Bool = orig.map { (o: Int) -> Bool in crossed.contains(o) } ?? false
-        let tint: Color = StudySetKind.mcq.tint
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        let fill: Color = chosen ? tint.opacity(0.10) : Color(.secondarySystemGroupedBackground)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let letter: String = String(Character(Unicode.Scalar(UInt8(65 + min(slot, 25)))))
-        let plane: PopOutPlane = chosen ? .raised : .screen
+        let mark: ChartQuiz.Mark = chosen ? .chosen : .idle
         return Button {
             guard !out, let orig else { return }
             UISelectionFeedbackGenerator().selectionChanged()
             withAnimation(.snappy(duration: 0.2)) { selected[id] = orig }
         } label: {
-            HStack(spacing: 12) {
-                Text(letter)
-                    .font(.body.weight(.bold).monospaced())
-                    .foregroundStyle(chosen ? Color.white : Color.primary)
-                    .frame(width: 32, height: 32)
-                    .background(chosen ? tint : Color.primary.opacity(0.07), in: Circle())
-                    .accessibilityHidden(true)
-                Text(optionText(slot))
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .strikethrough(out, color: .secondary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minHeight: 56)
-            .background(fill, in: shape)
-            .overlay(shape.strokeBorder(chosen ? tint : Color.clear, lineWidth: 1.5))
-            .opacity(out ? 0.45 : 1)
+            WardOptionRow(letter: letter, text: optionText(slot), mark: mark, struck: out)
         }
-        .buttonStyle(PopPressStyle(plane: plane, shape: shape))
+        .buttonStyle(.pressableRow)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)
         .numberKey(slot + 1)
@@ -451,6 +421,7 @@ struct MockSittingView: View {
                 }
                 .padding(16)
             }
+            .wardScreen()
             .navigationTitle(spec.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -467,8 +438,8 @@ struct MockSittingView: View {
         let answered: Bool = selected[id] != nil
         let marked: Bool = flagged.contains(id)
         let here: Bool = i == current
-        let tint: Color = StudySetKind.mcq.tint
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let tint: Color = Color.wardPrimary
+        let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         let state: String = (answered ? "answered" : "unanswered") + (marked ? ", flagged" : "")
         return Button {
             go(to: i)
@@ -476,15 +447,17 @@ struct MockSittingView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Text("\(i + 1)")
-                    .font(.body.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(answered ? Color.white : Color.primary)
+                    .font(.system(.body, design: .monospaced).weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(answered ? Color.wardOnPrimary : Color.wardInk)
                     .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(answered ? tint : Color.primary.opacity(0.07), in: shape)
-                    .overlay(shape.strokeBorder(here ? Color.primary : Color.clear, lineWidth: 2))
+                    .background(answered ? tint : Color.wardSurface, in: shape)
+                    .overlay(shape.strokeBorder(answered ? Color.clear : Color.wardHairline, lineWidth: 1))
+                    .overlay(shape.strokeBorder(here ? Color.wardInk : Color.clear, lineWidth: 2))
                 if marked {
                     Image(systemName: "flag.fill")
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(answered ? Color.wardOnPrimary : Color.wardWarning)
                         .padding(4)
                 }
             }

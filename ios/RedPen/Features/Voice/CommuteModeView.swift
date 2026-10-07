@@ -21,6 +21,10 @@ struct CommuteModeView: View {
     @State private var chosenSets: Set<UUID> = []
     @State private var perSet = 10
     @State private var confirmNewList = false
+    /// Time spent playing this list: what earlier runs banked, and when the
+    /// current run began. Paused time is not counted.
+    @State private var banked: TimeInterval = 0
+    @State private var runningSince: Date?
     /// Read by VoiceSpeaker everywhere the app speaks, not only here.
     @AppStorage(CloudVoiceSetting.key) private var naturalVoice = true
 
@@ -30,6 +34,14 @@ struct CommuteModeView: View {
                 setupScreen
             } else {
                 player
+            }
+        }
+        .onChange(of: session.running) { _, now in
+            if now {
+                runningSince = Date()
+            } else if let since = runningSince {
+                banked += Date().timeIntervalSince(since)
+                runningSince = nil
             }
         }
         .modeScreen(.anki)
@@ -89,7 +101,7 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Cards due today")
                         Text(dueLine(due: due, stand: stand))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             } header: {
@@ -110,11 +122,11 @@ struct CommuteModeView: View {
                 } label: {
                     Label("Explain it back", systemImage: "person.wave.2")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardPrimaryInk)
                 }
             }
         }
-        .scrollContentBackground(.hidden)
+        .wardForm()
     }
 
     private func dueLine(due: [ReviewPlan.Due], stand: [ReviewPlan.Due]) -> String {
@@ -130,7 +142,7 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(set.name).lineLimit(2)
                         Text(questionCount(in: set))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
@@ -150,12 +162,12 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Natural cloud voice")
                         Text("A human-sounding voice, made online")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 Text(voiceNote)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             } label: {
                 CommuteVoiceLabel(natural: naturalVoice)
             }
@@ -223,6 +235,8 @@ struct CommuteModeView: View {
         let items: [CommuteSession.Item] = playlist(due: due)
         guard !items.isEmpty else { return }
         session.load(items, reviews: reviews)
+        banked = 0
+        runningSince = nil
         session.start()
     }
 
@@ -237,6 +251,10 @@ struct CommuteModeView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
             }
+
+            CommuteNowPlaying(session: session, banked: banked, runningSince: runningSince)
+                .padding(.horizontal, WardSpace.gutter)
+                .padding(.top, WardSpace.s)
 
             transcript
         }
@@ -280,7 +298,9 @@ struct CommuteModeView: View {
         ScrollViewReader { proxy in
             List {
                 ForEach(session.lines) { line in
-                    CommuteLineRow(line: line).id(line.id)
+                    CommuteLineRow(line: line)
+                        .id(line.id)
+                        .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
@@ -303,7 +323,7 @@ private struct CommuteStartBar: View {
         if !ready {
             Text("Turn on due cards or choose a question set.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity)
         }
         Button(action: start) {
@@ -349,11 +369,14 @@ private struct CommutePlayControls: View {
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(Color.wardOnPrimary)
                     .frame(width: 84, height: 84)
+                    .background(Color.wardPrimary, in: Circle())
+                    .contentShape(Circle())
             }
-            .buttonStyle(.glassProminent)
-            .buttonBorderShape(.circle)
-            .popOut(.hero, in: Circle())
+            .buttonStyle(.plain)
+            .wardShadow()
+            .contentShape(.hoverEffect, Circle())
             .hoverEffect(.lift)
             .keyboardShortcut(.space, modifiers: [])
             .accessibilityLabel(label)
@@ -386,8 +409,84 @@ private struct CommuteVoiceLabel: View {
             Label("Voice", systemImage: "speaker.wave.2")
             Spacer(minLength: 8)
             Text(chosen)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
+    }
+}
+
+/// The now-playing monitor: what is being asked, and the run's observations
+/// (time played, an estimate of the time left, the score) in SF Mono.
+private struct CommuteNowPlaying: View {
+    @ObservedObject var session: CommuteSession
+    let banked: TimeInterval
+    let runningSince: Date?
+
+    private var heading: String {
+        if session.finished { return "List finished" }
+        return session.running ? "Now playing" : "Paused"
+    }
+
+    private var title: String {
+        let at: Int = session.position
+        guard at < session.items.count else {
+            return "\(session.right) right of \(session.items.count)"
+        }
+        switch session.items[at] {
+        case .card(let due): return "Card \u{00B7} " + due.setName
+        case .question(_, let setName): return "Question \u{00B7} " + setName
+        }
+    }
+
+    var body: some View {
+        MonitorCard {
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text(heading).wardSmallCaps()
+                Text(title)
+                    .font(WardType.headline)
+                    .foregroundStyle(Color.wardInk)
+                    .lineLimit(2)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    readings(at: context.date)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func readings(at now: Date) -> some View {
+        let current: TimeInterval = runningSince.map { max(0, now.timeIntervalSince($0)) } ?? 0
+        let elapsed: Int = Int(banked + current)
+        let done: Int = session.position
+        let left: String = done > 0 ? "~" + Self.clock(elapsed * session.remaining / done) : "\u{2014}"
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: WardSpace.l) {
+                times(elapsed: elapsed, left: left)
+                counts
+            }
+            VStack(alignment: .leading, spacing: WardSpace.s) {
+                HStack(alignment: .top, spacing: WardSpace.l) { times(elapsed: elapsed, left: left) }
+                HStack(alignment: .top, spacing: WardSpace.l) { counts }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func times(elapsed: Int, left: String) -> some View {
+        ObsValue(label: "Elapsed", value: Self.clock(elapsed))
+        ObsValue(label: "Time left", value: left)
+    }
+
+    @ViewBuilder
+    private var counts: some View {
+        ObsValue(label: "To go", value: "\(session.remaining)")
+        ObsValue(label: "Right", value: "\(session.right)")
+        ObsValue(label: "Wrong", value: "\(session.wrong)")
+    }
+
+    private static func clock(_ seconds: Int) -> String {
+        let h: Int = seconds / 3600
+        if h > 0 { return String(format: "%d:%02d:%02d", h, seconds % 3600 / 60, seconds % 60) }
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
 
@@ -398,18 +497,18 @@ private struct CommuteLineRow: View {
     var body: some View {
         switch line.kind {
         case .app:
-            Text(line.text).font(.callout)
+            Text(line.text).font(.callout).foregroundStyle(Color.wardInk)
         case .you:
             Label(line.text, systemImage: "mic.fill")
-                .font(.callout.italic()).foregroundStyle(.tint)
+                .font(.callout.italic()).foregroundStyle(Color.wardPrimaryInk)
         case .right:
             Label(line.text, systemImage: "checkmark.circle.fill")
-                .font(.callout).foregroundStyle(.green)
+                .font(.callout).foregroundStyle(Color.wardSuccess)
         case .wrong:
             Label(line.text, systemImage: "xmark.circle.fill")
-                .font(.callout).foregroundStyle(.red)
+                .font(.callout).foregroundStyle(Color.wardDanger)
         case .note:
-            Text(line.text).font(.caption).foregroundStyle(.secondary)
+            Text(line.text).font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
     }
 }
@@ -429,7 +528,7 @@ private struct CommuteHeard: View {
                     .truncationMode(.head)
             }
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
         }

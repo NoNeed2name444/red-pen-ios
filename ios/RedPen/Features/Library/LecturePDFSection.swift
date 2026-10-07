@@ -99,24 +99,24 @@ struct LecturePDFSection: View {
 
     private var fileSection: some View {
         Section {
-            // raised, but second to the dock's Next
+            // second to the dock's Next
             Button { picking = true } label: {
                 HStack {
-                    if reading { ProgressView().controlSize(.small) }
+                    if reading { EcgLoader() }
                     Label(pickTitle, systemImage: "doc.badge.plus")
                 }
             }
-            .buttonStyle(.bigSecondary)
+            .buttonStyle(.wardSecondary)
             .disabled(reading || disabled)
             .frame(maxWidth: .infinity)
 
             if let status {
-                Text(status).font(.caption).foregroundStyle(.secondary)
+                Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
 
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if !cards.isEmpty {
                 Button { confirmingPictures = true } label: {

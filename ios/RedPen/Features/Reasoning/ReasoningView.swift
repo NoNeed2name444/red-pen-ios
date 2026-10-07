@@ -28,12 +28,13 @@ struct ReasoningView: View {
             Section {
                 Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise telling lookalikes apart and holding a whole disease on one screen.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
             Section("Your sets") {
                 if found.isEmpty {
                     Text(emptyLine)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(found) { set in
                     NavigationLink {
@@ -44,6 +45,7 @@ struct ReasoningView: View {
                     .hoverEffect(.highlight)
                 }
             }
+            .wardRowBackground()
             // below the student's own sets: their work comes first
             if PersonalBuild.isOn {
                 Section("Examples") {
@@ -54,10 +56,10 @@ struct ReasoningView: View {
                     }
                     .hoverEffect(.highlight)
                 }
+                .wardRowBackground()
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("Reasoning")
         .searchable(text: $query, prompt: "Find a set")
         .generationHUD()
@@ -68,23 +70,23 @@ struct ReasoningView: View {
         let anyMade: Bool = ReasoningTool.allCases.contains { tool in pack.count(of: tool) > 0 }
         let counts: String = "\(pack.count(of: .duels)) duels \u{00B7} \(pack.count(of: .scripts)) scripts"
         return VStack(alignment: .leading, spacing: 3) {
-            Text(set.name).font(.body.weight(.medium)).lineLimit(2)
+            Text(set.name).font(.body.weight(.medium)).foregroundStyle(Color.wardInk).lineLimit(2)
             HStack(spacing: 10) {
                 Text(set.subject).lineLimit(1)
                 if anyMade {
                     Text(counts)
+                        .font(.system(.caption, design: .monospaced))
                         .monospacedDigit()
                 }
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, 2)
     }
 }
 
-/// The two tools for one set: two tiles that stand out of the glass,
-/// stacked under the thumb on a phone and side by side on a wide iPad.
+/// The two tools for one set: two white tiles, stacked under the thumb on a phone and side by side on a wide iPad.
 ///
 /// It measures its own width rather than trusting the window's: it is also
 /// opened in a sheet (the library row's menu), which on an iPad is far
@@ -127,19 +129,19 @@ private struct ReasoningSetBody: View {
                         } label: {
                             ReasoningToolTile(tool: tool, count: pack.count(of: tool), tall: broad)
                         }
-                        .buttonStyle(.popTile)
+                        .buttonStyle(.plain)
                     }
                 }
                 Text(footnote)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .padding(.horizontal, 4)
             }
             .padding(16)
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
         }
-        .background(LibraryBackdrop())
+        .wardScreen()
         .navigationTitle(set.name)
         .navigationBarTitleDisplayMode(.inline)
         .generationHUD()
@@ -169,34 +171,35 @@ private struct ReasoningToolTile: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         let minHeight: CGFloat = tall ? 132 : 76
         HStack(alignment: .center, spacing: 14) {
-            Image(systemName: tool.symbol)
-                .font(.title2)
-                .foregroundStyle(.tint)
-                .frame(width: 36)
-                .accessibilityHidden(true)
+            WardIconSquare(symbol: tool.symbol, tone: .blue)
             VStack(alignment: .leading, spacing: 3) {
                 Text(tool.title)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                 Text(line)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
         .multilineTextAlignment(.leading)
         .padding(16)
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
-        .background(.regularMaterial, in: shape)
+        .background(Color.wardSurface, in: shape)
+        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .contentShape(shape)
+        .wardShadow()
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.highlight)
     }
 }
 
@@ -231,9 +234,7 @@ struct ReasoningWriteBar: View {
                     idleRow
                 }
                 if let why = reasoning.trouble[ReasoningStore.troubleKey(tool, set.id)] {
-                    Text(why)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: why)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -259,7 +260,7 @@ struct ReasoningWriteBar: View {
             } label: {
                 Label(writeTitle, systemImage: "sparkles")
             }
-            .buttonStyle(.bigPrimary)
+            .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
             .disabled(reasoning.writing != nil)
             .accessibilityHint("Writes \(counted(count)) from this set")
@@ -276,16 +277,18 @@ struct ReasoningWriteBar: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(job.title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
-                ThinProgress(fraction: job.fraction)
+                EcgStrip(progress: job.fraction)
                 Text(done)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.system(.caption, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .accessibilityElement(children: .combine)
             Spacer(minLength: 8)
             Button("Stop", role: .destructive) { center.cancel() }
-                .buttonStyle(.bigCompanion)
+                .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 .keyboardShortcut(.cancelAction)
                 .accessibilityHint("Stops what is being written")
         }
@@ -305,10 +308,9 @@ private struct ReasoningCountMenu: View {
     let label: String
     let options: [ReasoningCountOption]
     let writer: String?
-    @Environment(\.modeTint) private var tint
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         Menu {
             Picker("How many", selection: $count) {
                 ForEach(options) { option in
@@ -327,14 +329,13 @@ private struct ReasoningCountMenu: View {
                     .accessibilityHidden(true)
             }
             .font(.headline)
-            .foregroundStyle(tint)
+            .foregroundStyle(Color.wardPrimaryInk)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(minWidth: 56, minHeight: 56)
-            .background(tint.opacity(0.14), in: shape)
-            .overlay(shape.strokeBorder(tint.opacity(0.35), lineWidth: 1))
+            .background(Color.wardSurface, in: shape)
+            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
             .contentShape(shape)
-            .popOut(.raised, in: shape)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.lift)
         }
@@ -411,7 +412,7 @@ private struct ReasoningSheet: View {
                     }
                 }
         }
-        .tint(Color.accentColor)
+        .tint(Color.wardPrimary)
         .measuringWindow()
     }
 }

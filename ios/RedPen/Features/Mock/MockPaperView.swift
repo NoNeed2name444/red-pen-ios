@@ -69,26 +69,25 @@ struct MockPaperView: View {
         return VStack(alignment: .leading, spacing: 10) {
             Text("\(save.title), unfinished")
                 .font(.headline)
+                .foregroundStyle(Color.wardInk)
             Text("\(save.answered) of \(save.total) answered, \(part). The clock waits until you go back.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
             HStack(spacing: 12) {
                 Button {
                     resume(save)
                 } label: {
                     Label("Resume", systemImage: "play.fill")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
                 Button("Discard", role: .destructive) {
                     MockSittingStore.clear()
                     saved = nil
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.wardCompact)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .wardCard()
     }
 
     /// The saved sitting, with its questions found again in the library. A
@@ -113,7 +112,7 @@ struct MockPaperView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text(exam)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
             Text("Sit it like the real thing: the paper\u{2019}s length and clock, and nothing about right or wrong until the end.")
                 .font(.body)
         }
@@ -150,7 +149,8 @@ struct MockPaperView: View {
             }
             let length: String = "\(paper.questionCount) questions \u{00B7} \(Self.hours(paper.minutes))"
             Label(length, systemImage: "timer")
-                .font(.subheadline.weight(.semibold))
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .monospacedDigit()
             Text(paper.note)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -164,12 +164,8 @@ struct MockPaperView: View {
     private func libraryNote(_ available: Int) -> some View {
         let wanted: Int = paper.questionCount
         if available < MockAssembler.minimumQuestions {
-            Label("A mock needs at least \(MockAssembler.minimumQuestions) questions in your library. Make a question set first.",
-                  systemImage: "exclamationmark.circle")
-                .font(.subheadline)
-                .foregroundStyle(.orange)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentCard()
+            WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill",
+                       text: "A mock needs at least \(MockAssembler.minimumQuestions) questions in your library. Make a question set first.")
         } else if available < wanted {
             let sections: [MockSectionSpec] = MockAssembler.fitted(paper.sections, to: available)
             Label(MockAssembler.shortfall(have: available, spec: paper, sections: sections),
@@ -197,7 +193,7 @@ struct MockPaperView: View {
             "Your score, by subject, comes at the end with every answer explained."
         ]
         return VStack(alignment: .leading, spacing: 8) {
-            Text("How it runs").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            WardSectionLabel("How it runs")
             ForEach(lines, id: \.self) { line in
                 Label(line, systemImage: "checkmark")
                     .font(.subheadline)
@@ -209,7 +205,7 @@ struct MockPaperView: View {
 
     private var history: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Past sittings").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            WardSectionLabel("Past sittings")
             ForEach(exams.mocks.prefix(6)) { record in
                 historyRow(record)
             }
@@ -225,13 +221,18 @@ struct MockPaperView: View {
         let detail: String = "\(record.correct) of \(record.total) \u{00B7} \(when)"
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.title).font(.body)
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(record.title).font(.body).foregroundStyle(Color.wardInk)
+                Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
+            let tone: Color = passed ? Color.wardSuccess : Color.wardWarning
+            Image(systemName: passed ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .foregroundStyle(tone)
+                .accessibilityLabel(passed ? "Above the pass mark" : "Below the pass mark")
             Text("\(percent)%")
-                .font(.headline.monospacedDigit())
-                .foregroundStyle(passed ? Color.green : Color.orange)
+                .font(WardType.obs.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(tone)
         }
         .accessibilityElement(children: .combine)
     }

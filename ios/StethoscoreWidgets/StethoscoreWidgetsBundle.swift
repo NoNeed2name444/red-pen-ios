@@ -17,5 +17,6 @@ struct StethoscoreWidgetsBundle: WidgetBundle {
         TodayStreakWidget()
         ReviewDueControl()
         ExamDayLiveActivity()
+        WardRoundLiveActivity()
     }
 }
