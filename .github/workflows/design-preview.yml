@@ -341,9 +341,19 @@ jobs:
 
           git init -q && git checkout -q -b design-preview
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Keep the previous preview as this commit's parent. Only a missing
+          # target starts a new history; a remote error must stop publication.
+          if git ls-remote --exit-code origin "refs/heads/$target" > /dev/null; then
+            git fetch -q --no-tags --depth=1 origin "refs/heads/$target"
+            git reset -q --soft FETCH_HEAD
+          else
+            status=$?
+            [ "$status" -eq 2 ] || exit "$status"
+          fi
           git add -A && git commit -q -m "design preview $GITHUB_RUN_ID"
           # preview/graph keeps its old home; any other preview/<name> lands on shots/<name>
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "design-preview:$target"
+          git push origin "design-preview:refs/heads/$target"
       - name: Every build and test passed
         env:
           SHOTS: ${{ needs.shots.result }}
