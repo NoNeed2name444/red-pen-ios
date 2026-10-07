@@ -4,16 +4,18 @@ import XCTest
 /// A picture of the whole screen, the right way up.
 ///
 /// An iPad on its side gives `app.screenshot()` back turned a quarter and
-/// cut short: the screen's own picture is still the upright tablet's, with
-/// the app drawn across it on its side, and the app's frame (now wider than
-/// tall) is cut out of that. So the screen's picture is taken whole and,
-/// when the app is on its side but the picture is not, turned to match.
-/// An iPhone app that stays upright while the phone is turned is left alone.
-func uprightShot(_ app: XCUIApplication) -> XCTAttachment {
+/// cut short, and the screen's own picture is still the upright tablet's,
+/// with the app drawn across it on its side. Neither the app's frame nor the
+/// picture says the app has turned (both stay upright), so the device's turn
+/// does: on an iPad held on its side the picture is turned to match. An
+/// iPhone app stays upright while the phone is turned, so its picture is
+/// left alone.
+func uprightShot() -> XCTAttachment {
     let screen: XCUIScreenshot = XCUIScreen.main.screenshot()
     let image: UIImage = screen.image
-    let wide: Bool = app.frame.width > app.frame.height
-    guard wide, image.size.height > image.size.width else {
+    let side: UIDeviceOrientation = XCUIDevice.shared.orientation
+    let onItsSide: Bool = UIDevice.current.userInterfaceIdiom == .pad && side.isLandscape
+    guard onItsSide, image.size.height > image.size.width else {
         return XCTAttachment(screenshot: screen)
     }
     let size = CGSize(width: image.size.height, height: image.size.width)
@@ -21,7 +23,7 @@ func uprightShot(_ app: XCUIApplication) -> XCTAttachment {
     format.scale = image.scale
     let turned: UIImage = UIGraphicsImageRenderer(size: size, format: format).image { context in
         let cg: CGContext = context.cgContext
-        if XCUIDevice.shared.orientation == .landscapeRight {
+        if side == .landscapeRight {
             // the app's top is at the picture's left: a quarter turn right
             cg.translateBy(x: size.width, y: 0)
             cg.rotate(by: .pi / 2)
