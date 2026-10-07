@@ -80,6 +80,17 @@ struct PendingSupport: Codable, Equatable, Identifiable {
 /// The queue itself. Oldest first; bounded; retried with a growing pause.
 struct SupportOutbox: Codable, Equatable {
     static let maxPending = 50
+
+    /// What to say when a message could not go yet. A device that started
+    /// without an account is not signed out: it sends once linked to one
+    /// (audit #31).
+    static func waitingNote(canSend: Bool, localOnly: Bool, app: String) -> String {
+        if canSend { return "Saved. It will be sent when you\u{2019}re back online." }
+        if localOnly {
+            return "Saved on this device. It will be sent once this device is linked to an account (Account \u{2192} Link another device)."
+        }
+        return "Saved. It will be sent once you\u{2019}re signed in to \(app)."
+    }
     /// An unsent message older than this is let go: by then it is stale.
     static let maxAge: TimeInterval = 30 * 86_400
     /// The longest pause between tries.

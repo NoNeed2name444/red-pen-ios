@@ -50,10 +50,8 @@ final class SupportSender: ObservableObject {
         await flush()
         let stillWaiting: Bool = outbox.pending.contains { $0.id == entry.id }
         guard stillWaiting else { return "Sent \u{2014} thank you." }
-        if LocalLLMService.shared.cloudToken == nil {
-            return "Saved. It will be sent once you\u{2019}re signed in to \(Brand.name)."
-        }
-        return "Saved. It will be sent when you\u{2019}re back online."
+        return SupportOutbox.waitingNote(canSend: LocalLLMService.shared.cloudToken != nil,
+                                         localOnly: LocalLLMService.shared.isLocalOnly, app: Brand.name)
     }
 
     /// Sends whatever is due. Quiet: nothing on screen depends on it.

@@ -5,7 +5,7 @@
 // but only a few a day: this is a way to reach a person, not a pipe.
 //
 // Routes (worker.js):
-//   POST /support/message   { topic, message, version? }   signed in
+//   POST /support/message   { topic, message, version? }   signed in, or owner key
 //   POST /support/messages  { limit? }                     owner key
 
 import { spend } from './ai.js';

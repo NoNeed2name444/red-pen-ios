@@ -208,7 +208,11 @@ export default {
         // the weights are not a secret: the app fetches them signed in or not
         case '/accuracy/model': return await modelWeights(env);
         // "Contact us" (support.js)
-        case '/support/message': return await guarded(request, env, id => supportMessage(env, id, body));
+        case '/support/message':
+          // the personal build's "Start without an account" has no session,
+          // only the owner key: its messages arrive too (audit #31)
+          if (isOwnerKey(request, env)) return await supportMessage(env, 'owner', body);
+          return await guarded(request, env, id => supportMessage(env, id, body));
         case '/support/messages':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
           return await listSupportMessages(env, body);
