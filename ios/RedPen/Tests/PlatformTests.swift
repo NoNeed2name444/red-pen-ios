@@ -49,6 +49,15 @@ for one in roundTrip {
 check("folded drops case, accents and punctuation",
       SubjectMatch.folded("  Cardiología: Heart-Failure! ") == "cardiologia heart failure",
       SubjectMatch.folded("  Cardiología: Heart-Failure! "))
+do {
+    let a = UUID(), b = UUID(), c = UUID()
+    // A run that was cancelled never confirmed b's rename or c's removal, so
+    // the next run still sends both.
+    let plan = SpotlightPlan.diff(confirmed: [a: "A|mcq|3", b: "B|mcq|2", c: "C|anki|9"],
+                                  now: [a: "A|mcq|3", b: "B2|mcq|2"])
+    check("spotlight resends unconfirmed changes", plan.changed == [b] && plan.gone == [c])
+    check("spotlight nothing to do", SpotlightPlan.diff(confirmed: [a: "x"], now: [a: "x"]).changed.isEmpty)
+}
 check("alias cardio", SubjectMatch.score(query: "cardio", candidate: "Cardiology") == 3)
 check("alias heart", SubjectMatch.score(query: "heart", candidate: "cardiology") == 3)
 check("US and UK spelling", SubjectMatch.score(query: "pediatrics", candidate: "Paediatrics") == 3)

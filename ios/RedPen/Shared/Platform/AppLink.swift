@@ -97,6 +97,19 @@ enum AppLink: Equatable {
     }
 }
 
+// MARK: - What Spotlight still needs
+
+/// Which sets to send to Spotlight again and which to take out, worked out
+/// from what Spotlight confirmed holding, not from what was last asked for:
+/// a run cut short by a newer one leaves its sets for the next run to send.
+enum SpotlightPlan {
+    static func diff(confirmed: [UUID: String], now: [UUID: String]) -> (changed: Set<UUID>, gone: [UUID]) {
+        let changed: Set<UUID> = Set(now.keys.filter { confirmed[$0] != now[$0] })
+        let gone: [UUID] = confirmed.keys.filter { now[$0] == nil }.sorted { $0.uuidString < $1.uuidString }
+        return (changed, gone)
+    }
+}
+
 // MARK: - "Quiz me on cardiology"
 
 /// Which sets a spoken subject means. People say "cardio", "heart" or
