@@ -110,3 +110,7 @@ A4-TOOLING | gpt-6.1-sol | high | DONE | scripts/prework.py; tests/test_prework.
 DELIVERY-PUSH | gpt-6-luna | low | DONE | docs/delivery.json; docs/prework-log.md | root pushed native import commits c450548→ecdd7cfdaf0ca482b32a423e271b8bb29da2617b and df98902→606f39bb6825f49d65e1a4268434206c81804035; later A4 and screenshot commits d22c603→c28e9345bac73ff55125ee0d2854491d2047eaf3 and 07d09ee→e9697b6b3c31f550754e20e14e446c3947de4d5d; Git API push used force=false and exact expected-head/tree checks
 
 HANDOFF | gpt-6-luna | low | DONE | HANDOFF.md; docs/prework-log.md; docs/delivery.json | AAHP v1.0 final handoff retains all nine sections and task statuses/routing; 1,140 text files across six pinned snapshots and 24 binary files recorded; tokenizer counts 779 o200k and 797 cl100k, both under 800; final handoff/log commit awaits root force=false push
+
+## Completion pass, 7 October 2026 (live provider calls excluded by user)
+
+B1 | gpt-6-luna | low | DONE (source screening); item ingestion pending | prework/medical-assistant/data/manifests/license-report.json; prework/medical-assistant/docs/license-evidence.md | authoritative catalog terms gathered for five sources; JSON validation passed; unknown and NC restrictions remain excluded; exact ingest items not supplied

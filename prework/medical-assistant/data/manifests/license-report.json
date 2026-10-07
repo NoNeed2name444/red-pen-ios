@@ -1,6 +1,7 @@
 {
-  "report_version": 1,
-  "purpose": "Pre-ETL license screening; user-declared source-level licenses are recorded separately from item-specific verification.",
+  "report_version": 2,
+  "purpose": "Pre-ETL license screening. Catalog-level terms are recorded separately from item-specific attestations; catalog evidence alone never makes an item eligible.",
+  "evidence_accessed": "2026-10-07",
   "policy": {
     "allowed": [
       {
@@ -33,46 +34,152 @@
       "source": "IDC",
       "id": "IDC",
       "declared_license": "CC-BY",
+      "catalog_evidence": [
+        {
+          "type": "official_portal_policy",
+          "url": "https://portal.imaging.datacommons.cancer.gov/",
+          "accessed": "2026-10-07",
+          "scope": "IDC portal; states the use basis is specific to individual datasets, not a single IDC-wide license.",
+          "quote": "based on the NCI Data Use Agreements specific to individual datasets",
+          "reported_license": null
+        },
+        {
+          "type": "official_collection_catalog_example",
+          "url": "https://portal.imaging.datacommons.cancer.gov/collections/4d_lung/",
+          "accessed": "2026-10-07",
+          "scope": "4D-Lung collection only; not a claim about all IDC collections.",
+          "quote": "based on the NCI Data Use Agreements specific to individual datasets",
+          "reported_license": null
+        }
+      ],
       "verified_license": null,
       "evidence": [],
       "status": "unknown",
-      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "source_license_heterogeneous"]
     },
     {
       "source": "NIH",
       "id": "NIH",
       "declared_license": "unrestricted",
+      "catalog_evidence": [
+        {
+          "type": "official_nih_website_copyright_faq",
+          "url": "https://www.nih.gov/about-nih/frequently-asked-questions",
+          "accessed": "2026-10-07",
+          "scope": "NIH.gov website materials only; not an NIH repository dataset license.",
+          "quote": "public Web sites within the NIH.GOV domain",
+          "reported_license": "Public domain statement for NIH.gov web content, with exceptions"
+        },
+        {
+          "type": "official_nih_grants_policy",
+          "url": "https://www.grants.nih.gov/grants/policy/nihgps/HTML5/section_8/8.2.1_rights_in_data__publication_and_copyrighting_.htm",
+          "accessed": "2026-10-07",
+          "scope": "Copyrightable works produced under NIH grants; award terms and item/source-specific conditions apply.",
+          "quote": "any publications, data, or other copyrightable works developed under an NIH grant may be copyrighted without NIH approval",
+          "reported_license": null
+        },
+        {
+          "type": "official_nih_controlled_access_terms",
+          "url": "https://www.grants.nih.gov/policy-and-compliance/policy-topics/sharing-policies/accessing-data/certification-agreement",
+          "accessed": "2026-10-07",
+          "scope": "NIH-designated controlled-access datasets covered by the NIH Genomic Data Sharing Policy.",
+          "quote": "terms of use for requested controlled-access datasets",
+          "reported_license": "Dataset-specific access and use agreement; not unrestricted"
+        }
+      ],
       "verified_license": null,
       "evidence": [],
       "status": "unknown",
-      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "scope_unverified"]
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "scope_unverified", "source_license_heterogeneous"]
     },
     {
       "source": "CBIS-DDSM",
       "id": "CBIS-DDSM",
       "declared_license": "CC-BY",
+      "catalog_evidence": [
+        {
+          "type": "official_dataset_collection_page",
+          "url": "https://www.cancerimagingarchive.net/collection/cbis-ddsm/",
+          "accessed": "2026-10-07",
+          "scope": "Named CBIS-DDSM collection entry; portal shows dataset metadata and license field.",
+          "quote": "CBIS-DDSM collection includes a subset of the DDSM data selected and curated by a trained mammographer.",
+          "reported_license": "Collection page exposes a License field; this field is catalog metadata, not an item attestation."
+        },
+        {
+          "type": "official_tcia_collection_usage_page",
+          "url": "https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=70223172",
+          "accessed": "2026-10-07",
+          "scope": "Named CBIS-DDSM collection only.",
+          "quote": "as outlined in the Creative Commons Attribution 3.0 Unported License",
+          "reported_license": "CC BY 3.0"
+        }
+      ],
       "verified_license": null,
       "evidence": [],
       "status": "unknown",
-      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "item_level_scope_unverified"]
     },
     {
       "source": "LibreTexts",
       "id": "LibreTexts",
       "declared_license": "CC BY 4.0",
+      "catalog_evidence": [
+        {
+          "type": "official_libretexts_book_license_report",
+          "url": "https://eng.libretexts.org/Bookshelves/Electrical_Engineering/Electronics/Embedded_Controllers_Using_C_and_Arduino_(Fiore)/00:_Front_Matter/04:_Licensing_Report",
+          "accessed": "2026-10-07",
+          "scope": "One LibreTexts book and its listed chapters only; illustrative of per-resource variation.",
+          "quote": "Embedded Controllers Using C and Arduino (Fiore) — CC BY-NC-SA 4.0",
+          "reported_license": "CC BY-NC-SA 4.0 for that book; rejected under project policy"
+        },
+        {
+          "type": "official_libretexts_resource_page",
+          "url": "https://eng.libretexts.org/Bookshelves/Civil_Engineering/Introduction_to_Design_Equity_(Miller)",
+          "accessed": "2026-10-07",
+          "scope": "One named book page only.",
+          "quote": "shared under a CC BY 4.0 license",
+          "reported_license": "CC BY 4.0 for that page"
+        }
+      ],
       "verified_license": null,
       "evidence": [],
       "status": "unknown",
-      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "source_license_heterogeneous"]
     },
     {
       "source": "Springer OA",
       "id": "Springer OA",
       "declared_license": "CC-BY",
+      "catalog_evidence": [
+        {
+          "type": "official_publisher_license_policy",
+          "url": "https://www.springernature.com/gp/open-science/policies/journal-policies/licensing-and-copyright",
+          "accessed": "2026-10-07",
+          "scope": "Publisher policy describes multiple OA license options; individual article and third-party material terms still require inspection.",
+          "quote": "Depending on the licence you choose for your publication, the rights that others have to share and reuse your work will vary.",
+          "reported_license": "Multiple Creative Commons license options; no universal CC BY claim"
+        },
+        {
+          "type": "official_springer_open_access_article_example",
+          "url": "https://link.springer.com/article/10.1007/s44578-026-00001-2",
+          "accessed": "2026-10-07",
+          "scope": "One named article only.",
+          "quote": "This article is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License",
+          "reported_license": "CC BY-NC-ND 4.0 for that article; rejected under project policy"
+        },
+        {
+          "type": "official_springer_open_access_article_example",
+          "url": "https://link.springer.com/article/10.1007/s11229-025-04976-x",
+          "accessed": "2026-10-07",
+          "scope": "One named article only; text and third-party material may have different terms as identified in credit lines.",
+          "quote": "This article is licensed under a Creative Commons Attribution 4.0 International License",
+          "reported_license": "CC BY 4.0 for that article subject to stated third-party material exclusions"
+        }
+      ],
       "verified_license": null,
       "evidence": [],
       "status": "unknown",
-      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing"]
+      "exclusion_flags": ["item_license_unverified", "item_specific_evidence_missing", "source_license_heterogeneous"]
     }
   ]
 }
