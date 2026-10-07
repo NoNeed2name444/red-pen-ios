@@ -34,8 +34,10 @@ enum WardTone {
 /// (Theatre Blue, Chart Ink, Resus Red), never a fill, and the primary
 /// stands a step higher; held, a button is pressed into the base; disabled,
 /// it sinks half away and goes Biro Grey, so "not yet" is unmistakable.
+/// Compact and quiet are the small 44-point ones for a card or a panel:
+/// compact says its word in Theatre Blue, quiet in Chart Ink.
 struct WardButtonStyle: ButtonStyle {
-    enum Kind { case primary, secondary, destructive, compact }
+    enum Kind { case primary, secondary, destructive, compact, quiet }
     var kind: Kind = .primary
     var fills = true
 
@@ -57,7 +59,7 @@ private struct WardButtonFace: View {
         if !enabled { return .wardInkSecondary }
         switch kind {
         case .primary, .compact: return .wardPrimaryInk
-        case .secondary: return .wardInk
+        case .secondary, .quiet: return .wardInk
         case .destructive: return .wardDanger
         }
     }
@@ -65,16 +67,17 @@ private struct WardButtonFace: View {
         switch kind {
         case .primary: return .headline.weight(.bold)
         case .secondary, .destructive: return .headline
-        case .compact: return .subheadline.weight(.semibold)
+        case .compact, .quiet: return .subheadline.weight(.semibold)
         }
     }
+    private var small: Bool { kind == .compact || kind == .quiet }
     private var maxWidth: CGFloat? {
-        if !fills || kind == .compact { return nil }
+        if !fills || small { return nil }
         return span == .broad ? 360 : .infinity
     }
 
     var body: some View {
-        let compact: Bool = kind == .compact
+        let compact: Bool = small
         let height: CGFloat = compact ? 44 : 56
         let shape = RoundedRectangle(cornerRadius: height / 2, style: .continuous)
         // the one main button stands a step higher than the rest
@@ -105,6 +108,107 @@ extension ButtonStyle where Self == WardButtonStyle {
     static var wardSecondary: WardButtonStyle { WardButtonStyle(kind: .secondary) }
     static var wardDestructive: WardButtonStyle { WardButtonStyle(kind: .destructive) }
     static var wardCompact: WardButtonStyle { WardButtonStyle(kind: .compact) }
+    static var wardQuiet: WardButtonStyle { WardButtonStyle(kind: .quiet) }
+}
+
+/// A chip that is a button (Sure / Maybe / Guess, why, Flag, Hint, Timed, a
+/// choice on the map): WardChip's capsule, raised just off the base, with a
+/// 44-point target. Chosen, or held, it is pressed in; chosen, its words
+/// take `tone` (Theatre Blue when it has none). Never a fill.
+struct WardChipButtonStyle: ButtonStyle {
+    var on = false
+    var tone: WardTone?
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardChipButtonFace(label: configuration.label, pressed: configuration.isPressed, on: on, tone: tone)
+    }
+}
+
+private struct WardChipButtonFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let on: Bool
+    let tone: WardTone?
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var ink: Color {
+        if !enabled { return .wardInkSecondary }
+        if on { return tone?.ink ?? .wardPrimaryInk }
+        return .wardInk
+    }
+
+    var body: some View {
+        let down: Bool = on || pressed
+        label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background {
+                if enabled {
+                    WardReliefFace(shape: Capsule(), lift: .low, inset: down)
+                } else {
+                    WardReliefFace(shape: Capsule(), lift: .low).opacity(0.5)
+                }
+            }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
+            .contentShape(.hoverEffect, Capsule())
+            .hoverEffect(.highlight)
+    }
+}
+
+/// A round button for a glyph (a stepper's minus and plus, a send arrow): a
+/// soft circle raised off the base, 44 points across, the glyph in Chart
+/// Ink. Chosen, or held, it is pressed in a lift nearer the base; chosen,
+/// the glyph is Theatre Blue. Never a fill.
+struct WardCircleButtonStyle: ButtonStyle {
+    var on = false
+    var lift: WardLift = .low
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardCircleButtonFace(label: configuration.label, pressed: configuration.isPressed, on: on, lift: lift)
+    }
+}
+
+private struct WardCircleButtonFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let on: Bool
+    let lift: WardLift
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var ink: Color {
+        if !enabled { return .wardInkSecondary }
+        if on { return .wardPrimaryInk }
+        return .wardInk
+    }
+
+    var body: some View {
+        let down: Bool = on || pressed
+        label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(ink)
+            .frame(minWidth: 44, minHeight: 44)
+            .background {
+                if enabled {
+                    WardReliefFace(shape: Circle(), lift: down ? lift.lower : lift, inset: down)
+                } else {
+                    WardReliefFace(shape: Circle(), lift: .low).opacity(0.5)
+                }
+            }
+            .contentShape(Circle())
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
+            .contentShape(.hoverEffect, Circle())
+            .hoverEffect(.highlight)
+    }
+}
+
+extension ButtonStyle where Self == WardCircleButtonStyle {
+    static var wardCircle: WardCircleButtonStyle { WardCircleButtonStyle() }
 }
 
 /// A status chip ("Due", "New", "Weak"): the tone's words in a capsule

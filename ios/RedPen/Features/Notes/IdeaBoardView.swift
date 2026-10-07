@@ -15,9 +15,11 @@ import SwiftUI
 ///   at once;
 /// - double-tap empty space to put a new idea exactly there.
 ///
-/// Cards are tinted, faintly, by the folder they belong to. They lie flat on
-/// the chart paper; the one being dragged, or starting a connection, grows a
-/// little and is drawn over every other card.
+/// Cards are tinted, faintly, by the folder they belong to. They stand just
+/// off the base; the one being dragged, or starting a connection, rises
+/// higher (and, without Reduce Motion, grows a little) and is drawn over
+/// every other card; the one starting a connection is ringed in Theatre
+/// Blue.
 ///
 /// The canvas runs on under the bottom glass, but its middle - where the
 /// board's origin sits - is the middle of the part that is not under glass.
@@ -48,6 +50,7 @@ struct IdeaBoardView: View {
     @State private var underGlass: CGFloat = 0
     /// Once the board has been dragged or pinched, it stays where it was put.
     @State private var moved = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Where a new idea was asked for, in board points.
     struct BoardSpot: Identifiable {
@@ -77,11 +80,11 @@ struct IdeaBoardView: View {
             }
         }
         .ideaTools {
-            IdeaToolButton(symbol: "scope", label: "Back to the middle", ward: true) {
+            IdeaToolButton(symbol: "scope", label: "Back to the middle") {
                 moved = false
                 withAnimation(.snappy) { fitAll() }
             }
-            IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting, ward: true) {
+            IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting) {
                 connecting.toggle()
                 source = nil
             }
@@ -188,9 +191,7 @@ struct IdeaBoardView: View {
         let chosen: Bool = source == note.id
         // a card being dragged or starting a connection rises off the board
         let lifted: Bool = dragged == note.id || chosen
-        let grow: CGFloat = lifted ? 1.04 : 1
-        let ring: Color = chosen ? Color.wardPrimary : tone.opacity(0.4)
-        let ringWidth: CGFloat = chosen ? 2 : 1
+        let grow: CGFloat = lifted && !reduceMotion ? 1.04 : 1
         let wash: Color = tone.opacity(0.14)
         let place: String = notes.folder(note.folderId)?.name ?? note.kind.label
         let title: String = note.title.isEmpty ? "Untitled" : note.title
@@ -212,17 +213,17 @@ struct IdeaBoardView: View {
         .padding(10)
         .frame(width: Self.cardWidth, alignment: .leading)
         .background {
+            // the folder's faint wash on the card's own relief
             ZStack {
-                shape.fill(Color.wardSurface)
+                WardReliefFace(shape: shape, lift: lifted ? .high : .low)
                 shape.fill(wash)
             }
         }
         .overlay {
-            shape.strokeBorder(ring, lineWidth: ringWidth)
+            if chosen { shape.strokeBorder(Color.wardPrimaryInk, lineWidth: 2) }
         }
         .scaleEffect(grow)
-        .wardShadow()
-        .animation(.snappy(duration: 0.2), value: lifted)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: lifted)
         .contentShape(shape)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.lift)
@@ -271,9 +272,7 @@ struct IdeaBoardView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .foregroundStyle(Color.wardPrimaryInk)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: Capsule(), lift: .high)
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }

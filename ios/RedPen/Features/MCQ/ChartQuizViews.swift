@@ -1,36 +1,9 @@
 import SwiftUI
 
 // The Ward Round question screen's pieces (docs/design/targets-2026-10-01.md
-// §1): chips that are buttons, the option row, and the chart's chips, vitals
-// grid and results table. What each shows is decided, and tested, in ChartQuiz.
-
-/// A chip that is a button (Sure / Maybe / Guess, why, Flag, Hint, Timed):
-/// WardChip's capsule with a 44-point target. Chosen, it fills Theatre Blue,
-/// or lights in `tone` when it has one.
-struct WardChipButtonStyle: ButtonStyle {
-    var on = false
-    var tone: WardTone?
-
-    private var ink: Color { on ? (tone?.color ?? .wardOnPrimary) : .wardInk }
-    private var fill: Color { on ? (tone?.color.opacity(0.14) ?? .wardPrimary) : Color.wardInkSecondary.opacity(0.10) }
-
-    func makeBody(configuration: Configuration) -> some View {
-        let pressed: Bool = configuration.isPressed
-        return configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(ink)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(fill, in: Capsule())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
-            .scaleEffect(pressed ? 0.96 : 1)
-            .opacity(pressed ? 0.85 : 1)
-            .animation(.snappy(duration: 0.2), value: pressed)
-            .contentShape(.hoverEffect, Capsule())
-            .hoverEffect(.highlight)
-    }
-}
+// §1): the option row, and the chart's chips, vitals grid and results table;
+// its chips that are buttons are WardChipButtonStyle (WardControls). What
+// each shows is decided, and tested, in ChartQuiz.
 
 /// An answer option as a rounded row: its letter in a circle, then its text.
 /// Chosen, Theatre Blue; once checked, the right one Discharge Green with a

@@ -452,8 +452,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 
 // MARK: - The pieces on screen
 
-/// One feature, as a tile: a Clean Sheet card with the symbol in a soft
-/// square of its colour, a name and one line.
+/// One feature, as a tile: a soft card raised off the base, the symbol in
+/// its colour in a small well pressed into it, a name and one line.
 struct FeatureTile: View {
     let feature: CategoryFeature
     let tint: Color
@@ -468,7 +468,7 @@ struct FeatureTile: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 36, height: 36)
-                .background(tint.opacity(0.12), in: square)
+                .wardInset(in: square)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.title)
@@ -485,9 +485,7 @@ struct FeatureTile: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape)
         .contentShape(shape)
         .accessibilityElement(children: .combine)
     }
@@ -521,8 +519,8 @@ enum IdeasPlace {
 }
 
 /// The floating dock: the four categories, each a symbol over its name, on
-/// one Clean Sheet panel with a hairline edge, and Ideas on a panel of its
-/// own beside it.
+/// one soft panel raised high off the base, and Ideas on a panel of its own
+/// beside it.
 ///
 /// On a phone (and a narrow iPad window) it runs along the bottom, under the
 /// thumb: four equal slots in the panel - on a 375-point iPhone about 65
@@ -531,8 +529,9 @@ enum IdeasPlace {
 /// pill. On a wide iPad it stands on end as a rail on the leading edge, under
 /// the left hand, with Ideas last after a divider.
 ///
-/// The chosen one is a Theatre Blue segment, white on blue, that travels
-/// between them; the others are Biro Grey on the white panel.
+/// The chosen one is pressed into the panel, its symbol and name in Theatre
+/// Blue, and the hollow travels between them (it jumps under Reduce Motion);
+/// the others are Biro Grey. Ideas, chosen, is its whole panel pressed in.
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
     /// Whether Ideas, rather than a category, is the page on show.
@@ -543,6 +542,7 @@ struct CategoryDock: View {
     var count: (StudyCategory) -> Int
 
     @Namespace private var lift
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(selection: Binding<StudyCategory>, inIdeas: Binding<Bool>, axis: Axis = .horizontal,
          count: @escaping (StudyCategory) -> Int) {
@@ -585,23 +585,18 @@ struct CategoryDock: View {
             }
         }
         .padding(5)
-        .background(Color.wardSurface, in: panelShape)
-        .overlay(panelShape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: panelShape, lift: .high)
     }
 
     /// Ideas, on a panel of its own beside the categories.
     private var ideasPill: some View {
         let chosen: Bool = inIdeas
         let shape: RoundedRectangle = panelShape
-        let fill: Color = chosen ? Color.wardPrimary : Color.wardSurface
-        let edge: Color = chosen ? Color.clear : Color.wardHairline
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
                 .frame(width: 64)
                 .frame(minHeight: 56, maxHeight: .infinity)
-                .background(fill, in: shape)
-                .overlay(shape.strokeBorder(edge, lineWidth: 1))
+                .wardRelief(in: shape, lift: .high, pressed: chosen)
                 .contentShape(shape)
                 .contentShape(.hoverEffect, shape)
                 .hoverEffect(.highlight)
@@ -611,7 +606,6 @@ struct CategoryDock: View {
         .accessibilityHint("Your idea dump, board and 3D map")
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier("dockCategory-ideas")
-        .wardShadow()
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
     }
 
@@ -622,18 +616,14 @@ struct CategoryDock: View {
             ForEach(StudyCategory.allCases) { category in
                 item(category)
             }
-            Rectangle()
-                .fill(Color.wardHairline)
-                .frame(height: 1)
+            WardEtch()
                 .padding(.horizontal, 12)
                 .padding(.vertical, 4)
             ideasRailItem
         }
         .padding(5)
         .frame(width: 76)
-        .background(Color.wardSurface, in: panelShape)
-        .overlay(panelShape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: panelShape, lift: .high)
         .padding(.leading, 12)
         .frame(maxHeight: .infinity)
     }
@@ -648,8 +638,7 @@ struct CategoryDock: View {
                 .padding(.vertical, 2)
                 .background {
                     if chosen {
-                        segment
-                            .fill(Color.wardPrimary)
+                        WardReliefFace(shape: segment, lift: .low, inset: true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                     }
                 }
@@ -667,24 +656,27 @@ struct CategoryDock: View {
 
     // MARK: the pieces
 
+    /// How a choice moves the hollow: not at all under Reduce Motion.
+    private var change: Animation? { reduceMotion ? nil : .snappy(duration: 0.3) }
+
     private func chooseIdeas() {
-        withAnimation(.snappy(duration: 0.3)) { inIdeas = true }
+        withAnimation(change) { inIdeas = true }
     }
 
-    /// The lightbulb over the word Ideas, white on Theatre Blue when chosen.
+    /// The lightbulb over the word Ideas, Theatre Blue when chosen.
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
-        let ink: Color = chosen ? Color.wardOnPrimary : Color.wardInkSecondary
+        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         return DockItemFace(symbol: symbol, title: IdeasPlace.title, ink: ink)
     }
 
     private func item(_ category: StudyCategory) -> some View {
         let chosen: Bool = !inIdeas && category == selection
-        let ink: Color = chosen ? Color.wardOnPrimary : Color.wardInkSecondary
+        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
-            withAnimation(.snappy(duration: 0.3)) { selection = category }
+            withAnimation(change) { selection = category }
         } label: {
             DockItemFace(symbol: category.symbol, title: category.title, ink: ink)
                 .frame(maxWidth: .infinity, minHeight: 52)
@@ -695,8 +687,7 @@ struct CategoryDock: View {
                     // the choice instead of blinking out here and in again
                     // there.
                     if chosen {
-                        segment
-                            .fill(Color.wardPrimary)
+                        WardReliefFace(shape: segment, lift: .low, inset: true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                     }
                 }

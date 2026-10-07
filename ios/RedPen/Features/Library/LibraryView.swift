@@ -106,6 +106,8 @@ struct LibraryView: View {
     @AppStorage("cramdown.lastSetId") var lastSetId = ""
     /// Which of Ideas' views is open (IdeasView): only the 3D map keeps the sky.
     @AppStorage("vignette.ideas.mode") private var ideasModeRaw = IdeasMode.list.rawValue
+    /// The phone's light or dark, for the dock: over the 3D map it is night.
+    @Environment(\.colorScheme) private var scheme
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -453,6 +455,10 @@ struct LibraryView: View {
 
     private var underSky: Bool { inIdeas && ideasModeRaw == IdeasMode.space.rawValue }
 
+    /// The dock is soft UI shaped from the base; over the 3D map's sky the
+    /// base is the night one, so the dock is too.
+    private var dockScheme: ColorScheme { underSky ? .dark : scheme }
+
     /// A category's page is titled by its own first row - the date, the
     /// app's name with its squiggle, a greeting (WardHome) - so the bar
     /// carries no title of its own there; Ideas keeps its name.
@@ -468,6 +474,7 @@ struct LibraryView: View {
     private var rail: some View {
         if span == .broad && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
+                .environment(\.colorScheme, dockScheme)
                 .transition(.move(edge: .leading).combined(with: .opacity))
         }
     }
@@ -497,6 +504,7 @@ struct LibraryView: View {
                 if !inIdeas && !store.library.isEmpty { newSetRow }
                 if span != .broad {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
+                        .environment(\.colorScheme, dockScheme)
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {

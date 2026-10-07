@@ -82,13 +82,13 @@ struct GraphPerfSpace: View {
                     .font(.caption.monospacedDigit().weight(.semibold))
                 Text(stats.drawn)
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
+            .wardRaised(in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(Color.wardInk)
         .accessibilityLabel("Speed")
         .accessibilityValue(stats.line)
         .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000 and 300,000 notes.")
