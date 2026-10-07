@@ -371,3 +371,6 @@ suite cases CasesTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiC
       $S/Exam/ExamExemplars.swift $S/Exam/ExamPrompt.swift $S/Exam/ExamFormats.swift \
       $S/Cases/CaseFile.swift $S/Cases/CaseNames.swift $S/Cases/CaseRun.swift $S/Cases/CaseScore.swift $S/Cases/CaseChecks.swift \
       $S/Cases/CaseDebrief.swift $S/Cases/CaseWriting.swift $S/Cases/CaseSamples.swift $S/PatientChart.swift
+# the layered app icon: SVGs parse, layers stack back to front, icon.json
+# names every asset (tools/icon_layers.py writes them)
+suite iconlayers IconLayersTests.swift $S/Brand/IconLayerSpec.swift
