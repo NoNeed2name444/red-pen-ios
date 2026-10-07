@@ -13,8 +13,8 @@
     "local_working_head_before_metadata": "07d09ee1d280ee0f5a9e6a3186ae5358425bd3d5",
     "source_code_head": "8e8627f433e07984dffaab560a4e6fac62456c75",
     "remote_branch": "design/prework-20261006",
-    "remote_head": "e9697b6b3c31f550754e20e14e446c3947de4d5d",
-    "remote_tree": "5d88631e8976daf4b6bad7bffbc38e6ad79663ab",
+    "remote_head": "065214bd2a3a9b624af7e1fe1f033f084a0946b8",
+    "remote_tree": "7cfeecd56c072bb4edc925511b9a8a728d3229fd",
     "delivery": "Root performed force=false Git API pushes with exact expected heads and verified tree identity."
   },
   "native_source_commit_map": [
@@ -55,6 +55,11 @@
       "local": "07d09ee1d280ee0f5a9e6a3186ae5358425bd3d5",
       "remote": "e9697b6b3c31f550754e20e14e446c3947de4d5d",
       "remote_tree": "5d88631e8976daf4b6bad7bffbc38e6ad79663ab"
+    },
+    {
+      "local": "91508c16bb12a15be02c17045b3a402f86747215",
+      "remote": "065214bd2a3a9b624af7e1fe1f033f084a0946b8",
+      "remote_tree": "7cfeecd56c072bb4edc925511b9a8a728d3229fd"
     }
   ],
   "coverage": {
@@ -153,8 +158,10 @@
     },
     {
       "path": "HANDOFF.md",
-      "category": "pending-root-deliverable",
-      "status": "pending root finalization"
+      "category": "root-handoff",
+      "bytes": 3239,
+      "sha256": "d41ad839b22e5b5ed184613a87405a0f7e592ffad4e7cdb668cf0bab6ac7d026",
+      "mode": "100644"
     },
     {
       "path": "docs/delivery.json",
@@ -172,8 +179,8 @@
     {
       "path": "docs/prework-log.md",
       "category": "task-routing-log",
-      "bytes": 26166,
-      "sha256": "f920686e1c66eb8bbaa46c7e93fbfeadcaceb70ecd9efc5e23c884fcf1bd081c",
+      "bytes": 26522,
+      "sha256": "9c8901624390084a0645e1935463ad46e564c5f7864f85319aa44c0325e76a04",
       "mode": "100644",
       "source": "merged staging and native task records"
     },
@@ -810,5 +817,59 @@
       "source": "red-pen-ios final code head 8e8627f433e07984dffaab560a4e6fac62456c75"
     }
   ],
-  "scope_note": "The imported historical HANDOFF is preserved at prework/medical-assistant/HANDOFF.md. The artifact list includes every imported staging path, Chat-me health evidence, native patch path, fresh CI capture, manifest self path, and the pending root HANDOFF path."
+  "scope_note": "The native artifact inventory contains 84 paths, including every imported staging path, health evidence, native patch, screenshot and handoff. Four changed Chat-me source paths are enumerated separately, for 88 total. The imported historical HANDOFF remains at prework/medical-assistant/HANDOFF.md.",
+  "artifact_counts": {
+    "native_paths": 84,
+    "supporting_repository_paths": 4,
+    "total_paths": 88
+  },
+  "supporting_repository_changes": {
+    "repository": "NoNeed2name444/Chat-me",
+    "branch": "prework/container-20261007",
+    "base_commit": "4aa7e0641f84acf296c0df18335c6f1ff1006f10",
+    "local_head": "2fbb9fab082cb1e20b698a0b0d0027fd67459ec4",
+    "remote_head": "cb02cd49aee64601e02e1cf9196cfa4d05210196",
+    "remote_tree": "ebcecf45bf294237ab2f38607b7dfbee574d7c05",
+    "commit_map": [
+      {
+        "local": "73dbcf3892b16b17f9c0309320e41019273291cf",
+        "remote": "6de3471b854c999d82552f49d091be72ae8e61d6"
+      },
+      {
+        "local": "2fbb9fab082cb1e20b698a0b0d0027fd67459ec4",
+        "remote": "cb02cd49aee64601e02e1cf9196cfa4d05210196"
+      }
+    ],
+    "delivery": "Root used force=false Git API pushes with expected heads and verified tree identity.",
+    "files": [
+      {
+        "path": "Dockerfile",
+        "bytes": 341,
+        "sha256": "118bd9dc44b8b6378934bd08ff23b72c06bf1334c663b782c46736cd5d03cec8",
+        "git_blob_sha1": "de1c2de6406a6e992303d54b85f4a83eabd0db4a",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/architecture/verifier/README.md",
+        "bytes": 929,
+        "sha256": "00886439988357afd1e44c719b5c6bb3edae9ce722e252d936737861ce1c6caa",
+        "git_blob_sha1": "c9fa934448a530e34421092ae6eeb30ee2cfd95d",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/prework-container-check.json",
+        "bytes": 2020,
+        "sha256": "f73846d9ddf61050e454b13749df0b1214fb946567fcd5c85d7d678a3c12d311",
+        "git_blob_sha1": "a74bccaf19c7e6eeae7a292d35234320fcc3635e",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/prework-log.md",
+        "bytes": 385,
+        "sha256": "3075a8e05dd9c76ebd9287a1eb7e63675ab61957e848f8adcbb6ac393502d5ac",
+        "git_blob_sha1": "bf13b8f6eed86ff549472306e0f4771487151c66",
+        "mode": "100644"
+      }
+    ]
+  }
 }
