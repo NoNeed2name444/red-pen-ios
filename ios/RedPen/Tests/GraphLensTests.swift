@@ -29,8 +29,8 @@ check("L1b Performance has no lens even at High", GraphLens.of(.performance, tie
 check("L1c the plain lens costs nothing", !GraphLens.off.heavy)
 for theme in [GraphTheme.space, .neurons, .circuit] {
     let high: GraphLens = GraphLens.of(theme, tier: .high)
-    check("L1d \(theme.rawValue): HDR, bloom and depth of field at High",
-          high.hdr && high.bloom > 0 && high.depthBlur > 0 && high.heavy)
+    check("L1d \(theme.rawValue): HDR and bloom at High",
+          high.hdr && high.bloom > 0 && high.heavy)
     check("L1e \(theme.rawValue): bloom only on the brightest (the shaders already glow)",
           high.bloomThreshold >= 0.75 && high.bloom <= 0.5, "\(high.bloomThreshold) \(high.bloom)")
     check("L1f \(theme.rawValue): colours kept close to the drawing",
@@ -55,9 +55,9 @@ check("L2b only Space bends light", !GraphLens.of(.neurons, tier: .high).lensing
 let space: GraphLens = GraphLens.of(.space, tier: .high)
 let neurons: GraphLens = GraphLens.of(.neurons, tier: .high)
 let circuit: GraphLens = GraphLens.of(.circuit, tier: .high)
-check("L3a a microscope focuses shallower than a telescope", neurons.depthBlur > space.depthBlur)
-check("L3b the macro lens over the board is the shallowest",
-      circuit.depthBlur > neurons.depthBlur && circuit.depthBlur > space.depthBlur)
+check("L3a a microscope focuses shallower than a telescope", neurons.depthBlur > space.depthBlur && space.depthBlur > 0)
+check("L3b the glass boards are sharp: no depth of field over the Circuit, so its names read",
+      circuit.depthBlur == 0)
 check("L3c bioluminescence blooms most and widest",
       neurons.bloom > space.bloom && neurons.bloom > circuit.bloom && neurons.bloomBlur > circuit.bloomBlur)
 check("L3d the microscope's corners are darkest", neurons.vignette > space.vignette && neurons.vignette > circuit.vignette)
@@ -74,7 +74,7 @@ check("L4b a wider view is a shorter lens",
 check("L4c silly angles stay finite", GraphLens.focalLength(fieldOfView: 0).isFinite
       && GraphLens.focalLength(fieldOfView: 400).isFinite && GraphLens.focalLength(fieldOfView: 400) > 0)
 
-for lens in [space, neurons, circuit] {
+for lens in [space, neurons] {
     var worst: Double = 0
     for focus in [2.0, 5, 12, 30, 45, 60] {
         let n: Double = GraphLens.fStop(blur: lens.depthBlur, focus: focus, fieldOfView: fov)

@@ -7,9 +7,9 @@ import Foundation
 // soft bloom on the brightest stars with a touch of colour fringe at the
 // edge; Neurons a microscope's shallow focus, the far cells melting into
 // bokeh, a darker vignette and the glow of bioluminescence; Circuit a
-// macro lens over glass, a narrow band in focus and the light guides and
-// capsules blooming;
-// Performance no lens at all (speed first).
+// sharp lens over glass, every board and its labels in focus and only the
+// light guides and capsules blooming (a shallow focus blurred the whole
+// board and its names); Performance no lens at all (speed first).
 //
 // The Graphics setting decides whether any of it runs: every effect here
 // needs SceneKit's HDR post-process pass, so Smooth turns the whole lens
@@ -17,12 +17,13 @@ import Foundation
 // lensed starlight, which the shaders draw only at rpDetail 1 - the same
 // High). Reduce Motion changes nothing here: the lens does not move.
 //
-// The depth of field keeps one look at every zoom: GraphSim focuses on
-// what the camera orbits each frame and sets the aperture (fStop) so that
-// something twice as far away is blurred by `depthBlur` of the screen's
-// height, whether the camera is a couple of units from a cell or sixty
-// from a region; further out, over the whole map, the aperture reaches
-// SceneKit's widest and the blur fades rather than grows.
+// Where a theme has depth of field (Space, Neurons), it keeps one look at
+// every zoom: GraphSim focuses on what the camera orbits each frame and
+// sets the aperture (fStop) so that something twice as far away is blurred
+// by `depthBlur` of the screen's height, whether the camera is a couple of
+// units from a cell or sixty from a region; further out, over the whole
+// map, the aperture reaches SceneKit's widest and the blur fades rather
+// than grows.
 //
 // The numbers are Foundation only and tested on Linux
 // (Tests/GraphLensTests.swift); `apply(to:)` is SceneKit's half.
@@ -75,9 +76,10 @@ nonisolated struct GraphLens: Sendable, Equatable {
                              vignette: 0.6, vignettePower: 1.2, fringe: 0.15, exposure: 0, saturation: 1.1,
                              contrast: 0.06, lensing: false)
         case .circuit:
-            // a macro lens over glass: a narrow band sharp, the light
-            // guides and capsules bloom
-            return GraphLens(hdr: true, bloom: 0.38, bloomThreshold: 0.8, bloomBlur: 7, depthBlur: 0.008,
+            // glass boards read like a page: no depth of field, so every
+            // board and its labels stay sharp; the light guides and
+            // capsules bloom
+            return GraphLens(hdr: true, bloom: 0.38, bloomThreshold: 0.8, bloomBlur: 7, depthBlur: 0,
                              vignette: 0.35, vignettePower: 1.3, fringe: 0, exposure: 0, saturation: 1,
                              contrast: 0.1, lensing: false)
         case .performance:
