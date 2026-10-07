@@ -8,7 +8,10 @@ A type is "gone" when the full app declares it at the top level and nothing in
 the package (its own files or the stand-ins, at any depth) does. A stand-in
 type (declared under Shared/PlaygroundsStubs) is also short when a kept file
 names `Type.member` and neither the stand-in nor an extension of it declares
-that member. Code under `#if ... !SWIFT_PACKAGE` is skipped, since the
+that member. And a dropped file's top-level functions and the members its
+extensions add (to kept types, say LibraryView) are gaps when a kept file
+names them bare (on self; `x.name` is too often Apple's own member) and
+nothing in the package declares them. Code under `#if ... !SWIFT_PACKAGE` is skipped, since the
 package never compiles it. Exit 1, naming each gap and the files using it.
 """
 import os, re, sys
@@ -102,6 +105,80 @@ def short_members(texts, pkg):
     return gaps
 
 
+def outer(chunk):
+    """The chunk with every braced block removed: only its own level."""
+    while True:
+        thinner = re.sub(r'\{[^{}]*\}', '', chunk)
+        if thinner == chunk:
+            return chunk
+        chunk = thinner
+
+
+def dropped_names(full, pkg, texts):
+    """Top-level functions and extension members of dropped files that kept
+    files name and nothing in the package declares."""
+    kept_rel = {os.path.relpath(p, pkg) for p in texts}
+    names = {}
+    for p in swift_files(full):
+        rel = os.path.relpath(p, full)
+        if rel in kept_rel:
+            continue
+        t = compiled(open(p, errors="replace").read())
+        found = members(outer(t))
+        for m in re.finditer(r'^' + MOD + r'extension\s+[\w.]+[^{]*', t, re.M):
+            found |= members(outer(body(t, m.end() - 1)))
+        for n in found - {"init", "body", "id"}:
+            names.setdefault(n, rel)
+    declared = set()
+    for t in texts.values():
+        declared |= members(t)
+        # parameters and labels, and closure parameters
+        declared |= set(re.findall(r'(' + NAME + r')\s*:', t))
+        for m in re.finditer(r'\{\s*\(?((?:\s*' + NAME + r'\s*,)*\s*' + NAME + r')\s*\)?\s+in\b', t):
+            declared |= {x.strip() for x in m.group(1).split(",")}
+    gaps = {}
+    for n in set(names) - declared:
+        # called or read bare (on self): `x.name` is usually Apple's own
+        # member of that name, and `name:` a label
+        use = re.compile(r'(?<![\w.])' + n + r'\b(?!\s*:)')
+        for p, t in texts.items():
+            rel = os.path.relpath(p, pkg)
+            if not rel.startswith(STUBS) and use.search(t):
+                gaps.setdefault(f"{n} (from {names[n]})", []).append(rel)
+    return gaps
+
+
+def thin_stand_ins(full, pkg, texts):
+    """Members the real type has and its stand-in lacks, named `.member` in a
+    kept file that also names the type, with nothing else in the package
+    declaring that name."""
+    stub_texts = {p: t for p, t in texts.items() if os.path.relpath(p, pkg).startswith(STUBS)}
+    stand_ins = set()
+    for t in stub_texts.values():
+        stand_ins |= set(KIND.findall(t))
+    declared = set()
+    for t in texts.values():
+        declared |= members(t)
+    real = {}
+    for p in swift_files(full):
+        t = compiled(open(p, errors="replace").read())
+        for m in re.finditer(r'^' + MOD + r'(?:struct|class|enum|actor|extension)\s+(' + NAME + r')\b[^{]*', t, re.M):
+            if m.group(1) in stand_ins:
+                real.setdefault(m.group(1), set()).update(members(outer(body(t, m.end() - 1))))
+    gaps = {}
+    for name, have in real.items():
+        # only files that name the type too: `.draw` or `.filter` alone is
+        # far more often Apple's own member
+        mentions = re.compile(r'\b' + name + r'\b')
+        for n in have - declared - {"init", "body", "id"}:
+            use = re.compile(r'\.' + n + r'\b')
+            for p, t in texts.items():
+                rel = os.path.relpath(p, pkg)
+                if not rel.startswith(STUBS) and use.search(t) and mentions.search(t):
+                    gaps.setdefault(f"{name}.{n} (the real one has it)", []).append(rel)
+    return gaps
+
+
 def main():
     full, pkg = sys.argv[1], sys.argv[2]
     app = set()
@@ -119,8 +196,10 @@ def main():
     for n in sorted(users):
         print(f"  {n} (dropped) used by {', '.join(sorted(users[n])[:3])}")
     short = short_members(texts, pkg)
+    short.update(dropped_names(full, pkg, texts))
+    short.update(thin_stand_ins(full, pkg, texts))
     for n in sorted(short):
-        print(f"  {n} (not in the stand-in) used by {', '.join(sorted(short[n])[:3])}")
+        print(f"  {n} not in the package, used by {', '.join(sorted(short[n])[:3])}")
     return 1 if users or short else 0
 
 

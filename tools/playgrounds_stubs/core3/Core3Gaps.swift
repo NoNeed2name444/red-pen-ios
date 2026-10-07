@@ -40,6 +40,9 @@ extension View {
 extension LibraryView {
     /// Save to Ideas is left out (LibrarySavedIdeas.swift).
     func attachIdeaSaver() {}
+
+    /// A saved note's way back to its item: no notes are saved here.
+    func openSaved(_ source: NoteSource) {}
 }
 
 extension View {
