@@ -272,15 +272,15 @@ struct GraphPreviewRoot: View {
         .appendingPathComponent("redpen-graph-preview-library-\(UUID().uuidString).json"))
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Graph3DView(open: { _ in }, openFolder: { _ in })
-                .environmentObject(notes)
-                .environmentObject(library)
-                .background(Color.black)
-                .ignoresSafeArea()
-            GraphPreviewBar()
-        }
-        .environment(\.colorScheme, .dark)
+        // the bar takes the top of the safe area as the app's navigation bar
+        // does, so the map fits under it and the region pill sits below it
+        // (the map's scene still runs under the bar, edge to edge)
+        Graph3DView(open: { _ in }, openFolder: { _ in })
+            .environmentObject(notes)
+            .environmentObject(library)
+            .safeAreaInset(edge: .top, spacing: 0) { GraphPreviewBar() }
+            .background(Color.black)
+            .environment(\.colorScheme, .dark)
     }
 }
 

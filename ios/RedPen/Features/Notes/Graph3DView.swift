@@ -260,7 +260,7 @@ struct Graph3DView: View {
                     .padding(.top, 12)
             } else if let id = flownRegion, let name = built.names[id] {
                 GraphRegionPill(text: name)
-                    .padding(.top, GraphPreview.isOn ? 60 : 8)
+                    .padding(.top, 8)
                     .transition(.opacity)
             }
         }
