@@ -1,5 +1,11 @@
 # A4 tooling verification
 
+## Completion pass, 7 October 2026
+
+The restored checkout uses `/workspace/tools-venv` (Ruff 0.11.13, pre-commit 4.2.0, Pillow 11.2.1), Node 24.19.0 and lockfile-pinned Playwright 1.62.1. The root now includes `.github/workflows/prework-scaffold.yml`, a manual-only workflow that checks the nested scaffold. No workflow was dispatched by this completion pass. Both scoped pre-commit hooks pass. Current test counts and browser evidence are in `pipeline-completion.md` and `app-completion.md`; the earlier counts and paths below are historical. The native root Git hook remains unchanged.
+
+## Previous session evidence
+
 Task A4, gpt-6.1-sol, high, completed 2026-10-07. The previously blocked tools are installed in the isolated local environment `/workspace/vendor/prework-tools`: Ruff **0.11.13** and pre-commit **4.2.0**, matching `pyproject.toml`. The hook cache uses the existing `astral-sh/ruff-pre-commit` revision **v0.11.13**. Python is **3.12.14**; Node is **v24.19.0**.
 
 The root agent performed the authorized network installation and hook-cache initialization. Subsequent checks used the prepared cache. The environment and cache are outside the repositories and are not committed.

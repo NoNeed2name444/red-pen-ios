@@ -1,9 +1,11 @@
 # Medical-student assistant
 
-Local staging scaffold for a future production application. A4 is partial: the
-original repository and remote are unavailable, and development tooling has not
-been installed. This repository does not yet provide an application or medical
-content.
+Offline production-prework scaffolds, delivered inside `red-pen-ios` on
+`design/prework-20261006`. Development tools and synthetic integration tests are
+verified. These modules use caller-supplied contracts and contain no production
+medical dataset or final student-facing content. Live provider calls are excluded
+from this completion pass at the user’s request. See `docs/*-completion.md` and
+the root `HANDOFF.md` for current evidence and remaining external inputs.
 
 ## Layout
 
@@ -16,8 +18,8 @@ content.
 
 ## Offline checks
 
-Requires Python 3.12 or newer. No dependency installation, credentials, downloads,
-or provider configuration is required:
+Requires Python 3.12+ and Node 24. Core checks need no credentials or providers;
+install the pinned tools below to include actual image and browser tests:
 
 ```sh
 python3 scripts/prework.py
@@ -29,20 +31,26 @@ The private npm manifest exposes the same commands as `npm run check` and
 
 ## Optional development tooling
 
-Ruff linting/formatting and pre-commit configuration are present but unverified
-until dependencies can be acquired. Install only when package access is restored:
+Ruff, pre-commit and Pillow are pinned in the development dependency group.
+Playwright is pinned by `package-lock.json`. From this directory:
 
 ```sh
 python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install --group pyproject.toml:dev
 .venv/bin/ruff check .
 .venv/bin/ruff format --check .
-.venv/bin/pre-commit install
-.venv/bin/pre-commit run --all-files
+npm ci --ignore-scripts
+npx playwright install --with-deps chromium
+PATH="$PWD/.venv/bin:$PATH" npm test
+npm run test:browser
 ```
 
-Hook installation is an explicit local step. The GitHub workflow has no push or
-pull-request trigger.
+The root `.github/workflows/prework-scaffold.yml` provides a manual-only run
+using this nested directory. It does not invoke the orchestrator or live models.
+The nested `.pre-commit-config.yaml` can be used with `pre-commit run --config
+prework/medical-assistant/.pre-commit-config.yaml --files <changed scaffold Python paths>`
+from the repository root. It does not replace native repository hooks.
 
 ## Provisional ETL (B2)
 
@@ -50,7 +58,9 @@ pull-request trigger.
 local caller-supplied records. Every item requires `id` and `source`; `label` and
 `split` are caller values or null. Text uses Unicode NFKC, whitespace normalization,
 and a simple nonmedical tokenizer. Optional image standardization requires Pillow
-or an injected adapter. No image dependency was installed.
+or an injected adapter. Pillow is pinned in the development tools and its real
+RGB conversion is tested. A custom adapter can be passed as
+`--image-adapter MODULE:FUNCTION --image-adapter-id VERSION`.
 
 Each item's `license` must contain an allowed `id` (CC-BY, versioned CC-BY, or
 unrestricted), `verified: true`, `scope: "item"`, matching `item_id`, and nonempty
@@ -66,7 +76,9 @@ before image paths are read.
 
 ## Provisional annotations (B3)
 
-Open `app/annotation.html`, import the ETL manifest and a caller-authored schema,
+Serve the modules with `python3 -m http.server 8080 --bind 127.0.0.1` from
+this directory, open `http://127.0.0.1:8080/app/annotation.html`, then import the
+ETL manifest and a caller-authored schema,
 then validate/save labels locally or export JSONL. Browser storage availability is
 reported; persistence is local to that browser. Offline authoritative validation:
 `python3 scripts/prework.py annotate MANIFEST ANNOTATIONS SCHEMA OUTPUT`.
@@ -101,8 +113,9 @@ The runner rechecks per-item license attestations, validates evidence references
 deduplicates stable triplet IDs, and atomically exports. It supplies no extractor,
 relations, entities, provider, or credentials. `data/manifests/triplets.jsonl` is empty.
 `python3 scripts/prework.py entity-stub UMLS QUERY` (also `"SNOMED CT"` and `ICD11`)
-explicitly returns unresolved without an external adapter; no terminology lookup
-has occurred. Callback code is executed only when explicitly configured by its caller.
+explicitly returns unresolved without an external adapter; pass
+`--adapter MODULE:FUNCTION` to use a configured resolver. No live terminology
+lookup has occurred. Callback code is executed only when explicitly configured by its caller.
 
 ## Provisional graph/vector plumbing (B5)
 
@@ -119,11 +132,13 @@ IDs, vector dimensions, and finite values. All data values are parameters; relat
 type tokens are restricted to an explicit caller allowlist and safe identifier syntax.
 A content revision accompanies the graph writes and vector upserts. The caller must
 apply both stores, read back IDs and revision, and reconcile retries before marking
-synchronization complete. This protocol performs no database calls and provides no
-cross-store transaction guarantee. No graph/vector service or approved relation schema
+synchronization complete. `python3 scripts/prework.py graph-check PLAN.json READBACK.json` checks
+caller-supplied graph/vector/relationship IDs and revision markers after writes.
+It performs no database calls and provides no cross-store transaction guarantee;
+it does not verify stored property or embedding values. No graph/vector service or approved relation schema
 was supplied; templates have not been executed against Neo4j.
 
-## Pending decisions
+## Verification and application adapter contracts
 
 C3/L2: `observe_negation` and the `l2` CLI require an external detector and cue
 configuration. Returned cues must exactly match bounded source-text spans. Missing
@@ -160,7 +175,8 @@ E2: `renderEvidence` renders caller claims/provenance with `textContent`, exact
 source/citation references, and unresolved/pending status. Missing layer results
 or references remain unresolved; displayed evidence is never marked approved.
 It supplies no pedagogical wording, medical safety assessment, or final language.
-DOM behavior is verified with a small synthetic test double, not a browser session.
+DOM behavior is covered by module tests and actual Chromium checks; see
+`docs/app-completion.md` for exact browser coverage.
 E3: `generateMCQ` requires an external generator, question schema, and field map
 (`choices`, `choiceId`, `correctIds`). It mechanically checks schema, unique choice
 IDs, and nonempty correct IDs referring to those choices. Missing configuration is
