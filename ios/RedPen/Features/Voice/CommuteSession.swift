@@ -44,6 +44,8 @@ final class CommuteSession: ObservableObject {
     /// not until it is got right, or a hard card holds up the whole drive.
     private var requeued = Set<UUID>()
     private var remoteTargets: [(command: MPRemoteCommand, token: Any)] = []
+    private var watching: [NSObjectProtocol] = []
+    private var resumeLater = false
 
     var remaining: Int { max(0, items.count - position) }
     var finished: Bool { !items.isEmpty && position >= items.count }
@@ -68,6 +70,7 @@ final class CommuteSession: ObservableObject {
         running = true
         generation += 1
         let current = generation
+        if watching.isEmpty { watching = NowPlaying.watch { [weak self] in self?.react($0) } }
         attachRemote()
         updateNowPlaying()
         loop = Task { await self.run(current) }
@@ -99,6 +102,8 @@ final class CommuteSession: ObservableObject {
     func end() {
         pause(quietly: true)
         detachRemote()
+        NowPlaying.unwatch(watching)
+        watching = []
         VoiceAccess.deactivate()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
@@ -189,7 +194,12 @@ final class CommuteSession: ObservableObject {
             break
         }
 
-        let correct = command != .dontKnow && !heard.isEmpty && SpokenAnswer.matches(heard, answer: answer)
+        guard let correct = SpokenAnswer.cardVerdict(heard, answer: answer) else {
+            // nothing was said: the answer, and no rating (audit #71)
+            add(.note, "Answer: \(answerText). Not rated - rate it on Due today.")
+            await say("I didn't hear an answer. It's \(answerText).", current)
+            return .next
+        }
         mark(card: due, correct: correct)
         let why = SpokenAnswer.firstSentence(card.why)
         if correct {
@@ -197,8 +207,7 @@ final class CommuteSession: ObservableObject {
             await say("Correct. \(answerText).", current)
         } else {
             add(.wrong, "Answer: \(answerText)" + (why.isEmpty ? "" : "\n\(why)"))
-            let opener = heard.isEmpty ? "I didn't hear an answer." : "Not quite."
-            await say("\(opener) It's \(answerText). \(why)", current)
+            await say("Not quite. It's \(answerText). \(why)", current)
         }
         return .next
     }
@@ -367,6 +376,19 @@ final class CommuteSession: ObservableObject {
             command.isEnabled = true
             remoteTargets.append((command, Self.target(command, owner: self, action: action)))
         }
+    }
+
+    /// A call pauses it (a sentence cut off by one never finished, and the
+    /// loop waited on it for good) and it carries on after; headphones or
+    /// the car going pause it (audit #76, #77).
+    private func react(_ signal: AudioEvents.Signal) {
+        let (reaction, later) = AudioEvents.reaction(to: signal, playing: running, resumeLater: resumeLater)
+        switch reaction {
+        case .pause: pause()
+        case .resume: start()
+        case .nothing: break
+        }
+        resumeLater = later
     }
 
     private func detachRemote() {

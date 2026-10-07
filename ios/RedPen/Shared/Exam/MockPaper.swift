@@ -216,11 +216,21 @@ struct MockSubjectScore: Hashable, Identifiable {
 struct MockResult: Hashable {
     var marks: [MockMark]
     var passMark: Double
+    /// What a wrong answer costs, as a share of a right one's marks
+    /// (NEET-PG 1/4, INI-CET 1/3); 0 where nothing is taken off.
+    var penalty: Double = 0
 
     var total: Int { marks.count }
     var correct: Int { marks.filter(\.correct).count }
     var unanswered: Int { marks.filter { $0.picked == nil }.count }
-    var fraction: Double { total == 0 ? 0 : Double(correct) / Double(total) }
+    var wrong: Int { total - correct - unanswered }
+    /// The score as the exam marks it: right answers less the penalty for
+    /// wrong ones, never below nothing.
+    var fraction: Double {
+        guard total > 0 else { return 0 }
+        let net: Double = Double(correct) - penalty * Double(wrong)
+        return max(0, net) / Double(total)
+    }
     var passed: Bool { fraction >= passMark }
 
     /// By subject, weakest first; ties by name.
@@ -243,6 +253,50 @@ struct MockResult: Hashable {
     var secondsPerQuestion: Double {
         let spent: Double = marks.reduce(0) { $0 + $1.seconds }
         return total == 0 ? 0 : spent / Double(total)
+    }
+}
+
+/// Negative marking: what the catalog's line means for the score and for
+/// whether to guess.
+enum MockMarking {
+    /// A wrong answer's cost as a share of a right answer's marks, read from
+    /// the catalog's line: "-1 of +4 for a wrong answer" is 0.25, "-1/3 for a
+    /// wrong answer" is 1/3, nil or nothing readable is 0.
+    static func penalty(_ marking: String?) -> Double {
+        guard let marking,
+              let regex = try? NSRegularExpression(pattern: #"-\s*(\d+(?:\.\d+)?)\s*(?:/\s*(\d+)|of\s*\+?\s*(\d+))?"#),
+              let match = regex.firstMatch(in: marking, range: NSRange(marking.startIndex..., in: marking))
+        else { return 0 }
+        func number(_ i: Int) -> Double? {
+            guard let r = Range(match.range(at: i), in: marking) else { return nil }
+            return Double(marking[r])
+        }
+        guard let lost = number(1) else { return 0 }
+        let per: Double = number(2) ?? number(3) ?? 1
+        return per > 0 ? lost / per : 0
+    }
+
+    /// What to do with a question the student cannot crack, worked out from
+    /// the expected marks of a guess rather than assumed: with NEET-PG's -1 of
+    /// +4 even a blind guess among four gains on average, so a blank only
+    /// throws marks away; with INI-CET's -1/3 a blind guess breaks even.
+    static func guessAdvice(exam: String, marking: String?, options: Int) -> String {
+        let p: Double = penalty(marking)
+        guard p > 0, let marking else {
+            return "Never leave one blank: an unanswered question scores nothing."
+        }
+        let n: Int = max(2, options)
+        // a guess among k options gains (1 - p(k - 1)) / k on average
+        let blind: Double = 1 - p * Double(n - 1)
+        if blind > 1e-9 {
+            return "\(exam) marks \(marking), but even a blind guess among \(n) gains marks on average: answer every question."
+        }
+        if blind > -1e-9 {
+            return "\(exam) marks \(marking): a blind guess breaks even, so guess as soon as you can rule out one option and leave it blank only when you have no idea."
+        }
+        var k: Int = n - 1
+        while k > 2 && 1 - p * Double(k - 1) < -1e-9 { k -= 1 }
+        return "\(exam) marks \(marking): guess when you are down to \(k) options, leave it blank when you have no idea."
     }
 }
 

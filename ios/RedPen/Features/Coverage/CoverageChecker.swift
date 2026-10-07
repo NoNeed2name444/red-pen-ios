@@ -32,10 +32,10 @@ final class CoverageChecker: ObservableObject {
 
     /// Shows what is kept for an exam - or, in the personal build, the
     /// example when nothing real has been run yet.
-    func load(for track: ExamTrack, areas: [AreaCoverage]) {
+    func load(for track: ExamTrack, exam: String? = nil, areas: [AreaCoverage]) {
         guard !running else { return }
         failure = nil
-        if let kept = CoverageCloudCheck.load(for: track) {
+        if let kept = CoverageCloudCheck.load(for: track, exam: exam) {
             check = kept
         } else if PersonalBuild.isOn, !areas.isEmpty {
             check = CoverageExamples.check(for: track, areas: areas)
@@ -51,7 +51,7 @@ final class CoverageChecker: ObservableObject {
     }
 
     /// Checks every area and keeps the result.
-    func run(track: ExamTrack, areas: [AreaCoverage], library: [StudySet]) {
+    func run(track: ExamTrack, exam: String? = nil, areas: [AreaCoverage], library: [StudySet]) {
         guard !running, blocker == nil, let token = LocalLLMService.shared.cloudToken else { return }
         let prompts = areas.map { CoverageCloudCheck.prompt(for: $0, exam: track, library: library) }
         running = true
@@ -109,7 +109,7 @@ final class CoverageChecker: ObservableObject {
             let ranked = sources.sorted { $0.value > $1.value }.map(\.key)
             let made = CoverageCheck(track: track.rawValue, date: Date(), sources: ranked,
                                      verdicts: verdicts, failedAreas: failed)
-            CoverageCloudCheck.save(made, for: track)
+            CoverageCloudCheck.save(made, for: track, exam: exam)
             self.check = made
         }
     }

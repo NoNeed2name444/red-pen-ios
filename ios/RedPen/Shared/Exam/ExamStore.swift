@@ -83,10 +83,10 @@ final class ExamStore: ObservableObject {
 
     // MARK: hints
 
-    func hint(for id: UUID) -> String? { hints.hint(for: id) }
+    func hint(for id: UUID, version: String = "") -> String? { hints.hint(for: id, version: version) }
 
-    func keepHint(_ text: String, for id: UUID) {
-        hints.store(text, for: id)
+    func keepHint(_ text: String, for id: UUID, version: String = "") {
+        hints.store(text, for: id, version: version)
         Self.keep(hints, Self.hintsKey)
     }
 
@@ -120,8 +120,11 @@ struct MockRecord: Codable, Hashable, Identifiable {
     var wanted: Int
     var passMark: Double
     var minutesUsed: Int
+    /// The marked score where it differs from the share right (negative
+    /// marking); nil in records kept before it was stored.
+    var score: Double? = nil
 
-    var fraction: Double { total == 0 ? 0 : Double(correct) / Double(total) }
+    var fraction: Double { score ?? (total == 0 ? 0 : Double(correct) / Double(total)) }
 }
 
 // MARK: - the library side
@@ -240,7 +243,8 @@ enum HintWriter {
     /// answer away. Never throws: a hint is always there.
     static func hint(id: UUID, stem: String, options: [String], answer: String,
                      differential: DifferentialTiers?) async -> String {
-        if let kept = ExamStore.shared.hint(for: id) { return kept }
+        let version: String = HintCache.version(stem: stem, options: options, answer: answer)
+        if let kept = ExamStore.shared.hint(for: id, version: version) { return kept }
         let others: [String] = options.filter { $0 != answer }
         let fallback: String = AttendingHint.fallback(answer: answer, stem: stem, options: options,
                                                       differential: differential)
@@ -252,7 +256,7 @@ enum HintWriter {
         guard let reply, let good = AttendingHint.accept(reply, answer: answer, stem: stem, otherOptions: others) else {
             return fallback
         }
-        ExamStore.shared.keepHint(good, for: id)
+        ExamStore.shared.keepHint(good, for: id, version: version)
         return good
     }
 }

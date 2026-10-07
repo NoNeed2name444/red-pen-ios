@@ -223,6 +223,23 @@ let before = third.batch().filter { $0.kind == .unclean }.count
 third.launched(build: "1.2 (45)")
 check("left through the background: nothing more", third.batch().filter { $0.kind == .unclean }.count == before)
 
+// swiped away from the app switcher while on screen: iOS ends it on purpose
+let quitDir = FileManager.default.temporaryDirectory.appendingPathComponent("diag-\(UUID().uuidString)")
+let quit = DiagnosticsCenter(folder: quitDir, enabled: { true })
+quit.device = center.device
+quit.launched(build: "1.2 (45)", foreground: true)
+quit.becameActive()
+quit.terminating()
+let afterQuit = DiagnosticsCenter(folder: quitDir, enabled: { true })
+afterQuit.device = center.device
+afterQuit.launched(build: "1.2 (45)")
+check("a quit from the app switcher is not a crash", !afterQuit.batch().contains { $0.kind == .unclean })
+try? FileManager.default.removeItem(at: quitDir)
+check("a Playgrounds build says so, personal or not",
+      DiagDevice.flavour(personal: true, package: true, debug: true) == "playgrounds"
+      && DiagDevice.flavour(personal: true, package: false, debug: false) == "personal"
+      && DiagDevice.flavour(personal: false, package: false, debug: false) == "store")
+
 // killed during a foreground launch (the watchdog, before the first frame)
 let slowDir = FileManager.default.temporaryDirectory.appendingPathComponent("diag-\(UUID().uuidString)")
 let slow = DiagnosticsCenter(folder: slowDir, enabled: { true })

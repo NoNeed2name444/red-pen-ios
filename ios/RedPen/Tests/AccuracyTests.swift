@@ -359,6 +359,11 @@ check("an explanation correction", AccuracyFix.apply(AccuracySuggestion(field: "
 let cardID = cardSet.cards[0].id.uuidString
 check("a card's answer, line by line", AccuracyFix.apply(AccuracySuggestion(field: "answer", value: "Vitamin K\n- Four-factor PCC"), toItem: cardID, in: cardSet)?.cards[0].bullets == ["Vitamin K", "Four-factor PCC"])
 check("a station's steps", AccuracyFix.apply(AccuracySuggestion(field: "text", value: "Check danger\nCheck response\nCall for help"), toItem: osceSet.osceChecklists[0].id.uuidString, in: osceSet)?.osceChecklists[0].steps.count == 3)
+var mistakesCopy = StudySet(name: "Mistakes", subject: "", kind: .mcq)
+mistakesCopy.questions = [mcqSet.questions[0]]
+let fixedBoth: [StudySet] = AccuracyFix.applyEverywhere(keyFix, toItem: mq.id.uuidString, in: [mcqSet, cardSet, mistakesCopy])
+check("a key fix reaches the question's copy in Mistakes too", fixedBoth.count == 2
+      && Set(fixedBoth.map { $0.questions[0].correctIndex }).count == 1 && fixedBoth[1].name == "Mistakes")
 check("a fix for an unknown item does nothing", AccuracyFix.apply(keyFix, toItem: "nope", in: mcqSet) == nil)
 
 // MARK: the shared rule cases (server/tests/accuracy.test.mjs runs the same file)

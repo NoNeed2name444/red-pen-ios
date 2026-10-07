@@ -161,6 +161,16 @@ final class DiagnosticsCenter: @unchecked Sendable {
         saveMarkerNow()
     }
 
+    /// iOS is ending the app on purpose (swiped away from the app switcher
+    /// while still on screen): a clean end, written before the process goes.
+    func terminating() {
+        breadcrumb("app:terminate")
+        lock.lock()
+        marker?.activeSince = nil
+        lock.unlock()
+        flushToDisk()
+    }
+
     // MARK: sending
 
     func batch() -> [DiagEvent] {

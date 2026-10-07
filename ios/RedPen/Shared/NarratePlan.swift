@@ -33,6 +33,14 @@ struct ClipWord: Equatable, Sendable {
 }
 
 enum NarratePlan {
+    /// A lecture made by the Audio page's "Add an audio file" goes again when
+    /// its screen closes with nothing in it - no transcript, no recording,
+    /// none on its way - so a cancelled pick leaves no empty "New lecture"
+    /// behind (audit #33).
+    static func dropsEmptyLecture(madeHere: Bool, segments: Int, hasRecording: Bool, importing: Bool) -> Bool {
+        madeHere && segments == 0 && !hasRecording && !importing
+    }
+
 
     /// The server takes up to 1,500 characters; a little under leaves room.
     static let hardCap = 1400

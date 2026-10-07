@@ -23,6 +23,17 @@ ok(LLMText.stripThinking("  Plain answer.\n") == "Plain answer.", "a reply with 
 ok(LLMText.stripThinking("<think>a</think>x<think>b</think> final") == "final",
    "only what follows the last </think> counts")
 
+// MARK: the server's refusals read as sentences
+
+ok(LLMError.http(409, "This subscription is already linked to another Stethoscore account.").errorDescription
+   == "This subscription is already linked to another Stethoscore account.",
+   "a subscription refusal is shown as the server wrote it, not behind an HTTP code")
+ok(LLMError.http(402, "Stethoscore Cloud is part of Pro.").errorDescription == "Stethoscore Cloud is part of Pro.",
+   "the Pro refusal likewise")
+ok(LLMError.http(403, "{\"error\":\"x\"}").errorDescription?.contains("HTTP 403") == true,
+   "an unreadable body still says what failed")
+ok(LLMError.http(500, "boom").errorDescription?.contains("HTTP 500") == true, "a server fault keeps its code")
+
 // MARK: JSON out of prose
 
 if let data = LLMText.jsonObject(in: "Sure! Here you go:\n```json\n{\"covered\":[1,3]}\n```\nHope that helps."),

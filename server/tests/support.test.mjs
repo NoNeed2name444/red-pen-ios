@@ -45,6 +45,17 @@ ok(last.status === 429, 'only a few a day');
   ok((await post('/support/message', {}, body)).status === 401, 'signed out is refused');
   ok((await post('/support/message', { authorization: 'Bearer ' + token }, body)).status === 200, 'signed in is taken');
   ok((await post('/support/messages', { authorization: 'Bearer ' + token }, '{}')).status === 404, 'the list is not for students');
+  // the personal build's device-only start has only the owner key (audit #31)
+  const owner = 'k'.repeat(40);
+  const oenv = { ...wenv, OWNER_KEY: owner };
+  const opost = async (path, headers, body) => worker.fetch(new Request('https://w' + path, {
+    method: 'POST', headers: { 'content-length': String(body.length), ...headers }, body }), oenv);
+  ok((await opost('/support/message', { authorization: 'Bearer ' + owner }, body)).status === 200,
+     'a message sent with the owner key is taken');
+  ok(db.prepare("SELECT COUNT(*) AS n FROM support_messages WHERE account_id = 'owner'").get().n === 1,
+     'and filed under the owner');
+  ok((await opost('/support/message', { authorization: 'Bearer ' + 'x'.repeat(40) }, body)).status === 401,
+     'a wrong key is still refused');
 }
 
 await forgetSupport(env, 'acct');

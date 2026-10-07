@@ -166,6 +166,11 @@ check("repeated slide terms come first", vocab.first?.lowercased() == "photosens
 check("short and common words are left out", !vocab.contains { ["rash", "for", "patient"].contains($0.lowercased()) })
 check("the common list fills the room left, without repeats",
       vocab.contains("nephritis") && vocab.filter { $0.lowercased() == "photosensitivity" }.count == 1)
+let heart = CloudTranscript.lectureTerms(slides: ["Atrial fibrillation: anticoagulation and rhythm control"])
+check("a cardiology lecture's terms are its own, not lupus's",
+      heart.contains("fibrillation") && !heart.contains("lupus") && !heart.contains("hydroxychloroquine"), "\(heart)")
+check("no slides, no slide terms", CloudTranscript.lectureTerms(slides: []).isEmpty
+      && !CloudTranscript.prompt(vocabulary: CloudTranscript.lectureTerms(slides: [])).contains("Terms from"))
 check("Arabic on a slide is not a spelling hint",
       CloudTranscript.vocabulary(from: ["الذئبة الحمراء lupus"]).allSatisfy { $0.unicodeScalars.allSatisfy(\.isASCII) })
 let prompt = CloudTranscript.prompt(vocabulary: ["hydroxychloroquine"])

@@ -226,18 +226,18 @@ enum CoverageCloudCheck {
         return dir
     }
 
-    private static func file(for track: ExamTrack) -> URL? {
-        folder?.appendingPathComponent("check-\(track.rawValue).json")
+    private static func file(for scope: String) -> URL? {
+        folder?.appendingPathComponent("check-\(scope).json")
     }
 
     /// The last check run for an exam, if any.
-    static func load(for track: ExamTrack) -> CoverageCheck? {
-        guard let url = file(for: track), let data = try? Data(contentsOf: url) else { return nil }
+    static func load(for track: ExamTrack, exam: String? = nil) -> CoverageCheck? {
+        guard let url = file(for: CoverageScope.key(track: track, exam: exam)), let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(CoverageCheck.self, from: data)
     }
 
-    static func save(_ check: CoverageCheck, for track: ExamTrack) {
-        guard !check.isExample, let url = file(for: track),
+    static func save(_ check: CoverageCheck, for track: ExamTrack, exam: String? = nil) {
+        guard !check.isExample, let url = file(for: CoverageScope.key(track: track, exam: exam)),
               let data = try? JSONEncoder().encode(check) else { return }
         try? data.write(to: url, options: .atomic)
     }

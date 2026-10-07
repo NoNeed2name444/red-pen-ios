@@ -277,6 +277,8 @@ check("too little text gives none rather than a bad one",
 check("blanks match whole words",
       Pretest.blanked("renal", in: "The adrenal gland sits on the renal pole.") == "The adrenal gland sits on the _____ pole.")
 check("markdown marks are stripped", Pretest.plain("## **Bold** heading") == "Bold heading")
+check("a term said twice is blanked both times, so the stem does not give it away",
+      Pretest.blanked("lupus", in: "Lupus nephritis is common in lupus.") == "_____ nephritis is common in _____.")
 
 // MARK: the daily rhythm
 
@@ -319,6 +321,17 @@ check("a reminder later today is today's",
 let early = ReminderSettings.next(7 * 60, after: now, calendar: calendar)
 check("one already past is tomorrow's", calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                                   to: calendar.startOfDay(for: early)).day == 1)
+
+// refused permission turns every reminder off (audit #37)
+let reminderDefaults = UserDefaults(suiteName: "learn-tests-reminders")!
+for key in [ReminderSettings.questionKey, ReminderSettings.bedtimeKey, ReminderSettings.morningKey] {
+    reminderDefaults.set(true, forKey: key)
+}
+ReminderSettings.refused(reminderDefaults)
+check("a refusal turns the reminders off",
+      [ReminderSettings.questionKey, ReminderSettings.bedtimeKey, ReminderSettings.morningKey]
+        .allSatisfy { !reminderDefaults.bool(forKey: $0) })
+reminderDefaults.removePersistentDomain(forName: "learn-tests-reminders")
 
 print("\(passed) checks passed")
 print(failures.isEmpty ? "ALL LEARN TESTS PASS" : "\(failures.count) LEARN TEST FAILURE(S)")

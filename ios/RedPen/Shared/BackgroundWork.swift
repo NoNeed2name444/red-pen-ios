@@ -89,9 +89,10 @@ enum AppNotifications {
 
     /// "Your 40 questions are ready" - only when the student is not looking
     /// at the app already.
-    static func generationFinished(_ title: String, body: String) {
+    static func generationFinished(_ title: String, body: String, link: AppLink? = nil) {
         guard UIApplication.shared.applicationState != .active else { return }
         let content = UNMutableNotificationContent()
+        if let link { content.userInfo = [AppLink.notificationKey: link.url.absoluteString] }
         content.title = title
         content.body = body
         content.sound = .default
@@ -125,6 +126,7 @@ enum AppNotifications {
             return
         }
         let content = UNMutableNotificationContent()
+        content.userInfo = [AppLink.notificationKey: AppLink.reviewDue.url.absoluteString]
         content.title = "Time to review"
         content.body = body
         content.sound = .default

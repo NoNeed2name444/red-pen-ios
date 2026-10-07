@@ -52,5 +52,13 @@ ok(!GenerationRules.closingStops(running: other, closing: mine),
 ok(!GenerationRules.closingStops(running: nil, closing: mine),
    "nor one started outside New set, or nothing at all")
 
+// MARK: a cancelled run that ends late leaves the new one alone (audit #68)
+
+let cancelledRun = UUID(), newRun = UUID()
+ok(!GenerationRules.endingClears(ended: cancelledRun, current: newRun),
+   "a cancelled run ending after a restart does not clear the new run")
+ok(GenerationRules.endingClears(ended: newRun, current: newRun), "the current run clears itself when it ends")
+ok(!GenerationRules.endingClears(ended: cancelledRun, current: nil), "nor does it clear anything after a plain cancel")
+
 print(failures == 0 ? "\nALL GENERATION RULES TESTS PASS" : "\n\(failures) GENERATION RULES TEST FAILURE(S)")
 exit(failures == 0 ? 0 : 1)

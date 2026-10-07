@@ -600,7 +600,9 @@ struct LibraryView: View {
                                message: "Check the spelling or try a new search.")
                     .listRowBackground(Color.clear)
             }
-        } else if shown.isEmpty && !store.library.isEmpty {
+        } else if shown.isEmpty && !searching && !store.library.isEmpty {
+            // a search that found questions but no set is not an empty
+            // category: no "Make one" under its results (audit #32)
             Section {
                 emptyCategoryRow
             } header: { sectionHeader(category.setsHeading) }

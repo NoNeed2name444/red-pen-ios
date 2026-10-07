@@ -310,6 +310,29 @@ check("\"Step 4\" is 4", MarkNumber.first(in: "Step 4") == 4)
 check("\"1-3\" is 1, not 13", MarkNumber.first(in: "1-3") == 1)
 check("no number is none", MarkNumber.first(in: "good") == nil)
 
+// commute mode leaves a card unrated when nothing was said (audit #71)
+check("silence rates nothing", SpokenAnswer.cardVerdict("", answer: ["aspirin"]) == nil)
+check("nor does a blank from the recogniser", SpokenAnswer.cardVerdict("  \n", answer: ["aspirin"]) == nil)
+check("\"I don't know\" is a wrong answer", SpokenAnswer.cardVerdict("I don't know", answer: ["aspirin"]) == false)
+check("a right answer is right", SpokenAnswer.cardVerdict("aspirin", answer: ["aspirin"]) == true)
+check("a wrong one is wrong", SpokenAnswer.cardVerdict("paracetamol", answer: ["aspirin"]) == false)
+
+// calls and headphones (audit #76, #77)
+func react(_ s: AudioEvents.Signal, playing: Bool, later: Bool = false) -> (AudioEvents.Reaction, Bool) {
+    let r = AudioEvents.reaction(to: s, playing: playing, resumeLater: later)
+    return (r.reaction, r.resumeLater)
+}
+check("a call pauses what plays", react(.interruptionBegan, playing: true) == (.pause, true))
+check("and it carries on after", react(.interruptionEnded(shouldResume: true), playing: false, later: true) == (.resume, false))
+check("not when the system says not to",
+      react(.interruptionEnded(shouldResume: false), playing: false, later: true) == (.nothing, false))
+check("a call while paused leaves it paused", react(.interruptionBegan, playing: false) == (.nothing, false)
+      && react(.interruptionEnded(shouldResume: true), playing: false) == (.nothing, false))
+check("headphones going pause it", react(.routeChanged(reason: AudioEvents.deviceLost), playing: true) == (.pause, false))
+check("and nothing brings it back on its own",
+      react(.routeChanged(reason: AudioEvents.deviceLost), playing: false, later: true) == (.nothing, false))
+check("headphones plugged in change nothing", react(.routeChanged(reason: 1), playing: true) == (.nothing, false))
+
 print(failures.isEmpty ? "\nALL ANSWER CHECKING TESTS PASS"
                        : "\n\(failures.count) ANSWER CHECKING TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

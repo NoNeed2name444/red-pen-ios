@@ -137,6 +137,16 @@ check("a clip the lecture holds is never pruned, however old",
 check("with everything protected, nothing is deleted",
       NarratePlan.pruneList(cached, keep: 2, protected: Set(cached.map(\.name))).isEmpty)
 
+// the audio tile's empty lecture (audit #33)
+check("a cancelled pick leaves no empty lecture",
+      NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: false, importing: false))
+check("a recording on its way keeps it",
+      !NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: false, importing: true))
+check("a recording kept keeps it",
+      !NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: true, importing: false))
+check("a lecture opened from the library is never dropped",
+      !NarratePlan.dropsEmptyLecture(madeHere: false, segments: 0, hasRecording: false, importing: false))
+
 print(failures.isEmpty ? "\nALL NARRATE TESTS PASS"
                        : "\n\(failures.count) NARRATE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

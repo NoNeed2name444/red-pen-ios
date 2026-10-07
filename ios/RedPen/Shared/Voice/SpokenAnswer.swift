@@ -369,6 +369,17 @@ enum SpokenAnswer {
     /// Something said to the app rather than an answer.
     enum Command { case skip, again, dontKnow, pause }
 
+    /// Whether a spoken answer to a card was right; nil when nothing was
+    /// said - silence, a recogniser error, a phone call - so the card is
+    /// left unrated rather than marked Again for an answer nobody gave
+    /// (audit #71). "I don't know" is an answer, and a wrong one.
+    static func cardVerdict(_ heard: String, answer: [String]) -> Bool? {
+        let said = heard.trimmingCharacters(in: .whitespacesAndNewlines)
+        if command(in: said) == .dontKnow { return false }
+        guard !said.isEmpty else { return nil }
+        return matches(said, answer: answer)
+    }
+
     static func command(in heard: String) -> Command? {
         let said = heard.lowercased().trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
         if ["skip", "next", "skip it", "next one", "pass"].contains(said) { return .skip }

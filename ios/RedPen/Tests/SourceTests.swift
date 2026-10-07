@@ -91,5 +91,16 @@ ok(Citation.read("") == nil, "nor is an empty one")
 ok(Citation.read("Immunology") == nil, "nor a document name with no page")
 ok(Citation.read("p. 0") == nil, "and page zero is not a page")
 
+// MARK: which cards came off a page, when a set has two lectures
+
+let renal = SourceDoc(name: "Renal", pages: (1...6).map { page($0, "renal \($0)") })
+let cardio = SourceDoc(name: "Cardio", pages: (1...6).map { page($0, "cardio \($0)") })
+let cited = ["Renal, p. 4", "Cardio, p. 4", "Cardio, p. 4", "Renal, p. 2"]
+ok(Citation.citing(renal, page: 4, among: cited, sources: [renal, cardio]) == ["Renal, p. 4"],
+   "page 4 of one lecture is not page 4 of the other")
+ok(Citation.citing(cardio, page: 4, among: cited, sources: [renal, cardio]).count == 2, "each lecture counts its own")
+ok(Citation.citing(renal, page: 2, among: ["p. 2"], sources: [renal]) == ["p. 2"],
+   "a set with one lecture still counts unnamed citations")
+
 print(failures == 0 ? "\nALL SOURCE TESTS PASS" : "\n\(failures) FAILED")
 exit(failures == 0 ? 0 : 1)

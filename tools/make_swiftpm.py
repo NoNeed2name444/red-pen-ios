@@ -4,7 +4,7 @@
 # --without leaves whole features out of the package (CHUNKS below), each
 # replaced by a small stand-in from tools/playgrounds_stubs, for an iPad whose
 # Swift Playgrounds cannot build the whole app at once. The full app is untouched.
-import fnmatch, os, re, shutil, sys, subprocess
+import fnmatch, os, re, shutil, sys, subprocess, time
 args = sys.argv[1:]
 without = []
 if "--without" in args:
@@ -210,12 +210,17 @@ if samples:
     for sample in samples:
         shutil.copy(sample, os.path.join(root, "Samples", os.path.basename(sample)))
 sh = os.path.join(root, "Shared")
+def patch(s, old, new, path):
+    # a patch whose text moved must stop the build, not ship the file unpatched
+    assert s.count(old) == 1, f"{path}: expected one {old.strip()!r} to patch, found {s.count(old)}"
+    return s.replace(old, new)
 # Gemma: no LocalLLMClient in Playgrounds, so compile it out behind canImport.
 p = os.path.join(sh, "GemmaModel.swift"); s = open(p).read()
-s = s.replace("import LocalLLMClientLlama\n", "#if canImport(LocalLLMClientLlama)\nimport LocalLLMClientLlama\n#endif\n")
-s = s.replace("    var client: LlamaClient?\n", "    #if canImport(LocalLLMClientLlama)\n    var client: LlamaClient?\n    #else\n    var client: AnyObject?\n    #endif\n")
+s = patch(s, "import LocalLLMClientLlama\n", "#if canImport(LocalLLMClientLlama)\nimport LocalLLMClientLlama\n#endif\n", p)
+s = patch(s, "    var client: LlamaClient?\n", "    #if canImport(LocalLLMClientLlama)\n    var client: LlamaClient?\n    #else\n    var client: AnyObject?\n    #endif\n", p)
 open(p, "w").write(s)
 p = os.path.join(sh, "GemmaGenerate.swift"); s = open(p).read()
+assert s.count("extension GemmaModel {") == 1, f"{p}: expected one 'extension GemmaModel {{' to split at"
 head, body = s.split("extension GemmaModel {", 1)
 stub = '''
 #else
@@ -248,8 +253,12 @@ extension GemmaModel {
 '''
 s = "#if canImport(LocalLLMClientLlama)\n" + head + "extension GemmaModel {" + body + stub
 open(p, "w").write(s)
-assert "LlamaClient" not in re.sub(r"#if canImport\(LocalLLMClientLlama\).*?#else", "", open(p).read(), flags=re.S).split("#else")[0] or True
+# the Playgrounds half (after the last #else) must not name the package's types
+assert not re.search(r"Llama|LocalLLMClient", open(p).read().rsplit("#else", 1)[1]), f"{p}: the Playgrounds stand-in names LocalLLMClient"
 resources = ', resources: [.copy("Samples")]'
+# each package drop has its own build number (UTC date and time), so a report
+# says which drop it came from rather than every drop being "1.0 (1)"
+drop = os.environ.get("DROP_STAMP") or time.strftime("%y%m%d.%H%M", time.gmtime())
 # the owner's build: examples in every mode and the bundled lecture (PersonalBuild.swift)
 if bundle.endswith(".personal"):
     open(os.path.join(root, "Samples", "personal-build.txt"), "w").write("The owner's personal build.\n")
@@ -266,7 +275,7 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "{bundle}",
             displayVersion: "1.0",
-            bundleVersion: "1",
+            bundleVersion: "{drop}",
             appIcon: .asset("AppIcon"),
             accentColor: .asset("AccentColor"),
             supportedDeviceFamilies: [.pad, .phone],

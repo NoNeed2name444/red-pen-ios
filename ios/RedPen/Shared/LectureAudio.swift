@@ -16,7 +16,29 @@ enum LectureAudio {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("lectures", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        keepOutOfBackup(dir)
         return dir
+    }
+
+    /// Recordings stay out of the phone's backup, as source files do
+    /// (SourceFiles): a term of lectures is gigabytes, each one can be
+    /// imported again, and backed up they filled a free iCloud (audit #81).
+    static func keepOutOfBackup(_ dir: URL) {
+        #if canImport(Darwin)
+        var folder = dir
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? folder.setResourceValues(values)
+        #endif
+    }
+
+    /// Whether a folder is kept out of the backup; false where there is none.
+    static func isOutOfBackup(_ dir: URL) -> Bool {
+        #if canImport(Darwin)
+        return (try? dir.resourceValues(forKeys: [.isExcludedFromBackupKey]))?.isExcludedFromBackup == true
+        #else
+        return false
+        #endif
     }
 
     static func url(for setID: UUID, ext: String = "m4a") -> URL {

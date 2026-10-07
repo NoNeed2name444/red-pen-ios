@@ -143,6 +143,12 @@ enum ReminderSettings {
     static var bedtimeOn: Bool { UserDefaults.standard.bool(forKey: bedtimeKey) }
     static var morningOn: Bool { UserDefaults.standard.bool(forKey: morningKey) }
 
+    /// Notification permission was refused: every reminder goes off, so no
+    /// switch says "on" for a reminder that can never arrive (audit #37).
+    static func refused(_ defaults: UserDefaults = .standard) {
+        for key in [questionKey, bedtimeKey, morningKey] { defaults.set(false, forKey: key) }
+    }
+
     /// The next time at `minutes` past midnight after `now` (today's if it
     /// is still ahead by a few minutes, else tomorrow's).
     static func next(_ minutes: Int, after now: Date, calendar: Calendar = .current) -> Date {
