@@ -2,18 +2,30 @@
 # Simulator once per screen (light and dark), and pushes the screenshots -
 # real SwiftUI pixels - to the `previews` branch, together with the build
 # log and any compile errors.
+#
+# Pushes to aahp/ branches (changes proposed by an automated loop) are built
+# and screenshotted the same way but publish nothing: their screenshots stay
+# in the run's ios-preview artifact.
 name: iOS preview
 
 on:
   workflow_dispatch:
+  push:
+    branches: ['aahp/**']
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-preview.yml'
 
+# Read-only: the preview job builds and runs the app's code. Only the publish
+# job, which runs none of it, can write.
 permissions:
-  contents: write
+  contents: read
 
 # A second dispatch cancels the first, because two runs racing to force-push
-# the same branch is worse than losing one of them.
+# the same branch is worse than losing one of them. aahp/ branches publish
+# nothing, so each gets a group of its own.
 concurrency:
-  group: ios-preview
+  group: ${{ startsWith(github.ref_name, 'aahp/') && format('ios-preview-{0}', github.ref) || 'ios-preview' }}
   cancel-in-progress: true
 
 jobs:
@@ -22,6 +34,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Toolchain
         run: |
@@ -160,8 +174,28 @@ jobs:
           print(json.dumps(status, indent=2))
           PY
 
-      - name: Publish to the previews branch
+      - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
+        with:
+          name: ios-preview
+          path: previews
+
+  # Separate from the build so the write token never shares a job with the
+  # app's code. Never for aahp/ branches.
+  publish:
+    needs: preview
+    if: ${{ !cancelled() && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-preview
+          path: previews
+
+      - name: Publish to the previews branch
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -174,9 +208,3 @@ jobs:
           git add -A
           git commit -q -m "iOS preview of ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews:previews
-
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: ios-preview
-          path: previews

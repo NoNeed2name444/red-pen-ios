@@ -9,6 +9,9 @@
 # Only UIKit-free files can be listed: the runner is a Mac, so a file importing
 # UIKit, PDFKit, StoreKit or Vision cannot be compiled for it. That is why the
 # decisions worth testing live in files that import nothing but Foundation.
+#
+# On aahp/ branches (changes proposed by an automated loop) the logs stay in
+# the run's swift-tests artifact; nothing is pushed.
 name: Swift tests
 on:
   workflow_dispatch:
@@ -19,16 +22,18 @@ on:
       - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
       - 'ios/RedPen/Tests/**'
       - '.github/workflows/swift-tests.yml'
+# Read-only: the suites compile and run the app's code. Only the publish job,
+# which runs none of it, can write.
 permissions:
-  contents: write
-env:
-  GH_TOKEN: ${{ github.token }}
+  contents: read
 jobs:
   tests:
     runs-on: macos-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       # A real zip for the Word reader to open, written by the runner's own zip
       # command rather than by Red Pen: the whole risk in reading a .docx is
@@ -104,8 +109,28 @@ jobs:
           [ "$bad" = "0" ] && echo "every check passed"
           exit $bad
 
-      - name: Push the logs
+      - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: swift-tests
+          path: out
+
+  publish:
+    needs: tests
+    if: ${{ always() && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: swift-tests
+          path: out
+
+      - name: Push the logs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd out
           git init -q && git checkout -q -b swift-tests
