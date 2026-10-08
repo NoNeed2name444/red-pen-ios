@@ -112,7 +112,8 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   Examples into Cardiology (NeuronHierarchyTests T2).
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
-  60-minute limit. Two map tests failed:
+  60-minute limit (61 minutes, cancelled during clean-up). app-build.yml
+  now allows 90, so personal's full run can finish. Two map tests failed:
   - testNeuronsAtRest, on the old "regions" check (fixed in 6847330);
   - testHoldForOptions: in Neurons, "Heart failure" is inside the closed
     Cardiology cell, so there was nothing to hold. The test now flies in to
@@ -158,6 +159,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    (it cancels a running push-started run on the same branch).
 7. [ ] When CI is green, merge design/3d-overhaul into personal (no
    force-push), and bring the session branches up to personal.
+   - [x] app-build.yml's limit raised from 60 to 90 minutes first: the
+     full run (compile, UI suite, accessibility) took 61 on wip.
+   - [ ] Then personal's App build runs the whole UI suite for the first
+     time since M3. testHoldForOptions is the one to watch: fixed in
+     8a18676 but not run on the Mac since (the previews ran only=testNeurons).
 6a. [x] Redraw the cells after the owner's reference: purple-magenta
    somas, golden-amber dendrites, ringed orbs joined by threads. Rejected
    by the owner (8 Oct, 6 PM): they want only the circled close-up.
