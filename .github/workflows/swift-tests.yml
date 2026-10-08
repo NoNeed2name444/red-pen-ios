@@ -12,6 +12,9 @@
 # that need Apple's Compression or CryptoKit run on macOS
 # (tools/swift_suites_mac_only.txt). The list of suites is
 # tools/swift_suites.txt; tools/swift_suites.py runs it, here and locally.
+#
+# On aahp/ branches (changes proposed by an automated loop) the logs stay in
+# the run's swift-tests-linux and swift-tests-mac artifacts; nothing is pushed.
 name: Swift tests
 on:
   workflow_dispatch:
@@ -52,14 +55,14 @@ on:
       - 'tools/l10n_*.py'
       - '.github/workflows/swift-tests.yml'
       - 'tools/swift_suites*'
+# Read-only: the suites compile and run the app's code. Only the publish jobs,
+# which run none of it, can write.
 permissions:
-  contents: write
+  contents: read
 # a newer push to the same branch supersedes the run before it
 concurrency:
   group: swift-tests-${{ github.ref }}
   cancel-in-progress: true
-env:
-  GH_TOKEN: ${{ github.token }}
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -73,6 +76,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Every suite that builds on Linux
         run: python3 tools/swift_suites.py --platform linux --release -j 4
       # the Apple-only suites wait for a macOS machine, so they run only when a
@@ -103,14 +107,11 @@ jobs:
           python3 tools/l10n_catalog.py check ios/RedPen/Resources/Localizable.xcstrings > out/l10n-catalog.txt 2>&1 || true
           python3 tools/l10n_lint.py ios/RedPen --out out/l10n-report.md > out/l10n-lint.txt 2>&1 || true
           { echo '### Localisation'; echo '```'; cat out/l10n-catalog.txt out/l10n-lint.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      - name: Push the logs
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          cd out
-          git init -q && git checkout -q -b swift-tests
-          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
-          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
+        with:
+          name: swift-tests-linux
+          path: out
   mac:
     needs: linux
     if: ${{ always() && needs.linux.outputs.mac == 'true' }}
@@ -118,10 +119,54 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: The suites that need Apple frameworks
         run: python3 tools/swift_suites.py --platform mac --release -j 3
-      - name: Push the logs
+      - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: swift-tests-mac
+          path: out
+
+  # Separate from the suites so the write token never shares a job with the
+  # app's code. Never for aahp/ branches.
+  publish-linux:
+    needs: linux
+    if: ${{ always() && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: swift-tests-linux
+          path: out
+      - name: Push the logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q && git checkout -q -b swift-tests
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
+  publish-mac:
+    needs: mac
+    if: ${{ always() && needs.mac.result != 'skipped' && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: swift-tests-mac
+          path: out
+      - name: Push the logs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd out
           git init -q && git checkout -q -b swift-tests-mac

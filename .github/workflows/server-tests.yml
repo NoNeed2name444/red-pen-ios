@@ -20,6 +20,9 @@ on:
       - 'tools/asr_bench.mjs'
       - 'ios/RedPen/Shared/CloudTranscript.swift'
       - 'ios/RedPen/Shared/LectureTranscriber.swift'
+# Read-only: the tests need nothing more, and they also run on aahp/ branches.
+permissions:
+  contents: read
 jobs:
   tests:
     runs-on: ubuntu-latest
