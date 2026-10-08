@@ -35,7 +35,7 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Neurons: open each cell's rim where a link's tube joins it" | M3 in progress; the Linux suites pass (preflight, 10:51 PM); this commit is #17 (section 3, step 6c); round C (3a21e75, #14 and #15) was built and shot |
+| wip/3d-neurons-m3 | "Neurons: a link that leaves a cell starts on its membrane" | M3 in progress; the Linux suites pass (preflight, 11:02 PM); this commit is #18 (section 3, step 6c); #17 (91aedd2) compiled on the Mac (App build 37835162580); round C (3a21e75, #14 and #15) was built and shot |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene) |
 | preview/3d-overhaul | 3a21e75 (round C shots, run 37829333699) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
@@ -132,9 +132,9 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 - Round C (3a21e75): App build 37829324782 and preview run 37829333699,
   both green; the shots were sent (8 Oct, about 10:40 PM). Two things
   still showed: the soma's crisp rim across each tube's mouth (#17, done
-  in this commit) and, once a cell is opened, links from its parts and
-  notes crossing its membrane to reach other cells (graph-14, 15, 20: #18,
-  next).
+  in 91aedd2) and, once a cell is opened, links from its parts and notes
+  crossing its membrane to reach other cells (graph-14, 15, 20: #18, done
+  in this commit). Both are round D.
 
 ## 3. Next steps
 
@@ -218,13 +218,16 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      meets it. GraphLinkMouths picks a cell's widest four; GraphSim calls
      the look's GraphLinkMouthKeeper (NeuronMouths) each frame, which
      writes only values that moved. The suite "bridge" checks the mouths
-     (B12, B13).
-   - [ ] #18, a link that leaves an opened cell starts on the cell, so
+     (B12, B13). Compiled on the Mac: App build 37835162580.
+   - [x] #18, a link that leaves an opened cell starts on the cell, so
      its tube joins the cell's membrane instead of crossing it to a part
      or note inside (GraphNeurons.processes: across cells each end is the
      cell holding it, or the free note itself; inside one cell the deepest
-     shown bodies, as before). Then the tests (NeuronHierarchyTests T2),
-     preflight, and round D: the App build and one preview run.
+     shown bodies, as before). NeuronHierarchyTests T2 checks it: no
+     process crosses a membrane, opened or not, and links inside an
+     opened cell still join its notes with their own dyes.
+   - [ ] Round D (#17 and #18): the App build on design/, then one preview
+     run (only=testNeurons) and the shots sent.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.

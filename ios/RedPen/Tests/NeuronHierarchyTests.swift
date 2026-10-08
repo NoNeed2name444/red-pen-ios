@@ -545,11 +545,25 @@ struct BodyPair: Hashable {
     let high: Int
 }
 
-/// What is wrong with a plan's processes: every pair of shown bodies with
-/// note links between them carries exactly one, sent from the side with
-/// more of the links (ties by name), never between a body and what holds
-/// it, kind 5 inside one cell and 6 between cells or free ones, with a dye
-/// and a width.
+/// The body that holds body x and nothing holds: its cell, or x itself
+/// when it floats free.
+func outermost(_ plan: ThemePlan, _ x: Int) -> Int {
+    var at: Int = x
+    var steps: Int = 0
+    while plan.bodies[at].parent >= 0 && steps <= plan.bodies.count {
+        at = plan.bodies[at].parent
+        steps += 1
+    }
+    return at
+}
+
+/// What is wrong with a plan's processes: every pair of ends with note
+/// links between them carries exactly one (inside one cell the deepest
+/// shown bodies holding the notes; between cells the cells themselves, a
+/// free note its own end, so no process crosses a cell's membrane), sent
+/// from the side with more of the links (ties by name), never between a
+/// body and what holds it, kind 5 inside one cell and 6 between cells or
+/// free ones, with a dye and a width.
 func processProblems(_ input: UniverseInput, _ plan: ThemePlan) -> [String] {
     var problems: [String] = []
     let shown: [UUID: Int] = shownBodies(input, plan)
@@ -561,11 +575,15 @@ func processProblems(_ input: UniverseInput, _ plan: ThemePlan) -> [String] {
     var up: [BodyPair: Int] = [:]
     var down: [BodyPair: Int] = [:]
     for way in ways {
-        guard let x = shown[way.a], let y = shown[way.b] else {
+        guard var x = shown[way.a], var y = shown[way.b] else {
             problems.append("a linked note shows nowhere")
             continue
         }
         if x == y { continue }
+        if outermost(plan, x) != outermost(plan, y) {
+            x = outermost(plan, x)
+            y = outermost(plan, y)
+        }
         let pair = BodyPair(low: min(x, y), high: max(x, y))
         if x < y { up[pair, default: 0] += 1 } else { down[pair, default: 0] += 1 }
     }
@@ -587,6 +605,9 @@ func processProblems(_ input: UniverseInput, _ plan: ThemePlan) -> [String] {
         if !(link.width >= 0.669 && link.width <= 1.751) { problems.append("\(a.title) - \(b.title): width \(link.width)") }
         if holds(plan, link.a, link.b) || holds(plan, link.b, link.a) {
             problems.append("\(a.title) - \(b.title): one holds the other")
+        }
+        if outermost(plan, link.a) != outermost(plan, link.b) && (a.parent >= 0 || b.parent >= 0) {
+            problems.append("\(a.title) - \(b.title): crosses a cell's membrane")
         }
         let along: Int = link.a < link.b ? up[pair, default: 0] : down[pair, default: 0]
         let against: Int = link.a < link.b ? down[pair, default: 0] : up[pair, default: 0]
@@ -706,8 +727,10 @@ check("T2 Examples opened: every link carried once", processProblems(preview, op
       few(processProblems(preview, openOne)))
 let richter: Int = bodyNamed(openOne, "Richter's hernia") ?? -1
 let femoral: Int = bodyNamed(openOne, "Femoral") ?? -1
-check("T2 a link into a closed part ends on the part",
-      openOne.links.contains { $0.a == richter && $0.b == femoral && $0.kind == 6 })
+check("T2 a link from outside joins the opened cell's membrane, not the part inside",
+      openOne.links.contains { $0.a == richter && $0.b == examplesBody && $0.kind == 6 }
+      && !openOne.links.contains { ($0.a == femoral || $0.b == femoral) && $0.kind == 6 },
+      "\(openOne.links.filter { $0.kind == 6 }.map { openOne.bodies[$0.a].title + ">" + openOne.bodies[$0.b].title })")
 let groin: Int = bodyNamed(openOne, "Groin hernia") ?? -1
 let inguinalPart: Int = bodyNamed(openOne, "Inguinal") ?? -1
 check("T2 three links from Groin hernia into Inguinal make one process",
@@ -720,8 +743,14 @@ check("T2 Inguinal opened: every link carried once", processProblems(preview, op
       few(processProblems(preview, openTwo)))
 check("T2 all opened: every link carried once", processProblems(preview, openAll).isEmpty,
       few(processProblems(preview, openAll)))
-check("T2 all opened: links between notes only, no note to a folder",
-      openAll.links.allSatisfy { openAll.bodies[$0.a].kind == .note && openAll.bodies[$0.b].kind == .note })
+check("T2 all opened: inside a cell links join notes, between cells the cells themselves",
+      openAll.links.allSatisfy { link in
+          let a: ThemeBody = openAll.bodies[link.a]
+          let b: ThemeBody = openAll.bodies[link.b]
+          return link.kind == 5 ? a.kind == .note && b.kind == .note : a.parent < 0 && b.parent < 0
+      } && openAll.links.contains {
+          $0.kind == 6 && openAll.bodies[$0.a].title == "Examples" && openAll.bodies[$0.b].title == "Cardiology"
+      }, "\(openAll.links.filter { $0.kind == 6 }.map { openAll.bodies[$0.a].title + ">" + openAll.bodies[$0.b].title })")
 check("T2 plain links are excitatory: strength 4 one way, 5 both ways",
       openAll.links.allSatisfy {
           $0.tag == FiberKind.excitatory.rawValue
@@ -750,12 +779,24 @@ check("T2 a contrast and a hand link: one process, dyed by the contrast",
       && dyeShut.links[0].width == Float(0.55 + 0.12 * 5), "\(dyeShut.links)")
 check("T2 it runs from the cell that sends", dyeShut.links.first.map { dyeShut.bodies[$0.a].title } == "Sender")
 let dyeOpen: ThemePlan = allOpen(dyeInput)
-let dyeTags: [String: Int] = Dictionary(uniqueKeysWithValues: dyeOpen.links.map { (dyeOpen.bodies[$0.b].title, $0.tag) })
-check("T2 opened: the contrast inhibitory, the hand link modulatory",
-      dyeTags == ["Strangulation": FiberKind.inhibitory.rawValue, "Obstruction": FiberKind.modulatory.rawValue],
-      "\(dyeTags)")
+check("T2 both cells opened: still one process, cell to cell, dyed by the contrast",
+      dyeOpen.links.count == 1 && dyeOpen.links[0].kind == 6 && dyeOpen.links[0].tag == FiberKind.inhibitory.rawValue
+      && dyeOpen.links.first.map { dyeOpen.bodies[$0.a].title + ">" + dyeOpen.bodies[$0.b].title } == "Sender>Target",
+      "\(dyeOpen.links)")
 check("T2 opened: every link carried once", processProblems(dyeInput, dyeOpen).isEmpty,
       few(processProblems(dyeInput, dyeOpen)))
+// with Target a part of Sender, both links run inside one cell, each its own
+let nestFolders: [UniverseFolder] = [UniverseFolder(id: fixedID(700), name: "Sender", parent: nil),
+                                     UniverseFolder(id: fixedID(701), name: "Target", parent: fixedID(700))]
+let nestInput = UniverseInput(notes: dyeInput.notes, folders: nestFolders, edges: dyeInput.edges, seedByName: true,
+                              anatomy: AnatomyInput(notes: dyeNotes, folders: nestFolders))
+let nestOpen: ThemePlan = allOpen(nestInput)
+let dyeTags: [String: Int] = Dictionary(uniqueKeysWithValues: nestOpen.links.map { (nestOpen.bodies[$0.b].title, $0.tag) })
+check("T2 inside an opened cell: the contrast inhibitory, the hand link modulatory",
+      dyeTags == ["Strangulation": FiberKind.inhibitory.rawValue, "Obstruction": FiberKind.modulatory.rawValue]
+      && nestOpen.links.allSatisfy { $0.kind == 5 }, "\(dyeTags)")
+check("T2 inside an opened cell: every link carried once", processProblems(nestInput, nestOpen).isEmpty,
+      few(processProblems(nestInput, nestOpen)))
 
 // MARK: T3 the ladder and nothing meeting, over random vaults
 

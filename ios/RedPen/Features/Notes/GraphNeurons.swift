@@ -21,9 +21,11 @@ import Foundation
 //   has links (it sends in), a drifting cell when it has none;
 // - with no folders at all, one home cell holds every note, always open.
 //
-// Links are the cells' own processes: one per pair of shown bodies,
-// gathered from every note link between them (each end is the deepest
-// shown body holding its note), none dropped. Each grows out of the
+// Links are the cells' own processes: one per pair of ends, gathered from
+// every note link between them, none dropped. Inside one cell each end is
+// the deepest shown body holding its note; between cells each end is the
+// cell itself (or the free note), opened or not, so a link joins the two
+// membranes and never crosses one to reach inside. Each grows out of the
 // sending side (the one with more links) as one piece with it and ends on
 // the other; its strength (GraphAnatomy) sets its width, and what it
 // carries (excitatory, inhibitory, modulatory) its dye.
@@ -691,12 +693,15 @@ nonisolated struct NeuronPlanner: Sendable {
 
     // MARK: processes
 
-    /// The cells' processes: one per pair of shown bodies with note links
-    /// between them, gathered from every note link (each end the deepest
-    /// shown body holding its note), none dropped. It runs from the side
-    /// with more links (ties by name); its strength is the links' mean
-    /// strength plus a little for how many, and its dye the kind most of
-    /// their strength carries.
+    /// The cells' processes: one per pair of ends with note links between
+    /// them, gathered from every note link, none dropped. Inside one cell
+    /// each end is the deepest shown body holding its note; a link that
+    /// leaves a cell starts on the cell itself (a free note is its own
+    /// end), so its tube joins the cell's membrane instead of crossing it
+    /// to a part or note inside. It runs from the side with more links
+    /// (ties by name); its strength is the links' mean strength plus a
+    /// little for how many, and its dye the kind most of their strength
+    /// carries.
     func processes() -> [ThemeLink] {
         struct Pair: Hashable {
             let a: Int
@@ -705,9 +710,13 @@ nonisolated struct NeuronPlanner: Sendable {
         var forward: [Pair: [NeuronNoteLink]] = [:]
         var backward: [Pair: [NeuronNoteLink]] = [:]
         for link in noteLinks {
-            let x: Int = shownBody(link.from)
-            let y: Int = shownBody(link.to)
+            var x: Int = shownBody(link.from)
+            var y: Int = shownBody(link.to)
             guard x >= 0, y >= 0, x != y else { continue }
+            if bodies[x].region < 0 || bodies[x].region != bodies[y].region {
+                x = outermost(x)
+                y = outermost(y)
+            }
             if x < y {
                 forward[Pair(a: x, b: y), default: []].append(link)
             } else {
@@ -756,6 +765,12 @@ nonisolated struct NeuronPlanner: Sendable {
             steps += 1
         }
         return c >= 0 ? cBody[c] : -1
+    }
+
+    /// The cell holding shown body b (a cell's region is its own body), or
+    /// b itself when it floats free.
+    func outermost(_ b: Int) -> Int {
+        bodies[b].region >= 0 ? bodies[b].region : b
     }
 
     /// Bodies by name, then id.
