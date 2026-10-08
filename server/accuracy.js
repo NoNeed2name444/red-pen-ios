@@ -294,11 +294,15 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   const contradicted = Boolean(claims?.hard?.length);
   const final = contradicted && graded === 'verified' ? 'check' : graded;
   const fixed = suggestedFix(item, votes);
-  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null);
-  if (contradicted) reasons.push('It contradicts its own lecture.');
   const cut = signals?.proof?.why;
+  // its key stated word for word, and another option a source may state too
+  const other = cut === 'distractor' || cut === 'options';
+  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null, other);
+  if (contradicted) reasons.push('It contradicts its own lecture.');
   if (cut === 'lookup' || cut === 'timeout' || cut === 'error') reasons.push('An official source could not be read this time; it will be checked again.');
   else if (cut === 'budget') reasons.push('Its official sources were too long to read in this batch; it will be checked again on its own.');
+  else if (cut === 'distractor') reasons.push('An official source may also state another of its options.');
+  else if (cut === 'options') reasons.push('One of its other options could not be read for certain.');
   return {
     id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: final, modelVersion: weights.version, reasons,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: fixed,

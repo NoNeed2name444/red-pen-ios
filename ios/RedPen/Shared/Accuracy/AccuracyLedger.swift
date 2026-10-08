@@ -46,7 +46,7 @@ struct AccuracyProof: Codable, Hashable {
     var quotes: [Quote]?
 
     /// server/proof.js PROOF_VERSION
-    static let version: Int = 1
+    static let version: Int = 2
     /// Proofs cut short rather than failed: proven again on a later check.
     static let retried: Set<String> = ["budget", "timeout", "lookup", "error"]
 
@@ -121,7 +121,9 @@ struct AccuracyAssessment: Hashable {
     /// server/accuracy-model.js reasonsFor and describe, word for word.
     static func proofReasons(_ proof: AccuracyProof?, oath: Bool) -> [String] {
         var out: [String] = []
-        if proof?.isFull != true {
+        // its key stated word for word, and another option a source may state too
+        let other: Bool = proof?.why == "distractor" || proof?.why == "options"
+        if proof?.isFull != true && !other {
             out.append(oath ? "A dose, diagnosis or treatment no official source states word for word yet."
                             : "No official source states it word for word yet.")
         }
@@ -130,6 +132,10 @@ struct AccuracyAssessment: Hashable {
             out.append("An official source could not be read this time; it will be checked again.")
         case "budget":
             out.append("Its official sources were too long to read in this batch; it will be checked again on its own.")
+        case "distractor":
+            out.append("An official source may also state another of its options.")
+        case "options":
+            out.append("One of its other options could not be read for certain.")
         default: break
         }
         return out

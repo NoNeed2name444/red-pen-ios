@@ -18,8 +18,13 @@
 // The claim must name the drug (FDA) or the topic (MedlinePlus). Anything that
 // cannot be read for certain (superscripts, unknown symbols, cut text) is
 // unprovable, never proven. Europe PMC is evidence for the models, not proof.
+//
+// A question is proven only when, besides its key, no source may state
+// another of its options. That check is loose where proof is strict: a
+// source may put an option in its own words, so any sentence with each word
+// that tells the option apart, in any order, may state it.
 
-export const PROOF_VERSION = 1;
+export const PROOF_VERSION = 2;
 
 // Normalization ---------------------------------------------------------------
 
@@ -84,6 +89,13 @@ const BRITISH_PARTS = [['aemi', 'emi'], ['haem', 'hem'], ['oesophag', 'esophag']
   ['oestr', 'estr'], ['paed', 'ped'], ['gynaec', 'gynec'], ['rhoe', 'rhe'], ['pnoe', 'pne'],
   ['anaesth', 'anesth'], ['leuc', 'leuk'], ['sulph', 'sulf'], ['faec', 'fec']];
 const BRITISH_STARTS = [['foet', 'fet'], ['coeliac', 'celiac'], ['aetio', 'etio'], ['caesar', 'cesar']];
+// the stems british() respells: -our to -or, -re to -er, a doubled l to one
+const OUR = 'tum|col|behavi|lab|od|hum|vap|fav';
+const RE = 'lit|millilit|cent|fib|met|centimet|millimet';
+const LLED = 'label|model|cancel|counsel|signal|travel|fuel|total|channel|tunnel|level|equal';
+const OUR_AT = new RegExp(`^(${OUR})our`);
+const RE_AT = new RegExp(`^(${RE})re$`);
+const LLED_AT = new RegExp(`^(${LLED})l(ed|ing)$`);
 
 export const isNum = w => /^\d+(?:\.\d+)?$/.test(w);
 const NON_ASCII = /[^\x00-\x7f]/;
@@ -105,9 +117,7 @@ function british(w) {
   if (BRITISH_WORDS[w]) return BRITISH_WORDS[w];
   for (const [a, b] of BRITISH_PARTS) if (w.includes(a)) w = w.split(a).join(b);
   for (const [a, b] of BRITISH_STARTS) if (w.startsWith(a)) w = b + w.slice(a.length);
-  w = w.replace(/^(tum|col|behavi|lab|od|hum|vap|fav)our/, '$1or')
-    .replace(/^(lit|millilit|cent|fib|met|centimet|millimet)re$/, '$1er')
-    .replace(/^(label|model|cancel|counsel|signal|travel|fuel|total|channel|tunnel|level|equal)l(ed|ing)$/, '$1$2');
+  w = w.replace(OUR_AT, '$1or').replace(RE_AT, '$1er').replace(LLED_AT, '$1$2');
   if (w.length > 5) w = w.replace(/is(e|ed|ing|ation|er)$/, 'iz$1').replace(/ys(e|ed|ing)$/, 'yz$1');
   return w;
 }
@@ -284,6 +294,9 @@ export function normalize(text) {
   return w && phrases(w);
 }
 
+// letters joined by dots, read as one word ("e.g." is eg, "b.i.d." bid)
+const DOT_JOIN = /\b[a-z](?:\.[a-z])+\.?(?![a-z])/g;
+
 /// The words of a text, spelled one way, before the phrase pass.
 export function normalizeWords(text) {
   if (typeof text !== 'string' || UNSAFE.test(text) || POWER.test(text)) return null;
@@ -317,7 +330,7 @@ export function normalizeWords(text) {
   // anything left that is not a letter, digit, space or plain punctuation is
   // a sign this file does not know
   if (/[^a-z0-9\s.,;:!?()[\]"']/.test(s)) return null;
-  if (s.includes('.')) s = s.replace(/\b[a-z](?:\.[a-z])+\.?(?![a-z])/g, m => m.replace(/\./g, ''));
+  if (s.includes('.')) s = s.replace(DOT_JOIN, m => m.replace(/\./g, ''));
   if (/\d/.test(s)) {
     s = s.replace(/\b(\d+)(?:st|nd|rd|th)\b/g, (_, n) => ' ' + (ORDINALS[+n - 1] || n + ' ordinal') + ' ');
     // thousands commas, every one at once ("1,000,000,000")
@@ -481,6 +494,11 @@ const content = toks => toks.filter(t => !FUNCTION.has(t));
 /// checks before a full compare: whatever a word or number comes to there,
 /// it is spelled the same here (the Greek letters stay, as separators).
 const fold = s => (NON_ASCII.test(s) ? plainUnicode(s).replace(/[ßæœøłıđðþ]/g, c => LIGATURES[c]) : s.toLowerCase());
+/// A whole section as a wrong option is looked for in it: folded, without
+/// the degree signs, letters joined by dots run together. Each word
+/// normalizeWords reads from it, but for the words it makes (MADE), is a run
+/// of letters here, spelled the same up to british and plural.
+const viewOf = t => fold(t).replace(/°/g, '').replace(DOT_JOIN, m => m.replace(/\./g, ''));
 
 /// What a heading asks of a claim: its words, less the generic ones, the
 /// anchor and salt names. null when the heading cannot be read.
@@ -495,13 +513,15 @@ function reqOf(text, anchor) {
 // a stop run is only ever taken whole, from its start: the lookbehind keeps a
 // long run of dots from being tried at every one of them
 const SENTENCE_END = /(?<![.!?])[.!?]+["')\]]*(?=\s+["'(\[]?[A-Z0-9•◦▪●]|\s*$)|;/g;
+// the same, without the split at a semicolon: a sentence as a reader takes it
+const STOP_END = /(?<![.!?])[.!?]+["')\]]*(?=\s+["'(\[]?[A-Z0-9•◦▪●]|\s*$)/g;
 const NO_SPLIT = /(?:\b(?:e\.g|i\.e|vs|approx|yrs|hrs|dr|fig|al|no)|(?:^|[\s(.])[a-z])$/i;
 
 /// A text's sentences, one at a time: a section is read only as far as its
 /// purse goes.
-function* sentences(text) {
+function* sentences(text, ends = SENTENCE_END) {
   let from = 0;
-  for (const m of text.matchAll(SENTENCE_END)) {
+  for (const m of text.matchAll(ends)) {
     // NO_SPLIT reads at most the last 7 characters ("approx" and the one before)
     if (m[0] !== ';' && NO_SPLIT.test(text.slice(Math.max(from, m.index - 9), m.index))) continue;
     const end = m.index + m[0].length;
@@ -730,11 +750,12 @@ const OVER = Symbol('over');
 
 /// The work of reading one section of `size` characters: `spend` adds to it
 /// (OVER past `limit`); `fits` makes room for a statement's text (false once
-/// EMIT_ROOM is spent, the section cut); `skip` cuts the section; `words` and
-/// `asks` are normalizeWords and reqOf, paid for. `done` marks the statements
-/// with the work, the text of those that can prove (folded) and whether the
-/// section was cut.
-function meter(size, limit, anchor) {
+/// EMIT_ROOM is spent, the section cut) and pays for its folding, none when
+/// the section is read lightly (`light`, fdaSegments); `skip` cuts the
+/// section; `words` and `asks` are normalizeWords and reqOf, paid for. `done`
+/// marks the statements with the work, the text of those that can prove
+/// (folded) and whether the section was cut.
+function meter(size, limit, anchor, light) {
   let work = 0;
   let room = EMIT_ROOM * size;
   let folded = 0;
@@ -751,8 +772,10 @@ function meter(size, limit, anchor) {
         return false;
       }
       room -= n;
-      folded += n;
-      spend(n);
+      if (!light) {
+        folded += n;
+        spend(n);
+      }
       return true;
     },
     roomy: () => room >= 0,
@@ -774,9 +797,11 @@ function drop(xs) {
 
 /// A label section's statements, each with the heading words a claim needs to
 /// be proven by it. Its reading is paid for as it goes (meter): past `limit`
-/// it stops (OVER).
-export function fdaSegments(raw, anchor, limit = Infinity) {
-  const { spend, fits, roomy, skip, words, asks, done } = meter(Math.min(raw.length, SECTION_CAP), limit, anchor);
+/// it stops (OVER). Read lightly (`light`), for what the section may state
+/// (statedIn), no statement is folded and a subsection title's other endings
+/// are left out: its whole line, kept then, has their words.
+export function fdaSegments(raw, anchor, limit = Infinity, light = false) {
+  const { spend, fits, roomy, skip, words, asks, done } = meter(Math.min(raw.length, SECTION_CAP), limit, anchor, light);
   const segs = [];
   let text = raw.length > SECTION_CAP
     ? raw.slice(0, Math.max(0, raw.lastIndexOf(' ', SECTION_CAP))) + ' \u0000' : raw;
@@ -802,17 +827,18 @@ export function fdaSegments(raw, anchor, limit = Infinity) {
     segs.push(seg);
     return seg;
   };
-  // one that can prove: its text folded and its heading words, paid for
+  // one that can prove: its text folded (unless read lightly) and its
+  // heading words, paid for
   const statement = (t, req) => {
     let n = sectionReq.length;
     for (const r of req) n += r.length;
     spend(n);
-    return add({ text: t, lower: fold(t), usable: true, req: [...sectionReq, ...req.flat()] });
+    return add({ text: t, lower: light ? '' : fold(t), usable: true, req: [...sectionReq, ...req.flat()] });
   };
   const emit = (t, usable, req = [subReq, capsReq, labelReq]) => (
     usable && !sectionCut && sectionReq !== null && req.every(r => r !== null) && fits(t.length)
       ? statement(t, req)
-      : add({ text: t, lower: '', usable: false, req: [] }));
+      : add({ text: t, lower: '', usable: false, req: [], heads: sectionReq === null || req.some(r => r === null) ? null : [...sectionReq, ...req.flat()] }));
   const closeList = () => {
     if (list && list.pop) cut = true;
     list = null;
@@ -860,19 +886,33 @@ export function fdaSegments(raw, anchor, limit = Infinity) {
       // a title on its own line states nothing
       if (split >= ws.length) continue;
       // the title may end elsewhere: every other place it could, on its own,
-      // needing the title words before it (only when they could prove)
+      // needing the title words before it (only when they could prove). The
+      // whole line has the words of each of those, for what the section may
+      // state (statedIn): kept, unable to prove, when read lightly (it is all
+      // of them) or when none of them is the whole line
       if (!cut && !sectionCut) {
-        for (const c of caps) {
-          if (c > MAX_TITLE || !roomy()) {
-            skip();
-            break;
+        let whole = caps.some(c => c !== split);
+        if (!light) {
+          for (const c of caps) {
+            if (c > MAX_TITLE || !roomy()) {
+              skip();
+              break;
+            }
+            if (c === split) continue;
+            const v = ws.slice(c).join(' ');
+            spend(v.length);
+            if (structuralColon(v) >= 0) continue;
+            const r = asks(ws.slice(0, c).join(' '));
+            if (r !== null && fits(v.length)) {
+              vars.push(statement(v, [r]));
+              if (c === 0) whole = false;
+            }
           }
-          if (c === split) continue;
-          const v = ws.slice(c).join(' ');
-          spend(v.length);
-          if (structuralColon(v) >= 0) continue;
-          const r = asks(ws.slice(0, c).join(' '));
-          if (r !== null && fits(v.length)) vars.push(statement(v, [r]));
+        }
+        if (whole) {
+          const line = ws.join(' ');
+          spend(line.length);
+          add({ text: line, lower: '', usable: false, req: [], heads: sectionReq });
         }
       }
       t = ws.slice(split).join(' ');
@@ -945,9 +985,9 @@ const QUESTION = words('what which who whom whose how why when where cause sympt
 /// headings are bare lines: a question starts a part, and its words, less the
 /// ones every part has, must be in the claim ("How is severe asthma treated?"
 /// asks for "severe"), as must a plain heading's. Its reading is paid for as
-/// it goes, as a label section's is (fdaSegments).
-export function mlpSegments(full, anchor, limit = Infinity) {
-  const { spend, fits, asks, done } = meter(Math.min(full.length, SECTION_CAP), limit, anchor);
+/// it goes, and may be light, as a label section's is (fdaSegments).
+export function mlpSegments(full, anchor, limit = Infinity, light = false) {
+  const { spend, fits, asks, done } = meter(Math.min(full.length, SECTION_CAP), limit, anchor, light);
   const segs = [];
   let text = full;
   // cut at a line; the unreadable last line takes back what precedes it
@@ -963,8 +1003,8 @@ export function mlpSegments(full, anchor, limit = Infinity) {
   let list = []; // every item of the list being read
   const emit = (t, usable) => {
     const seg = usable && !stuck && req !== null && fits(t.length)
-      ? { text: t, lower: fold(t), usable: true, req }
-      : { text: t, lower: '', usable: false, req: [] };
+      ? { text: t, lower: light ? '' : fold(t), usable: true, req }
+      : { text: t, lower: '', usable: false, req: [], heads: req };
     segs.push(seg);
     return seg;
   };
@@ -1062,11 +1102,12 @@ const SEGMENT_KEEP = 64;
 /// from (the first SECTION_CAP characters, and one more to know it goes on),
 /// `id` names that text for its kind and anchor, `cost` is the least reading
 /// it takes (each of those characters once), `lower` its folded text, once a
-/// claim asks.
+/// claim asks. `full` is all of it, past the cap too, where a wrong option
+/// may still be stated (statedBy).
 const sectionOf = (kind, seq, name, full) => {
   const text = full.slice(0, SECTION_CAP + 1);
   return {
-    name, text, lower: null, id: `${kind}\u0001${seq.join(' ')}\u0001${text}`,
+    name, text, full, lower: null, id: `${kind}\u0001${seq.join(' ')}\u0001${text}`,
     cost: Math.min(text.length, SECTION_CAP),
   };
 };
@@ -1098,7 +1139,7 @@ function sourceOf(entry) {
     if (seq.length) {
       const name = String(official.drug || '');
       src = { entry, name, topic: new Set(normalizeWords(name) || []), seq, anchor, sections,
-        segment: (text, limit) => fdaSegments(text, anchor, limit) };
+        segment: (text, limit, light) => fdaSegments(text, anchor, limit, light) };
     }
   } else if (entry.source === 'MedlinePlus' && ((typeof entry.full === 'string' && entry.full) || (typeof entry.html === 'string' && entry.html))) {
     const seq = content(normalize(structuredText(entry.title)) || []);
@@ -1109,9 +1150,9 @@ function sourceOf(entry) {
       // made text only when a claim asks (ready)
       const section = typeof entry.full === 'string' && entry.full
         ? sectionOf('mlp', seq, 'summary', entry.full)
-        : { name: 'summary', html: entry.html, seq, text: null, lower: null, id: null, cost: 0 };
+        : { name: 'summary', html: entry.html, seq, text: null, full: null, lower: null, id: null, cost: 0 };
       src = { entry, name, topic: new Set(normalizeWords(name) || []), seq, anchor, sections: [section],
-        segment: (text, limit) => mlpSegments(text, anchor, limit) };
+        segment: (text, limit, light) => mlpSegments(text, anchor, limit, light) };
     }
   }
   sourceCache.set(entry, src);
@@ -1172,10 +1213,15 @@ function probesOf(toks, folded) {
 // and a scan of it for one probe (at most half a nanosecond), against a
 // character's worth of 65; a pass over a section's statements for one
 // wording, SEG_STEP for each and a scan of the text of those that can prove
-// for each probe and the question mark
+// for each probe and the question mark; a whole section made a view (viewOf,
+// once a batch, at most 12 nanoseconds a character), and its sentences, or
+// its statements, made units with views of their own (once a batch, at most
+// 24 nanoseconds a character)
 const FOLD_SHARE = 8;
 const SCAN_SHARE = 128;
 const SEG_STEP = 8;
+const VIEW_SHARE = 5;
+const UNIT_SHARE = 2;
 
 // Summaries made text, kept for the next request with the same summary: the
 // last TEXT_KEEP. Kept or not, they are paid for the same (ready).
@@ -1216,17 +1262,21 @@ function pay(purse, what, cost) {
 /// paid for the same either way (the work their reading took), so what an
 /// item comes to never depends on what ran before its batch. null when the
 /// purse cannot pay; a reading stopped part way (OVER), or a kept one that
-/// would have been, empties the purse, as the reading did.
-function read(src, sec, purse) {
-  const got = purse.paid.get(sec.id);
+/// would have been, empties the purse, as the reading did. Read lightly
+/// (`light`, for what the section may state), they are kept and paid for
+/// apart from its full reading, which stands in for them once the batch has
+/// paid for it: it has all they have (fdaSegments).
+function read(src, sec, purse, light = false) {
+  const id = light ? (sec.lightId ??= `light\u0001${sec.id}`) : sec.id;
+  const got = purse.paid.get(sec.id) || (light && purse.paid.get(id));
   if (got) return got;
   if (sec.cost > purse.left) return null;
-  let segs = SEGMENTS.get(sec.id);
+  let segs = SEGMENTS.get(id);
   if (segs) {
-    SEGMENTS.delete(sec.id);
+    SEGMENTS.delete(id);
   } else {
     try {
-      segs = src.segment(sec.text, purse.left);
+      segs = src.segment(sec.text, purse.left, light);
     } catch (e) {
       if (e !== OVER) throw e;
       purse.left = 0;
@@ -1234,13 +1284,13 @@ function read(src, sec, purse) {
     }
     if (SEGMENTS.size >= SEGMENT_KEEP) SEGMENTS.delete(SEGMENTS.keys().next().value);
   }
-  SEGMENTS.set(sec.id, segs);
+  SEGMENTS.set(id, segs);
   if (segs.work > purse.left) {
     purse.left = 0;
     return null;
   }
   purse.left -= segs.work;
-  purse.paid.set(sec.id, segs);
+  purse.paid.set(id, segs);
   return segs;
 }
 
@@ -1326,6 +1376,312 @@ function provenBy(alt, srcs, purse) {
     }
   }
   return null;
+}
+
+// Distractors: what a source may state ---------------------------------------
+
+// A question's key is one answer among two when a source states another of
+// its options, in any words. Not knowing every way a source may put it, the
+// check is loose where proof is strict: an option is stated by any sentence,
+// line or statement (a unit) that has each word of it that tells it apart
+// (not a function word, a negation, a heading's word, the source's own name),
+// with the sentence before when it leans on that one, or a list's lead-in.
+// A word of five letters or more is had by any word starting as it does,
+// less its last three letters; any other, as it is. Past SECTION_CAP a
+// section is read in sentences only: one that may state an option there, its
+// headings unread, counts as unread (purse.short).
+
+// the words normalization makes up or respells (a sign's, a Greek letter's or
+// an ordinal's name, a unit's, a contraction's): never in a source as they are
+const MADE = new Set([...SYNTHETIC, ...GREEK_NAMES, ...ORDINALS, ...Object.values(UNIT_ALIAS),
+  'freq', 'will', 'shall', 'have'].filter(w => w.length >= 4));
+const NEGATIONS = words('not no never nor');
+// "daily", "once daily" and "a day" are the same period
+const PERIOD = dict({ daily: 'day', weekly: 'week', freq1d: 'day', freq1w: 'week' });
+const canon = t => {
+  const c = UNIT_ALIAS[t] || ABBREV_FREQ[t] || t;
+  return PERIOD[c] || c;
+};
+// the words that never tell options apart, and those starting as one does
+const LOOSE_GENERIC = words('side effect event');
+const GENERICS = [...GENERIC, ...GENERIC_NOUNS, ...LOOSE_GENERIC];
+const stemOf = t => t.slice(0, Math.max(4, t.length - 3));
+const isGeneric = t => GENERIC.has(t) || GENERIC_NOUNS.has(t) || LOOSE_GENERIC.has(t) || /^us(?:e|ed|es|ing)$/.test(t)
+  || (t.length >= 5 && GENERICS.some(g => g.startsWith(stemOf(t))));
+// a word had by its stem
+const isLoose = t => t.length >= 5 && /^[a-z]+$/.test(t) && !MADE.has(t);
+
+/// The words of an option (its tokens, normalized) that tell it apart, each
+/// once, as canon makes it.
+const looseOf = toks => [...new Set(toks.filter(t => !FUNCTION.has(t) && !SALTS.has(t) && !NEGATIONS.has(t)
+  && !QUESTION.has(t) && !isGeneric(t)).map(canon))];
+
+// how long two spellings are the same from their start
+const lcp = (a, b) => {
+  let k = 0;
+  while (k < a.length && a[k] === b[k]) k++;
+  return k;
+};
+const OUR_OR = new RegExp(`^(?:${OUR})or`);
+const RE_ER = new RegExp(`^(?:${RE})er?$`);
+const LLED_ED = new RegExp(`^(?:${LLED})(?:e|ed|i|in|ing)$`);
+
+/// Whether the start of a word as compared (spelled) may be spelled another
+/// way in a source's text: where british() or plural() may have changed it.
+function respelt(q) {
+  for (const [a, b] of BRITISH_PARTS) {
+    if (q.includes(b)) return true;
+    for (let j = lcp(a, b) + 1; j < b.length; j++) if (q.endsWith(b.slice(0, j))) return true;
+  }
+  for (const [a, b] of BRITISH_STARTS) if (q.length > lcp(a, b) && (q.startsWith(b) || b.startsWith(q))) return true;
+  for (const a in BRITISH_WORDS) {
+    const b = BRITISH_WORDS[a];
+    if (q.length > lcp(a, b) && b.startsWith(q)) return true;
+  }
+  return OUR_OR.test(q) || RE_ER.test(q) || LLED_ED.test(q) || /iz|yz|y$/.test(q);
+}
+
+/// What a source's text holds, as it is, wherever it has a word of an option:
+/// the word's start (its stem for a loose one), short of where it may be
+/// spelled another way, four letters at least; '' when there is none.
+function plainPart(t) {
+  let p = isLoose(t) ? stemOf(t) : t;
+  if (isLoose(t) && [...MADE].some(w => w.startsWith(p))) return '';
+  for (; p.length >= 4; p = p.slice(0, -1)) if (!respelt(p)) return p;
+  return '';
+}
+
+/// What the view (viewOf) of a text stating an option must hold: for each
+/// number past twelve its last three digits, for a decimal its point on (as
+/// probesOf), and for each word of four letters or more its plainPart.
+function probesFor(r) {
+  const out = new Set();
+  for (const t of r) {
+    if (isNum(t)) {
+      const [whole, part] = t.split('.');
+      if (part) out.add((whole === '0' ? '' : whole.slice(-3)) + '.' + part);
+      else if (+whole > 12) out.add(whole.slice(-3));
+    } else if (/^[a-z]{4,}$/.test(t) && !MADE.has(t)) {
+      const p = plainPart(t);
+      if (p) out.add(p);
+    }
+  }
+  return [...out];
+}
+
+/// Whether a section's view (viewOf: all of it, past the cap too) holds every
+/// probe: the view made once a batch (by the section), each probe's scan once
+/// an item, as holdsAll; null when the purse cannot pay.
+function viewHolds(sec, probes, purse) {
+  if (!probes.length) return true;
+  const may = (sec.may ??= { view: null, plain: { units: null } });
+  if (!pay(purse, may, Math.ceil(sec.full.length / VIEW_SHARE))) return null;
+  may.view ??= viewOf(sec.full);
+  let seen = purse.seen.get(may);
+  if (!seen) purse.seen.set(may, (seen = new Map()));
+  const scan = Math.ceil(sec.full.length / SCAN_SHARE);
+  for (const p of probes) {
+    let has = seen.get(p);
+    if (has === undefined) {
+      if (scan > purse.left) return null;
+      purse.left -= scan;
+      seen.set(p, (has = may.view.includes(p)));
+    }
+    if (!has) return false;
+  }
+  return true;
+}
+
+/// A unit's words, by their first four letters: its normalized words (a list
+/// item's mark read as a space), their phrases and its headings' words, each
+/// also as canon makes it. null when it cannot be read, or its headings
+/// cannot (req null).
+function tokensOf(text, req) {
+  if (req === null) return null;
+  const w = normalizeWords(text.replace(ITEM_MARKS, ' '));
+  if (!w) return null;
+  const by = new Map();
+  const put = t => {
+    const k = t.slice(0, 4);
+    const at = by.get(k);
+    if (!at) by.set(k, [t]);
+    else if (!at.includes(t)) at.push(t);
+  };
+  const add = t => {
+    put(t);
+    const c = canon(t);
+    if (c !== t) put(c);
+  };
+  for (const t of req) add(t);
+  for (const t of w) add(t);
+  for (const t of phrases(w)) add(t);
+  return by;
+}
+
+// whether units' words (tokensOf) have each word of an option, a loose one
+// (isLoose) by its stem
+const holdsR = (sets, r) => r.every(t => sets.some(s => {
+  const at = s.get(t.slice(0, 4));
+  return !!at && (isLoose(t) ? at.some(u => u.startsWith(stemOf(t))) : at.includes(t));
+}));
+
+// a list item's mark; a sentence's stop, before its closing quotes
+const ITEM_MARK = /^[•◦▪●]/;
+const ITEM_MARKS = /[•◦▪●]/g;
+const STOPPED = /[.!]["')\]]*$/;
+// a word that points back at what was said before it
+const PRONOUN_AT = new RegExp(`\\b(?:${[...PRONOUN].join('|')})\\b`);
+// a title: its words of four letters or more (one at least) capitalized
+const LOWER_WORD = /(?<![A-Za-z])[a-z][A-Za-z]{3}/;
+const titleLike = t => !LOWER_WORD.test(t) && /[A-Za-z]{4}/.test(t);
+
+/// A section's statements as units (unitsState): each with its headings'
+/// words, in its view too (one taken back keeps them; an unusable one's are
+/// `heads`, null when unreadable), leaning on the statement before when it
+/// points back at it. Made once and paid for once a batch; null when the
+/// purse cannot pay.
+function segUnits(segs, purse) {
+  const may = (segs.may ??= { units: null, chars: segs.reduce((n, s) => n + s.text.length, 0) });
+  if (!pay(purse, may, Math.ceil(may.chars / UNIT_SHARE))) return null;
+  if (!may.units) {
+    let prev = null;
+    may.units = segs.map((s, at) => {
+      const heads = s.heads === undefined ? s.req : s.heads;
+      const own = viewOf(s.text);
+      const u = { text: s.text, req: heads, view: heads && heads.length ? own + ' ' + heads.join(' ') : own, at, toks: undefined, lean: [] };
+      if (prev && PRONOUN_AT.test(own)) u.lean.push(prev);
+      prev = u;
+      return u;
+    });
+    may.units.chars = may.units.reduce((n, u) => n + u.view.length, 0);
+  }
+  return may.units;
+}
+
+/// All of a section's text, past the cap too, as units (unitsState): each
+/// sentence of each line, leaning on the one before when that one is not
+/// stopped, is a title or is pointed back at, and a list item on its list's
+/// lead-in. Made once and paid for once a batch; null when the purse cannot
+/// pay.
+function plainUnits(sec, purse) {
+  const plain = (sec.may ??= { view: null, plain: { units: null } }).plain;
+  if (!pay(purse, plain, Math.ceil(sec.full.length / UNIT_SHARE))) return null;
+  if (!plain.units) {
+    const units = [];
+    let prev = null;
+    let lead = null;
+    for (const line of sec.full.split('\n')) {
+      for (const text of sentences(line, STOP_END)) {
+        const u = { text, req: [], view: viewOf(text), at: units.length, toks: undefined, lean: [] };
+        const item = ITEM_MARK.test(text);
+        if (prev && (!STOPPED.test(prev.text) || titleLike(prev.text) || PRONOUN_AT.test(u.view))) u.lean.push(prev);
+        if (item && lead && lead !== prev) u.lean.push(lead);
+        units.push(u);
+        if (/:["')\]]*$/.test(text) || (!item && (!STOPPED.test(text) || text.includes(':')))) lead = u;
+        prev = u;
+      }
+    }
+    units.chars = units.reduce((n, u) => n + u.view.length, 0);
+    plain.units = units;
+  }
+  return plain.units;
+}
+
+/// Whether a unit, with those it leans on, has each word of an option (r):
+/// each unit's view scanned for the probes (the first 30) once a call, and
+/// the words of a unit that may have them all made once a batch (by the
+/// unit, as a statement's key is). true when such a unit cannot be read: it
+/// may say anything. null when the purse cannot pay.
+function unitsState(units, r, probes, purse) {
+  const ps = probes.slice(0, 30);
+  const full = (1 << ps.length) - 1;
+  const pass = Math.ceil((units.length * SEG_STEP + units.chars * (ps.length + 1)) / SCAN_SHARE);
+  if (pass > purse.left) return null;
+  purse.left -= pass;
+  // each unit's probes, by its place (`at`): those it leans on come before it
+  const masks = new Int32Array(units.length);
+  for (const u of units) {
+    let m = 0;
+    for (let i = 0; i < ps.length; i++) if (u.view.includes(ps[i])) m |= 1 << i;
+    masks[u.at] = m;
+    for (const l of u.lean) m |= masks[l.at];
+    if (m !== full) continue;
+    const group = [u, ...u.lean];
+    const look = r.length * group.length;
+    if (look > purse.left) return null;
+    purse.left -= look;
+    const sets = [];
+    for (const g of group) {
+      if (!pay(purse, g, keyWork(g.heft ??= heft(g.text)))) return null;
+      if (g.toks === undefined) g.toks = tokensOf(g.text, g.req);
+      if (!g.toks) return true;
+      sets.push(g.toks);
+    }
+    if (holdsR(sets, r)) return true;
+  }
+  return false;
+}
+
+// an option that cannot be read: it may say anything
+const UNREADABLE = Symbol('unreadable');
+
+/// Whether a section may state an option: one of its sentences or
+/// statements (units) has each word of it. Its sentences are tried first, the
+/// cheaper reading, then its statements with their headings, read lightly
+/// (fdaSegments). What the purse cannot pay for is counted in purse.short, as
+/// is a section that may state it (its view has every probe) past what its
+/// statements are read from: there a sentence's headings are unread.
+function statedIn(src, sec, r, probes, purse) {
+  if (!ready(sec, purse)) {
+    purse.short++;
+    return false;
+  }
+  const holds = viewHolds(sec, probes, purse);
+  if (!holds) {
+    if (holds === null) purse.short++;
+    return false;
+  }
+  const pu = plainUnits(sec, purse);
+  const byLines = pu ? unitsState(pu, r, probes, purse) : null;
+  if (byLines) return true;
+  if (byLines === null || sec.full.length > SECTION_CAP) {
+    purse.short++;
+    return false;
+  }
+  const segs = read(src, sec, purse, true);
+  const su = segs && segUnits(segs, purse);
+  const bySegs = su ? unitsState(su, r, probes, purse) : null;
+  if (bySegs) return true;
+  if (bySegs === null || segs.cut) purse.short++;
+  return false;
+}
+
+/// Whether a source may state an option (one wording of it): true when one
+/// of its sections may (statedIn), or the wording has no word that tells it
+/// apart from the source's own name; UNREADABLE when it cannot be read.
+/// Words already tried (`tried`, the same words in another order) are not
+/// tried again. The wording's normalizing is paid for as provenBy's is; what
+/// the purse cannot pay for is counted in purse.short.
+function statedBy(alt, srcs, purse, tried) {
+  const cost = keyWork(heft(alt));
+  if (cost > purse.left) {
+    purse.short++;
+    return false;
+  }
+  purse.left -= cost;
+  const toks = normalize(alt);
+  if (!toks) return UNREADABLE;
+  const all = looseOf(toks);
+  const key = [...all].sort().join(' ');
+  if (tried.has(key)) return false;
+  tried.add(key);
+  for (const src of srcs) {
+    const r = all.filter(t => !src.anchor.has(t));
+    if (!r.length) return true;
+    const probes = probesFor(r);
+    for (const sec of src.sections) if (statedIn(src, sec, r, probes, purse)) return true;
+  }
+  return false;
 }
 
 // Claims: what an item states, as the sentences a source would have to state -
@@ -1717,15 +2073,17 @@ function itemChars(item) {
 /// Whether an item is proven: {v, claims, proven, quotes, read} when every
 /// claim it makes is stated word for word by one of the official sources
 /// (openFDA labels, MedlinePlus summaries; anything else in `officials` is
-/// ignored) and, for a question, no source states one of its other options;
-/// with `why` when it is not. Proven is the only way to Verified: models
-/// agreeing never are. It reads at most `chars` characters of the sections
-/// not in `paid` (the batch's, shared), and `read` is how many it did; 'budget'
-/// when a section it could not pay for might have changed the answer.
-/// `unread` is how many of the item's official lookups failed (a source down,
-/// not one with nothing on it): 'lookup' when what was not read could have
-/// proven a claim, or stated another option. A MedlinePlus entry is read from
-/// `full` (its summary as text) or else `html` (as MedlinePlus sends it).
+/// ignored) and, for a question, no source may state one of its other
+/// options, in any words (statedBy): 'distractor' when one may, 'options' when
+/// one cannot be read; with `why` when it is not. Proven is the only way to
+/// Verified: models agreeing never are. It reads at most `chars` characters
+/// of the sections not in `paid` (the batch's, shared), and `read` is how
+/// many it did; 'budget' when a section it could not pay for might have
+/// changed the answer. `unread` is how many of the item's official lookups
+/// failed (a source down, not one with nothing on it): 'lookup' when what was
+/// not read could have proven a claim, or stated another option. A
+/// MedlinePlus entry is read from `full` (its summary as text) or else `html`
+/// (as MedlinePlus sends it).
 export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map(), unread = 0 } = {}) {
   const srcs = (Array.isArray(officials) ? officials : []).map(sourceOf).filter(Boolean);
   const out = { v: PROOF_VERSION, claims: 0, proven: 0, quotes: [], read: 0 };
@@ -1768,9 +2126,17 @@ export function prove(item, officials, { chars = PROOF_CHARS, paid = new Map(), 
     out.proven++;
     out.quotes.push(q);
   }
-  // a source stating another option makes the key one answer among two
+  // a source that may state another option makes the key one answer among
+  // two; an option that cannot be read may say anything
   const short = purse.short;
-  for (const alts of found.distractors || []) if (alts.some(a => provenBy(a, srcs, purse))) return done('distractor');
+  const tried = new Set();
+  for (const alts of found.distractors || []) {
+    for (const a of alts) {
+      const stated = statedBy(a, srcs, purse, tried);
+      if (stated === UNREADABLE) return done('options');
+      if (stated) return done('distractor');
+    }
+  }
   return done(purse.short > short ? 'budget' : unread && found.distractors?.length ? 'lookup' : null);
 }
 

@@ -13,6 +13,7 @@ import { FEATURES, DEFAULT_WEIGHTS, features, predict, verdict, reasonsFor, vali
 import { DOSE_VECTORS } from './oath-vectors.mjs';
 import { checkBatch, report, modelWeights, setWeights, listReports, itemTerms, parseVotes, disagree, votersFor, suggestedFix, itemHash, cleanItem, forgetWeights, describe } from '../accuracy.js';
 import { normaliseMedQA, normaliseMedMCQA, variants, corrupt, reportedExamples, train, reportMarkdown } from '../bench/train-accuracy.mjs';
+import { PROOF_VERSION } from '../proof.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -160,6 +161,16 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   const described = describe({ id: 'd1', kind: 'card', text: 'Q: Dose of amoxicillin for otitis media?\nA: 500 mg PO three times a day', source: '' },
     'h', { votes: [{ model: 'm1', risk: 1, evidence: 'none' }, { model: 'm2', risk: 1, evidence: 'none' }], sourceMatch: 0, evidence: [] }, DEFAULT_WEIGHTS);
   ok(described.verdict !== 'verified' && described.oath?.dose === true, 'describe applies the oath check and says what it found');
+  // a key an official source states word for word, but another option it may state too (proof.js)
+  const mcq = { id: 'd2', kind: 'mcq', stem: 'The most common adverse reaction of metformin is:', options: ['Diarrhea', 'Nausea', 'Rash'], key: 0, explanation: '' };
+  const held = why => describe(mcq, 'h', { votes: [{ model: 'm1', risk: 1, evidence: 'none' }], sourceMatch: 0, evidence: [],
+    proof: { v: PROOF_VERSION, claims: 1, proven: why === 'budget' ? 0 : 1, quotes: [], why } }, DEFAULT_WEIGHTS);
+  const unstated = r => r.includes('word for word');
+  ok(held('distractor').reasons.includes('An official source may also state another of its options.')
+     && held('options').reasons.includes('One of its other options could not be read for certain.')
+     && !['distractor', 'options'].some(why => held(why).verdict === 'verified' || held(why).reasons.some(unstated))
+     && held('budget').reasons.some(unstated),
+     'a key stated word for word with another option a source may state too: never Verified, said so, and not that no source states it');
   ok(validWeights(DEFAULT_WEIGHTS) && !validWeights({ ...DEFAULT_WEIGHTS, weights: [1] }) && !validWeights({ ...DEFAULT_WEIGHTS, thresholds: { verified: 0.3, flagged: 0.5 } }), 'weights are validated');
 
   // the phone carries the same prior
@@ -332,7 +343,7 @@ const items = [
   ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `three free voters from three families, asked at once, one call each for the whole batch (${calls.join()})`);
   ok(body.items[0].votes.length === 3 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with all three votes and the evidence they were shown');
   ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.includes('No official source states it word for word yet.')
-     && body.items[0].proof?.v === 1 && body.items[0].proof.proven === 0,
+     && body.items[0].proof?.v === PROOF_VERSION && body.items[0].proof.proven === 0,
      `agreeing votes with support but no official source stating it: Check this, with its proof attached (${body.items[0].p})`);
   ok(body.items[0].evidence.every(e => !('official' in e) && !('html' in e) && !('full' in e)), 'the official text read for the proof does not come back with the evidence');
   ok(body.items[1].verdict === 'check' || body.items[1].verdict === 'verified', 'the card is scored too');
