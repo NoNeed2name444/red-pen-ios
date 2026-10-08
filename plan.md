@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the sample map's Cardiology-Examples link ("Preview: link Examples to Cardiology, where the owner drew two lines") | M3 in progress; the Linux suites pass (preflight, 8:22 PM); 98f6f18 (the nucleus holding the parts, links as prolonged dendrites) compiled on the Mac (App build run 37815149897, green) and is being shot (round B, preview run 37815161808) |
-| design/3d-overhaul | 98f6f18 | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
-| preview/3d-overhaul | 98f6f18 (round B shots, run 37815161808) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| wip/3d-neurons-m3 | "Neurons: one membrane per cell, links as dendrites joining two cells" | M3 in progress; the Linux suites pass (preflight, 10:01 PM); this commit (#14 and #15, section 3 step 6c) is round C: its App build on design/ and its shots (preview, only=testNeurons) |
+| design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene) |
+| preview/3d-overhaul | the same as wip (round C shots) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -94,8 +94,17 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   cell's own dendrites prolonged, thick and flowing out of the body, with
   no oval ring (done: NeuronShaders.axon, NeuronLook.farHalf 0.38), and a
   cell's subfolders inside its nucleus when it opens, smaller (done:
-  GraphNeurons.zones, openNucleus 0.6, partShare 0.1 to 0.22). Shots of
-  all of it (round B, preview only=testNeurons) are due by 10:30 PM.
+  GraphNeurons.zones, openNucleus 0.6, partShare 0.1 to 0.22). Round B
+  (98f6f18; App build 37815149897 green, preview run 37815161808) was
+  shot and sent. On the iPad two tests failed before the map did
+  anything: testNeuronsFlyIn ("Failed to terminate") and
+  testNeuronsLegend ("Failed to launch"): the simulator, not the map.
+  Watch for them in round C; the iPhone shots were all there.
+- The owner then asked (8 Oct, 8:35 PM; section 4, verbatim) for a cell's
+  dendrites and body to be one surface, not stitched pieces (#14), and for
+  links to be dendrites, not axons, extended to join two cells so that
+  their surfaces run on into each other (#15). Both are done (section 3,
+  step 6c) and are round C.
 - The owner's two red lines join Cardiology to Examples, but the sample
   notes had no link between those folders, so the map could not draw one.
   GraphPreview now links Groin hernia to Atrial fibrillation (a hand link;
@@ -120,8 +129,9 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   `python3 tools/ci_status.py wip/3d-neurons-m3 --wait`.
   SceneKit files can't be type-checked on Linux, so this is the only compile
   check for GraphNeuronLook, GraphThemeScene, Graph3DView and GraphSim.
-- Promised: screenshots of the new Neurons look around 10:30 PM Cairo,
-  2026-10-08 (moved from 9 PM).
+- Promised: round C's screenshots (#14, #15) on 2026-10-08, as soon as
+  its preview run finishes (dispatched by about 10:15 PM Cairo; the run
+  takes about 26 minutes).
 
 ## 3. Next steps
 
@@ -175,9 +185,34 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      cytoplasm round it (0.64 R to 0.8 R); partShare 0.1 to 0.22.
    - [x] A link between the two big cells in the sample map, where the
      owner drew two lines: Groin hernia to Atrial fibrillation.
-   - [ ] App build on design/ (37815149897, green) and round B shots
-     (only=testNeurons, run 37815161808), then step 6. Round C, with the
-     new link and what round B shows, if it fits before 10:30 PM.
+   - [x] App build on design/ (37815149897, green) and round B shots
+     (only=testNeurons, run 37815161808), sent.
+6c. [ ] One surface per cell, and links as dendrites joining two cells (the
+   owner, 8 Oct, 8:35 PM; section 4).
+   - [x] #14, the soma and its dendrites as one closed mesh
+     (GraphNeuronMembrane): the zero set of one distance field (the soma
+     smoothly united, k = 0.3, with round cones along each dendrite),
+     meshed by surface nets and pulled onto the surface, normals from the
+     field's gradient, so the glass edge runs unbroken round the cell.
+     NeuronShaders.membrane and membraneSway draw it; the suite
+     "membrane" checks it closed, in one piece, on the surface, facing out.
+   - [x] #15, a link as one straight dendrite from cell to cell
+     (GraphLinkBridge, NeuronShaders.bridge): it flares into both cells
+     the same way (the same smooth minimum, seen in the plane square to
+     the view: tangent to each disc at the join, its own width past the
+     flare), with no myelin, bouton, synapse or sender-only gold; as thick
+     as its smaller cell allows (nearBridge 0.09, farBridge 0.12, times
+     the width step); impulses run its whole length and light the second
+     cell as before. Straight, because an arch would tilt the tube at the
+     join. Falls back to the axon and arbor, then the plain link, if a
+     shader fails on the device. The suite "bridge" checks the outline.
+   - [ ] Round C: the App build on design/ (the compile check for the
+     Mac-only edits) and the shots (preview, only=testNeurons); send them.
+   - [ ] Next: hide the soma's rim across each tube's mouth. The membrane
+     is one material for all cells, so its crisp edge still shows where a
+     link leaves the body. Give each cell its own copy of the membrane
+     material with its links' mouths (direction, half width + blend), and
+     fade the rim where a mouth meets it (|y| < h + k past the join).
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
@@ -185,6 +220,13 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 ## 4. M3: the Neurons rebuild
 
 ### What the owner asked (verbatim, newest first)
+
+> also the dendrites and the cell surface should be one entity not multiple stitched things
+> don't use axons as connections use dendrites and extend them
+> make the tube connected both ways so the 2 cell surfaces connected become continuous
+
+(8 Oct, 8:35 PM.) Done in step 6c: GraphNeuronMembrane (#14) and
+GraphLinkBridge (#15).
 
 > these should be the connections and the encircled purple lights should turn to a nucleus instead of lights and the nucleus should have the subfolders when the folder opens. the oval encirclement should be removed and replaced by the prolonged dendrites of the cell folder.
 
@@ -255,9 +297,11 @@ The circled close-up (8 Oct, 6 PM), the only target now:
   Free notes are receptors (gold) and drifters (pale ice).
 - What a container holds is drawn inside it, and only once it is opened. The
   planner emits children only for opened containers; `input.open` lists them.
-- Links are the cells' axons. Each grows out from under its sender's
-  membrane, swells into a hillock, tapers, and ends in one synapse on its
-  target. Its width follows the sender's size.
+- Links are dendrites joining two cells (the owner, 8 Oct, 8:35 PM): one
+  straight glass tube that flares out of one cell's body and into the
+  other's the same way, so the two surfaces run on into each other. Its
+  width follows the smaller cell. (Before that they were the sender's
+  axon, ending in a synapse; that is now only the fallback.)
 
 ### The look (after the circled close-up, 8 Oct, 6 PM)
 
@@ -290,7 +334,22 @@ What the cells are now, and where (each shader's doc says the same):
 - Halo (NeuronShaders.halo): one faint, gold-leaning glow ((1,0.74,0.36)·0.7
   + NeuronPalette.glow·0.3), brightest at the membrane, reaching only a
   little way in, fading softly out with no seam.
-- Axon (NeuronShaders.axon): one of the sender's dendrites prolonged (the
+- Membrane (GraphNeuronMembrane, NeuronShaders.membrane, membraneSway): a
+  cell's soma and dendrites are one closed glass mesh, so its white-blue
+  edge runs unbroken from the body round every dendrite and back (the
+  owner: "one entity not multiple stitched things"). The soma shader
+  still draws the inside; the membrane carries the edge, the dendrites'
+  gold and particles, and sways with the soma's wobble. Smaller cells and
+  the plain fallback keep the sphere and tubes.
+- Bridge (GraphLinkBridge, NeuronShaders.bridge): a link as one dendrite
+  between two cells, flared into each body by the membrane's own blend
+  (k = 0.3 R), worked out in the plane square to the view: tangent to the
+  cell's disc at the join, its own width past the flare. Glass like the
+  dendrites, a white-blue edge, gold filaments strongest near both cells,
+  no myelin, bouton or synapse; impulses amber in a warm orange halo, run
+  end to end. nearBridge 0.09, farBridge 0.12 (times the width step of
+  the smaller cell). Straight: an arch would tilt it at the join.
+- Axon (the fallback, when the bridge shader fails; NeuronShaders.axon): one of the sender's dendrites prolonged (the
   owner's marked screenshot): a thick glass tube (NeuronLook.farHalf 0.38,
   about half a top cell's radius), flowing out of the body in a trumpet
   three times its width from under the membrane (its outline hidden over

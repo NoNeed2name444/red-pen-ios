@@ -91,6 +91,10 @@ nonisolated final class GraphRibbonWriter {
     /// boutons its shader draws, and codes the distance from its end and
     /// the target's membrane size. Nil everywhere else.
     private let arbor: GraphLinkArbor?
+    /// The Neurons' dendrite joining two cells (GraphLinkBridge): each link
+    /// runs between its two cells' joins, flared into both, with no arch,
+    /// bend or arbor. Nil everywhere else.
+    private let bridge: GraphLinkBridge?
     /// Frames counted here when there is no fence.
     private var ownFrame: UInt64 = 0
     /// "Lines: Straight" (GraphLineStyle), read once a frame: every link a
@@ -101,13 +105,14 @@ nonisolated final class GraphRibbonWriter {
     init(halfWidth: Float = GraphShape.linkHalfWidth, material: SCNMaterial,
          samples: Int = GraphQuality.current.linkSamples, expected: Int = 0, seeded: Bool = false,
          fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil,
-         trims: [Float] = []) {
+         bridge: GraphLinkBridge? = nil, trims: [Float] = []) {
         self.halfWidth = halfWidth
         self.trims = trims
         self.material = material
         self.seeded = seeded
         self.fence = fence
-        self.arbor = arbor
+        self.arbor = bridge == nil ? arbor : nil
+        self.bridge = bridge
         self.samples = max(samples, 2)
         let count: Int = self.samples + 1
         points = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: count)
@@ -291,6 +296,11 @@ nonisolated final class GraphRibbonWriter {
     private func fill(_ link: GraphRibbonLink, position: [SIMD3<Float>], radius: [Float], codes: [Int],
                       axis: [SIMD3<Float>]?, focus: Int, eye: SIMD3<Float>,
                       pos: UnsafeMutablePointer<Float>, uv: UnsafeMutablePointer<Float>, first: Int) {
+        if let bridge {
+            fillBridge(bridge, link, position: position, radius: radius, focus: focus, eye: eye,
+                       pos: pos, uv: uv, first: first)
+            return
+        }
         let n: Int = samples
         // the arbor: the target's membrane, as the step the shader reads
         var level: Int = 0
@@ -350,6 +360,63 @@ nonisolated final class GraphRibbonWriter {
             put(p0, pos, v)
             put(p1, pos, v + 1)
             let u: Float = u0 + along
+            uv[v * 2] = u
+            uv[v * 2 + 1] = lowV
+            uv[v * 2 + 2] = u
+            uv[v * 2 + 3] = highV
+        }
+    }
+
+    /// The Neurons' link as one dendrite joining its two cells
+    /// (GraphLinkBridge): straight between the joins, where its outline
+    /// leaves each cell's disc as seen, its samples crowded towards both
+    /// ends where the flares curve, and at each as wide as the wider flare
+    /// there; a growing link is drawn from its first cell. It is as thick
+    /// as its smaller cell allows (the width step), coded as a theme's link
+    /// with the distance from its start (NeuronShaders.bridge).
+    private func fillBridge(_ bridge: GraphLinkBridge, _ link: GraphRibbonLink, position: [SIMD3<Float>],
+                            radius: [Float], focus: Int, eye: SIMD3<Float>,
+                            pos: UnsafeMutablePointer<Float>, uv: UnsafeMutablePointer<Float>, first: Int) {
+        let n: Int = samples
+        let pa: SIMD3<Float> = position[link.a]
+        let pb: SIMD3<Float> = position[link.b]
+        let delta: SIMD3<Float> = pb - pa
+        let length: Float = simd_length(delta)
+        let dir: SIMD3<Float> = length > 0.0001 ? delta / length : SIMD3<Float>(1, 0, 0)
+        let step: Int = seeded ? Self.widthStep(radius: min(radius[link.a], radius[link.b])) : 0
+        let h: Float = seeded ? halfWidth * Self.stepWidth(step) : halfWidth
+        let endA: GraphLinkBridge.End = bridge.end(centre: pa, radius: radius[link.a], eye: eye, dir: dir,
+                                                   h: h, length: length)
+        let endB: GraphLinkBridge.End = bridge.end(centre: pb, radius: radius[link.b], eye: eye, dir: dir,
+                                                   h: h, length: length)
+        var path = GraphLinkPath(start: pa + dir * endA.trim, end: pb - dir * endB.trim)
+        path.grow = link.grow
+        var total: Float = 0
+        for k in 0...n {
+            let p: SIMD3<Float> = GraphLinkCurve.point(path, GraphLinkBridge.warp(Float(k) / Float(n)))
+            if k > 0 { total += simd_length(p - points[k - 1]) }
+            points[k] = p
+            lengths[k] = total
+        }
+        let code: Int = step * Self.themeSeeds + Self.themeSeed(link.seed)
+        let lit: Int = (link.a == focus || link.b == focus) ? 1 : 0
+        let scale: Float = GraphLinkCurve.alongScale(total: total)
+        let coded: Float = min(total * scale, GraphLinkCurve.alongCap)
+        let band: Float = Float(Int((coded * 16).rounded(.down)) * 2 + lit)
+        let lowV: Float = band + 0.002
+        let highV: Float = band + 0.998
+        let u0: Float = Float(code * 64 + 1)
+        for k in 0...n {
+            let tangent: SIMD3<Float> = GraphLinkCurve.tangent(points, k, n, fallback: dir)
+            let p: SIMD3<Float> = points[k]
+            let facing: SIMD3<Float> = GraphLinkCurve.cross(tangent, eye - p)
+            let fallback: SIMD3<Float> = GraphLinkCurve.perpendicular(to: tangent)
+            let side: SIMD3<Float> = GraphLinkCurve.unit(facing, or: fallback)
+            let width: Float = bridge.halfWidth(at: p, endA, endB, h: h)
+            let v: Int = first + k * 2
+            put(p - side * width, pos, v)
+            put(p + side * width, pos, v + 1)
+            let u: Float = u0 + min(lengths[k] * scale, GraphLinkCurve.alongCap)
             uv[v * 2] = u
             uv[v * 2 + 1] = lowV
             uv[v * 2 + 2] = u

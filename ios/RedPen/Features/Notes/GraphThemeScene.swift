@@ -80,6 +80,10 @@ protocol GraphThemeLook: AnyObject {
     /// links'; nil (the default) trims them at the target's rim.
     var arbor: GraphLinkArbor? { get }
     var farArbor: GraphLinkArbor? { get }
+    /// Links as one dendrite joining their two cells, flared into both
+    /// (the Neurons, GraphLinkBridge), in place of any arbor; nil (the
+    /// default) elsewhere.
+    var bridge: GraphLinkBridge? { get }
     /// How far into a body's radius its links start (times
     /// GraphThemeParts.radius): GraphShape.linkTrim, its rim, by default;
     /// the Neurons start theirs under the membrane.
@@ -90,6 +94,7 @@ extension GraphThemeLook {
     var linkTrim: Float { GraphShape.linkTrim }
     var arbor: GraphLinkArbor? { nil }
     var farArbor: GraphLinkArbor? { nil }
+    var bridge: GraphLinkBridge? { nil }
 }
 
 /// Which planner and look each theme has.
@@ -246,6 +251,7 @@ extension GraphSceneBuilder {
         universe.seeded = true
         universe.arbor = look.arbor
         universe.farArbor = look.farArbor
+        universe.bridge = look.bridge
         universe.trims = [Float](repeating: look.linkTrim, count: GraphNodeStyle.allCases.count)
         universe.ticker = look.ticker(parts: parts, plan: plan)
         var simLooks = GraphSimLooks(linkMaterial: look.linkMaterial, hotRing: look.hotRing, hotDisk: SCNGeometry(),
@@ -261,6 +267,7 @@ extension GraphSceneBuilder {
         var dyingLinks = GraphDeathLinks(material: look.linkMaterial, halfWidth: look.linkHalfWidth)
         dyingLinks.seeded = true
         dyingLinks.arbor = look.arbor
+        dyingLinks.bridge = look.bridge
         var stored = Set<UUID>(store.notes.map(\.id))
         for folder in store.folders { stored.insert(folder.id) }
         stored.insert(GraphUniverse.homeID)

@@ -24,19 +24,23 @@ import simd
 // nucleolus fading so they show, and thins its speckle and its interior's
 // haze (rpOpen, eased over most of a second as it opens or closes).
 //
-// Links are the cells' axons, each one of its sender's dendrites prolonged
-// (as the owner asked): a thick glass tube flowing out of the body from
-// under the membrane in a trumpet, golden near the sender and dark glass
-// beyond, ending in one synapse on its target (GraphLinkArbor); its width
-// follows the sender's size and the link's strength
-// (GraphRibbonWriter.widthStep).
+// Links are dendrites, extended (as the owner asked: "don't use axons as
+// connections use dendrites and extend them / make the tube connected both
+// ways so the 2 cell surfaces connected become continuous"): one glass
+// tube that leaves each of its two cells the way the membrane's dendrites
+// leave the soma, flaring out of the body's outline without a seam, the
+// same at both ends - no myelin, synapse or cup (GraphLinkBridge,
+// NeuronShaders.bridge); as thick as its smaller cell allows
+// (GraphRibbonWriter.widthStep). Where that shader fails, the axons of the
+// look before: a glass tube from under the sender's membrane, ending in
+// one synapse on its target (GraphLinkArbor).
 //
 // Colours are the close-up's violet and gold on dark teal-navy
 // (NeuronPalette): each cell keeps a touch of its own dye (green, cyan,
 // pink, amber, violet) in its nucleus and at its edge, its parts and ideas
 // leaning to the dye's accent; receptors gold, drifting cells pale ice;
-// axons glass like the dendrites, gold inside near the sender, impulses
-// amber in a warm orange halo.
+// links glass like the dendrites, gold filaments strongest near both
+// cells, impulses amber in a warm orange halo.
 //
 // Each cell shows a state (NeuronState, chosen in the Look menu or by its
 // role): resting, firing, releasing, pacemaker, migrating, engulfing - the
@@ -146,8 +150,13 @@ final class GraphNeuronLook: GraphThemeLook {
     /// dendrites, as the owner marked.
     static let nearHalf: Float = 0.23
     static let farHalf: Float = 0.38
-    var linkHalfWidth: Float { Self.nearHalf }
-    var farHalfWidth: Float { Self.farHalf }
+    /// The bridges' (GraphLinkBridge): their strip is the tube's own
+    /// outline, so these are the tube's half widths; between cells about
+    /// as thick as a top cell's dendrite at its base.
+    static let nearBridge: Float = 0.09
+    static let farBridge: Float = 0.12
+    var linkHalfWidth: Float { support.has("bridge") ? Self.nearBridge : Self.nearHalf }
+    var farHalfWidth: Float { support.has("bridge") ? Self.farBridge : Self.farHalf }
     /// An axon starts at 0.9 of its sender's trim radius (0.72 of the
     /// cell's size), under the membrane, so it grows out of the cell.
     let linkTrim: Float = 0.9
@@ -158,10 +167,18 @@ final class GraphNeuronLook: GraphThemeLook {
     /// width there. Only when the axon shader works: the plain fallback
     /// draws no cup.
     var arbor: GraphLinkArbor? {
-        support.has("axon") ? GraphLinkArbor(membrane: 1.25, share: 0.3) : nil
+        support.has("axon") && !support.has("bridge") ? GraphLinkArbor(membrane: 1.25, share: 0.3) : nil
     }
 
     var farArbor: GraphLinkArbor? { arbor }
+
+    /// Links as one dendrite joining their two cells, flared into both
+    /// (GraphLinkBridge: a cell's membrane is 1.25 of its trim radius, the
+    /// flare blended over 0.3 of it, as the membrane's dendrites are), when
+    /// its shader works.
+    var bridge: GraphLinkBridge? {
+        support.has("bridge") ? GraphLinkBridge(membrane: 1.25, blend: NeuronMembrane.blend) : nil
+    }
     let hotRing: SCNGeometry
     private(set) var clocked: [SCNMaterial] = []
     /// Materials whose geometry modifiers read `rpSway` (NeuronImpulses
@@ -193,17 +210,24 @@ final class GraphNeuronLook: GraphThemeLook {
         self.budget = budget
         let support: NeuronSupport = NeuronProbe.support
         self.support = support
-        linkMaterial = Self.axonMaterial(base: Self.fibre, bold: bold, lively: lively, budget: budget,
-                                         support: support, half: Self.nearHalf)
-        farMaterial = Self.axonMaterial(base: Self.tract, bold: bold, lively: lively, budget: budget,
-                                        support: support, half: Self.farHalf)
+        if support.has("bridge") {
+            linkMaterial = Self.bridgeMaterial(base: Self.fibre, bold: bold, lively: lively, budget: budget,
+                                               half: Self.nearBridge)
+            farMaterial = Self.bridgeMaterial(base: Self.tract, bold: bold, lively: lively, budget: budget,
+                                              half: Self.farBridge)
+        } else {
+            linkMaterial = Self.axonMaterial(base: Self.fibre, bold: bold, lively: lively, budget: budget,
+                                             support: support, half: Self.nearHalf)
+            farMaterial = Self.axonMaterial(base: Self.tract, bold: bold, lively: lively, budget: budget,
+                                            support: support, half: Self.farHalf)
+        }
         let ball = SCNSphere(radius: 1)
         ball.segmentCount = budget.tier == .high ? 40 : 24
         sphere = ball
         hotRing = GraphSceneBuilder.plane(Self.haloMaterial(tint: SIMD3<Float>(0.75, 1.0, 1.0), hot: true,
                                                             support: support))
         arrivalPlane = GraphSceneBuilder.plane(Self.arrivalMaterial(support: support))
-        if support.has("axon") {
+        if support.has("bridge") || support.has("axon") {
             clocked.append(linkMaterial)
             clocked.append(farMaterial)
         }
@@ -298,13 +322,25 @@ final class GraphNeuronLook: GraphThemeLook {
         var arbor: SCNNode?
         if kind.branches {
             let variant: Int = Int(body.seed % 3)
-            let made = SCNNode(geometry: arborGeometry(kind: kind, variant: variant, slot: dyeSlot, idea: idea))
-            made.simdScale = SIMD3<Float>(size, size, size)
-            made.simdOrientation = Self.arborTurn(kind, axis: body.axis, random: &random)
-            made.renderingOrder = 6
-            made.categoryBitMask = 2
-            node.addChildNode(made)
-            arbor = made
+            let turn: simd_quatf = Self.arborTurn(kind, axis: body.axis, random: &random)
+            if whole(kind) {
+                // the soma and its dendrites one membrane, a child of the
+                // soma (so it breathes, swells and moves with it), the soma
+                // turned as the crown is
+                let skin = SCNNode(geometry: membraneGeometry(variant: variant, slot: dyeSlot, idea: idea))
+                skin.renderingOrder = 6
+                skin.categoryBitMask = 2
+                soma.simdOrientation = turn
+                soma.addChildNode(skin)
+            } else {
+                let made = SCNNode(geometry: arborGeometry(kind: kind, variant: variant, slot: dyeSlot, idea: idea))
+                made.simdScale = SIMD3<Float>(size, size, size)
+                made.simdOrientation = turn
+                made.renderingOrder = 6
+                made.categoryBitMask = 2
+                node.addChildNode(made)
+                arbor = made
+            }
         }
 
         // the halo, on GraphSim's ring pieces
@@ -519,6 +555,7 @@ final class GraphNeuronLook: GraphThemeLook {
         Self.set(material, "rpFill", kind.fill)
         Self.set(material, "rpSway", 0)
         Self.set(material, "rpWobble", lively ? kind.wobble : 0)
+        Self.set(material, "rpMembrane", whole(kind) ? 1 : 0)
         Self.tint(material, "rpTintA", membrane)
         Self.tint(material, "rpTintB", NeuronPalette.nucleus)
         Self.tint(material, "rpTintC", Self.sparkle)
@@ -570,6 +607,67 @@ final class GraphNeuronLook: GraphThemeLook {
         } else {
             material.diffuse.contents = Self.colour(golden * 0.4)
         }
+        somaLooks[key] = material
+        return material
+    }
+
+    /// Whether a kind of cell is drawn as one membrane round its soma and
+    /// dendrites (a cell, when its shaders work; the plain fallback and
+    /// the smaller cells keep the sphere and tubes).
+    private func whole(_ kind: NeuronCellKind) -> Bool {
+        kind == .cell && support.has("membrane") && support.has("soma")
+    }
+
+    /// A cell's membrane meshes, made once a variant for the app's life
+    /// (about a fifth of a second each in an unoptimised build).
+    private static var membraneShapes: [String: SCNGeometry] = [:]
+
+    private func membraneGeometry(variant: Int, slot: Int, idea: Bool) -> SCNGeometry {
+        let key: String = "mm\(variant)-\(slot)-\(idea ? 1 : 0)"
+        if let made = arborLooks[key] { return made }
+        let rich: Bool = budget.tier == .high
+        let shapeKey: String = "\(variant)-\(rich ? 1 : 0)"
+        let shape: SCNGeometry
+        if let made = Self.membraneShapes[shapeKey] {
+            shape = made
+        } else {
+            let made = NeuronMembrane.make(NeuronArbor.branches(.cell, variant: variant, rich: rich))
+            let points: [SCNVector3] = made.points.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
+            let normals: [SCNVector3] = made.normals.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
+            let coords: [CGPoint] = made.coords.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
+            let sources: [SCNGeometrySource] = [SCNGeometrySource(vertices: points),
+                                                SCNGeometrySource(normals: normals),
+                                                SCNGeometrySource(textureCoordinates: coords)]
+            shape = SCNGeometry(sources: sources,
+                                elements: [SCNGeometryElement(indices: made.indices, primitiveType: .triangles)])
+            Self.membraneShapes[shapeKey] = shape
+        }
+        let geometry: SCNGeometry = shape.copy() as? SCNGeometry ?? shape
+        geometry.materials = [makeMembrane(slot: slot, idea: idea)]
+        arborLooks[key] = geometry
+        return geometry
+    }
+
+    /// The membrane: one glass edge round the soma and every dendrite, the
+    /// dendrites' golden light and particles growing in where they leave
+    /// the body (NeuronShaders.membrane); breathing with the soma and
+    /// swaying out along the dendrites (membraneSway, with the soma's
+    /// wobble, so the two move as one).
+    private func makeMembrane(slot: Int, idea: Bool) -> SCNMaterial {
+        let key: String = "mm\(slot)-\(idea ? 1 : 0)"
+        if let made = somaLooks[key] { return made }
+        let membrane: SIMD3<Float> = Self.membrane(slot: slot, idea: idea)
+        let golden: SIMD3<Float> = SIMD3<Float>(1.0, 0.74, 0.36) * 0.88 + membrane * 0.12
+        let material: SCNMaterial = Self.additive()
+        material.shaderModifiers = [.geometry: NeuronShaders.membraneSway, .surface: NeuronShaders.membrane]
+        GraphStyleUniforms.defaults(material)
+        Self.set(material, "rpDetail", budget.shaderDetail)
+        Self.set(material, "rpMotion", lively ? 1 : 0)
+        Self.set(material, "rpSway", 0)
+        Self.set(material, "rpWobble", lively ? NeuronCellKind.cell.wobble : 0)
+        Self.tint(material, "rpTintA", golden * 0.95)
+        swaying.append(material)
+        clocked.append(material)
         somaLooks[key] = material
         return material
     }
@@ -656,6 +754,28 @@ final class GraphNeuronLook: GraphThemeLook {
         return material
     }
 
+    /// A link as one dendrite joining two cells (NeuronShaders.bridge),
+    /// tinted `base` where it leaves each body: the impulses' rate and
+    /// bursts from the Graphics budget, as the axons'.
+    private static func bridgeMaterial(base: SIMD3<Float>, bold: Bool, lively: Bool, budget: GraphicsBudget,
+                                       half: Float) -> SCNMaterial {
+        let strength: Float = bold ? 1.35 : 1
+        let material: SCNMaterial = additive()
+        material.isDoubleSided = true
+        material.shaderModifiers = [.surface: NeuronShaders.bridge]
+        GraphStyleUniforms.defaults(material)
+        set(material, "rpMotion", lively ? 1 : 0)
+        let high: Bool = budget.tier == .high
+        set(material, "rpRate", lively ? (high ? 0.55 : 0.3) : 0)
+        set(material, "rpBurst", lively && high ? 0.18 : 0)
+        set(material, "rpHalf", half)
+        set(material, "rpDetail", budget.shaderDetail)
+        tint(material, "rpTintA", base * strength)
+        tint(material, "rpTintB", impulse)
+        tint(material, "rpTintC", impulseHalo)
+        return material
+    }
+
     /// Unlit, added to what is behind, tested against depth but never
     /// writing it: gel lets light through.
     private static func additive() -> SCNMaterial {
@@ -687,7 +807,7 @@ final class GraphNeuronLook: GraphThemeLook {
     func ticker(parts: [GraphThemeParts], plan: ThemePlan) -> GraphThemeTicker? {
         guard lively else { return nil }
         let high: Bool = budget.tier == .high
-        let fires: Bool = support.has("axon")
+        let fires: Bool = support.has("bridge") || support.has("axon")
         return NeuronImpulses(glows: parts.map(\.glow), swaying: swaying, openings: openings,
                               rate: fires ? (high ? 0.55 : 0.3) : 0, bursts: high ? 0.18 : 0)
     }
@@ -788,22 +908,8 @@ nonisolated struct NeuronOpening {
 
 // MARK: - The dendrites' shapes
 
-/// One tapered tube of an arbor, in the soma's unit frame: a quadratic
-/// curve from `start` through `bend` to `end`, `r0` thick at the start and
-/// `r1` at the tip; `s0`...`s1` its share of the dendrite's length (the
-/// shader fades and beads by it). `flare` widens the base into a trumpet
-/// (by flare * (1 - t)^4 along it), so a dendrite flows out of the glass
-/// round the soma, as in the owner's close-up.
-nonisolated struct NeuronBranch: Sendable {
-    let start: SIMD3<Float>
-    let bend: SIMD3<Float>
-    let end: SIMD3<Float>
-    let r0: Float
-    let r1: Float
-    let s0: Float
-    let s1: Float
-    var flare: Float = 0
-}
+// NeuronBranch, one tapered tube, is in GraphNeuronMembrane.swift (tested
+// on Linux with the membrane made from it).
 
 @MainActor
 enum NeuronArbor {
@@ -1243,8 +1349,8 @@ nonisolated struct NeuronSupport: Sendable {
 
 /// Tries each Neurons shader once, off the main thread (GraphThemes.prepare,
 /// before the first build), in GraphStyleProbe's tiny offscreen render: the
-/// soma and arbor with their geometry modifiers on a sphere, the rest on a
-/// plane.
+/// soma, arbor and membrane with their geometry modifiers on a sphere, the
+/// rest on a plane.
 nonisolated enum NeuronProbe {
     static let support: NeuronSupport = run()
 
@@ -1253,9 +1359,11 @@ nonisolated enum NeuronProbe {
         let tries: [(String, [SCNShaderModifierEntryPoint: String], Bool)] = [
             ("soma", [.geometry: NeuronShaders.wobble, .surface: NeuronShaders.soma], true),
             ("arbor", [.geometry: NeuronShaders.sway, .surface: NeuronShaders.arbor], true),
+            ("membrane", [.geometry: NeuronShaders.membraneSway, .surface: NeuronShaders.membrane], true),
             ("halo", [.surface: NeuronShaders.halo], false),
             ("arrival", [.surface: NeuronShaders.arrival], false),
-            ("axon", [.surface: NeuronShaders.axon], false)
+            ("axon", [.surface: NeuronShaders.axon], false),
+            ("bridge", [.surface: NeuronShaders.bridge], false)
         ]
         var passed = Set<String>()
         for (name, modifiers, round) in tries {

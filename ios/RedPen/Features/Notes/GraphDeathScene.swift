@@ -54,6 +54,7 @@ struct GraphDeathLinks {
     let halfWidth: Float
     var seeded: Bool = false
     var arbor: GraphLinkArbor? = nil
+    var bridge: GraphLinkBridge? = nil
 }
 
 /// The deaths playing in one scene (made on the main thread when it is
@@ -161,7 +162,8 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
         }
         let budget: GraphicsBudget = GraphQuality.current
         writer = GraphRibbonWriter(halfWidth: look.halfWidth, material: look.material, samples: budget.linkSamples,
-                                   expected: links.count, seeded: look.seeded, fence: fence, arbor: look.arbor)
+                                   expected: links.count, seeded: look.seeded, fence: fence, arbor: look.arbor,
+                                   bridge: look.bridge)
     }
 
     /// One frame of the links drawing back into their dying bodies. Render

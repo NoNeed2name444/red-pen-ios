@@ -124,6 +124,9 @@ struct GraphUniverseLooks {
     /// links' (tracts, pathways); nil elsewhere.
     var arbor: GraphLinkArbor? = nil
     var farArbor: GraphLinkArbor? = nil
+    /// The Neurons' links as dendrites joining two cells
+    /// (GraphLinkBridge), near and far; nil elsewhere.
+    var bridge: GraphLinkBridge? = nil
     /// A theme's work each frame after the links are written (the Neurons'
     /// impulses lighting the cells they reach). Render thread.
     var ticker: GraphThemeTicker? = nil
@@ -583,13 +586,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let frames: GraphFrameFence = fence
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
-                                    fence: frames, arbor: universeLooks?.arbor,
+                                    fence: frames, arbor: universeLooks?.arbor, bridge: universeLooks?.bridge,
                                     trims: universeLooks?.trims ?? [])
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
                                        seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
-                                       trims: universeLooks?.trims ?? [])
+                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? [])
         ticker = universeLooks?.ticker
         deathKinds = infos.map(\.deathKind)
         counts = infos.map(\.count)

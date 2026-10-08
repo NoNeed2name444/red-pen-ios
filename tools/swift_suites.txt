@@ -180,6 +180,12 @@ suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Gra
       $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
       $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
+# a Neurons cell's membrane: soma and dendrites one closed surface -
+# no holes, facing out, one piece, on the surface, apart, in range
+suite membrane NeuronMembraneTests.swift $F/Notes/GraphNeuronMembrane.swift
+# a Neurons link as one dendrite joining two cells: the outline leaves
+# each cell's disc along it and narrows smoothly to the tube's width
+suite bridge GraphLinkBridgeTests.swift $F/Notes/GraphLinkBridge.swift
 # removing a note: how each body dies (stars, planets, black holes;
 # apoptosis), link buffers never rewritten in flight,
 # and the synapse's terminal arbor
