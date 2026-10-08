@@ -57,6 +57,9 @@ nonisolated final class GraphRibbonWriter {
     /// Half the ribbon's width: today's in the graph look, finer in the
     /// Universe.
     private let halfWidth: Float
+    /// How far into each end's radius a link is trimmed, by style code
+    /// (GraphNodeStyle.code); empty: GraphShape.linkTrim for every end.
+    private let trims: [Float]
     private let material: SCNMaterial
     private var points: [SIMD3<Float>] = []
     private var lengths: [Float] = []
@@ -102,8 +105,10 @@ nonisolated final class GraphRibbonWriter {
 
     init(halfWidth: Float = GraphShape.linkHalfWidth, material: SCNMaterial,
          samples: Int = GraphQuality.current.linkSamples, expected: Int = 0, seeded: Bool = false,
-         board: GraphLinkBoard? = nil, fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil) {
+         board: GraphLinkBoard? = nil, fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil,
+         trims: [Float] = []) {
         self.halfWidth = halfWidth
+        self.trims = trims
         self.material = material
         self.seeded = seeded
         self.board = board
@@ -402,8 +407,8 @@ nonisolated final class GraphRibbonWriter {
         let delta: SIMD3<Float> = pb - pa
         let length: Float = simd_length(delta)
         let dir: SIMD3<Float> = length > 0.0001 ? delta / length : SIMD3<Float>(1, 0, 0)
-        let trimA: Float = min(radius[link.a] * GraphShape.linkTrim, length * 0.45)
-        var trimB: Float = min(radius[link.b] * GraphShape.linkTrim, length * 0.45)
+        let trimA: Float = min(radius[link.a] * trim(codes, link.a), length * 0.45)
+        var trimB: Float = min(radius[link.b] * trim(codes, link.b), length * 0.45)
         if let arbor {
             // to the target's centre (give or take the membrane's step)
             let membrane: Float = radius[link.b] * arbor.membrane
@@ -426,6 +431,12 @@ nonisolated final class GraphRibbonWriter {
             path.bendB = GraphLinkBend.forStyle(codes[link.b], centre: pb, axis: axis[link.b])
         }
         return path
+    }
+
+    /// How far into note `i`'s radius its links are trimmed.
+    private func trim(_ codes: [Int], _ i: Int) -> Float {
+        guard i < codes.count, codes[i] >= 0, codes[i] < trims.count else { return GraphShape.linkTrim }
+        return trims[codes[i]]
     }
 
     private func put(_ p: SIMD3<Float>, _ pos: UnsafeMutablePointer<Float>, _ vertex: Int) {

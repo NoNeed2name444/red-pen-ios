@@ -147,11 +147,14 @@ nonisolated enum GraphStyleShaders {
     /// - sun: hotter and whiter near it; at an A end pulses leave it fast
     ///   and swollen, like ejected plasma, then slow;
     /// - rocky planet: bluer near it, and each arriving pulse glints;
-    /// - gas giant: a wider haze, and a bar of light on its ring where the
-    ///   beam meets it, brightening as pulses arrive;
+    /// - gas giant: a wider haze;
     /// - pulsar: rings of blue-white run out along it, two per turn of its
     ///   beams (period GraphNodeStyle.pulsarPeriod);
     /// - comet: icy, with twinkling dust.
+    ///
+    /// Every end but a black hole's flares where the beam leaves the body's
+    /// limb (the strip starts inside the body, which hides the rest), the
+    /// sending end the brighter, both brighter as pulses arrive.
     ///
     /// Everywhere: fine filament particles - small warm motes drifting along
     /// the beam, two layers at their own speeds, twinkling - and when the
@@ -428,8 +431,8 @@ nonisolated enum GraphStyleShaders {
     rp_f = rp_f * sin(rp_t * 2.3 + rp_seed * 7.7);
     float rp_flicker = 1.0 - 0.08 * rp_m * (0.5 + 0.5 * rp_f);
     float rp_boost = 1.0 + 0.5 * rp_lit;
-    float rp_fadeA = 0.28 + rp_bhA * 0.5 * rp_reach;
-    float rp_fadeB = 0.28 + rp_bhB * 0.5 * rp_reach;
+    float rp_fadeA = 0.05 + rp_bhA * 0.5 * rp_reach;
+    float rp_fadeB = 0.05 + rp_bhB * 0.5 * rp_reach;
     float rp_ends = smoothstep(0.0, rp_fadeA, rp_along);
     rp_ends = rp_ends * smoothstep(0.0, rp_fadeB, rp_toEnd);
     rp_col = rp_col * (rp_flicker * rp_boost * rp_ends);
@@ -445,9 +448,12 @@ nonisolated enum GraphStyleShaders {
     rp_arms = rp_arms + rp_arm2 * exp(-rp_gd * rp_gd * 0.6);
     float rp_glint = (rp_star + rp_arms * 0.6) * rp_arrive * rp_rkB * rp_w;
     rp_col = rp_col + float3(0.8, 0.92, 1.0) * (rp_glint * 1.5);
-    float rp_bd = (rp_toEnd - 0.1 * rp_reach) / (0.05 * rp_reach);
-    float rp_bar = exp(-rp_bd * rp_bd - rp_s0 * rp_s0 * 2.5) * rp_gsB;
-    rp_col = rp_col + float3(1.0, 0.86, 0.62) * (rp_bar * (0.35 + 0.8 * rp_arrive));
+    float rp_lA = rp_along / 0.07;
+    float rp_lB = rp_toEnd / 0.07;
+    float rp_touch = exp(-rp_lA * rp_lA) * (1.0 - rp_bhA);
+    rp_touch = rp_touch + 0.6 * exp(-rp_lB * rp_lB) * (1.0 - rp_bhB);
+    rp_touch = rp_touch * exp(-rp_s0 * rp_s0 * 5.0) * (0.9 + 0.6 * rp_lit + 0.5 * rp_arrive);
+    rp_col = rp_col + mix(rp_gold, rp_white, 0.6) * rp_touch;
     rp_col = rp_col * rpEnergy;
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
@@ -522,7 +528,7 @@ nonisolated enum GraphStyleShaders {
     rp_pat = mix(rp_p2, rp_p1, rp_w1);
     }
     float rp_rise = smoothstep(0.0, 0.05, rp_u);
-    float rp_fall = pow(max(1.0 - rp_u, 0.0), 1.6);
+    float rp_fall = pow(max(1.0 - rp_u, 0.0), 1.2);
     float rp_heat = rp_rise * rp_fall * rp_pat * (1.0 + 0.45 * rp_m);
 
     float rp_oA = 1.4 * pow(rp_in / 0.50, 1.5);
@@ -551,7 +557,7 @@ nonisolated enum GraphStyleShaders {
     float rp_los = dot(rp_vel, _surface.view);
     float rp_D = 1.0 / (1.0 - rp_beta * rp_los);
     float rp_boost = clamp(rp_D * rp_D * rp_D, 0.3, 3.5);
-    float rp_h = rp_heat * 1.1 * (0.55 + 0.45 * rp_boost);
+    float rp_h = rp_heat * 1.9 * (0.55 + 0.45 * rp_boost);
     float3 rp_col = mix(float3(0.0), float3(0.62, 0.08, 0.0), clamp(rp_h / 0.25, 0.0, 1.0));
     rp_col = mix(rp_col, float3(0.9, 0.22, 0.0), clamp((rp_h - 0.25) / 0.25, 0.0, 1.0));
     rp_col = mix(rp_col, float3(1.0, 0.416, 0.0), clamp((rp_h - 0.5) / 0.2, 0.0, 1.0));

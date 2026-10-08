@@ -8,8 +8,6 @@ import simd
 ///
 ///     world
 ///       folder:<id> (black hole or star; GraphSim moves it)
-///         its orbit rings (one line circle per orbit, in the orbit's plane)
-///         its gravity well (a galaxy core with notes)
 ///       note:<id> (planet, moon, pulsar or comet)
 ///       home (the home star, when there are no folders)
 ///       links, far links (between galaxies and to comets, fainter)
@@ -91,7 +89,17 @@ extension GraphSceneBuilder {
             let dress: UniverseDress = Self.dress(body, index: i, override: override)
             let note: Note? = dress.kind == .note ? noteByID[body.id] : nil
             let folder: UUID? = dress.kind == .folder ? body.id : note?.folderId
-            let r: Float = body.sphere / GraphStyleKit.bodyScale(dress.style)
+            // stars and planets drawn a fifth past their planned sphere
+            // (owner-ref-1's big bodies); the plan's room round each still
+            // clears them, at the shortest links too. A ringed giant keeps
+            // its size so its ring stays inside its room; moons, comets,
+            // pulsars and black holes keep theirs.
+            var grow: Float = 1
+            switch dress.look {
+            case .star, .planet(ringed: false): grow = 1.2
+            default: break
+            }
+            let r: Float = body.sphere * grow / GraphStyleKit.bodyScale(dress.style)
             let made: GraphStyledParts = kit.make(name: dress.name, folder: folder, style: dress.style, radius: r,
                                                   random: &random, look: dress.look, light: dress.light,
                                                   palette: body.palette)
@@ -134,41 +142,8 @@ extension GraphSceneBuilder {
             }
         }
 
-        // the orbit rings, each a child of the body it circles
-        var rings: [SCNNode] = []
-        var ringLooks: [Int: SCNMaterial] = [:]
-        for shell in plan.shells {
-            let owner: UniverseBody = plan.bodies[shell.owner]
-            let galaxy: Int = owner.galaxy
-            let material: SCNMaterial
-            if let made = ringLooks[galaxy] {
-                material = made
-            } else {
-                let tone: UIColor? = galaxyTone[galaxy]
-                material = Self.ringMaterial(tone)
-                ringLooks[galaxy] = material
-            }
-            let geometry: SCNGeometry = Self.circle(radius: shell.radius, u: shell.u, v: shell.v)
-            geometry.materials = [material]
-            let ring = SCNNode(geometry: geometry)
-            ring.name = "orbitRing"
-            ring.renderingOrder = 1
-            ring.categoryBitMask = 2
-            ring.opacity = 0.5
-            infos[shell.owner].node.addChildNode(ring)
-            rings.append(ring)
-        }
-
-        // a faint gravity well round each galaxy with notes, in its tone
-        if kit.hasWells {
-            for (i, body) in plan.bodies.enumerated() where body.role == .galaxy && !body.empty {
-                let reach: Float = plan.systems[i].map { simd_length($0) }.max() ?? 1
-                let side: Float = 2.2 * (reach + 0.5)
-                let tone: UIColor = galaxyTone[i] ?? NoteTone.uiColor(for: body.id, in: store)
-                infos[i].node.addChildNode(kit.makeWell(colour: tone, side: side))
-            }
-        }
-
+        // no orbit rings or gravity wells: each body is one piece, its glow
+        // and its beams part of it (owner-ref-1)
         let orbit: SCNNode = kit.makeOrbit()
         world.addChildNode(orbit)
         // the kit's shared materials tick every frame; its copies per owner
@@ -219,8 +194,14 @@ extension GraphSceneBuilder {
             let key: String = GraphMemory.key(plan.bodies[link.a].id, plan.bodies[link.b].id)
             kinds[key] = (link.kind, link.centre)
         }
-        let universe = GraphUniverseLooks(shells: rings, shellOwner: plan.shells.map(\.owner), linkKinds: kinds,
+        var universe = GraphUniverseLooks(shells: [], shellOwner: [], linkKinds: kinds,
                                           farLines: farLines, farMaterial: farMaterial)
+        // fine beams that start inside each body, so they leave its limb
+        // (the body hides the rest); a black hole's at its horizon, where
+        // they flash, a pulsar's and a comet's at their glow's edge
+        universe.halfWidth = 0.07
+        universe.farHalfWidth = 0.07
+        universe.trims = [1.0, 0.72, 0.72, 1.0, 1.0, 0.75]
         var simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
                                      clocked: clocked, emitters: emitters, trails: trails, sky: sky)
         simLooks.slowClocked = split.owned
@@ -341,50 +322,6 @@ extension GraphSceneBuilder {
         let base: SIMD3<Float> = GraphStyleArt.components(rimFill)
         let mixed: SIMD3<Float> = (tone + base) * 0.5
         return UIColor(red: CGFloat(mixed.x), green: CGFloat(mixed.y), blue: CGFloat(mixed.z), alpha: 1)
-    }
-
-    /// An orbit ring's look: faint, added, never hiding what is behind it;
-    /// the galaxy's tone half mixed with white at half strength, grey round
-    /// the home star.
-    private static func ringMaterial(_ tone: UIColor?) -> SCNMaterial {
-        var colour = SIMD3<Float>(0.35, 0.37, 0.42)
-        if let tone {
-            let c: SIMD3<Float> = GraphStyleArt.components(tone)
-            let white = SIMD3<Float>(1, 1, 1)
-            colour = (c + white) * 0.25
-        }
-        let material = SCNMaterial()
-        material.lightingModel = .constant
-        material.diffuse.contents = UIColor(red: CGFloat(colour.x), green: CGFloat(colour.y),
-                                            blue: CGFloat(colour.z), alpha: 1)
-        material.blendMode = .add
-        material.writesToDepthBuffer = false
-        material.readsFromDepthBuffer = true
-        material.isDoubleSided = true
-        return material
-    }
-
-    /// A 96-segment line circle of `radius` in the plane of `u` and `v`.
-    static func circle(radius: Float, u: SIMD3<Float>, v: SIMD3<Float>) -> SCNGeometry {
-        let count: Int = 96
-        var points: [SCNVector3] = []
-        points.reserveCapacity(count)
-        for k in 0..<count {
-            let angle: Float = Float(k) * 2 * Float.pi / Float(count)
-            let x: SIMD3<Float> = u * (cos(angle) * radius)
-            let y: SIMD3<Float> = v * (sin(angle) * radius)
-            let p: SIMD3<Float> = x + y
-            points.append(SCNVector3(x: p.x, y: p.y, z: p.z))
-        }
-        var indices: [Int32] = []
-        indices.reserveCapacity(count * 2)
-        for k in 0..<count {
-            indices.append(Int32(k))
-            indices.append(Int32((k + 1) % count))
-        }
-        let source = SCNGeometrySource(vertices: points)
-        let element = SCNGeometryElement(indices: indices, primitiveType: .line)
-        return SCNGeometry(sources: [source], elements: [element])
     }
 }
 

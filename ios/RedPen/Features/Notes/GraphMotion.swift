@@ -118,6 +118,9 @@ struct GraphUniverseLooks {
     /// coding of the links' seeds (GraphRibbonWriter).
     var halfWidth: Float = 0.10
     var farHalfWidth: Float = 0.10
+    /// How far into each end's radius links are trimmed, by style code
+    /// (GraphRibbonWriter); empty: GraphShape.linkTrim.
+    var trims: [Float] = []
     var seeded: Bool = false
     /// A board the links are routed on, flat (the Circuit theme); nil
     /// draws them as camera-facing beams.
@@ -277,6 +280,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     // the black holes
     private let radius: [Float]
     private let ringStretch: [SCNNode]
+    /// A Space glow's billboarded holder and how far its ring is lifted
+    /// towards the camera (nil and 0 for a glow that is not lifted). The
+    /// lift is moved off the ring onto the holder and kept on the line from
+    /// the body to the eye (shapeRing): a billboard faces the screen, so a
+    /// ring lifted along its own z slid off its body's centre wherever the
+    /// body was not straight ahead.
+    private let ringHolder: [SCNNode?]
+    private let liftOf: [Float]
     private let ringLeaf: [SCNNode]
     private let ringGeometry: [SCNGeometry]
     private let diskLeaf: [SCNNode]
@@ -425,6 +436,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// What each ring was last shaped with, so an unchanged ring is left alone.
     private var shownFit: [Float]
     private var shownLevel: [Float]
+    /// Where each lifted glow's holder was last aimed (its node's frame).
+    private var shownAim: [SIMD3<Float>]
     /// The fastest few moving notes this frame, and which note each trail
     /// emitter is following.
     private var picks: [(Int, Float)] = []
@@ -576,11 +589,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let frames: GraphFrameFence = fence
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
-                                    board: board, fence: frames, arbor: universeLooks?.arbor)
+                                    board: board, fence: frames, arbor: universeLooks?.arbor,
+                                    trims: universeLooks?.trims ?? [])
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
-                                       seeded: seeded, board: board, fence: frames, arbor: universeLooks?.farArbor)
+                                       seeded: seeded, board: board, fence: frames, arbor: universeLooks?.farArbor,
+                                       trims: universeLooks?.trims ?? [])
         ticker = universeLooks?.ticker
         deathKinds = infos.map(\.deathKind)
         counts = infos.map(\.count)
@@ -632,6 +647,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         phase = phaseList
         radius = infos.map(\.radius)
         ringStretch = infos.map(\.ringStretch)
+        var holders = [SCNNode?](repeating: nil, count: infos.count)
+        var lifts = [Float](repeating: 0, count: infos.count)
+        for (i, info) in infos.enumerated() {
+            let stretch: SCNNode = info.ringStretch
+            let lift: Float = stretch.simdPosition.z
+            guard abs(lift) > 0.000_1, let holder = stretch.parent,
+                  holder.constraints?.contains(where: { $0 is SCNBillboardConstraint }) == true else { continue }
+            stretch.simdPosition = SIMD3<Float>(0, 0, 0)
+            holder.simdPosition = SIMD3<Float>(0, 0, lift)
+            holders[i] = holder
+            lifts[i] = lift
+        }
+        ringHolder = holders
+        liftOf = lifts
         ringLeaf = infos.map(\.ringLeaf)
         ringGeometry = infos.map(\.ringGeometry)
         diskLeaf = infos.map(\.diskLeaf)
@@ -652,6 +681,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         // impossible values, so every ring is shaped on the first frame
         shownFit = [Float](repeating: -1, count: infos.count)
         shownLevel = [Float](repeating: 1, count: infos.count)
+        shownAim = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: infos.count)
         owner = [Int?](repeating: nil, count: looks.emitters.count)
 
         var edgeList: [(Int, Int)] = []
@@ -1795,6 +1825,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// goes. Left alone when nothing about it has changed.
     private func shapeRing(_ i: Int, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
         let distance: Float = simd_distance(eye, position[i])
+        if let holder = ringHolder[i], distance > 0.000_1 {
+            // lifted along the line of sight, so the glow stays centred on
+            // its body anywhere on screen
+            let aim: SIMD3<Float> = nodes[i].simdOrientation.inverse.act((eye - position[i]) / distance)
+            if simd_distance_squared(aim, shownAim[i]) > 0.000_001 {
+                shownAim[i] = aim
+                holder.simdPosition = aim * liftOf[i]
+            }
+        }
         if crowded && thinnable[i] { thinHalo(i, distance: distance) }
         let fit: Float = ringFit(distance: distance, radius: radius[i])
         let m: Float = level[i]
