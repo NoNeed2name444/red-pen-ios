@@ -667,13 +667,24 @@ final class DesignTourUITests: XCTestCase {
     /// Scrolls until the element sits in the open part of the page, clear of
     /// the navigation bar at the top and of New set and the dock at the
     /// bottom. True if it is on screen and can be tapped.
+    ///
+    /// Swipes until the element is on the page, then drags it in by just the
+    /// distance it is out: a whole swipe could carry a tile from under New
+    /// set to half under the bar, and the next swipe, from there, went on
+    /// up and lost it (33, Symptom blocks, missed on the iPhone).
     @discardableResult
     private func reveal(_ target: XCUIElement, swipes: Int = 10) -> Bool {
+        var lastY: CGFloat? = nil
         for _ in 0..<swipes {
             if isInView(target) { return true }
-            let above: Bool = target.exists && target.frame.maxY < windowHeight * 0.2
-            if above {
-                app.swipeDown(velocity: .slow)
+            let frame: CGRect = target.exists ? target.frame : .zero
+            if let distance = distanceIntoView(frame) {
+                // as near as it gets: taller than the open part, or the
+                // page will not move any further
+                if abs(distance) < 12 { break }
+                if let lastY, abs(lastY - frame.midY) < 4 { break }
+                lastY = frame.midY
+                drag(by: distance)
             } else {
                 app.swipeUp(velocity: .slow)
             }
@@ -681,6 +692,29 @@ final class DesignTourUITests: XCTestCase {
         }
         if isInView(target) { return true }
         return target.exists && target.isHittable
+    }
+
+    /// How far the page has to move up (down when negative) to bring the
+    /// element to the middle of the open part - a tall one's top to just
+    /// under the bar - at most two fifths of a screen at a time. Nil when
+    /// it has no frame to go by.
+    private func distanceIntoView(_ frame: CGRect) -> CGFloat? {
+        guard !frame.isEmpty, frame.minY.isFinite else { return nil }
+        let top: CGFloat = windowHeight * 0.18
+        let bottom: CGFloat = bottomLimit()
+        let goal: CGFloat = frame.height < bottom - top ? (top + bottom) / 2 : top + 8 + frame.height / 2
+        let most: CGFloat = windowHeight * 0.4
+        return min(max(frame.midY - goal, -most), most)
+    }
+
+    /// Drags the page up by about this far (down when negative) and holds
+    /// before letting go, so it stops where the finger does.
+    private func drag(by distance: CGFloat) {
+        let window = app.windows.firstMatch
+        let from: CGFloat = distance > 0 ? 0.65 : 0.35
+        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: from))
+        let end = start.withOffset(CGVector(dx: 0, dy: -distance))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
     }
 
     private func isInView(_ target: XCUIElement) -> Bool {
