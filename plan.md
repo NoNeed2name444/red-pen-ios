@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 4:42 PM Cairo.
+Last updated: 2026-10-08, 5:32 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,8 +35,8 @@ Last updated: 2026-10-08, 4:42 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the plan.md commit after 6847330 | M3 in progress; preflight OK on 5909600 (4:22 PM); its App build (run 37781812785) compiled the app (Build step green, 4:25 PM) |
-| design/3d-overhaul | the wip head | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; its App build (run 37784372084, e5e40b8) passed at 4:33 PM |
+| wip/3d-neurons-m3 | the look rework ("Neurons: cells drawn after the owner's reference") | M3 in progress; preflight OK on the rework (5:20 PM); 5909600's App build (run 37781812785) compiled the app (Build step green, 4:25 PM) |
+| design/3d-overhaul | the wip head | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; its App build (run 37784372084, e5e40b8) passed at 4:33 PM, its Swift tests (run 37786312064, b02e48a) at 5:20 PM; the rework's App build is the compile check for GraphNeuronLook |
 | preview/3d-overhaul | e5e40b8 | a push here makes screenshots; the Neurons-only run 37784398918 was taking them at 4:40 PM (don't push here while it runs: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
@@ -71,7 +71,11 @@ Last updated: 2026-10-08, 4:42 PM Cairo.
   with all 71 suites passing: the same commit was tested on design/ and
   preview/ at once, and both runs force-pushed their logs to the
   swift-tests branch at the same moment ("cannot lock ref"). The log
-  pushes now retry once (swift-tests.yml).
+  pushes now retry once (swift-tests.yml); b02e48a's run (37786312064)
+  passed.
+- The look rework, after the owner's reference (section 4, "The look"), is
+  on wip and design/: the Linux suites and preflight pass. GraphNeuronLook
+  only compiles on the Mac, so its App build on design/ is the check.
 - The wip App build (run 37781812785) runs the whole UI suite on a
   simulator after its compile (design/ branches skip it); at 4:40 PM it
   was still in that step.
@@ -107,6 +111,10 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    (it cancels a running push-started run on the same branch).
 7. [ ] When CI is green, merge design/3d-overhaul into personal (no
    force-push), and bring the session branches up to personal.
+6a. [x] Redraw the cells after the owner's reference (section 4, "The
+   look"): purple-magenta somas, white-violet nuclei, golden-amber dendrites
+   that reach further, one glow with the cell, thick beaded amber axons,
+   ringed orbs joined by threads. Then step 6 with the new look.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
@@ -151,6 +159,31 @@ If the owner attaches it again, look at it before judging the screenshots.
 - Links are the cells' axons. Each grows out from under its sender's
   membrane, swells into a hillock, tapers, and ends in one synapse on its
   target. Its width follows the sender's size.
+
+### The look (after the reference, 8 Oct, 5:20 PM)
+
+What changed to bring the cells closer to the reference, and where:
+- Soma (NeuronShaders.soma): purple at the rim, magenta deep inside
+  (interior (0.58,0.24,0.98) to heart (0.98,0.28,0.72) by depth²), a
+  white-violet nucleus (the nucleus tint 42% of the way to (1,0.94,1)), a
+  soft wet highlight (0.25). Opening a cell still clears its gel (rpOpen).
+- Dendrites (NeuronShaders.arbor, makeArbor): solid golden amber,
+  (1,0.74,0.36)·0.88 + the dye·0.12, with a warm white core near the soma.
+  A cell's dendrites are 0.75 to 0.95 radii long and 0.26 thick; a
+  receptor's leading process 0.65, its back one 0.4. GraphNeurons.reach is
+  1.9, so the sheets are further apart (sheetGap 2.8: pitch =
+  biggest·(2 + 2.8·spacing)); LinkLengthTests' pitchRatio uses it.
+- Halo (NeuronShaders.halo, NeuronPalette.glow): one glow with the cell, a
+  soft one outside the membrane and a faint fill within it, so there is no
+  seam. A cell's glow leans to violet (half its dye, half (0.78,0.34,0.95));
+  receptors and drifters keep their own colour. Firing rays 0.22.
+- Arrival (NeuronShaders.arrival): a hot amber core with a soft glow round
+  it (arrivalGlow: the impulse a quarter of the way to its magenta halo).
+- Axon (NeuronShaders.axon): thicker (nearHalf 0.165, farHalf 0.26), a
+  hillock twice as wide at the soma, beads at nodes every 0.3 along it.
+- Background (NeuronTissue.orbs, NeuronArt.ringedOrb, NeuronBokeh.threads):
+  each orb is a glowing middle inside a thin ring, and each joins its two
+  nearest within 0.6 by a fine blue thread.
 
 ### Decided design: implement this
 
@@ -312,14 +345,15 @@ recentre() about 1734; `case .open(let id)` about 448.
     between; `a` is the sender.
 - GraphNeurons constants:
   - inner 0.8, nucleus 0.22, room 0.05, wobble 0.015, fill 0.22, cellDrift
-    0.012, reach 1.45.
+    0.012, reach 1.9, sheetGap 2.8.
   - cellSphere = clamp(0.34+0.035·log2(1+count), 0.34, 0.6);
     partShare = clamp(0.22+0.06·log2(1+count), 0.22, 0.45).
   - Note share: a page 0.07+0.003·level, an idea 0.05+0.002·level.
   - Free spheres: receptor 0.16, drifter 0.12 (+0.03 for a page).
-  - Sheet pitch 3.6R.
-  - Decided: reach and the gap stay as they are, so arbor tips stay within
-    1.45 radii (cells, receptors) and about 1.15 (drifters, bipolar).
+  - Sheet pitch (2 + sheetGap·spacing)R, 4.8R at spacing 1.
+  - Arbor tips stay within reach (1.9 radii) for cells and receptors, and
+    about 1.15 for drifters and bipolar cells. LinkLengthTests needs
+    0.94·(2 + 0.8·sheetGap) ≥ 2·reach + 0.11.
 - ThemeBody: id, kind, role, parent, sphere, depth, region, count, links,
   words, rank, seed, orbit, home, axis, title, label.
   ThemeLink: a, b, kind, centre, tag, width.

@@ -485,9 +485,10 @@ func sheetLinks(_ plan: ThemePlan) -> Double {
 }
 
 /// How the sheet's pitch grows with the length: the gap between cells
-/// (1.6 of the biggest at 1) scales, the cells themselves do not.
+/// (GraphNeurons.sheetGap of the biggest at 1) scales, the cells
+/// themselves do not.
 func pitchRatio(_ s: Double) -> Double {
-    (2 + 1.6 * s) / (2 + 1.6)
+    (2 + GraphNeurons.sheetGap * s) / (2 + GraphNeurons.sheetGap)
 }
 
 var nBad: [String] = []

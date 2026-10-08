@@ -3,14 +3,14 @@ import Foundation
 // The Neurons theme's shader modifiers (GraphNeuronLook builds the materials
 // and checks they compile; GraphNeurons plans what they dress).
 //
-// The look is live-cell fluorescence microscopy: cells glow on a dark tissue
-// background, their membranes brightest just inside the edge, a jelly body
-// whose glow deepens where there is more of it to look through, a nucleus
-// and nucleolus seen through it, faint organelles, a wet highlight, and the
-// whole membrane slowly breathing and wobbling. Axons are soft gel fibres
-// with myelin sheaths beaded at the nodes of Ranvier, each ending in one
-// synapse (GraphLinkArbor): a gel golf tee - stem, wet neck, one wide
-// shallow cup hugging the target's membrane across a thin dark cleft;
+// The look follows the owner's reference picture: a cell is a glowing
+// purple-magenta body, deepest where there is most of it to look through,
+// with a bright white-violet nucleus and nucleolus, faint organelles, a
+// wet highlight and a slowly breathing membrane; golden-amber dendrites
+// taper out of it, and one thick amber axon swells out of it at a hillock
+// and runs, beaded at the nodes of Ranvier, to one synapse
+// (GraphLinkArbor): a gel golf tee - stem, wet neck, one wide shallow cup
+// hugging the target's membrane across a thin dark cleft;
 // action potentials run along them at each axon's own random times
 // (NeuronImpulse, mirrored here exactly), and on reaching the cup send
 // transmitter across its cleft.
@@ -34,11 +34,12 @@ import Foundation
 nonisolated enum NeuronShaders {
     // MARK: the soma
 
-    /// A cell body on a unit sphere (the node scaled to its size): tint A
-    /// the membrane dye, glowing brightest just inside the edge; inside, a
-    /// purple glow deepening to magenta where there is most cell to look
-    /// through (NeuronPalette.interior, .heart); B the nucleus
-    /// (violet-magenta), its nucleolus brighter; C the organelles;
+    /// A cell body on a unit sphere (the node scaled to its size): inside,
+    /// a purple glow deepening to magenta where there is most cell to look
+    /// through (NeuronPalette.interior, .heart, touched by tint A, the
+    /// membrane dye); the membrane glowing just inside the edge, violet in
+    /// a full cell, the dye's own colour in a thin one; B the nucleus,
+    /// lifted towards white-violet, its nucleolus brighter; C the organelles;
     /// `rpNucleus` the nucleus's radius as a share of the cell's (0: none).
     /// `rpState` its state (NeuronState.code): firing flickers hotter, a
     /// pacemaker brightens on each beat (twice a turn of NeuronState
@@ -115,13 +116,17 @@ nonisolated enum NeuronShaders {
     float rp_br = 1.0 + 0.07 * sin(rp_t * 0.9 + rp_ph);
     float rp_deep = rp_thick * rp_thick;
     float3 rp_inner = mix(float3(0.58, 0.24, 0.98), float3(0.98, 0.28, 0.72), rp_deep);
-    float3 rp_col = rpTintA * (0.06 + 0.08 * rp_thick + 1.15 * rp_rim);
-    rp_col = rp_col + rp_inner * ((0.07 + 0.3 * rp_deep) * rpFill * (1.0 - 0.65 * rpOpen));
-    float3 rp_nucCol = rpTintB * (0.32 + 0.24 * rp_thick);
-    rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.75);
-    rp_col = rp_col + rpTintB * (0.4 * rp_env);
-    rp_col = rp_col + float3(1.0, 0.5, 0.88) * (0.42 * rp_lol);
-    rp_col = rp_col + rpTintC * (0.45 * rp_dot * rp_thick);
+    rp_inner = mix(rp_inner, rpTintA, 0.15);
+    float rp_gel = rpFill * (1.0 - 0.6 * rpOpen);
+    float rp_mem = mix(1.0, 0.3, rpFill) + 0.3 * rpOpen;
+    float3 rp_skin = mix(rpTintA, float3(0.85, 0.6, 1.0), 0.6 * rpFill);
+    float3 rp_col = rp_skin * (0.04 + rp_mem * rp_rim);
+    rp_col = rp_col + rp_inner * ((0.1 + 0.62 * rp_deep) * rp_gel);
+    float3 rp_nucCol = mix(rpTintB, float3(1.0, 0.94, 1.0), 0.42) * (0.5 + 0.38 * rp_thick);
+    rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.85);
+    rp_col = rp_col + rpTintB * (0.45 * rp_env);
+    rp_col = rp_col + float3(1.0, 0.86, 0.96) * (0.5 * rp_lol);
+    rp_col = rp_col + rpTintC * (0.35 * rp_dot * rp_thick);
     float rp_fire = step(0.5, rpState) * step(rpState, 1.5);
     float rp_vesk = step(1.5, rpState) * step(rpState, 2.5);
     float rp_pace = step(2.5, rpState) * step(rpState, 3.5);
@@ -136,7 +141,7 @@ nonisolated enum NeuronShaders {
     float3 rp_L = normalize(float3(-0.45, 0.6, 0.66));
     float3 rp_H = normalize(rp_L + rp_V);
     float rp_sp = pow(max(dot(rp_N, rp_H), 0.0), 40.0);
-    float3 rp_wet = float3(0.75, 0.95, 1.0) * (0.3 * rp_sp);
+    float3 rp_wet = float3(0.75, 0.95, 1.0) * (0.25 * rp_sp);
     rp_col = rp_col * rp_br + rp_wet;
 
     """ + GraphStyleShaders.glowEnd
@@ -161,8 +166,8 @@ nonisolated enum NeuronShaders {
     // MARK: the dendrites
 
     /// The dendritic arbor's tapered tubes (u runs 0 at the soma to 1 at
-    /// the tip): thin gel, brightest along its edges, fading out along its
-    /// length, beaded with spines.
+    /// the tip): solid golden-amber light, a warm white core near the soma,
+    /// fading out along its length, beaded with spines.
     static let arbor: String = """
     #pragma arguments
     float rpProbe;
@@ -174,13 +179,14 @@ nonisolated enum NeuronShaders {
     float3 rp_V = normalize(_surface.view);
     float rp_mu = abs(dot(rp_N, rp_V));
     float rp_s = _surface.diffuseTexcoord.x;
-    float rp_core = pow(rp_mu, 0.7);
-    float rp_rim = pow(1.0 - rp_mu, 3.0) * smoothstep(0.0, 0.2, rp_mu);
-    float rp_fade = 1.0 - 0.65 * rp_s;
+    float rp_core = pow(rp_mu, 0.6);
+    float rp_rim = pow(1.0 - rp_mu, 2.5) * smoothstep(0.0, 0.25, rp_mu);
+    float rp_fade = 1.0 - 0.55 * rp_s;
     float rp_sw = pow(abs(sin(rp_s * 38.0)), 12.0);
-    float rp_bead = 1.0 + 0.3 * rpDetail * rp_sw;
-    float rp_lum = (0.16 * rp_core + 0.55 * rp_rim) * rp_fade;
+    float rp_bead = 1.0 + 0.35 * rpDetail * rp_sw;
+    float rp_lum = (0.62 * rp_core + 0.45 * rp_rim) * rp_fade;
     float3 rp_col = rpTintA * (rp_lum * rp_bead);
+    rp_col = rp_col + float3(1.0, 0.92, 0.75) * (0.18 * rp_core * rp_core * (1.0 - rp_s));
     rp_col = rp_col * (1.0 - smoothstep(0.93, 1.0, rp_s));
 
     """ + GraphStyleShaders.glowEnd
@@ -204,9 +210,11 @@ nonisolated enum NeuronShaders {
 
     // MARK: glows
 
-    /// The light round a cell, on a billboard 5 cell radii across (the
-    /// membrane at 0.4 of its half side): a little inside, a soft falloff
-    /// outside; tint C draws the chosen cell's thin ring. `rpState`
+    /// The light in and round a cell, on a billboard 5 cell radii across
+    /// (the membrane at 0.4 of its half side): one glow with the cell, its
+    /// brightest at the membrane, fading softly in to the middle and out
+    /// past the edge with no seam; tint C draws the chosen cell's thin
+    /// ring. `rpState`
     /// (NeuronState.code) adds the cell's process, each moving on the
     /// shaders' clock, its phase from where the cell is:
     ///
@@ -236,11 +244,11 @@ nonisolated enum NeuronShaders {
     float rp_e = 0.4;
     float rp_out = max(rp_r - rp_e, 0.0);
     float rp_outside = step(rp_e, rp_r);
-    float rp_soft = exp(-rp_out / 0.09) * 0.3;
-    float rp_wide = exp(-rp_out / 0.28) * 0.14;
-    float rp_in = rp_r / rp_e;
-    float rp_inner = rp_in * rp_in * 0.12 * (1.0 - rp_outside);
-    float rp_lum = (rp_soft + rp_wide) * rp_outside + rp_inner;
+    float rp_soft = exp(-rp_out / 0.08) * 0.2;
+    float rp_wide = exp(-rp_out / 0.26) * 0.1;
+    float rp_in = min(rp_r / rp_e, 1.0);
+    float rp_within = 0.3 * (0.35 + 0.65 * rp_in * rp_in);
+    float rp_lum = (rp_soft + rp_wide) * rp_outside + rp_within * (1.0 - rp_outside);
     float3 rp_col = rpTintA * (rp_lum * rpGain);
     float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
     float rp_a = atan2(rp_qy, rp_qx);
@@ -252,7 +260,7 @@ nonisolated enum NeuronShaders {
     float rp_rays = rp_rw * rp_rw * rp_rw;
     rp_rays = rp_rays * rp_rays;
     float rp_flick = 0.75 + 0.25 * sin(rp_t * 17.0 + rp_ph * 5.0) * sin(rp_t * 7.3 + rp_ph);
-    rp_col = rp_col + rpTintA * (rp_rays * exp(-rp_out / 0.22) * 0.5 * rp_flick * rp_outside);
+    rp_col = rp_col + rpTintA * (rp_rays * exp(-rp_out / 0.22) * 0.22 * rp_flick * rp_outside);
     rp_col = rp_col + float3(1.0, 0.85, 0.55) * (rp_ring * 0.55);
     } else if (rpState > 1.5 && rpState < 2.5) {
 
@@ -308,10 +316,10 @@ nonisolated enum NeuronShaders {
 
     """ + GraphStyleShaders.glowEnd
 
-    /// An impulse arriving: the receiving cell's dendrites light up, on a
-    /// billboard 7 radii across (the membrane at 0.286), in rays like a
-    /// dendritic tree, with a brief bright rim. The node's opacity carries
-    /// how much (NeuronImpulses).
+    /// An impulse arriving: the receiving cell lights up from within, on a
+    /// billboard 7 radii across (the membrane at 0.286): a hot core at its
+    /// middle (tint B) inside a soft glow spreading past the membrane
+    /// (tint A). The node's opacity carries how much (NeuronImpulses).
     static let arrival: String = """
     #pragma arguments
     float rpProbe;
@@ -323,12 +331,9 @@ nonisolated enum NeuronShaders {
     """ + GraphStyleShaders.plane + """
     float rp_e = 0.286;
     float rp_out = max(rp_r - rp_e, 0.0);
-    float rp_a = atan2(rp_qy, rp_qx);
-    float rp_ray = pow(abs(sin(rp_a * 3.0 + 0.7)), 6.0);
-    float rp_glow = exp(-rp_out / 0.16) * (0.45 + 0.55 * rp_ray);
     float rp_fade = clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
-    float3 rp_col = rpTintA * (rp_glow * rp_fade * 0.7);
-    rp_col = rp_col + rpTintB * (exp(-rp_out / 0.05) * 0.6);
+    float3 rp_col = rpTintA * (exp(-rp_out / 0.12) * rp_fade * 0.4);
+    rp_col = rp_col + rpTintB * (exp(-rp_r / 0.18) * 0.5);
 
     """ + GraphStyleShaders.glowEnd
 
@@ -403,11 +408,11 @@ nonisolated enum NeuronShaders {
     float rp_y = rp_s * rp_W;
     float rp_Lref = max(rp_len - rp_Bk, 0.05);
 
-    float rp_mq = rp_along / 0.55 + rp_seed * 0.37;
+    float rp_mq = rp_along / 0.3 + rp_seed * 0.37;
     float rp_m = fract(rp_mq) - 0.5;
     float rp_myel = clamp((rp_dE - rp_D1 - rp_Nk) / 0.15, 0.0, 1.0);
-    float rp_node = exp(-rp_m * rp_m / 0.0016) * rp_myel;
-    float rp_hill = 1.0 + 1.5 * exp(-rp_along / (3.0 * rp_hw));
+    float rp_node = exp(-rp_m * rp_m / 0.003) * rp_myel;
+    float rp_hill = 1.0 + 1.0 * exp(-rp_along / (4.0 * rp_hw));
     float rp_conv = clamp((rp_dE - rp_D0) / 0.4, 0.0, 1.0);
     float rp_lane = 0.42 * rp_hw * rpBundle * rp_conv;
     float rp_d0 = abs(rp_y);
@@ -519,21 +524,21 @@ nonisolated enum NeuronShaders {
     float rp_patch = rp_act * smoothstep(0.03, 0.1, rp_tp) * exp(-rp_tp / 0.4);
     rp_nt = max(rp_nt, 1.4 * rp_patch * exp(-rp_pd * rp_pd) * exp(-rp_pw * rp_pw));
 
-    float rp_cap = 1.0 - 0.08 * rp_myel * (0.5 + 0.5 * cos(rp_m * 6.2831853));
-    float rp_wm = rp_fw * rp_hill * (1.0 - 0.45 * rp_node) * rp_cap * mix(0.42, 1.0, rp_stem) + 0.00001;
+    float rp_cap = 1.0 - 0.25 * rp_myel * (0.5 + 0.5 * cos(rp_m * 6.2831853));
+    float rp_wm = rp_fw * rp_hill * (1.0 - 0.5 * rp_node) * rp_cap * mix(0.42, 1.0, rp_stem) + 0.00001;
     float rp_xm = rp_dm / rp_wm + (1.0 - step(rp_Bk + rp_Nk, rp_dE)) * 1000.0;
     float rp_x = min(rp_xm, rp_xt);
     float rp_tube = sqrt(max(1.0 - rp_x * rp_x, 0.0));
     float rp_sheath = (rp_x - 0.82) / 0.16;
     float rp_edge = exp(-rp_sheath * rp_sheath) * (1.0 - 0.5 * rp_node);
     float rp_halo = exp(-max(rp_x - 1.0, 0.0) * 1.6) * (1.0 - rp_cleft);
-    float rp_bead = 1.0 + 0.12 * rp_node;
+    float rp_bead = 1.0 + 0.35 * rp_node;
 
     float rp_in = 1.0 - smoothstep(0.92, 1.08, rp_x);
     float rp_imp = min(rp_pulse * rpMotion * (1.0 + 0.7 * rp_node), 1.6) * rp_in;
     rp_imp = max(rp_imp, 0.5 * rp_still * rp_in);
     float rp_flash = rp_tee * max(rp_act * exp(-rp_tp / 0.25), 0.6 * rp_still);
-    float rp_fibre = (0.2 * rp_tube + 0.34 * rp_edge) * rp_in * rp_bead;
+    float rp_fibre = (0.5 * rp_tube + 0.3 * rp_edge) * rp_in * rp_bead;
     float rp_gl = (rp_y / rp_wm - 0.42) / 0.16;
     float rp_gloss = exp(-rp_gl * rp_gl) * rp_myel * (1.0 - rp_node) * (1.0 - rpBundle) * rp_in;
     float3 rp_col = rpTintA * (rp_fibre + 0.05 * rp_halo + 0.22 * rp_gloss);

@@ -69,6 +69,18 @@ nonisolated enum NeuronPalette {
         guard idea else { return pair.main }
         return pair.main + (pair.accent - pair.main) * ideaLean
     }
+
+    /// The violet a cell's glow leans to, so the light in and round it is
+    /// one with its purple-magenta body.
+    static let glowViolet = SIMD3<Float>(0.78, 0.34, 0.95)
+
+    /// A dye slot's glow: a cell's dye halfway to the violet; a receptor's
+    /// and a drifter's keep their own colour.
+    static func glow(slot: Int, idea: Bool = false) -> SIMD3<Float> {
+        let own: SIMD3<Float> = dye(slot: slot, idea: idea)
+        if slot == 5 || slot == 6 { return own }
+        return own * 0.5 + glowViolet * 0.5
+    }
 }
 
 /// A cell's state: one biological process each, mirroring one space style.
@@ -319,4 +331,34 @@ extension NeuronBokeh {
         }
         return out
     }
+
+    /// The farthest apart, in map reaches, two orbs a thread joins.
+    static let threadReach: Float = 0.6
+
+    /// The fine glowing threads strung between the orbs (the owner's
+    /// board: glowing spheres joined by fine lines): each orb to its one or
+    /// two nearest within `threadReach`, each pair once, the lower index
+    /// first. The same every time.
+    static func threads(_ orbs: [NeuronOrb]) -> [NeuronThread] {
+        var made: Set<NeuronThread> = []
+        for i in orbs.indices {
+            var near: [(d: Float, j: Int)] = []
+            for j in orbs.indices where j != i {
+                let v: SIMD3<Float> = orbs[j].at - orbs[i].at
+                let d: Float = (v * v).sum().squareRoot()
+                if d <= threadReach { near.append((d, j)) }
+            }
+            near.sort { $0.d < $1.d || ($0.d == $1.d && $0.j < $1.j) }
+            for pick in near.prefix(2) {
+                made.insert(NeuronThread(a: min(i, pick.j), b: max(i, pick.j)))
+            }
+        }
+        return made.sorted { $0.a < $1.a || ($0.a == $1.a && $0.b < $1.b) }
+    }
+}
+
+/// A thread between two orbs, by their places in NeuronBokeh.orbs.
+nonisolated struct NeuronThread: Sendable, Hashable {
+    let a: Int
+    let b: Int
 }

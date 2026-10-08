@@ -60,6 +60,14 @@ check("N1 an idea leans to its cell's accent",
 check("N1 slots wrap round, 5 and 6 a receptor's and a drifter's",
       NeuronPalette.dye(slot: 5) == NeuronPalette.receptor && NeuronPalette.dye(slot: 6) == NeuronPalette.drifter
       && NeuronPalette.dye(slot: 7) == NeuronPalette.dye(slot: 2))
+check("N1 a cell's glow leans to the violet, a receptor's and a drifter's keep their own",
+      (0..<5).allSatisfy { slot in
+          [false, true].allSatisfy { idea in
+              let glow: SIMD3<Float> = NeuronPalette.glow(slot: slot, idea: idea)
+              return glow.z > glow.y && onScreen(glow) && glow != NeuronPalette.dye(slot: slot, idea: idea)
+          }
+      }
+      && NeuronPalette.glow(slot: 5) == NeuronPalette.receptor && NeuronPalette.glow(slot: 6) == NeuronPalette.drifter)
 // cells 0 and 1 with their ideas: all four target colours
 let two: [SIMD3<Float>] = [NeuronPalette.dyes[0].main, NeuronPalette.dyes[0].accent,
                            NeuronPalette.dyes[1].main, NeuronPalette.dyes[1].accent]
@@ -193,6 +201,16 @@ let meanSmallOrb: Float = smallOrbs.map(\.strength).reduce(0, +) / Float(max(sma
 check("N6 most small, the big ones fainter, all faint",
       smallOrbs.count > bigOrbs.count && meanBigOrb < meanSmallOrb
       && orbs.allSatisfy { $0.strength > 0 && $0.strength < 0.4 && onScreen($0.colour) })
+
+let threads: [NeuronThread] = NeuronBokeh.threads(orbs)
+check("N6 threads join near orbs, each pair once, the same every time",
+      threads == NeuronBokeh.threads(orbs) && Set(threads).count == threads.count
+      && threads.count >= NeuronBokeh.orbCount / 2
+      && threads.allSatisfy { t in
+          guard t.a < t.b, t.b < orbs.count else { return false }
+          let v: SIMD3<Float> = orbs[t.b].at - orbs[t.a].at
+          return (v * v).sum().squareRoot() <= NeuronBokeh.threadReach
+      })
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

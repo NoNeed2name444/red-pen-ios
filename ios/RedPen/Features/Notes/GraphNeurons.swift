@@ -89,7 +89,12 @@ nonisolated enum GraphNeurons {
     /// How far a cell on the sheet wobbles.
     static let cellDrift: Double = 0.012
     /// How far a cell's processes reach out at rest, in its radii.
-    static let reach: Double = 1.45
+    static let reach: Double = 1.9
+    /// The room between neighbouring cells on the sheet, in the biggest
+    /// cell's radii at a link length of 1: wide enough that two cells'
+    /// dendrites never meet, however the sheet is jittered, down to 0.8
+    /// of the length (0.94 * (2 + 0.8 * sheetGap) >= 2 * reach + 0.11).
+    static let sheetGap: Double = 2.8
     /// The most a drift moves its body: GraphUniverse.wobble's longest
     /// diagonal for an amplitude of 1.
     static let wobbleBound: Double = 1.5653
@@ -327,7 +332,7 @@ nonisolated struct NeuronPlanner: Sendable {
             cSphere[c] = GraphNeurons.cellSphere(count: tree.count[c])
             biggest = max(biggest, cSphere[c])
         }
-        gap = 1.6 * biggest * tree.input.spacing
+        gap = GraphNeurons.sheetGap * biggest * tree.input.spacing
         let pitch: Double = 2 * biggest + gap
         let n: Int = tops.count
         let cols: Int = n <= 2 ? 1 : (n <= 6 ? 2 : max(3, Int((Double(n) * 0.5).squareRoot().rounded(.up))))
