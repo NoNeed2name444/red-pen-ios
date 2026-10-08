@@ -578,8 +578,6 @@ struct CategoryDock: View {
         }
     }
 
-    /// A category change: the lifted capsule travels, unless Reduce Motion.
-    private var change: Animation? { reduceMotion ? nil : .snappy(duration: 0.3) }
 
     // MARK: at the accessibility text sizes
 
