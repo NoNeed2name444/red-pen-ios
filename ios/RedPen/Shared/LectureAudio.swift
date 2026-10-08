@@ -132,10 +132,10 @@ enum LectureAudio {
         }
     }
 
-    /// Minutes and seconds, for a transport bar.
-    static func clock(_ seconds: Double) -> String {
-        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
+    /// Minutes and seconds, for a transport bar, in the reader's digits
+    /// (hours too, past the hour). The views pass L10n.locale; the locale is
+    /// a parameter so this file stays Foundation-only for its Linux suite.
+    static func clock(_ seconds: Double, locale: Locale) -> String {
+        L10nFormat.clock(seconds: seconds, locale: locale)
     }
 }

@@ -25,13 +25,24 @@ suite cloudtranscript CloudTranscriptTests.swift $S/CloudTranscript.swift $M/Nar
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift
 suite ingest IngestTests.swift $S/SourceText.swift
 suite narrate NarrateTests.swift $S/NarratePlan.swift
+# the lecture player's speeds and the one remembered, the sleep
+# timer's countdown and fade, and a lecture cut into sections
+suite audiocontrols AudioControlsTests.swift $S/AudioControls.swift
+# what VoiceOver says on the study screens: rating intervals in
+# words, answers announced when checked, options' state, clocks,
+# cloze blanks and the study calendar's five steps
+suite accessibility AccessibilityTextTests.swift $S/AccessibilityText.swift
+# localisation: the reader's language and its direction, where the
+# catalog is found in either build, and numbers, clocks, percentages and
+# dates in the app's own digits
+suite l10n L10nTests.swift $S/L10nRules.swift
 # a library file that is there but cannot be read (a launch before the
 # first unlock) is not empty, and a write that did not land is not a save
 suite storefiles StoreFileTests.swift $S/StoreFiles.swift
 # a store's file read one record at a time, and the copies put aside
 suite recovery RecoveryTests.swift $S/RecoveryFiles.swift
 # a replaced lecture recording: the old one goes only once the new one is in
-suite lectureaudio LectureAudioTests.swift $S/LectureAudio.swift
+suite lectureaudio LectureAudioTests.swift $S/LectureAudio.swift $S/L10nRules.swift
 # a mock paper left part way comes back as it was left
 suite mocksave MockSittingSaveTests.swift $F/Mock/MockSittingSave.swift $S/Exam/MockPaper.swift \
       $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift

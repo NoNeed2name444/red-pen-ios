@@ -26,7 +26,7 @@ struct KindShelfView: View {
 
     var body: some View {
         let sets: [StudySet] = feature.shelfSets(store)
-        let heading: String = sets.count == 1 ? "Your set" : "All \(sets.count)"
+        let heading: String = sets.count == 1 ? "Your set" : "All \(L10n.count(sets.count))"
         List {
             if feature == .pictures {
                 Section {
@@ -60,7 +60,7 @@ struct KindShelfView: View {
     }
 
     /// New at the leading end; the hero - carry on with the newest set - at
-    /// the trailing end, under the right thumb.
+    /// the trailing end, under the right thumb (the left, right to left).
     private func shelfBar(newest: StudySet?) -> some View {
         HStack(spacing: 12) {
             newButton

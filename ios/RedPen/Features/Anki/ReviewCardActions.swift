@@ -4,12 +4,16 @@ import SwiftUI
 /// with a hairline edge, raised by the one shadow, at the top corner of the
 /// card. It is shown by a timestamp rather than an animation, so nothing runs
 /// while it waits; it simply goes when the time is up or the next card is
-/// rated.
+/// rated. With VoiceOver on it stays until the next rating: five seconds is
+/// not long enough to find it by swiping.
 struct ReviewUndoChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+            Announce.say("Rating undone. The card is back.")
+        } label: {
             Label("Undo", systemImage: "arrow.uturn.backward")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
@@ -49,6 +53,7 @@ extension View {
 private struct ReviewUndoOverlay: ViewModifier {
     @Binding var until: Date?
     let action: () -> Void
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     /// How long Undo stays in reach.
     static let seconds: Double = 5
@@ -65,10 +70,10 @@ private struct ReviewUndoOverlay: ViewModifier {
                         .transition(.opacity)
                 }
             }
-            .animation(.snappy(duration: 0.2), value: until)
+            .animation(Motion.gentle(.snappy(duration: 0.2)), value: until)
             .tipSighting(.review)
             .task(id: until) {
-                guard let shown = until else { return }
+                guard let shown = until, !voiceOver else { return }
                 let wait: Double = shown.timeIntervalSinceNow
                 if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
                 guard !Task.isCancelled, until == shown else { return }
@@ -104,18 +109,29 @@ private struct ReviewCardActionsModifier: ViewModifier {
                 suspendButton
                 Button("Cancel", role: .cancel) {}
             }
-            .accessibilityAction(named: "Bury until tomorrow", onBury)
-            .accessibilityAction(named: "Suspend card", onSuspend)
+            // the swipe and the hold, for VoiceOver: both in the actions rotor
+            .accessibilityAction(named: "Bury until tomorrow") { bury() }
+            .accessibilityAction(named: "Suspend card") { suspend() }
+    }
+
+    private func bury() {
+        onBury()
+        Announce.say("Buried until tomorrow.")
+    }
+
+    private func suspend() {
+        onSuspend()
+        Announce.say("Card suspended.")
     }
 
     private var buryButton: some View {
-        Button(action: onBury) {
+        Button { bury() } label: {
             Label("Bury until tomorrow", systemImage: "moon.zzz")
         }
     }
 
     private var suspendButton: some View {
-        Button(role: .destructive, action: onSuspend) {
+        Button(role: .destructive) { suspend() } label: {
             Label("Suspend card", systemImage: "pause.circle")
         }
     }

@@ -171,10 +171,15 @@ def thin_stand_ins(full, pkg, texts):
         # far more often Apple's own member
         mentions = re.compile(r'\b' + name + r'\b')
         for n in have - declared - {"init", "body", "id"}:
-            use = re.compile(r'\.' + n + r'\b')
+            # `Task.sleep` is another type's member: a capitalised name
+            # before the dot that isn't this type doesn't count
+            use = re.compile(r'(\b\w+)?\.' + n + r'\b')
+            def used(t):
+                return any(not (m.group(1) and m.group(1)[0].isupper() and m.group(1) != name)
+                           for m in use.finditer(t))
             for p, t in texts.items():
                 rel = os.path.relpath(p, pkg)
-                if not rel.startswith(STUBS) and use.search(t) and mentions.search(t):
+                if not rel.startswith(STUBS) and used(t) and mentions.search(t):
                     gaps.setdefault(f"{name}.{n} (the real one has it)", []).append(rel)
     return gaps
 

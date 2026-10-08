@@ -12,6 +12,7 @@ import SwiftUI
 struct ExamplesHubView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.windowSpan) private var span
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// The personal build seeds example notes and ten days of answers
     /// (NoteExamples, InsightExamples); everyone else has their own.
@@ -65,7 +66,8 @@ struct ExamplesHubView: View {
     // MARK: - A wide iPad: tiles
 
     private var grid: some View {
-        let columns: [GridItem] = [GridItem(.adaptive(minimum: 250, maximum: 400), spacing: 14)]
+        let columns: [GridItem] = GridItem.tiles(minimum: 250, maximum: 400, spacing: 14,
+                                                accessibilitySize: typeSize.isAccessibilitySize)
         return ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 gridSection("Thinking", columns: columns) { thinkingRows }

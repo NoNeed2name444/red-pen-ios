@@ -11,6 +11,15 @@ import SwiftUI
 //
 // The caller decides where each state sits: the expanded strip usually on
 // its own row above a bar, the circle at the leading end of that bar.
+//
+// At the accessibility text sizes the strip's names would shrink past
+// reading, so it stays the circle, and a tap opens every choice as a list in
+// a sheet, one to a row, with room for the whole name.
+// Right to left it mirrors on its own: the strip's HStack runs from the
+// leading edge, the fold chevron stays at the trailing end, and the circle's
+// badge sits at its top trailing corner. A title is looked up in the catalog
+// (L10n), so a caller's English title reads in the app's language when the
+// catalog has it.
 
 struct SwitcherItem<Value: Hashable>: Identifiable {
     let value: Value
@@ -37,7 +46,10 @@ struct FloatingSwitcher<Value: Hashable>: View {
     var tint: Color = .wardPrimaryInk
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Namespace private var liftSpace
+    /// The list of choices, open at the accessibility text sizes.
+    @State private var listing = false
 
     init(items: [SwitcherItem<Value>], selection: Binding<Value>, collapsed: Binding<Bool>,
          toggleIdentifier: String, tint: Color = .wardPrimaryInk) {
@@ -63,22 +75,84 @@ struct FloatingSwitcher<Value: Hashable>: View {
     }
 
     var body: some View {
+        let large: Bool = typeSize.isAccessibilitySize
         Group {
-            if collapsed {
+            if collapsed || large {
                 SwitcherBubble(items: items, chosen: chosen, tint: tint,
                                identifier: toggleIdentifier,
-                               expand: { setCollapsed(false) },
+                               expand: { if large { listing = true } else { setCollapsed(false) } },
                                choose: choose)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.growFade(0.6))
             } else {
                 SwitcherStrip(items: items, selection: selection, tint: tint,
                               identifier: toggleIdentifier, liftSpace: liftSpace,
                               collapse: { setCollapsed(true) },
                               choose: choose)
-                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+                    .transition(.growFade(0.9))
             }
         }
         .sensoryFeedback(.selection, trigger: selection)
+        .sheet(isPresented: $listing) {
+            SwitcherListSheet(items: items, selection: selection, tint: tint, choose: choose)
+        }
+    }
+}
+
+/// Every choice as a list, one to a row - the switcher at the accessibility
+/// text sizes.
+private struct SwitcherListSheet<Value: Hashable>: View {
+    let items: [SwitcherItem<Value>]
+    let selection: Value
+    let tint: Color
+    let choose: (Value) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(items) { item in
+                row(item)
+                    .wardRowBackground()
+            }
+            .wardForm()
+            .navigationTitle("Show")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func row(_ item: SwitcherItem<Value>) -> some View {
+        let chosen: Bool = item.value == selection
+        let title: String = L10n.lookup(item.title)
+        return Button {
+            choose(item.value)
+            dismiss()
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: item.symbol)
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInk)
+                Spacer(minLength: 8)
+                if chosen {
+                    Image(systemName: "checkmark")
+                        .font(.headline)
+                        .foregroundStyle(tint)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(chosen ? [.isSelected] : [])
+        .accessibilityIdentifier(item.identifier)
     }
 }
 
@@ -125,8 +199,8 @@ private struct SwitcherSegment<Value: Hashable>: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
-                    .font(.system(size: 17, weight: .semibold))
-                Text(item.title)
+                    .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 28)
+                Text(L10n.lookup(item.title))
                     .font(.caption2.weight(.bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -143,7 +217,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
-        .accessibilityLabel(item.title)
+        .accessibilityLabel(L10n.lookup(item.title))
         .accessibilityAddTraits(traits)
         .accessibilityIdentifier(item.identifier)
     }
@@ -171,14 +245,14 @@ private struct SwitcherCollapseButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.down")
-                .font(.system(size: 14, weight: .bold))
+                .scaledFont(14, relativeTo: .body, weight: .bold, maxSize: 24)
                 .foregroundStyle(.secondary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
-        .accessibilityLabel("Hide the switcher")
+        .accessibilityLabel(L10n.string("Hide the switcher"))
         .accessibilityIdentifier(identifier)
     }
 }
@@ -194,11 +268,11 @@ private struct SwitcherBubble<Value: Hashable>: View {
 
     var body: some View {
         let symbol: String = chosen?.symbol ?? "square.grid.2x2"
-        let title: String = chosen?.title ?? ""
-        let label: String = "Show the switcher, now \(title)"
+        let title: String = L10n.lookup(chosen?.title ?? "")
+        let label: String = L10n.string("Show the switcher, now \(title)")
         Button(action: expand) {
             Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
+                .scaledFont(18, relativeTo: .body, weight: .semibold, maxSize: 28)
                 .foregroundStyle(tint)
                 .frame(width: 48, height: 48)
                 .overlay(alignment: .topTrailing) { SwitcherBadge() }
@@ -213,25 +287,31 @@ private struct SwitcherBubble<Value: Hashable>: View {
                 Button {
                     choose(item.value)
                 } label: {
-                    Label(item.title, systemImage: item.symbol)
+                    Label(L10n.lookup(item.title), systemImage: item.symbol)
                 }
             }
         }
         .accessibilityLabel(label)
-        .accessibilityHint("Tap to show every view. Hold to switch straight away.")
+        .accessibilityHint(L10n.string("Tap to show every view. Hold to switch straight away."))
         .accessibilityIdentifier(identifier)
         .popOut(.floating, in: Circle())
     }
 }
 
+/// The small chevron at the circle's top trailing corner, tucked 2 points in.
+/// An offset is not mirrored right to left, so the inward nudge is turned
+/// round by hand there; otherwise it would push the badge off the circle.
 private struct SwitcherBadge: View {
+    @Environment(\.layoutDirection) private var direction
+
     var body: some View {
+        let inward: CGFloat = direction == .rightToLeft ? 2 : -2
         Image(systemName: "chevron.up")
-            .font(.system(size: 7, weight: .heavy))
+            .scaledFont(7, relativeTo: .caption2, weight: .heavy, maxSize: 11)
             .foregroundStyle(Color.wardInkSecondary)
             .padding(3)
             .background(Color.wardSurface, in: Circle())
-            .offset(x: -2, y: 2)
+            .offset(x: inward, y: 2) // l10n: ok, turned round above
             .accessibilityHidden(true)
     }
 }

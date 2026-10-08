@@ -92,6 +92,13 @@ check("normal speed is the phone's normal pace", NarratePlan.phoneRate(1) == 0.5
 check("faster is faster, slower is slower",
       NarratePlan.phoneRate(1.5) > 0.5 && NarratePlan.phoneRate(0.75) < 0.5)
 check("double speed stays intelligible", NarratePlan.phoneRate(2) <= 0.7)
+// the same speed menu drives the recording and the phone's voice, so every
+// step on it has to be a little faster than the one before
+let menu: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5]
+let phoneRates: [Float] = menu.map { NarratePlan.phoneRate($0) }
+check("every step on the speed menu is faster than the last",
+      zip(phoneRates, phoneRates.dropFirst()).allSatisfy { $0 < $1 }, "\(phoneRates)")
+check("the fastest step is still words", NarratePlan.phoneRate(2.5) <= 0.75, "\(NarratePlan.phoneRate(2.5))")
 
 let spoken = "The  bicarbonate buffer"
 check("a range at the start is the first word",

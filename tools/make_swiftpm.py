@@ -54,7 +54,7 @@ CORE_DROP = [
     "Shared/SyncAPI.swift", "Shared/SyncRules.swift", "Shared/SyncMerge.swift",
     # the audio pipeline
     "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
-    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift", "Shared/AudioControls.swift",
     "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
     "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
     # imports and exports beyond lectures, text and spreadsheets
@@ -93,7 +93,7 @@ CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", 
 STEP1_BACK = [
     "Features/Voice", "Shared/Voice", "Features/Recall", "Features/Narrate",
     "Shared/CloudTranscriber.swift", "Shared/CloudTranscript.swift", "Shared/LectureTranscriber.swift",
-    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift",
+    "Shared/NarratePlan.swift", "Shared/WordTiming.swift", "Shared/LecturePlayer.swift", "Shared/AudioControls.swift",
     "Shared/PronunciationStore.swift", "Shared/PronunciationLibrary.swift", "Shared/Corrections.swift",
     "Shared/OnDeviceLearning.swift", "Shared/SoundKey.swift",
 ]
@@ -166,7 +166,10 @@ pkg = f"{name}.swiftpm"
 work = os.path.join(os.path.dirname(out) or ".", "swiftpm_build")
 shutil.rmtree(work, ignore_errors=True)
 root = os.path.join(work, pkg)
-shutil.copytree(src, root, ignore=shutil.ignore_patterns("Tests", "Info.plist", "*.storekit", "*.entitlements"))
+# the String Catalog is not copied as it is: the package gets the .lproj
+# tables made from it below
+shutil.copytree(src, root, ignore=shutil.ignore_patterns("Tests", "Info.plist", "*.storekit", "*.entitlements",
+                                                         "*.xcstrings"))
 stubs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "playgrounds_stubs")
 if without:
     stub_dir = os.path.join(root, "Shared", "PlaygroundsStubs")
@@ -255,10 +258,26 @@ s = "#if canImport(LocalLLMClientLlama)\n" + head + "extension GemmaModel {" + b
 open(p, "w").write(s)
 # the Playgrounds half (after the last #else) must not name the package's types
 assert not re.search(r"Llama|LocalLLMClient", open(p).read().rsplit("#else", 1)[1]), f"{p}: the Playgrounds stand-in names LocalLLMClient"
-resources = ', resources: [.copy("Samples")]'
 # each package drop has its own build number (UTC date and time), so a report
 # says which drop it came from rather than every drop being "1.0 (1)"
 drop = os.environ.get("DROP_STAMP") or time.strftime("%y%m%d.%H%M", time.gmtime())
+# The app's strings: Swift Playgrounds cannot be counted on to compile a
+# .xcstrings, so the catalog becomes Localization/<lang>.lproj/Localizable.strings
+# (and .stringsdict for plurals), which every toolchain reads. They land in
+# the package's resource bundle, not the app's, which is why the app reads
+# them through L10n (Shared/L10n.swift) rather than Bundle.main.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import l10n_catalog
+catalog_path = os.path.join(src, "Resources", "Localizable.xcstrings")
+resources = ', resources: [.copy("Samples")]'
+if os.path.exists(catalog_path):
+    catalog = l10n_catalog.load(catalog_path)
+    l10n_catalog.write_lproj(catalog, os.path.join(root, "Localization"))
+    resources = ', resources: [.copy("Samples"), .process("Localization")]'
+# (the catalog's folder, empty once the catalog is left out)
+leftover = os.path.join(root, "Resources")
+if os.path.isdir(leftover) and not os.listdir(leftover):
+    os.rmdir(leftover)
 # the owner's build: examples in every mode and the bundled lecture (PersonalBuild.swift)
 if bundle.endswith(".personal"):
     open(os.path.join(root, "Samples", "personal-build.txt"), "w").write("The owner's personal build.\n")
@@ -268,6 +287,7 @@ import AppleProductTypes
 
 let package = Package(
     name: "{name}",
+    defaultLocalization: "en",
     platforms: [.iOS("26.0")],
     products: [
         .iOSApplication(

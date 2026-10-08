@@ -188,7 +188,9 @@ struct RiseIn: ViewModifier {
 }
 
 /// A thin, rounded, tinted progress bar — replaces the stock `ProgressView`
-/// so every mode's progress reads the same way.
+/// so every mode's progress reads the same way. It fills from the leading
+/// edge: the ZStack's `.leading` is the right-hand side right to left, so
+/// Arabic fills from the right with nothing more said.
 struct ThinProgress: View {
     let fraction: Double
 
@@ -223,11 +225,13 @@ struct ScoreRing: View {
                 .trim(from: 0, to: max(0, min(1, shown)))
                 .stroke(Color.wardPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                // clockwise from the top, anticlockwise right to left
+                .fillsFromLeading()
                 .padding(3)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
-                Text(label).font(.system(size: 38, weight: .semibold, design: .monospaced))
+                Text(label).scaledFont(38, relativeTo: .largeTitle, weight: .semibold, design: .monospaced, maxSize: 52)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
@@ -436,7 +440,8 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// still works as the last child of a VStack.
 ///
 /// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
-/// under the right hand.
+/// under the right hand (the left hand, right to left: `.trailing` turns
+/// round with the language, as the buttons' order in it does).
 struct StudyActionBar<Content: View>: View {
     private let content: Content
     @Environment(\.windowSpan) private var span
@@ -659,7 +664,7 @@ struct FinishSymbol: View {
     let name: String
     var body: some View {
         Image(systemName: name)
-            .font(.system(size: 64, weight: .semibold))
+            .scaledFont(64, relativeTo: .largeTitle, weight: .semibold, maxSize: 96)
             .foregroundStyle(.tint)
             .accessibilityHidden(true)
     }

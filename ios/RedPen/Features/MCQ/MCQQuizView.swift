@@ -9,6 +9,8 @@ struct MCQQuizView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.windowSpan) private var span
+    /// At the accessibility text sizes the one-line headings wrap instead.
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     @State private var current: Int = 0
     @State private var answers: [MCQAnswer]
@@ -263,10 +265,10 @@ struct MCQQuizView: View {
         return Label(line, systemImage: "clock.arrow.circlepath")
             .font(.subheadline.weight(.medium))
             .foregroundStyle(Color.wardInkSecondary)
-            .lineLimit(1)
+            .lineLimit(oneLine)
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .transition(.slideFade(.top))
     }
 
     /// The bar while a saved place is waiting: Start again beside the big
@@ -598,6 +600,9 @@ struct MCQQuizView: View {
         }
     }
 
+    /// One line, or as many as the words need at the accessibility sizes.
+    private var oneLine: Int? { typeSize.isAccessibilitySize ? nil : 1 }
+
     /// A stem's text when nothing is being marked: in the slow reading
     /// drill, the key words drawn in Theatre Blue and bold.
     private func plainText(_ text: String) -> AttributedString {
@@ -672,10 +677,19 @@ struct MCQQuizView: View {
         .numberKey(idx + 1)
         .strikeOutGestures(struck: out, enabled: !a.checked) { toggleStrike(idx) }
         .accessibilityLabel("Answer \(letter(idx)): \(text)" + (out ? ", crossed out" : ""))
-        .accessibilityValue(ChartQuiz.spoken(mark) ?? "")
+        .accessibilityValue(optionSpoken(idx))
         .accessibilityAddTraits(idx == a.selected ? .isSelected : [])
         // the action already ignores taps once checked — no .disabled(), which
         // would dim the correct answer along with everything else
+    }
+
+    /// What VoiceOver says after the option's text: chosen, or - once
+    /// checked, outside a paper - right or wrong.
+    private func optionSpoken(_ slot: Int) -> String {
+        let revealed: Bool = a.checked && !examMode
+        let chosen: Bool = slot == a.selected
+        let right: Bool = slot == correctSlot(current)
+        return SpokenText.optionState(checked: revealed, isCorrect: right, isChosen: chosen)
     }
 
     /// Whether the option in `slot` is crossed out.
@@ -711,6 +725,7 @@ struct MCQQuizView: View {
             Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
                 .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
+                .accessibilityAddTraits(.isHeader)
             if struckTheAnswer {
                 Label("You crossed out the right answer. What made you rule it out?",
                       systemImage: "line.diagonal")
@@ -727,7 +742,7 @@ struct MCQQuizView: View {
         }
         .contentCard()
         .id(explainID)
-        .transition(.scale(scale: 0.96, anchor: .top).combined(with: .opacity))
+        .transition(.growFade(0.96, anchor: .top))
     }
 
     /// The question on screen as a note in Ideas.
@@ -1064,8 +1079,9 @@ struct MCQQuizView: View {
         if !a.checked {
             let right = commit(current)
             // felt as well as seen (and, with Sounds on, heard): right and
-            // wrong answers buzz differently
+            // wrong answers buzz differently - and said, with VoiceOver
             SpaceFeedback.play(right ? .correct : .wrong)
+            announceResult(right)
             persist()
             return
         }
@@ -1096,6 +1112,15 @@ struct MCQQuizView: View {
             ExamStore.shared.twinAnswered(question.id, correct: right)
         }
         return right
+    }
+
+    /// "Correct." or "Incorrect. The answer is C: ..." for VoiceOver, the
+    /// moment the colours change.
+    private func announceResult(_ right: Bool) {
+        let slot: Int = correctSlot(current)
+        let key: String = slot >= 0 ? letter(slot) : ""
+        let answer: String = slot >= 0 ? optionText(current, slot: slot) : ""
+        Announce.say(SpokenText.answerResult(correct: right, letter: key, answer: answer))
     }
 
     private func advance() {

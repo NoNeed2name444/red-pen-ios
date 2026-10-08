@@ -210,8 +210,12 @@ private struct PairingCodeSlab: View {
     var body: some View {
         VStack(spacing: 10) {
             Text(PairingCodeSlab.spaced(code))
-                .font(.system(size: 40, weight: .bold, design: .monospaced))
+                .scaledFont(40, relativeTo: .largeTitle, weight: .bold, design: .monospaced, maxSize: 64)
                 .foregroundStyle(Color.wardInk)
+                // one line at any text size: a code broken over two lines
+                // reads as two codes
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .textSelection(.enabled)
                 .accessibilityLabel(PairingCodeSlab.spoken(code))
             TimelineView(.periodic(from: .now, by: 1)) { context in

@@ -114,7 +114,7 @@ struct StudyLensView: View {
     private var noCamera: some View {
         VStack(spacing: 14) {
             Image(systemName: "camera.metering.unknown")
-                .font(.system(size: 44))
+                .scaledFont(44, relativeTo: .largeTitle, maxSize: 64)
                 .foregroundStyle(.white.opacity(0.8))
                 .accessibilityHidden(true)
             Text(access == .denied || access == .restricted
@@ -179,6 +179,8 @@ struct StudyLensView: View {
         } else if let problem {
             banner(Label(problem, systemImage: "exclamationmark.triangle"))
                 .onTapGesture { self.problem = nil }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint("Dismisses this message")
         } else if model.paused && still == nil && access == .authorized {
             Button {
                 model.resume()
@@ -395,7 +397,7 @@ struct LensChipLayer: View {
                 ForEach(Array(chips.enumerated()), id: \.element.id) { pair in
                     LensChip(question: pair.element.question) { open(pair.element.question) }
                         .offset(x: origins[pair.offset].x, y: origins[pair.offset].y)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .transition(.growFade(0.6))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
@@ -448,7 +450,9 @@ struct LensChip: View {
             .background(Color.wardMonitor.opacity(0.88), in: Capsule())
             .overlay(Capsule().strokeBorder(tint, lineWidth: 1.5))
             .environment(\.colorScheme, .dark)
-            .contentShape(Capsule())
+            // the chip is drawn small so it covers little of the page; the
+            // finger's target reaches past it to 44 points tall
+            .contentShape(Capsule().inset(by: -6))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(question.type.spokenName + ": " + question.preview)

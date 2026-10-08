@@ -368,7 +368,7 @@ private struct CommutePlayControls: View {
                 session.toggle()
             } label: {
                 Image(systemName: symbol)
-                    .font(.system(size: 34, weight: .bold))
+                    .scaledFont(34, relativeTo: .largeTitle, weight: .bold, maxSize: 48)
                     .foregroundStyle(Color.wardOnPrimary)
                     .frame(width: 84, height: 84)
                     .background(Color.wardPrimary, in: Circle())
@@ -517,12 +517,16 @@ private struct CommuteLineRow: View {
 /// top of the floating bar, just above the controls.
 private struct CommuteHeard: View {
     @ObservedObject var listener: VoiceListener
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if listener.listening {
             let words: String = listener.text.isEmpty ? "Listening\u{2026}" : listener.text
             HStack(spacing: 8) {
-                Image(systemName: "waveform").symbolEffect(.variableColor.iterative)
+                // the waveform only ripples without Reduce Motion
+                Image(systemName: "waveform")
+                    .symbolEffect(.variableColor.iterative, isActive: !reduceMotion)
+                    .accessibilityHidden(true)
                 Text(words)
                     .lineLimit(2)
                     .truncationMode(.head)

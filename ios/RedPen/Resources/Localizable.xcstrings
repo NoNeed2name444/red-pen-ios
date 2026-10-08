@@ -1,0 +1,914 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ is a study aid for students. It is NOT a medical tool." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Red warning box, first line. %@ is the app's name (Latin script).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ أداة مساعِدة على الدراسة للطلاب، و**ليس** أداةً طبية."
+          }
+        }
+      }
+    },
+    "%@ is provided as is, with no promise that anything in it is accurate or complete. To the extent the law allows, %@ and its makers accept no liability for any decision, harm or loss that comes from relying on it." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Both %@ are the app's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُقدَّم %1$@ «كما هو»، دون أي تعهّد بدقة ما فيه أو اكتماله. وفي الحدود التي يسمح بها القانون، لا يتحمّل %2$@ ولا صانعوه أي مسؤولية عن أي قرار أو ضرر أو خسارة تنتج عن الاعتماد عليه."
+          }
+        }
+      }
+    },
+    "%@, %lld sets" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. VoiceOver label: the category's name and how many sets are in it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@، %2$#@sets@"
+          },
+          "substitutions" : {
+            "sets" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "few" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg مجموعات"
+                    }
+                  },
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg مجموعة"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "مجموعة واحدة"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg مجموعة"
+                    }
+                  },
+                  "two" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "مجموعتان"
+                    }
+                  },
+                  "zero" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "لا مجموعات"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$#@sets@"
+          },
+          "substitutions" : {
+            "sets" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg set"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg sets"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "AI content can be wrong, out of date or dangerous, even after it has been checked. Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Red warning box.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد يكون محتوى الذكاء الاصطناعي خاطئًا أو قديمًا أو خطيرًا، حتى بعد التحقق منه. تحقَّق من كل شيء بمقارنته بالإرشادات السريرية الحالية وبما تدرّسه جامعتك وبرأي أطباء مؤهلين قبل أن تعتمد عليه."
+          }
+        }
+      }
+    },
+    "Account" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الحساب"
+          }
+        }
+      }
+    },
+    "Account & help" : {
+      "comment" : "Account menu, heading over account and help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الحساب والمساعدة"
+          }
+        }
+      }
+    },
+    "Agree, available in %lld seconds" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. VoiceOver, while the agree button counts down.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة بعد %lld ثوانٍ"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة بعد %lld ثانية"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة بعد ثانية واحدة"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة بعد %lld ثانية"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة بعد ثانيتين"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "الموافقة، متاحة الآن"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Agree, available in %lld second"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Agree, available in %lld seconds"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Audio" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. Narrated lectures.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصوتيات"
+          }
+        }
+      }
+    },
+    "By subject" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حسب المادة"
+          }
+        }
+      }
+    },
+    "By tapping “I understand and agree” you confirm you have read all of this and accept full responsibility for how you use %@." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Must quote the agree button's own words.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بالضغط على «فهمت وأوافق» تؤكّد أنك قرأت كل ما سبق، وتتحمّل المسؤولية كاملةً عن طريقة استخدامك لـ %@."
+          }
+        }
+      }
+    },
+    "Cards" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. Flashcards and textbooks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "البطاقات"
+          }
+        }
+      }
+    },
+    "Cases" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. Clinical cases.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الحالات"
+          }
+        }
+      }
+    },
+    "Cloud transcription" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التفريغ النصي السحابي"
+          }
+        }
+      }
+    },
+    "Common questions" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أسئلة شائعة"
+          }
+        }
+      }
+    },
+    "Contact us" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تواصل معنا"
+          }
+        }
+      }
+    },
+    "Couldn't sign in" : {
+      "comment" : "Sign-in screen (SignInView). Alert title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر تسجيل الدخول"
+          }
+        }
+      }
+    },
+    "Developer · personal build" : {
+      "comment" : "Settings screen, section heading. Only in the owner's personal build.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المطوّر · النسخة الشخصية"
+          }
+        }
+      }
+    },
+    "Document" : {
+      "comment" : "Floating switcher: a glass strip for choosing between views, folding into a circle. The reader's whole-document view.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المستند"
+          }
+        }
+      }
+    },
+    "Everything stays on this device" : {
+      "comment" : "Sign-in screen (SignInView). VoiceOver hint on Start without an account.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يبقى كل شيء على هذا الجهاز"
+          }
+        }
+      }
+    },
+    "Hide the switcher" : {
+      "comment" : "Floating switcher: a glass strip for choosing between views, folding into a circle. VoiceOver label of the fold button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إخفاء المبدِّل"
+          }
+        }
+      }
+    },
+    "How it works" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طريقة العمل"
+          }
+        }
+      }
+    },
+    "I have a code from another device" : {
+      "comment" : "Sign-in screen (SignInView). Button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لديّ رمز من جهاز آخر"
+          }
+        }
+      }
+    },
+    "I understand and agree" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. The agree button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فهمت وأوافق"
+          }
+        }
+      }
+    },
+    "Ideas" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. The idea dump, its board and 3D map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأفكار"
+          }
+        }
+      }
+    },
+    "In an emergency, call your local emergency number." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Red warning box, last line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "في حالات الطوارئ، اتصل برقم الطوارئ المحلي."
+          }
+        }
+      }
+    },
+    "Look and feel" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المظهر"
+          }
+        }
+      }
+    },
+    "Misuse ends your account" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إساءة الاستخدام تُنهي حسابك"
+          }
+        }
+      }
+    },
+    "Never enter, record, upload or photograph anything that could identify a real patient: names, dates, record numbers, images or rare details." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تُدخِل أو تسجّل أو ترفع أو تصوّر أبدًا أي شيء قد يكشف هوية مريض حقيقي: الأسماء أو التواريخ أو أرقام الملفات الطبية أو الصور أو التفاصيل النادرة."
+          }
+        }
+      }
+    },
+    "Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Red warning box.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تستخدمه أبدًا لتشخيص أي شخص أو علاجه أو وصف الأدوية له، ولا لاتخاذ أي قرار يخص رعاية مريض حقيقي أو صحتك أنت."
+          }
+        }
+      }
+    },
+    "No account needed to start — you can link an iPad or another phone later in Account. Nothing is shared with anyone else." : {
+      "comment" : "Sign-in screen (SignInView). Small print. iPad stays in Latin script.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تحتاج إلى حساب لتبدأ — يمكنك ربط iPad أو هاتف آخر لاحقًا من «الحساب». لا يُشارَك أي شيء مع أي أحد."
+          }
+        }
+      }
+    },
+    "No patient information. Ever." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا معلومات عن المرضى. إطلاقًا."
+          }
+        }
+      }
+    },
+    "No warranty, no liability" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا ضمان ولا مسؤولية"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "comment" : "Alert button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حسنًا"
+          }
+        }
+      }
+    },
+    "OSCE" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. Objective structured clinical examination; Arab medical schools write OSCE in Latin script.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OSCE"
+          }
+        }
+      }
+    },
+    "Only add sources you have the right to use" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تُضِف إلا مصادر يحق لك استخدامها"
+          }
+        }
+      }
+    },
+    "Page" : {
+      "comment" : "Floating switcher: a glass strip for choosing between views, folding into a circle. The reader's page-by-page view.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصفحة"
+          }
+        }
+      }
+    },
+    "Privacy and Health" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الخصوصية والصحة"
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التقدّم"
+          }
+        }
+      }
+    },
+    "Questions" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. Multiple-choice question sets.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأسئلة"
+          }
+        }
+      }
+    },
+    "Read this before you start" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اقرأ هذا قبل أن تبدأ"
+          }
+        }
+      }
+    },
+    "Record people only with their consent" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Heading of a point.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تسجّل أحدًا إلا بموافقته"
+          }
+        }
+      }
+    },
+    "Recording someone without their permission can be illegal. Only record, upload or transcribe a lecture, talk or conversation when the lecturer and everyone who can be heard have agreed, and your university's rules and the law allow it. You alone are responsible for your recordings and their transcripts." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد يكون تسجيل أي شخص دون إذنه مخالفًا للقانون. لا تسجّل محاضرةً أو حديثًا أو محادثةً، ولا ترفعها ولا تفرّغها نصيًا، إلا بعد موافقة المحاضر وكل من يُسمَع صوته، وبما تسمح به أنظمة جامعتك والقانون. أنت وحدك المسؤول عن تسجيلاتك ونصوصها."
+          }
+        }
+      }
+    },
+    "Review" : {
+      "comment" : "Settings screen, section heading. Spaced-repetition review of flashcards.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المراجعة"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "comment" : "Settings: the screen's title and its item in the account menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الإعدادات"
+          }
+        }
+      }
+    },
+    "Share crash and failure reports" : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Toggle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشاركة تقارير الأعطال والإخفاقات"
+          }
+        }
+      }
+    },
+    "Show the switcher, now %@" : {
+      "comment" : "Floating switcher: a glass strip for choosing between views, folding into a circle. VoiceOver label of the folded circle; %@ is the chosen view.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إظهار المبدِّل، المعروض الآن: %@"
+          }
+        }
+      }
+    },
+    "Shows these sets and ways to practise" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. VoiceOver hint on a category.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض هذه المجموعات وطرق التدرّب عليها"
+          }
+        }
+      }
+    },
+    "Sign in with Google" : {
+      "comment" : "Sign-in screen (SignInView). Button, drawn to match Apple's. Google stays in Latin script.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تسجيل الدخول باستخدام Google"
+          }
+        }
+      }
+    },
+    "Siri and Spotlight" : {
+      "comment" : "Settings screen, section heading. Siri and Spotlight are Apple's names.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siri وSpotlight"
+          }
+        }
+      }
+    },
+    "Start without an account" : {
+      "comment" : "Sign-in screen (SignInView). The main button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابدأ دون حساب"
+          }
+        }
+      }
+    },
+    "Study" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الدراسة"
+          }
+        }
+      }
+    },
+    "Study reminders" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تذكيرات الدراسة"
+          }
+        }
+      }
+    },
+    "Tap to show every view. Hold to switch straight away." : {
+      "comment" : "Floating switcher: a glass strip for choosing between views, folding into a circle. VoiceOver hint of the folded circle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط لإظهار كل طرق العرض، أو اضغط مطوّلًا للتبديل فورًا."
+          }
+        }
+      }
+    },
+    "Try every feature" : {
+      "comment" : "Account menu, a page's name. Tour of examples.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جرّب كل الميزات"
+          }
+        }
+      }
+    },
+    "Turn your lectures into questions and flashcards." : {
+      "comment" : "Sign-in screen (SignInView). Under the app's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حوّل محاضراتك إلى أسئلة وبطاقات تعليمية."
+          }
+        }
+      }
+    },
+    "Using %@ for patient care, recording people without consent, uploading material you have no right to, or breaking the law can get your account suspended or closed. You are solely responsible for how you use the app; %@ has no part in, and does not approve of, any misuse." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Both %@ are the app's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد يؤدي استخدام %1$@ في رعاية المرضى، أو تسجيل الأشخاص دون موافقتهم، أو رفع مواد لا يحق لك استخدامها، أو مخالفة القانون، إلى تعليق حسابك أو إغلاقه. أنت وحدك المسؤول عن طريقة استخدامك للتطبيق؛ ولا علاقة لـ %2$@ بأي إساءة استخدام ولا يقرّها."
+          }
+        }
+      }
+    },
+    "When something breaks, %@ sends what went wrong and the phone model to be fixed — never your notes, questions, recordings, name or email. You can change this any time in Settings." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Under the toggle. %@ is the app's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عندما يتعطّل شيء ما، يرسل %@ وصف الخلل وطراز الهاتف لإصلاحه — ولا يرسل أبدًا ملاحظاتك أو أسئلتك أو تسجيلاتك أو اسمك أو بريدك الإلكتروني. يمكنك تغيير ذلك في أي وقت من الإعدادات."
+          }
+        }
+      }
+    },
+    "When you choose cloud transcription, the audio is sent to Google (Gemini) to be transcribed. Choose “This phone only” to keep it on your device." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Google and Gemini stay in Latin script.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عندما تختار التفريغ النصي السحابي، يُرسَل الصوت إلى Google (Gemini) لتفريغه نصيًا. اختر «هذا الهاتف فقط» لإبقائه على جهازك."
+          }
+        }
+      }
+    },
+    "Widgets" : {
+      "comment" : "Settings screen, section heading. Home and Lock Screen widgets, as iOS names them in Arabic.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأدوات"
+          }
+        }
+      }
+    },
+    "Your data" : {
+      "comment" : "Settings screen, section heading. Backup, restore and export.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بياناتك"
+          }
+        }
+      }
+    },
+    "Your exam" : {
+      "comment" : "Settings screen, section heading. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "امتحانك"
+          }
+        }
+      }
+    },
+    "Your idea dump, board and 3D map" : {
+      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. VoiceOver hint on Ideas.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مستودع أفكارك ولوحتها وخريطتها ثلاثية الأبعاد"
+          }
+        }
+      }
+    },
+    "Your lectures" : {
+      "comment" : "Account menu, a page's name. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاضراتك"
+          }
+        }
+      }
+    },
+    "Your own notes, material your university gave you to study from, or content whose licence allows it. Never upload other people's paid courses, question banks or copyrighted books." : {
+      "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ملاحظاتك الخاصة، أو المواد التي أعطتك إياها جامعتك للدراسة، أو محتوى تسمح رخصته بذلك. لا ترفع أبدًا دورات مدفوعة لغيرك أو بنوك أسئلة أو كتبًا محمية بحقوق النشر."
+          }
+        }
+      }
+    },
+    "Your work" : {
+      "comment" : "Account menu, heading over the study pages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عملك"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
