@@ -129,5 +129,6 @@ private struct CountStepStyle: ButtonStyle {
                     WardReliefFace(shape: Circle().inset(by: 4), lift: .low, inset: configuration.isPressed)
                 }
             }
+            .capPop(configuration.isPressed, size: .small)
     }
 }

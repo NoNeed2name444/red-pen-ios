@@ -512,5 +512,6 @@ private struct AnkiRatingFace: View {
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
+            .capPop(pressed, size: .button)
     }
 }

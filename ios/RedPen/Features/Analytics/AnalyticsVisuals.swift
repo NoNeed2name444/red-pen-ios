@@ -182,6 +182,7 @@ struct RingButtonStyle: ButtonStyle {
             .contentShape(shape)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.lift)
+            .capPop(configuration.isPressed, size: .tile)
     }
 }
 

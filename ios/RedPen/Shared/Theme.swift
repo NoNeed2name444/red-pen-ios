@@ -149,6 +149,36 @@ extension View {
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
 }
 
+enum CapPopSize { case small, button, tile }
+
+extension View {
+    func capPop(_ pressed: Bool, size: CapPopSize = .button) -> some View {
+        modifier(CapPop(pressed: pressed, size: size))
+    }
+}
+
+private struct CapPop: ViewModifier {
+    let pressed: Bool
+    let size: CapPopSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var pressedScale: CGFloat {
+        switch size {
+        case .small: return 0.90
+        case .button: return 0.94
+        case .tile: return 0.97
+        }
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(pressed && !reduceMotion ? pressedScale : 1)
+            .animation(reduceMotion ? nil : pressed
+                ? .spring(response: 0.18, dampingFraction: 0.65)
+                : .spring(response: 0.4, dampingFraction: 0.35), value: pressed)
+    }
+}
+
 /// A tappable row that gives a touch under the finger, for our custom rows
 /// (which draw their own soft tile). Reduce Motion keeps it still and only
 /// dims it.
@@ -161,13 +191,11 @@ struct PressableRowStyle: ButtonStyle {
 private struct PressableRowFace<Label: View>: View {
     let label: Label
     let pressed: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         label
-            .scaleEffect(pressed && !reduceMotion ? 0.985 : 1)
             .opacity(pressed ? 0.9 : 1)
-            .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.7), value: pressed)
+            .capPop(pressed, size: .tile)
     }
 }
 extension ButtonStyle where Self == PressableRowStyle {

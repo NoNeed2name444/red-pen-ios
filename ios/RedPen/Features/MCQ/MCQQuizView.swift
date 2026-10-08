@@ -1176,14 +1176,13 @@ private struct PopPressFace<S: InsettableShape>: View {
 
     var body: some View {
         let inset: Bool = held || chosen
-        let scale: CGFloat = held && !reduceMotion ? 0.975 : 1
         label
             .background {
                 if raised {
                     WardReliefFace(shape: shape, lift: inset ? .low : .mid, inset: inset)
                 }
             }
-            .scaleEffect(scale)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: inset)
+            .capPop(held, size: .tile)
     }
 }

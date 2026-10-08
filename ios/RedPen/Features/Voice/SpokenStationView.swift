@@ -459,6 +459,7 @@ private struct StationCircleFace: View {
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.highlight)
+            .capPop(isPressed, size: .small)
     }
 }
 

@@ -298,6 +298,7 @@ private struct PopTileFace: View {
             .popOut(plane, in: shape, pressed: isPressed || selected, lift: lift)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
+            .capPop(isPressed, size: .tile)
     }
 }
 

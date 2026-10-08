@@ -100,6 +100,7 @@ private struct WardButtonFace: View {
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
+            .capPop(pressed, size: compact ? .small : .button)
     }
 }
 
@@ -157,6 +158,7 @@ private struct WardChipButtonFace: View {
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
             .contentShape(.hoverEffect, Capsule())
             .hoverEffect(.highlight)
+            .capPop(pressed, size: .small)
     }
 }
 
@@ -204,6 +206,7 @@ private struct WardCircleButtonFace: View {
             .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.highlight)
+            .capPop(pressed, size: .small)
     }
 }
 
