@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 4:06 PM Cairo.
+Last updated: 2026-10-08, 4:17 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -67,7 +67,8 @@ Last updated: 2026-10-08, 4:06 PM Cairo.
   `python3 tools/ci_status.py wip/3d-neurons-m3 --wait`.
   SceneKit files can't be type-checked on Linux, so this is the only compile
   check for GraphNeuronLook, GraphThemeScene, Graph3DView and GraphSim.
-- Promised: screenshots of the new Neurons look around 9 PM Cairo, 2026-10-08.
+- Promised: screenshots of the new Neurons look around 10:30 PM Cairo,
+  2026-10-08 (moved from 9 PM).
 
 ## 3. Next steps
 
@@ -89,7 +90,9 @@ build and the suites pass.
    captured.
 7. [ ] When CI is green, merge design/3d-overhaul into personal (no
    force-push), and bring the session branches up to personal.
-8. [ ] Then #33, the neumorphic app (section 5).
+8. [x] #33, the neumorphic app, is not this session's: another session is
+   making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
+   the neumorphic part"). Leave it alone here.
 
 ## 4. M3: the Neurons rebuild
 
@@ -359,9 +362,14 @@ recentre() about 1734; `case .open(let id)` about 448.
 The #n numbers are task numbers carried over from earlier sessions. "Finding
 n" is from Chat-me's docs/architecture/audit/stethoscore-unverified-findings.md.
 
-### #33: the neumorphic app (next)
+### #33: the neumorphic app (another session's)
 
 > also make the app be neumorphic in every way
+
+> anotger session is already making the neumorphic part
+
+Another session is doing this (the owner, 8 Oct). Don't start it here; what
+follows is the brief as it stood.
 
 - Re-skin the shared surfaces and controls as soft extruded and inset
   shapes, in light and dark: backgrounds, cards, buttons, toggles, segmented
