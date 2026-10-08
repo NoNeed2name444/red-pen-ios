@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 1:39 AM Cairo.
+Last updated: 2026-10-09, 2:00 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,7 +35,7 @@ Last updated: 2026-10-09, 1:39 AM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Preview: the app reports where it is stuck when it freezes" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); this commit has the app report its own stuck threads and the watch only look (section 3, step 6d) |
+| wip/3d-neurons-m3 | "Preview: build the freeze watch against the iOS 26 SDK" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); 8ce4459 has the app report its own stuck threads and the watch only look (section 3, step 6d), and this commit fixes its one compile error |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 2428ffd (run 37846299540, the first freeze run); next the same as wip, once its App build passes (the second freeze run, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 48787e9 (run 37846299540) | where design-preview.yml commits them |
@@ -318,7 +318,10 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      lasts (at most 12 times), with every other thread the 1st and 4th
      time; while all is well, a line every 30 s with frames drawn, main's
      longest step, memory and paging. Swift names come mangled: demangle
-     them with `/opt/swift/usr/bin/swift-demangle`.
+     them with `/opt/swift/usr/bin/swift-demangle`. Its first Mac build
+     failed (App build 37856034906, 8ce4459): the iOS 26 SDK hands the
+     run-loop observer's block plain CFOptionFlags, so it now takes either
+     type.
    - [ ] The same three tests three times each again:
      `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only='testNeuronsAtRest|testNeuronsFlyIn|testNeuronsLegend' -f repeat=3`
      Then fetch the artifacts into a new empty directory:

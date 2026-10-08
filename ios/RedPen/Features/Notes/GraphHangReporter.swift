@@ -74,7 +74,7 @@ nonisolated final class GraphHangWatch: @unchecked Sendable {
         guard first else { return }
         let observer: CFRunLoopObserver? = CFRunLoopObserverCreateWithHandler(
             kCFAllocatorDefault, CFRunLoopActivity.allActivities.rawValue, true, CFIndex.max
-        ) { [self] _, activity in step(activity) }
+        ) { [self] _, activity in step(Self.mask(activity)) }
         CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
         let info = ProcessInfo.processInfo
         say("hang watch on: pid \(getpid()), \(info.activeProcessorCount) cores, \(info.physicalMemory / 1_048_576) MB; \(Self.memory()); \(info.arguments.dropFirst().joined(separator: " "))")
@@ -95,13 +95,13 @@ nonisolated final class GraphHangWatch: @unchecked Sendable {
 
     /// Each activity of the main run loop ends one step and begins the next;
     /// going to sleep ends the last.
-    private func step(_ activity: CFRunLoopActivity) {
+    private func step(_ activity: CFOptionFlags) {
         lock.lock()
         let now: UInt64 = Self.now()
         let took: UInt64 = Self.since(mainStepSince, now)
         if took > mainLongest { mainLongest = took }
-        mainStepSince = activity == .beforeWaiting ? 0 : now
-        mainStep = activity.rawValue
+        mainStepSince = activity == CFRunLoopActivity.beforeWaiting.rawValue ? 0 : now
+        mainStep = activity
         lock.unlock()
     }
 
@@ -308,6 +308,11 @@ nonisolated final class GraphHangWatch: @unchecked Sendable {
         parts.append("cpu \(String(format: "%.1f", cpu)) s")
         return parts.joined(separator: ", ")
     }
+
+    /// The activity's bits, whichever type the SDK hands the observer's
+    /// block (the iOS 26 one gives plain CFOptionFlags).
+    private static func mask(_ activity: CFOptionFlags) -> CFOptionFlags { activity }
+    private static func mask(_ activity: CFRunLoopActivity) -> CFOptionFlags { activity.rawValue }
 
     /// The run-loop activity a step began with.
     private static func activity(_ raw: CFOptionFlags) -> String {
