@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the nucleus holding the parts ("Neurons: a nucleus holding the subfolders, links as prolonged dendrites") | M3 in progress; the Linux suites pass (preflight, 8 PM); 24c0ebc (glass dendrites, teal-navy background) compiled on the Mac (App build run 37807614992, green) and was shot (preview run 37807618110) |
-| design/3d-overhaul | the wip head once pushed | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
-| preview/3d-overhaul | the wip head once pushed (24c0ebc before) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| wip/3d-neurons-m3 | the sample map's Cardiology-Examples link ("Preview: link Examples to Cardiology, where the owner drew two lines") | M3 in progress; the Linux suites pass (preflight, 8:22 PM); 98f6f18 (the nucleus holding the parts, links as prolonged dendrites) compiled on the Mac (App build run 37815149897, green) and is being shot (round B, preview run 37815161808) |
+| design/3d-overhaul | 98f6f18 | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
+| preview/3d-overhaul | 98f6f18 (round B shots, run 37815161808) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -96,6 +96,11 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   cell's subfolders inside its nucleus when it opens, smaller (done:
   GraphNeurons.zones, openNucleus 0.6, partShare 0.1 to 0.22). Shots of
   all of it (round B, preview only=testNeurons) are due by 10:30 PM.
+- The owner's two red lines join Cardiology to Examples, but the sample
+  notes had no link between those folders, so the map could not draw one.
+  GraphPreview now links Groin hernia to Atrial fibrillation (a hand link;
+  both test mirrors follow), so the closed map has a third process, from
+  Examples into Cardiology (NeuronHierarchyTests T2).
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
   60-minute limit. Two map tests failed:
@@ -168,8 +173,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      the nucleus from 0.435 R to 0.6 R (its chromatin thinned, nucleolus
      gone); the parts float inside it (within 0.54 R), the notes in the
      cytoplasm round it (0.64 R to 0.8 R); partShare 0.1 to 0.22.
-   - [ ] App build on design/ and round B shots (only=testNeurons), then
-     step 6.
+   - [x] A link between the two big cells in the sample map, where the
+     owner drew two lines: Groin hernia to Atrial fibrillation.
+   - [ ] App build on design/ (37815149897, green) and round B shots
+     (only=testNeurons, run 37815161808), then step 6. Round C, with the
+     new link and what round B shows, if it fits before 10:30 PM.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.

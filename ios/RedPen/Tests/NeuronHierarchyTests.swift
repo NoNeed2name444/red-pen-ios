@@ -207,7 +207,8 @@ let previewDrafts: [Draft] = [
 let previewHandLinks: [(String, String)] = [
     ("Internal ring test", "Direct inguinal hernia"), ("Spermatic cord coverings", "Indirect inguinal hernia"),
     ("Femoral hernia", "Inguinal canal"), ("Acute coronary syndrome", "Heart failure"),
-    ("Atrial fibrillation", "Heart failure"), ("Murmurs", "Atrial fibrillation")
+    ("Atrial fibrillation", "Heart failure"), ("Murmurs", "Atrial fibrillation"),
+    ("Groin hernia", "Atrial fibrillation")
 ]
 
 /// `[[Title]]` in a body, as NoteStore.wikiTitles reads it.
@@ -696,10 +697,11 @@ check("T1 the framing holds every cell", envelopeProblems(openAll).isEmpty, few(
 
 check("T2 closed: every link carried once", processProblems(preview, closed).isEmpty,
       few(processProblems(preview, closed)))
-check("T2 closed: two processes, each from a receptor into its cell",
-      closed.links.count == 2 && closed.links.allSatisfy {
-          roleOf(closed.bodies[$0.a]) == .receptor && roleOf(closed.bodies[$0.b]) == .cell && $0.kind == 6
-      }, "\(closed.links)")
+check("T2 closed: three processes into cells, one from each receptor and one from Examples to Cardiology",
+      closed.links.count == 3 && closed.links.allSatisfy { roleOf(closed.bodies[$0.b]) == .cell && $0.kind == 6 }
+      && closed.links.filter { roleOf(closed.bodies[$0.a]) == .receptor }.count == 2
+      && closed.links.contains { closed.bodies[$0.a].title == "Examples" && closed.bodies[$0.b].title == "Cardiology" },
+      "\(closed.links)")
 check("T2 Examples opened: every link carried once", processProblems(preview, openOne).isEmpty,
       few(processProblems(preview, openOne)))
 let richter: Int = bodyNamed(openOne, "Richter's hernia") ?? -1
@@ -712,7 +714,7 @@ check("T2 three links from Groin hernia into Inguinal make one process",
       openOne.links.filter { $0.a == groin && $0.b == inguinalPart }.count == 1
       && openOne.links.first { $0.a == groin && $0.b == inguinalPart }?.width == Float(0.55 + 0.12 * 6))
 check("T2 inside a cell kind 5, between cells 6",
-      openOne.links.filter { $0.kind == 5 }.count == 6 && openOne.links.filter { $0.kind == 6 }.count == 2,
+      openOne.links.filter { $0.kind == 5 }.count == 6 && openOne.links.filter { $0.kind == 6 }.count == 3,
       "\(openOne.links.map(\.kind))")
 check("T2 Inguinal opened: every link carried once", processProblems(preview, openTwo).isEmpty,
       few(processProblems(preview, openTwo)))

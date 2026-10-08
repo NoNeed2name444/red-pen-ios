@@ -152,7 +152,8 @@ enum GraphPreview {
 
     /// The groin hernia examples (Examples, Inguinal with its Anatomy
     /// inside, Femoral), the bridging idea, a Cardiology folder of 14 more
-    /// and two ideas in no folder, on a file in the temporary folder.
+    /// (one linked from Examples) and two ideas in no folder, on a file in
+    /// the temporary folder.
     @MainActor
     static func makeStore() -> NoteStore {
         let name = "redpen-graph-preview-\(UUID().uuidString).json"
@@ -241,6 +242,12 @@ enum GraphPreview {
         store.link(acs.id, heartFailure.id)
         store.link(af.id, heartFailure.id)
         store.link(murmurs.id, af.id)
+        // and one from Examples (anticoagulation round a hernia repair), so
+        // the two big folders are joined by a link of their own, not only
+        // through the loose notes
+        if let groin = store.notes.first(where: { $0.title == "Groin hernia" }) {
+            store.link(groin.id, af.id)
+        }
     }
 
     /// An idea in Examples linking notes in both its subfolders (the
