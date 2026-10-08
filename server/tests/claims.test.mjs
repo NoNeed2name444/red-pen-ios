@@ -188,10 +188,13 @@ const ordinary = [
   console.log(`     warm: the worst batch ${wms.toFixed(1)} ms, an ordinary one ${oms.toFixed(1)} ms`);
   ok(wms < 8 && oms < 8, 'warm, a batch takes a few ms of CPU at most (about 3 here; generous for a slow runner)');
   // CPU, cold: the first batch of a fresh isolate, the gate's patterns and
-  // code compiled on the way (Unicode \b alone was about 100 ms of it)
+  // code compiled on the way (Unicode \b alone was about 100 ms of it); the
+  // least of three fresh isolates, as one can be held up by whatever else
+  // the machine is doing (a clock, not CPU time)
   const accuracy = new URL('../accuracy.js', import.meta.url).href;
-  const cold = Number(execFileSync(process.execPath, ['--input-type=module', '-e',
+  const coldOnce = () => Number(execFileSync(process.execPath, ['--input-type=module', '-e',
     `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst a = performance.now(); claimsStage(worst); console.log(performance.now() - a);`]).toString().trim());
+  const cold = Math.min(coldOnce(), coldOnce(), coldOnce());
   console.log(`     cold: the worst batch ${cold.toFixed(1)} ms`);
   ok(cold < 50, 'cold, the worst batch is a few tens of ms at most, not the 130 it was (about 15 here)');
 }
