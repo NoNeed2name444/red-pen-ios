@@ -11,7 +11,7 @@ import SwiftUI
 /// actually prove.
 enum PreviewExtras {
 
-    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example"]
+    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example", "quiz-folded"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -22,6 +22,9 @@ enum PreviewExtras {
             NavigationStack { AnkiReviewView(set: PreviewDecks.lupus) }
         case "quiz-from-cards":
             NavigationStack { MCQQuizView(set: PreviewDecks.lupusQuiz) }
+        case "quiz-folded":
+            // The quiz with its study slab folded to the band alone.
+            NavigationStack { MCQQuizView(set: SampleData.nephrology) }
         case "narrate-fixing":
             // a real Egyptian-mix lecture line, with the fix sheet open on the
             // word the recogniser got wrong

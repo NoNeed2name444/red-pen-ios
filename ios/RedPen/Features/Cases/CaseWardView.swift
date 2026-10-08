@@ -86,7 +86,9 @@ struct CaseWardView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showingLadder = false }
+                            .buttonStyle(.wardCompact)
                         }
+                        .sharedBackgroundVisibility(.hidden)
                     }
             }
             .presentationDetents([.medium, .large])

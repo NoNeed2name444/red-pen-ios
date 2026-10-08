@@ -156,8 +156,10 @@ private struct SpokenStationScreen: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("End & mark") { Task { await session.finish() } }
+                .buttonStyle(.wardCompact)
                     .accessibilityHint("Ends the station now and has it marked")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 

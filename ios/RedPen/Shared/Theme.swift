@@ -461,7 +461,8 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
 /// still works as the last child of a VStack. Reading screens can opt in with
 /// `.studyBar(folds: true) { }`: a band inside the slab folds its buttons away
-/// for this visit. It starts open; bars without that option stay shown.
+/// for this visit. It starts open except in the quiz-folded preview; bars
+/// without that option stay shown.
 ///
 /// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
 /// under the right hand (the left hand, right to left: `.trailing` turns
@@ -469,7 +470,7 @@ extension ButtonStyle where Self == BigButtonStyle {
 struct StudyActionBar<Content: View>: View {
     private let content: Content
     private let folds: Bool
-    @State private var folded = false
+    @State private var folded = PreviewLaunch.screen == "quiz-folded"
     @Environment(\.windowSpan) private var span
 
     init(folds: Bool = false, @ViewBuilder content: () -> Content) {

@@ -34,7 +34,7 @@ struct CustomSessionSheet: View {
                 .navigationTitle("Build a session")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
                 }
                 .studyBar { startBar }
         }

@@ -450,8 +450,11 @@ struct ComparisonTableView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: pair.comparisonText, subject: Text("\(pair.a) vs \(pair.b)")) {
                     Label("Share", systemImage: "square.and.arrow.up")
+                    .labelStyle(.iconOnly)
                 }
+                .buttonStyle(.wardCircle)
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 

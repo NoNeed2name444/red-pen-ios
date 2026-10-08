@@ -68,12 +68,16 @@ struct FixWordSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
                 // kept for a hardware keyboard and for habit; the bar below
                 // is the one the thumb finds
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fix") { save() }.disabled(!usable)
+                    Button("Fix") { save() }
+                    .buttonStyle(.wardCompact).disabled(!usable)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .onAppear { typing = true }
         }

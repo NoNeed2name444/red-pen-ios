@@ -71,7 +71,9 @@ struct CountField: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { focused = false }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

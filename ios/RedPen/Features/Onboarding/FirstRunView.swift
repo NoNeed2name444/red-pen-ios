@@ -205,8 +205,10 @@ private struct FirstRunExamplesPage: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Skip") { finish() }
+                .buttonStyle(.wardQuiet)
                     .accessibilityIdentifier("firstRun-examples-skip")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 
@@ -315,8 +317,10 @@ private extension View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Skip", action: skip)
+                    .buttonStyle(.wardQuiet)
                         .accessibilityIdentifier("firstRun-\(page.name)-skip")
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
     }
 }

@@ -42,7 +42,7 @@ struct AccountView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !embedded {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }

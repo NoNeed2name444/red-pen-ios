@@ -323,8 +323,10 @@ private struct PlatformSheetView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Done") { dismiss() }
+                            .buttonStyle(.wardCompact)
                                 .accessibilityIdentifier("platformDone")
                         }
+                        .sharedBackgroundVisibility(.hidden)
                     }
             }
         case .newSet:

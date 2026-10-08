@@ -47,11 +47,15 @@ struct CardsEditorView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                        .buttonStyle(.wardQuiet)
                             .keyboardShortcut(.cancelAction)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .topBarTrailing) {
                         EditButton()
+                        .buttonStyle(.wardCompact)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if changed { saveBar }

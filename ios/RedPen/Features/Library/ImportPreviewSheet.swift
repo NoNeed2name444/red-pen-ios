@@ -34,8 +34,10 @@ struct ImportPreviewSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                         .keyboardShortcut(.cancelAction)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .accessibilityIdentifier("importPreview")
         }

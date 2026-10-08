@@ -57,13 +57,17 @@ struct RuleSheetView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     ShareLink(item: store.ruleSheetText) {
                         Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
                     }
+                    .buttonStyle(.wardCircle)
                     .disabled(store.ruleSheet.isEmpty)
                     // swipe-to-delete, visibly: pointer users and first-timers
                     if !store.ruleSheet.isEmpty {
                         EditButton()
+                        .buttonStyle(.wardCompact)
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
     }
 

@@ -253,7 +253,9 @@ struct ImportInboxSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(added ? "Done" : "Not now") { dismiss() }
+                    .buttonStyle(WardButtonStyle(kind: added ? .compact : .quiet))
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium])
@@ -265,7 +267,9 @@ struct ImportInboxSheet: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Close") { picturing = false }
+                            .buttonStyle(.wardQuiet)
                         }
+                        .sharedBackgroundVisibility(.hidden)
                     }
             }
         }

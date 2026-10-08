@@ -432,7 +432,9 @@ struct MockSittingView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { showGrid = false }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])

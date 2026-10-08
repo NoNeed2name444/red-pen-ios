@@ -43,7 +43,9 @@ struct PaywallView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Not now") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .task { await subscriptions.loadProducts() }
             .onChange(of: subscriptions.isPro) { _, pro in if pro { dismiss() } }

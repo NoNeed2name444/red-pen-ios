@@ -162,7 +162,8 @@ struct HintChip: View {
         let symbol: String = used ? "lightbulb.fill" : "lightbulb"
         Button(action: action) {
             if labelled {
-                Label(used ? "Hint shown" : "Hint", systemImage: symbol).labelStyle(.titleAndIcon)
+                Label(used ? "Hint shown" : "Hint", systemImage: symbol)
+                .labelStyle(.titleAndIcon)
             } else {
                 Image(systemName: symbol)
             }
@@ -198,7 +199,9 @@ struct LabRangesSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])
@@ -301,7 +304,9 @@ struct CalculatorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])

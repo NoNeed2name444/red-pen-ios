@@ -66,7 +66,9 @@ struct SourcesLibraryView: View {
                         Label("Add a lecture", systemImage: "plus")
                             .labelStyle(.titleAndIcon)
                     }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {

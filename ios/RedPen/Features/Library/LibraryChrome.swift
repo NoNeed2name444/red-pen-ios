@@ -48,11 +48,13 @@ struct NameSheet: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     Button(confirm, action: submit)
+                    .buttonStyle(.wardCompact)
                         .disabled(blank)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .onAppear { name = initial; focused = true }
         }

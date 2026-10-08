@@ -40,7 +40,7 @@ extension LibraryView {
                 NavigationStack {
                     ReasoningSetView(set: set)
                         .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("Done") { reasoningFor = nil } }
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { reasoningFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
                         }
                 }
             }
@@ -48,7 +48,7 @@ extension LibraryView {
                 NavigationStack {
                     SetCreditsView(set: set)
                         .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("Done") { creditsFor = nil } }
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { creditsFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
                         }
                 }
             }

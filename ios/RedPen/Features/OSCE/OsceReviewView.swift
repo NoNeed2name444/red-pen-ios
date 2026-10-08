@@ -76,7 +76,9 @@ struct OsceReviewView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Close") { spoken = nil }
+                            .buttonStyle(.wardQuiet)
                         }
+                        .sharedBackgroundVisibility(.hidden)
                     }
             }
             .environmentObject(store)

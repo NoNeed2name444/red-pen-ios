@@ -33,8 +33,10 @@ private struct LearnSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Done") { dismiss() }
+                        .buttonStyle(.wardCompact)
                             .accessibilityIdentifier("learnDone")
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
         }
     }

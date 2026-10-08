@@ -95,12 +95,15 @@ struct DrawRecallView: View {
     private var toolbarItems: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Close") { dismiss() }
+            .buttonStyle(.wardQuiet)
                 .keyboardShortcut(.cancelAction)
         }
+        .sharedBackgroundVisibility(.hidden)
         if !comparing {
             ToolbarItem(placement: .topBarTrailing) {
                 drawingMenu
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         if !comparing && !broad {
             ToolbarItem(placement: .confirmationAction) {
@@ -108,6 +111,7 @@ struct DrawRecallView: View {
                     .buttonStyle(.wardCompact)
                     .keyboardShortcut(.return, modifiers: [])
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 
@@ -121,8 +125,11 @@ struct DrawRecallView: View {
             }
             .disabled(drawing.strokes.isEmpty)
         } label: {
-            Label("More", systemImage: "ellipsis.circle")
+            Label("More", systemImage: "ellipsis")
+                .labelStyle(.iconOnly)
         }
+        .menuStyle(.button)
+        .buttonStyle(.wardCircle)
         .accessibilityLabel("More")
     }
 

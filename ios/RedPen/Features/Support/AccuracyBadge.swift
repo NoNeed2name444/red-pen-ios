@@ -123,7 +123,7 @@ struct AccuracyWhySheet: View {
             .navigationTitle("Accuracy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])

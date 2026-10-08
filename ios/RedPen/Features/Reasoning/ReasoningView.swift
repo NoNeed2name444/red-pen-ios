@@ -404,7 +404,9 @@ private struct ReasoningSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { holder.controller?.dismiss(animated: true) }
+                        .buttonStyle(.wardCompact)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
         }
         .tint(Color.wardPrimaryInk)

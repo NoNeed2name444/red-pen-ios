@@ -81,7 +81,9 @@ struct SourcePreviewView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Done") { dismiss() }
+                        .buttonStyle(.wardCompact)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 // search stays at the top, out of the thumb's way
                 .searchable(text: $term, placement: .navigationBarDrawer(displayMode: .automatic),
@@ -162,7 +164,9 @@ struct SourcePreviewView: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { showingPages = false }
+                        .buttonStyle(.wardCompact)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
         }
         .onChange(of: page) { _, _ in showingPages = false }

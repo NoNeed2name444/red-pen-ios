@@ -38,7 +38,7 @@ struct LinkDeviceView: View {
             .navigationTitle("Link another device")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
             }
             .studyBar { primary }
         }

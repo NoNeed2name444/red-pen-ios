@@ -61,7 +61,9 @@ struct GraphLegendSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .accessibilityIdentifier(theme == .space ? "universeLegend" : theme.rawValue + "Legend")

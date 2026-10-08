@@ -79,13 +79,18 @@ struct ExplainBackView: View {
                 showHistory = true
             } label: {
                 Label("History", systemImage: "clock")
+                .labelStyle(.iconOnly)
             }
+            .buttonStyle(.wardCircle)
             .accessibilityHint("Your marked explanations")
         }
+        .sharedBackgroundVisibility(.hidden)
         ToolbarItemGroup(placement: .keyboard) {
             Spacer()
             Button("Done") { focus = nil }
+            .buttonStyle(.wardCompact)
         }
+        .sharedBackgroundVisibility(.hidden)
     }
 
     private var page: some View {
@@ -483,7 +488,9 @@ private struct ExplainHistorySheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

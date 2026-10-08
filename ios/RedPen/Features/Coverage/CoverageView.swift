@@ -88,7 +88,7 @@ struct CoverageView: View {
         .navigationTitle("Syllabus")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { examMenu }
+            ToolbarItem(placement: .topBarTrailing) { examMenu }.sharedBackgroundVisibility(.hidden)
         }
         .task(id: assessmentKey) { await assess() }
         .onChange(of: track) { _, now in
@@ -152,6 +152,8 @@ struct CoverageView: View {
             Label(target?.shortName ?? Self.shortName(track), systemImage: "graduationcap")
                 .labelStyle(.titleAndIcon)
         }
+        .menuStyle(.button)
+        .buttonStyle(.wardCompact)
         .accessibilityLabel("Exam")
         .accessibilityValue(track.title)
     }

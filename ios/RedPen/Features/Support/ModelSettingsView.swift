@@ -28,7 +28,7 @@ struct ModelSettingsView: View {
             NavigationStack {
                 form
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                        ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
                     }
             }
         }
@@ -369,12 +369,14 @@ private struct ProviderEditor: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
+                    .buttonStyle(.wardCompact)
                         .keyboardShortcut("s", modifiers: .command)
                         .disabled(!canSave)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

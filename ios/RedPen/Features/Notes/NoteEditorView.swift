@@ -68,15 +68,20 @@ struct NoteEditorView: View {
                                 goBack()
                             } label: {
                                 Label("Back", systemImage: "chevron.backward")
+                                .labelStyle(.iconOnly)
                             }
+                            .buttonStyle(.wardCircle)
                         }
                     }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") {
                             commit()
                             dismiss()
                         }
+                        .buttonStyle(.wardCompact)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button("Delete note", systemImage: "trash", role: .destructive) {
@@ -85,13 +90,17 @@ struct NoteEditorView: View {
                         } label: {
                             Image(systemName: "ellipsis")
                         }
+                        .menuStyle(.button)
+                        .buttonStyle(.wardCircle)
                         .accessibilityLabel("More")
                     }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItemGroup(placement: .keyboard) {
                         if editing == .body && !reading && !suggestions.isEmpty {
                             suggestionBar
                         }
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 .confirmationDialog("Delete this note?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                     Button("Delete", role: .destructive) {
@@ -511,7 +520,9 @@ struct LinkPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

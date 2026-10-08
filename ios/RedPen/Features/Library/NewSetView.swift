@@ -187,8 +187,10 @@ struct NewSetView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                        .buttonStyle(.wardQuiet)
                             .keyboardShortcut(.cancelAction)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 .onChange(of: kind) { _, now in
                     if !Self.paths(for: now).contains(path) { path = Self.paths(for: now)[0] }
@@ -224,8 +226,10 @@ struct NewSetView: View {
                                     Button("Close") {
                                         if generatedSetSaved { generatedSet = nil } else { leavingQuiz = true }
                                     }
+                                    .buttonStyle(.wardQuiet)
                                     .accessibilityIdentifier("generatedQuizClose")
                                 }
+                                .sharedBackgroundVisibility(.hidden)
                             }
                             .confirmationDialog("Keep these questions?", isPresented: $leavingQuiz,
                                                 titleVisibility: .visible) {

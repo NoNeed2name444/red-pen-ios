@@ -46,7 +46,9 @@ struct CaseDecisionView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Back") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             // the study bar: the soft slab raised under the thumb
             .studyBar(folds: true) {

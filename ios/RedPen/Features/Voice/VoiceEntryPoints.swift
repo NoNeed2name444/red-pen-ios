@@ -26,9 +26,12 @@ private struct CommuteModeButton: ViewModifier {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { open = true } label: {
                         Label("Commute mode", systemImage: "car.fill")
+                        .labelStyle(.iconOnly)
                     }
+                    .buttonStyle(.wardCircle)
                     .accessibilityHint("Reads your due cards and questions aloud and listens for the answers")
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .commuteModeSheet(isPresented: $open)
     }
@@ -51,7 +54,9 @@ private struct CommuteModeSheet: ViewModifier {
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Close") { isPresented = false }
+                                .buttonStyle(.wardQuiet)
                             }
+                            .sharedBackgroundVisibility(.hidden)
                         }
                 }
                 .environmentObject(store)

@@ -269,8 +269,10 @@ struct CommuteModeView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("New list") { askNewList() }
+                .buttonStyle(.wardCompact)
                     .accessibilityHint("Stops this list and goes back to choosing what to play")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .confirmationDialog("Start a new list?", isPresented: $confirmNewList, titleVisibility: .visible) {
             Button("New list", role: .destructive) { session.clear() }

@@ -64,7 +64,7 @@ struct TurnIntoPicker: View {
             .navigationTitle("Turn into\u{2026}")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])

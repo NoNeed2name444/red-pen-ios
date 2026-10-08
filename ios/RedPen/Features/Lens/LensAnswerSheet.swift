@@ -43,7 +43,7 @@ struct LensAnswerSheet: View {
             .navigationTitle(question.type.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom) { actionBar }
         }

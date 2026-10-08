@@ -64,14 +64,18 @@ struct QuestionReportSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(outcome == nil ? "Cancel" : "Done") { dismiss() }
+                    .buttonStyle(WardButtonStyle(kind: outcome == nil ? .quiet : .compact))
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     if outcome == nil {
                         Button("Send") { Task { await send() } }
+                        .buttonStyle(.wardCompact)
                             .disabled(sending)
                             .accessibilityIdentifier("reportSend")
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium, .large])

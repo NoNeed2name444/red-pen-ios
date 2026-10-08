@@ -752,15 +752,19 @@ struct LibraryView: View {
         // the thumb's way. The studying itself is in the dock; Select is
         // beside the sets it picks from.
         ToolbarItem(placement: .topBarTrailing) {
-            // toolbar items already sit in the system's own capsule on iOS 26;
-            // an extra button style here squashed the label into a circle
+            // The Ward circle supplies this control's face; the toolbar's
+            // shared glass background stays hidden.
             Menu {
                 SupportMenuItems(chosen: $support)
             } label: {
                 Label("Account and settings", systemImage: "person.crop.circle")
+                .labelStyle(.iconOnly)
             }
+            .menuStyle(.button)
+            .buttonStyle(.wardCircle)
             .accessibilityIdentifier("libraryMenu")
         }
+        .sharedBackgroundVisibility(.hidden)
     }
 
     /// Every delete - a swipe, a row's menu, the selection bar - comes

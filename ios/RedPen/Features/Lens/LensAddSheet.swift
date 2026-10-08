@@ -62,11 +62,15 @@ struct LensAddSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(added == nil ? "Cancel" : "Done") { dismiss() }
+                    .buttonStyle(WardButtonStyle(kind: added == nil ? .quiet : .compact))
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { save() }
+                    .buttonStyle(.wardCompact)
                         .disabled(!canSave)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .onChange(of: destination) { _, _ in
                 target = .lensCaptures

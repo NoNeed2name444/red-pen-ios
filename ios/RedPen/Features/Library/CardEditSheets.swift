@@ -98,10 +98,12 @@ struct CardEditSheet: View {
             .navigationTitle("Edit card")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", action: commit).disabled(clozeHasNoDeletion)
+                    Button("Done", action: commit)
+                    .buttonStyle(.wardCompact).disabled(clozeHasNoDeletion)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }
@@ -186,16 +188,18 @@ struct QuestionEditSheet: View {
             .navigationTitle("Edit question")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         guard let saved = MCQEdit.tidied(working) else { return }
                         onSave(saved)
                         dismiss()
                     }
+                    .buttonStyle(.wardCompact)
                     // two options with words, one of them marked correct
                     .disabled(MCQEdit.tidied(working) == nil)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

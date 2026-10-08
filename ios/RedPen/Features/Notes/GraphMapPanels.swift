@@ -278,7 +278,9 @@ struct GraphNotePicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }
@@ -313,7 +315,9 @@ struct GraphFolderPicker: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }

@@ -62,7 +62,9 @@ struct BookReaderView: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Close") { showToc = false }
+                        .buttonStyle(.wardQuiet)
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
             }
             .presentationDetents([.medium, .large])

@@ -69,7 +69,9 @@ struct WardPocketSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .wardDisclaimer()
         }
@@ -274,7 +276,9 @@ struct WardCalcView: View {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { focused = nil }
+                .buttonStyle(.wardCompact)
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .wardDisclaimer()
     }
@@ -448,8 +452,10 @@ struct WardScoreView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Reset") { picks = [:] }
+                .buttonStyle(.wardCompact)
                     .disabled(picks.isEmpty)
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             WardScoreTotal(total: total, band: verdict)

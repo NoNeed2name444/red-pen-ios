@@ -47,13 +47,17 @@ struct ExamPickerView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(isOnboarding ? "Skip" : "Cancel") { skip() }
+                .buttonStyle(.wardQuiet)
                     .accessibilityIdentifier(isOnboarding ? "examOnboardingSkip" : "examPickerCancel")
             }
+            .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { save() }
+                .buttonStyle(.wardCompact)
                     .disabled(primary.isEmpty && !isOnboarding)
                     .accessibilityIdentifier("examPickerSave")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 
