@@ -86,8 +86,8 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
   teal rim, the dendrites short gold triangles (a linear taper and a gold
   base term drowning the glass edge), the axon a thin gold line. The cell
   body is redone (the mandala, swirling strokes, gold limb lobes, a thin
-  white-blue rim: section 4, "The look"); the dendrites, background and
-  axon are next (step 6b).
+  white-blue rim: section 4, "The look"); then the dendrites and the
+  background (step 6b). The axon is next.
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
   60-minute limit. Two map tests failed:
@@ -141,10 +141,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    golden bouton, far blurred blue neurons and gold and blue bokeh behind.
    - [x] First pass (95c4b8d): compiled, shot, compared (section 2).
    - [x] The cell body redone after the comparison.
-   - [ ] The dendrites: long, thick glass trunks flowing out of the soma
+   - [x] The dendrites: long, thick glass trunks flowing out of the soma
      (start inside it, a flared taper, up to GraphNeurons.reach), a bright
      white-blue edge the whole way, gold streaks inside near the soma.
-   - [ ] The background: a dark teal-navy (the close-up's (6,20,30) to
+     Tried on Linux first with a numpy port of the shaders (looks v1 to
+     v10); v9 won: six even planar tubes, no forks (forks cut flat).
+   - [x] The background: a dark teal-navy (the close-up's (6,20,30) to
      (41,68,89)): NeuronPalette.deep and NeuronTissue's glow hues.
    - [ ] The axon: a thicker beaded glass tube.
    - [ ] App build on design/, then step 6.
@@ -223,11 +225,20 @@ What the cells are now, and where (each shader's doc says the same):
   light in lobes that blaze in places, white-hot on their crests, with
   golden glints (tint C, NeuronLook.sparkle (1,0.88,0.6)); then a thin
   white-blue glass rim, a faint violet sheen inside it and a wet highlight.
-- Dendrites (NeuronShaders.arbor): glass, a white-blue edge, golden light
-  inside near the soma (tint A, the golden (1,0.74,0.36)·0.88 + dye·0.12)
-  cooling to blue-violet further out, faint spiralling strands, golden
-  sparkles in arbor space; hidden over the nucleus so the middle stays
-  clear.
+- Dendrites (NeuronArbor, NeuronShaders.arbor): a cell's crown is six (seven
+  on high) thick glass tubes in the plane facing the camera (arborTurn
+  spins it about z, tips it up to 0.2 rad), each from 0.75 R inside the
+  soma, 0.3 R thick, narrowing only to 0.7 of that, its base flared into a
+  trumpet (+0.5·(1-t)^4; the trumpets together the glass body round the
+  soma), up to 1.85 R (GraphNeurons.reach 1.9). Shading: an even white-blue
+  edge the whole way, a faint violet body, gold streaks running along
+  inside (filament noise stretched along the tube, drifting out on the
+  clock), gold particles drifting out, tint A (the golden
+  (1,0.74,0.36)·0.88 + dye·0.12) at the base, golden sparkles in arbor
+  space; faded in over s 0 to 0.12 so the flared start ring (it reaches
+  1.1 R) never shows as a flat white wedge past the soma's rim, and out
+  over s 0.6 to 1 so a dendrite runs on into the dark; hidden over the
+  soma's middle (smoothstep 0.8 to 0.97 R off the view ray).
 - Halo (NeuronShaders.halo): one faint, gold-leaning glow ((1,0.74,0.36)·0.7
   + NeuronPalette.glow·0.3), brightest at the membrane, reaching only a
   little way in, fading softly out with no seam.
@@ -237,7 +248,9 @@ What the cells are now, and where (each shader's doc says the same):
   sparks in it; a golden bouton with golden-white vesicles, a cyan cleft and
   transmitter, golden sparks spraying round the synapse. Impulses amber in
   a warm orange halo (NeuronPalette.impulseHalo (1,0.58,0.22)).
-- Background (NeuronTissue): deep navy glows; 28 far neurons blurred out of
+- Background (NeuronTissue): dark teal-navy (NeuronPalette.deep
+  (0.02,0.05,0.085), the close-up's darkest) under soft teal, blue and
+  violet glows peaking near (0.06,0.17,0.25); 28 far neurons blurred out of
   focus in blue, cyan and violet (NeuronBokeh.farCells, NeuronArt.farNeuron:
   six tapering, forking branches, CoreImage-blurred); gold and blue bokeh
   (NeuronBokeh.tones). The orbs, threads and motes are gone.
@@ -446,6 +459,8 @@ recentre() about 1734; `case .open(let id)` about 448.
   - soma: rpClock, rpMotion, rpProbe, rpDetail, rpNucleus, rpState, rpTintA/B/C.
   - axon: rpClock, rpMotion, rpProbe, rpDetail, rpRate, rpBurst, rpBundle,
     rpHalf, rpTintA/B/C.
+  - arbor: rpClock, rpMotion, rpProbe, rpDetail, rpTintA (its sway: rpSway,
+    rpWobble); its material is clocked and swaying.
 - Tests that must keep passing:
   - ShaderSourceTests:
     - brackets balance;

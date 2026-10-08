@@ -12,9 +12,9 @@ import simd
 // wobbling) round a deep-violet nucleus with a bright heart, golden light
 // hugging it, its edge white-blue; a crown of glass dendrites with golden
 // light inside growing out of it (swaying), a faint glow round it, and a
-// glow its dendrites give off when an impulse arrives - on deep navy fluid
-// with far, blurred blue neurons and gold and blue bokeh behind, instead
-// of stars.
+// glow its dendrites give off when an impulse arrives - on dark teal-navy
+// fluid with far, blurred blue neurons and gold and blue bokeh behind,
+// instead of stars.
 //
 // What a cell holds is drawn inside it, and only once it is opened: a part
 // (a folder in the cell's folder) a smaller gel sphere floating in its
@@ -28,11 +28,12 @@ import simd
 // its target (GraphLinkArbor); its width follows the sender's size and the
 // link's strength (GraphRibbonWriter.widthStep).
 //
-// Colours are the close-up's violet and gold on deep navy (NeuronPalette):
-// each cell keeps a touch of its own dye (green, cyan, pink, amber, violet)
-// in its nucleus and at its edge, its parts and ideas leaning to the
-// dye's accent; receptors gold, drifting cells pale ice; axons glass with
-// golden-white light inside, impulses amber in a warm orange halo.
+// Colours are the close-up's violet and gold on dark teal-navy
+// (NeuronPalette): each cell keeps a touch of its own dye (green, cyan,
+// pink, amber, violet) in its nucleus and at its edge, its parts and ideas
+// leaning to the dye's accent; receptors gold, drifting cells pale ice;
+// axons glass with golden-white light inside, impulses amber in a warm
+// orange halo.
 //
 // Each cell shows a state (NeuronState, chosen in the Look menu or by its
 // role): resting, firing, releasing, pacemaker, migrating, engulfing - the
@@ -465,6 +466,14 @@ final class GraphNeuronLook: GraphThemeLook {
     /// about it; every other arbor turned anyhow.
     private static func arborTurn(_ kind: NeuronCellKind, axis: SIMD3<Float>,
                                   random: inout UniverseRandom) -> simd_quatf {
+        if kind == .cell {
+            // a cell's crown stays in the plane facing the camera (the
+            // sheet's), turned about the view and tipped a little
+            let spin: Float = Float(random.unit()) * 2 * Float.pi
+            let tip: Float = 0.2 * Float(random.signed())
+            let turn = simd_quatf(angle: spin, axis: SIMD3<Float>(0, 0, 1))
+            return simd_quatf(angle: tip, axis: SIMD3<Float>(1, 0, 0)) * turn
+        }
         guard kind == .receptor || kind == .bipolar else { return randomTurn(&random) }
         let up = SIMD3<Float>(0, 1, 0)
         let size: Float = simd_length(axis)
@@ -522,7 +531,9 @@ final class GraphNeuronLook: GraphThemeLook {
         } else {
             let high: Bool = budget.tier == .high
             let branches: [NeuronBranch] = NeuronArbor.branches(kind, variant: variant, rich: high)
-            shape = NeuronArbor.mesh(branches, sides: high ? 6 : 4, segments: high ? 10 : 6)
+            // a cell's thick glass tubes need more sides to stay round
+            let round: Int = kind == .cell ? (high ? 10 : 7) : (high ? 6 : 4)
+            shape = NeuronArbor.mesh(branches, sides: round, segments: high ? 14 : 9)
             arborLooks[shapeKey] = shape
         }
         let geometry: SCNGeometry = shape.copy() as? SCNGeometry ?? shape
@@ -532,7 +543,8 @@ final class GraphNeuronLook: GraphThemeLook {
     }
 
     /// The dendrites: glass with golden light inside near the soma, a
-    /// touch of the membrane's dye in it (as in the owner's close-up).
+    /// touch of the membrane's dye in it (as in the owner's close-up); on
+    /// the clock, so the gold streaks and particles drift out along them.
     private func makeArbor(slot: Int, idea: Bool) -> SCNMaterial {
         let key: String = "m\(slot)-\(idea ? 1 : 0)"
         if let made = somaLooks[key] { return made }
@@ -543,10 +555,12 @@ final class GraphNeuronLook: GraphThemeLook {
             material.shaderModifiers = [.geometry: NeuronShaders.sway, .surface: NeuronShaders.arbor]
             GraphStyleUniforms.defaults(material)
             Self.set(material, "rpDetail", budget.shaderDetail)
+            Self.set(material, "rpMotion", lively ? 1 : 0)
             Self.set(material, "rpSway", 0)
             Self.set(material, "rpWobble", lively ? 0.03 : 0)
             Self.tint(material, "rpTintA", golden * 0.95)
             swaying.append(material)
+            clocked.append(material)
         } else {
             material.diffuse.contents = Self.colour(golden * 0.4)
         }
@@ -771,7 +785,9 @@ nonisolated struct NeuronOpening {
 /// One tapered tube of an arbor, in the soma's unit frame: a quadratic
 /// curve from `start` through `bend` to `end`, `r0` thick at the start and
 /// `r1` at the tip; `s0`...`s1` its share of the dendrite's length (the
-/// shader fades and beads by it).
+/// shader fades and beads by it). `flare` widens the base into a trumpet
+/// (by flare * (1 - t)^4 along it), so a dendrite flows out of the glass
+/// round the soma, as in the owner's close-up.
 nonisolated struct NeuronBranch: Sendable {
     let start: SIMD3<Float>
     let bend: SIMD3<Float>
@@ -780,32 +796,42 @@ nonisolated struct NeuronBranch: Sendable {
     let r1: Float
     let s0: Float
     let s1: Float
+    var flare: Float = 0
 }
 
 @MainActor
 enum NeuronArbor {
     /// The branches for a kind of cell (three variants each), each from
-    /// 0.9 of the radius, every tip within the map's reach (GraphNeurons
-    /// .reach for a cell and a receptor, about 1.15 radii for a drifter and
-    /// a bipolar cell):
-    /// a cell's crown of dendrites, thick at the base and tapering, with
-    /// side branches; a receptor's leading process ending in a fan, and a
-    /// short one behind; a drifter's many fine processes; a bipolar cell's
-    /// two opposite ones. What floats inside a cell has none. `rich` adds
-    /// side branches.
+    /// 0.9 of the radius (a cell's from 0.75, inside its glass), every tip
+    /// within the map's reach (GraphNeurons.reach for a cell and a
+    /// receptor, about 1.15 radii for a drifter and a bipolar cell):
+    /// a cell's crown of dendrites as in the owner's close-up - thick glass
+    /// tubes round it in the plane facing the camera (tilting a little out
+    /// of it), each flaring into a trumpet where it leaves the soma (the
+    /// trumpets together the glass body the soma sits in, webbed between)
+    /// and tapering only a little, its tip faded out by the shader; a
+    /// receptor's leading process ending in a fan, and a short one behind;
+    /// a drifter's many fine processes; a bipolar cell's two opposite ones.
+    /// What floats inside a cell has none. `rich` adds a cell a dendrite
+    /// and the others side branches.
     static func branches(_ kind: NeuronCellKind, variant: Int, rich: Bool) -> [NeuronBranch] {
         var random = UniverseRandom(UInt64(kind.rawValue * 31 + variant) &* 0x9E37_79B9 &+ 7)
         var out: [NeuronBranch] = []
-        func add(_ dir: SIMD3<Float>, length: Float, thick: Float, sides: Int) {
+        func add(_ dir: SIMD3<Float>, length: Float, thick: Float, sides: Int, from: Float = 0.9,
+                 tipShare: Float = 0.12, flare: Float = 0, planar: Bool = false) {
             let d: SIMD3<Float> = simd_normalize(dir)
-            let start: SIMD3<Float> = d * 0.9
-            let side: SIMD3<Float> = GraphLinkCurve.perpendicular(to: d)
+            let start: SIMD3<Float> = d * from
+            // a crown in the plane wanders in it, so its bends show
+            let side: SIMD3<Float> = planar
+                ? GraphLinkCurve.unit(GraphLinkCurve.cross(d, SIMD3<Float>(0, 0, 1)), or: SIMD3<Float>(1, 0, 0))
+                : GraphLinkCurve.perpendicular(to: d)
             let wander: Float = Float(random.signed()) * 0.3 * length
             let bend: SIMD3<Float> = start + d * (length * 0.5) + side * wander
             let lean: SIMD3<Float> = side * (wander * 0.6)
             let end: SIMD3<Float> = start + d * length + lean
-            out.append(NeuronBranch(start: start, bend: bend, end: end, r0: thick, r1: thick * 0.12, s0: 0, s1: 1))
-            guard rich || sides > 1 else { return }
+            out.append(NeuronBranch(start: start, bend: bend, end: end, r0: thick, r1: thick * tipShare, s0: 0, s1: 1,
+                                    flare: flare))
+            guard sides > 0 && (rich || sides > 1) else { return }
             for k in 0..<sides {
                 let t: Float = 0.4 + 0.25 * Float(k) + 0.1 * Float(random.unit())
                 let at: SIMD3<Float> = curve(start, bend, end, min(t, 0.85))
@@ -824,12 +850,15 @@ enum NeuronArbor {
         let extra: Int = rich ? 1 : 0
         switch kind {
         case .cell:
-            let count: Int = 8 + extra
+            let count: Int = 6 + extra
+            // the longest a dendrite from 0.75 can be with its tip in reach
+            let most: Float = Float(GraphNeurons.reach) - 0.75 - 0.05
             for k in 0..<count {
-                let d: SIMD3<Double> = ThemeLayout.fibonacci(k, count)
-                let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
-                let dir: SIMD3<Float> = GraphUniverse.float3(d) + jitter * 0.3
-                add(dir, length: 0.75 + 0.2 * Float(random.unit()), thick: 0.26, sides: 2 + extra)
+                let a: Float = 2 * Float.pi * (Float(k) + 0.35 * Float(random.signed())) / Float(count)
+                let dir = SIMD3<Float>(cos(a), sin(a), 0.35 * Float(random.signed()))
+                let length: Float = min(1.0 + 0.2 * Float(random.unit()), most)
+                add(dir, length: length, thick: 0.3, sides: 0, from: 0.75, tipShare: 0.7, flare: 0.5,
+                    planar: true)
             }
         case .receptor:
             add(SIMD3<Float>(0, 1, 0), length: 0.65, thick: 0.24, sides: 0)
@@ -865,7 +894,8 @@ enum NeuronArbor {
     }
 
     /// Every branch as a tube of `sides` round and `segments` along, in one
-    /// geometry (texture u: the share along the dendrite, v: round it).
+    /// geometry (texture u: the share along the dendrite, v: round it); a
+    /// flared one's rings crowd toward its base, where the trumpet curves.
     static func mesh(_ branches: [NeuronBranch], sides: Int, segments: Int) -> SCNGeometry {
         var points: [SCNVector3] = []
         var normals: [SCNVector3] = []
@@ -876,14 +906,17 @@ enum NeuronArbor {
         for branch in branches {
             let first: Int32 = Int32(points.count)
             for j in 0...steps {
-                let t: Float = Float(j) / Float(steps)
+                let even: Float = Float(j) / Float(steps)
+                let t: Float = branch.flare > 0 ? pow(even, 1.6) : even
                 let p: SIMD3<Float> = curve(branch.start, branch.bend, branch.end, t)
                 let ahead: SIMD3<Float> = curve(branch.start, branch.bend, branch.end, min(t + 0.02, 1))
                 let behind: SIMD3<Float> = curve(branch.start, branch.bend, branch.end, max(t - 0.02, 0))
                 let along: SIMD3<Float> = GraphLinkCurve.unit(ahead - behind, or: SIMD3<Float>(0, 1, 0))
                 let n1: SIMD3<Float> = GraphLinkCurve.perpendicular(to: along)
                 let n2: SIMD3<Float> = GraphLinkCurve.cross(along, n1)
-                let taper: Float = branch.r0 + (branch.r1 - branch.r0) * t
+                let rest: Float = 1 - t
+                let bell: Float = rest * rest
+                let taper: Float = branch.r0 + (branch.r1 - branch.r0) * t + branch.flare * bell * bell
                 let s: Float = branch.s0 + (branch.s1 - branch.s0) * t
                 for k in 0...ring {
                     let a: Float = Float(k) / Float(ring) * 2 * Float.pi
@@ -914,8 +947,8 @@ enum NeuronArbor {
 // MARK: - The fluid behind
 
 /// The Neurons' backdrop, in place of the stars, as behind the owner's
-/// close-up: deep navy fluid lit by soft, wide glows (blue, teal, a little
-/// violet), far neurons blurred out of focus in blue (NeuronBokeh.farCells)
+/// close-up: dark teal-navy fluid lit by soft, wide glows (teal, blue, a
+/// little violet), far neurons blurred out of focus in blue (NeuronBokeh.farCells)
 /// and bokeh - gold and blue discs out of focus behind the microscope's
 /// plane (NeuronBokeh.discs). Made once, on a sphere of radius 1, shared by
 /// every scene and scaled by the builder; GraphSim keeps it round the
@@ -946,8 +979,8 @@ enum NeuronTissue {
     private static func glows() -> [(SIMD3<Float>, Float, SIMD3<Float>)] {
         var random = UniverseRandom(0x7155)
         let hues: [SIMD3<Float>] = [
-            SIMD3<Float>(0.02, 0.06, 0.16), SIMD3<Float>(0.02, 0.09, 0.11), SIMD3<Float>(0.06, 0.03, 0.14),
-            SIMD3<Float>(0.02, 0.05, 0.14)
+            SIMD3<Float>(0.02, 0.05, 0.08), SIMD3<Float>(0.015, 0.06, 0.07), SIMD3<Float>(0.035, 0.03, 0.08),
+            SIMD3<Float>(0.015, 0.045, 0.08)
         ]
         var out: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
         for k in 0..<16 {

@@ -57,8 +57,9 @@ nonisolated enum NeuronPalette {
     /// Impulses: amber, in a warm orange halo.
     static let impulse = SIMD3<Float>(1.0, 0.72, 0.30)
     static let impulseHalo = SIMD3<Float>(1.0, 0.58, 0.22)
-    /// The fluid behind everything: deep blue.
-    static let deep = SIMD3<Float>(0.012, 0.03, 0.09)
+    /// The fluid behind everything: a dark teal-navy, as the darkest of
+    /// the owner's close-up.
+    static let deep = SIMD3<Float>(0.02, 0.05, 0.085)
 
     /// How far an idea leans to its cell's accent.
     static let ideaLean: Float = 0.45

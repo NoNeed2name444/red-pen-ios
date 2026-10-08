@@ -220,20 +220,26 @@ nonisolated enum NeuronShaders {
 
     // MARK: the dendrites
 
-    /// The dendritic arbor's tapered tubes (u runs 0 at the soma to 1 at
-    /// the tip, v round the tube), glass as in the owner's close-up: a
-    /// white-blue edge, golden light inside near the soma (tint A) cooling
-    /// to blue-violet further out, three faint strands spiralling along it,
-    /// golden sparkles in it (on a grid in the arbor's own space, so they
-    /// stay put on the tube) when the cell is big on screen, and nothing
-    /// over the nucleus, so the cell's middle stays clear.
+    /// The dendritic arbor's glass tubes (u runs 0 at the soma to 1 at the
+    /// tip, v round the tube), as in the owner's close-up: an even
+    /// white-blue edge the whole way, a faint violet body, golden streaks
+    /// running along inside (filament noise stretched along the tube,
+    /// drifting out with the clock), gold particles drifting out with them,
+    /// the cell's tint A at the base, golden sparkles (on a grid in the
+    /// arbor's own space, so they stay put on the tube) when the cell is big
+    /// on screen; it fades out over the last part, so a dendrite reads as
+    /// running on into the dark, and nothing shows over the nucleus, so the
+    /// cell's middle stays clear.
     static let arbor: String = """
     #pragma arguments
+    float rpClock;
+    float rpMotion;
     float rpProbe;
     float rpDetail;
     float3 rpTintA;
 
     #pragma body
+    float rp_t = rpClock * rpMotion;
     float3 rp_N = normalize(_surface.normal);
     float3 rp_V = normalize(_surface.view);
     float rp_mu = abs(dot(rp_N, rp_V));
@@ -244,19 +250,31 @@ nonisolated enum NeuronShaders {
     float rp_R = max(length(rp_mv[0].xyz), 0.0001);
     float3 rp_d = normalize(_surface.position);
     float3 rp_off = rp_d * dot(rp_c, rp_d) - rp_c;
-    float rp_hide = smoothstep(0.5, 0.75, length(rp_off) / rp_R);
+    float rp_hide = smoothstep(0.8, 0.97, length(rp_off) / rp_R);
     float rp_px = 1.0 / max(2000.0 * rp_R / max(-rp_c.z, 0.0001), 1.0);
     float rp_tiny = 1.0 - smoothstep(0.016, 0.04, rp_px);
-    float rp_edge = pow(1.0 - rp_mu, 3.0) * smoothstep(0.0, 0.2, rp_mu);
-    float rp_core = rp_mu * rp_mu;
-    rp_core = rp_core * rp_core * rp_mu;
-    float rp_warm = 1.0 - smoothstep(0.12, 0.6, rp_s);
-    float3 rp_inner = mix(float3(0.42, 0.36, 0.95), rpTintA, rp_warm);
-    float rp_st = 0.5 + 0.5 * cos(rp_v * 18.849556 + rp_s * 11.0);
-    rp_st = rp_st * rp_st * rp_st;
-    rp_st = rp_st * rp_st;
-    float3 rp_col = float3(0.6, 0.8, 1.0) * (0.9 * rp_edge);
-    rp_col = rp_col + rp_inner * (rp_core * (0.25 + 0.75 * rp_warm) + 0.3 * rpDetail * rp_st * rp_mu);
+    float rp_rest = 1.0 - rp_mu;
+    float rp_edge = rp_rest * rp_rest * smoothstep(0.0, 0.3, rp_mu);
+    float3 rp_col = float3(0.62, 0.82, 1.0) * (1.6 * rp_edge);
+    rp_col = rp_col + float3(0.24, 0.2, 0.6) * (0.18 * rp_mu);
+    float rp_ang = rp_v * 6.2831853;
+    """ + GraphShaderKit.noise("rp_fn", "float3(cos(rp_ang) * 2.6, sin(rp_ang) * 2.6, rp_s * 2.5 - rp_t * 0.15)") + """
+    float rp_fil = 1.0 - abs(2.0 * rp_fn - 1.0);
+    float rp_fil2 = rp_fil * rp_fil;
+    rp_fil = rp_fil2 * rp_fil2 * rp_fil;
+    float rp_warm = 1.0 - smoothstep(0.05, 0.85, rp_s);
+    float3 rp_gold = mix(float3(1.0, 0.5, 0.12), float3(1.0, 0.86, 0.55), rp_fil);
+    rp_col = rp_col + rp_gold * (rp_warm * rp_mu * (0.12 + 1.3 * rp_fil * rpDetail));
+    float rp_pa = rp_v * 14.0;
+    float rp_pr = rp_s * 30.0 - rp_t * 0.6;
+    float rp_pcx = floor(rp_pa);
+    float rp_pcy = floor(rp_pr);
+    float rp_pk = fract(sin(rp_pcx * 12.9898 + rp_pcy * 78.233) * 43758.5453);
+    float rp_pjx = fract(rp_pk * 7.13) * 0.5 + 0.25;
+    float rp_pjy = fract(rp_pk * 3.71) * 0.5 + 0.25;
+    float rp_pd = 1.0 - smoothstep(0.0, 0.35, length(float2(rp_pa - rp_pcx - rp_pjx, rp_pr - rp_pcy - rp_pjy)));
+    float rp_part = rp_pd * rp_pd * step(0.7, rp_pk) * rp_mu;
+    rp_col = rp_col + float3(1.0, 0.62, 0.2) * (1.6 * rp_part * (1.0 - smoothstep(0.2, 0.95, rp_s)) * rpDetail * rp_tiny);
     float3 rp_rel = _surface.position - rp_c;
     float3 rp_lp = float3(dot(rp_rel, rp_mv[0].xyz), dot(rp_rel, rp_mv[1].xyz), dot(rp_rel, rp_mv[2].xyz)) / (rp_R * rp_R);
     float3 rp_g = rp_lp * 12.0;
@@ -264,9 +282,9 @@ nonisolated enum NeuronShaders {
     float rp_gh = fract(sin(dot(rp_gi, float3(12.9898, 78.233, 37.719))) * 43758.5453);
     float3 rp_gj = float3(rp_gh, fract(rp_gh * 7.13), fract(rp_gh * 3.71)) * 0.5 + float3(0.25, 0.25, 0.25);
     float rp_gd = 1.0 - smoothstep(0.0, 0.3, length(rp_g - rp_gi - rp_gj));
-    rp_col = rp_col + float3(1.0, 0.88, 0.55) * (1.3 * rp_gd * rp_gd * step(0.86, rp_gh) * (1.0 - 0.7 * rp_s) * rpDetail * rp_tiny);
-    rp_col = rp_col + rpTintA * (0.7 * rp_mu * (1.0 - smoothstep(0.04, 0.25, rp_s)));
-    rp_col = rp_col * (smoothstep(0.0, 0.06, rp_s) * (1.0 - 0.45 * rp_s) * (1.0 - smoothstep(0.9, 1.0, rp_s)) * rp_hide);
+    rp_col = rp_col + float3(1.0, 0.9, 0.62) * (1.4 * rp_gd * rp_gd * step(0.86, rp_gh) * (1.0 - 0.6 * rp_s) * rpDetail * rp_tiny);
+    rp_col = rp_col + rpTintA * (0.6 * rp_mu * (1.0 - smoothstep(0.0, 0.3, rp_s)));
+    rp_col = rp_col * (smoothstep(0.0, 0.12, rp_s) * (1.0 - smoothstep(0.6, 1.0, rp_s)) * rp_hide);
 
     """ + GraphStyleShaders.glowEnd
 
