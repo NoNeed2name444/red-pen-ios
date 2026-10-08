@@ -79,5 +79,100 @@ ok(groundedMessages([{ role: 'user', content: 'x' }], []).length === 1, 'with no
   forgetEvidence();
 }
 
+// "nothing found" and "could not be read" are told apart: proof counts a
+// source it could not read as unread, never as one that says nothing
+{
+  forgetEvidence();
+  const asked = [];
+  const answering = (status, body = '') => async url => { asked.push(url); return new Response(body, { status }); };
+  const missing = answering(404, JSON.stringify({ error: { code: 'NOT_FOUND', message: 'No matches found!' } }));
+  const none = await openFDA('nosuchdrug', missing);
+  ok(Array.isArray(none) && none.length === 0, 'openFDA\'s 404 is "no label matches": nothing found, not a failure');
+  await openFDA('nosuchdrug', missing);
+  ok(asked.length === 1, 'and it is remembered like any answer');
+  for (const status of [500, 429]) {
+    forgetEvidence(); asked.length = 0;
+    const down = answering(status);
+    ok(await openFDA('metformin', down) === null, `openFDA answering ${status} is a failed lookup (null)`);
+    await openFDA('metformin', down);
+    ok(asked.length === 2, `and a ${status} is not remembered: the next check asks again`);
+  }
+  forgetEvidence();
+  ok(await openFDA('metformin', async () => { throw new Error('offline'); }) === null, 'openFDA that cannot be reached is a failed lookup');
+  ok(await openFDA('metformin', answering(200, 'not json')) === null, 'and so is an answer that is not JSON');
+
+  forgetEvidence();
+  const empty = await medlinePlus('zzz', answering(200, '<?xml version="1.0"?><nlmSearchResult><term>zzz</term><count>0</count><list num="0" start="0" per="1"/></nlmSearchResult>'));
+  ok(Array.isArray(empty) && empty.length === 0, 'MedlinePlus with no topic for the term: nothing found');
+  for (const status of [404, 503]) {
+    forgetEvidence();
+    ok(await medlinePlus('lupus', answering(status)) === null, `MedlinePlus answering ${status} is a failed lookup`);
+  }
+  forgetEvidence();
+  ok(await medlinePlus('lupus', async () => { throw new Error('offline'); }) === null, 'MedlinePlus that cannot be reached is a failed lookup');
+  ok(await medlinePlus('lupus', answering(200, '<html>maintenance</html>')) === null, 'and so is a page that is not its search result');
+
+  forgetEvidence();
+  const nothing = await europePMC('zzz', answering(200, JSON.stringify({ hitCount: 0, resultList: { result: [] } })));
+  ok(Array.isArray(nothing) && nothing.length === 0, 'Europe PMC with no result: nothing found');
+  forgetEvidence();
+  ok(await europePMC('zzz', answering(503)) === null, 'Europe PMC answering 503 is a failed lookup');
+  forgetEvidence();
+  ok(await europePMC('zzz', answering(200, '<html>oops')) === null, 'and so is an answer that is not JSON');
+  forgetEvidence();
+  const mixed = await gather({ queries: ['lupus'], drugs: ['hydroxychloroquine'] },
+    async url => (url.includes('api.fda.gov') ? new Response('', { status: 500 }) : fake(url)));
+  ok(mixed.length === 2 && !mixed.some(e => e.source === 'openFDA label'), 'gather keeps what was read when another source fails');
+  forgetEvidence();
+}
+
+// the full texts kept for proof: a label's sections only when the label is
+// the drug's alone, a summary whole or not at all, and neither ever shown to
+// a model or sent to the app
+{
+  let label;
+  const labelFake = async () => new Response(JSON.stringify({ results: [label] }), { status: 200 });
+  const officialOf = async (generic, drug = 'metformin') => {
+    forgetEvidence();
+    label = { set_id: 'lbl', effective_time: '20250101', ...(generic === undefined ? {} : { openfda: { generic_name: generic } }),
+      indications_and_usage: ['Metformin is indicated for type 2 diabetes mellitus.'], boxed_warning: ['Lactic acidosis.', 7],
+      spl_unclassified_section: ['Not a section proof reads.'] };
+    return (await openFDA(drug, labelFake))[0]?.official;
+  };
+  const own = await officialOf(['METFORMIN HYDROCHLORIDE']);
+  ok(own?.drug === 'metformin' && own.effective === '20250101'
+     && own.sections.indications_and_usage[0] === 'Metformin is indicated for type 2 diabetes mellitus.'
+     && own.sections.boxed_warning.join('|') === 'Lactic acidosis.' && !('spl_unclassified_section' in own.sections),
+     'a label of the drug alone (its salt aside) keeps the sections proof reads, as the label has them');
+  ok(!!(await officialOf(['Metformin', 'METFORMIN HCL'])), 'so does one whose every generic name names the drug alone');
+  for (const [generic, drug, what] of [
+    [['GLIPIZIDE AND METFORMIN HYDROCHLORIDE'], 'metformin', 'a combination'],
+    [['METFORMIN HYDROCHLORIDE', 'GLIPIZIDE AND METFORMIN HYDROCHLORIDE'], 'metformin', 'a combination among its names'],
+    [['METFORMIN ER 500 MG'], 'metformin', 'a form in its name'],
+    [['WARFARIN SODIUM'], 'warfarin', 'a salt a name does not leave out'],
+    [['INSULIN LISPRO'], 'insulin', 'one of a class'],
+    [[], 'metformin', 'no generic name'],
+    [undefined, 'metformin', 'no openfda record'],
+  ]) ok(!(await officialOf(generic, drug)), `${what}: not the drug's own label, so nothing for proof`);
+
+  const summary = '&lt;p&gt;&lt;span class="qt0"&gt;Lupus&lt;/span&gt; is a chronic autoimmune disease.&lt;/p&gt;';
+  const xml = body => `<nlmSearchResult><list><document rank="0" url="https://medlineplus.gov/lupus.html"><content name="title">Lupus</content><content name="FullSummary">${body}</content></document></list></nlmSearchResult>`;
+  forgetEvidence();
+  const whole = await medlinePlus('lupus', async () => new Response(xml(summary), { status: 200 }));
+  ok(whole[0].html === summary && whole[0].text === 'Lupus is a chronic autoimmune disease.', 'a MedlinePlus summary is kept whole, as sent, for proof');
+  forgetEvidence();
+  const long = '&lt;p&gt;' + 'Lupus is a chronic autoimmune disease. '.repeat(1100) + '&lt;/p&gt;';
+  const cut = await medlinePlus('lupus', async () => new Response(xml(long), { status: 200 }));
+  ok(long.length > 40_000 && cut[0].text.length <= 701 && !('html' in cut[0]), 'one past 40,000 characters is not kept at all, never cut');
+
+  forgetEvidence();
+  label = { set_id: 'hcq', openfda: { generic_name: ['HYDROXYCHLOROQUINE'] }, indications_and_usage: ['Hydroxychloroquine is indicated for lupus.'] };
+  const both = async url => (url.includes('api.fda.gov') ? labelFake() : new Response(xml(summary), { status: 200 }));
+  ok((await openFDA('hydroxychloroquine', both))[0].official && (await medlinePlus('lupus', both))[0].html, 'with both kept by the lookups');
+  const shown = await gather({ queries: ['lupus'], drugs: ['hydroxychloroquine'] }, both);
+  ok(shown.length === 2 && shown.every(e => !('official' in e) && !('html' in e)), 'the evidence models are shown has neither');
+  forgetEvidence();
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

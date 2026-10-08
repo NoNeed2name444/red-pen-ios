@@ -21,6 +21,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { checkBatch } from '../../server/accuracy.js';
 import { resetBreakers } from '../../server/breakers.js';
 import { familyOf } from '../../server/accuracy-model.js';
+import { fullyProven } from '../../server/proof.js';
 import { loadQuestions, benchCases } from './datasets.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -165,6 +166,10 @@ function measures(list) {
       text: pct(by(right, r => verdictOf(r) === 'verified') + by(wrong, r => verdictOf(r) !== 'verified'), list.length) },
     abstained: { n: by(list, r => verdictOf(r) === 'check'), of: list.length, text: pct(by(list, r => verdictOf(r) === 'check'), list.length) },
     unchecked: by(list, r => verdictOf(r) === 'unchecked'),
+    // stated word for word by an official source (the only way to Verified):
+    // a wrong key proven would be a false proof
+    proven: { n: by(right, r => fullyProven(r.result?.proof)), of: right.length, text: pct(by(right, r => fullyProven(r.result?.proof)), right.length) },
+    wrongProven: by(wrong, r => fullyProven(r.result?.proof)),
   };
 }
 const overall = measures(results);
@@ -179,7 +184,9 @@ lines.push(`| right items Verified | correct questions passed | ${overall.rightV
 lines.push(`| right items Flagged | correct questions wrongly flagged | ${overall.rightFlagged.text} (${overall.rightFlagged.n}/${overall.rightFlagged.of}) |`);
 lines.push(`| Check this | left for a person (no verdict either way) | ${overall.abstained.text} |`);
 lines.push(`| pass/fail accuracy | Verified only when right, not Verified when wrong, over every check | ${overall.binary.text} |`);
-lines.push(`| unchecked | no checker answered | ${overall.unchecked} |`, '');
+lines.push(`| unchecked | no checker answered | ${overall.unchecked} |`);
+lines.push(`| source-proven | right items an official source states word for word | ${overall.proven.text} (${overall.proven.n}/${overall.proven.of}) |`);
+lines.push(`| wrong keys source-proven | false proofs; must be 0 | ${overall.wrongProven} |`, '');
 lines.push(`## By source`, '', `| source | checks | accuracy | dependability | caught | right Verified | Check this |`, `|---|---|---|---|---|---|---|`);
 for (const src of wanted) {
   const m = measures(results.filter(r => r.item.source === src));
@@ -204,5 +211,5 @@ writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
 // everything policy.mjs needs to replay a check under other verdict rules
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(results.map(r => ({ id: r.item.id, source: r.item.source, truth: r.truth,
   keyLetter: String.fromCharCode(65 + r.item.key), verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons,
-  rules: r.result?.rules, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix })), null, 1));
+  rules: r.result?.rules, proof: r.result?.proof, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix })), null, 1));
 console.log(lines.join('\n'));

@@ -76,9 +76,14 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(MIN_VERIFY_VOTERS === 3, 'Verified needs three model families');
   const G = 'gemini-3.5-flash-lite', GM = 'gemma-4-31b-it', O = '@cf/openai/gpt-oss-120b', N = '@cf/nvidia/nemotron-3-120b-a12b';
   const solve = (model, answer, extra = {}) => ({ model, risk: 1, answer, evidence: 'supports', blind: true, ...extra });
-  const pass = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  const pass = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A', sourceProof: true });
   const p1 = predict(pass);
-  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `three blind solves from three families reach the key, with support: Verified (${p1.toFixed(3)})`);
+  ok(p1 > 0.95 && verdict(p1, pass) === 'verified', `three blind solves from three families reach the key, with support and every claim stated word for word: Verified (${p1.toFixed(3)})`);
+  // agreement is never proof (the owner, 6 Oct): the same votes without an official source stating it stay Check this
+  const unproven = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A'), solve(N, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
+  ok(unproven.source_proof === 0 && verdict(0.99, unproven) === 'check' && reasonsFor('check', 0.99, unproven).includes('No official source states it word for word yet.'),
+     'the same three blind solves with no official source stating it: Check this, and says so');
+  ok(predict(unproven) === predict(pass), 'source proof gates the verdict; it does not move the probability');
   const twoBlind = features({ kind: 'mcq', votes: [solve(G, 'A'), solve(O, 'A')], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   ok(verdict(predict(twoBlind), twoBlind) === 'check' && reasonsFor('check', predict(twoBlind), twoBlind).some(r => r.includes('three')),
      'two blind families on the key are no longer enough: Check this, saying three are needed');
@@ -104,7 +109,7 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(verdict(predict(outvoted), outvoted) === 'check' && reasonsFor('check', predict(outvoted), outvoted).some(r => r.startsWith('Unresolved')), 'two families on another answer and one on the key: Unresolved, Check this');
   const parted = features({ kind: 'mcq', votes: [solve(G, 'C', { evidence: 'none' }), solve(O, 'A', { evidence: 'none' })], evidenceCount: 3, sourceMatch: 0.7, keyLetter: 'A' });
   ok(verdict(predict(parted), parted) === 'check' && reasonsFor('check', predict(parted), parted).some(r => r.startsWith('Unresolved')), 'blind solves that split leave it Unresolved (Check this), and say so');
-  const card3 = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7 });
+  const card3 = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.7, sourceProof: true });
   ok(verdict(predict(card3), card3) === 'verified', 'a card has no key to solve: three families passing it verify it');
   const bad = features({ kind: 'card', votes: [{ model: G, risk: 4, evidence: 'contradicts' }, { model: O, risk: 4, evidence: 'contradicts' }, { model: N, risk: 4, evidence: 'contradicts' }], sourceMatch: 0.7 });
   ok(bad.flag_families === 3 && verdict(predict(bad), bad) === 'flagged', 'three families judging it wrong, with the model agreeing: Flagged');
@@ -126,7 +131,7 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   // two votes from one family are one witness (independence: DNA and Islamic briefs)
   const sameFamily = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: GM, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
   ok(sameFamily.families === 2 && verdict(0.99, sameFamily) === 'check', 'three passing votes from two families (Gemini and Gemma are one) are Check this, not Verified');
-  const threeFamilies = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9 });
+  const threeFamilies = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: N, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'supports' }], evidenceCount: 3, sourceMatch: 0.9, sourceProof: true });
   ok(threeFamilies.families === 3 && verdict(0.99, threeFamilies) === 'verified', 'three passing votes from three families can be Verified');
   const failing = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 4, evidence: 'contradicts' }], evidenceCount: 3, sourceMatch: 0.9 });
   ok(failing.families === 1, 'a vote that flags the item does not count as a family passing it');
@@ -138,12 +143,16 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   // the oath check (plan §22 Layer 7): a dose, a diagnosis or a treatment needs evidence behind it
   const unbacked = features({ kind: 'card', votes: [{ model: GM, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2 });
   ok(verdict(0.99, unbacked) === 'check' && verdict(0.99, unbacked, DEFAULT_WEIGHTS, true) === 'check'
-     && reasonsFor('check', 0.99, unbacked).includes('Nothing in the literature or its lecture backs it yet.'),
-     'any item passed by three families but with nothing in the literature or its lecture behind it stays Check this, and says so');
+     && reasonsFor('check', 0.99, unbacked).includes('No official source states it word for word yet.')
+     && reasonsFor('check', 0.99, unbacked, undefined, true).includes('A dose, diagnosis or treatment no official source states word for word yet.'),
+     'any item passed by three families that no official source states word for word stays Check this, and says so');
   const literature = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'supports' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 2, sourceMatch: 0.2 });
   const lecture = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: OATH_SOURCE_MATCH });
-  ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'verified' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'verified',
-     'with the literature supporting it, or its own lecture saying it, an oath item can be Verified');
+  ok(verdict(0.99, literature, DEFAULT_WEIGHTS, true) === 'check' && verdict(0.99, lecture, DEFAULT_WEIGHTS, true) === 'check',
+     'the literature supporting it, or its own lecture saying it, is not proof: an oath item stays Check this');
+  const proven = features({ kind: 'card', votes: [{ model: G, risk: 1, evidence: 'none' }, { model: O, risk: 1, evidence: 'none' }, { model: N, risk: 1, evidence: 'none' }], evidenceCount: 0, sourceMatch: 0.2, sourceProof: true });
+  ok(verdict(0.99, proven, DEFAULT_WEIGHTS, true) === 'verified' && !reasonsFor('verified', 0.99, proven, undefined, true).some(r => r.includes('word for word')),
+     'with an official source stating every claim word for word, an oath item can be Verified');
   for (const [text, dose] of DOSE_VECTORS) ok(hasDose(text) === dose, `dose ${dose ? 'found' : 'not found'}: ${text}`);
   ok(isOath('What is the most likely diagnosis?') && isOath('What is the next best step in management?')
      && isOath('Give amoxicillin 500 mg PO three times a day') && !isOath('Which enzyme is deficient in PKU?'),
@@ -322,7 +331,10 @@ const items = [
   ok(r.status === 200 && body.items.length === 2 && body.items[0].id === 'q1', 'a batch is checked');
   ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `three free voters from three families, asked at once, one call each for the whole batch (${calls.join()})`);
   ok(body.items[0].votes.length === 3 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with all three votes and the evidence they were shown');
-  ok(body.items[0].verdict === 'verified' && body.items[0].p > 0.85, `agreeing votes with support: Verified (${body.items[0].p})`);
+  ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.includes('No official source states it word for word yet.')
+     && body.items[0].proof?.v === 1 && body.items[0].proof.proven === 0,
+     `agreeing votes with support but no official source stating it: Check this, with its proof attached (${body.items[0].p})`);
+  ok(body.items[0].evidence.every(e => !('official' in e) && !('html' in e) && !('full' in e)), 'the official text read for the proof does not come back with the evidence');
   ok(body.items[1].verdict === 'check' || body.items[1].verdict === 'verified', 'the card is scored too');
   ok(Array.isArray(body.items[0].rules) && typeof body.items[0].features.no_models === 'number', 'rules and features come back for the app to re-score');
 
@@ -330,6 +342,17 @@ const items = [
   r = await checkBatch(env, 'owner', { items }, fetcher, { owner: true });
   body = await r.json();
   ok(calls.length === 0 && body.items.every(i => i.cached), 'checked again unchanged: from the cache, no model asked');
+  // a card MedlinePlus states word for word, passed by three families: Verified, with the quote
+  calls.length = 0;
+  r = await checkBatch(env, 'owner', { items: [{ id: 'c2', kind: 'card', text: 'Cloze: Warfarin is reversed by {{c1::vitamin K}} and PCC.', source: '' }] }, fetcher, { owner: true });
+  body = await r.json();
+  ok(body.items[0].verdict === 'verified' && body.items[0].proof.proven === 1 && body.items[0].proof.quotes[0].quote === 'Warfarin is reversed by vitamin K and PCC.'
+     && body.items[0].proof.quotes[0].url === 'https://medlineplus.gov/x.html',
+     `a card an official source states word for word, passed by three families: Verified, quoting it (${body.items[0].verdict})`);
+  calls.length = 0;
+  r = await checkBatch(env, 'owner', { items: [{ id: 'c2', kind: 'card', text: 'Cloze: Warfarin is reversed by {{c1::vitamin K}} and PCC.', source: '' }] }, fetcher, { owner: true });
+  body = await r.json();
+  ok(calls.length === 0 && body.items[0].cached && body.items[0].verdict === 'verified' && body.items[0].proof.proven === 1, 'and from the cache, its proof kept');
   calls.length = 0;
   await checkBatch(env, 'owner', { items: [{ ...items[1], text: items[1].text + ' (edited)' }] }, fetcher, { owner: true });
   ok(calls.length === 3, 'an edited item is checked again');

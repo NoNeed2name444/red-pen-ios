@@ -14,8 +14,12 @@
 // twice unless it is edited. A batch that finds everything cached spends no
 // allowance at all.
 //
+// Verified needs more than the models: every claim the item makes stated word
+// for word by an official source (proof.js; an FDA label or a MedlinePlus
+// summary). Models agreeing is never proof.
+//
 // A check runs as named stages, always in the same order (STAGES: rules,
-// claims, lookup, evidence, votes, jev, verdict, cache), each with its own time
+// claims, lookup, evidence, proof, votes, jev, verdict, cache), each with its own time
 // budget and a typed result; a stage that runs out of time or fails gives
 // its safe result instead of holding the batch up (see "the check, as named
 // stages" below).
@@ -31,7 +35,8 @@
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
 import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
-import { europePMC, medlinePlus, openFDA } from './evidence.js';
+import { europePMC, medlinePlus, openFDA, forModels } from './evidence.js';
+import { prove, fullyProven, PROOF_VERSION, PROOF_CHARS } from './proof.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
 import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
@@ -114,17 +119,24 @@ export function itemTerms(item) {
   return { queries: query ? [query.slice(0, 60)] : [], drugs: [...drugs].slice(0, 1) };
 }
 
+// One lookup a batch: `seen` keeps its promise by key, null for a source that
+// could not be read.
+const once = (seen, key, run) => {
+  if (!seen.has(key)) seen.set(key, run().catch(() => null));
+  return seen.get(key);
+};
+
 /// The literature for one item, numbered [S1]... Lookups are shared within a
-/// batch (`seen`), and each source answers from a day's cache.
+/// batch (`seen`, with proof), and each source answers from a day's cache.
+/// What a model is shown, never the full texts kept for proof.
 export async function evidenceFor(item, fetcher, seen = new Map()) {
   const t = itemTerms(item);
-  const once = (key, run) => { if (!seen.has(key)) seen.set(key, run().catch(() => [])); return seen.get(key); };
   const lookups = [
-    ...t.queries.map(q => once(`pmc:${q}`, () => europePMC(q, fetcher))),
-    ...t.queries.map(q => once(`mlp:${q}`, () => medlinePlus(q, fetcher))),
-    ...t.drugs.map(d => once(`fda:${d}`, () => openFDA(d, fetcher))),
+    ...t.queries.map(q => once(seen, `pmc:${q}`, () => europePMC(q, fetcher))),
+    ...t.queries.map(q => once(seen, `mlp:${q}`, () => medlinePlus(q, fetcher))),
+    ...t.drugs.map(d => once(seen, `fda:${d}`, () => openFDA(d, fetcher))),
   ];
-  const found = (await Promise.all(lookups)).flat();
+  const found = (await Promise.all(lookups)).map(r => r || []).flat();
   const urls = new Set();
   const out = [];
   let used = 0;
@@ -134,9 +146,32 @@ export async function evidenceFor(item, fetcher, seen = new Map()) {
     const text = e.text.slice(0, 600);
     if (used + text.length > MAX_EVIDENCE_CHARS) break;
     used += text.length;
-    out.push({ ...e, text, id: `S${out.length + 1}` });
+    out.push({ ...forModels(e), text, id: `S${out.length + 1}` });
   }
   return out;
+}
+
+/// The official sources an item can be proven by (MedlinePlus summaries and
+/// FDA labels, with their full texts), from the batch's lookups (`seen`), and
+/// `unread`, how many of those lookups failed.
+export async function officialFor(item, fetcher, seen = new Map()) {
+  const t = itemTerms(item);
+  const got = await Promise.all([
+    ...t.queries.map(q => once(seen, `mlp:${q}`, () => medlinePlus(q, fetcher))),
+    ...t.drugs.map(d => once(seen, `fda:${d}`, () => openFDA(d, fetcher))),
+  ]);
+  const urls = new Set();
+  const entries = [];
+  let unread = 0;
+  for (const found of got) {
+    if (found === null) { unread++; continue; }
+    for (const e of found) {
+      if (!(e.official || e.html) || urls.has(e.url)) continue;
+      urls.add(e.url);
+      entries.push(e);
+    }
+  }
+  return { entries, unread };
 }
 
 const KIND_NAMES = { mcq: 'multiple-choice question', card: 'flashcard', case: 'clinical case', osce: 'OSCE station checklist',
@@ -248,7 +283,8 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   const votes = signals?.votes || [];
   const keyLetter = item.kind === 'mcq' && item.key >= 0 ? letter(item.key) : null;
   const f = features({ kind: item.kind, rules, votes, evidenceCount: (signals?.evidence || []).length,
-                       sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter });
+                       sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter,
+                       sourceProof: fullyProven(signals?.proof) });
   const p = predict(f, weights);
   // the oath check: a dose, a diagnosis or a treatment needs evidence behind
   // it; Jev's yes (jev.js, recorded with the votes) can only add one
@@ -260,11 +296,15 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   const fixed = suggestedFix(item, votes);
   const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null);
   if (contradicted) reasons.push('It contradicts its own lecture.');
+  const cut = signals?.proof?.why;
+  if (cut === 'lookup' || cut === 'timeout' || cut === 'error') reasons.push('An official source could not be read this time; it will be checked again.');
+  else if (cut === 'budget') reasons.push('Its official sources were too long to read in this batch; it will be checked again on its own.');
   return {
     id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: final, modelVersion: weights.version, reasons,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: fixed,
     ...(oath ? { oath: oathClaims(text) } : {}),
     ...(claimsReply(claims) || {}),
+    ...(signals?.proof ? { proof: signals.proof } : {}),
   };
 }
 
@@ -323,6 +363,12 @@ export function suggestedFix(item, votes) {
 //   lookup    each item's cached signals, by its hash; out of time or
 //             failed: not cached, so the item is checked again
 //   evidence  each item's literature (evidence.js); out of time: no evidence
+//   proof     each item's claims against the official sources, word for word
+//             (proof.js), sharing the evidence's lookups; counted in
+//             characters (PROOF_CHARS a batch), since a Worker's clock stands
+//             still while it computes. Out of time, failed, a source that
+//             could not be read or a batch too long to read whole: not
+//             proven, and proven again on the next check
 //   votes     the checker models, one after another; a voter that fails, or
 //             is still thinking at its budget, is no vote, and the next one
 //             is asked
@@ -336,7 +382,7 @@ export function suggestedFix(item, votes) {
 // hashes; between lookup and evidence, the day's allowance, spent only when
 // something is left to check. A stage with nothing to do is 'skipped'.
 
-/** @typedef {'rules'|'claims'|'lookup'|'evidence'|'votes'|'jev'|'verdict'|'cache'} StageName */
+/** @typedef {'rules'|'claims'|'lookup'|'evidence'|'proof'|'votes'|'jev'|'verdict'|'cache'} StageName */
 /** @typedef {'ok'|'timeout'|'error'|'skipped'} StageStatus */
 /**
  * What a stage gives back: its value - or, where it ran out of time or
@@ -347,13 +393,14 @@ export function suggestedFix(item, votes) {
 /** @typedef {{ rule: string, severity: 'severe'|'minor', detail: string }} RuleHit */
 /** @typedef {{ id: string, source: string, title: string, url: string, text: string }} Evidence */
 /** @typedef {import('./claims.js').ClaimFindings} ClaimFindings */
-/** @typedef {{ votes: object[], sourceMatch: number|null, evidence: object[], jevOath?: number }} Signals */
+/** @typedef {{ v: number, claims: number, proven: number, quotes: object[], why?: string }} Proof */
+/** @typedef {{ votes: object[], sourceMatch: number|null, evidence: object[], jevOath?: number, proof?: Proof }} Signals */
 /** @typedef {{ model: string, parsed: (object|null)[] }} Ballot */
 /** @typedef {{ ballots: Ballot[], failures: string[] }} Votes */
 /** @typedef {{ from: 'cache'|'check'|'none', signals: Signals|null, reason?: 'day'|'busy' }} Outcome */
 
 /// The stages, in the order they run.
-export const STAGES = ['rules', 'claims', 'lookup', 'evidence', 'votes', 'jev', 'verdict', 'cache'];
+export const STAGES = ['rules', 'claims', 'lookup', 'evidence', 'proof', 'votes', 'jev', 'verdict', 'cache'];
 
 /// Each stage's time budget, ms. Every one is longer than the timeout the
 /// work already keeps inside it (evidence.js gives a source 6 s, ai.js a
@@ -365,6 +412,7 @@ export const BUDGETS = {
   claims: 250,      // the batch; pure, so measured - and bounded by MAX_WORK
   lookup: 5_000,    // each item's cached verdict, all at once
   evidence: 8_000,  // each item's literature, all at once
+  proof: 8_000,     // each item's official sources, all at once; then pure
   votes: 125_000,   // each voter, one after another (MAX_CALLS of them at most)
   jev: 1_500,       // each item's question, one after another (JEV_TIMEOUT_MS + 500)
   verdict: 250,     // the batch; pure, so measured, not enforced
@@ -449,11 +497,46 @@ export async function lookupStage(env, hashes, budget = BUDGETS.lookup) {
 /// evidence: each item's literature, numbered [S1]...; the lookups are
 /// shared within the batch. An item whose lookups run out of time has none.
 /** @returns {Promise<StageResult<Evidence[][]>>} */
-export async function evidenceStage(items, fetcher, budget = BUDGETS.evidence) {
+export async function evidenceStage(items, fetcher, budget = BUDGETS.evidence, seen = new Map()) {
   const started = Date.now();
-  const seen = new Map();
   const found = await Promise.all(items.map(item => within(budget, () => evidenceFor(item, fetcher, seen), [])));
   return ended('evidence', found.map(f => f.status), started, budget, found.map(f => f.value));
+}
+
+/// Proofs that should be worked out again: none, an older version's, or one
+/// cut short (a batch too long to read whole, a source not read, out of time).
+export const proofDue = p => !p || typeof p !== 'object' || p.v !== PROOF_VERSION || ['budget', 'timeout', 'lookup', 'error'].includes(p.why);
+
+/// proof: each item's claims against its official sources (proof.js), the
+/// lookups shared with the evidence stage (`seen`). The batch shares
+/// `maxChars` characters of reading as the claims stage shares its work: an
+/// item may use what is left but half an even share for each item after it,
+/// and a section read once is paid for once. An item whose lookups run out
+/// of time, or whose proof fails, is not proven.
+/** @returns {Promise<StageResult<Proof[]>>} */
+export async function proofStage(items, fetcher, budget = BUDGETS.proof, seen = new Map(), maxChars = PROOF_CHARS) {
+  const started = Date.now();
+  const looked = await Promise.all(items.map(item => within(budget, () => officialFor(item, fetcher, seen), null)));
+  const statuses = looked.map(l => l.status);
+  const unproven = why => ({ v: PROOF_VERSION, claims: 0, proven: 0, quotes: [], why });
+  let left = maxChars;
+  const kept = Math.floor(maxChars / items.length / 2);
+  const paid = new Map();
+  const proofs = items.map((item, n) => {
+    if (looked[n].value === null) return unproven(looked[n].status === 'timeout' ? 'timeout' : 'error');
+    const { entries, unread } = looked[n].value;
+    const share = Math.max(0, left - kept * (items.length - n - 1));
+    try {
+      const { read, ...proof } = prove(item, entries, { chars: share, paid, unread });
+      left -= read;
+      return proof;
+    } catch (error) {
+      console.error('accuracy proof', error);
+      statuses.push('error');
+      return unproven('error');
+    }
+  });
+  return ended('proof', statuses, started, budget, proofs);
 }
 
 /// votes: the free checker models in order, never the writer, until two
@@ -608,15 +691,15 @@ export function verdictStage(items, hashes, outcomes, rules, weights, strict, bu
 }
 
 /// cache: the new signals kept by hash, one after another, in the batch's
-/// order. A write that fails or runs out of time is logged and left: the
+/// order (a cached item proven again keeps its age: `keepAge`). A write that fails or runs out of time is logged and left: the
 /// verdict still goes back, and the item is checked again next time.
 /** @returns {Promise<StageResult<boolean[]>>} */
 export async function cacheStage(env, writes, budget = BUDGETS.cache) {
   const started = Date.now();
   const statuses = [];
   const kept = [];
-  for (const { hash, signals } of writes) {
-    const wrote = await within(budget, () => writeVerdict(env, hash, signals), false);
+  for (const { hash, signals, keepAge = false } of writes) {
+    const wrote = await within(budget, () => writeVerdict(env, hash, signals, keepAge), false);
     if (wrote.status !== 'ok') console.error('accuracy cache', wrote.status, wrote.error || '');
     statuses.push(wrote.status);
     kept.push(wrote.status === 'ok');
@@ -665,17 +748,33 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const cached = done(await lookupStage(env, hashes, budget.lookup));
   cached.forEach((signals, i) => { if (signals) outcomes[i] = { from: 'cache', signals }; });
   const todo = items.map((_, i) => i).filter(i => !cached[i]);
+  // cached items whose proof is missing or was cut short are proven again,
+  // with no vote and no allowance (proof costs no model call); their signals
+  // are kept again with the new proof, their age as it was
+  const reprove = items.map((_, i) => i).filter(i => cached[i] && proofDue(cached[i].proof));
+  const seen = new Map();
+  const proved = async which => (which.length
+    ? done(await proofStage(which.map(i => items[i]), fetcher, budget.proof, seen))
+    : done(skipped('proof', budget.proof, [])));
+  const reproved = (which, proofs, writes) => which.forEach((i, n) => {
+    const signals = { ...cached[i], proof: proofs[n] };
+    outcomes[i] = { ...outcomes[i], signals };
+    writes.push({ hash: hashes[i], signals, keepAge: true });
+  });
   // nothing new to check (all cached, or no allowance left): the verdicts
   // from what there is, and the stages in between skipped
-  const without = (graded, extra, status) => {
+  const without = async (extra, status) => {
     done(skipped('evidence', budget.evidence, []));
+    const writes = [];
+    reproved(reprove, await proved(reprove), writes);
     done(skipped('votes', budget.votes, { ballots: [], failures: [] }));
     done(skipped('jev', budget.jev, []));
+    const graded = unchecked(extra.limit);
     const results = done(verdictStage(items, hashes, graded, rules, weights, strict, budget.verdict, claims));
-    done(skipped('cache', budget.cache, []));
+    done(writes.length ? await cacheStage(env, writes, budget.cache) : skipped('cache', budget.cache, []));
     return reply({ items: results, ...extra }, status);
   };
-  if (!todo.length) return without(outcomes, {}, 200);
+  if (!todo.length) return without({}, 200);
 
   // the day's allowance, per batch: background checks have a smaller share of
   // their own, so a library being checked never leaves the student without
@@ -690,20 +789,23 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
     if (background && !owner && !await take(`accuracy-bg:${account}`, Number(env.ACCURACY_BACKGROUND_BATCHES) || 20)) return false;
     return await take(`accuracy:${who}`, limit) && await take('accuracy:all', Number(env.ACCURACY_DAILY_CEILING) || 3000);
   };
-  if (!await allowance()) return without(unchecked('day'), { limit: 'day' }, 429);
+  if (!await allowance()) return without({ limit: 'day' }, 429);
 
-  const found = done(await evidenceStage(todo.map(i => items[i]), fetcher, budget.evidence));
-  const entries = todo.map((i, n) => ({ i, item: items[i], evidence: found[n] }));
+  const found = done(await evidenceStage(todo.map(i => items[i]), fetcher, budget.evidence, seen));
+  const proofs = await proved([...todo, ...reprove]);
+  const entries = todo.map((i, n) => ({ i, item: items[i], evidence: found[n], proof: proofs[n] }));
   const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes));
   const votes = entries.map((_, n) => votesOn(ballots, n));
   const jev = done(await jevStage(env, entries, votes, fetcher, budget.jev));
 
   const writes = [];
+  reproved(reprove, proofs.slice(todo.length), writes);
   for (const [n, e] of entries.entries()) {
     if (!votes[n].length) { outcomes[e.i] = { from: 'none', signals: null, reason: 'busy' }; continue; }
     const signals = {
       kind: e.item.kind, votes: votes[n], sourceMatch: sourceMatch(e.item, e.item.source),
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
+      proof: e.proof,
     };
     if (jev[n] !== null) signals.jevOath = jev[n];
     outcomes[e.i] = { from: 'check', signals };
@@ -746,7 +848,13 @@ async function readVerdict(env, hash) {
 }
 
 /// Throws when the write fails: the cache stage logs it and carries on.
-async function writeVerdict(env, hash, signals) {
+/// `keepAge`: signals kept again (a new proof), as old as they were, so a
+/// proof never makes the votes look newer than they are.
+async function writeVerdict(env, hash, signals, keepAge = false) {
+  if (keepAge) {
+    await env.DB.prepare('UPDATE accuracy_verdicts SET signals = ? WHERE hash = ?').bind(JSON.stringify(signals), hash).run();
+    return;
+  }
   await env.DB.prepare('INSERT OR REPLACE INTO accuracy_verdicts (hash, signals, created_at) VALUES (?, ?, ?)')
     .bind(hash, JSON.stringify(signals), now()).run();
 }
