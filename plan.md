@@ -76,9 +76,18 @@ Last updated: 2026-10-08, 5:32 PM Cairo.
 - The look rework, after the owner's reference (section 4, "The look"), is
   on wip and design/: the Linux suites and preflight pass. GraphNeuronLook
   only compiles on the Mac, so its App build on design/ is the check.
-- The wip App build (run 37781812785) runs the whole UI suite on a
-  simulator after its compile (design/ branches skip it); at 4:40 PM it
-  was still in that step.
+- The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
+  simulator after its compile (design/ branches skip it), then hit its
+  60-minute limit. Two map tests failed:
+  - testNeuronsAtRest, on the old "regions" check (fixed in 6847330);
+  - testHoldForOptions: in Neurons, "Heart failure" is inside the closed
+    Cardiology cell, so there was nothing to hold. The test now flies in to
+    Cardiology first and names the theme when it fails. It failed on
+    personal's 3827785 too (run 37757846270), perhaps in Space as well.
+  - The accessibility tests fail on personal as well ("no example mcq set
+    in the library"); that step is continue-on-error and not the map's.
+- Shot 13 ("landscape") is portrait on the iPhone because the iPhone app
+  is portrait-only (project.yml); only the iPad turns.
 - app-build.yml runs on every push to personal and design/**. Keep work in
   progress on wip/3d-neurons-m3 until the app compiles. To compile-check it
   there, dispatch the build:

@@ -286,16 +286,20 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
-    /// Hold a body still: its options beside it.
+    /// Hold a body still: its options beside it. In Neurons a note is only
+    /// on the map once its cell is open, so the camera flies in to
+    /// Cardiology first.
     func testHoldForOptions() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewHold", "Heart failure"]
+            if theme == "neurons" { app.launchArguments += ["-graphPreviewFly", "Cardiology"] }
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
             // the scene, then the app's own hold: a loaded runner takes its time
-            XCTAssertTrue(app.otherElements["graphNodeMenu"].waitForExistence(timeout: 45), "no options")
-            XCTAssertTrue(app.buttons["Link to\u{2026}"].exists && app.buttons["Delete"].exists, "an option is missing")
+            XCTAssertTrue(app.otherElements["graphNodeMenu"].waitForExistence(timeout: 45), "no options in \(theme)")
+            XCTAssertTrue(app.buttons["Link to\u{2026}"].exists && app.buttons["Delete"].exists,
+                          "an option is missing in \(theme)")
             snap(app, "43-\(k + 1)-\(theme)-hold-options")
             app.terminate()
         }
