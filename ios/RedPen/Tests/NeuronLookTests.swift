@@ -186,6 +186,8 @@ check("N5 the halo draws every state's process",
 check("N5 the soma's interior is the palette's",
       NeuronShaders.soma.contains("float3(0.2, 0.07, 0.46)") && NeuronShaders.soma.contains("float3(0.52, 0.24, 0.98)")
       && NeuronPalette.interior == SIMD3<Float>(0.2, 0.07, 0.46) && NeuronPalette.heart == SIMD3<Float>(0.52, 0.24, 0.98))
+check("N5 an opened nucleus is drawn as big as the layout keeps it for the parts",
+      NeuronShaders.soma.contains("mix(0.36 + 0.25 * rpNucleus, \(GraphNeurons.openNucleus), rpOpen)"))
 check("N5 the pacemaker's beat is the pulsar's period in both",
       NeuronShaders.soma.contains("rp_t / 1.5") && NeuronShaders.halo.contains("rp_t / 1.5")
       && SpaceOptics.pulsarPeriod == 1.5)

@@ -7,10 +7,13 @@ import Foundation
 // - a top-level folder is a cell: a soma round a nucleus, floating on one
 //   sheet facing the camera, the cells ordered by which way their links
 //   run (senders first, receivers after);
-// - a folder inside it is a part of that cell (an organelle) INSIDE the
-//   soma, and a folder inside that a smaller part inside the part;
+// - a folder inside it is a part of that cell INSIDE its nucleus (the
+//   owner asked for the subfolders in the nucleus: opening the cell
+//   swells it to hold them), and a folder inside that a smaller part
+//   inside the part;
 // - a note is the smallest thing: a page a vesicle, an idea a granule,
-//   inside the folder that holds it;
+//   inside the folder that holds it (in a cell, in the cytoplasm round
+//   the nucleus);
 // - insides load only when opened (UniverseInput.open): a closed cell is
 //   its soma alone, an opened one shows its parts and notes, and an
 //   opened part its own;
@@ -32,8 +35,9 @@ import Foundation
 //
 // Pure and deterministic: Foundation only, the same notes always give the
 // same picture, and nothing meets: what floats inside a container stays
-// inside its membrane and clear of its siblings and the nucleus however it
-// drifts, and no two cells touch. Tested on Linux
+// inside its membrane and clear of its siblings however it drifts (in a
+// cell its parts inside the nucleus, its notes outside it), and no two
+// cells touch. Tested on Linux
 // (Tests/NeuronHierarchyTests).
 
 /// What each body is in the Neurons theme (ThemeBody.role).
@@ -73,9 +77,14 @@ nonisolated enum GraphNeurons {
     /// What floats inside a container stays within this share of its
     /// radius (the membrane is the rest).
     static let inner: Double = 0.8
-    /// A cell's nucleus, kept clear at its centre, as a share of the inner
-    /// radius.
-    static let nucleus: Double = 0.22
+    /// An opened cell's nucleus, as a share of the cell's radius: opening
+    /// swells it from its resting size to this, and it holds the cell's
+    /// parts, its notes floating in the cytoplasm round it (zones).
+    /// NeuronShaders.soma draws it at this size.
+    static let openNucleus: Double = 0.6
+    /// What floats in an opened nucleus stays within this share of its
+    /// radius, clear of its envelope.
+    static let nucleusRoom: Double = 0.9
     /// The room kept between things inside a container, as a share of the
     /// inner radius: more than two wobbles, so they never meet.
     static let room: Double = 0.05
@@ -104,9 +113,20 @@ nonisolated enum GraphNeurons {
         GraphUniverse.clamp(0.34 + 0.035 * log2(1 + Double(count)), 0.34, 0.6)
     }
 
-    /// A part's radius as a share of what holds it: bigger with more notes.
+    /// A part's radius as a share of what holds it: bigger with more notes,
+    /// but a small part of it (the owner asked for smaller parts), and
+    /// still bigger than any note beside it (noteShare at most 0.088).
     static func partShare(count: Int) -> Double {
-        GraphUniverse.clamp(0.22 + 0.06 * log2(1 + Double(count)), 0.22, 0.45)
+        GraphUniverse.clamp(0.1 + 0.03 * log2(1 + Double(count)), 0.1, 0.22)
+    }
+
+    /// Where what floats inside an opened container goes: in a cell its
+    /// parts inside the swollen nucleus and its notes in the cytoplasm
+    /// round it, in a part everything anywhere within the room.
+    static func zones(radius: Double, cell: Bool) -> NeuronZones {
+        let room: Double = inner * radius
+        guard cell else { return NeuronZones(parts: room, core: 0, room: room) }
+        return NeuronZones(parts: nucleusRoom * openNucleus * radius, core: openNucleus * radius, room: room)
     }
 
     /// A note's radius as a share of its folder's: a page bigger than an
@@ -160,6 +180,17 @@ nonisolated struct NeuronNoteLink: Sendable, Equatable {
     let to: Int
     let strength: Int
     let kind: FiberKind
+}
+
+/// Where what floats inside an opened container goes, as distances from
+/// its centre (GraphNeurons.zones).
+nonisolated struct NeuronZones: Sendable {
+    /// The parts stay within this.
+    let parts: Double
+    /// The notes stay beyond this (0: anywhere)...
+    let core: Double
+    /// ...and within this.
+    let room: Double
 }
 
 /// Something floating inside a container: a part (a container index) or a
@@ -446,45 +477,69 @@ nonisolated struct NeuronPlanner: Sendable {
     // MARK: inside a container
 
     /// Where everything inside a container floats: its parts and its notes,
-    /// biggest first, each at the first of a fixed run of random places in
-    /// the room inside the membrane that keeps clear of the nucleus and of
-    /// everything already placed by the room between them (more than both
-    /// wobbles, so they never meet). Crowded insides shrink together,
-    /// sizes, room and wobble alike, until they fit. Returns them and the
-    /// wobble.
+    /// each in its zone (GraphNeurons.zones: in a cell its parts inside
+    /// the swollen nucleus and its notes in the cytoplasm round it, in a
+    /// part all together). Returns them and the wobble: a cell's notes
+    /// shrink at least as much as its parts, so a note stays smaller than
+    /// any part beside it.
     func pack(_ c: Int, radius: Double) -> (items: [NeuronItem], amp: Double) {
-        var items: [NeuronItem] = []
+        var parts: [NeuronItem] = []
         for k in tree.kids[c] {
-            items.append(NeuronItem(container: k, note: -1,
+            parts.append(NeuronItem(container: k, note: -1,
                                     radius: GraphNeurons.partShare(count: tree.count[k]) * radius))
         }
+        var notes: [NeuronItem] = []
         for i in notesIn[c] {
             let note: UniverseNote = tree.noteList[i]
-            items.append(NeuronItem(container: -1, note: i,
+            notes.append(NeuronItem(container: -1, note: i,
                                     radius: GraphNeurons.noteShare(page: note.isPage, words: note.words) * radius))
         }
-        guard !items.isEmpty else { return ([], 0) }
-        items.sort { a, b in
+        let zones: NeuronZones = GraphNeurons.zones(radius: radius, cell: tree.depth[c] == 0)
+        let gap: Double = GraphNeurons.room * zones.room
+        let amp: Double = GraphNeurons.wobble * zones.room
+        var random = UniverseRandom(tree.cSeed(c) ^ 0xC0FF_EE11)
+        guard zones.core > 0 else {
+            let all = fit(biggestFirst(parts + notes), room: zones.room, core: 0, gap: gap, amp: amp, most: 1,
+                          random: &random)
+            return (all.items, amp * all.scale)
+        }
+        let inner = fit(biggestFirst(parts), room: zones.parts, core: 0, gap: gap, amp: amp, most: 1,
+                        random: &random)
+        let outer = fit(biggestFirst(notes), room: zones.room, core: zones.core, gap: gap, amp: amp,
+                        most: inner.scale, random: &random)
+        return (inner.items + outer.items, amp * min(inner.scale, outer.scale))
+    }
+
+    /// Biggest first, a part before a note of its size, then in the tree's
+    /// order.
+    func biggestFirst(_ items: [NeuronItem]) -> [NeuronItem] {
+        items.sorted { a, b in
             if a.radius != b.radius { return a.radius > b.radius }
             if a.isPart != b.isPart { return a.isPart }
             return a.isPart ? tree.lessC(a.container, b.container) : tree.lessN(a.note, b.note)
         }
-        let room: Double = GraphNeurons.inner * radius
-        let core: Double = tree.depth[c] == 0 ? GraphNeurons.nucleus * room : 0
-        let gap: Double = GraphNeurons.room * room
-        let amp: Double = GraphNeurons.wobble * room
+    }
+
+    /// One zone's floats, biggest first, each at the first of a fixed run
+    /// of random places in the room between `core` and `room` from the
+    /// centre that keeps clear of everything already placed by the room
+    /// between them (more than both wobbles, so they never meet). Crowded
+    /// zones shrink together, sizes, room and wobble alike, until they fit
+    /// (never past `most`). Returns them and the scale.
+    func fit(_ items: [NeuronItem], room: Double, core: Double, gap: Double, amp: Double, most: Double,
+             random: inout UniverseRandom) -> (items: [NeuronItem], scale: Double) {
+        guard !items.isEmpty else { return ([], 1) }
         let sway: Double = amp * GraphNeurons.wobbleBound
         // start within the fill, with the biggest fitting beside the
         // nucleus (or alone) and the two biggest side by side
         var need: Double = 0
         for item in items { need += pow(item.radius + gap * 0.5, 3) }
-        var scale: Double = min(1, cbrt(GraphNeurons.fill * (pow(room, 3) - pow(core, 3)) / need))
+        var scale: Double = min(most, cbrt(GraphNeurons.fill * (pow(room, 3) - pow(core, 3)) / need))
         let r1: Double = items[0].radius
         scale = min(scale, core > 0 ? (room - core) / (2 * r1 + gap + sway) : room / (r1 + sway))
         if items.count > 1 {
             scale = min(scale, 2 * room / (2 * (r1 + items[1].radius) + gap + 2 * sway))
         }
-        var random = UniverseRandom(tree.cSeed(c) ^ 0xC0FF_EE11)
         let m: Int = max(600, 16 * items.count)
         var spots: [SIMD3<Double>] = []
         spots.reserveCapacity(m)
@@ -495,7 +550,7 @@ nonisolated struct NeuronPlanner: Sendable {
         for _ in 0..<80 {
             if let placed = NeuronPlanner.place(items, spots: spots, room: room, core: core, gap: gap * scale,
                                                 sway: sway * scale, scale: scale) {
-                return (placed, amp * scale)
+                return (placed, scale)
             }
             scale *= 0.85
         }
@@ -504,7 +559,8 @@ nonisolated struct NeuronPlanner: Sendable {
     }
 
     /// One try at placing `items` at `scale`: each at the first spot after
-    /// the last one taken that is clear; nil when one finds none.
+    /// the last one taken that is clear, the spots spread through the room
+    /// between the core and the membrane; nil when one finds none.
     static func place(_ items: [NeuronItem], spots: [SIMD3<Double>], room: Double, core: Double, gap: Double,
                       sway: Double, scale: Double) -> [NeuronItem]? {
         var placed: [ThemeBall] = core > 0 ? [ThemeBall(c: SIMD3<Double>(0, 0, 0), r: core)] : []
@@ -515,16 +571,28 @@ nonisolated struct NeuronPlanner: Sendable {
         for item in items {
             let r: Double = item.radius * scale
             let reach: Double = room - r - sway
-            guard reach >= 0 else { return nil }
+            let low: Double = core > 0 ? core + gap + r : 0
+            guard reach >= low else { return nil }
             var j: Int = next
-            while j < spots.count && clearance(spots[j] * reach, r, placed, gap: gap) < 0 { j += 1 }
+            while j < spots.count && clearance(spread(spots[j], low: low, high: reach), r, placed, gap: gap) < 0 {
+                j += 1
+            }
             guard j < spots.count else { return nil }
-            let at: SIMD3<Double> = spots[j] * reach
+            let at: SIMD3<Double> = spread(spots[j], low: low, high: reach)
             placed.append(ThemeBall(c: at, r: r))
             out.append(NeuronItem(container: item.container, note: item.note, radius: r, at: at))
             next = j + 1
         }
         return out
+    }
+
+    /// A spot in the unit ball moved out into the shell from `low` to
+    /// `high` (the ball of radius `high` itself when `low` is 0).
+    static func spread(_ p: SIMD3<Double>, low: Double, high: Double) -> SIMD3<Double> {
+        guard low > 0 else { return p * high }
+        let d: Double = GraphUniverse.length(p)
+        let u: SIMD3<Double> = d > 1e-12 ? p / d : SIMD3<Double>(0, 1, 0)
+        return u * (low + (high - low) * d)
     }
 
     /// How far a ball at p of radius r keeps clear of every placed ball

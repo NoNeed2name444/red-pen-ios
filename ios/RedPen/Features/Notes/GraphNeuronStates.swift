@@ -5,10 +5,10 @@ import Foundation
 // The owner's Neurons target (docs/design/targets-2026-10-01.md, section 3)
 // and the close-up they circled on their board: a glass cell on deep navy,
 // far blurred blue networks and gold and blue bokeh behind it; inside the
-// soma a deep-violet nucleus with a bright violet-white heart, golden light
-// hugging it; and, as the space's bodies have their styles, cells shown in
-// six states - each its own biological process, with its own look and
-// movement:
+// soma a solid violet nucleus (the owner asked for a nucleus, not a light,
+// at its centre), golden light hugging it; and, as the space's bodies have
+// their styles, cells shown in six states - each its own biological
+// process, with its own look and movement:
 //
 //   resting    (the rocky planet's mirror) calm, slowly breathing
 //   firing     (the sun's)       a burst of spikes: flickering, rays of
@@ -47,9 +47,9 @@ nonisolated enum NeuronPalette {
     /// A receptor's gold, a drifting free cell's pale ice.
     static let receptor = SIMD3<Float>(1.0, 0.84, 0.48)
     static let drifter = SIMD3<Float>(0.62, 0.8, 0.98)
-    /// The soma's interior, as in the owner's close-up: a deep violet,
-    /// brightening to violet at its heart; the nucleus a violet-magenta,
-    /// its nucleolus brighter.
+    /// The soma's interior, as in the owner's close-up: a deep violet; the
+    /// nucleus's chromatin between it and the brighter heart violet, its
+    /// nucleolus the violet-magenta (the soma's tint B).
     static let interior = SIMD3<Float>(0.2, 0.07, 0.46)
     static let heart = SIMD3<Float>(0.52, 0.24, 0.98)
     static let nucleus = SIMD3<Float>(0.82, 0.36, 1.0)

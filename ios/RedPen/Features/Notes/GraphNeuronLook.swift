@@ -9,31 +9,34 @@ import simd
 // How the Neurons theme (GraphNeurons) is dressed, for the shared theme
 // scene (GraphThemeScene), after the close-up the owner circled on their
 // board: every cell a glass soma (NeuronShaders.soma, its membrane
-// wobbling) round a deep-violet nucleus with a bright heart, golden light
-// hugging it, its edge white-blue; a crown of glass dendrites with golden
+// wobbling) round a solid violet nucleus (shaded, not glowing), golden
+// light hugging it, its edge white-blue; a crown of glass dendrites with golden
 // light inside growing out of it (swaying), a faint glow round it, and a
 // glow its dendrites give off when an impulse arrives - on dark teal-navy
 // fluid with far, blurred blue neurons and gold and blue bokeh behind,
 // instead of stars.
 //
 // What a cell holds is drawn inside it, and only once it is opened: a part
-// (a folder in the cell's folder) a smaller gel sphere floating in its
-// cytoplasm, a page a vesicle, an idea a granule. An opened container
-// clears its middle so what floats there shows: its nucleus settles small
-// at the centre, its speckle and its interior's haze thin (rpOpen, eased
-// over most of a second as it opens or closes).
+// (a folder in the cell's folder) a small gel sphere floating in its
+// nucleus, a page a vesicle and an idea a granule in the cytoplasm round
+// it. Opening a cell swells its nucleus to hold its parts (as the owner
+// asked; GraphNeurons.openNucleus), its chromatin thinning and its
+// nucleolus fading so they show, and thins its speckle and its interior's
+// haze (rpOpen, eased over most of a second as it opens or closes).
 //
-// Links are the cells' axons: each grows out of its sender from under the
-// membrane, swells into a hillock and tapers, and ends in one synapse on
-// its target (GraphLinkArbor); its width follows the sender's size and the
-// link's strength (GraphRibbonWriter.widthStep).
+// Links are the cells' axons, each one of its sender's dendrites prolonged
+// (as the owner asked): a thick glass tube flowing out of the body from
+// under the membrane in a trumpet, golden near the sender and dark glass
+// beyond, ending in one synapse on its target (GraphLinkArbor); its width
+// follows the sender's size and the link's strength
+// (GraphRibbonWriter.widthStep).
 //
 // Colours are the close-up's violet and gold on dark teal-navy
 // (NeuronPalette): each cell keeps a touch of its own dye (green, cyan,
 // pink, amber, violet) in its nucleus and at its edge, its parts and ideas
 // leaning to the dye's accent; receptors gold, drifting cells pale ice;
-// axons glass with golden-white light inside, impulses amber in a warm
-// orange halo.
+// axons glass like the dendrites, gold inside near the sender, impulses
+// amber in a warm orange halo.
 //
 // Each cell shows a state (NeuronState, chosen in the Look menu or by its
 // role): resting, firing, releasing, pacemaker, migrating, engulfing - the
@@ -138,8 +141,11 @@ final class GraphNeuronLook: GraphThemeLook {
     let farMaterial: SCNMaterial
     /// The axons' half widths before the sender's width step
     /// (GraphRibbonWriter.stepWidth): statics, so init can pass them on.
-    static let nearHalf: Float = 0.165
-    static let farHalf: Float = 0.26
+    /// Near: the links inside an opened cell; far: those between cells,
+    /// a tube about half a top cell's radius wide, as thick as one of its
+    /// dendrites, as the owner marked.
+    static let nearHalf: Float = 0.23
+    static let farHalf: Float = 0.38
     var linkHalfWidth: Float { Self.nearHalf }
     var farHalfWidth: Float { Self.farHalf }
     /// An axon starts at 0.9 of its sender's trim radius (0.72 of the

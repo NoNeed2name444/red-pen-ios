@@ -424,26 +424,27 @@ func ladderProblems(_ plan: ThemePlan) -> [String] {
     return problems
 }
 
-/// What floats out through its container's membrane, into a cell's
-/// nucleus or into a sibling at some time. Measured relative to the
-/// container (the drift offsets), so even ten levels deep the floats are
-/// fine.
+/// What floats out through its container's membrane, a cell's part out
+/// of its nucleus or a note into it, or into a sibling at some time.
+/// Measured relative to the container (the drift offsets), so even ten
+/// levels deep the floats are fine.
 func insideProblems(_ plan: ThemePlan) -> [String] {
     var problems: [String] = []
     for (p, inside) in insides(plan).enumerated() where !inside.isEmpty {
         let holder: ThemeBody = plan.bodies[p]
-        let room = Float(GraphNeurons.inner) * holder.sphere
-        let core: Float = holder.depth == 0 ? Float(GraphNeurons.nucleus) * room : 0
+        let zones: NeuronZones = GraphNeurons.zones(radius: Double(holder.sphere), cell: holder.depth == 0)
         let radii: [Float] = inside.map { plan.bodies[$0].sphere }
         for t in looks where problems.count < 4 {
             let at: [SIMD3<Float>] = inside.map { GraphUniverse.offset(plan.bodies[$0].orbit, time: t) }
             for n in 0..<inside.count {
                 let name: String = plan.bodies[inside[n]].title
                 let far: Float = size(at[n])
+                let part: Bool = plan.bodies[inside[n]].kind != .note
+                let room = Float(part ? zones.parts : zones.room)
                 if far + radii[n] > room * 1.00001 {
-                    problems.append("\(name) out of \(holder.title) at \(t): \(far + radii[n]) > \(room)")
+                    problems.append("\(name) out of \(part ? "the nucleus of " : "")\(holder.title) at \(t): \(far + radii[n]) > \(room)")
                 }
-                if core > 0 && far - radii[n] < core * 0.99999 {
+                if !part && zones.core > 0 && far - radii[n] < Float(zones.core) * 0.99999 {
                     problems.append("\(name) in the nucleus of \(holder.title) at \(t)")
                 }
                 for m in (n + 1)..<inside.count where distance(at[n], at[m]) < radii[n] + radii[m] {

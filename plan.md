@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 6:15 PM Cairo.
+Last updated: 2026-10-08, 8:10 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the cell body redrawn ("Neurons: the cell body redrawn closer to the circled close-up") | M3 in progress; the Linux suites pass (preflight, 6:50 PM); 95c4b8d (the first close-up redraw) compiled on the Mac (App build run 37800740887, green) |
+| wip/3d-neurons-m3 | the nucleus holding the parts ("Neurons: a nucleus holding the subfolders, links as prolonged dendrites") | M3 in progress; the Linux suites pass (preflight, 8 PM); 24c0ebc (glass dendrites, teal-navy background) compiled on the Mac (App build run 37807614992, green) and was shot (preview run 37807618110) |
 | design/3d-overhaul | the wip head once pushed | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
-| preview/3d-overhaul | 44e42e7 (the look the owner rejected) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| preview/3d-overhaul | the wip head once pushed (24c0ebc before) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -74,8 +74,9 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
   pushes now retry once (swift-tests.yml); b02e48a's run (37786312064)
   passed.
 - The owner rejected the 44e42e7 look ("it's completely different from
-  what i want from u. i only want what is marked in white") and circled the
-  big labelled neuron close-up on their board. The cells are redrawn after
+  what i want from u. i only want what is marked in white", then "i mean
+  black") and circled in black the big labelled neuron close-up on their
+  board. The cells are redrawn after
   that close-up only (section 4, "The look"): no ringed orbs, no threads,
   no circuits. GraphNeuronLook only compiles on the Mac, so its App build
   on design/ is the check.
@@ -87,7 +88,14 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
   base term drowning the glass edge), the axon a thin gold line. The cell
   body is redone (the mandala, swirling strokes, gold limb lobes, a thin
   white-blue rim: section 4, "The look"); then the dendrites and the
-  background (step 6b). The axon is next.
+  background (step 6b, 24c0ebc).
+- On a screenshot of 24c0ebc the owner marked (8 Oct, 7 PM; section 4,
+  verbatim): the purple lights to be a nucleus (done), the links to be the
+  cell's own dendrites prolonged, thick and flowing out of the body, with
+  no oval ring (done: NeuronShaders.axon, NeuronLook.farHalf 0.38), and a
+  cell's subfolders inside its nucleus when it opens, smaller (done:
+  GraphNeurons.zones, openNucleus 0.6, partShare 0.1 to 0.22). Shots of
+  all of it (round B, preview only=testNeurons) are due by 10:30 PM.
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
   60-minute limit. Two map tests failed:
@@ -148,8 +156,20 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      v10); v9 won: six even planar tubes, no forks (forks cut flat).
    - [x] The background: a dark teal-navy (the close-up's (6,20,30) to
      (41,68,89)): NeuronPalette.deep and NeuronTissue's glow hues.
-   - [ ] The axon: a thicker beaded glass tube.
-   - [ ] App build on design/, then step 6.
+   - [x] The nucleus instead of the purple lights (the owner: "remove the
+     lighting of the purple center and make it an nucleus instead of
+     lights"): a solid shaded ball, chromatin, envelope, nucleolus.
+   - [x] The links as the cell's own dendrites prolonged (the owner's
+     marked screenshot): a thick glass tube (farHalf 0.38, nearHalf 0.23)
+     flowing out of the body in a trumpet three times its width, its
+     outline hidden over the soma, gold only near the sender, faint beads.
+     Tried first in the numpy port (scratch axon_v1.py, look a2).
+   - [x] A cell's subfolders inside its nucleus, smaller: opening swells
+     the nucleus from 0.435 R to 0.6 R (its chromatin thinned, nucleolus
+     gone); the parts float inside it (within 0.54 R), the notes in the
+     cytoplasm round it (0.64 R to 0.8 R); partShare 0.1 to 0.22.
+   - [ ] App build on design/ and round B shots (only=testNeurons), then
+     step 6.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
@@ -158,11 +178,25 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 
 ### What the owner asked (verbatim, newest first)
 
+> these should be the connections and the encircled purple lights should turn to a nucleus instead of lights and the nucleus should have the subfolders when the folder opens. the oval encirclement should be removed and replaced by the prolonged dendrites of the cell folder.
+
+With a screenshot of the app (24c0ebc's look) marked up: a thick tube
+drawn flowing out of a cell as the connection, the purple lights circled,
+an oval round a cell crossed out.
+
+> i mean black
+> axons and connections should be part of the gooey cell body just like the image. also subfolders should be smaller parts
+> let's remove neurons too it's wasting lots pf resources
+> don't remove the neurons yet tell i tell u
+> remove the lighting of the purple center and make it an nucleus instead of lights.
+
+Neurons stays until the owner says otherwise; one preview run per round.
+
 > it's completely different from what i want from u. i only want what is marked in white
 
 With a picture of their design board, the big labelled neuron close-up at
-the top right circled in white ("Neuron cell body / Dendrites / Axon /
-Synapse"). Only that close-up is the target now; not the phone screens'
+the top right circled in black (the owner: "i mean black"; "Neuron cell
+body / Dendrites / Axon / Synapse"). Only that close-up is the target now; not the phone screens'
 ringed orbs and threads.
 
 > continue also animate the progressive openings and remove circuits entirely
@@ -205,8 +239,12 @@ The circled close-up (8 Oct, 6 PM), the only target now:
 ### The hierarchy
 
 - A cell is a main folder. A part is a folder inside it, and smaller parts
-  are smaller folders. Notes are the smallest things: a page is a vesicle,
-  an idea a granule. Free notes are receptors (gold) and drifters (pale ice).
+  are smaller folders. A cell's parts float inside its nucleus, which
+  swells to hold them when the cell opens; its notes float in the
+  cytoplasm round it (GraphNeurons.zones). Parts are small (partShare 0.1
+  to 0.22 of what holds them), a note smaller than any part beside it.
+  Notes are the smallest things: a page is a vesicle, an idea a granule.
+  Free notes are receptors (gold) and drifters (pale ice).
 - What a container holds is drawn inside it, and only once it is opened. The
   planner emits children only for opened containers; `input.open` lists them.
 - Links are the cells' axons. Each grows out from under its sender's
@@ -218,10 +256,12 @@ The circled close-up (8 Oct, 6 PM), the only target now:
 What the cells are now, and where (each shader's doc says the same):
 - Soma (NeuronShaders.soma): a dark violet glass ball
   (NeuronPalette.interior (0.2,0.07,0.46) darkening toward the edge, .heart
-  (0.52,0.24,0.98) at the middle, a touch of the dye, tint A); a violet
-  mandala at its heart (six bright points round the star, thin rays
-  between); short strokes swirling round it, violet near the heart and gold
-  toward the edge; a few sparkles in depth. At the limb golden filament
+  (0.52,0.24,0.98) at the middle, a touch of the dye, tint A); at its
+  middle a solid nucleus (shaded from the upper left, no glow: mottled
+  chromatin, a lavender envelope with pores, a nucleolus in tint B),
+  0.435 R at rest, swelling to 0.6 R when the cell opens to hold its parts
+  (chromatin thinned, nucleolus gone); short strokes swirling round it,
+  violet near it and gold toward the edge; a few sparkles in depth. At the limb golden filament
   light in lobes that blaze in places, white-hot on their crests, with
   golden glints (tint C, NeuronLook.sparkle (1,0.88,0.6)); then a thin
   white-blue glass rim, a faint violet sheen inside it and a wet highlight.
@@ -242,9 +282,12 @@ What the cells are now, and where (each shader's doc says the same):
 - Halo (NeuronShaders.halo): one faint, gold-leaning glow ((1,0.74,0.36)·0.7
   + NeuronPalette.glow·0.3), brightest at the membrane, reaching only a
   little way in, fading softly out with no seam.
-- Axon (NeuronShaders.axon): a glass tube, white-blue at its edges,
-  golden-white light down its middle (NeuronLook.fibre (1,0.8,0.45), tract
-  (1,0.72,0.38)), brighter at each node between the myelin's beads, golden
+- Axon (NeuronShaders.axon): one of the sender's dendrites prolonged (the
+  owner's marked screenshot): a thick glass tube (NeuronLook.farHalf 0.38,
+  about half a top cell's radius), flowing out of the body in a trumpet
+  three times its width from under the membrane (its outline hidden over
+  the soma), a white-blue glass edge, dark violet glass inside, golden
+  filaments and glow only near the sender, faint myelin beads, golden
   sparks in it; a golden bouton with golden-white vesicles, a cyan cleft and
   transmitter, golden sparks spraying round the synapse. Impulses amber in
   a warm orange halo (NeuronPalette.impulseHalo (1,0.58,0.22)).
@@ -414,10 +457,13 @@ recentre() about 1734; `case .open(let id)` about 448.
   - Links: one per pair of shown bodies, kind 5 within a region and 6
     between; `a` is the sender.
 - GraphNeurons constants:
-  - inner 0.8, nucleus 0.22, room 0.05, wobble 0.015, fill 0.22, cellDrift
-    0.012, reach 1.9, sheetGap 2.8.
+  - inner 0.8, openNucleus 0.6, nucleusRoom 0.9, room 0.05, wobble 0.015,
+    fill 0.22, cellDrift 0.012, reach 1.9, sheetGap 2.8.
+  - zones: in a cell the parts within nucleusRoom·openNucleus·R, the notes
+    from openNucleus·R (plus the room) to inner·R, the notes' zone shrunk
+    at least as much as the parts'; in a part all within inner·R.
   - cellSphere = clamp(0.34+0.035·log2(1+count), 0.34, 0.6);
-    partShare = clamp(0.22+0.06·log2(1+count), 0.22, 0.45).
+    partShare = clamp(0.1+0.03·log2(1+count), 0.1, 0.22).
   - Note share: a page 0.07+0.003·level, an idea 0.05+0.002·level.
   - Free spheres: receptor 0.16, drifter 0.12 (+0.03 for a page).
   - Sheet pitch (2 + sheetGap·spacing)R, 4.8R at spacing 1.
