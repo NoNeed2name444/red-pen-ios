@@ -105,11 +105,12 @@ final class GraphPreviewUITests: XCTestCase {
 
     // MARK: the Neurons theme
 
-    /// The whole map as a nervous system: Cardiology and Examples as two
-    /// regions, Examples' pathway running out through Inguinal (Anatomy one
-    /// relay further) and Femoral, impulses running along the axons at
-    /// their own random times - so the second picture differs from the
-    /// first - and in landscape.
+    /// The whole map as cells, all closed: Cardiology and Examples as two
+    /// big cells with their dendrites, an axon growing out of one to a
+    /// synapse on the other where their notes link, and the two loose
+    /// notes as free cells; impulses running along the axons at their own
+    /// random times - so the second picture differs from the first - and
+    /// in landscape.
     func testNeuronsAtRest() {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
@@ -118,7 +119,7 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
         sleep(3)
         let summary: String = (space.value as? String) ?? ""
-        XCTAssertTrue(summary.contains("regions") && summary.contains("glia"), "no Neurons summary: \(summary)")
+        XCTAssertTrue(summary.contains("cell"), "no Neurons summary: \(summary)")
         snap(app, "11-neurons-at-rest")
         sleep(2)
         snap(app, "12-neurons-two-seconds-later")
@@ -128,9 +129,10 @@ final class GraphPreviewUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
-    /// Double-tapped Examples, as the app does it itself: flown in to the
-    /// region and its whole pathway, close enough to see the cells' gel,
-    /// nuclei and dendrites and the impulses along the axons.
+    /// Double-tapped Examples, as the app does it itself: flown in, the
+    /// cell opens - its nucleus fading back - and what it holds grows out
+    /// inside it: Inguinal and Femoral as parts, its notes as vesicles and
+    /// granules.
     func testNeuronsFlyIn() {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewFly", "Examples"]
@@ -138,8 +140,24 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
         sleep(3)
         snap(app, "14-neurons-fly-examples")
-        sleep(1)
+        sleep(2)
         snap(app, "15-neurons-fly-examples-later")
+    }
+
+    /// Opening in turn, as a user flies in deeper: Examples opens, then
+    /// Inguinal, a part inside it, opens in its place - Anatomy (a smaller
+    /// part) and Inguinal's notes growing out inside it.
+    func testNeuronsOpenInTurn() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewFly", "Examples,Inguinal"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        sleep(3)
+        snap(app, "20-neurons-open-examples")
+        sleep(5)
+        snap(app, "21-neurons-open-inguinal")
+        sleep(2)
+        snap(app, "22-neurons-open-inguinal-later")
     }
 
     /// The busiest relay (Inguinal) picked up and carried: its cells and

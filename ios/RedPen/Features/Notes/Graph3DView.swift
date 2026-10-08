@@ -1697,18 +1697,38 @@ struct GraphSCNView: UIViewRepresentable {
             }
         }
 
-        /// For the design preview (`-graphPreviewFly <folder>`): a moment
-        /// after the space appears, flies in to that folder and holds it as
-        /// a press would.
+        /// For the design preview (`-graphPreviewFly <folder>[,...]`): a
+        /// moment after the space appears, flies in to that folder and
+        /// holds it as a press would; then to each folder after it in the
+        /// path. In Neurons flying in opens a cell in a new scene, and the
+        /// parts inside it are only on the map after that, so each waits
+        /// (up to 15 s) for its folder to appear and 2 s more for it to
+        /// grow out.
         private func runPreviewFly() {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
-                guard let self, let sim = self.sim, let name = GraphPreview.fly,
-                      let i = self.titles[name] else { return }
-                sim.select(i)
-                sim.press(i)
-                self.fly(to: i, animated: true)
+                for (k, name) in GraphPreview.flyPath.enumerated() {
+                    if k > 0 {
+                        var waited: UInt64 = 0
+                        while self?.titles[name] == nil, waited < 15_000_000_000 {
+                            try? await Task.sleep(nanoseconds: 250_000_000)
+                            waited += 250_000_000
+                        }
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    }
+                    guard self?.previewFly(name) == true else { return }
+                }
             }
+        }
+
+        /// Flies in to the folder named `name` and holds it; false when it
+        /// isn't on the map.
+        private func previewFly(_ name: String) -> Bool {
+            guard let sim, let i = titles[name] else { return false }
+            sim.select(i)
+            sim.press(i)
+            fly(to: i, animated: true)
+            return true
         }
 
         /// For the design preview (`-graphPreviewDrag`): a second after the

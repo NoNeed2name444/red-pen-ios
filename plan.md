@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 4:17 PM Cairo.
+Last updated: 2026-10-08, 4:25 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,7 +35,7 @@ Last updated: 2026-10-08, 4:17 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | 5909600, then this file | M3 in progress; App builds of af94d88 and 5909600 were running at 4:10 PM |
+| wip/3d-neurons-m3 | the preview fly-path commit, after 10e0010 | M3 in progress; preflight OK on 5909600 (4:22 PM); its App build (run 37781812785) was running at 4:25 PM |
 | design/3d-overhaul | d4cff03 "Remove the Circuit theme" | M1 (c122abb, Space) and M2 (no Circuit) done |
 | preview/3d-overhaul | a62231f | a push here makes screenshots |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
@@ -58,8 +58,15 @@ Last updated: 2026-10-08, 4:17 PM Cairo.
   - 5909600, from the new session: "Neurons: open a cell by flying in, grow
     its insides out of it" (Graph3DView, GraphMotion, GraphDeathScene,
     GraphThemeScene).
-  - Whether the app builds is for their App builds to say (runs 37781421602
-    and 37781812785).
+  - Whether the app builds is for their App builds to say. Run 37781421602
+    (af94d88) was cancelled, superseded by run 37781812785, which builds
+    5909600 and so covers both.
+  - The preview fly path: `-graphPreviewFly Examples,Inguinal` flies in to
+    each folder in turn, waiting for each to appear (a part is only on the
+    map once its cell has opened). testNeuronsFlyIn opens Examples (shots
+    14, 15); the new testNeuronsOpenInTurn opens Examples, then Inguinal
+    inside it (shots 20 to 22). testNeuronsAtRest now checks the summary
+    for "cell" (the old "regions" and "glia" are gone).
 - app-build.yml runs on every push to personal and design/**. Keep work in
   progress on wip/3d-neurons-m3 until the app compiles. To compile-check it
   there, dispatch the build:
@@ -86,8 +93,10 @@ build and the suites pass.
    (both fast-forwards) and watch CI.
 6. [ ] Fetch shots/3d-overhaul and send the owner the Neurons shots: at rest,
    a cell opened with its parts and notes inside, and axons growing out of
-   the cells. Make sure the preview flies into a cell, so an opened one is
-   captured.
+   the cells. The preview flies into a cell (shots 14, 15) and then a part
+   inside it (20 to 22). For a quick look first, dispatch only those:
+   `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only=testNeurons`
+   (it cancels a running push-started run on the same branch).
 7. [ ] When CI is green, merge design/3d-overhaul into personal (no
    force-push), and bring the session branches up to personal.
 8. [x] #33, the neumorphic app, is not this session's: another session is

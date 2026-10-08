@@ -25,6 +25,9 @@ import SwiftUI
 ///   following.
 /// - `-graphPreviewFly <folder>` flies in to that folder's system 1.5 s
 ///   after the space appears, and holds it, instead of choosing a note.
+///   A comma-separated path (`Examples,Inguinal`) flies in to each in
+///   turn: in Neurons a folder inside a cell is only on the map once the
+///   cell has opened, so each waits for the one before.
 /// - `-graphPreviewLegend` opens "What the bodies mean" a second after the
 ///   space appears.
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
@@ -57,11 +60,15 @@ enum GraphPreview {
     static let drags: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreviewDrag")
     /// The legend is opened a second after appearing.
     static let showsLegend: Bool = isOn && ProcessInfo.processInfo.arguments.contains("-graphPreviewLegend")
-    /// The folder to fly in to, asked for with `-graphPreviewFly`.
-    static let fly: String? = {
+    /// The folder to fly in to, asked for with `-graphPreviewFly`: the
+    /// first of `flyPath`.
+    static let fly: String? = flyPath.first
+    /// `-graphPreviewFly <folder>[,<folder inside it>...]`: the folders to
+    /// fly in to one after another, outermost first.
+    static let flyPath: [String] = {
         let args: [String] = ProcessInfo.processInfo.arguments
-        guard let at = args.firstIndex(of: "-graphPreviewFly"), at + 1 < args.count else { return nil }
-        return args[at + 1]
+        guard let at = args.firstIndex(of: "-graphPreviewFly"), at + 1 < args.count else { return [] }
+        return args[at + 1].split(separator: ",").map { String($0) }
     }()
     /// What `-graphPreviewRemove [titles]` deletes from the preview's store
     /// three seconds after the space appears, so screenshots can catch the
