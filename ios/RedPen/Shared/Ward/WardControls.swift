@@ -86,6 +86,10 @@ private struct WardButtonFace: View {
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
+            // Small capsules keep their label's natural width even when a
+            // toolbar proposes only an icon-sized slot. Full-width buttons
+            // still wrap to the available space.
+            .fixedSize(horizontal: compact, vertical: false)
             .padding(.horizontal, compact ? 14 : 20)
             .padding(.vertical, compact ? 8 : 12)
             .frame(minWidth: height, maxWidth: maxWidth, minHeight: height)
