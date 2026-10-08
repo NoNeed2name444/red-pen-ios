@@ -585,7 +585,10 @@ final class DesignTourUITests: XCTestCase {
             return
         }
         if mode == "space" {
-            if !element("graph3D").waitForExistence(timeout: 12) {
+            // the space is there once its layout and (once a launch) the
+            // shader check are done: over 12 seconds on a slow simulator,
+            // so as long as the graph tests give it
+            if !element("graph3D").waitForExistence(timeout: 30) {
                 missing("graph3D")
             }
             sleep(3)
