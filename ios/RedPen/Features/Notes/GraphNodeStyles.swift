@@ -132,8 +132,6 @@ struct GraphStyleTool: View {
         let neurons: Bool = chosen == .neurons
         let cells = NeuronStateChoice(main: cellState.wrappedValue, folderRaw: cellFolders.wrappedValue)
         let custom: Bool = !space || main != GraphStyleChoice.auto || !folderRaw.isEmpty || cells.isCustom
-        let ink: Color = custom ? Color.accentColor : Color.secondary
-        let glass: Glass = IdeaToolGlass.glass(active: custom)
         Menu {
             if GraphTheme.offered.count > 1 {
                 Picker("Theme", selection: themeBinding) {
@@ -169,10 +167,8 @@ struct GraphStyleTool: View {
         } label: {
             IdeaToolFace(symbol: "sparkles")
         }
-        .foregroundStyle(ink)
-        .glassEffect(glass, in: .circle)
-        .popOut(.floating, in: Circle())
-        .hoverEffect(.highlight)
+        .foregroundStyle(IdeaToolFace.ink(active: custom))
+        .ideaToolRelief(active: custom)
         .accessibilityLabel("Look")
         .accessibilityHint("Choose the map's theme - space, neurons, circuit or performance - how notes look in space, the cells' states in neurons, and curved or straight lines.")
     }

@@ -108,6 +108,7 @@ struct LectureWriterSection: View {
             .buttonStyle(.wardSecondary)
             .disabled(working || reading)
             .frame(maxWidth: .infinity)
+            .wardButtonRow()
             if let readSource {
                 let pages: Int = readSource.document.pages.count
                 let line: String = "\(readSource.name) \u{2014} \(pages) pages"
@@ -135,6 +136,7 @@ struct LectureWriterSection: View {
         } footer: {
             Text("PDF, Word or PowerPoint. It is read on this device.")
         }
+        .wardRowBackground()
     }
 
     /// Step 3: the card type (Cards only), how many, the one big button,
@@ -149,7 +151,7 @@ struct LectureWriterSection: View {
                 .disabled(working)
                 if style.usesDiagrams, readSource != nil {
                     Text(diagramNote)
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             if style.writesText || kind != .anki {
@@ -167,12 +169,13 @@ struct LectureWriterSection: View {
             .disabled(!canWrite || working || reading)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("writer")
+            .wardButtonRow()
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let status, !working {
-                Text(status).font(.footnote).foregroundStyle(.secondary)
+                Text(status).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             // what the last run could not write, and only that, again
             if let missing, !working, canWriteMissing(missing) {
@@ -194,9 +197,10 @@ struct LectureWriterSection: View {
                     .popField()
                     .disabled(working)
                 Text(modelLine)
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         }
+        .wardRowBackground()
     }
 
     /// Step 2's file button: what it does now.

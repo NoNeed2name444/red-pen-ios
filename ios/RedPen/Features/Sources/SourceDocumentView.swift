@@ -187,8 +187,7 @@ struct TextPagesView: View {
         }
         .padding(16)
         .frame(maxWidth: 720, alignment: .leading)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: shape)
     }
 }
 

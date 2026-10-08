@@ -263,7 +263,8 @@ struct RedPenApp: App {
             .environmentObject(sync)
             .environmentObject(gemma)
             .environmentObject(llm)
-            .tint(Color.wardPrimary) // Theatre Blue
+            // the soft UI's Theatre Blue, switch and progress bar everywhere
+            .wardControls()
             // right to left in Arabic, in both builds (L10n.swift)
             .appLanguage()
             // the one motion source for the pop-out: started while the app
@@ -300,7 +301,7 @@ struct RedPenApp: App {
                 .environmentObject(sync)
                 .environmentObject(gemma)
                 .environmentObject(llm)
-                .tint(Color.wardPrimary)
+                .wardControls()
                 .appLanguage()
         }
         // never the window a link or opened file lands in (it has no

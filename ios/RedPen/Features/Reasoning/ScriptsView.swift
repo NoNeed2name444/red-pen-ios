@@ -147,8 +147,8 @@ struct ScriptsView: View {
     }
 }
 
-/// "Saved to Ideas", for two seconds, at the top: a white slip that does not
-/// stop anything. A tap puts it away.
+/// "Saved to Ideas", for two seconds, at the top: a soft slip raised high off
+/// the base that does not stop anything. A tap puts it away.
 private struct SavedToIdeasToast: View {
     let message: String
     let onDismiss: () -> Void
@@ -174,9 +174,7 @@ private struct SavedToIdeasToast: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: 520)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
         .contentShape(shape)
         .onTapGesture(perform: onDismiss)
         .accessibilityElement(children: .combine)
@@ -230,8 +228,8 @@ struct ScriptCard: View {
         .wardCard()
     }
 
-    /// Save to Ideas as a 44-point icon on a white disc with a hairline: a
-    /// lightbulb, or a tick once it is there.
+    /// Save to Ideas as a 44-point icon on a soft disc raised off the card,
+    /// pressed in under the finger: a lightbulb, or a tick once it is there.
     private var saveButton: some View {
         let symbol: String = saved ? "checkmark.circle.fill" : "lightbulb"
         let title: String = saved ? "In Ideas \u{2014} save again" : "Save to Ideas"
@@ -241,12 +239,9 @@ struct ScriptCard: View {
                 .font(.title3)
                 .foregroundStyle(colour)
                 .frame(width: 44, height: 44)
-                .background(Color.wardSurface, in: Circle())
-                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .hoverEffect(.highlight)
+        .buttonStyle(.wardCircle)
         .help(title)
         .accessibilityLabel(title)
     }
@@ -303,8 +298,8 @@ struct ScriptCard: View {
     }
 }
 
-/// One lookalike's face: Theatre Blue on a wash when it jumps to a card
-/// here, grey when it does not.
+/// One lookalike's face: raised off the base, its name in Theatre Blue, when
+/// it jumps to a card here; pressed in and grey when it does not.
 private struct LookalikeChipFace: View {
     let name: String
     let here: Bool
@@ -317,11 +312,11 @@ private struct LookalikeChipFace: View {
         if here {
             words
                 .foregroundStyle(Color.wardPrimaryInk)
-                .background(Capsule().fill(Color.wardPrimary.opacity(0.12)))
+                .wardRaised(in: Capsule(), lift: .low)
         } else {
             words
                 .foregroundStyle(Color.wardInkSecondary)
-                .background(Capsule().fill(Color.wardHairline))
+                .wardInset(in: Capsule())
         }
     }
 }

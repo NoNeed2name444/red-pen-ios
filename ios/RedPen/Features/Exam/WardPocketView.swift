@@ -39,15 +39,17 @@ struct WardPocketSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("Section", selection: $tab) {
-                        ForEach(WardPocketTab.allCases) { t in
-                            Text(t.title).tag(t)
-                        }
+                    WardSegmented(selection: $tab, options: WardPocketTab.allCases) { t in
+                        Text(t.title)
                     }
-                    .pickerStyle(.segmented)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Section")
                     .accessibilityIdentifier("wardPocketTabs")
                     if tab != .scores { WardUnitsPicker(conventional: $conventional) }
                 }
+                // the switches sit on the base itself, not on tiles, where
+                // the tiles' edges are
+                .wardCardRow()
                 switch tab {
                 case .labs: LabRangesSections(query: query, conventional: conventional)
                 case .calculators: calculatorRows
@@ -99,6 +101,7 @@ struct WardPocketSheet: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder
@@ -109,6 +112,7 @@ struct WardPocketSheet: View {
                 scoreLink(entry)
             }
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder
@@ -140,16 +144,16 @@ struct WardUnitsPicker: View {
     @Binding var conventional: Bool
 
     var body: some View {
-        Picker("Units", selection: $conventional) {
-            Text("SI").tag(false)
-            Text("US conventional").tag(true)
+        WardSegmented(selection: $conventional, options: [false, true]) { us in
+            Text(us ? "US conventional" : "SI")
         }
-        .pickerStyle(.segmented)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Units")
     }
 }
 
-/// "For learning only - not for patient care", a small amber chip at the
-/// foot of the screen, always in view.
+/// "For learning only - not for patient care", a small soft chip with amber
+/// words at the foot of the screen, always in view.
 private struct WardDisclaimer: ViewModifier {
     func body(content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
@@ -158,10 +162,7 @@ private struct WardDisclaimer: ViewModifier {
                 .foregroundStyle(Color.wardWarning)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(Color.wardWarning.opacity(0.12), in: Capsule())
-                .background(Color.wardSurface, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.wardWarning.opacity(0.3), lineWidth: 1))
-                .wardShadow()
+                .wardRaised(in: Capsule())
                 .padding(.bottom, 6)
                 .accessibilityIdentifier("wardDisclaimer")
         }
@@ -186,6 +187,7 @@ private struct WardTextSection: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
+            .wardRowBackground()
         }
     }
 }
@@ -206,6 +208,7 @@ private struct PractiseButton: View {
         } footer: {
             Text(WardPocket.disclaimerDetail)
         }
+        .wardRowBackground()
     }
 }
 
@@ -244,12 +247,14 @@ struct WardCalcView: View {
         Form {
             if hasUnits {
                 Section { WardUnitsPicker(conventional: $conventional) }
+                    .wardCardRow()
             }
             Section("Values") {
                 ForEach(calc.fields) { field in
                     fieldRow(field)
                 }
             }
+            .wardRowBackground()
             resultSection(outcome)
             WardTextSection(title: "How it is worked out", text: calc.formula)
             WardTextSection(title: "Keep in mind", text: calc.note)
@@ -297,6 +302,7 @@ struct WardCalcView: View {
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
+        .wardRowBackground()
         .accessibilityElement(children: .combine)
     }
 
@@ -328,7 +334,10 @@ struct WardCalcView: View {
                 .multilineTextAlignment(.trailing)
                 .font(WardType.obs)
                 .monospacedDigit()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .frame(maxWidth: 110)
+                .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .focused($focused, equals: field.id)
                 .accessibilityLabel(spoken)
             if !unitName.isEmpty {
@@ -406,8 +415,10 @@ struct WardScoreView: View {
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .wardRowBackground()
             ForEach(choiceItems) { item in
                 Section(item.label) { choicePicker(item) }
+                    .wardRowBackground()
             }
             if !yesNoItems.isEmpty {
                 Section("Criteria") {
@@ -415,12 +426,16 @@ struct WardScoreView: View {
                         yesNoRow(item)
                     }
                 }
+                .wardRowBackground()
             }
             Section("Bands") {
                 ForEach(score.bands, id: \.self) { band in
                     bandRow(band, on: band == verdict)
+                        // the band the score falls in, pressed into the base
+                        .listRowBackground(WardRowTile(inset: band == verdict))
                 }
             }
+            .wardRowBackground()
             WardTextSection(title: "Keep in mind", text: score.note)
             WardTextSection(title: "Source", text: score.source)
             PractiseButton {
@@ -528,9 +543,7 @@ private struct WardScoreTotal: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
         .padding(.horizontal, 16)
         .padding(.bottom, 6)
         .animation(.snappy, value: total)

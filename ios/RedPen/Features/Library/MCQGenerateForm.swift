@@ -73,6 +73,7 @@ struct MCQGenerateForm: View {
                 } footer: {
                     Text("The questions are written from this text. A file you add above lands here too.")
                 }
+                .wardRowBackground()
             }
 
             if step == .make {
@@ -125,7 +126,7 @@ struct MCQGenerateForm: View {
             if llm.needsPro(.writer) {
                 Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",
                       systemImage: "lock.fill")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             // the same as its floating copy in the dock
             Button { startGenerating() } label: {
@@ -138,12 +139,13 @@ struct MCQGenerateForm: View {
             .disabled(!canStart)
             .frame(maxWidth: .infinity)
             .floatingActionAnchor("mcq")
+            .wardButtonRow()
             if let generationStatus, !isGenerating {
-                Text(generationStatus).font(.footnote).foregroundStyle(.secondary)
+                Text(generationStatus).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let makeHint {
                 Text(makeHint)
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
@@ -152,10 +154,10 @@ struct MCQGenerateForm: View {
                 Toggle("Focus on high-yield facts", isOn: $highYield)
                     .disabled(isGenerating)
                 if activeBackend == .medical, let summary = llm.summary(for: .writer) {
-                    Text("Using \(summary).").font(.footnote).foregroundStyle(.secondary)
+                    Text("Using \(summary).").font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 } else if activeBackend == .gemma {
                     Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
                 if activeBackend == .gemma, !isGenerating {
                     Button("Remove downloaded model", role: .destructive) {
@@ -165,6 +167,7 @@ struct MCQGenerateForm: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private var generateLabel: String {
@@ -182,7 +185,7 @@ struct MCQGenerateForm: View {
             Section {
                 if case .unavailable(let reason) = MCQGenerator.availability {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
                 switch gemma.status {
                 case .ready:
@@ -193,7 +196,7 @@ struct MCQGenerateForm: View {
                               systemImage: "arrow.down.circle")
                     }
                     Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded \u{2014} works on hardware that can't run Apple's own on-device model, and can also read images.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
                 case .downloading(let fraction):
                     let percent: Int = Int(fraction * 100)
                     VStack(alignment: .leading, spacing: 6) {
@@ -217,6 +220,7 @@ struct MCQGenerateForm: View {
             } header: {
                 Text("Needed first: an offline model")
             }
+            .wardRowBackground()
         }
     }
 

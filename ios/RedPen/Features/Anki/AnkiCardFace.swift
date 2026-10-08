@@ -52,7 +52,7 @@ struct AnkiCardFace: View {
                 // where it was read (a cloze fills its gap in place instead)
                 VStack(alignment: .leading, spacing: 14) {
                     if card.type != .cloze {
-                        Rectangle().fill(Color.wardHairline).frame(height: 1).accessibilityHidden(true)
+                        WardEtch()
                     }
                     back
                     if !card.pictureOnFront { picture }
@@ -223,10 +223,8 @@ struct AnkiCardFace: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wardBackground,
-                    in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
-            .strokeBorder(Color.wardHairline, lineWidth: 1))
+        // a note pressed into the card
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
         .padding(.top, 4)
     }
 
@@ -438,7 +436,6 @@ struct AnkiRatingBar: View {
                         .font(.system(.caption, design: .monospaced).weight(.semibold))
                         .monospacedDigit()
                 }
-                .opacity(0.9)
             }
         }
         Button(action: action) { label }
@@ -479,33 +476,40 @@ struct AnkiRatingBar: View {
     }
 }
 
-/// A rating button in its tone: the filled one in the tone with Clean Sheet
-/// words (which read on green in light and dark alike), the quiet ones the
-/// tone's words on a wash of it with an edge.
+/// A rating button: a soft tile raised off the base, its words in the
+/// rating's tone, never a fill. The one to press most (`filled`) says its
+/// word in bold. Held, it is pressed into the base.
 private struct AnkiRatingButtonStyle: ButtonStyle {
     let tone: WardTone
     var filled = false
 
     func makeBody(configuration: Configuration) -> some View {
+        AnkiRatingFace(label: configuration.label, pressed: configuration.isPressed,
+                       tone: tone, bold: filled)
+    }
+}
+
+private struct AnkiRatingFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let tone: WardTone
+    let bold: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
-        let pressed: Bool = configuration.isPressed
-        let ink: Color = filled ? Color.wardSurface : tone.color
-        let wash: Color = filled ? tone.color : tone.color.opacity(0.10)
-        let edge: Color = filled ? Color.clear : tone.color.opacity(0.4)
-        return configuration.label
-            .font(.headline)
+        let lift: WardLift = .mid
+        let font: Font = bold ? .headline.weight(.bold) : .headline
+        label
+            .font(font)
             .multilineTextAlignment(.center)
-            .foregroundStyle(ink)
+            .foregroundStyle(tone.ink)
             .padding(.horizontal, 10)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, minHeight: 56)
-            .background(wash, in: shape)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 1))
+            .background { WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed) }
             .contentShape(shape)
-            .opacity(pressed ? 0.85 : 1)
-            .scaleEffect(pressed ? 0.98 : 1)
-            .animation(.snappy(duration: 0.2), value: pressed)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
     }

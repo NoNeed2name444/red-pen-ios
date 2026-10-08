@@ -26,9 +26,8 @@ struct HowToReachCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
-            .strokeBorder(Color.wardHairline, lineWidth: 1))
+        // a well pressed into the card
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
         .accessibilityIdentifier("howToReach")
     }
 

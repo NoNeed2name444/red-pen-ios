@@ -28,8 +28,8 @@ struct SourcePageReader: View {
                         .frame(minHeight: 420)
                         .background(Color.wardSurface)
                         .clipShape(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-                            .strokeBorder(Color.wardHairline, lineWidth: 1))
+                        // the page raised just off the base
+                        .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: .low)
                 }
                 text
                 cards
@@ -78,7 +78,7 @@ struct SourcePageReader: View {
             let noun: String = found == 1 ? "card" : "cards"
             let place: String = source.kind.pageNoun.lowercased()
             let line: String = "\(found) \(noun) from this \(place)"
-            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            WardEtch()
             VStack(alignment: .leading, spacing: 6) {
                 WardSectionLabel(line)
             }

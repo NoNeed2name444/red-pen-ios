@@ -111,7 +111,7 @@ extension LibraryView {
                         Image(systemName: selected.contains(set.id) ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
                             .accessibilityHidden(true)
-                            .foregroundStyle(selected.contains(set.id) ? Color.wardPrimary : Color.wardInkSecondary)
+                            .foregroundStyle(selected.contains(set.id) ? Color.wardPrimaryInk : Color.wardInkSecondary)
                         setRow(set)
                     }
                 }
@@ -128,9 +128,9 @@ extension LibraryView {
                 }
             }
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        // frosted, so the backdrop shows through while the row stays easy
-        // to read
+        // a soft tile, a little tighter above and below than a form's, so
+        // a long library stays quick to scan
+        .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 16))
         .frostedListRow()
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
@@ -214,8 +214,8 @@ extension LibraryView {
         Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }
     }
 
-    /// The floating action bar shown in selection mode: one Clean Sheet panel
-    /// like the dock, in the dock's place. Done at the leading end; Move, Quiz
+    /// The floating action bar shown in selection mode: one soft panel raised
+    /// off the base like the dock, in the dock's place. Done at the leading end; Move, Quiz
     /// and Combine, then Delete last, at the trailing end, and it asks first.
     var selectionBar: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
@@ -229,9 +229,7 @@ extension LibraryView {
             }
         }
         .padding(10)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
         .frame(maxWidth: 700)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
@@ -261,7 +259,7 @@ extension LibraryView {
         let text: String = count == 0 ? "Select sets" : "\(L10n.count(count)) selected"
         return Text(text)
             .font(.footnote.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
     }
@@ -356,15 +354,14 @@ extension LibraryView {
     }
 
     /// The face of a "more" menu - a row's, a folder's: an ellipsis on a
-    /// small Clean Sheet disc with a hairline edge, inside a 44-point target.
+    /// small soft disc raised off the row, inside a 44-point target.
     var moreMenuFace: some View {
         let disc = Circle()
         return Image(systemName: "ellipsis")
             .font(.body.weight(.semibold))
             .foregroundStyle(Color.wardInkSecondary)
             .frame(width: 34, height: 34)
-            .background(Color.wardSurface, in: disc)
-            .overlay(disc.strokeBorder(Color.wardHairline, lineWidth: 1))
+            .wardRaised(in: disc, lift: .low)
             .frame(width: 44, height: 44)
             .contentShape(disc)
     }
@@ -387,7 +384,7 @@ extension LibraryView {
             Text("Make your first set").font(.title2.weight(.bold))
             Text("Add a lecture and \(Brand.name) turns it into questions or flashcards to study.")
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
             Button { newSetKind = category.mainKind } label: {
                 Label("New set", systemImage: "plus")
@@ -422,8 +419,8 @@ extension LibraryView {
         let plane: PopOutPlane = LibraryView.fanPlane(kind)
         let angle: Double = LibraryView.fanAngle(kind)
         let layer: Double = Double(plane.rawValue)
+        // the tile is raised already; a second shadow would muddy its own
         return ModeTile(kind: kind, size: 52)
-            .wardShadow()
             .rotationEffect(.degrees(angle))
             // drawn in the order of their heights, so a higher tile is never
             // covered by a lower one where they overlap

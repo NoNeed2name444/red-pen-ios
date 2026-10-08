@@ -54,8 +54,7 @@ struct LinkDeviceView: View {
         Section {
             if let code, let expires {
                 PairingCodeSlab(code: code, expires: expires)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .wardCardRow()
             }
         } header: {
             Text("Add another device")
@@ -77,8 +76,7 @@ struct LinkDeviceView: View {
                 .onSubmit { Task { await join() } }
                 .onChange(of: typed) { _, new in typedChanged(new) }
                 .wardField()
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .wardWellRow()
         } header: {
             Text(joinHeader)
         } footer: {
@@ -100,15 +98,18 @@ struct LinkDeviceView: View {
     private var statusRows: some View {
         if account.busy {
             Section { EcgLoader().frame(maxWidth: .infinity) }
+            .wardRowBackground()
         }
         if let trouble = account.trouble {
             Section { WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble) }
+            .wardWellRow()
         }
         if joined {
             Section {
                 Label("Linked. Your library is syncing.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(Color.wardSuccess)
             }
+            .wardRowBackground()
         }
     }
 
@@ -228,7 +229,7 @@ private struct PairingCodeSlab: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
         .padding(.horizontal, 12)
-        .wardCard(padding: 0)
+        .wardCard(padding: 0, lift: .low)
     }
 
     /// "ABCD – EFGH", with thin spaces round the dash.

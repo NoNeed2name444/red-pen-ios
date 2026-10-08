@@ -65,14 +65,16 @@ extension LibraryView {
     var homeRoundSections: some View {
         if showsRound {
             let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
-            Section { homeRow(roundCard(due: due)) }
+            // the card and the tiles stand as low as the rows below them,
+            // so the cell never cuts their lights
+            Section { roundCard(due: due).wardCardRow() }
             if category == .questions {
-                Section { homeRow(homeTiles(due: due.count)) }
+                Section { homeTiles(due: due.count).wardCardRow() }
             }
         }
     }
 
-    /// A row the home's cards sit in: the page's gutter, nothing behind.
+    /// The row the page's title sits in: the page's gutter, nothing behind.
     private func homeRow<Content: View>(_ content: Content) -> some View {
         content
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -307,7 +309,8 @@ struct HomeRoundCard: View {
                 startButton
             }
         }
-        .wardCard()
+        // a List row: as low as the tiles round it, the button proud of it
+        .wardCard(lift: .low)
     }
 
     private var heading: some View {
@@ -345,11 +348,7 @@ struct HomeRoundCard: View {
             ForEach(beds) { bed in
                 bedButton(bed)
                 if bed.id != beds.last?.id {
-                    Rectangle()
-                        .fill(Color.wardHairline)
-                        .frame(height: 1)
-                        .padding(.leading, 52)
-                        .accessibilityHidden(true)
+                    WardEtch().padding(.leading, 52)
                 }
             }
         }
@@ -418,8 +417,8 @@ struct HomeRoundCard: View {
         }
     }
 
-    /// The chip's words and tone: every tone here keeps its text at AA on
-    /// the chip's wash (Caution Amber, Theatre Blue, Resus Red).
+    /// The chip's words and tone: every tone here keeps its text at AA in
+    /// the chip's well (Caution Amber, Theatre Blue, Resus Red).
     static func chip(_ bed: BedPlan.Bed) -> (text: String, tone: WardTone)? {
         guard let status = bed.status else { return nil }
         let tone: WardTone
@@ -473,7 +472,7 @@ struct HomeTiles: View {
         Button(action: onVitals) {
             VitalsTileFace(readiness: readiness, streak: streak, rhythm: rhythm)
         }
-        .buttonStyle(.pressableRow)
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityLabel(vitalsSpoken)
         .accessibilityHint("Opens Vitals")
         .accessibilityIdentifier("homeVitals")
@@ -483,7 +482,7 @@ struct HomeTiles: View {
         Button(action: onIdeas) {
             BrainMapTileFace(line: brainLine)
         }
-        .buttonStyle(.pressableRow)
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityLabel("Brain map. " + brainLine)
         .accessibilityHint("Opens Ideas: the idea dump, its board and the 3D map")
         .accessibilityIdentifier("homeBrainMap")
@@ -619,16 +618,14 @@ enum StudyDays {
 }
 
 extension View {
-    /// A tile on the home: a card filling its share of the row, so two side
-    /// by side stand the same height.
+    /// A tile on the home, filling its share of the row, so two side by side
+    /// stand the same height. Its face is its button's: a soft tile raised
+    /// low off the base, pressed in under the finger (PopTileStyle).
     func homeTile() -> some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return self
             .padding(14)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
             .contentShape(shape)
     }
 }

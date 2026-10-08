@@ -129,8 +129,9 @@ extension CategoryFeature {
     }
 }
 
-/// Picture cards: "From a photo or scan", a white card above the decks. Its
-/// page is pushed with its destination, as every link on this page is.
+/// Picture cards: "From a photo or scan", a soft tile raised above the decks
+/// and pressed in under the finger. Its page is pushed with its destination,
+/// as every link on this page is.
 struct PhotoCardsTile: View {
     let tint: Color
 
@@ -144,7 +145,7 @@ struct PhotoCardsTile: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(tint)
                     .frame(width: 40, height: 40)
-                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous))
+                    .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous), lift: .low)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("From a photo or scan").font(.headline).foregroundStyle(Color.wardInk)
@@ -160,17 +161,13 @@ struct PhotoCardsTile: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
             .contentShape(shape)
             .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.plain)
+        // as low as the decks' tiles and as wide, so the cell never cuts it
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityIdentifier("pictureFromPhoto")
-        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .wardCardRow()
     }
 }
 
@@ -192,7 +189,7 @@ struct ReasoningToolPicker: View {
             Section {
                 Text(tool.blurb)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .listRowBackground(Color.clear)
             }
             if PersonalBuild.isOn {

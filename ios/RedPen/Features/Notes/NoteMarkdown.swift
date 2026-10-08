@@ -46,17 +46,16 @@ struct NoteMarkdownView: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .padding(.leading, 10)
                 .overlay(alignment: .leading) {
-                    Rectangle().fill(Color.wardPrimary).frame(width: 3)
+                    Rectangle().fill(Color.wardPrimaryInk).frame(width: 3)
                 }
         case .code(let body):
             Text(body)
                 .font(.callout.monospaced())
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.wardHairline, lineWidth: 1))
+                .wardInset(in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         case .rule:
-            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            WardEtch()
         case .paragraph(let line):
             Text(NoteMarkdown.inline(line))
         }

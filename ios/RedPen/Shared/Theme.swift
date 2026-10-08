@@ -2,23 +2,21 @@ import SwiftUI
 
 // MARK: - Visual identity
 //
-// Every mode has its own colour (the same tints the web app uses for its
-// mode chips), an SF Symbol, and a soft gradient. Screens set `.tint(kind.tint)`
-// so the glass buttons, progress bars and chips all pick it up, and sit on a
-// `ModeBackdrop` - the one shared AppBackdrop, faintly in that colour - so
-// Liquid Glass has something to refract instead of a flat white sheet.
+// Every mode has its own glyph colour and an SF Symbol. Screens sit on the
+// soft UI's one matte base (ModeBackdrop), and every surface on them is
+// shaped out of it: raised to touch, pressed in when chosen. The controls on
+// every screen are Theatre Blue (modeScreen).
 
 extension StudySetKind {
     var tint: Color {
         switch self {
-        // Ward Round: each mode's glyph in a palette tone; the controls on
-        // every screen are Theatre Blue (modeScreen)
+        // each mode's glyph in a palette tone that reads on the base
         case .mcq: return .wardPrimaryInk
         case .anki: return .wardEcg
         case .book: return .wardSuccess
         case .osce: return .wardWarning
         case .narrate: return .wardInkSecondary
-        case .cases: return .wardPrimary
+        case .cases: return .wardPrimaryInk
         }
     }
 
@@ -44,33 +42,25 @@ extension StudySetKind {
     }
 }
 
-/// The tinted icon tile used on library rows and screen headers.
+/// The icon tile used on library rows and screen headers.
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
-    /// The chosen one: a small star - the symbol in white over a coronal
-    /// glow in the mode's colour.
+    /// The chosen one: pressed into the base, its glyph Theatre Blue.
     var selected = false
 
-    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // A quiet tile: the mode's symbol in grey on a solid surface. The glossy
-    // gradient tiles with coloured shadows put six loud colours on the first
-    // screen; the symbol alone tells the modes apart. Solid, not see-through:
-    // a translucent fill over the moving backdrop and a tinted row read as
-    // two shapes smudged on top of each other. At night the surface is near
-    // black, a hole in the nebula rather than a grey card; only the chosen
-    // tile gets any space character - its corona.
-    // Ward Round: the mode's glyph in its tone on a 12% wash; the chosen
-    // one is Theatre Blue with a white glyph.
+    // A soft tile raised off the base, the mode's glyph in its tone; the
+    // glyph alone tells the modes apart, so no wash of colour behind it.
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
         Image(systemName: kind.symbol)
             .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(selected ? Color.wardOnPrimary : kind.tint)
+            .foregroundStyle(selected ? Color.wardPrimaryInk : kind.tint)
             .frame(width: size, height: size)
-            .background(selected ? Color.wardPrimary : kind.tint.opacity(0.12), in: shape)
-            .animation(.snappy(duration: 0.25), value: selected)
+            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: selected)
     }
 }
 
@@ -124,7 +114,7 @@ enum PhotonRim {
     }
 }
 
-/// Each mode's screen: the shared backdrop, faintly in the mode's colour.
+/// Each mode's screen: the soft UI's matte base.
 struct ModeBackdrop: View {
     let kind: StudySetKind
     var body: some View {
@@ -133,9 +123,8 @@ struct ModeBackdrop: View {
 }
 
 /// A content card: the reading surface each mode places its question, card
-/// or page on. It lies ON the glass (the screen plane): readable things never
-/// move with the pop-out, only what you can touch rises out of it. A thin
-/// contact line and a lit rim are all the depth it needs.
+/// or page on, a soft card raised off the base. Readable things never move
+/// with the pop-out; only what you can touch leans with it.
 struct ContentCard: ViewModifier {
     func body(content: Content) -> some View {
         content.wardCard(padding: 18)
@@ -145,12 +134,13 @@ struct ContentCard: ViewModifier {
 extension View {
     func contentCard() -> some View { modifier(ContentCard()) }
 
-    /// Standard chrome for a mode screen: mode tint + tinted backdrop.
+    /// Standard chrome for a mode screen: the base under it, and Theatre
+    /// Blue controls.
     func modeScreen(_ kind: StudySetKind) -> some View {
         self
             .background(ModeBackdrop(kind: kind))
-            .tint(Color.wardPrimary)
-            .environment(\.modeTint, Color.wardPrimary)
+            .wardControls()
+            .environment(\.modeTint, Color.wardPrimaryInk)
     }
 
     /// Slides up and fades in on first appearance, staggered by `index` so
@@ -158,14 +148,25 @@ extension View {
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
 }
 
-/// A tappable row that squashes a touch under the finger — the tactile
-/// feedback Liquid Glass buttons have, for our custom rows.
+/// A tappable row that gives a touch under the finger, for our custom rows
+/// (which draw their own soft tile). Reduce Motion keeps it still and only
+/// dims it.
 struct PressableRowStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.975 : 1)
-            .opacity(configuration.isPressed ? 0.92 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+        PressableRowFace(label: configuration.label, pressed: configuration.isPressed)
+    }
+}
+
+private struct PressableRowFace<Label: View>: View {
+    let label: Label
+    let pressed: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        label
+            .scaleEffect(pressed && !reduceMotion ? 0.985 : 1)
+            .opacity(pressed ? 0.9 : 1)
+            .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.7), value: pressed)
     }
 }
 extension ButtonStyle where Self == PressableRowStyle {
@@ -187,28 +188,22 @@ struct RiseIn: ViewModifier {
     }
 }
 
-/// A thin, rounded, tinted progress bar — replaces the stock `ProgressView`
-/// so every mode's progress reads the same way. It fills from the leading
-/// edge: the ZStack's `.leading` is the right-hand side right to left, so
-/// Arabic fills from the right with nothing more said.
+/// A thin progress bar: a beam in a groove pressed into the base, so every
+/// mode's progress reads the same way. It fills from the leading edge: the
+/// ZStack's `.leading` is the right-hand side right to left, so Arabic
+/// fills from the right with nothing more said.
 struct ThinProgress: View {
     let fraction: Double
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline)
-                Capsule().fill(Color.wardBeam).frame(width: max(0, min(1, fraction)) * geo.size.width)
-            }
-        }
-        .frame(height: 5)
-        .animation(.easeOut(duration: 0.3), value: fraction)
+        WardGroove(fraction: fraction, tint: .wardBeam, height: 6)
+            .animation(.easeOut(duration: 0.3), value: fraction)
     }
 }
 
-/// The animated score ring on the MCQ results screen: a thin photon ring
-/// (PhotonArc), ember to white-gold as the score rises. It reports its
-/// score upwards (FinishScoreKey) so a finish around it can celebrate.
+/// The animated score ring on the results screens: a Theatre Blue arc in a
+/// groove pressed into the base. It reports its score upwards
+/// (FinishScoreKey) so a finish around it can celebrate.
 struct ScoreRing: View {
     let fraction: Double
     let label: String
@@ -217,24 +212,25 @@ struct ScoreRing: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        // kept in from the frame's edge, where the finish's raised disc
+        // behind it curves away: the groove sits on its flat face
         ZStack {
-            Circle()
-                .stroke(Color.wardHairline, lineWidth: 6)
-                .padding(3)
+            WardReliefFace(shape: WardAnnulus(width: 12), lift: .low, inset: true)
+                .padding(10)
             Circle()
                 .trim(from: 0, to: max(0, min(1, shown)))
-                .stroke(Color.wardPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(Color.wardPrimaryInk, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 // clockwise from the top, anticlockwise right to left
                 .fillsFromLeading()
-                .padding(3)
+                .padding(16)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
                 Text(label).scaledFont(38, relativeTo: .largeTitle, weight: .semibold, design: .monospaced, maxSize: 52)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
+                Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .frame(width: 168, height: 168)
@@ -258,7 +254,7 @@ struct ScoreRing: View {
 /// the middle of the indigo Anki screen: the accent is the app's colour, not
 /// the screen's.
 private struct ModeTintKey: EnvironmentKey {
-    static let defaultValue: Color = .wardPrimary
+    static let defaultValue: Color = .wardPrimaryInk
 }
 
 extension EnvironmentValues {
@@ -404,11 +400,11 @@ extension View {
 /// second choice sitting beside the main one - "Start over" next to "I got it",
 /// "Back" next to "Next" - so there is never any doubt which is the main one.
 ///
-/// Depth: the primary is the screen's hero - it stands highest out of the
-/// glass; the quiet ones are raised, and sit flush inside a floating bar. A
-/// pressed or disabled button sinks flat onto the glass. On a wide iPad a
-/// filling button stops at 360 points, so a lone primary lands under the
-/// right hand instead of stretching across the whole window.
+/// Depth: every button is raised off the base and pressed in while held;
+/// the primary stands a step higher and says itself in Theatre Blue. A
+/// disabled one sinks low and fades. On a wide iPad a filling button stops
+/// at 360 points, so a lone primary lands under the right hand instead of
+/// stretching across the whole window.
 struct BigButtonStyle: ButtonStyle {
     enum Weight { case primary, secondary }
     var weight: Weight = .primary
@@ -423,9 +419,9 @@ struct BigButtonStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == BigButtonStyle {
-    /// The one main button: filled with the screen's colour.
+    /// The one main button: raised highest, its words in Theatre Blue.
     static var bigPrimary: BigButtonStyle { BigButtonStyle() }
-    /// A second choice beside the main one: the screen's colour, lightly.
+    /// A second choice beside the main one: raised, its words in ink.
     static var bigSecondary: BigButtonStyle { BigButtonStyle(weight: .secondary) }
     /// A small companion - "Back" - taking only the room its words need.
     static var bigCompanion: BigButtonStyle { BigButtonStyle(weight: .secondary, fills: false) }
@@ -433,8 +429,8 @@ extension ButtonStyle where Self == BigButtonStyle {
 
 /// The bar across the bottom of a study screen, where the thumb rests.
 ///
-/// A floating slab of glass that stands out of the screen, holding the
-/// screen's main button and, now and then, a small companion beside it.
+/// A soft slab raised high off the base, holding the screen's main button
+/// and, now and then, a small companion beside it.
 /// Always at the bottom, so the next step is in the same place on every
 /// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
 /// still works as the last child of a VStack.
@@ -459,9 +455,7 @@ struct StudyActionBar<Content: View>: View {
         VStack(spacing: 12) { content }
             .padding(12)
             .frame(maxWidth: innerCap)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-            .wardShadow()
+            .wardRaised(in: shape, lift: .high)
             .frame(maxWidth: outerCap, alignment: side)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
@@ -471,8 +465,8 @@ struct StudyActionBar<Content: View>: View {
 
 /// The top of a study screen: where you are, and how far there is to go.
 ///
-/// A thin raised slab: it stands a little out of the glass, above the
-/// content that scrolls beneath it.
+/// A thin soft slab, raised a little off the base above the content that
+/// scrolls beneath it.
 ///
 /// `status` is the one thing to read ("3 of 20"); `detail` is a quieter second
 /// fact ("2 right"); the bar underneath shows the same thing as a length.
@@ -504,7 +498,7 @@ struct StudyProgressHeader<Accessory: View>: View {
                     if let detail {
                         Text(detail)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                             .monospacedDigit()
                             .contentTransition(.numericText())
                     }
@@ -521,10 +515,7 @@ struct StudyProgressHeader<Accessory: View>: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: 700)
-        // frosted rather than glass, so the glass chips in `accessory` are
-        // not glass on glass
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: shape, lift: .low)
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .frame(maxWidth: .infinity)
@@ -544,10 +535,10 @@ struct OptionalTag: View {
     var body: some View {
         Text("optional")
             .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.wardInkSecondary)
             .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(Color.primary.opacity(0.06), in: Capsule())
+            .padding(.vertical, 3)
+            .wardInset(in: Capsule())
     }
 }
 
@@ -590,17 +581,17 @@ struct FinishHero<Graphic: View>: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // the result stands a touch out of the screen and leans with the
-            // tilt; it is not pressable, so no slab or sheen
+            // the result stands on a soft disc raised off the base, and leans
+            // with the tilt
             graphic
-                .popOut(.raised, in: Circle(), cues: [.lean])
+                .popOut(.raised, in: Circle(), cues: [.lean, .edge])
             Text(title)
                 .font(.title.weight(.bold))
                 .multilineTextAlignment(.center)
             if !message.isEmpty {
                 Text(message)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -659,13 +650,15 @@ extension FinishHero where Graphic == FinishSymbol {
     }
 }
 
-/// The large symbol at the top of a finish screen.
+/// The large symbol at the top of a finish screen, in the middle of the
+/// raised disc the finish stands it on.
 struct FinishSymbol: View {
     let name: String
     var body: some View {
         Image(systemName: name)
             .scaledFont(64, relativeTo: .largeTitle, weight: .semibold, maxSize: 96)
             .foregroundStyle(.tint)
+            .frame(width: 128, height: 128)
             .accessibilityHidden(true)
     }
 }

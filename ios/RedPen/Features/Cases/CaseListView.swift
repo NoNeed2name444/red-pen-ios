@@ -89,7 +89,7 @@ struct CasePatientCard: View {
                 }
                 Text(shortComplaint)
                     .font(.subheadline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 CaseStateChip(state: state)
@@ -97,7 +97,7 @@ struct CasePatientCard: View {
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
         .frame(minHeight: 44)

@@ -22,6 +22,7 @@ struct DiagnosticsSettingsView: View {
             } footer: {
                 Text(Self.privacyText)
             }
+            .wardRowBackground()
             if PersonalBuild.isOn {
                 developerSection
                 eventsSection("Waiting to send", queued)
@@ -76,13 +77,14 @@ struct DiagnosticsSettingsView: View {
             Button("Simulate a hang (4 seconds)") { DiagnosticsRuntime.simulateHang() }
             Button("Simulate a crash", role: .destructive) { confirmCrash = true }
             if !status.isEmpty {
-                Text(status).font(.footnote).foregroundStyle(.secondary)
+                Text(status).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text(l10n: "Developer \u{00B7} personal build")
         } footer: {
             Text("Reports become GitHub issues each day (diagnostics-triage workflow). Crashes and hangs come from MetricKit on the next launch, only with Share With App Developers on; an app killed while open is reported by itself.")
         }
+        .wardRowBackground()
     }
 
     private func obs(_ n: Int) -> some View {
@@ -100,10 +102,11 @@ struct DiagnosticsSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(DiagFingerprint.title(event, binary: event.device?.binary ?? "RedPen"))
                             .font(.footnote.weight(.semibold))
-                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(.secondary)
+                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
+            .wardRowBackground()
         }
     }
 

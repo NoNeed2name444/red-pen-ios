@@ -39,6 +39,7 @@ struct StudyReminderSettings: View {
         } footer: {
             Text("A question from your weakest subject each day, answered right on the notification. In the evening, a calm re-read of the day\u{2019}s misses; the next morning, two minutes on the same ones. Nothing leaves your phone.")
         }
+        .wardRowBackground()
         .onChange(of: questionOn) { _, on in changed(on) }
         .onChange(of: bedtimeOn) { _, on in changed(on) }
         .onChange(of: morningOn) { _, on in changed(on) }

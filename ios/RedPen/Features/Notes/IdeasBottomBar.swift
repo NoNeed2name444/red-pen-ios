@@ -113,7 +113,7 @@ struct IdeasBottomBar: View {
     }
 }
 
-/// "Dump an idea…": a white capsule with a hairline edge.
+/// "Dump an idea…": a soft capsule pressed into the base, as every field is.
 private struct IdeaCaptureField: View {
     @Binding var draft: String
     let capturing: FocusState<Bool>.Binding
@@ -132,13 +132,13 @@ private struct IdeaCaptureField: View {
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 48)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardInset(in: Capsule())
     }
 }
 
-/// Saves what is typed: the screen's one hero while there is text.
+/// Saves what is typed, the screen's main button while there is text: a
+/// disc raised as high as the switcher beside it, its bold arrow in Theatre
+/// Blue (no fill); pressed, it sinks in.
 private struct IdeaSendButton: View {
     let action: () -> Void
 
@@ -146,19 +146,18 @@ private struct IdeaSendButton: View {
         Button(action: action) {
             Image(systemName: "arrow.up")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Color.wardOnPrimary)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 48, height: 48)
-                .background(Color.wardPrimary, in: Circle())
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .wardShadow()
-        .hoverEffect(.lift)
+        // a 48-point square rounded by half its side: the disc
+        .buttonStyle(PopTileStyle(cornerRadius: 24, plane: .floating))
         .accessibilityLabel("Save idea")
     }
 }
 
-/// With nothing typed: a new idea (Command N), a new page or a new folder.
+/// With nothing typed: a new idea (Command N), a new page or a new folder,
+/// from a disc raised as high as the switcher, its plus in Theatre Blue.
 private struct IdeaAddMenu: View {
     let newIdea: () -> Void
     let newPage: () -> Void
@@ -177,10 +176,7 @@ private struct IdeaAddMenu: View {
                 .contentShape(Circle())
         }
         .foregroundStyle(Color.wardPrimaryInk)
-        .background(Color.wardSurface, in: Circle())
-        .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
-        .hoverEffect(.highlight)
+        .ideaToolRelief(active: false)
         .accessibilityLabel("Add")
     }
 }

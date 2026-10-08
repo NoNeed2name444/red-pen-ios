@@ -22,12 +22,11 @@ struct ReviewSettingsSection: View {
                 LabeledContent { obs(limitWords(reviewsPerDay)) } label: { Text("Reviews a day") }
             }
             .accessibilityIdentifier("reviewReviewsPerDay")
-            Picker("Scheduler", selection: $schedulerRaw) {
-                ForEach(ReviewScheduler.allCases) { kind in
-                    Text(kind.title).tag(kind.rawValue)
-                }
+            WardSegmented(selection: $schedulerRaw, options: ReviewScheduler.allCases.map(\.rawValue)) { raw in
+                Text(ReviewScheduler(rawValue: raw)?.title ?? raw)
             }
-            .pickerStyle(.segmented)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Scheduler")
             .accessibilityIdentifier("reviewScheduler")
             Toggle("Ask how sure I am", isOn: $asksConfidence)
             LabeledContent { obs("\(reviews.records.count)") } label: { Text("Cards scheduled") }
@@ -41,6 +40,7 @@ struct ReviewSettingsSection: View {
         } footer: {
             Text(footer)
         }
+        .wardRowBackground()
         .onChange(of: newPerDay) { _, _ in reviews.settingsChanged() }
         .onChange(of: reviewsPerDay) { _, _ in reviews.settingsChanged() }
         .onChange(of: schedulerRaw) { _, _ in reviews.settingsChanged() }

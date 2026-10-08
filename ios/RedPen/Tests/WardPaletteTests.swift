@@ -27,6 +27,22 @@ check("the monitor card is dark in both modes",
       WardPalette.luminance(WardPalette.hex(.monitor, dark: false)) < 0.05 &&
       WardPalette.luminance(WardPalette.hex(.monitor, dark: true)) < 0.05)
 
+// soft UI: cards are the ground, raised; only relief tells them apart
+for dark in [false, true] {
+    check("\(dark ? "dark" : "light"): cards and the ground are one base",
+          WardPalette.hex(.surface, dark: dark) == WardPalette.hex(.background, dark: dark))
+    let groove = WardPalette.contrast(WardPalette.hex(.hairline, dark: dark), WardPalette.hex(.background, dark: dark))
+    check("\(dark ? "dark" : "light"): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
+          String(format: "%.2f", groove))
+}
+check("light: the base is a light grey", WardPalette.luminance(WardPalette.hex(.background, dark: false)) > 0.7)
+check("dark: the base is a dark grey, not black",
+      (0.015...0.06).contains(WardPalette.luminance(WardPalette.hex(.background, dark: true))))
+for p in WardPalette.monitorPromises {
+    let r = WardPalette.contrast(WardPalette.hex(p.text, dark: true), WardPalette.hex(.monitor, dark: true))
+    check("monitor: \(p.text) at least \(p.ratio)", r >= p.ratio, String(format: "%.2f", r))
+}
+
 // the asset catalogue agrees with the table
 // (the suites run from the repository root, or from anywhere under it)
 var root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

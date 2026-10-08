@@ -30,8 +30,8 @@ struct CountField: View {
         let high: Int = range.upperBound
         let placeholder: String = "\(low)\u{2013}\(high)"
         let hint: String = "Between \(low) and \(high)"
-        // with keys, the round keys ARE the slab's ends (a capsule); alone,
-        // the number gets the usual room inside its slab
+        // with keys, the round keys ARE the well's ends (a capsule); alone,
+        // the number gets the usual room inside its well
         let side: CGFloat = steppers ? 0 : 12
         let inside = EdgeInsets(top: 0, leading: side, bottom: 0, trailing: side)
         LabeledContent(title) {
@@ -92,10 +92,10 @@ struct CountField: View {
     }
 }
 
-/// A 44-point minus or plus beside the number: a small Clean Sheet disc
-/// with a hairline edge at one end of the field, sinking under the finger
-/// and going Biro Grey once it can go no further. Its own button style,
-/// so in a Form row only this key takes the tap, not the whole row.
+/// A 44-point minus or plus beside the number: a small disc raised off the
+/// well at one end of the field, pressed in under the finger, and flat and
+/// Biro Grey once it can go no further. Its own button style, so in a Form
+/// row only this key takes the tap, not the whole row.
 private struct CountStepButton: View {
     let symbol: String
     let label: String
@@ -103,21 +103,31 @@ private struct CountStepButton: View {
     let action: () -> Void
 
     var body: some View {
-        // a 44-point face with a 22-point corner is a circle
-        let style = PopTileStyle(cornerRadius: 22)
         let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(ink)
                 .frame(width: 44, height: 44)
-                .background(Color.wardSurface, in: Circle())
-                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
                 .contentShape(Circle())
         }
-        .buttonStyle(style)
+        .buttonStyle(CountStepStyle(enabled: enabled))
         .buttonRepeatBehavior(.enabled)
         .disabled(!enabled)
         .accessibilityLabel(label)
+    }
+}
+
+/// The key's disc, kept clear of the well's wall; no disc once disabled.
+private struct CountStepStyle: ButtonStyle {
+    let enabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                if enabled {
+                    WardReliefFace(shape: Circle().inset(by: 4), lift: .low, inset: configuration.isPressed)
+                }
+            }
     }
 }

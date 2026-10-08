@@ -96,7 +96,7 @@ struct StethoscoreCoreApp: App {
             .environmentObject(gemma)
             .environmentObject(llm)
             .coreAudioEnvironment()
-            .tint(Color.wardPrimary)
+            .wardControls()
             .appLanguage() // right to left in Arabic, as RedPenApp (L10n.swift)
             .launchSplash()
         }

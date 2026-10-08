@@ -96,8 +96,7 @@ struct GuessFirstView: View {
         let wrongTint: Color = isPicked ? Color.wardDanger : Color.wardInkSecondary
         let answeredTint: Color = isRight ? Color.wardSuccess : wrongTint
         let tint: Color = answered ? answeredTint : Color.wardInkSecondary
-        let markedEdge: Bool = answered && (isRight || isPicked)
-        let edge: Color = markedEdge ? answeredTint : Color.wardHairline
+        let marked: Bool = answered && (isRight || isPicked)
         let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         return Button {
             guard picked == nil else { return }
@@ -112,8 +111,9 @@ struct GuessFirstView: View {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 48)
-            .background(Color.wardSurface, in: shape)
-            .overlay(shape.strokeBorder(edge, lineWidth: 1))
+            // raised to be tapped; once answered, the right one and the pick
+            // are pressed into the base, their marks in green and red
+            .wardRelief(in: shape, lift: .mid, pressed: marked)
             .contentShape(shape)
         }
         .buttonStyle(.plain)

@@ -103,13 +103,12 @@ struct PaywallView: View {
         }
     }
 
-    /// The chosen plan edged in Theatre Blue; the other with a hairline.
+    /// Each plan a soft tile: the chosen one pressed into the base, its mark
+    /// in Theatre Blue; the other raised.
     private func planRow(_ plan: SubscriptionPlan, _ product: Product) -> some View {
         let picked: Bool = chosen == plan
         let symbol: String = picked ? "largecircle.fill.circle" : "circle"
-        let mark: Color = picked ? Color.wardPrimary : Color.wardInkSecondary
-        let edge: Color = picked ? Color.wardPrimary : Color.wardHairline
-        let edgeWidth: CGFloat = picked ? 2 : 1
+        let mark: Color = picked ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = picked ? .isSelected : []
         return Button {
             chosen = plan
@@ -131,12 +130,10 @@ struct PaywallView: View {
                     .foregroundStyle(Color.wardInk)
             }
             .padding(14)
-            .background(Color.wardSurface, in: PaywallView.row)
-            .overlay(PaywallView.row.strokeBorder(edge, lineWidth: edgeWidth))
+            .wardRelief(in: PaywallView.row, lift: .mid, pressed: picked)
             .contentShape(PaywallView.row)
         }
         .buttonStyle(.plain)
-        .wardShadow()
         .animation(.snappy(duration: 0.2), value: picked)
         .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)

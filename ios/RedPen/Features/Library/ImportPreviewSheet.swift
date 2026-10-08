@@ -93,11 +93,11 @@ struct ImportPreviewSheet: View {
             WardSectionLabel(preview.sets.count == 1 ? "Your new set" : "Your new sets")
             VStack(spacing: 0) {
                 ForEach(Array(preview.sets.prefix(listed).enumerated()), id: \.offset) { index, set in
-                    if index > 0 { hairline }
+                    if index > 0 { etch }
                     setRow(set, folder: folderName(at: index))
                 }
                 if preview.sets.count > listed {
-                    hairline
+                    etch
                     Text("and \(preview.sets.count - listed) more")
                         .font(.footnote)
                         .foregroundStyle(Color.wardInkSecondary)
@@ -109,8 +109,8 @@ struct ImportPreviewSheet: View {
         }
     }
 
-    private var hairline: some View {
-        Rectangle().fill(Color.wardHairline).frame(height: 1).padding(.leading, 14)
+    private var etch: some View {
+        WardEtch().padding(.leading, 14)
     }
 
     private func folderName(at index: Int) -> String? {

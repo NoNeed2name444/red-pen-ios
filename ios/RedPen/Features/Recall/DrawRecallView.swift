@@ -153,7 +153,8 @@ struct DrawRecallView: View {
         }
     }
 
-    /// Shows or hides the figure's title: an eye beside the prompt.
+    /// Shows or hides the figure's title: an eye on a soft disc beside the
+    /// prompt, pressed in while the title shows.
     private var titleEye: some View {
         let symbol: String = showTitle ? "eye.slash" : "eye"
         let label: String = showTitle ? "Hide title" : "Show title"
@@ -164,9 +165,7 @@ struct DrawRecallView: View {
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 40, height: 40)
-                .background(Color.wardSurface, in: Circle())
-                .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
-                .wardShadow()
+                .wardRelief(in: Circle(), pressed: showTitle)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -177,7 +176,7 @@ struct DrawRecallView: View {
 
     /// The drawing, with the original over it when comparing. Both share the
     /// picture's proportions, so what is drawn lines up with what is there.
-    /// It lies on the glass: never moved by the pop-out.
+    /// A white sheet raised just off the base, never moved by the pop-out.
     ///
     /// The compare panel takes room from the paper, and the canvas's strokes
     /// keep their point positions while the original shrinks with it. So
@@ -205,7 +204,7 @@ struct DrawRecallView: View {
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 12, style: .continuous), lift: .low)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -267,7 +266,6 @@ struct DrawRecallView: View {
             Label("Compare", systemImage: "square.on.square")
         }
         .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
-        .wardShadow()
         .keyboardShortcut(.return, modifiers: [])
     }
 
@@ -324,6 +322,8 @@ struct DrawRecallView: View {
         }
     }
 
+    /// The thumbnails are raised; the scroll view clips what it draws, so
+    /// the row keeps room inside it for their lights.
     private var pastAttempts: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Earlier attempts").wardSmallCaps()
@@ -334,13 +334,15 @@ struct DrawRecallView: View {
                             .buttonStyle(.plain)
                     }
                 }
+                .padding(6)
             }
+            .padding(.horizontal, -6)
         }
     }
 
     private func thumbnail(_ attempt: RecallAttempt) -> some View {
         let here = attempt.id == attemptID
-        let edge: Color = here ? Color.wardPrimary : Color.wardHairline
+        let edge: Color = here ? Color.wardPrimaryInk : Color.clear
         return VStack(spacing: 2) {
             Group {
                 if let picture = Self.picture(of: attempt) {
@@ -350,10 +352,11 @@ struct DrawRecallView: View {
                 }
             }
             .frame(width: 64, height: 44)
-            // white like the paper the attempt was drawn on
+            // white like the paper the attempt was drawn on, raised like it;
+            // the one on the paper now is ringed in Theatre Blue
             .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(edge, lineWidth: here ? 2 : 1))
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(edge, lineWidth: 2))
+            .wardRaised(in: RoundedRectangle(cornerRadius: 6, style: .continuous), lift: .low)
             Text(attempt.date.formatted(.dateTime.day().month(.abbreviated)))
                 .font(.caption2)
                 .foregroundStyle(Color.wardInkSecondary)

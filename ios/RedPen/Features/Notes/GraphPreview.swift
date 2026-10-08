@@ -284,17 +284,19 @@ struct GraphPreviewRoot: View {
     }
 }
 
-/// The top of the Ideas screen as the app shows it over the map: a back
-/// chevron on the left and the "Ideas" title on a glass pill in the middle
-/// (the design preview has no navigation of its own to draw them).
+/// The top of the Ideas screen as the app shows it over the map: the
+/// system's glass back chevron on the left and the "Ideas" title on a soft
+/// plate pressed in, in the middle (the design preview has no navigation of
+/// its own to draw them).
 struct GraphPreviewBar: View {
     var body: some View {
         ZStack {
             Text("Ideas")
                 .font(.headline)
+                .foregroundStyle(Color.wardInk)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 9)
-                .glassEffect(.regular, in: .capsule)
+                .wardInset(in: Capsule())
                 .accessibilityAddTraits(.isHeader)
             HStack {
                 Button {

@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// "Undo" for a few seconds after each rating: a small Clean Sheet capsule
-/// with a hairline edge, raised by the one shadow, at the top corner of the
-/// card. It is shown by a timestamp rather than an animation, so nothing runs
-/// while it waits; it simply goes when the time is up or the next card is
-/// rated. With VoiceOver on it stays until the next rating: five seconds is
-/// not long enough to find it by swiping.
+/// "Undo" for a few seconds after each rating: a small soft capsule floating
+/// at the top corner of the card, pressed in under the finger. It is shown
+/// by a timestamp rather than an animation, so nothing runs while it waits;
+/// it simply goes when the time is up or the next card is rated. With
+/// VoiceOver on it stays until the next rating: five seconds is not long
+/// enough to find it by swiping.
 struct ReviewUndoChip: View {
     let action: () -> Void
 
@@ -20,14 +20,8 @@ struct ReviewUndoChip: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .frame(minHeight: 44)
-                .background(Color.wardSurface, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-                .contentShape(Capsule())
         }
-        .buttonStyle(.pressableRow)
-        .wardShadow()
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
+        .buttonStyle(PopTileStyle(cornerRadius: 22, plane: .floating))
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
         .accessibilityLabel("Undo last rating")

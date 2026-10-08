@@ -44,9 +44,9 @@ struct GraphOptionsTarget: Identifiable, Equatable {
 
 // MARK: - The peek card
 
-/// A small glass card at the bottom: what the chosen body is, its first
-/// lines and its links (a note), or its counts and latest notes (a
-/// folder). Tap it, swipe it up or press Open to read it.
+/// A small soft card raised high at the bottom: what the chosen body is,
+/// its first lines and its links (a note), or its counts and latest notes
+/// (a folder). Tap it, swipe it up or press Open to read it.
 struct GraphPeekCardView: View {
     static let zoomID: String = "graphPeek"
 
@@ -68,7 +68,7 @@ struct GraphPeekCardView: View {
             ForEach(Array(content.lines.enumerated()), id: \.offset) { _, line in
                 Text(line)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
             }
             if !content.chips.isEmpty { chipRow }
@@ -76,7 +76,7 @@ struct GraphPeekCardView: View {
         }
         .padding(16)
         .frame(maxWidth: 520, alignment: .leading)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 24, style: .continuous), lift: .high)
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .onTapGesture(perform: open)
         .simultaneousGesture(swipeUp)
@@ -92,23 +92,27 @@ struct GraphPeekCardView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(content.title)
                     .font(.headline)
+                    .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                     .accessibilityIdentifier("graphPeekTitle")
                 Text(content.kind)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.up")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
     }
 
+    /// The links as soft chips; the row reaches into the card's margin so
+    /// the chips' lights are not cut where it scrolls, while the chips line
+    /// up with the words above.
     private var chipRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(content.chips, id: \.id) { item in
                     Button {
                         chip(item.id)
@@ -116,35 +120,34 @@ struct GraphPeekCardView: View {
                         Text(item.title)
                             .font(.caption)
                             .lineLimit(1)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
                     }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .buttonStyle(WardChipButtonStyle())
                     .accessibilityHint("Selects it on the map")
                 }
                 if content.moreLinks > 0 {
                     Text("+\(content.moreLinks) more")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
             }
+            .padding(.horizontal, 8)
         }
+        .padding(.horizontal, -8)
     }
 
     @ViewBuilder
     private var buttons: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Button(content.primary, systemImage: folder ? "folder" : "doc.text", action: open)
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.wardCompact)
                 .accessibilityIdentifier("graphPeekOpen")
             if folder {
                 Button("Fly in", systemImage: "scope", action: flyIn)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardQuiet)
             } else {
                 Button(linksShown ? "All links" : "Show links", systemImage: "point.3.connected.trianglepath.dotted",
                        action: showLinks)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardQuiet)
                     .accessibilityIdentifier("graphPeekLinks")
                 Menu {
                     ForEach(more.filter { $0 != "Open" }, id: \.self) { item in
@@ -153,10 +156,14 @@ struct GraphPeekCardView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .frame(width: 36, height: 34)
-                        .contentShape(Capsule())
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.wardInk)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .wardRaised(in: Circle(), lift: .low)
+                .contentShape(.hoverEffect, Circle())
+                .hoverEffect(.highlight)
                 .accessibilityLabel("More")
             }
         }
@@ -186,7 +193,8 @@ private struct GraphZoomSource: ViewModifier {
 
 // MARK: - A body's options
 
-/// The options held on a body, as a glass list next to where it was held.
+/// The options held on a body, as a soft raised list next to where it was
+/// held, its rows parted by etched grooves.
 struct GraphNodeMenuView: View {
     let title: String
     let items: [String]
@@ -196,13 +204,13 @@ struct GraphNodeMenuView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
             ForEach(items, id: \.self) { item in
                 let role: ButtonRole? = item == "Delete" ? ButtonRole.destructive : nil
-                Divider()
+                WardEtch()
                 Button(role: role) {
                     pick(item)
                 } label: {
@@ -213,11 +221,11 @@ struct GraphNodeMenuView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(item == "Delete" ? Color.red : Color.primary)
+                .foregroundStyle(item == "Delete" ? Color.wardDanger : Color.wardInk)
             }
         }
         .frame(width: 230)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 18, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("graphNodeMenu")
     }
@@ -256,12 +264,14 @@ struct GraphNotePicker: View {
                         Spacer()
                         if notes.isLinked(from, note.id) {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.wardInkSecondary)
                                 .accessibilityLabel("Linked")
                         }
                     }
                 }
+                .wardRowBackground()
             }
+            .wardForm()
             .searchable(text: $query)
             .navigationTitle("Link to")
             .navigationBarTitleDisplayMode(.inline)
@@ -291,10 +301,13 @@ struct GraphFolderPicker: View {
         NavigationStack {
             List {
                 Button("No folder") { move(to: nil) }
+                    .wardRowBackground()
                 ForEach(Array(notes.folderOutline().enumerated()), id: \.offset) { _, entry in
                     Button(IdeasView.indented(entry.folder.name, depth: entry.depth)) { move(to: entry.folder.id) }
+                        .wardRowBackground()
                 }
             }
+            .wardForm()
             .navigationTitle("Move to")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -328,12 +341,13 @@ struct GraphLinkLengthBar: View {
             HStack {
                 Text("Link length")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.wardInk)
                 Spacer()
                 Text(GraphLinkLength.spoken(shown))
                     .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                 Button("Done", action: done)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardCompact)
                     .accessibilityIdentifier("linkLengthDone")
             }
             HStack(spacing: 10) {
@@ -342,15 +356,15 @@ struct GraphLinkLengthBar: View {
                 } label: {
                     Image(systemName: "minus")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.wardCircle)
                 .accessibilityLabel("Shorter")
                 Slider(value: slider, in: GraphLinkLength.shortest...GraphLinkLength.longest,
                        step: GraphLinkLength.step) {
                     Text("Link length")
                 } minimumValueLabel: {
-                    Text("Shorter").font(.caption2)
+                    Text("Shorter").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 } maximumValueLabel: {
-                    Text("Longer").font(.caption2)
+                    Text("Longer").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 } onEditingChanged: { editing in
                     if !editing, let held = dragging {
                         dragging = nil
@@ -364,13 +378,13 @@ struct GraphLinkLengthBar: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.wardCircle)
                 .accessibilityLabel("Longer")
             }
         }
         .padding(14)
         .frame(maxWidth: 520)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 20, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("linkLengthBar")
     }
@@ -403,20 +417,20 @@ enum GraphMapTouch {
     }
 }
 
-/// The region the camera is flown in to, on a glass pill at the top of the
-/// map ("Examples · 14 notes"): large, plain type that stays readable over
-/// any glow, read by VoiceOver as a heading.
+/// The region the camera is flown in to, at the top of the map ("Examples ·
+/// 14 notes"), on a soft plate pressed in as a label is: large, plain type
+/// that stays readable over any glow, read by VoiceOver as a heading.
 struct GraphRegionPill: View {
     let text: String
 
     var body: some View {
         Text(text)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
+            .foregroundStyle(Color.wardInk)
             .lineLimit(1)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .glassEffect(.regular, in: .capsule)
+            .wardInset(in: Capsule())
             .accessibilityAddTraits(.isHeader)
             .accessibilityLabel("Zoomed in to " + text)
             .accessibilityIdentifier("graphRegionPill")

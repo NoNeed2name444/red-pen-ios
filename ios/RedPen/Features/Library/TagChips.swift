@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Tags as white capsule chips: each with its × to take it off, a field to add more
-/// (Return, or the plus), and the library's own tags offered underneath as
-/// the typing narrows them. For a card, a question or a whole set.
+/// Tags as capsules pressed into the base: each with its × to take it off, a
+/// field to add more (Return, or the plus), and the library's own tags offered
+/// underneath, raised to be tapped, as the typing narrows them. For a card, a
+/// question or a whole set.
 ///
 /// The rules - no spaces inside a tag, `::` nests, case ignored - are
 /// CardTags', so what is typed here matches what came in from Anki.
@@ -53,16 +54,17 @@ struct TagChipsField: View {
                                 Label(CardTags.label(tag), systemImage: "plus")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(Color.wardPrimaryInk)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color.wardPrimary.opacity(0.12), in: Capsule())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(WardChipButtonStyle())
                             .accessibilityLabel("Add tag \(tag)")
                         }
                     }
-                    .padding(.vertical, 2)
+                    // room inside the scroll view for the chips' lights,
+                    // which it would cut
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 6)
                 }
+                .padding(.horizontal, -6)
             }
         }
     }
@@ -87,8 +89,7 @@ struct TagChipsField: View {
         .padding(.leading, 10)
         .padding(.trailing, 4)
         .padding(.vertical, 3)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardInset(in: Capsule())
         .help(tag)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Tag \(tag)")

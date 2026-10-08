@@ -45,7 +45,7 @@ struct NarrateAudioBar: View {
                            player.seek(to: held)
                        }
                    })
-                .tint(Color.wardPrimary)
+                .tint(Color.wardPrimaryInk)
                 .accessibilityLabel("Position in the recording")
 
             HStack {

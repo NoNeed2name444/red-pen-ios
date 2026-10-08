@@ -70,7 +70,8 @@ struct WardRoundTile: View {
                 setup
             }
         }
-        .wardCard(padding: 14)
+        // raised as low as the tiles round it, the button proud of it
+        .wardCard(padding: 14, lift: .low)
     }
 
     @ViewBuilder
@@ -82,19 +83,17 @@ struct WardRoundTile: View {
             .font(.caption)
             .foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
-        Picker("Focus", selection: $focus) {
-            ForEach(WardRoundPlan.focusChoices, id: \.self) { minutes in
-                Text("\(minutes) min").tag(minutes)
-            }
+        WardSegmented(selection: $focus, options: WardRoundPlan.focusChoices) { minutes in
+            Text("\(minutes) min")
         }
-        .pickerStyle(.segmented)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Focus")
         .accessibilityIdentifier("wardRoundFocus")
-        Picker("Break", selection: $rest) {
-            ForEach(WardRoundPlan.breakChoices, id: \.self) { minutes in
-                Text("\(minutes) min break").tag(minutes)
-            }
+        WardSegmented(selection: $rest, options: WardRoundPlan.breakChoices) { minutes in
+            Text("\(minutes) min break")
         }
-        .pickerStyle(.segmented)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Break")
         .accessibilityIdentifier("wardRoundBreak")
         Button(action: start) {
             Label("Start round 1", systemImage: "play.fill")
@@ -156,9 +155,8 @@ struct WardRoundChip: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Ward round: " + round.caption(at: now))
         }
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        // floating over every screen, so raised high off the base
+        .wardRaised(in: Capsule(), lift: .high)
         .contentShape(Capsule())
         .onTapGesture(perform: open)
         .sensoryFeedback(.success, trigger: notice) { _, new in new != nil }

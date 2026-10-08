@@ -53,8 +53,7 @@ struct LensAddSheet: View {
                     Section {
                         WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: problem)
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    .wardWellRow()
                 }
             }
             .wardForm()
@@ -108,6 +107,7 @@ struct LensAddSheet: View {
                 .accessibilityAddTraits(d == destination ? .isSelected : [])
             }
         }
+        .wardRowBackground()
     }
 
     private var placeSection: some View {
@@ -126,6 +126,7 @@ struct LensAddSheet: View {
                     .textInputAutocapitalization(.words)
             }
         }
+        .wardRowBackground()
     }
 
     /// The sets of the chosen mode (newest first), or the note folders, less

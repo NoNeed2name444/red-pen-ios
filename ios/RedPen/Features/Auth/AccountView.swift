@@ -78,8 +78,7 @@ struct AccountView: View {
                               isPro: subscriptions.isPro) {
                 headerButton
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            .wardCardRow()
         }
     }
 
@@ -115,10 +114,10 @@ struct AccountView: View {
             }
             if !subscriptions.isPro {
                 Text("Keeping your iPhone and iPad the same is part of Pro.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             } else if isLocalOnly {
                 Text("This library is only on this device. Link another device to keep them the same.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if headerAction != .link {
                 Button { if subscriptions.isPro { linking = true } else { showPaywall = true } } label: {
@@ -132,7 +131,7 @@ struct AccountView: View {
                 // somebody else's library is on this device: nothing of it
                 // goes into this account until the student says so
                 Text("The library on this device was synced with another account. Nothing syncs until you choose.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 Button("Add it to this account") {
                     Task { await sync.chooseLibrary(addToAccount: true) }
                 }
@@ -141,7 +140,7 @@ struct AccountView: View {
                 }
             } else if sync.setsKeptHere > 0 {
                 Text(keptNote)
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 Button("Add them to this account") {
                     Task { await sync.addKeptSets() }
                 }
@@ -149,6 +148,7 @@ struct AccountView: View {
         } footer: {
             Text("Your decks, folders and review schedule follow you between your devices. Recordings and learned pronunciations stay on the phone that made them.")
         }
+        .wardRowBackground()
     }
 
     /// Sets kept off this account when it signed in, said as a sentence.
@@ -181,6 +181,7 @@ struct AccountView: View {
             Button("Restore purchases") { Task { await subscriptions.restore() } }
                 .disabled(subscriptions.busy)
         }
+        .wardRowBackground()
     }
 
     // MARK: Leaving - always last
@@ -192,6 +193,7 @@ struct AccountView: View {
         } footer: {
             Text("Deleting removes your account, your synced library and its subscription record from our server. The copy on this phone stays. It does not cancel an active subscription \u{2014} do that in Manage first, or Apple will keep billing.")
         }
+        .wardRowBackground()
     }
 
     private func signOut() {
@@ -278,7 +280,8 @@ private struct AccountHeaderCard<Action: View>: View {
             }
             action
         }
-        .wardCard()
+        // as low as the tiles round it, the button proud of it
+        .wardCard(lift: .low)
     }
 
     private func identity(_ person: Account) -> some View {
@@ -294,7 +297,7 @@ private struct AccountHeaderCard<Action: View>: View {
                     .lineLimit(1)
                 Text(Self.how(person, localOnly: localOnly))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             if isPro { ProBadge() }
@@ -308,15 +311,11 @@ private struct AccountHeaderCard<Action: View>: View {
     }
 }
 
-/// A small capsule saying the account has Pro.
+/// A small capsule saying the account has Pro: a label pressed into the
+/// card, its word in Theatre Blue.
 private struct ProBadge: View {
     var body: some View {
-        Text("Pro")
-            .font(.caption.weight(.bold))
-            .foregroundStyle(Color.wardOnPrimary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.wardPrimary, in: Capsule())
+        WardChip(text: "Pro", tone: .blue)
             .accessibilityLabel("Pro subscription")
     }
 }

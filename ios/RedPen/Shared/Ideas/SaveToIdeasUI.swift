@@ -265,8 +265,8 @@ private struct SaveToIdeasHost: ViewModifier {
     }
 }
 
-/// "Saved to Ideas", at the top: a Clean Sheet slip with a hairline edge
-/// that stops nothing, with Undo. A tap elsewhere on it puts it away.
+/// "Saved to Ideas", at the top: a soft slip raised high off the base that
+/// stops nothing, with Undo. A tap elsewhere on it puts it away.
 private struct SavedIdeaToast: View {
     let toast: IdeaToast
     let onUndo: () -> Void
@@ -285,7 +285,7 @@ private struct SavedIdeaToast: View {
                     .foregroundStyle(Color.wardInk)
                 Text(toast.message)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
             }
             .accessibilityElement(children: .combine)
@@ -308,9 +308,7 @@ private struct SavedIdeaToast: View {
         .padding(.trailing, toast.undo == nil ? 16 : 4)
         .padding(.vertical, toast.undo == nil ? 12 : 4)
         .frame(maxWidth: 520)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        .wardRaised(in: shape, lift: .high)
         .contentShape(shape)
         .onTapGesture(perform: onDismiss)
     }
@@ -319,9 +317,9 @@ private struct SavedIdeaToast: View {
 // MARK: - The button
 
 /// "Save to Ideas" under what is worth keeping - or "In Ideas" once it is,
-/// where a tap offers to add to that note. A labelled capsule, or (compact)
-/// a lightbulb on a 44-point disc for a row. Not there until the library has
-/// handed over the idea store.
+/// where a tap offers to add to that note. A soft capsule raised off the
+/// base, or (compact) a lightbulb on a 44-point raised disc for a row. Not
+/// there until the library has handed over the idea store.
 struct SaveToIdeasButton: View {
     let clip: IdeaClip
     var compact: Bool = false
@@ -364,8 +362,6 @@ struct SaveToIdeasButton: View {
             .font(.title3)
             .foregroundStyle(colour)
             .frame(width: 44, height: 44)
-            .background(Color.wardSurface, in: Circle())
-            .overlay(Circle().strokeBorder(Color.wardHairline, lineWidth: 1))
     }
 
     private func capsule(_ symbol: String, title: String, saved: Bool) -> some View {
@@ -380,8 +376,6 @@ struct SaveToIdeasButton: View {
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, 16)
         .frame(minHeight: 44)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
         .contentShape(Capsule())
     }
 }

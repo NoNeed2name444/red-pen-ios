@@ -122,9 +122,8 @@ struct FixReport: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-        .wardShadow()
+        // a soft slip floating over the transcript
+        .wardRaised(in: Capsule(), lift: .high)
         .padding(.horizontal)
         .transition(.slideFade(.bottom))
     }

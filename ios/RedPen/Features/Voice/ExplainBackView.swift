@@ -169,8 +169,8 @@ struct ExplainBackView: View {
 
     private static let placeholder = "Tap the microphone and explain it as if teaching a friend: what it is, how it works, why it matters clinically. Or type it here."
 
-    /// The explanation: it lies on the screen, it is read and corrected, so
-    /// it never moves with the pop-out.
+    /// The explanation: a well pressed into the base, read and corrected,
+    /// so it never moves with the pop-out.
     private var transcriptBox: some View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return VStack(alignment: .leading, spacing: 6) {
@@ -179,8 +179,7 @@ struct ExplainBackView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 110, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.wardSurface, in: shape)
-        .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardInset(in: shape)
     }
 
     @ViewBuilder
@@ -280,24 +279,18 @@ struct ExplainBackView: View {
         let listening: Bool = listener.listening
         let symbol: String = listening ? "stop.fill" : "mic.fill"
         let label: String = listening ? "Stop recording" : "Start explaining"
+        // a soft circle: the hero stands high, the stepped-down one low;
+        // listening, it is pressed in with its stop glyph in Resus Red
         let quiet: Bool = markIsNext && !listening
-        let raised: Color = quiet ? Color.wardSurface : Color.wardPrimary
-        let fill: Color = listening ? Color.wardDanger : raised
-        let ink: Color = quiet ? Color.wardPrimaryInk : Color.wardOnPrimary
-        let edge: Color = quiet ? Color.wardHairline : Color.clear
+        let lift: WardLift = quiet ? .low : .high
+        let ink: Color = listening ? Color.wardDanger : Color.wardPrimaryInk
         return Button(action: toggleRecording) {
             Image(systemName: symbol)
                 .scaledFont(30, relativeTo: .title, weight: .bold, maxSize: 44)
                 .foregroundStyle(ink)
                 .frame(width: 76, height: 76)
-                .background(fill, in: Circle())
-                .overlay(Circle().strokeBorder(edge, lineWidth: 1))
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .wardShadow()
-        .contentShape(.hoverEffect, Circle())
-        .hoverEffect(.lift)
+        .buttonStyle(WardCircleButtonStyle(on: listening, lift: lift))
         .accessibilityLabel(label)
     }
 
@@ -417,8 +410,7 @@ private struct ExplainSetChipLabel: View {
         .foregroundStyle(Color.wardPrimaryInk)
         .padding(.horizontal, 14)
         .frame(minHeight: 44)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: Capsule(), lift: .low)
         .contentShape(Capsule())
     }
 }
@@ -449,11 +441,11 @@ private struct ExplainMarkLabel: View {
         let title: String = marking ? "Marking\u{2026}" : "Mark my explanation"
         HStack(spacing: 8) {
             if marking {
-                // a spinner inside the filled button: the ECG loader's red
-                // would not read on Theatre Blue
+                // a spinner in the button's own Theatre Blue, beside its
+                // words on the soft face
                 ProgressView()
                     .controlSize(.small)
-                    .tint(Color.wardOnPrimary)
+                    .tint(Color.wardPrimaryInk)
             }
             Text(title)
         }
@@ -583,6 +575,7 @@ struct ExplainResultView: View {
             } header: {
                 Text(attempt.topic)
             }
+            .wardRowBackground()
 
             points("Covered", attempt.result.covered, symbol: "checkmark.circle.fill", color: Color.wardSuccess)
             points("Missed", attempt.result.missed, symbol: "circle.dashed", color: Color.wardWarning)
@@ -591,6 +584,7 @@ struct ExplainResultView: View {
             Section("What you said") {
                 Text(attempt.transcript).font(.callout).foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
         }
         .wardForm()
         .modeScreen(.narrate)
@@ -620,7 +614,7 @@ struct ExplainResultView: View {
                 if making {
                     ProgressView()
                         .controlSize(.small)
-                        .tint(Color.wardOnPrimary)
+                        .tint(Color.wardPrimaryInk)
                 }
                 Label(title, systemImage: "rectangle.stack.badge.plus")
             }
@@ -645,6 +639,7 @@ struct ExplainResultView: View {
                 .font(.callout)
             }
         }
+        .wardRowBackground()
     }
 
     private var gaps: [String] { attempt.result.missed + attempt.result.wrong }

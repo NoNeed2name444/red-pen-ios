@@ -50,6 +50,7 @@ struct StatsView: View {
                     if !set.questions.isEmpty { drill = set }
                 }
             }
+            .wardRowBackground()
 
             Section {
                 overview(tried)
@@ -59,6 +60,7 @@ struct StatsView: View {
                         .font(.caption)
                 }
             }
+            .wardRowBackground()
 
             confidenceSection
             reasonsSection
@@ -79,12 +81,14 @@ struct StatsView: View {
             } footer: {
                 Text("One line to remember for each question you got wrong, by subject.")
             }
+            .wardRowBackground()
 
             if stats.isEmpty {
                 Section {
                     Text("Make an MCQ set and answer a few questions, and how you are doing in each subject will show here.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             } else {
                 Section {
                     ForEach(stats) { subject in
@@ -95,6 +99,7 @@ struct StatsView: View {
                 } footer: {
                     Text("Every answer you have checked counts, so a question answered twice counts twice. Weakest first. Tap a subject to drill it.")
                 }
+                .wardRowBackground()
             }
         }
         .scrollContentBackground(.hidden)
@@ -177,7 +182,7 @@ struct StatsView: View {
                                 .font(.body.weight(.semibold).monospacedDigit())
                                 .foregroundStyle(.tint)
                         }
-                        AccuracyBar(fraction: row.accuracy, color: Color.wardPrimary)
+                        AccuracyBar(fraction: row.accuracy, color: Color.wardPrimaryInk)
                         Text(Self.counted(row.answered, "answer"))
                             .font(.caption).foregroundStyle(Color.wardInkSecondary)
                     }
@@ -212,6 +217,7 @@ struct StatsView: View {
                 Text("\u{201C}Sure\u{201D} should be right nearly every time. Confident mistakes come first in every drill.")
             }
         }
+        .wardRowBackground()
     }
 
     // MARK: why marks are lost
@@ -235,6 +241,7 @@ struct StatsView: View {
                 Text("The last \(Store.reasonWindowDays) days, from the reason you picked after each wrong answer.")
             }
         }
+        .wardRowBackground()
     }
 
     private func reasonRow(_ share: ReasonShare) -> some View {
@@ -247,7 +254,7 @@ struct StatsView: View {
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.tint)
             }
-            AccuracyBar(fraction: share.share, color: Color.wardPrimary)
+            AccuracyBar(fraction: share.share, color: Color.wardPrimaryInk)
             reasonAction(share.reason, count: share.count)
         }
         .padding(.vertical, 2)
@@ -377,21 +384,14 @@ struct StatsView: View {
     }
 }
 
-/// A thin bar filled to a fraction, in a colour of its own - ThinProgress
+/// A groove filled to a fraction, in a colour of its own - ThinProgress
 /// always takes the screen's tint, and here the colour is the verdict.
 private struct AccuracyBar: View {
     let fraction: Double
     let color: Color
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline)
-                Capsule().fill(color)
-                    .frame(width: max(0, min(1, fraction)) * geo.size.width)
-            }
-        }
-        .frame(height: 6)
-        .accessibilityHidden(true)
+        WardGroove(fraction: fraction, tint: color, height: 8)
+            .accessibilityHidden(true)
     }
 }

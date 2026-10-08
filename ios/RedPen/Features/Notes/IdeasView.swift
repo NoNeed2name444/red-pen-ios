@@ -42,6 +42,7 @@ struct IdeasView: View {
     /// focus for an instant before a saved idea puts it back, and the
     /// switcher should not flash open in between.
     @State private var typing = false
+    @Environment(\.colorScheme) private var scheme
 
     init(query: Binding<String>? = nil, dockClearance: CGFloat = 0) {
         self.externalQuery = query
@@ -69,6 +70,12 @@ struct IdeasView: View {
 
     private var query: String { queryText.wrappedValue }
 
+    /// The map is on screen: Space, and no search over it. The map is always
+    /// night, so the chrome over it is too.
+    private var overMap: Bool {
+        mode == .space && query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     private var movingShown: Binding<Bool> {
         Binding(get: { moving != nil }, set: { if !$0 { moving = nil } })
     }
@@ -77,7 +84,7 @@ struct IdeasView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-            .modifier(IdeasChrome(embedded: embedded, query: $ownQuery))
+            .modifier(IdeasChrome(embedded: embedded, query: $ownQuery, night: overMap))
             .sheet(item: $opening) { ref in
                 NoteEditorView(noteID: ref.id)
             }
@@ -109,6 +116,7 @@ struct IdeasView: View {
         IdeasBottomBar(modeRaw: $modeRaw, draft: $draft, capturing: $capturing, typing: typing,
                        capture: capture, newPage: newPage,
                        newFolder: { naming = .new(parent: folderId) })
+            .environment(\.colorScheme, overMap ? .dark : scheme)
     }
 
     /// Saves what is in the field as an idea, straight away, and leaves the
@@ -169,7 +177,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
     }
 
     /// A clear row as tall as the Library's dock, so the last row can scroll
@@ -221,7 +229,7 @@ struct IdeasView: View {
             dockSpacer
         }
         .scrollContentBackground(.hidden)
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .overlay {
             if notes.notes.isEmpty && notes.folders.isEmpty {
                 firstIdea
@@ -399,6 +407,9 @@ struct IdeasView: View {
 private struct IdeasChrome: ViewModifier {
     let embedded: Bool
     @Binding var query: String
+    /// Over the map, which is always night: the title's plate is night too.
+    let night: Bool
+    @Environment(\.colorScheme) private var scheme
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -409,16 +420,18 @@ private struct IdeasChrome: ViewModifier {
                 .background(LibraryBackdrop())
                 .navigationTitle("Ideas")
                 .navigationBarTitleDisplayMode(.inline)
-                // the title on its own glass pill, centred between Back's
-                // round glass chevron and the edge, as the design targets
-                // draw the Ideas screen
+                // the title on its own plate, pressed in as a label is,
+                // centred between Back's round chevron and the edge, as the
+                // design targets draw the Ideas screen
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         Text("Ideas")
                             .font(.headline)
+                            .foregroundStyle(Color.wardInk)
                             .padding(.horizontal, 18)
                             .padding(.vertical, 9)
-                            .glassEffect(.regular, in: .capsule)
+                            .wardInset(in: Capsule())
+                            .environment(\.colorScheme, night ? .dark : scheme)
                             .accessibilityAddTraits(.isHeader)
                     }
                     .sharedBackgroundVisibility(.hidden)

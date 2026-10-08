@@ -55,7 +55,7 @@ struct SourcesLibraryView: View {
             }
         }
         .background(WardBackground())
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .navigationTitle("Sources")
         .toolbar {
             // a wide iPad has the room for the words, at the top; the empty

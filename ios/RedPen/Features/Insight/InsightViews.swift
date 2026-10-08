@@ -83,7 +83,7 @@ struct ReadinessCard: View {
             .fixedSize(horizontal: false, vertical: true)
 
         if !e.levers.isEmpty {
-            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            WardEtch()
             WardSectionLabel("What would move it most")
             ForEach(e.levers) { lever in
                 Button { onDrill(lever.subject) } label: {
@@ -157,8 +157,8 @@ private struct RangeBarLayout {
     }
 }
 
-/// 0-100% with the estimate's range shaded, its middle marked, and a tick
-/// at the pass mark.
+/// 0-100% as a groove pressed into the card, with the estimate's range
+/// shaded, its middle marked, and a tick at the pass mark.
 private struct RangeBar: View {
     let low: Double, center: Double, high: Double, mark: Double
 
@@ -167,11 +167,11 @@ private struct RangeBar: View {
             let layout = RangeBarLayout(width: geo.size.width, low: low, center: center,
                                         high: high, mark: mark)
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline).frame(height: 8)
-                Capsule().fill(Color.wardPrimary.opacity(0.35))
+                Color.clear.frame(height: 8).wardInset(in: Capsule())
+                Capsule().fill(Color.wardPrimaryInk.opacity(0.35))
                     .frame(width: layout.rangeWidth, height: 8)
                     .offset(x: layout.rangeX)
-                Circle().fill(Color.wardPrimary)
+                Circle().fill(Color.wardPrimaryInk)
                     .frame(width: 12, height: 12)
                     .offset(x: layout.centerX)
                 Rectangle().fill(Color.wardInk)
@@ -224,11 +224,13 @@ struct InsightQuestionList: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.wardInk)
                 }
+                .wardRowBackground()
             }
             if picks.isEmpty {
                 Section {
                     WardEmptyState(symbol: "tray", title: "Nothing here at the moment.")
                 }
+                .wardRowBackground()
             } else {
                 Section {
                     ForEach(picks, id: \.question.id) { pick in
@@ -237,6 +239,7 @@ struct InsightQuestionList: View {
                 } footer: {
                     Text(footer)
                 }
+                .wardRowBackground()
             }
         }
         .wardForm()

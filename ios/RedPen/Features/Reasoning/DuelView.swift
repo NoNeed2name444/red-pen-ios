@@ -169,19 +169,19 @@ struct DuelView: View {
             .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: .infinity, minHeight: 170)
-            .background(shape.fill(Color.wardSurface))
-            .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
+            // held up off the base to be swiped; the side it leans to is a
+            // label pressed into its face
+            .wardRaised(in: shape, lift: .high)
             .overlay(alignment: .top) {
                 if let leaning = leaning {
                     Text(name(leaning))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Color.wardPrimaryInk)
                         .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(Capsule().fill(Color.wardPrimary.opacity(0.12)))
+                        .wardInset(in: Capsule())
                         .padding(8)
                 }
             }
-            .wardShadow()
             .offset(drag)
             .rotationEffect(.degrees(turn))
             .gesture(
@@ -258,7 +258,8 @@ struct DuelView: View {
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(colour.opacity(0.12)))
+        // a note pressed into the base; the glyph says right or wrong
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 
     private func answer(_ side: LookalikeSide) {
@@ -329,7 +330,7 @@ struct DuelView: View {
                     .foregroundStyle(Color.wardInk)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(Color.wardPrimary.opacity(0.08)))
+                    .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
             }
 
             WardSectionLabel("Feature by feature")
@@ -402,7 +403,7 @@ struct ComparisonTableView: View {
                         Text(pair.a).font(.headline)
                         Text(pair.b).font(.headline)
                     }
-                    Rectangle().fill(Color.wardHairline).frame(height: 1).gridCellColumns(2)
+                    WardEtch().gridCellColumns(2)
                     ForEach(0..<rows, id: \.self) { row in
                         GridRow {
                             cell(row < aFeatures.count ? aFeatures[row] : nil)
@@ -410,7 +411,7 @@ struct ComparisonTableView: View {
                         }
                     }
                     if !shared.isEmpty {
-                        Rectangle().fill(Color.wardHairline).frame(height: 1).gridCellColumns(2)
+                        WardEtch().gridCellColumns(2)
                         GridRow {
                             Text("Both \u{2014} these do not tell them apart")
                                 .font(.subheadline.weight(.semibold))
@@ -425,15 +426,13 @@ struct ComparisonTableView: View {
                     }
                 }
                 .padding(16)
-                .background(Color.wardSurface, in: shape)
-                .overlay(shape.strokeBorder(Color.wardHairline, lineWidth: 1))
-                .wardShadow()
+                .wardRaised(in: shape)
                 if !pair.bottomLine.isEmpty {
                     Text(pair.bottomLine)
                         .foregroundStyle(Color.wardInk)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).fill(Color.wardPrimary.opacity(0.08)))
+                        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
                 }
             }
             .padding()

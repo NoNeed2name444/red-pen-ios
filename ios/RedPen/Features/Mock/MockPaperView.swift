@@ -154,7 +154,7 @@ struct MockPaperView: View {
                 .monospacedDigit()
             Text(paper.note)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentCard()
@@ -172,7 +172,7 @@ struct MockPaperView: View {
             Label(MockAssembler.shortfall(have: available, spec: paper, sections: sections),
                   systemImage: "info.circle")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentCard()
         } else {
@@ -180,7 +180,7 @@ struct MockPaperView: View {
             Label("Drawn from \(available) questions in your library, \(spread).",
                   systemImage: "checkmark.circle")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentCard()
         }

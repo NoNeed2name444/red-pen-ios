@@ -177,7 +177,7 @@ struct WardRoundFloat: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { area = $0 }
-        .tint(Color.wardPrimary)
+        .tint(Color.wardPrimaryInk)
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: model.expanded)
     }
 

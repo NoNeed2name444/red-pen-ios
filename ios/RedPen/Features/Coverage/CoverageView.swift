@@ -68,6 +68,7 @@ struct CoverageView: View {
                         Text("Reading your library\u{2026}").foregroundStyle(Color.wardInkSecondary)
                     }
                 }
+                .wardRowBackground()
             } else {
                 summarySection
                 if target != nil { blueprintSection }
@@ -161,13 +162,11 @@ struct CoverageView: View {
     /// or Stop while it runs.
     private var bar: some View {
         VStack(spacing: 12) {
-            Picker("Show", selection: showGaps) {
-                Text("Everything").tag(false)
-                Text("Gaps only").tag(true)
+            WardSegmented(selection: showGaps, options: [false, true]) { gaps in
+                Text(gaps ? "Gaps only" : "Everything")
             }
-            .pickerStyle(.segmented)
-            .frame(minHeight: 32)
-            .hoverEffect(.highlight)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Show")
             checkControl
         }
         .frame(maxWidth: 560)
@@ -266,6 +265,7 @@ struct CoverageView: View {
         } footer: {
             Text("Sends each area\u{2019}s subtopics and a short digest of your library \u{2014} set names, matching questions and cards, lecture headings \u{2014} to \(Brand.name) Cloud.")
         }
+        .wardRowBackground()
     }
 
     @ViewBuilder
@@ -327,6 +327,7 @@ struct CoverageView: View {
             } footer: {
                 Text("Blueprint covered \(ExamDashboardCard.percent(covered)) \u{00B7} predicted ~\(ExamDashboardCard.percent(predicted)) against a pass mark of ~\(ExamDashboardCard.percent(target.passMark)). An estimate from your library and answers, weighted by each area\u{2019}s share of the exam.")
             }
+            .wardRowBackground()
         }
     }
 
@@ -352,6 +353,7 @@ struct CoverageView: View {
                         .textCase(nil)
                 }
             }
+            .wardRowBackground()
         }
     }
 
@@ -402,23 +404,16 @@ struct CoverageView: View {
                 }
             }
             if isGap {
-                // a small capsule on the row; the finger's worth of target
-                // is taller than the capsule
+                // a small capsule raised off the row; the finger's worth of
+                // target is taller than the capsule
                 Button {
                     generate(sub, area: area)
                 } label: {
                     Label("Generate questions", systemImage: "wand.and.stars")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.wardPrimaryInk)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(Color.wardSurface, in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
-                        .frame(minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
-                .hoverEffect(.highlight)
+                .buttonStyle(WardChipButtonStyle())
             }
         }
         .padding(.vertical, 2)
@@ -463,7 +458,8 @@ struct CoverageView: View {
 }
 
 /// One of the three counts at the top, as a chip that filters the rows to
-/// its status. White with a hairline; the chosen one takes its tone.
+/// its status: raised off the base; the chosen one is pressed in and its
+/// words take its tone.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -471,8 +467,7 @@ private struct CoverageCountChip: View {
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
-        let fill: Color = chosen ? colour.opacity(0.12) : Color.clear
-        let edge: Color = chosen ? colour.opacity(0.6) : Color.wardHairline
+        let words: Color = chosen ? CoverageView.tone(status).ink : Color.wardInkSecondary
         let shape = Capsule()
         VStack(spacing: 2) {
             Text("\(count)")
@@ -482,21 +477,14 @@ private struct CoverageCountChip: View {
             Label(status.label, systemImage: CoverageView.symbol(status))
                 .labelStyle(.titleAndIcon)
                 .font(.caption)
-                .foregroundStyle(Color.wardInkSecondary)
+                .foregroundStyle(words)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 56)
-        .background {
-            ZStack {
-                shape.fill(Color.wardSurface)
-                shape.fill(fill)
-            }
-        }
-        .overlay(shape.strokeBorder(edge, lineWidth: 1))
-        .wardShadow()
+        .wardRelief(in: shape, pressed: chosen)
         .contentShape(shape)
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)

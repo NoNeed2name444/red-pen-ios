@@ -109,6 +109,7 @@ struct CommuteModeView: View {
             } footer: {
                 Text("Right rates Good, wrong rates Again.")
             }
+            .wardRowBackground()
 
             if !questionSets.isEmpty {
                 questionsSection
@@ -125,6 +126,7 @@ struct CommuteModeView: View {
                         .foregroundStyle(Color.wardPrimaryInk)
                 }
             }
+            .wardRowBackground()
         }
         .wardForm()
     }
@@ -152,6 +154,7 @@ struct CommuteModeView: View {
         } footer: {
             Text("Say the letter, A to E.")
         }
+        .wardRowBackground()
     }
 
     /// The voice choice, folded away: it is set once and rarely changed.
@@ -174,6 +177,7 @@ struct CommuteModeView: View {
         } footer: {
             Text("Works with the screen locked.")
         }
+        .wardRowBackground()
     }
 
     private var voiceNote: String {
@@ -301,6 +305,7 @@ struct CommuteModeView: View {
                     CommuteLineRow(line: line)
                         .id(line.id)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
             .listStyle(.plain)
@@ -364,20 +369,17 @@ private struct CommutePlayControls: View {
             Button("Skip") { session.skip() }
                 .buttonStyle(.bigSecondary)
                 .keyboardShortcut(.rightArrow, modifiers: [])
+            // the hero: a soft circle standing highest, its glyph in Theatre
+            // Blue, pressed in while held
             Button {
                 session.toggle()
             } label: {
                 Image(systemName: symbol)
                     .scaledFont(34, relativeTo: .largeTitle, weight: .bold, maxSize: 48)
-                    .foregroundStyle(Color.wardOnPrimary)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 84, height: 84)
-                    .background(Color.wardPrimary, in: Circle())
-                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
-            .wardShadow()
-            .contentShape(.hoverEffect, Circle())
-            .hoverEffect(.lift)
+            .buttonStyle(WardCircleButtonStyle(lift: .high))
             .keyboardShortcut(.space, modifiers: [])
             .accessibilityLabel(label)
         }

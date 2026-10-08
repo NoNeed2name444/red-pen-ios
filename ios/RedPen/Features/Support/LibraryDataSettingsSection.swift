@@ -61,6 +61,7 @@ struct LibraryDataSettingsSection: View {
         } footer: {
             Text("Copies of files this version of the app couldn\u{2019}t fully read, kept before anything was saved over them. Save them to Files, or send them with a message from Help, so nothing in them is lost.")
         }
+        .wardRowBackground()
     }
 
     private var dataSection: some View {
@@ -81,6 +82,7 @@ struct LibraryDataSettingsSection: View {
         } footer: {
             Text("One file with every set, your review schedule, progress, notes, study log and settings. Save it to Files or iCloud Drive. Restoring adds what this phone doesn\u{2019}t have \u{2014} nothing here is replaced or deleted.")
         }
+        .wardRowBackground()
         .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip, .data]) { result in
             if case .success(let url) = result { pendingRestore = url }
         }

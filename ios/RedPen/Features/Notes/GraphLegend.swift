@@ -19,6 +19,7 @@ struct GraphLegendSheet: View {
                 Section {
                     ladder
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
                 Section {
                     ForEach(content.rows, id: \.name) { row in
@@ -32,7 +33,7 @@ struct GraphLegendSheet: View {
                                 Text(row.name).font(.headline)
                                 Text(row.text)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.wardInkSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                                 if !row.how.isEmpty {
                                     Label(row.how, systemImage: "plus.circle")
@@ -45,13 +46,16 @@ struct GraphLegendSheet: View {
                         .padding(.vertical, 2)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(Self.spoken(row))
+                        .wardRowBackground()
                     }
                 } footer: {
                     Text(content.footer)
                         .font(.footnote)
+                        .foregroundStyle(Color.wardInkSecondary)
                         .padding(.top, 6)
                 }
             }
+            .wardForm()
             .navigationTitle(theme.legendTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,7 +79,7 @@ struct GraphLegendSheet: View {
                         // two lines rather than cut short or shrunk
                         Text(rung.caption)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -449,21 +453,22 @@ struct GraphUniverseHint: View {
                     ForEach(theme.cardSteps, id: \.self) { step in
                         Label(step, systemImage: "plus.circle")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.wardInkSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
             HStack(spacing: 10) {
                 Button("Full list", action: more)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.wardQuiet)
                 Button("Got it", action: done)
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.wardCompact)
             }
         }
+        .foregroundStyle(Color.wardInk)
         .padding(16)
         .frame(maxWidth: 320, alignment: .leading)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 22, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("universeHint")
     }
@@ -493,16 +498,16 @@ struct GraphEmptyHint: View {
         VStack(spacing: 8) {
             Text(words)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             Button(button, systemImage: "folder.badge.plus", action: add)
-                .buttonStyle(.glass)
+                .buttonStyle(.wardQuiet)
                 .accessibilityIdentifier("graphAddFolder")
         }
         .padding(14)
         .frame(maxWidth: 340)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+        .wardRaised(in: RoundedRectangle(cornerRadius: 20, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("graphEmptyHint")
     }

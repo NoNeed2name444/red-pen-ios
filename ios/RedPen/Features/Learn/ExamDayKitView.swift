@@ -35,22 +35,26 @@ struct ExamDayKitView: View {
             } footer: {
                 Text(Self.paceNote(paper, seconds: exam?.secondsPerQuestion ?? track.secondsPerQuestion))
             }
+            .wardRowBackground()
             Section("A question you can\u{2019}t crack") {
                 tip("flag.fill", "Flag it, pick your best answer now, and move on. Come back at the end with fresh eyes.")
                 tip("arrow.triangle.branch", "Rule out what you can. Two options left is a far better guess than five.")
                 tip("hourglass", MockMarking.guessAdvice(exam: exam?.shortName ?? "Your exam",
                                                          marking: exam?.negativeMarking, options: exam?.options ?? 5))
             }
+            .wardRowBackground()
             Section {
                 tip("arrow.uturn.backward", "Changing an answer helps more often than it hurts in studies of medical exams \u{2014} when you have a reason, such as a detail you misread. Without a reason, leave it.")
             } header: {
                 Text("Changing answers")
             }
+            .wardRowBackground()
             Section("Checklist") {
                 ForEach(Array(Self.checklist.enumerated()), id: \.offset) { item in
                     checkRow(item.offset, item.element)
                 }
             }
+            .wardRowBackground()
             Section {
                 TextEditor(text: $worries)
                     .focused($writing)
@@ -66,6 +70,7 @@ struct ExamDayKitView: View {
             } footer: {
                 Text("Some students find that writing their worries down just before an exam frees their head for the paper; the evidence is mixed, so skip it if it isn\u{2019}t for you. Nothing here is saved or sent, and it is gone when you close this screen.")
             }
+            .wardRowBackground()
         }
         .wardForm()
         .navigationTitle("Exam-day kit")
@@ -146,7 +151,7 @@ private struct PacingTable: View {
                 }
                 .frame(minHeight: 36)
                 .accessibilityElement(children: .combine)
-                if point != points.last { Rectangle().fill(Color.wardHairline).frame(height: 1) }
+                if point != points.last { WardEtch() }
             }
         }
     }

@@ -23,6 +23,7 @@ struct ExamPlanView: View {
         let rings: [SecuredRule.Ring] = SecuredRule.rings(subjects: store.questionSubjects(), standings: standings)
         List {
             Section { PhaseHero(phase: phase) }
+            .wardRowBackground()
             // the streak, the goal ring and a ward round (WardRoundView.swift)
             Section {
                 TodayGoalRow()
@@ -31,11 +32,11 @@ struct ExamPlanView: View {
             } footer: {
                 Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
             }
+            .wardRowBackground()
             // the tile is its own card, so no list row behind it
             Section {
                 WardRoundTile()
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    .wardCardRow()
             }
             // the chosen exam: countdown, blueprint coverage, readiness, study next
             Section {
@@ -43,6 +44,7 @@ struct ExamPlanView: View {
             } header: {
                 Text("Your exam")
             }
+            .wardRowBackground()
             Section {
                 ForecastCard(forecast: forecast, phase: phase)
             } header: {
@@ -50,9 +52,11 @@ struct ExamPlanView: View {
             } footer: {
                 Text("An estimate from your cards\u{2019} review intervals on a standard forgetting curve, not a measurement. No interval is allowed to run past your exam date: cards come back a day or two before it.")
             }
+            .wardRowBackground()
             Section("Due in the next two weeks") {
                 DueBars(counts: dueCounts(), examDay: phase.days)
             }
+            .wardRowBackground()
             Section {
                 SecuredRingsView(rings: rings)
             } header: {
@@ -60,13 +64,16 @@ struct ExamPlanView: View {
             } footer: {
                 Text("A question is locked in once you have got it right on three separate days. Getting something right in three spaced sessions keeps far more of it than three times in one sitting. A wrong answer starts its count again.")
             }
+            .wardRowBackground()
             Section("What this phase is for") { phaseActions(phase) }
+            .wardRowBackground()
             Section {
                 planRow("Ward pocket", symbol: "cross.case") { showingPocket = true }
                     .accessibilityIdentifier("planWardPocket")
             } footer: {
                 Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")
             }
+            .wardRowBackground()
         }
         .wardForm()
         .navigationTitle("Exam plan")
@@ -247,7 +254,7 @@ private struct DueBars: View {
         let share: CGFloat = CGFloat(count) / CGFloat(top)
         let height: CGFloat = max(3, 56 * share)
         let isExam: Bool = examDay == day
-        let fill: Color = isExam ? Color.wardEcg : Color.wardPrimary
+        let fill: Color = isExam ? Color.wardEcg : Color.wardPrimaryInk
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             if isExam {
@@ -294,7 +301,7 @@ private struct SubjectRing: View {
         let total: Double = Double(max(1, ring.total))
         let secured: Double = Double(ring.secured) / total
         let building: Double = Double(ring.secured + ring.building) / total
-        let tint: Color = Color.wardPrimary
+        let tint: Color = Color.wardPrimaryInk
         VStack(spacing: 6) {
             ZStack {
                 Circle().stroke(Color.wardHairline, lineWidth: 7)

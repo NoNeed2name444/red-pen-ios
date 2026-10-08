@@ -1,8 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
-/// A readiness ring: a hairline track and the tone's arc, the number in the
-/// middle in SF Mono so it reads as an observation.
+/// A readiness ring: the tone's arc running in a groove pressed into the
+/// base, the number in the middle in SF Mono so it reads as an observation.
 ///
 /// `centre` stands in for the percentage when the ring counts something
 /// else (Today: 18) or has nothing to show yet (a dash), and `spoken` for
@@ -30,8 +30,9 @@ struct WardRing: View {
         let v: Double = max(0, min(1, value))
         let percent: Int = Int((v * 100).rounded())
         let shown: String = centre ?? "\(percent)%"
+        // the groove is the arc's width and a little clearance either side
+        let clear: CGFloat = min(2, lineWidth / 3)
         ZStack {
-            Circle().stroke(Color.wardHairline, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: v)
                 .stroke(tone.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
@@ -48,11 +49,44 @@ struct WardRing: View {
             .padding(lineWidth)
             .minimumScaleFactor(0.5)
         }
-        .padding(lineWidth / 2)
+        .padding(lineWidth / 2 + clear)
+        .background {
+            WardReliefFace(shape: WardAnnulus(width: lineWidth + 2 * clear), lift: .low, inset: true)
+        }
         .animation(.easeOut(duration: 0.6), value: v)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Progress")
         .accessibilityValue(spoken ?? "\(percent) percent")
+    }
+}
+
+/// A ring `width` wide just inside the frame's circle: a shape with a hole,
+/// the two circles drawn in opposite directions, so a fill (and the lights a
+/// groove is drawn with) covers the ring alone.
+struct WardAnnulus: InsettableShape {
+    var width: CGFloat
+    var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let centre = CGPoint(x: rect.midX, y: rect.midY)
+        let outer: CGFloat = min(rect.width, rect.height) / 2 - insetAmount
+        let hole: CGFloat = min(rect.width, rect.height) / 2 - width + insetAmount
+        var p = Path()
+        guard outer > 0 else { return p }
+        p.addArc(center: centre, radius: outer, startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+        p.closeSubpath()
+        if hole > 0 && hole < outer {
+            p.move(to: CGPoint(x: centre.x + hole, y: centre.y))
+            p.addArc(center: centre, radius: hole, startAngle: .degrees(360), endAngle: .degrees(0), clockwise: true)
+            p.closeSubpath()
+        }
+        return p
+    }
+
+    func inset(by amount: CGFloat) -> WardAnnulus {
+        var ring = self
+        ring.insetAmount += amount
+        return ring
     }
 }
 
@@ -74,21 +108,15 @@ struct EcgSquiggle: Shape {
 }
 
 /// The amber strip under a study screen's title that fills as the paper
-/// goes on: a hairline track and a Pager Amber beam.
+/// goes on: a Pager Amber beam in a groove pressed into the base.
 struct EcgStrip: View {
     let progress: Double
     var tone: Color = .wardBeam
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.wardHairline)
-                Capsule().fill(tone).frame(width: max(0, min(1, progress)) * geo.size.width)
-            }
-        }
-        .frame(height: 4)
-        .animation(.easeOut(duration: 0.3), value: progress)
-        .accessibilityHidden(true)
+        WardGroove(fraction: progress, tint: tone, height: 6)
+            .animation(.easeOut(duration: 0.3), value: progress)
+            .accessibilityHidden(true)
     }
 }
 

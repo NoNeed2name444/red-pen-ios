@@ -74,6 +74,7 @@ struct RuleSheetView: View {
                     WardEmptyState(symbol: "list.bullet.rectangle", title: "No rules yet",
                                    message: "Every question you get wrong can leave one line here to remember. Add them from a quiz\u{2019}s results, or from your recent mistakes below.")
                 }
+                .wardRowBackground()
             }
 
             if let note {
@@ -82,6 +83,7 @@ struct RuleSheetView: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             }
 
             ForEach(shown) { group in
@@ -95,6 +97,7 @@ struct RuleSheetView: View {
                         }
                     }
                 }
+                .wardRowBackground()
             }
 
             if !store.ruleSheet.isEmpty && shown.isEmpty {
@@ -102,6 +105,7 @@ struct RuleSheetView: View {
                     Text("No rules match \u{201C}\(query)\u{201D}.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             }
         }
         .wardForm()

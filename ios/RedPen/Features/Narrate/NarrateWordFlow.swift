@@ -77,7 +77,6 @@ struct NarrateLine: View, Equatable {
     var body: some View {
         let words: [String] = text.split(separator: " ").map(String.init)
         let ink: Color = current ? Color.wardPrimaryInk : Color.wardInk
-        let lit: Color = current ? Color.wardPrimary.opacity(0.08) : Color.clear
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
@@ -85,7 +84,10 @@ struct NarrateLine: View, Equatable {
             }
         }
         .padding(.vertical, 6).padding(.horizontal, 8)
-        .background(lit, in: shape)
+        // the line being read pressed into the page
+        .background {
+            if current { WardReliefFace(shape: shape, lift: .low, inset: true) }
+        }
         // a pointer lights the whole line, which is what a click jumps to;
         // one modifier per line, not one per word
         .contentShape(.hoverEffect, shape)

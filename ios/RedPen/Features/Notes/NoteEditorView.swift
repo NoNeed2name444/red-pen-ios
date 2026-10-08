@@ -127,7 +127,7 @@ struct NoteEditorView: View {
     private var form: some View {
         Form {
             Section {
-                // the title is a field you touch: its own raised slab
+                // the title is a field you touch: a well pressed into the base
                 TextField("Title", text: $title, axis: .vertical)
                     .font(.title3.weight(.semibold))
                     .focused($editing, equals: .title)
@@ -265,6 +265,7 @@ struct NoteEditorView: View {
                 }
             }
         }
+        .wardRowBackground()
     }
 
     private func missingRow(_ name: String) -> some View {
@@ -554,23 +555,17 @@ private struct NoteModePicker: View {
     let labelled: Bool
 
     var body: some View {
-        Picker("View", selection: $reading) {
+        WardSegmented(selection: $reading, options: [false, true]) { read in
             if labelled {
-                Text("Write").tag(false)
-                Text("Read").tag(true)
+                Text(read ? "Read" : "Write")
             } else {
-                Image(systemName: "pencil")
-                    .accessibilityLabel("Write")
-                    .tag(false)
-                Image(systemName: "doc.richtext")
-                    .accessibilityLabel("Read")
-                    .tag(true)
+                Image(systemName: read ? "doc.richtext" : "pencil")
+                    .accessibilityLabel(read ? "Read" : "Write")
             }
         }
-        .pickerStyle(.segmented)
-        .controlSize(.large)
         .fixedSize()
-        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("View")
         .accessibilityIdentifier("noteMarkdownToggle")
     }
 }
@@ -597,8 +592,7 @@ private struct NoteChipLabel: View {
         .foregroundStyle(Color.wardInk)
         .padding(.horizontal, 12)
         .frame(minHeight: 36)
-        .background(Color.wardSurface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.wardHairline, lineWidth: 1))
+        .wardRaised(in: Capsule(), lift: .low)
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .hoverEffect(.highlight)

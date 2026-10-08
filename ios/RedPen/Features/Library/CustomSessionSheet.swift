@@ -48,11 +48,12 @@ struct CustomSessionSheet: View {
     private var form: some View {
         Form {
             Section {
-                Picker("Take", selection: $filter.include) {
-                    ForEach(CustomSession.Include.allCases) { Text($0.title).tag($0) }
+                WardSegmented(selection: $filter.include, options: CustomSession.Include.allCases) { include in
+                    Text(include.title)
                 }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Take")
+                .wardCardRow()
             }
             Section {
                 Toggle("Missed this week", isOn: missedThisWeek)
@@ -84,7 +85,7 @@ struct CustomSessionSheet: View {
                 Section {
                     WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: note)
                 }
-                .listRowBackground(Color.clear)
+                .wardWellRow()
             }
             // room to scroll clear of the bar
             Color.clear.frame(height: 110)

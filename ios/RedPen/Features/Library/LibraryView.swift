@@ -106,6 +106,8 @@ struct LibraryView: View {
     @AppStorage("cramdown.lastSetId") var lastSetId = ""
     /// Which of Ideas' views is open (IdeasView): only the 3D map keeps the sky.
     @AppStorage("vignette.ideas.mode") private var ideasModeRaw = IdeasMode.list.rawValue
+    /// The phone's light or dark, for the dock: over the 3D map it is night.
+    @Environment(\.colorScheme) private var scheme
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -213,8 +215,8 @@ struct LibraryView: View {
                 .navigationDestination(item: pushedSupport) { $0.page }
         }
         // one accent for the whole library rather than a colour per mode:
-        // Theatre Blue
-        .tint(Color.wardPrimary)
+        // Theatre Blue, in the tone that reads as text on the soft base
+        .tint(Color.wardPrimaryInk)
         // "Turn into…": an instant set opens straight away, in place of
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
@@ -456,6 +458,10 @@ struct LibraryView: View {
 
     private var underSky: Bool { inIdeas && ideasModeRaw == IdeasMode.space.rawValue }
 
+    /// The dock is soft UI shaped from the base; over the 3D map's sky the
+    /// base is the night one, so the dock is too.
+    private var dockScheme: ColorScheme { underSky ? .dark : scheme }
+
     /// A category's page is titled by its own first row - the date, the
     /// app's name with its squiggle, a greeting (WardHome) - so the bar
     /// carries no title of its own there; Ideas keeps its name.
@@ -475,6 +481,7 @@ struct LibraryView: View {
     private var rail: some View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
+                .environment(\.colorScheme, dockScheme)
                 .transition(.slideFade(.leading))
         }
     }
@@ -504,6 +511,7 @@ struct LibraryView: View {
                 if !inIdeas && !store.library.isEmpty { newSetRow }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
+                        .environment(\.colorScheme, dockScheme)
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
@@ -576,8 +584,7 @@ struct LibraryView: View {
                 Section {
                     buildSessionButton(from: "")
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .wardButtonRow()
             }
             featureSection
             moreSection
@@ -636,7 +643,6 @@ struct LibraryView: View {
             Label("New set", systemImage: "plus")
         }
         .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
-        .wardShadow()
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
         .keyboardShortcut("n", modifiers: .command)

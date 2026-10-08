@@ -22,21 +22,25 @@ struct SymptomBlocksView: View {
                 Text("Questions from every set that start from the same complaint, mixed, so you learn to tell the lookalikes apart the way the exam asks.")
                     .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
+            .wardRowBackground()
             if let last { mixUps(last.block, since: last.started) }
             if ready.isEmpty {
                 Section {
                     Text("No complaint has enough questions yet: a block needs \(SymptomBlocks.minimumQuestions) questions with at least \(SymptomBlocks.minimumCauses) different answers.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
                 }
+                .wardRowBackground()
             } else {
                 Section("Blocks") {
                     ForEach(ready) { block in blockRow(block) }
                 }
+                .wardRowBackground()
             }
             if !thin.isEmpty {
                 Section("Not enough questions yet") {
                     ForEach(thin) { block in thinRow(block) }
                 }
+                .wardRowBackground()
             }
         }
         .wardForm()
@@ -111,6 +115,7 @@ struct SymptomBlocksView: View {
             } footer: {
                 Text("What you picked, and what it was. The pairs that come up most are the ones to put side by side.")
             }
+            .wardRowBackground()
         }
     }
 

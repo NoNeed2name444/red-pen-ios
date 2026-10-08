@@ -48,16 +48,13 @@ struct CaseDecisionView: View {
                     Button("Back") { dismiss() }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            // the study bar: the soft slab raised under the thumb
+            .studyBar {
                 Button { discharge() } label: {
                     Label("Discharge and debrief", systemImage: "doc.text")
                 }
                 .buttonStyle(.wardPrimary)
                 .disabled(!ready)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(Color.wardSurface.ignoresSafeArea(edges: .bottom))
                 .accessibilityHint(ready ? "Closes the case and shows what mattered" : "Confirm a diagnosis and choose a next step first")
             }
         }

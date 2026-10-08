@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The backdrop of the pages that belong to no one mode: the ECG grid paper.
+/// The backdrop of the pages that belong to no one mode: the matte base.
 struct LibraryBackdrop: View {
     var body: some View {
         WardBackground()
@@ -10,9 +10,9 @@ struct LibraryBackdrop: View {
 /// A one-field naming sheet used for new folders, combined sets and renames -
 /// the native stand-in for the web app's inline save forms.
 ///
-/// One field on the grid rather than a one-row Form: the field is the only
-/// thing to touch, a white field with a hairline edge. Return saves; Cancel
-/// and the confirm button sit in the system's own places at the top.
+/// One field on the base rather than a one-row Form: the field is the only
+/// thing to touch, pressed into the base. Return saves; Cancel and the
+/// confirm button sit in the system's own places at the top.
 struct NameSheet: View {
     let title: String
     let prompt: String

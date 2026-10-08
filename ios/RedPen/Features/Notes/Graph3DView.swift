@@ -248,7 +248,7 @@ struct Graph3DView: View {
             if filter != .all && shownCount == 0 {
                 Text("Nothing here for this filter.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .allowsHitTesting(false)
             }
         }
@@ -639,17 +639,13 @@ struct Graph3DView: View {
     @ViewBuilder
     private var tools: some View {
         let filtering: Bool = filter != .all
-        let ink: Color = filtering ? Color.accentColor : Color.secondary
-        let glass: Glass = IdeaToolGlass.glass(active: filtering)
         Menu {
             filterMenu
         } label: {
             IdeaToolFace(symbol: filterSymbol)
         }
-        .foregroundStyle(ink)
-        .glassEffect(glass, in: .circle)
-        .popOut(.floating, in: Circle())
-        .hoverEffect(.highlight)
+        .foregroundStyle(IdeaToolFace.ink(active: filtering))
+        .ideaToolRelief(active: filtering)
         .accessibilityLabel("Filter")
 
         GraphStyleTool(theme: themeBinding, main: lookBinding, folderRaw: folderBinding, folders: topFolders,
