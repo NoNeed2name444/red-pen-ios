@@ -35,7 +35,7 @@ Last updated: 2026-10-08, 4:06 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | af94d88, then this file | M3 in progress; af94d88's App build was running at 4:05 PM (run 37781421602) |
+| wip/3d-neurons-m3 | 5909600, then this file | M3 in progress; App builds of af94d88 and 5909600 were running at 4:10 PM |
 | design/3d-overhaul | d4cff03 "Remove the Circuit theme" | M1 (c122abb, Space) and M2 (no Circuit) done |
 | preview/3d-overhaul | a62231f | a push here makes screenshots |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
@@ -54,8 +54,12 @@ Last updated: 2026-10-08, 4:06 PM Cairo.
     containers in place". It finishes GraphNeuronLook and changes the
     shaders, GraphRibbons (a width step, so links taper from a thick base)
     and GraphThemeScene (only the plan's links are drawn, so closed cells
-    never show what they hide). Whether the app builds is that App build's
-    answer.
+    never show what they hide).
+  - 5909600, from the new session: "Neurons: open a cell by flying in, grow
+    its insides out of it" (Graph3DView, GraphMotion, GraphDeathScene,
+    GraphThemeScene).
+  - Whether the app builds is for their App builds to say (runs 37781421602
+    and 37781812785).
 - app-build.yml runs on every push to personal and design/**. Keep work in
   progress on wip/3d-neurons-m3 until the app compiles. To compile-check it
   there, dispatch the build:
@@ -67,8 +71,8 @@ Last updated: 2026-10-08, 4:06 PM Cairo.
 
 ## 3. Next steps
 
-Steps 1 to 3 are in af94d88. Tick them when its App build and the suites
-pass.
+Steps 1 to 4 have code in af94d88 and 5909600. Tick them when the App
+build and the suites pass.
 
 1. [ ] Finish GraphNeuronLook.swift (design A in section 4).
 2. [ ] Do the soma and axon shaders (B, C) and the ribbon writer's width steps
