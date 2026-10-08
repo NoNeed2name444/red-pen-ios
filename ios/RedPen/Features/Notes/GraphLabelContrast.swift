@@ -5,8 +5,7 @@ import Foundation
 // The owner: "make the headlines of the nodes react and change in color
 // according to what is behind them to keep being visible and visually clear
 // and readable". A body's name pill must read over a bright star, a
-// supernova's flash, a glowing cell, a lit LED, the dark board or bench, or
-// a pale nebula.
+// supernova's flash, a glowing cell, the deep fluid, or a pale nebula.
 //
 // How the background is measured: ESTIMATED from the scene, not read back
 // from the frame. GraphSim already knows, every frame and under its lock,
@@ -474,26 +473,11 @@ nonisolated struct GraphShine: Sendable, Equatable {
         }
     }
 
-    /// The Circuit (CircuitRole's raw value): dark chips, a lit LED
-    /// bright, gold pads.
-    static func circuit(_ role: Int, lit: Bool) -> GraphShine {
-        switch role {
-        case 0, 1, 2: return GraphShine(colour: GraphRGB(0.10, 0.11, 0.12), reach: 1, strength: 0)
-        case 3: return GraphShine(colour: GraphRGB(0.30, 0.42, 0.70), reach: 1, strength: 0.05)
-        case 6:
-            if lit { return GraphShine(colour: GraphRGB(0.95, 1.0, 0.85), reach: 2.8, strength: 0.85) }
-            return GraphShine(colour: GraphRGB(0.35, 0.40, 0.32), reach: 1, strength: 0)
-        case 11: return GraphShine(colour: GraphRGB(0.95, 0.78, 0.35), reach: 1.3, strength: 0.3)
-        default: return GraphShine(colour: GraphRGB(0.6, 0.55, 0.40), reach: 1, strength: 0)
-        }
-    }
-
     /// Each theme's ground behind everything: the night sky, the Neurons'
-    /// deep blue fluid, the Circuit's bench and boards.
+    /// deep blue fluid.
     static func backdrop(theme: String) -> GraphRGB {
         switch theme {
         case "neurons": return GraphRGB(0.03, 0.06, 0.16)
-        case "circuit": return GraphRGB(0.06, 0.10, 0.08)
         default: return GraphRGB(0.03, 0.03, 0.06)
         }
     }
@@ -510,9 +494,6 @@ nonisolated struct GraphShine: Sendable, Equatable {
             return (peak, 11)
         case "planetaryNebula", "tidalDisruption":
             return (max(0, 1 - x / 0.6) * 0.7, 6)
-        case "shortCircuit":
-            let peak: Double = t < 0.08 ? t / 0.08 : max(0, 1 - (t - 0.1) / 0.5)
-            return (peak, 4)
         default:
             return (max(0, 1 - x) * 0.3, 2)
         }

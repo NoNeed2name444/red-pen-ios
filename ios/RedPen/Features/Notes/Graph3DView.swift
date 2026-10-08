@@ -41,10 +41,7 @@ import simd
 /// Space - the Universe and the single looks - Neurons, the same
 /// hierarchy as a nervous system (GraphNeurons: regions, relays down the
 /// pathway, neurons, glia and receptors joined by axons carrying impulses),
-/// and Circuit, as a printed circuit board (GraphCircuit: processors,
-/// modules on sub-boards, capacitors, resistors, LEDs and headers joined by
-/// routed copper traces carrying current), each planned the same way and
-/// built by the shared theme scene
+/// planned the same way and built by the shared theme scene
 /// (GraphThemeScene), so it moves, picks, filters and flies in exactly as
 /// the Universe does. The Graphics setting applies to every theme.
 ///
@@ -87,12 +84,12 @@ struct Graph3DView: View {
     @AppStorage(NeuronStateChoice.foldersKey) private var cellFolders: String = ""
     /// The Universe's first-run card has been seen.
     @AppStorage("vignette.space.universeHintSeen") private var hintSeen: Bool = false
-    /// The map's theme (GraphTheme: Space, Neurons, Circuit), remembered; a
+    /// The map's theme (GraphTheme: Space, Neurons, Performance), remembered; a
     /// change rebuilds.
     @AppStorage(GraphTheme.key) private var themeRaw: String = GraphTheme.standard.rawValue
     /// The other themes whose first-run card has been seen ("neurons,...").
     @AppStorage(GraphTheme.hintsKey) private var themeHintsSeen: String = ""
-    /// The empty-bench hint's "Add circuit" (or "Add folder") is naming a
+    /// The empty-bench hint's "Add folder" is naming a
     /// new folder - the same store action as the Ideas bar's + › New folder.
     @State private var addingFolder: Bool = false
     /// The owner's "Link length" (GraphLinkLength; Settings > Look and
@@ -908,7 +905,7 @@ struct Graph3DView: View {
                                                              lively: lively, contrast: highContrast)
         var roles: [UUID: String] = [:]
         var names: [UUID: String] = [:]
-        for body in plan.bodies where body.kind != .fixture {
+        for body in plan.bodies {
             roles[body.id] = String(body.role)
             names[body.id] = body.label
         }
@@ -981,7 +978,7 @@ struct GraphScene {
     /// first-run card use.
     var theme: GraphTheme = .space
     /// Each body's role in its theme's plan (UniverseRole's raw value, or
-    /// NeuronRole's or CircuitRole's as a number), for the peek card's
+    /// NeuronRole's as a number), for the peek card's
     /// words; empty in the single looks.
     var roles: [UUID: String] = [:]
     /// The link length it was planned at (GraphLinkLength).
@@ -1806,8 +1803,8 @@ struct GraphSCNView: UIViewRepresentable {
         /// Universe's envelope, GraphFit), centred in that part, seen from
         /// the front. It aims
         /// at the middle of the map's box (GraphMapBounds), not the
-        /// origin: a theme's plan (the Neurons' pathway running down, the
-        /// Circuit's boards) need not be centred on it.
+        /// origin: a theme's plan (the Neurons' pathway running down) need
+        /// not be centred on it.
         private func frame(animated: Bool) {
             guard let view, let camera, let sim else { return }
             let size: CGSize = view.bounds.size
@@ -2239,7 +2236,7 @@ struct GraphSCNView: UIViewRepresentable {
             summary.accessibilityValue = built.universe ? built.summary : ""
             summary.accessibilityHint = built.universe ? built.theme.hint : Graph3DView.graphHint
             var out: [UIAccessibilityElement] = [summary]
-            for i in sim.ids.indices where sim.kind(of: i) != .fixture {
+            for i in sim.ids.indices {
                 let id: UUID = sim.ids[i]
                 let folder: Bool = sim.kind(of: i) != .note
                 let element = GraphBodyElement(accessibilityContainer: view)

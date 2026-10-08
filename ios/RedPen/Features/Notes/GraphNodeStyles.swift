@@ -104,7 +104,7 @@ enum GraphStyleChoice {
 
 /// The look tool, in the Space's cluster of round tools (under the thumb
 /// on a phone, at the trailing edge on a wide iPad - IdeaTools' placement):
-/// the map's theme (GraphTheme: Space, Neurons, Circuit, Performance); in Space, the
+/// the map's theme (GraphTheme: Space, Neurons, Performance); in Space, the
 /// Universe or one look for every note and a submenu with a look per
 /// top-level folder; Lines, Curved or Straight (IdeaLinesPicker, shared
 /// with the board); and, in the Universe or any other theme, what its
@@ -170,7 +170,7 @@ struct GraphStyleTool: View {
         .foregroundStyle(IdeaToolFace.ink(active: custom))
         .ideaToolRelief(active: custom)
         .accessibilityLabel("Look")
-        .accessibilityHint("Choose the map's theme - space, neurons, circuit or performance - how notes look in space, the cells' states in neurons, and curved or straight lines.")
+        .accessibilityHint("Choose the map's theme - space, neurons or performance - how notes look in space, the cells' states in neurons, and curved or straight lines.")
     }
 
     /// The Space theme's own choices: the Universe or one style for all,

@@ -637,7 +637,7 @@ check("T7 300 notes: inside the envelope", envelopeHolds(big).isEmpty, "\(envelo
 
 check("T8 Space is the default", GraphTheme.stored(nil) == .space && GraphTheme.stored("nonsense") == .space)
 check("T8 Neurons is kept", GraphTheme.stored("neurons") == .neurons)
-check("T8 a theme not ready yet falls back", GraphTheme.stored("circuit") == (GraphTheme.circuit.isReady ? .circuit : .space))
+check("T8 a removed theme falls back: a stored Circuit opens in Space", GraphTheme.stored("circuit") == .space)
 check("T8 the menu offers only ready themes", GraphTheme.offered.allSatisfy { $0.isReady }
       && GraphTheme.offered.first == .space)
 check("T8 the themes' words are their own",

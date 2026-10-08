@@ -2,7 +2,7 @@
 // keep the map's links steady and its framing centred:
 //
 // - D: each kind of body gets its own death (tides, stripping, nebula,
-//   supernova, evaporation, spin-down, break-up, apoptosis, short circuit);
+//   supernova, evaporation, spin-down, break-up, apoptosis);
 //   durations of one to two and a half seconds; phases in order and inside
 //   the death; every body gone (or invisible) by the end and whole at the
 //   start; links drawn back before the body goes; Reduce Motion a quick
@@ -33,8 +33,7 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 let expected: [(GraphDeathKind, GraphDeathEffect)] = [
     (.rocky, .tidalDisruption), (.moon, .tidalDisruption), (.gasGiant, .atmosphereStripped),
     (.smallStar, .planetaryNebula), (.bigStar, .supernova), (.blackHole, .evaporation),
-    (.pulsar, .spinDown), (.comet, .cometBreakup), (.cell, .apoptosis), (.part, .shortCircuit),
-    (.wiring, .fade), (.plain, .fade)
+    (.pulsar, .spinDown), (.comet, .cometBreakup), (.cell, .apoptosis), (.plain, .fade)
 ]
 var effectBad: [String] = []
 for (kind, effect) in expected where GraphDeath.plan(kind, smooth: false).effect != effect {
@@ -116,12 +115,6 @@ check("D3 apoptosis: shrink, bleb, condense, fragment, apoptotic bodies, in that
       && zip(cell.phases, cell.phases.dropFirst()).allSatisfy { $0.start <= $1.start })
 check("D3 a cell rounds up smaller before it breaks", GraphDeath.scale(cell, at: 0.6).y < 0.8
       && GraphDeath.scale(cell, at: 0.6).y > 0.7)
-let short: GraphDeathPlan = GraphDeath.plan(.part, smooth: false)
-check("D3 a short circuit: spark first, smoke last; traces flash then go dark",
-      short.phases.first?.name == "spark" && short.phases.last?.name == "smoke"
-      && GraphDeath.traceFlash(short, at: 0.08) > 0.9 && GraphDeath.traceFlash(short, at: 1.0) == 0
-      && GraphDeath.opacity(short, at: 0.9) < 0.6)
-check("D3 only a short circuit flashes its traces", GraphDeath.traceFlash(cell, at: 0.08) == 0)
 
 // the budget
 var many: [GraphDeathInput] = []
@@ -129,16 +122,16 @@ for k in 0..<40 {
     let kind: GraphDeathKind = k % 5 == 0 ? .smallStar : .rocky
     many.append(GraphDeathInput(kind: kind, radius: Float(k % 7) * 0.05 + 0.05, count: k))
 }
-many.append(GraphDeathInput(kind: .wiring, radius: 9, count: 0))
+many.append(GraphDeathInput(kind: .plain, radius: 9, count: 0))
 let high: [GraphDeathPlan] = GraphDeath.plans(many, still: false, smooth: false)
 let smoothPlans: [GraphDeathPlan] = GraphDeath.plans(many, still: false, smooth: true)
 let fullHigh: Int = high.filter { $0.effect != .fade }.count
 let fullSmooth: Int = smoothPlans.filter { $0.effect != .fade }.count
 check("D4 a folder of 40 deleted: at most 6 full effects (3 at Smooth)", fullHigh == 6 && fullSmooth == 3,
       "\(fullHigh) \(fullSmooth)")
-let biggest: Float = many.filter { $0.kind != .wiring }.map(\.radius).max() ?? 0
+let biggest: Float = many.filter { $0.kind != .plain }.map(\.radius).max() ?? 0
 let chosen: [Float] = many.indices.filter { high[$0].effect != .fade }.map { many[$0].radius }
-check("D4 the biggest get them; wiring never does", chosen.allSatisfy { $0 >= biggest - 0.1 }
+check("D4 the biggest get them; a plain body never does", chosen.allSatisfy { $0 >= biggest - 0.1 }
       && high.last?.effect == .fade)
 let sparksHigh: Int = high.map(\.particles).reduce(0, +)
 let sparksSmooth: Int = smoothPlans.map(\.particles).reduce(0, +)

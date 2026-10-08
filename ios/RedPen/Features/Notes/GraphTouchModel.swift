@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Touching the Ideas map
 //
-// One model, the same in every theme (Space, Neurons, Circuit):
+// One model, the same in every theme (Space, Neurons, Performance):
 //
 //   Tap a body            select it: its ring lights, a light tick, the
 //                         camera eases a little towards it, and a peek card
@@ -211,10 +211,10 @@ nonisolated struct GraphSelection: Equatable, Sendable {
 
 /// What the card is told about a body.
 nonisolated struct GraphPeekInput: Sendable {
-    /// "space", "neurons" or "circuit".
+    /// "space", "neurons" or "performance".
     var theme: String
-    /// The theme's own role (UniverseRole's raw value; NeuronRole's or
-    /// CircuitRole's raw value as a number), or "" for a single look.
+    /// The theme's own role (UniverseRole's raw value; NeuronRole's raw
+    /// value as a number), or "" for a single look.
     var role: String
     /// What a single look calls it ("Black hole", "Sun"...), when `role`
     /// is empty.
@@ -267,12 +267,6 @@ nonisolated enum GraphPeek {
             let words: [String: String] = [
                 "0": "Brain region", "1": "Relay neuron", "2": "Brainstem", "3": "Neuron", "4": "Interneuron",
                 "5": "Glial cell", "6": "Commissural neuron", "7": "Receptor", "8": "Microglia"
-            ]
-            return words[role]
-        case "circuit":
-            let words: [String: String] = [
-                "0": "Processor", "1": "Module chip", "2": "System chip", "3": "Capacitor", "6": "LED",
-                "11": "Gold pad"
             ]
             return words[role]
         default:

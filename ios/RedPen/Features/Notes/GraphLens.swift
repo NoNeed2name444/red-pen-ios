@@ -6,10 +6,8 @@ import Foundation
 // Each theme photographs its world with its own lens: Space a telescope's
 // soft bloom on the brightest stars with a touch of colour fringe at the
 // edge; Neurons a microscope's shallow focus, the far cells melting into
-// bokeh, a darker vignette and the glow of bioluminescence; Circuit a
-// sharp lens over glass, every board and its labels in focus and only the
-// light guides and capsules blooming (a shallow focus blurred the whole
-// board and its names); Performance no lens at all (speed first).
+// bokeh, a darker vignette and the glow of bioluminescence; Performance
+// no lens at all (speed first).
 //
 // The Graphics setting decides whether any of it runs: every effect here
 // needs SceneKit's HDR post-process pass, so Smooth turns the whole lens
@@ -75,13 +73,6 @@ nonisolated struct GraphLens: Sendable, Equatable {
             return GraphLens(hdr: true, bloom: 0.45, bloomThreshold: 0.78, bloomBlur: 9, depthBlur: 0.006,
                              vignette: 0.6, vignettePower: 1.2, fringe: 0.15, exposure: 0, saturation: 1.1,
                              contrast: 0.06, lensing: false)
-        case .circuit:
-            // glass boards read like a page: no depth of field, so every
-            // board and its labels stay sharp; the light guides and
-            // capsules bloom
-            return GraphLens(hdr: true, bloom: 0.38, bloomThreshold: 0.8, bloomBlur: 7, depthBlur: 0,
-                             vignette: 0.35, vignettePower: 1.3, fringe: 0, exposure: 0, saturation: 1,
-                             contrast: 0.1, lensing: false)
         case .performance:
             return .off
         }
@@ -135,7 +126,6 @@ nonisolated struct GraphFit: Sendable, Equatable {
         guard universe else { return .plain }
         switch theme {
         case .neurons: return GraphFit(fill: 1.0, depth: 0.35)
-        case .circuit: return GraphFit(fill: 0.94, depth: 1)
         case .space, .performance: return GraphFit(fill: 0.88, depth: 1)
         }
     }

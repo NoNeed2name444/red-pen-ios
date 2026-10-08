@@ -21,7 +21,7 @@ nonisolated struct GraphShaderItem: Sendable {
 
 nonisolated enum GraphShaderCatalog {
     static var all: [GraphShaderItem] {
-        space + neurons + circuit
+        space + neurons
     }
 
     /// Geometry and surface modifiers that share one material: SceneKit
@@ -67,16 +67,6 @@ nonisolated enum GraphShaderCatalog {
             GraphShaderItem(name: "neuronHalo", entry: "surface", source: NeuronShaders.halo),
             GraphShaderItem(name: "neuronArrival", entry: "surface", source: NeuronShaders.arrival),
             GraphShaderItem(name: "neuronAxon", entry: "surface", source: NeuronShaders.axon)
-        ]
-    }
-
-    /// The Circuit theme (GraphCircuitShaders.swift).
-    static var circuit: [GraphShaderItem] {
-        [
-            GraphShaderItem(name: "circuitBoard", entry: "surface", source: CircuitShaders.board),
-            GraphShaderItem(name: "circuitTrace", entry: "surface", source: CircuitShaders.trace),
-            GraphShaderItem(name: "circuitPart", entry: "surface", source: CircuitShaders.part),
-            GraphShaderItem(name: "circuitGlow", entry: "surface", source: CircuitShaders.glow)
         ]
     }
 }

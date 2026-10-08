@@ -37,15 +37,6 @@ import SwiftUI
 ///   ideas as glia on their neurons, the bridging idea as a commissural
 ///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
 ///   `-graphPreviewLegend` work with it too.
-/// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
-///   Cardiology and Examples as two circuit boards side by side on the
-///   bench, each with its chip, power rail along the top and ground rail
-///   along the bottom; Inguinal and Femoral as smaller chips on sub-boards
-///   on branches of Examples' bus, with Anatomy on Inguinal's; pages as
-///   capacitors, ideas as LEDs in branches off the pages they link to, and
-///   the two loose notes as gold pads on their boards' left edges.
-///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
-///   work with it too.
 /// - `-graphPreviewCells <state>` shows every Neurons cell in that state
 ///   (firing, releasing, pacemaker, migrating, engulfing or resting).
 /// - The screen round the map is the app's: a back chevron top left, the
@@ -129,7 +120,7 @@ enum GraphPreview {
     }
 
     /// The theme asked for with `-graphPreviewTheme <name>` (space,
-    /// neurons, circuit, performance); Space without one.
+    /// neurons, performance); Space without one.
     static let theme: GraphTheme = {
         let args: [String] = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "-graphPreviewTheme"), at + 1 < args.count else { return .space }

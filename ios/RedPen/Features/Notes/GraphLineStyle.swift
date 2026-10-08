@@ -4,8 +4,8 @@ import Foundation
 //
 // One choice for both Ideas modes: how a link between two ideas is drawn.
 // Curved (the standard, today's look) keeps each 3D theme's own shape -
-// the Space's arches and black-hole curls, the Neurons' axons, the Circuit's
-// routed 45° traces - and bows the 2D board's connectors gently. Straight
+// the Space's arches and black-hole curls, the Neurons' axons - and bows
+// the 2D board's connectors gently. Straight
 // draws every link as one direct segment between its two trimmed ends, in
 // every theme and on the board.
 //

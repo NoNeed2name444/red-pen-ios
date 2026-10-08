@@ -27,9 +27,6 @@ import Foundation
 //   its nucleus condenses and breaks into beads, and it falls apart into
 //   apoptotic bodies that fade as they are cleared away; its axons and
 //   dendrites draw back.
-// Circuit, a short circuit: a spark and arcs at the part, a hot orange
-//   glow, a puff of smoke rising; the part chars dark and fades, and its
-//   traces flash and go dark.
 //
 // This file is the plan: which effect for which body, how long, its
 // phases, how many particles, and the curves the body follows - pure
@@ -54,10 +51,6 @@ nonisolated enum GraphDeathKind: Int, Sendable, CaseIterable {
     case comet
     /// A Neurons cell.
     case cell
-    /// A Circuit part (chip, capacitor, LED, pad).
-    case part
-    /// A theme's wiring (the Circuit's taps and connectors).
-    case wiring
     /// Anything else (a single look's body with no better match).
     case plain
 }
@@ -72,8 +65,7 @@ nonisolated enum GraphDeathEffect: String, Sendable, Equatable {
     case spinDown
     case cometBreakup
     case apoptosis
-    case shortCircuit
-    /// Shrink and fade (a body over the budget's count, wiring, plain).
+    /// Shrink and fade (a body over the budget's count, plain).
     case fade
 }
 
@@ -161,7 +153,7 @@ nonisolated enum GraphDeath {
         }
         var full = Set<Int>()
         let allowed: Int = fullAllowed(smooth: smooth)
-        for i in order where full.count < allowed && dying[i].kind != .wiring && dying[i].kind != .plain {
+        for i in order where full.count < allowed && dying[i].kind != .plain {
             full.insert(i)
         }
         var out: [GraphDeathPlan] = []
@@ -171,7 +163,7 @@ nonisolated enum GraphDeath {
             } else if full.contains(i) {
                 out.append(plan(d.kind, smooth: smooth))
             } else {
-                out.append(fade(d.kind == .wiring ? 0.5 : 0.8))
+                out.append(fade(0.8))
             }
         }
         return out
@@ -230,13 +222,6 @@ nonisolated enum GraphDeath {
                                   phases: [p("shrink", 0, 0.6), p("bleb", 0.3, 1.2), p("condense", 0.5, 1.1),
                                            p("fragment", 1.0, 1.6), p("bodies", 1.2, 2.3)],
                                   particles: sparks(40), linksGone: 1.0)
-        case .part:
-            return GraphDeathPlan(effect: .shortCircuit, duration: 1.7,
-                                  phases: [p("spark", 0, 0.3), p("glow", 0.1, 0.9), p("char", 0.2, 1.1),
-                                           p("smoke", 0.3, 1.7)],
-                                  particles: sparks(60), linksGone: 0.9)
-        case .wiring:
-            return fade(0.5)
         case .plain:
             return fade(0.8)
         }
@@ -284,8 +269,6 @@ nonisolated enum GraphDeath {
             let shrink: Double = smooth(plan.progress("shrink", at: t))
             let apart: Double = smooth(plan.progress("fragment", at: t))
             s = (1 - 0.25 * shrink) * (1 - apart)
-        case .shortCircuit:
-            s = 1 - 0.1 * smooth(plan.progress("char", at: t))
         case .fade:
             s = 1 - 0.4 * smooth(plan.progress("fade", at: t))
         }
@@ -300,10 +283,6 @@ nonisolated enum GraphDeath {
             o = 1 - smooth((t - 1.6) / max(plan.duration - 1.6, 0.01))
         case .spinDown:
             o = 1 - 0.7 * smooth(plan.progress("spin", at: t))
-        case .shortCircuit:
-            let char: Double = smooth(plan.progress("char", at: t))
-            let fade: Double = smooth(plan.progress("smoke", at: t))
-            o = (1 - 0.55 * char) * (1 - fade)
         case .fade:
             o = 1 - smooth(plan.progress("fade", at: t))
         default:
@@ -324,13 +303,5 @@ nonisolated enum GraphDeath {
     static func spin(_ plan: GraphDeathPlan, at t: Double) -> Float {
         let x: Double = plan.progress("spin", at: t)
         return Float(max(1 - x, 0) * max(1 - x, 0))
-    }
-
-    /// A circuit's traces flash as the part shorts, then go dark: 0 to 1.
-    static func traceFlash(_ plan: GraphDeathPlan, at t: Double) -> Float {
-        guard plan.effect == .shortCircuit else { return 0 }
-        let rise: Double = smooth(t / 0.08)
-        let fall: Double = 1 - smooth((t - 0.1) / 0.5)
-        return Float(max(min(rise, fall), 0))
     }
 }

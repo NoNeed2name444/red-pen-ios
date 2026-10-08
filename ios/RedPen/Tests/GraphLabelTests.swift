@@ -66,8 +66,8 @@ let backs: [(String, GraphBackdrop)] = [
     ("a star's halo", inHalo),
     ("a supernova", GraphBackdrop.flat(GraphRGB(1, 0.98, 0.94))),
     ("a glowing cell", GraphBackdrop.flat(GraphRGB(0.95, 0.62, 0.78))),
-    ("a lit LED", GraphBackdrop.flat(GraphRGB(0.95, 1, 0.85))),
-    ("the dark board", GraphBackdrop.flat(GraphRGB(0.06, 0.10, 0.08))),
+    ("a white nucleus", GraphBackdrop.flat(GraphRGB(0.95, 1, 0.85))),
+    ("the deep fluid", GraphBackdrop.flat(GraphRGB(0.03, 0.06, 0.16))),
     ("a pale nebula", GraphBackdrop.flat(pale)),
     ("half star, half night", GraphBackdrop(mean: GraphRGB(0.5, 0.5, 0.5), brightest: 1, darkest: 0))
 ]
@@ -158,13 +158,11 @@ check("C5 at most 10 labels", GraphLabelSampler.most <= 10)
 let bright: Double = GraphShine.universe("star", empty: false, tier: 1).colour.luminance
 let dim: Double = GraphShine.universe("rocky", empty: false, tier: 0).colour.luminance
 check("C5 a star shines brighter than a rocky planet", bright > dim * 3)
-check("C5 a lit LED shines, an unlit one does not", GraphShine.circuit(6, lit: true).strength
-      > GraphShine.circuit(6, lit: false).strength)
-check("C5 a chip is dark", GraphShine.circuit(0, lit: false).colour.luminance < 0.05)
+check("C5 a cell glows", GraphShine.neurons(0).strength > 0.5)
 let flash0: (Double, Double) = GraphShine.deathFlash("supernova", t: 0.2, duration: 2.4)
 let flashLate: (Double, Double) = GraphShine.deathFlash("supernova", t: 2.3, duration: 2.4)
 check("C5 a supernova flares, then fades", flash0.0 > 0.8 && flashLate.0 < 0.05 && flash0.1 > 5, "\(flash0) \(flashLate)")
-check("C5 each theme's ground is dark", ["space", "neurons", "circuit"].allSatisfy {
+check("C5 each theme's ground is dark", ["space", "neurons"].allSatisfy {
     GraphShine.backdrop(theme: $0).luminance < 0.02
 })
 

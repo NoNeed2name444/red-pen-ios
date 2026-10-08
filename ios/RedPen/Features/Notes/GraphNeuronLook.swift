@@ -204,7 +204,6 @@ final class GraphNeuronLook: GraphThemeLook {
         case .note: node.name = "note:" + body.id.uuidString
         case .folder: node.name = "folder:" + body.id.uuidString
         case .home: node.name = "home"
-        case .fixture: node.name = "fixture"
         }
         let role: NeuronRole = NeuronRole(rawValue: body.role) ?? .interneuron
         let state: NeuronState = cells.state(of: index, in: plan)
@@ -563,21 +562,6 @@ final class GraphNeuronLook: GraphThemeLook {
 
     func makeSky() -> SCNNode {
         NeuronTissue.makeSky()
-    }
-
-    /// At the High budget: big soft orbs of light out of focus in the
-    /// fluid in front of the cells and behind them (still, so Reduce Motion
-    /// keeps them), and motes drifting through it in a moving space.
-    func decorate(world: SCNNode, plan: ThemePlan) {
-        guard budget.tier == .high, !plan.envelope.isEmpty else { return }
-        let middle: SIMD3<Float> = GraphMapBounds.centre(plan.envelope)
-        var reach: Float = 1
-        for p in plan.envelope { reach = max(reach, simd_length(p - middle)) }
-        world.addChildNode(NeuronTissue.orbs(around: middle, reach: reach))
-        guard lively else { return }
-        var spread: Float = 1
-        for p in plan.envelope { spread = max(spread, simd_length(p)) }
-        world.addChildNode(NeuronTissue.motes(reach: spread))
     }
 }
 

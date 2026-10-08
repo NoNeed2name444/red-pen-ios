@@ -1,15 +1,15 @@
 // The owner's "Link length" (GraphLinkLength, UniverseInput.linkScale): the
-// links in the Ideas map longer or shorter, in all three themes, planned
-// inside the pure planners so it is checked here.
+// links in the Ideas map longer or shorter, in the Universe and the
+// Neurons, planned inside the pure planners so it is checked here.
 //
 // At the shortest (0.6), the standard (1) and the longest (1.8) every
 // planner keeps its guarantees - no overlaps, the size ladder, containers
-// holding their contents, determinism, the envelope holding everything,
-// the Circuit's closed loops and footprints - linked bodies stand further
-// apart as the setting grows, and no body changes size.
+// holding their contents, determinism, the envelope holding everything -
+// linked bodies stand further apart as the setting grows, and no body
+// changes size.
 //
-// Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphNeurons.swift,
-// GraphCircuit.swift and GraphicsQuality.swift (Foundation only).
+// Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphNeurons.swift
+// and GraphicsQuality.swift (Foundation only).
 import Foundation
 
 var failures: [String] = []
@@ -457,182 +457,6 @@ func pathway(_ plan: ThemePlan) -> Double {
 }
 check("N pathways shorten and lengthen", pathway(nShort) <= pathway(nStandard)
       && pathway(nLong) > pathway(nStandard) * 1.79, "\(pathway(nShort)) \(pathway(nStandard)) \(pathway(nLong))")
-
-// MARK: C the Circuit
-
-func cRole(_ body: ThemeBody) -> CircuitRole {
-    CircuitRole(rawValue: body.role) ?? .led
-}
-
-let bRight: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.right)
-let bForward: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.forward)
-let bNormal: SIMD3<Float> = GraphUniverse.float3(GraphCircuit.normal)
-
-func onBoard(_ p: SIMD3<Float>) -> SIMD2<Double> {
-    SIMD2<Double>(Double((p * bRight).sum()), Double((p * bForward).sum()))
-}
-
-func footprint(_ body: ThemeBody) -> CircuitRect {
-    CircuitRect(c: onBoard(body.home), h: cRole(body).foot * Double(body.sphere))
-}
-
-func boardOf(_ plan: ThemePlan, _ i: Int) -> CircuitRect {
-    let p: SIMD4<Float> = plan.patches[i]
-    let at: SIMD2<Double> = onBoard(plan.bodies[i].home)
-    return CircuitRect(c: at + SIMD2<Double>(Double(p.x), Double(p.y)), h: SIMD2<Double>(Double(p.z), Double(p.w)))
-}
-
-func topOf(_ plan: ThemePlan, _ i: Int) -> Int {
-    var at: Int = i
-    var steps: Int = 0
-    while plan.bodies[at].parent >= 0 && steps < plan.bodies.count {
-        at = plan.bodies[at].parent
-        steps += 1
-    }
-    return at
-}
-
-func reach(_ next: [[Int]], from starts: [Int]) -> Set<Int> {
-    var seen = Set<Int>(starts)
-    var queue: [Int] = starts
-    var head: Int = 0
-    while head < queue.count {
-        let x: Int = queue[head]
-        head += 1
-        for y in next[x] where seen.insert(y).inserted { queue.append(y) }
-    }
-    return seen
-}
-
-func cProblems(_ plan: ThemePlan) -> [String] {
-    var bad: [String] = []
-    // closed loops: every part reached from a power tap and reaching ground
-    var next = [[Int]](repeating: [], count: plan.bodies.count)
-    for l in plan.links {
-        if l.kind == 5 || l.kind == 6 {
-            next[l.a].append(l.b)
-        } else if l.kind == 0 {
-            let ra: Int = plan.bodies[l.a].rank
-            let rb: Int = plan.bodies[l.b].rank
-            if ra > rb { next[l.a].append(l.b) } else if rb > ra { next[l.b].append(l.a) }
-        }
-    }
-    var back = [[Int]](repeating: [], count: next.count)
-    for (a, list) in next.enumerated() { for b in list { back[b].append(a) } }
-    let vcc: [Int] = plan.bodies.indices.filter { cRole(plan.bodies[$0]) == .vcc }
-    let gnd: [Int] = plan.bodies.indices.filter { cRole(plan.bodies[$0]) == .ground }
-    let up: Set<Int> = reach(next, from: vcc)
-    let down: Set<Int> = reach(back, from: gnd)
-    for (i, b) in plan.bodies.enumerated() where b.kind != .fixture && !(up.contains(i) && down.contains(i)) {
-        if bad.count < 3 { bad.append("\(b.title) open") }
-    }
-    // footprints never overlap
-    let parts: [Int] = plan.bodies.indices.filter { plan.bodies[$0].kind != .fixture }
-    let rects: [CircuitRect] = parts.map { footprint(plan.bodies[$0]) }
-    for x in rects.indices {
-        for y in (x + 1)..<rects.count where !rects[x].clears(rects[y], gap: 0.0001) {
-            if bad.count < 5 { bad.append("overlap \(plan.bodies[parts[x]].title)/\(plan.bodies[parts[y]].title)") }
-        }
-    }
-    // flat, still, each inside its own board; boards apart
-    for (i, b) in plan.bodies.enumerated() {
-        if abs((b.home * bNormal).sum()) > 1e-4 && bad.count < 5 { bad.append("\(b.title) lifted") }
-        let board: CircuitRect = boardOf(plan, topOf(plan, i))
-        let r: CircuitRect = footprint(b)
-        let inside: Bool = r.low.x >= board.low.x - 1e-4 && r.low.y >= board.low.y - 1e-4
-            && r.high.x <= board.high.x + 1e-4 && r.high.y <= board.high.y + 1e-4
-        if !inside && bad.count < 5 { bad.append("\(b.title) off its board") }
-    }
-    let tops: [Int] = plan.regions
-    for x in tops.indices {
-        for y in (x + 1)..<tops.count where !boardOf(plan, tops[x]).clears(boardOf(plan, tops[y]), gap: 0.3) {
-            if bad.count < 5 { bad.append("boards touch") }
-        }
-    }
-    // sizes: chips over pages over ideas, a sub-chip under its chip
-    for (i, b) in plan.bodies.enumerated() {
-        if b.parent >= i { bad.append("\(b.title) before its parent") }
-        if cRole(b) == .module && b.sphere >= plan.bodies[b.parent].sphere { bad.append("\(b.title) too big") }
-    }
-    let chips: [Float] = plan.bodies.filter { cRole($0).isContainer }.map(\.sphere)
-    let pages: [Float] = plan.bodies.filter { cRole($0) == .capacitor }.map(\.sphere)
-    let ideas: [Float] = plan.bodies.filter { cRole($0) == .led }.map(\.sphere)
-    if let a = chips.min(), let b = pages.max(), a <= b { bad.append("chip <= page") }
-    if let a = pages.min(), let b = ideas.max(), a <= b { bad.append("page <= idea") }
-    // the envelope holds everything
-    var low = SIMD3<Float>(repeating: 1e9)
-    var high = SIMD3<Float>(repeating: -1e9)
-    for p in plan.envelope {
-        low = pointwiseMin(low, p)
-        high = pointwiseMax(high, p)
-    }
-    for b in plan.bodies where !(all(b.home - b.sphere .>= low) && all(b.home + b.sphere .<= high)) {
-        if bad.count < 6 { bad.append("\(b.title) outside the envelope") }
-    }
-    return bad
-}
-
-func boardArea(_ plan: ThemePlan) -> Double {
-    var sum: Double = 0
-    for t in plan.regions {
-        let r: CircuitRect = boardOf(plan, t)
-        sum += r.h.x * r.h.y * 4
-    }
-    return sum
-}
-
-var cBad: [String] = []
-var cGrowBad: [String] = []
-var cSizeBad: [String] = []
-var cAreaBad: [String] = []
-for (v, vault) in vaults.enumerated() {
-    var means: [Double] = []
-    var areas: [Double] = []
-    var base: [UUID: Float] = [:]
-    for s in scales {
-        let plan: ThemePlan = GraphCircuit.plan(vault.scaled(s))
-        let again: ThemePlan = GraphCircuit.plan(vault.scaled(s))
-        if again.bodies != plan.bodies || again.links != plan.links || again.bars != plan.bars {
-            cBad.append("vault \(v) at \(s): not deterministic")
-        }
-        let problems: [String] = cProblems(plan)
-        if !problems.isEmpty && cBad.count < 4 { cBad.append("vault \(v) at \(s): \(problems.prefix(2))") }
-        let own: [UUID: Float] = sizes(plan.bodies.filter { $0.kind != .fixture }.map { ($0.id, $0.sphere) })
-        if base.isEmpty { base = own } else if own != base && cSizeBad.count < 3 { cSizeBad.append("vault \(v) at \(s)") }
-        // the notes' own links, between two parts
-        let pairs: [(Int, Int)] = plan.links.filter { l in
-            (l.kind == 0 || l.kind == 3) && plan.bodies[l.a].kind == .note && plan.bodies[l.b].kind == .note
-        }.map { ($0.a, $0.b) }
-        means.append(meanLink(plan.bodies.map(\.home), pairs))
-        areas.append(boardArea(plan))
-    }
-    let nonzero: Bool = !means.allSatisfy { $0 == 0 }
-    if nonzero && !grows(means, slack: 0.02) && cGrowBad.count < 3 { cGrowBad.append("vault \(v): \(means)") }
-    let bigger: Bool = zip(areas, areas.dropFirst()).allSatisfy { $0.1 > $0.0 }
-    if !areas.allSatisfy({ $0 == 0 }) && !bigger && cAreaBad.count < 3 { cAreaBad.append("vault \(v): \(areas)") }
-}
-check("C at 0.6 to 1.8: closed loops, footprints clear, flat on their boards, boards apart, ladder, envelope, determinism",
-      cBad.isEmpty, "\(cBad)")
-check("C part sizes never change", cSizeBad.isEmpty, "\(cSizeBad)")
-check("C linked parts stand further apart as it grows", cGrowBad.isEmpty, "\(cGrowBad)")
-check("C boards grow with the setting", cAreaBad.isEmpty, "\(cAreaBad)")
-let cShort: ThemePlan = GraphCircuit.plan(fixedVault().scaled(0.6))
-let cLong: ThemePlan = GraphCircuit.plan(fixedVault().scaled(1.8))
-let cStandard: ThemePlan = GraphCircuit.plan(fixedVault())
-/// The parts (notes and chips), and which part feeds which: the circuit
-/// itself, whatever wiring taps a longer or shorter board needs.
-func circuitOf(_ plan: ThemePlan) -> [String] {
-    var out: [String] = []
-    for (i, b) in plan.bodies.enumerated() where b.kind != .fixture {
-        var f: Int = plan.feeds[i]
-        while f >= 0 && plan.bodies[f].kind == .fixture { f = plan.feeds[f] }
-        let from: String = f >= 0 ? plan.bodies[f].id.uuidString : "rail"
-        out.append(b.id.uuidString + "<" + from + "|" + String(b.role))
-    }
-    return out.sorted()
-}
-check("C the same circuit at every length", circuitOf(cShort) == circuitOf(cStandard)
-      && circuitOf(cLong) == circuitOf(cStandard))
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

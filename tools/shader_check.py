@@ -4,7 +4,7 @@ compiles them.
 
 SceneKit compiles a shader modifier (Metal source in a Swift string) only at
 run time, on the device; one that fails draws nothing, and the probes
-(GraphStyleProbe, NeuronProbe, CircuitProbe) quietly fall back to plain
+(GraphStyleProbe, NeuronProbe) quietly fall back to plain
 looks. So a typo in a shader shows up only as a duller map. This catches it
 here:
 
@@ -30,7 +30,7 @@ import os, re, shutil, subprocess, sys, tempfile
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 NOTES = os.path.join(ROOT, "ios/RedPen/Features/Notes")
 # the Foundation-only files that hold shader sources, and the catalog
-SOURCES = ["GraphShaderKit.swift", "GraphSpaceShaders.swift", "GraphNeuronShaders.swift", "GraphCircuitShaders.swift",
+SOURCES = ["GraphShaderKit.swift", "GraphSpaceShaders.swift", "GraphNeuronShaders.swift",
            "GraphShaderCatalog.swift"]
 
 HEADER = r"""

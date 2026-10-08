@@ -83,11 +83,6 @@ nonisolated final class GraphRibbonWriter {
     /// 0.002 - fine enough for the shaders' finest marks (dots, nodes of
     /// Ranvier, impulse heads a few hundredths wide).
     private let seeded: Bool
-    /// A board the links are routed on (the Circuit theme): each one a
-    /// trace square to the board's edges with rounded 45° corners
-    /// (GraphLinkRoute), its strip lying flat on the board instead of
-    /// facing the camera. Nil everywhere else.
-    private let board: GraphLinkBoard?
     /// Which frames the GPU has finished (nil: assume three frames in
     /// flight, as before).
     private let fence: GraphFrameFence?
@@ -100,20 +95,19 @@ nonisolated final class GraphRibbonWriter {
     private var ownFrame: UInt64 = 0
     /// "Lines: Straight" (GraphLineStyle), read once a frame: every link a
     /// direct segment between its trimmed ends, in place of the theme's
-    /// curve, arch, curl or routed trace.
+    /// curve, arch or curl.
     private var straight: Bool = false
 
     init(halfWidth: Float = GraphShape.linkHalfWidth, material: SCNMaterial,
          samples: Int = GraphQuality.current.linkSamples, expected: Int = 0, seeded: Bool = false,
-         board: GraphLinkBoard? = nil, fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil,
+         fence: GraphFrameFence? = nil, arbor: GraphLinkArbor? = nil,
          trims: [Float] = []) {
         self.halfWidth = halfWidth
         self.trims = trims
         self.material = material
         self.seeded = seeded
-        self.board = board
         self.fence = fence
-        self.arbor = board == nil ? arbor : nil
+        self.arbor = arbor
         self.samples = max(samples, 2)
         let count: Int = self.samples + 1
         points = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: count)
@@ -330,24 +324,13 @@ nonisolated final class GraphRibbonWriter {
         }
         let lowV: Float = band + 0.002
         let highV: Float = band + 0.998
-        var u0: Float = Float(code * 64 + 1)
-        if let board, board.spacing > 0, link.a < board.phases.count {
-            // the Circuit's pulse runs on from the wire before: start this
-            // one's light where the light has got to at its first end
-            let start: Float = board.phases[link.a] + radius[link.a] * GraphShape.linkTrim
-            u0 += max(start, 0).truncatingRemainder(dividingBy: board.spacing)
-        }
+        let u0: Float = Float(code * 64 + 1)
         for k in 0...n {
             let tangent: SIMD3<Float> = GraphLinkCurve.tangent(points, k, n, fallback: dir)
             let p: SIMD3<Float> = points[k]
             let facing: SIMD3<Float> = GraphLinkCurve.cross(tangent, eye - p)
             let fallback: SIMD3<Float> = GraphLinkCurve.perpendicular(to: tangent)
-            var side: SIMD3<Float> = GraphLinkCurve.unit(facing, or: fallback)
-            if let board {
-                // flat on the board (facing the camera only where a dragged
-                // part has pulled it up off the board)
-                side = GraphLinkCurve.unit(GraphLinkCurve.cross(board.normal, tangent), or: side)
-            }
+            let side: SIMD3<Float> = GraphLinkCurve.unit(facing, or: fallback)
             var width: Float = halfWidth
             var along: Float = min(lengths[k] * scale, GraphLinkCurve.alongCap)
             if let arbor {
@@ -375,18 +358,10 @@ nonisolated final class GraphRibbonWriter {
     /// shape GraphLinkCurve would give it), grown as far as the link has,
     /// with the distances along it measured on that segment - so the
     /// length coordinate, and the impulses, packets and flow running on
-    /// it, follow the straight path. On a board (the Circuit) it lies at
-    /// the copper's height, as the routed trace does.
+    /// it, follow the straight path.
     private func sampleStraight(_ path: GraphLinkPath, count n: Int) -> Float {
-        var from: SIMD3<Float> = path.start
-        var to: SIMD3<Float> = path.end
-        if let board {
-            let lift: SIMD3<Float> = board.normal * board.lift
-            from += lift
-            to += lift
-        }
-        return GraphStraightLine.sample(from: from, to: to, grow: path.grow, count: n,
-                                        points: &points, lengths: &lengths)
+        GraphStraightLine.sample(from: path.start, to: path.end, grow: path.grow, count: n,
+                                 points: &points, lengths: &lengths)
     }
 
     /// A link's seed as a theme's shader reads it (0...255), and as its
@@ -416,12 +391,6 @@ nonisolated final class GraphRibbonWriter {
         }
         var path = GraphLinkPath(start: pa + dir * trimA, end: pb - dir * trimB)
         path.grow = link.grow
-        if let board {
-            let fullA: Float = radius[link.a] * GraphShape.linkTrim
-            let fullB: Float = radius[link.b] * GraphShape.linkTrim
-            path.route = GraphLinkRoute(from: pa, to: pb, board: board, trimA: fullA, trimB: fullB, seed: link.seed)
-            return path
-        }
         if link.bow > 0 {
             path.arch = archDirection(link, from: pa, to: pb, dir: dir)
             path.archSize = link.bow * length

@@ -27,14 +27,12 @@ enum GraphFilter: Hashable {
 }
 
 /// What a body in the space stands for: a note, a folder (a star or a
-/// black hole in the Universe), the home star of a vault with no folders,
-/// or a theme's own wiring (the Circuit's taps and edge connectors: shown
-/// with its board, never picked, named or counted).
+/// black hole in the Universe), or the home star of a vault with no
+/// folders.
 nonisolated enum GraphBodyKind: Sendable, Equatable {
     case note
     case folder
     case home
-    case fixture
 }
 
 /// Everything the live space needs to know about one note, gathered when the
@@ -122,9 +120,6 @@ struct GraphUniverseLooks {
     /// (GraphRibbonWriter); empty: GraphShape.linkTrim.
     var trims: [Float] = []
     var seeded: Bool = false
-    /// A board the links are routed on, flat (the Circuit theme); nil
-    /// draws them as camera-facing beams.
-    var board: GraphLinkBoard? = nil
     /// The Neurons' axon endings (GraphLinkArbor): the links' and the far
     /// links' (tracts, pathways); nil elsewhere.
     var arbor: GraphLinkArbor? = nil
@@ -484,7 +479,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let shines: [GraphShine]
     private let labelBack: GraphRGB
     private var labelSettings: GraphLabelSettings
-    /// Each label's words, pill and rim materials (nil for wiring's empty
+    /// Each label's words, pill and rim materials (nil for an empty
     /// holder), and its pill's half width and height in label units (a
     /// label unit is `labelPoints` on screen).
     private let labelParts: [GraphLabelParts?]
@@ -585,16 +580,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let linkCount: Int = pairs.count
         let nearWidth: Float = universeLooks?.halfWidth ?? GraphShape.linkHalfWidth
         let seeded: Bool = universeLooks?.seeded ?? false
-        let board: GraphLinkBoard? = universeLooks?.board
         let frames: GraphFrameFence = fence
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
-                                    board: board, fence: frames, arbor: universeLooks?.arbor,
+                                    fence: frames, arbor: universeLooks?.arbor,
                                     trims: universeLooks?.trims ?? [])
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
-                                       seeded: seeded, board: board, fence: frames, arbor: universeLooks?.farArbor,
+                                       seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
                                        trims: universeLooks?.trims ?? [])
         ticker = universeLooks?.ticker
         deathKinds = infos.map(\.deathKind)
@@ -880,7 +874,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.lock()
         defer { lock.unlock() }
         guard i >= 0, i < visible.count else { return false }
-        return visible[i] && !ghost[i] && bodyKind[i] != .fixture
+        return visible[i] && !ghost[i]
     }
 
     /// Every shown note and where it is now, in the space's own coordinates,
@@ -905,7 +899,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>, Float, Bool)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] && !ghost[i] && bodyKind[i] != .fixture {
+        for i in position.indices where visible[i] && !ghost[i] {
             let size: Float = pickRadius[i] * max(popScale[i], 0.05)
             found.append((i, position[i], size, bodyKind[i] != .note))
         }
@@ -1192,11 +1186,6 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 wanted[i] = members[i].contains { wanted[$0] }
             }
         }
-        // wiring shows with the body that carries it (parents come first)
-        for i in nodes.indices where bodyKind[i] == .fixture {
-            let p: Int = parentOf[i]
-            wanted[i] = p >= 0 && p < i ? wanted[p] : filter == .all
-        }
         return wanted
     }
 
@@ -1220,8 +1209,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             near.insert(i)
             for (a, b) in edges where a == i || b == i {
                 near.insert(a == i ? b : a)
-                // a folder's links are its pathway or wiring: its members
-                // count too
+                // a folder's links are its pathway: its members count too
             }
             for m in members[i] { near.insert(m) }
             var up: Int = parentOf[i]
@@ -1611,8 +1599,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// to a comet, from the origin, fainter, in the far geometry).
     private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float, edge: Int? = nil) {
         let eased: Float = grow * grow * (3 - 2 * grow)
-        // a theme's own wiring (kinds 5 and 6) is always sent from its
-        // first end; every other link from its higher rank
+        // a theme's fixed-direction links (kinds 5 and 6) are always sent
+        // from their first end; every other link from its higher rank
         var fixed: Bool = false
         if universe, let e = edge, e < linkKind.count { fixed = linkKind[e] >= 5 }
         let swap: Bool = !fixed && linkCodes[j] > linkCodes[i]
@@ -2053,7 +2041,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     private func wantLabel(_ i: Int?) {
-        guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i], bodyKind[i] != .fixture else { return }
+        guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i] else { return }
         if labelsWanted.contains(i) { return }
         labelsWanted.append(i)
     }
@@ -2090,7 +2078,7 @@ nonisolated final class GraphLabelParts: @unchecked Sendable {
         self.half = half
     }
 
-    /// The pieces of `label`, or nil for wiring's empty holder.
+    /// The pieces of `label`, or nil for an empty holder.
     static func find(in label: SCNNode) -> GraphLabelParts? {
         let children: [SCNNode] = label.childNodes
         guard children.count >= 3 else { return nil }

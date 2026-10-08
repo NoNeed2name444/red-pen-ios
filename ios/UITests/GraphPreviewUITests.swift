@@ -4,8 +4,8 @@ import XCTest
 /// app: the Universe at rest (the whole map), a moment later (the orbits
 /// moving on), in landscape, while a star is being dragged with its system,
 /// flown in to one star system, the legend, and each single look on its
-/// own; then the same for the Neurons theme (`-graphPreviewTheme neurons`)
-/// and the Circuit theme (`-graphPreviewTheme circuit`); and bodies dying
+/// own; then the same for the Neurons theme (`-graphPreviewTheme neurons`);
+/// and bodies dying
 /// as they are deleted (`-graphPreviewRemove`), in each theme; touching
 /// the map (a note's and a folder's peek card, Open, a body's options, a
 /// hold-drag), name pills over bright bodies, and the Link length.
@@ -182,87 +182,6 @@ final class GraphPreviewUITests: XCTestCase {
         snap(app, "19-neurons-look-menu")
     }
 
-    // MARK: the Circuit theme
-
-    /// The whole bench: Cardiology and Examples as two circuit boards, each
-    /// with its chip and power and ground rails, Examples' sub-chips
-    /// (Inguinal with Anatomy on its branch, Femoral) on their sub-boards,
-    /// capacitors and LEDs in their branches, copper traces routed square
-    /// with rounded 45° corners, packets now and then - so the
-    /// second picture differs from the first - and in landscape.
-    func testCircuitAtRest() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit"]
-        app.launch()
-        let space = app.otherElements["graph3D"]
-        XCTAssertTrue(space.waitForExistence(timeout: 30), "the 3D map didn't open")
-        sleep(3)
-        let summary: String = (space.value as? String) ?? ""
-        XCTAssertTrue(summary.contains("boards") && summary.contains("capacitors"), "no Circuit summary: \(summary)")
-        snap(app, "21-circuit-board")
-        sleep(2)
-        snap(app, "22-circuit-two-seconds-later")
-        XCUIDevice.shared.orientation = .landscapeLeft
-        sleep(3)
-        snap(app, "23-circuit-landscape")
-        XCUIDevice.shared.orientation = .portrait
-    }
-
-    /// Double-tapped Examples, as the app does it itself: flown in to the
-    /// board, close enough to read the names and model tags on the chips
-    /// and see the capacitors, LEDs and rails.
-    func testCircuitFlyIn() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewFly", "Examples"]
-        app.launch()
-        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
-        sleep(3)
-        snap(app, "24-circuit-fly-examples")
-        sleep(1)
-        snap(app, "25-circuit-fly-examples-later")
-    }
-
-    /// The busiest sub-chip (Inguinal) picked up and carried: its parts and
-    /// sub-board come with it, Anatomy on its branch follows, and every
-    /// trace to them re-routes as it goes, its ends staying on the parts.
-    func testCircuitWhileDragging() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewDrag"]
-        app.launch()
-        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
-        usleep(1_600_000)
-        snap(app, "26-circuit-dragging")
-        sleep(3)
-        snap(app, "27-circuit-after-release")
-    }
-
-    /// "How your circuits are built", opened by the app a second after the map.
-    func testCircuitLegend() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit", "-graphPreviewLegend"]
-        app.launch()
-        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
-        XCTAssertTrue(app.staticTexts["How your circuits are built"].waitForExistence(timeout: 10), "the legend didn't open")
-        sleep(1)
-        snap(app, "28-circuit-legend")
-    }
-
-    /// The Look menu offers all three themes, and in Circuit its legend.
-    func testCircuitLookMenu() {
-        let app = XCUIApplication()
-        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "circuit"]
-        app.launch()
-        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
-        let look = app.buttons["Look"]
-        XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
-        look.tap()
-        XCTAssertTrue(app.buttons["Circuit"].waitForExistence(timeout: 5), "no Circuit theme in the Look menu")
-        XCTAssertTrue(app.buttons["Neurons"].exists && app.buttons["Space"].exists, "a theme is missing")
-        let legend = app.buttons["How your circuits are built"]
-        XCTAssertTrue(legend.waitForExistence(timeout: 5), "no Circuit legend in the Look menu")
-        snap(app, "29-circuit-look-menu")
-    }
-
     // MARK: bodies dying
 
     /// Deleted from the map (`-graphPreviewRemove`: the Femoral and Anatomy
@@ -270,10 +189,10 @@ final class GraphPreviewUITests: XCTestCase {
     /// note, three seconds in), in each theme: pictures early and midway
     /// through their deaths - in Space each by its own physics (tidal
     /// disruption, stripped atmosphere, planetary nebula, the pulsar
-    /// spinning down, the comet breaking up), in Neurons apoptosis, in
-    /// Circuit short circuits - and after, the map carrying on.
+    /// spinning down, the comet breaking up), in Neurons apoptosis - and
+    /// after, the map carrying on.
     func testRemovalInEachTheme() {
-        let themes: [String] = ["space", "neurons", "circuit"]
+        let themes: [String] = ["space", "neurons"]
         for (k, theme) in themes.enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewRemove"]
@@ -292,10 +211,10 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
-    /// A black hole evaporating (Space) and a whole board shorting out
-    /// (Circuit): the Cardiology folder deleted.
+    /// A black hole evaporating (Space) and a whole cell dying (Neurons):
+    /// the Cardiology folder deleted.
     func testRemovingATopFolder() {
-        for (k, theme) in ["space", "circuit"].enumerated() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewRemove", "Cardiology"]
             app.launch()
@@ -314,8 +233,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// its first lines, its links as chips); tap Open: the note grows out
     /// of the card. In each theme.
     func testTapNoteThenOpen() {
-        let themes: [(String, String)] = [("space", "Heart failure"), ("neurons", "Heart failure"),
-                                          ("circuit", "Heart failure")]
+        let themes: [(String, String)] = [("space", "Heart failure"), ("neurons", "Heart failure")]
         for (k, pair) in themes.enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", pair.0, "-graphPreviewSelect", pair.1]
@@ -337,7 +255,7 @@ final class GraphPreviewUITests: XCTestCase {
 
     /// Tap a folder: its card - counts, latest notes, Open folder and Fly in.
     func testTapFolder() {
-        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewSelect", "Inguinal"]
             app.launch()
@@ -352,7 +270,7 @@ final class GraphPreviewUITests: XCTestCase {
 
     /// Hold a body still: its options beside it.
     func testHoldForOptions() {
-        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewHold", "Heart failure"]
             app.launch()
@@ -381,12 +299,11 @@ final class GraphPreviewUITests: XCTestCase {
     }
 
     /// Name pills over bright bodies stay readable: flown in to a system
-    /// with a body chosen whose name sits over its star, its region's
-    /// glowing soma or a lit LED.
+    /// with a body chosen whose name sits over its star or its region's
+    /// glowing soma.
     func testLabelsOverBrightBodies() {
         let cases: [(String, String, String)] = [("space", "Inguinal", "Inguinal canal"),
-                                                 ("neurons", "Cardiology", "Heart failure"),
-                                                 ("circuit", "Cardiology", "BNP")]
+                                                 ("neurons", "Cardiology", "Heart failure")]
         for (k, entry) in cases.enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", entry.0, "-graphPreviewFly", entry.1,
@@ -402,7 +319,7 @@ final class GraphPreviewUITests: XCTestCase {
 
     /// The Look menu's Link length bar, and the map planned longer.
     func testLinkLength() {
-        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewLinkLength", "1.8"]
             app.launch()
@@ -428,7 +345,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// then the 2D board's straight connectors, reached through the
     /// personal build's Ideas example (13 linked notes).
     func testStraightLines() {
-        for (k, theme) in ["space", "neurons", "circuit"].enumerated() {
+        for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme,
                                     "-ideasLines", "straight"]

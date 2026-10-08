@@ -114,7 +114,7 @@ nonisolated struct GraphicsBudget: Sendable, Equatable {
     let nebulaDrifts: Bool
     let starStride: Int
     /// Soft glow and haze layers (the near stars' halos, the bright stars'
-    /// glow, the neuron look's gel halo, the circuit look's trace bloom).
+    /// glow, the neuron look's gel halo).
     let haze: Bool
 
     static let high = GraphicsBudget(tier: .high, linkSamples: 40, maxFPS: 120, msaa: 4, shaderDetail: 1,

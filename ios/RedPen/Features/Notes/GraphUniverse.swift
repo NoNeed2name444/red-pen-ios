@@ -58,8 +58,8 @@ nonisolated struct UniverseInput: Sendable {
     /// by it - orbits, the gaps between systems, pathways, part spacing -
     /// never a body's own size. Clamped to 0.6...1.8.
     var linkScale: Double = 1
-    /// What the Neurons and Circuit themes read to build each folder's
-    /// cell or circuit (plan §3d): every note's body, tags, source and
+    /// What the Neurons theme reads to build each folder's cell (plan
+    /// §3d): every note's body, tags, source and
     /// links. Nil for the other themes, which need only the titles.
     var anatomy: AnatomyInput? = nil
 }
