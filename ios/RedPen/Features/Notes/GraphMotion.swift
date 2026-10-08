@@ -715,17 +715,28 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         start.reserveCapacity(homeList.count)
         var scales: [Float] = []
         var waits: [Float] = []
+        var born: Int = 0
         for (k, p) in homeList.enumerated() {
             let id: UUID = idList[k]
             var from: SIMD3<Float> = p
+            let isFresh: Bool = recall.fresh?.contains(id) ?? true
+            // a container opening (Neurons): what is inside grows out of it,
+            // from its centre, one after another
+            let up: Int = orbiting ? infos[k].parent : -1
+            let opening: Bool = lively && recall.fresh != nil && isFresh && up >= 0 && up < k
             if lively, let known = recall.starts[id] {
                 from = known
+            } else if opening {
+                from = start[up]
             } else if lively && recall.fresh == nil {
                 from = p * Float(0.7)
             }
             start.append(from)
-            let isFresh: Bool = recall.fresh?.contains(id) ?? true
-            let wait: Float = recall.fresh == nil ? min(Float(k) * 0.004, 0.6) : 0.05
+            var wait: Float = recall.fresh == nil ? min(Float(k) * 0.004, 0.6) : 0.05
+            if opening {
+                wait = min(0.05 + Float(born) * 0.035, 0.7)
+                born += 1
+            }
             scales.append(lively && isFresh ? 0 : 1)
             waits.append(lively && isFresh ? wait : 0)
         }
@@ -1032,9 +1043,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 partners.append((ids[other], e))
             }
             let copy: SCNNode = nodes[i].clone()
+            // where it would fold back to, should its cell be closing
+            // (GraphDeathStage.make decides)
+            let up: Int = parentOf[i]
+            let folds: Bool = universe && up >= 0 && up < ids.count && keeping.contains(ids[up])
+                && bodyKind[up] != .note
             out.append(GraphDeparture(id: ids[i], node: copy, position: where_[i], radius: radius[i] * sizes[i],
                                       scale: sizes[i], kind: deathKinds[i], count: counts[i], code: codes[i],
-                                      partners: partners))
+                                      partners: partners, into: folds ? where_[up] : nil))
         }
         return out
     }

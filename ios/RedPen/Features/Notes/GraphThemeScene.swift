@@ -256,13 +256,16 @@ extension GraphSceneBuilder {
         let styles: [UUID: GraphNodeStyle] = [:]
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles, lively: lively)
         // bodies deleted since the scene on screen die in this one: cells by
-        // apoptosis
+        // apoptosis; ones only hidden (a cell closed) fold back into it
         let key: String = "theme:" + look.theme.rawValue
         var dyingLinks = GraphDeathLinks(material: look.linkMaterial, halfWidth: look.linkHalfWidth)
         dyingLinks.seeded = true
         dyingLinks.arbor = look.arbor
+        var stored = Set<UUID>(store.notes.map(\.id))
+        for folder in store.folders { stored.insert(folder.id) }
+        stored.insert(GraphUniverse.homeID)
         simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
-                                              lively: lively, links: dyingLinks)
+                                              lively: lively, links: dyingLinks, hidden: stored)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)

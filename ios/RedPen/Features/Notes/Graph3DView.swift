@@ -787,7 +787,10 @@ struct Graph3DView: View {
         }
         parts.append("\(reduceMotion)")
         parts.append(nodeStyle + "|" + folderStyles)
-        if theme == .neurons { parts.append("c" + cellState + "|" + cellFolders) }
+        if theme == .neurons {
+            parts.append("c" + cellState + "|" + cellFolders)
+            parts.append("o" + openPath.map(\.uuidString).joined(separator: ","))
+        }
         parts.append("t" + theme.rawValue)
         parts.append("\(quality.rawValue)")
         parts.append("g\(graphics.tier.rawValue)")
@@ -941,8 +944,44 @@ struct Graph3DView: View {
             UniverseFolder(id: folder.id, name: folder.name, parent: folder.parentId)
         }
         let links: [UniverseEdge] = edges.map { UniverseEdge(a: $0.0, b: $0.1) }
-        return UniverseInput(notes: list, folders: folders, edges: links, seedByName: GraphPreview.isOn,
-                             linkScale: linkValue)
+        var input = UniverseInput(notes: list, folders: folders, edges: links, seedByName: GraphPreview.isOn,
+                                  linkScale: linkValue)
+        if theme == .neurons {
+            input.anatomy = anatomyInput(folders: folders)
+            input.open = openPath
+        }
+        return input
+    }
+
+    /// What the Neurons theme reads to build each cell (GraphAnatomy):
+    /// every note's text, tags, source and the links it makes.
+    private func anatomyInput(folders: [UniverseFolder]) -> AnatomyInput {
+        let index: [String: UUID] = notes.titleIndex()
+        let list: [AnatomyNote] = notes.notes.map { note in
+            AnatomyNote(id: note.id, title: note.title, body: note.body, isPage: note.kind == .page,
+                        folder: note.folderId, tags: note.tags, source: note.source?.chipLabel,
+                        hand: note.links, written: notes.resolve(wikiLinksIn: note.body, index: index),
+                        created: note.createdAt.timeIntervalSinceReferenceDate)
+        }
+        return AnatomyInput(notes: list, folders: folders)
+    }
+
+    /// The cells opened on the Neurons map, outermost first: the one the
+    /// camera has flown in to and every folder it sits inside. Flying in
+    /// opens a cell (its parts and notes grow out of it); Recentre closes
+    /// them all again.
+    private var openPath: [UUID] {
+        guard theme == .neurons, let id = flownRegion else { return [] }
+        var parent: [UUID: UUID] = [:]
+        for folder in notes.folders { if let p = folder.parentId { parent[folder.id] = p } }
+        var path: [UUID] = [id]
+        var seen: Set<UUID> = [id]
+        var at: UUID = id
+        while let p = parent[at], seen.insert(p).inserted {
+            path.append(p)
+            at = p
+        }
+        return path.reversed()
     }
 }
 

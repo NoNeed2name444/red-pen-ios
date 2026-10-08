@@ -42,6 +42,10 @@ struct GraphDeparture {
     let code: Int
     /// Whom it was linked to, and each link's seed.
     let partners: [(UUID, Int)]
+    /// Where the container it sat in is, when that container stays: if it
+    /// is only hidden (a Neurons cell closing), it folds back into it there
+    /// instead of dying.
+    var into: SIMD3<Float>? = nil
 }
 
 /// How the links of the scene they die in look, for the dying links.
@@ -90,11 +94,23 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
     }
 
     /// The deaths for a new scene whose bodies are `keeping`, or nil when
-    /// none of the scene being replaced's bodies has gone.
+    /// none of the scene being replaced's bodies has gone. `hidden` are
+    /// ones still in the vault that the new scene does not show (inside a
+    /// closed cell): they fold back into their container, not die.
     @MainActor
     static func make(world: SCNNode, keeping: Set<UUID>, key: String, lively: Bool,
-                     links: GraphDeathLinks) -> GraphDeathStage? {
-        let gone: [GraphDeparture] = GraphMemory.leaving(keeping: keeping, key: key)
+                     links: GraphDeathLinks, hidden: Set<UUID> = []) -> GraphDeathStage? {
+        let leaving: [GraphDeparture] = GraphMemory.leaving(keeping: keeping, key: key)
+        // a closed cell's parts and notes fold back into it, staggered
+        // innermost last; only what was deleted dies
+        var folded: Int = 0
+        for d in leaving {
+            guard let into = d.into, hidden.contains(d.id) else { continue }
+            GraphDeathArt.fold(d, into: into, wait: lively ? min(Double(folded) * 0.02, 0.4) : 0, lively: lively,
+                               in: world)
+            folded += 1
+        }
+        let gone: [GraphDeparture] = leaving.filter { $0.into == nil || !hidden.contains($0.id) }
         guard !gone.isEmpty else { return nil }
         let still: Bool = !lively
         let smooth: Bool = GraphQuality.current.tier != .high
@@ -249,6 +265,31 @@ enum GraphDeathArt {
         effect(plan, radius: r, axis: axis, in: fx)
         let tail: TimeInterval = life + 1.6
         fx.runAction(SCNAction.sequence([SCNAction.wait(duration: tail), SCNAction.removeFromParentNode()]))
+    }
+
+    /// A body whose container closed: it shrinks as it glides back into
+    /// the container's centre, then goes. Still: it simply goes.
+    static func fold(_ d: GraphDeparture, into: SIMD3<Float>, wait: Double, lively: Bool, in world: SCNNode) {
+        guard lively else { return }
+        let body: SCNNode = d.node
+        body.name = "folding"
+        quiet(body)
+        body.simdPosition = d.position
+        let size: Float = max(d.scale, 0.001)
+        body.simdScale = SIMD3<Float>(size, size, size)
+        world.addChildNode(body)
+        let from: SIMD3<Float> = d.position
+        let life: TimeInterval = 0.55
+        let curve = SCNAction.customAction(duration: life) { node, e in
+            let x: Float = Float(min(max(Double(e) / life, 0), 1))
+            let t: Float = x * x * (3 - 2 * x)
+            node.simdPosition = from + (into - from) * t
+            let s: Float = max(size * (1 - t), 0.0005)
+            node.simdScale = SIMD3<Float>(s, s, s)
+            node.opacity = CGFloat(1 - 0.6 * t)
+        }
+        body.runAction(SCNAction.sequence([SCNAction.wait(duration: wait), curve,
+                                           SCNAction.removeFromParentNode()]))
     }
 
     /// Everything in the copy unpickable and nameless.
