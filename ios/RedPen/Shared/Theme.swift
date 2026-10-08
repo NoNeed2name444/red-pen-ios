@@ -61,6 +61,7 @@ struct ModeTile: View {
             .frame(width: size, height: size)
             .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
             .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: selected)
+            .accessibilityHidden(true)
     }
 }
 
@@ -234,6 +235,8 @@ struct ScoreRing: View {
             }
         }
         .frame(width: 168, height: 168)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label) \(sublabel)")
         .preference(key: FinishScoreKey.self, value: fraction)
         .onAppear {
             if reduceMotion {
@@ -588,6 +591,7 @@ struct FinishHero<Graphic: View>: View {
             Text(title)
                 .font(.title.weight(.bold))
                 .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
             if !message.isEmpty {
                 Text(message)
                     .font(.body)
