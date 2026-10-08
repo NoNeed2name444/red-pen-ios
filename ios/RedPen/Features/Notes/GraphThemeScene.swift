@@ -12,8 +12,9 @@ import simd
 //                                          GraphSim moves it at its index)
 //         its look's pieces, a halo on GraphSim's ring leaf, a glow
 //         its name pill
-//       links       (one geometry, the look's link material)
-//       far links   (tracts between regions, to loose notes, and pathways)
+//       links       (one geometry, the look's link material: the Neurons'
+//                    axons within a cell)
+//       far links   (the axons between cells and to loose notes)
 //
 // and run by GraphSim exactly as the Universe is (universe = true): every
 // body springs to its parent's live position plus its orbit's offset, so a
@@ -31,8 +32,8 @@ import simd
 /// halo (swapped for the look's hot halo while chosen); `diskLeaf` is spun.
 struct GraphThemeParts {
     let node: SCNNode
-    /// How far links are trimmed from its centre (times GraphShape.linkTrim)
-    /// and how far it can be picked.
+    /// How far links are trimmed from its centre (times the look's
+    /// linkTrim) and how far it can be picked.
     let radius: Float
     let ringStretch: SCNNode
     let ringLeaf: SCNNode
@@ -79,9 +80,14 @@ protocol GraphThemeLook: AnyObject {
     /// links'; nil (the default) trims them at the target's rim.
     var arbor: GraphLinkArbor? { get }
     var farArbor: GraphLinkArbor? { get }
+    /// How far into a body's radius its links start (times
+    /// GraphThemeParts.radius): GraphShape.linkTrim, its rim, by default;
+    /// the Neurons start theirs under the membrane.
+    var linkTrim: Float { get }
 }
 
 extension GraphThemeLook {
+    var linkTrim: Float { GraphShape.linkTrim }
     var arbor: GraphLinkArbor? { nil }
     var farArbor: GraphLinkArbor? { nil }
 }
@@ -196,16 +202,19 @@ extension GraphSceneBuilder {
             }
         }
 
-        // the notes' links, and every container wired to those inside it
-        var edges: [(UUID, UUID)] = noteEdges
+        // the plan's links only: it has already gathered the notes' links
+        // onto the bodies shown (one per pair, from the sender - an axon
+        // within a cell, 5, or between cells, 6), so the store's own list
+        // (`noteEdges`, which names notes still folded away inside a closed
+        // cell) would draw some twice and point at others not there
+        _ = noteEdges
+        var edges: [(UUID, UUID)] = []
         var kinds: [String: (Int, Int)] = [:]
         for link in plan.links {
             let a: UUID = plan.bodies[link.a].id
             let b: UUID = plan.bodies[link.b].id
             kinds[GraphMemory.key(a, b)] = (link.kind, link.centre)
-            // the theme's own links (a pathway, 4; a cell's processes, 5
-            // and 6), none of them in the notes' own list
-            if link.kind >= 4 { edges.append((a, b)) }
+            edges.append((a, b))
         }
 
         var extent: Float = 1
@@ -215,7 +224,9 @@ extension GraphSceneBuilder {
         let distance: Float = GraphFraming.distance(points: plan.envelope, pad: pad, window: whole, fill: 0.88)
         let camera = SCNCamera()
         camera.fieldOfView = Double(GraphFraming.fieldOfView)
-        camera.zNear = 0.05
+        // near enough not to clip a tiny note deep inside a cell when the
+        // camera flies in close to it (GraphSim keeps it in step after)
+        camera.zNear = Double(min(max(distance * 0.05, 0.00001), 0.05))
         let far: Float = distance * 4 + extent * 4 + 20
         camera.zFar = Double(far)
         let skyRadius: Float = far * 0.5
@@ -235,6 +246,7 @@ extension GraphSceneBuilder {
         universe.seeded = true
         universe.arbor = look.arbor
         universe.farArbor = look.farArbor
+        universe.trims = [Float](repeating: look.linkTrim, count: GraphNodeStyle.allCases.count)
         universe.ticker = look.ticker(parts: parts, plan: plan)
         var simLooks = GraphSimLooks(linkMaterial: look.linkMaterial, hotRing: look.hotRing, hotDisk: SCNGeometry(),
                                      clocked: look.clocked, emitters: [], trails: [], sky: sky)
@@ -283,15 +295,17 @@ extension GraphSceneBuilder {
         }
     }
 
-    /// The first-level container holding the most notes (ties: the lower
-    /// index), for the design preview's drag; any container without one.
+    /// The whole cell (depth 0) with the most links (ties: the lower
+    /// index), for the design preview's drag; else the container holding
+    /// the most notes.
     private static func busiestRelay(_ plan: ThemePlan) -> Int? {
         var best: Int?
         var most: Int = -1
-        for (i, body) in plan.bodies.enumerated() where body.kind != .note && body.depth == 1 && body.count > most {
+        for (i, body) in plan.bodies.enumerated() where body.kind != .note && body.depth == 0 && body.links > most {
             best = i
-            most = body.count
+            most = body.links
         }
+        if best != nil { return best }
         if best != nil { return best }
         for (i, body) in plan.bodies.enumerated() where body.kind != .note && body.count > most {
             best = i

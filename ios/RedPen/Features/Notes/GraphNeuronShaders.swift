@@ -44,7 +44,11 @@ nonisolated enum NeuronShaders {
     /// pacemaker brightens on each beat (twice a turn of NeuronState
     /// .beatPeriod, with its halo), releasing crowds vesicles under the
     /// membrane, engulfing darkens its heart to a phagosome ringed with
-    /// light.
+    /// light. `rpFill` how much of the purple and magenta interior shows
+    /// (NeuronCellKind.fill: thin in a part and a vesicle); `rpOpen` (0
+    /// closed, 1 open, eased between) clears an opened container's middle
+    /// so what floats inside shows: its nucleus settles small at the centre,
+    /// its speckle goes and its interior thins.
     static let soma: String = """
     #pragma arguments
     float rpClock;
@@ -53,6 +57,8 @@ nonisolated enum NeuronShaders {
     float rpDetail;
     float rpNucleus;
     float rpState;
+    float rpOpen;
+    float rpFill;
     float3 rpTintA;
     float3 rpTintB;
     float3 rpTintC;
@@ -74,10 +80,10 @@ nonisolated enum NeuronShaders {
     float rp_q = clamp(dot(rp_off, rp_off) / rp_R2, 0.0, 1.0);
     float rp_thick = sqrt(1.0 - rp_q);
 
-    float3 rp_nc = rp_c + rp_ax * 0.18 + rp_ay * 0.07;
+    float3 rp_nc = rp_c + (rp_ax * 0.18 + rp_ay * 0.07) * (1.0 - rpOpen);
     float rp_nt = dot(rp_nc, rp_d);
     float3 rp_no = rp_d * rp_nt - rp_nc;
-    float rp_nr = max(rp_R * rpNucleus, 0.0001);
+    float rp_nr = max(rp_R * rpNucleus * (1.0 - 0.45 * rpOpen), 0.0001);
     float rp_nd = length(rp_no) / rp_nr;
     float rp_has = step(0.01, rpNucleus);
     float rp_nuc = (1.0 - smoothstep(0.8, 1.0, rp_nd)) * rp_has;
@@ -102,7 +108,7 @@ nonisolated enum NeuronShaders {
     rp_gp = rp_gp * 0.6 + float3(0.2, 0.2, 0.2);
     float rp_gd = length(rp_gf - rp_gp);
     float rp_dot = 1.0 - smoothstep(0.05, 0.14, rp_gd);
-    rp_dot = rp_dot * step(0.45, rp_gh) * rpDetail;
+    rp_dot = rp_dot * step(0.45, rp_gh) * rpDetail * (1.0 - rpOpen);
 
     float rp_rim = pow(1.0 - rp_mu, 2.4) * smoothstep(0.0, 0.18, rp_mu);
     float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
@@ -110,7 +116,7 @@ nonisolated enum NeuronShaders {
     float rp_deep = rp_thick * rp_thick;
     float3 rp_inner = mix(float3(0.58, 0.24, 0.98), float3(0.98, 0.28, 0.72), rp_deep);
     float3 rp_col = rpTintA * (0.06 + 0.08 * rp_thick + 1.15 * rp_rim);
-    rp_col = rp_col + rp_inner * (0.07 + 0.3 * rp_deep);
+    rp_col = rp_col + rp_inner * ((0.07 + 0.3 * rp_deep) * rpFill * (1.0 - 0.65 * rpOpen));
     float3 rp_nucCol = rpTintB * (0.32 + 0.24 * rp_thick);
     rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.75);
     rp_col = rp_col + rpTintB * (0.4 * rp_env);
@@ -329,8 +335,9 @@ nonisolated enum NeuronShaders {
     // MARK: the axon
 
     /// A link as an axon, on GraphRibbonWriter's strip in its synapse
-    /// coding (GraphLinkArbor): u = seed * 64 + 1 + distance from the END
-    /// (the target's centre); v = ((length in eighths * 16 + the target's
+    /// coding (GraphLinkArbor): u = (width step * 32 + seed) * 64 + 1 +
+    /// distance from the END (the target's centre), the width step
+    /// (GraphRibbonWriter.widthStep, 0...7) following the sender's size; v = ((length in eighths * 16 + the target's
     /// membrane step) * 2 + the lit bit) plus the position across. The
     /// strip widens over its last stretch (the same ramp as the writer's)
     /// to hold its one synapse: the fibre loses its myelin, narrows into a
@@ -342,8 +349,11 @@ nonisolated enum NeuronShaders {
     /// at NeuronImpulse's arrival time; the cup brightens, bulges and
     /// settles like jelly, and transmitter glows across the cleft and
     /// spreads along the membrane from the cup's rim. Tint A the fibre, B
-    /// the impulse, C its halo; `rpBundle` 1 draws a tract's three fibres,
-    /// which gather before the stem; `rpHalf` the strip's base half width;
+    /// the impulse, C its halo. Each axon is a single fibre (`rpBundle` 0;
+    /// 1 would draw three, gathered before the stem), swelling into a
+    /// hillock where it leaves its sender and tapering; `rpHalf` the
+    /// strip's base half width, times the width step's
+    /// (0.12 * exp(step * 0.300105));
     /// `rpRate` the chance a slot fires, `rpBurst` the chance a firing is a
     /// burst; `rpDetail` 0 (Smooth) a plain cup, no wobble or bulge.
     static let axon: String = """
@@ -362,8 +372,11 @@ nonisolated enum NeuronShaders {
 
     #pragma body
     float2 rp_uv = _surface.diffuseTexcoord;
-    float rp_seed = floor(rp_uv.x / 64.0);
-    float rp_dE = rp_uv.x - rp_seed * 64.0 - 1.0;
+    float rp_code = floor(rp_uv.x / 64.0);
+    float rp_dE = rp_uv.x - rp_code * 64.0 - 1.0;
+    float rp_wk = floor(rp_code / 32.0);
+    float rp_seed = rp_code - 32.0 * rp_wk;
+    float rp_hw = rpHalf * 0.12 * exp(rp_wk * 0.300105);
     float rp_k = floor(rp_uv.y);
     float rp_q2 = floor(rp_k * 0.5);
     float rp_lit = rp_k - 2.0 * rp_q2;
@@ -375,7 +388,7 @@ nonisolated enum NeuronShaders {
     float rp_t = rpClock * rpMotion;
 
     float rp_R = 0.05 * exp(rp_lvl * 0.14842);
-    float rp_fw = rpHalf * mix(0.3, 0.2, rpBundle);
+    float rp_fw = rp_hw * mix(0.3, 0.2, rpBundle);
     float rp_cl = 0.3 * rp_fw;
     float rp_F = rp_R + rp_cl;
     float rp_th0 = 0.55 * rp_fw;
@@ -384,9 +397,9 @@ nonisolated enum NeuronShaders {
     float rp_Nk = 1.4 * rp_Wc;
     float rp_D1 = rp_Bk + rp_Nk + 0.02;
     float rp_D0 = rp_D1 + 0.5 * rp_R + 4.0 * rp_fw;
-    float rp_We = max(rp_Wc + 1.5 * rp_th0 + 3.0 * rp_fw, rpHalf);
+    float rp_We = max(rp_Wc + 1.5 * rp_th0 + 3.0 * rp_fw, rp_hw);
     float rp_ramp = clamp((rp_D0 - rp_dE) / max(rp_D0 - rp_D1, 0.0001), 0.0, 1.0);
-    float rp_W = rpHalf + (rp_We - rpHalf) * rp_ramp;
+    float rp_W = rp_hw + (rp_We - rp_hw) * rp_ramp;
     float rp_y = rp_s * rp_W;
     float rp_Lref = max(rp_len - rp_Bk, 0.05);
 
@@ -394,9 +407,9 @@ nonisolated enum NeuronShaders {
     float rp_m = fract(rp_mq) - 0.5;
     float rp_myel = clamp((rp_dE - rp_D1 - rp_Nk) / 0.15, 0.0, 1.0);
     float rp_node = exp(-rp_m * rp_m / 0.0016) * rp_myel;
-    float rp_hill = 1.0 + 0.5 * exp(-rp_along / 0.12);
+    float rp_hill = 1.0 + 1.5 * exp(-rp_along / (3.0 * rp_hw));
     float rp_conv = clamp((rp_dE - rp_D0) / 0.4, 0.0, 1.0);
-    float rp_lane = 0.42 * rpHalf * rpBundle * rp_conv;
+    float rp_lane = 0.42 * rp_hw * rpBundle * rp_conv;
     float rp_d0 = abs(rp_y);
     float rp_d1 = abs(rp_y - rp_lane);
     float rp_d2 = abs(rp_y + rp_lane);
@@ -534,7 +547,7 @@ nonisolated enum NeuronShaders {
     rp_col = rp_col + rp_hot * (0.4 * rp_flash);
     rp_col = rp_col + (rpTintB * 0.55 + rpTintC * 0.45) * (0.8 * rp_nt);
     rp_col = rp_col * (1.0 + 0.45 * rp_lit);
-    rp_col = rp_col * smoothstep(0.0, 0.04, rp_along);
+    rp_col = rp_col * smoothstep(0.0, 2.0 * rp_hw, rp_along);
 
     """ + GraphStyleShaders.glowEnd
 }

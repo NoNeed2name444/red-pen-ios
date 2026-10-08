@@ -312,7 +312,11 @@ nonisolated final class GraphRibbonWriter {
         let seed: Int = link.seed % 16
         let pair: Int = codeA * 8 + codeB
         let styled: Int = pair * 16 + seed
-        let code: Int = seeded ? Self.themeSeed(link.seed) : styled
+        // a theme's axon is as wide as its sender is big (the shader reads
+        // the step back from the code)
+        let step: Int = seeded ? Self.widthStep(radius: radius[link.a]) : 0
+        let code: Int = seeded ? step * Self.themeSeeds + Self.themeSeed(link.seed) : styled
+        let h: Float = seeded ? halfWidth * Self.stepWidth(step) : halfWidth
         let lit: Int = (link.a == focus || link.b == focus) ? 1 : 0
         let scale: Float = GraphLinkCurve.alongScale(total: arbor == nil ? total : whole)
         let coded: Float = min(total * scale, GraphLinkCurve.alongCap)
@@ -331,13 +335,13 @@ nonisolated final class GraphRibbonWriter {
             let facing: SIMD3<Float> = GraphLinkCurve.cross(tangent, eye - p)
             let fallback: SIMD3<Float> = GraphLinkCurve.perpendicular(to: tangent)
             let side: SIMD3<Float> = GraphLinkCurve.unit(facing, or: fallback)
-            var width: Float = halfWidth
+            var width: Float = h
             var along: Float = min(lengths[k] * scale, GraphLinkCurve.alongCap)
             if let arbor {
                 // coded from the end: the brush sits exactly on the target
                 let fromEnd: Float = max(whole - lengths[k], 0) * scale
                 along = min(fromEnd, GraphLinkCurve.alongCap)
-                width = arbor.halfWidth(dEnd: along, r: membrane, h: halfWidth)
+                width = arbor.halfWidth(dEnd: along, r: membrane, h: h)
             }
             let offset: SIMD3<Float> = side * width
             let p0: SIMD3<Float> = p - offset
@@ -364,9 +368,24 @@ nonisolated final class GraphRibbonWriter {
                                  points: &points, lengths: &lengths)
     }
 
-    /// A link's seed as a theme's shader reads it (0...255), and as its
-    /// CPU side must use it to stay in step (NeuronImpulses).
-    static let themeSeeds: Int = 256
+    /// A link's seed as a theme's shader reads it (0...31), and as its
+    /// CPU side must use it to stay in step (NeuronImpulses); with the
+    /// width step (0...7) above it, the code stays under 256.
+    static let themeSeeds: Int = 32
+
+    /// The width step (0...7) of a link whose sender's radius is `r`: its
+    /// width as a share of the widest, 0.12...1 (a radius of 0.3 or more
+    /// is the widest), on a log scale.
+    static func widthStep(radius r: Float) -> Int {
+        let w: Float = min(max(r / 0.3, 0.12), 1)
+        let k: Float = (log(w / 0.12) / 0.300105).rounded()
+        return min(max(Int(k), 0), 7)
+    }
+
+    /// The share of the widest a width step draws: 0.12 * exp(k * 0.300105).
+    static func stepWidth(_ k: Int) -> Float {
+        0.12 * exp(Float(k) * 0.300105)
+    }
 
     static func themeSeed(_ seed: Int) -> Int {
         let wrapped: Int = seed % themeSeeds
