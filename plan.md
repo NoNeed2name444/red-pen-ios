@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 12:15 AM Cairo.
+Last updated: 2026-10-09, 1:39 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,10 +35,10 @@ Last updated: 2026-10-09, 12:15 AM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Preview: sample the app's threads when it freezes" | M3 in progress; the Linux suites pass (preflight, 8 Oct 11:02 PM); #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); this commit is the freeze sampler (section 3, step 6d) |
-| design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene) |
-| preview/3d-overhaul | the same as wip (the freeze run, step 6d); before it 86791b6 (round D shots, run 37838122205, red on the iPad freeze) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | 4513172 (round D) | where design-preview.yml commits them |
+| wip/3d-neurons-m3 | "Preview: the app reports where it is stuck when it freezes" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); this commit has the app report its own stuck threads and the watch only look (section 3, step 6d) |
+| design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
+| preview/3d-overhaul | 2428ffd (run 37846299540, the first freeze run); next the same as wip, once its App build passes (the second freeze run, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | 48787e9 (run 37846299540) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -159,6 +159,18 @@ Last updated: 2026-10-09, 12:15 AM Cairo.
   it), the simulator's SpringBoard or backboardd hung, or a stalled VM GPU.
   So the next run samples the app's threads while it freezes (step 6d,
   #20).
+- That run (37846299540, 2428ffd: AtRest, FlyIn and Legend three times
+  each) was red only because of the sampler. `sample` holds the app still
+  while it reads it, and the samples crawled (89 s on the iPad and about
+  4 minutes on the iPhone, for 2 s asked), so twice the test's SIGTERM
+  came while the app was held and the test gave up ("Failed to
+  terminate": the iPad's Legend #1 and the iPhone's Legend #3). No freeze
+  of the app's own was caught, and XCTest attached no diagnostics. The
+  slow samples and AtRest's 68.5 s (against 32.9) point at a Mac short of
+  memory. So the next run touches nothing: the app reports where its
+  main and render threads are stuck (GraphHangReporter, in its own log),
+  and hang_watch.sh only notes thread states and the Mac's memory (step
+  6d).
 
 ## 3. Next steps
 
@@ -258,32 +270,65 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    - [x] Round D (#17 and #18): App build 37838831104 (green) and preview
      run 37838122205 (only=testNeurons): graph-11, 20, 21, 22 show both
      right. The run was red on the freeze (section 2, step 6d).
-   - [ ] Send the owner round D's shots (graph-11, 20, 21, 22 and the
+   - [x] Send the owner round D's shots (graph-11, 20, 21, 22 and the
      OpenInTurn recording, under 30 MiB), saying plainly that the app
      sometimes freezes in the tests and that it is being chased (6d).
 6d. [ ] #20, the freeze: find and fix what now and then freezes the app in
    the map's UI tests (section 2, round D). It blocks the merge into
    personal (step 7).
    - [x] tools/hang_watch.sh, run by design-preview.yml for the iphone-graph
-     and ipad parts: from each app launch it samples the app's threads
-     (`sample`, with `ps -M` for each thread's state and CPU time) at 6,
-     12, 20, 30, 45, 70, 100, 150, 220, 320 and 450 s, and at 45 and 220 s
-     a spindump and the simulator's SpringBoard and backboardd too; after
-     the tests it keeps the simulator's log for the app, the Mac's GPU
+     and ipad parts, and design-preview.yml's new input `repeat` (each test
+     up to that many times, stopping at its first failure). Its first form
+     (2428ffd) sampled the app (`sample`, spindump) and so held it still
+     (below). It now only looks: every 2 s each app thread's state and CPU
+     time (threads.txt: U is stuck in the kernel, T held) and any process
+     that samples or reports on others (others.txt); every 10 s the Mac's
+     memory, swap, load, busiest processes and SimMetalHost's threads
+     (host.txt); when each app process came and went (launches.txt); after
+     the tests the simulator's log for the app (sim-log.txt), the Mac's GPU
      lines and any crash or hang reports. They go up as the artifacts
      hang-iphone-graph and hang-ipad (kept 7 days, never pushed to the
-     public shots branch). design-preview.yml's new input `repeat` runs
-     each test up to that many times, stopping at its first failure.
-   - [ ] One run of the three tests that froze, three times each:
+     public shots branch).
+   - [x] One run of the three tests that froze, three times each (run
+     37846299540, 2428ffd; shots 48787e9). Red only on the sampler: the
+     iPad's testNeuronsLegend #1 (69 s) and the iPhone's #3 (98.9 s)
+     "Failed to terminate", each while `sample` held the app (iPad pid
+     27799: SIGTERM at 21:41:26.674, its sample ran 21:39:59 to about
+     21:41:28; iPhone pid 28174: SIGTERM at 21:45:26.777, its sample ran
+     21:41:36 to 21:45:27). The rest passed: on the iPad AtRest 68.5,
+     32.9 and 53.3 s, FlyIn 34.0, 32.4 and 33.5 s.
+   - [x] Read it. No freeze of the app's own was caught, and XCTest
+     attached no diagnostics (shots-ipad holds only the pictures,
+     logs/ipad.log and a recording). An app without a SIGTERM handler
+     outlives SIGTERM only while it is held (T) or in an uninterruptible
+     kernel wait (U), never in a deadlock of its own. Left to suspect:
+     memory (a 7 GB, 3-core runner; the iPad at High quality, msaa 4, HDR,
+     bloom, DOF, about 2064×2752; 576 shaders recompiled each launch on the
+     iPad and 405 on the iPhone; SimMetalHost's command queues reached 60
+     and 30 deep), the probes' offscreen SCNRenderers (NeuronProbe,
+     GraphShaderProbe, GraphStyleProbe) and their `static let` runs
+     (dispatch_once), SceneKit's lock held through shader compiles,
+     NebulaBaker's waitUntilCompleted, and GraphFrameFence's per-frame
+     marker buffer (makeCommandBuffer blocks with 64 in flight).
+   - [x] GraphHangReporter (the design preview only, `-graphPreview`): the
+     app watches its own main thread (through a run-loop observer, so the
+     tests' wait for an idle app is untouched) and the map's render thread
+     (each frame). When either has been still for 3 s it logs (category
+     "hang") each one's state and stack, named, again every 15 s while it
+     lasts (at most 12 times), with every other thread the 1st and 4th
+     time; while all is well, a line every 30 s with frames drawn, main's
+     longest step, memory and paging. Swift names come mangled: demangle
+     them with `/opt/swift/usr/bin/swift-demangle`.
+   - [ ] The same three tests three times each again:
      `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only='testNeuronsAtRest|testNeuronsFlyIn|testNeuronsLegend' -f repeat=3`
      Then fetch the artifacts into a new empty directory:
      `gh api repos/noneed2name444/red-pen-ios/actions/runs/<run>/artifacts`
      for the ids, `gh api repos/noneed2name444/red-pen-ios/actions/artifacts/<id>/zip > hang.zip`.
-   - [ ] Read them: a frozen app shows the same stack on its main thread
-     sample after sample (launches.txt says which process ran how long).
-     Its CPU time in ps.txt tells a spin (rising) from a wait (flat); a
-     wait in Metal or the render server points at the GPU or backboardd
-     (their samples and host-gpu.txt beside it).
+   - [ ] Read them: `grep 'com.cramdown.app:hang'` in sim-log.txt for the
+     app's own reports (the "alive" lines and, in a freeze, the stuck
+     threads' stacks); threads.txt for U or T rows; host.txt for swap and
+     memory pressure at the time; others.txt for anything that sampled the
+     app; launches.txt for which process ran how long.
    - [ ] Fix it, run preflight, push to wip and design/ (compile check),
      then one confirming preview run, and go on to step 7.
 8. [x] #33, the neumorphic app, is not this session's: another session is

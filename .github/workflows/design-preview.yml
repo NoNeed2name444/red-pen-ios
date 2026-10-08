@@ -17,8 +17,10 @@
 # recorded; the tour on the iPhone; both on the iPad. A last job gathers
 # their pictures and pushes them. The run is red when a build fails (its
 # errors in the run's summary) or when a test fails (the pictures are still
-# pushed). The 3D map parts also keep the app's sampled threads and its log
-# (tools/hang_watch.sh) in a hang-<part> artifact, for when it freezes.
+# pushed). The 3D map parts also keep, in a hang-<part> artifact for when
+# it freezes, the app's log (with its own report of where it was stuck,
+# GraphHangReporter) and a watch of its threads and the Mac's memory
+# (tools/hang_watch.sh).
 name: Design preview
 on:
   push:
@@ -184,7 +186,8 @@ jobs:
             --batteryState charged --wifiBars 3 || true
           # now and then the app has frozen in a 3D map test (the screen stops
           # changing, a query times out, the app cannot be ended): while the
-          # map's tests run, its threads are sampled (tools/hang_watch.sh)
+          # map's tests run, the state of its threads and the Mac's memory are
+          # noted, without touching the app (tools/hang_watch.sh)
           case "$PART" in
             iphone-graph|ipad) bash ../tools/hang_watch.sh watch "$UDID" "$RUNNER_TEMP/hang" > /dev/null 2>&1 & ;;
           esac
@@ -292,8 +295,8 @@ jobs:
           path: out
           retention-days: 7
           if-no-files-found: warn
-      # the app's sampled threads and log (tools/hang_watch.sh), apart from
-      # the pictures, which are pushed for anyone to see
+      # the app's log and the watch of its threads (tools/hang_watch.sh),
+      # apart from the pictures, which are pushed for anyone to see
       - uses: actions/upload-artifact@v4
         if: always() && matrix.part != 'iphone-tour'
         with:

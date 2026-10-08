@@ -3,14 +3,19 @@
 # screen stops changing, a query times out, the app cannot be ended), on the
 # Mac that runs the simulator:
 #   tools/hang_watch.sh watch <simulator udid> <dir> > /dev/null 2>&1 &
-#     samples the threads of every app process the tests start, several
-#     times while it lives, with its threads' states and CPU time, and the
-#     simulator's SpringBoard and backboardd beside it once it has run long;
+#     every 2 seconds notes each app thread's state and CPU time
+#     (threads.txt: U is stuck in the kernel, T held) and any process that
+#     samples or reports on others (others.txt); every 10 seconds the Mac's
+#     memory, swap, load and busiest processes, and the threads of the
+#     simulator's GPU host (host.txt); launches.txt has when each app process
+#     came and went;
 #   tools/hang_watch.sh collect <simulator udid> <dir>
-#     stops the watch, then keeps the simulator's log for the app, the Mac's
-#     GPU lines and any crash or hang reports.
-# A frozen app shows the same stack on its main thread sample after sample.
-# The design preview runs both and uploads <dir> (design-preview.yml).
+#     stops the watch, then keeps the simulator's log for the app (with the
+#     app's own report of where it is stuck, GraphHangReporter, category
+#     "hang"), the Mac's GPU lines and any crash or hang reports.
+# It only looks: sampling the app held it still, so the tests could not end
+# it (plan.md step 6d). The design preview runs both and uploads <dir>
+# (design-preview.yml).
 set -u
 mode="${1:-}" udid="${2:-}" dir="${3:-}"
 if [ -z "$mode" ] || [ -z "$udid" ] || [ -z "$dir" ]; then
@@ -19,51 +24,37 @@ if [ -z "$mode" ] || [ -z "$udid" ] || [ -z "$dir" ]; then
 fi
 mkdir -p "$dir"
 
-# a two-second sample of one process's threads; sudo, as the runner may not
-# be let into the process otherwise
-snap() {
-  local pid="$1" name="$2"
-  { echo "== $(date '+%T') $name"; ps -M -p "$pid" 2>&1; } >> "$dir/ps.txt"
-  sudo -n /usr/bin/sample "$pid" 2 -mayDie -file "$dir/$name.txt" > /dev/null 2>&1 ||
-    /usr/bin/sample "$pid" 2 -mayDie -file "$dir/$name.txt" > /dev/null 2>&1 || true
-}
-
-# one app process, from its launch until it ends (or the watch stops)
-follow() {
-  local pid="$1" start=$SECONDS at other name
-  for at in 6 12 20 30 45 70 100 150 220 320 450; do
-    while [ $((SECONDS - start)) -lt "$at" ]; do
-      [ -e "$dir/stop" ] && return
-      if ! kill -0 "$pid" 2> /dev/null; then
-        echo "$(date '+%T') $pid ended after about $((SECONDS - start)) s" >> "$dir/launches.txt"
-        return
-      fi
-      sleep 1
-    done
-    snap "$pid" "app-$pid-$at"
-    case "$at" in
-      45 | 220)
-        # the kernel's view too (what each thread waits on), and the
-        # simulator's own screen and app managers
-        sudo -n /usr/sbin/spindump "$pid" 3 10 -file "$dir/app-$pid-$at-spindump.txt" > /dev/null 2>&1 || true
-        for name in SpringBoard backboardd; do
-          for other in $(pgrep -x "$name"); do snap "$other" "$name-$other-at-$pid-$at"; done
-        done ;;
-    esac
-  done
-}
-
 case "$mode" in
   watch)
-    seen=" "
+    seen=" " alive=" " tick=0
     while [ ! -e "$dir/stop" ]; do
+      now=$(date '+%T') live=" "
       for pid in $(pgrep -f "Devices/$udid/.*/RedPen\.app/RedPen( |$)"); do
-        case "$seen" in *" $pid "*) continue ;; esac
-        seen="$seen$pid "
-        echo "$(date '+%T') $pid started" >> "$dir/launches.txt"
-        follow "$pid" &
+        live="$live$pid "
+        case "$seen" in *" $pid "*) ;; *) seen="$seen$pid "; echo "$now $pid started" >> "$dir/launches.txt" ;; esac
+        { echo "== $now $pid"; ps -M -p "$pid" 2>&1 | cut -c1-100; } >> "$dir/threads.txt"
       done
-      sleep 1
+      for pid in $alive; do
+        case "$live" in *" $pid "*) ;; *) echo "$now $pid gone" >> "$dir/launches.txt" ;; esac
+      done
+      alive="$live"
+      # anything sampling the app or reporting on it (XCTest may, when a
+      # query times out)
+      others=$(ps -A -o pid,ppid,stat,etime,command |
+        grep -E 'spindump|/sample |ReportCrash|tailspin|hangtracer|osanalytics|debugserver|lldb' |
+        grep -v grep | cut -c1-160)
+      [ -n "$others" ] && printf '== %s\n%s\n' "$now" "$others" >> "$dir/others.txt"
+      if [ $((tick % 5)) -eq 0 ]; then
+        { echo "== $now"
+          sysctl -n vm.swapusage vm.loadavg kern.memorystatus_vm_pressure_level
+          vm_stat | awk 'NR > 1 { sub(/^ +/, ""); printf "%s; ", $0 } END { print "" }'
+          ps -A -r -o pid,pcpu,rss,time,stat,comm | head -n 10
+          ps -A -m -o pid,pcpu,rss,time,stat,comm | head -n 8
+          for host in $(pgrep -x SimMetalHost); do ps -M -p "$host" | cut -c1-100; done
+        } >> "$dir/host.txt" 2>&1
+      fi
+      tick=$((tick + 1))
+      sleep 2
     done ;;
   collect)
     touch "$dir/stop"

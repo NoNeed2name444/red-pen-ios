@@ -275,6 +275,9 @@ struct GraphPreviewRoot: View {
     @StateObject private var library: Store = Store(fileURL: FileManager.default.temporaryDirectory
         .appendingPathComponent("redpen-graph-preview-library-\(UUID().uuidString).json"))
 
+    /// The design preview's own freeze watch starts with it.
+    init() { GraphHangReporter.start() }
+
     var body: some View {
         // the bar takes the top of the safe area as the app's navigation bar
         // does, so the map fits under it and the region pill sits below it

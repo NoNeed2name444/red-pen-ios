@@ -1278,6 +1278,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// SceneKit calls this on its render thread once before every frame it
     /// draws.
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        // the design preview's freeze watch: a frame is coming
+        GraphHangReporter.frame()
         lastTime = time
         // the GPU's progress: which link buffers may be written again
         fence.begin(queue: renderer.commandQueue)
