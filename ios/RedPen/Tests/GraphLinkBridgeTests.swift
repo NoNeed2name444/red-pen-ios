@@ -186,5 +186,57 @@ check("B11f a short link: each trim at most 0.45 of it", close.trim <= 0.225 + 1
 let same: GraphLinkBridge.End = bridge.end(centre: pa, radius: 0.36, eye: pa, dir: dir, h: h, length: 3)
 check("B11g the eye at a cell's centre: a view all the same", length(same.view) > 0.999 && same.trim.isFinite)
 
+// B12 - where a link leaves each cell, for the membrane to hide its rim
+// across: the outline's half width at the join over the membrane radius,
+// opening with the strip
+check("B12a a mouth as wide as the outline at the join",
+      abs(bridge.mouthWidth(r: 0.45, h: h) - (h / 0.45 + 0.3)) < 1e-6 && bridge.mouthWidth(r: 0, h: h) == 0,
+      "\(bridge.mouthWidth(r: 0.45, h: h))")
+let shut: (first: Float, second: Float) = GraphLinkBridge.open(grow: 0)
+let leaving: (first: Float, second: Float) = GraphLinkBridge.open(grow: 0.025)
+let left: (first: Float, second: Float) = GraphLinkBridge.open(grow: 0.05)
+let midway: (first: Float, second: Float) = GraphLinkBridge.open(grow: 0.9)
+let grown: (first: Float, second: Float) = GraphLinkBridge.open(grow: 1)
+check("B12b the first mouth opens as the strip leaves its cell, the second as it arrives",
+      shut.first == 0 && shut.second == 0 && leaving.first > 0.2 && leaving.first < 0.8 && left.first == 1
+      && midway.first == 1 && midway.second == 0 && grown.first == 1 && grown.second == 1,
+      "\(shut) \(leaving) \(left) \(midway) \(grown)")
+if let both = bridge.mouths(from: pa, to: pb, ra: 0.36, rb: 0.48, h: h, grow: 1) {
+    check("B12c two mouths facing each other, each its cell's width",
+          length(both.first.dir - dir) < 1e-6 && length(both.second.dir + dir) < 1e-6
+          && abs(both.first.width - (h / 0.45 + 0.3)) < 1e-6 && abs(both.second.width - (h / 0.6 + 0.3)) < 1e-6,
+          "\(both)")
+} else {
+    check("B12c two mouths facing each other, each its cell's width", false, "nil")
+}
+let half = bridge.mouths(from: pa, to: pb, ra: 0.36, rb: 0.48, h: h, grow: 0.5)
+check("B12d half grown: the first mouth open, the second shut",
+      half.map { abs(length($0.first.dir) - 1) < 1e-6 && length($0.second.dir) == 0 } ?? false, "\(String(describing: half))")
+check("B12e two cells in one place: no mouths", bridge.mouths(from: pa, to: pa, ra: 0.36, rb: 0.48, h: h, grow: 1) == nil)
+
+// B13 - a frame's mouths: at most four a cell, the most open as seen first;
+// none for a link pointing at the camera or a mouth still shut
+var table = GraphLinkMouths()
+let front = SIMD3<Float>(0, 0, 40)
+let opens: [Float] = [0.2, 0.9, 0.5, 1.0, 0.7]
+for (i, open) in opens.enumerated() {
+    let side: SIMD3<Float> = i % 2 == 0 ? SIMD3<Float>(1, 0, 0) : SIMD3<Float>(0, 1, 0)
+    table.add(GraphLinkBridge.Mouth(dir: side * open, width: 0.5), cell: 0, centre: pa, eye: front)
+}
+let kept: [Float] = table.mouths(of: 0).map { length($0.dir) }
+check("B13a four a cell, the most open first", kept.count == 4 && zip(kept, [1.0, 0.9, 0.7, 0.5]).allSatisfy { abs($0 - $1) < 1e-6 },
+      "\(kept)")
+table.add(GraphLinkBridge.Mouth(dir: SIMD3<Float>(0, 0, 1), width: 0.5), cell: 1, centre: pa, eye: front)
+table.add(GraphLinkBridge.Mouth(dir: SIMD3<Float>(0, 0, 0), width: 0.5), cell: 2, centre: pa, eye: front)
+check("B13b none pointing at the camera, none shut", table.mouths(of: 1).isEmpty && table.mouths(of: 2).isEmpty)
+let aslant: SIMD3<Float> = SIMD3<Float>(0.4, 0, (1 - 0.16 as Float).squareRoot())
+table.add(GraphLinkBridge.Mouth(dir: aslant, width: 0.5), cell: 3, centre: pa, eye: front)
+table.add(GraphLinkBridge.Mouth(dir: SIMD3<Float>(0.6, 0, 0), width: 0.5), cell: 3, centre: pa, eye: front)
+let ranked: [Float] = table.mouths(of: 3).map { length($0.dir) }
+check("B13c a link half turned to the camera ranks below a wide-open one seen side on",
+      ranked.count == 2 && abs(ranked[0] - 0.6) < 1e-6 && abs(ranked[1] - 1) < 1e-5, "\(ranked)")
+table.removeAll()
+check("B13d a new frame starts empty", table.mouths(of: 0).isEmpty && table.mouths(of: 3).isEmpty)
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED: \(failures.joined(separator: ", "))")
 exit(failures.isEmpty ? 0 : 1)

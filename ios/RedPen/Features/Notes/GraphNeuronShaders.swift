@@ -350,7 +350,11 @@ nonisolated enum NeuronShaders {
     /// when it is big on screen, a wet highlight. The soma's shader keeps
     /// the body's middle (rpMembrane: no rim of its own), so nothing here
     /// draws over the nucleus; each dendrite fades out over its last
-    /// part, running on into the dark.
+    /// part, running on into the dark. Where a link leaves the body (its
+    /// mouths, `rpMouth0`...`rpMouth3`) the soma's rim is hidden, so the
+    /// body's glass runs on into the link's tube and the two cells' surfaces
+    /// read as one ("make the tube connected both ways so the 2 cell
+    /// surfaces connected become continuous").
     static let membrane: String = """
     #pragma arguments
     float rpClock;
@@ -358,6 +362,10 @@ nonisolated enum NeuronShaders {
     float rpProbe;
     float rpDetail;
     float3 rpTintA;
+    float4 rpMouth0;
+    float4 rpMouth1;
+    float4 rpMouth2;
+    float4 rpMouth3;
 
     #pragma body
     float rp_t = rpClock * rpMotion;
@@ -379,7 +387,9 @@ nonisolated enum NeuronShaders {
     float rp_rest = 1.0 - rp_mu;
     float rp_soft = 1.6 * rp_rest * rp_rest * smoothstep(0.0, 0.3, rp_mu);
     float rp_crisp = 2.4 * pow(rp_rest, 7.0) * smoothstep(0.0, 0.12, rp_mu) * (0.6 + 0.4 * rp_lit);
-    float3 rp_col = mix(float3(0.62, 0.82, 1.0), float3(0.66, 0.84, 1.0), rp_w) * mix(rp_soft, rp_crisp, rp_w);
+
+    """ + mouths + """
+    float3 rp_col = mix(float3(0.62, 0.82, 1.0), float3(0.66, 0.84, 1.0), rp_w) * (mix(rp_soft, rp_crisp, rp_w) * (1.0 - rp_open));
     rp_col = rp_col + float3(0.24, 0.2, 0.6) * (0.18 * rp_mu * rp_den);
     float rp_rho = max(length(rp_lp.xy), 0.0001);
     float2 rp_az = rp_lp.xy / rp_rho;
@@ -412,6 +422,53 @@ nonisolated enum NeuronShaders {
     rp_col = rp_col * (1.0 - smoothstep(0.6, 1.0, rp_s));
 
     """ + GraphStyleShaders.glowEnd
+
+    /// How much of the soma's rim is hidden here (`rp_open`, 0 to 1)
+    /// because a link leaves the body across it. Each mouth
+    /// (GraphLinkBridge.Mouth) is the link's direction from the cell's
+    /// centre in the cell's own frame, as long as the mouth is open, and
+    /// its half width over the membrane radius, the outline's at the join;
+    /// seen square to the view towards the centre, as the strip's flare is
+    /// worked out, it is a band that wide running out along the link from
+    /// just inside the join, across the rim and past it. It eases out as
+    /// the flare does when the link turns towards the camera (from a sine
+    /// of 0.5 to 0.3), and only the soma's rim goes: a dendrite crossing it
+    /// keeps its own. A mouth with no width is skipped.
+    private static let mouths: String = """
+    float3 rp_cv = rp_c / max(length(rp_c), 0.00001);
+    float3 rp_rs = rp_rel - rp_cv * dot(rp_rel, rp_cv);
+    float rp_open = 0.0;
+    float3 rp_md = float3(0.0, 0.0, 0.0);
+    float3 rp_mp = float3(0.0, 0.0, 0.0);
+    float3 rp_mdu = float3(0.0, 0.0, 0.0);
+    float rp_mst = 0.0;
+    float rp_mx = 0.0;
+    float rp_my = 0.0;
+    float rp_mw = 0.0;
+    float rp_mj = 0.0;
+
+    """ + (0..<4).map(mouth).joined() + """
+    rp_open = rp_open * rp_w;
+
+    """
+
+    /// One of the membrane's mouths, `rpMouth<k>` (see `mouths`).
+    private static func mouth(_ k: Int) -> String {
+        """
+        if (rpMouth\(k).w > 0.0) {
+        rp_md = (rp_mv * float4(rpMouth\(k).xyz, 0.0)).xyz / rp_R;
+        rp_mst = length(rp_md);
+        rp_mp = rp_md - rp_cv * dot(rp_md, rp_cv);
+        rp_mdu = rp_mp / max(length(rp_mp), 0.00001);
+        rp_mx = dot(rp_rs, rp_mdu) / rp_R;
+        rp_my = length(rp_rs / rp_R - rp_mdu * rp_mx);
+        rp_mw = max(rpMouth\(k).w, 0.01);
+        rp_mj = sqrt(max(1.0 - rp_mw * rp_mw, 0.0));
+        rp_open = max(rp_open, (1.0 - smoothstep(0.82 * rp_mw, rp_mw, rp_my)) * smoothstep(rp_mj - 0.3, rp_mj - 0.08, rp_mx) * (1.0 - smoothstep(1.15, 1.35, rp_mx)) * smoothstep(0.3, 0.5, length(rp_mp) / max(rp_mst, 0.00001)) * min(rp_mst, 1.0));
+        }
+
+        """
+    }
 
     /// The membrane moving in the fluid, eased by how much of it is soma
     /// (texture v): where it is soma it breathes as the soma's wobble does

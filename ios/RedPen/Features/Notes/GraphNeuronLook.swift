@@ -197,6 +197,10 @@ final class GraphNeuronLook: GraphThemeLook {
     private var slotOf: [Int: Int] = [:]
     /// The bodies something floats in (some body's parent), by index.
     private var holding: Set<Int> = []
+    /// Each cell drawn as one membrane with its own material, by body
+    /// index, and the turn that takes the sim's directions into the
+    /// membrane's own frame (NeuronMouths opens its rim where links leave).
+    private var mouthCells: [Int: NeuronMouthCell] = [:]
     private var slotsFor: Int = -1
     /// The containers that were open in the last build, so a rebuild knows
     /// which are opening and which closing.
@@ -326,8 +330,16 @@ final class GraphNeuronLook: GraphThemeLook {
             if whole(kind) {
                 // the soma and its dendrites one membrane, a child of the
                 // soma (so it breathes, swells and moves with it), the soma
-                // turned as the crown is
-                let skin = SCNNode(geometry: membraneGeometry(variant: variant, slot: dyeSlot, idea: idea))
+                // turned as the crown is; with its own material when links
+                // are dendrites, so its rim opens where they leave it
+                let skin: SCNNode
+                if bridge != nil {
+                    let material: SCNMaterial = newMembrane(slot: dyeSlot, idea: idea)
+                    skin = SCNNode(geometry: ownMembrane(variant: variant, material: material))
+                    mouthCells[index] = NeuronMouthCell(material: material, unturn: turn.inverse)
+                } else {
+                    skin = SCNNode(geometry: membraneGeometry(variant: variant, slot: dyeSlot, idea: idea))
+                }
                 skin.renderingOrder = 6
                 skin.categoryBitMask = 2
                 soma.simdOrientation = turn
@@ -622,29 +634,36 @@ final class GraphNeuronLook: GraphThemeLook {
     /// (about a fifth of a second each in an unoptimised build).
     private static var membraneShapes: [String: SCNGeometry] = [:]
 
+    private func membraneShape(variant: Int) -> SCNGeometry {
+        let rich: Bool = budget.tier == .high
+        let shapeKey: String = "\(variant)-\(rich ? 1 : 0)"
+        if let made = Self.membraneShapes[shapeKey] { return made }
+        let made = NeuronMembrane.make(NeuronArbor.branches(.cell, variant: variant, rich: rich))
+        let points: [SCNVector3] = made.points.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
+        let normals: [SCNVector3] = made.normals.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
+        let coords: [CGPoint] = made.coords.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
+        let sources: [SCNGeometrySource] = [SCNGeometrySource(vertices: points),
+                                            SCNGeometrySource(normals: normals),
+                                            SCNGeometrySource(textureCoordinates: coords)]
+        let shape = SCNGeometry(sources: sources,
+                                elements: [SCNGeometryElement(indices: made.indices, primitiveType: .triangles)])
+        Self.membraneShapes[shapeKey] = shape
+        return shape
+    }
+
     private func membraneGeometry(variant: Int, slot: Int, idea: Bool) -> SCNGeometry {
         let key: String = "mm\(variant)-\(slot)-\(idea ? 1 : 0)"
         if let made = arborLooks[key] { return made }
-        let rich: Bool = budget.tier == .high
-        let shapeKey: String = "\(variant)-\(rich ? 1 : 0)"
-        let shape: SCNGeometry
-        if let made = Self.membraneShapes[shapeKey] {
-            shape = made
-        } else {
-            let made = NeuronMembrane.make(NeuronArbor.branches(.cell, variant: variant, rich: rich))
-            let points: [SCNVector3] = made.points.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
-            let normals: [SCNVector3] = made.normals.map { SCNVector3(x: $0.x, y: $0.y, z: $0.z) }
-            let coords: [CGPoint] = made.coords.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
-            let sources: [SCNGeometrySource] = [SCNGeometrySource(vertices: points),
-                                                SCNGeometrySource(normals: normals),
-                                                SCNGeometrySource(textureCoordinates: coords)]
-            shape = SCNGeometry(sources: sources,
-                                elements: [SCNGeometryElement(indices: made.indices, primitiveType: .triangles)])
-            Self.membraneShapes[shapeKey] = shape
-        }
-        let geometry: SCNGeometry = shape.copy() as? SCNGeometry ?? shape
-        geometry.materials = [makeMembrane(slot: slot, idea: idea)]
+        let geometry: SCNGeometry = ownMembrane(variant: variant, material: makeMembrane(slot: slot, idea: idea))
         arborLooks[key] = geometry
+        return geometry
+    }
+
+    /// A copy of a variant's membrane mesh dressed in `material`.
+    private func ownMembrane(variant: Int, material: SCNMaterial) -> SCNGeometry {
+        let shape: SCNGeometry = membraneShape(variant: variant)
+        let geometry: SCNGeometry = shape.copy() as? SCNGeometry ?? shape
+        geometry.materials = [material]
         return geometry
     }
 
@@ -652,10 +671,18 @@ final class GraphNeuronLook: GraphThemeLook {
     /// dendrites' golden light and particles growing in where they leave
     /// the body (NeuronShaders.membrane); breathing with the soma and
     /// swaying out along the dendrites (membraneSway, with the soma's
-    /// wobble, so the two move as one).
+    /// wobble, so the two move as one). One a dye, shared by the cells
+    /// that wear it.
     private func makeMembrane(slot: Int, idea: Bool) -> SCNMaterial {
         let key: String = "mm\(slot)-\(idea ? 1 : 0)"
         if let made = somaLooks[key] { return made }
+        let material: SCNMaterial = newMembrane(slot: slot, idea: idea)
+        somaLooks[key] = material
+        return material
+    }
+
+    /// A new membrane material, its mouths all closed.
+    private func newMembrane(slot: Int, idea: Bool) -> SCNMaterial {
         let membrane: SIMD3<Float> = Self.membrane(slot: slot, idea: idea)
         let golden: SIMD3<Float> = SIMD3<Float>(1.0, 0.74, 0.36) * 0.88 + membrane * 0.12
         let material: SCNMaterial = Self.additive()
@@ -666,9 +693,11 @@ final class GraphNeuronLook: GraphThemeLook {
         Self.set(material, "rpSway", 0)
         Self.set(material, "rpWobble", lively ? NeuronCellKind.cell.wobble : 0)
         Self.tint(material, "rpTintA", golden * 0.95)
+        for key in NeuronMouths.keys {
+            material.setValue(NSValue(scnVector4: SCNVector4(x: 0, y: 0, z: 0, w: 0)), forKey: key)
+        }
         swaying.append(material)
         clocked.append(material)
-        somaLooks[key] = material
         return material
     }
 
@@ -812,6 +841,13 @@ final class GraphNeuronLook: GraphThemeLook {
                               rate: fires ? (high ? 0.55 : 0.3) : 0, bursts: high ? 0.18 : 0)
     }
 
+    /// The cells' mouths, when links are dendrites (held still too: the
+    /// links are written whenever the camera turns).
+    func mouths(parts: [GraphThemeParts], plan: ThemePlan) -> GraphLinkMouthKeeper? {
+        guard let bridge, !mouthCells.isEmpty else { return nil }
+        return NeuronMouths(cells: mouthCells, bridge: bridge, nearHalf: linkHalfWidth, farHalf: farHalfWidth)
+    }
+
     // MARK: the tissue
 
     func makeSky() -> SCNNode {
@@ -894,6 +930,86 @@ nonisolated final class NeuronImpulses: GraphThemeTicker {
             if NeuronImpulse.lands(seed: seed, from: last, to: time, rate: rate, bursts: bursts) {
                 level[link.b] = 1
             }
+        }
+    }
+}
+
+// MARK: - Where the links leave the cells
+
+/// A cell drawn as one membrane with its own material, and the turn taking
+/// the sim's directions into the membrane's frame (the soma's turn undone:
+/// the body itself is never turned).
+nonisolated struct NeuronMouthCell {
+    let material: SCNMaterial
+    let unturn: simd_quatf
+}
+
+/// Opens each cell's rim where its links leave it: each time GraphSim
+/// writes the links, every link's two mouths (GraphLinkBridge.mouths, as
+/// wide and as open as its strip is drawn) go to the cells at its ends, and
+/// each cell's most open (GraphLinkMouths) to its membrane's rpMouth0...3,
+/// in the membrane's own frame (NeuronShaders.membrane). A value is only
+/// written when it moved. Render thread only.
+nonisolated final class NeuronMouths: GraphLinkMouthKeeper {
+    static let keys: [String] = (0..<GraphLinkBridge.mouthCount).map { "rpMouth\($0)" }
+    private let cells: [Int: NeuronMouthCell]
+    private let bridge: GraphLinkBridge
+    private let nearHalf: Float
+    private let farHalf: Float
+    private var table = GraphLinkMouths()
+    private var shown: [Int: [SIMD4<Float>]] = [:]
+
+    init(cells: [Int: NeuronMouthCell], bridge: GraphLinkBridge, nearHalf: Float, farHalf: Float) {
+        self.cells = cells
+        self.bridge = bridge
+        self.nearHalf = nearHalf
+        self.farHalf = farHalf
+    }
+
+    func place(links: [GraphRibbonLink], far: [GraphRibbonLink], position: [SIMD3<Float>], radius: [Float],
+               eye: SIMD3<Float>) {
+        table.removeAll()
+        add(links, half: nearHalf, position: position, radius: radius, eye: eye)
+        add(far, half: farHalf, position: position, radius: radius, eye: eye)
+        let closed = SIMD4<Float>(0, 0, 0, 0)
+        for (index, cell) in cells {
+            let mouths: [GraphLinkBridge.Mouth] = table.mouths(of: index)
+            var was: [SIMD4<Float>] = shown[index] ?? [SIMD4<Float>](repeating: closed, count: Self.keys.count)
+            for k in Self.keys.indices {
+                var want: SIMD4<Float> = closed
+                if k < mouths.count {
+                    let dir: SIMD3<Float> = cell.unturn.act(mouths[k].dir)
+                    want = SIMD4<Float>(dir.x, dir.y, dir.z, mouths[k].width)
+                }
+                let change: SIMD4<Float> = want - was[k]
+                guard (change * change).sum() > 0.000_004 else { continue }
+                was[k] = want
+                cell.material.setValue(NSValue(scnVector4: SCNVector4(x: want.x, y: want.y, z: want.z, w: want.w)),
+                                       forKey: Self.keys[k])
+            }
+            shown[index] = was
+        }
+    }
+
+    /// Each link's mouths at the cells at its ends that have a membrane of
+    /// their own, its tube as wide as its strip (half width `half` before
+    /// the width step of its smaller cell, as GraphRibbonWriter draws it).
+    private func add(_ list: [GraphRibbonLink], half: Float, position: [SIMD3<Float>], radius: [Float],
+                     eye: SIMD3<Float>) {
+        let count: Int = min(position.count, radius.count)
+        for link in list {
+            let a: Int = link.a
+            let b: Int = link.b
+            guard a >= 0, b >= 0, a < count, b < count else { continue }
+            let first: Bool = cells[a] != nil
+            let second: Bool = cells[b] != nil
+            guard first || second else { continue }
+            let step: Int = GraphRibbonWriter.widthStep(radius: min(radius[a], radius[b]))
+            let h: Float = half * GraphRibbonWriter.stepWidth(step)
+            guard let pair = bridge.mouths(from: position[a], to: position[b], ra: radius[a], rb: radius[b], h: h,
+                                           grow: link.grow) else { continue }
+            if first { table.add(pair.first, cell: a, centre: position[a], eye: eye) }
+            if second { table.add(pair.second, cell: b, centre: position[b], eye: eye) }
         }
     }
 }

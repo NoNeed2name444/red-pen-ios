@@ -130,6 +130,10 @@ struct GraphUniverseLooks {
     /// A theme's work each frame after the links are written (the Neurons'
     /// impulses lighting the cells they reach). Render thread.
     var ticker: GraphThemeTicker? = nil
+    /// Where a theme's links leave their cells, told each time the links
+    /// are written (the Neurons' membranes open their rims there). Render
+    /// thread.
+    var mouths: GraphLinkMouthKeeper? = nil
 }
 
 /// What a theme runs once a frame on the render thread, after the links
@@ -137,6 +141,15 @@ struct GraphUniverseLooks {
 /// and the links drawn this frame (near, and in the far geometry).
 nonisolated protocol GraphThemeTicker: AnyObject {
     func tick(time: Float, step: Float, links: [GraphRibbonLink], far: [GraphRibbonLink])
+}
+
+/// What a theme is told on the render thread each time the links are
+/// written, moving or at rest (the camera turning rewrites them too): the
+/// links drawn (near, and in the far geometry), every body's position and
+/// link trim radius, and the eye, all in the sim's space.
+nonisolated protocol GraphLinkMouthKeeper: AnyObject {
+    func place(links: [GraphRibbonLink], far: [GraphRibbonLink], position: [SIMD3<Float>], radius: [Float],
+               eye: SIMD3<Float>)
 }
 
 /// The pieces of the look GraphSim drives that are shared by every note.
@@ -345,6 +358,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var farLinks: [GraphRibbonLink] = []
     /// A theme's own work each frame (GraphUniverseLooks.ticker).
     private let ticker: GraphThemeTicker?
+    /// Where the theme's links leave their cells (GraphUniverseLooks.mouths).
+    private let mouths: GraphLinkMouthKeeper?
     /// Each body's orbit offset now, worked out once a frame, and how far it
     /// moved in the last step (carried to its children).
     private var offsets: [SIMD3<Float>]
@@ -594,6 +609,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                                        seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
                                        bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? [])
         ticker = universeLooks?.ticker
+        mouths = universeLooks?.mouths
         deathKinds = infos.map(\.deathKind)
         counts = infos.map(\.count)
         dying = looks.dying
@@ -1606,11 +1622,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                                                    codes: codes, axis: axes, focus: focus, eye: eye,
                                                    device: device)
         if lines.geometry !== geometry { lines.geometry = geometry }
-        guard let farLines, farMaterial != nil else { return }
+        guard let farLines, farMaterial != nil else {
+            mouths?.place(links: ribbonLinks, far: [], position: position, radius: linkRadius, eye: eye)
+            return
+        }
         let far: SCNGeometry? = farRibbons.write(links: farLinks, position: position, radius: linkRadius,
                                                  codes: codes, axis: axes, focus: focus, eye: eye,
                                                  device: device)
         if farLines.geometry !== far { farLines.geometry = far }
+        mouths?.place(links: ribbonLinks, far: farLinks, position: position, radius: linkRadius, eye: eye)
     }
 
     /// Adds one link, from its sending end; in the Universe a link between

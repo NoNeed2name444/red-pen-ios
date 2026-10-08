@@ -155,3 +155,94 @@ nonisolated struct GraphLinkBridge: Sendable, Equatable {
         return h + max(wa * a.gate, wb * b.gate)
     }
 }
+
+// MARK: - Where a link leaves a cell
+
+extension GraphLinkBridge {
+    /// Where a link leaves a cell's body, for the cell's membrane shader
+    /// (NeuronShaders.membrane), which hides its rim across it, so the
+    /// cell's glass runs on into the tube's instead of an edge closing the
+    /// tube off: the unit direction along the link from the cell's centre,
+    /// times how open the mouth is (0 to 1), and the mouth's half width over
+    /// the membrane radius - the outline's at the join, (h + blend r) / r.
+    struct Mouth: Sendable, Equatable {
+        var dir: SIMD3<Float>
+        var width: Float
+    }
+
+    /// How many mouths a cell's membrane takes (rpMouth0...3).
+    static let mouthCount: Int = 4
+
+    /// A mouth's half width over membrane radius `r`, for a tube of half
+    /// width `h`.
+    func mouthWidth(r: Float, h: Float) -> Float {
+        r > 0.0001 ? h / r + blend : 0
+    }
+
+    /// How open a link's two mouths are as it grows (`grow`, 0 to 1): its
+    /// first cell's over the first 5 percent, as the strip leaves it; its
+    /// second's over the last 3, as the strip reaches it.
+    static func open(grow: Float) -> (first: Float, second: Float) {
+        (ease(grow / 0.05), ease((grow - 0.97) / 0.03))
+    }
+
+    private static func ease(_ x: Float) -> Float {
+        let t: Float = min(max(x, 0), 1)
+        return t * t * (3 - 2 * t)
+    }
+
+    /// The mouths of a link from the cell at `pa` (its trim radius `ra`, as
+    /// GraphSim gives it) to the one at `pb` (`rb`), drawn with tube half
+    /// width `h` and grown `grow`; nil for two cells in one place (their
+    /// link has no direction).
+    func mouths(from pa: SIMD3<Float>, to pb: SIMD3<Float>, ra: Float, rb: Float, h: Float,
+                grow: Float) -> (first: Mouth, second: Mouth)? {
+        let delta: SIMD3<Float> = pb - pa
+        let length: Float = (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z).squareRoot()
+        guard length > 0.0001 else { return nil }
+        let dir: SIMD3<Float> = delta / length
+        let open: (first: Float, second: Float) = Self.open(grow: grow)
+        return (Mouth(dir: dir * open.first, width: mouthWidth(r: ra * membrane, h: h)),
+                Mouth(dir: -dir * open.second, width: mouthWidth(r: rb * membrane, h: h)))
+    }
+}
+
+/// Every cell's mouths for one frame, the most open as seen first: how open
+/// each is times how much of its flare is drawn from where the eye is
+/// (GraphLinkBridge.gate, which the membrane shader eases its mouth by
+/// too). A cell keeps at most GraphLinkBridge.mouthCount; past that, and for a
+/// mouth closed or pointing at the camera, its rim stays.
+nonisolated struct GraphLinkMouths: Sendable {
+    private var kept: [Int: [(mouth: GraphLinkBridge.Mouth, rank: Float)]] = [:]
+
+    /// Forgets the last frame's.
+    mutating func removeAll() {
+        kept.removeAll(keepingCapacity: true)
+    }
+
+    /// Adds `mouth` to the cell `cell`, centred at `centre`, as seen from
+    /// `eye`.
+    mutating func add(_ mouth: GraphLinkBridge.Mouth, cell: Int, centre: SIMD3<Float>, eye: SIMD3<Float>) {
+        let d: SIMD3<Float> = mouth.dir
+        let open: Float = (d.x * d.x + d.y * d.y + d.z * d.z).squareRoot()
+        guard open > 0.001 else { return }
+        let toward: SIMD3<Float> = eye - centre
+        let far: Float = (toward.x * toward.x + toward.y * toward.y + toward.z * toward.z).squareRoot()
+        let view: SIMD3<Float> = far > 0.000001 ? toward / far : SIMD3<Float>(0, 0, 1)
+        let rank: Float = open * GraphLinkBridge.gate(sine: GraphLinkBridge.sine(d / open, view))
+        guard rank > 0.001 else { return }
+        var list = kept[cell] ?? []
+        if list.count >= GraphLinkBridge.mouthCount {
+            guard let last = list.last, rank > last.rank else { return }
+            list.removeLast()
+        }
+        let at: Int = list.firstIndex { $0.rank < rank } ?? list.count
+        list.insert((mouth: mouth, rank: rank), at: at)
+        kept[cell] = list
+    }
+
+    /// The cell's mouths, the most open first.
+    func mouths(of cell: Int) -> [GraphLinkBridge.Mouth] {
+        kept[cell]?.map(\.mouth) ?? []
+    }
+}

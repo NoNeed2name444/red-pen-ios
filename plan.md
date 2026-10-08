@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Neurons: one membrane per cell, links as dendrites joining two cells" | M3 in progress; the Linux suites pass (preflight, 10:01 PM); this commit (#14 and #15, section 3 step 6c) is round C: its App build on design/ and its shots (preview, only=testNeurons) |
+| wip/3d-neurons-m3 | "Neurons: open each cell's rim where a link's tube joins it" | M3 in progress; the Linux suites pass (preflight, 10:51 PM); this commit is #17 (section 3, step 6c); round C (3a21e75, #14 and #15) was built and shot |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene) |
-| preview/3d-overhaul | the same as wip (round C shots) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| preview/3d-overhaul | 3a21e75 (round C shots, run 37829333699) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -129,9 +129,12 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   `python3 tools/ci_status.py wip/3d-neurons-m3 --wait`.
   SceneKit files can't be type-checked on Linux, so this is the only compile
   check for GraphNeuronLook, GraphThemeScene, Graph3DView and GraphSim.
-- Promised: round C's screenshots (#14, #15) on 2026-10-08, as soon as
-  its preview run finishes (dispatched by about 10:15 PM Cairo; the run
-  takes about 26 minutes).
+- Round C (3a21e75): App build 37829324782 and preview run 37829333699,
+  both green; the shots were sent (8 Oct, about 10:40 PM). Two things
+  still showed: the soma's crisp rim across each tube's mouth (#17, done
+  in this commit) and, once a cell is opened, links from its parts and
+  notes crossing its membrane to reach other cells (graph-14, 15, 20: #18,
+  next).
 
 ## 3. Next steps
 
@@ -206,13 +209,22 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      cell as before. Straight, because an arch would tilt the tube at the
      join. Falls back to the axon and arbor, then the plain link, if a
      shader fails on the device. The suite "bridge" checks the outline.
-   - [ ] Round C: the App build on design/ (the compile check for the
-     Mac-only edits) and the shots (preview, only=testNeurons); send them.
-   - [ ] Next: hide the soma's rim across each tube's mouth. The membrane
-     is one material for all cells, so its crisp edge still shows where a
-     link leaves the body. Give each cell its own copy of the membrane
-     material with its links' mouths (direction, half width + blend), and
-     fade the rim where a mouth meets it (|y| < h + k past the join).
+   - [x] Round C: the App build on design/ (37829324782) and the shots
+     (preview run 37829333699, only=testNeurons), green and sent.
+   - [x] #17, the soma's rim hidden across each tube's mouth: a cell that
+     carries links gets its own copy of the membrane material with up to
+     four mouths (rpMouth0 to 3: the direction in the cell's own frame and
+     the half width h/r plus the blend), and the rim fades where a mouth
+     meets it. GraphLinkMouths picks a cell's widest four; GraphSim calls
+     the look's GraphLinkMouthKeeper (NeuronMouths) each frame, which
+     writes only values that moved. The suite "bridge" checks the mouths
+     (B12, B13).
+   - [ ] #18, a link that leaves an opened cell starts on the cell, so
+     its tube joins the cell's membrane instead of crossing it to a part
+     or note inside (GraphNeurons.processes: across cells each end is the
+     cell holding it, or the free note itself; inside one cell the deepest
+     shown bodies, as before). Then the tests (NeuronHierarchyTests T2),
+     preflight, and round D: the App build and one preview run.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.

@@ -75,6 +75,10 @@ protocol GraphThemeLook: AnyObject {
     func tone(region: Int, plan: ThemePlan) -> UIColor?
     /// What runs each frame on the render thread, made once every body is.
     func ticker(parts: [GraphThemeParts], plan: ThemePlan) -> GraphThemeTicker?
+    /// What is told where the links leave their cells each time they are
+    /// written (the Neurons' membranes open there), made once every body
+    /// is; nil (the default) elsewhere.
+    func mouths(parts: [GraphThemeParts], plan: ThemePlan) -> GraphLinkMouthKeeper?
     /// How the links end at their targets (the Neurons: a terminal arbor
     /// of branchlets and boutons, GraphLinkArbor) - the links' and the far
     /// links'; nil (the default) trims them at the target's rim.
@@ -95,6 +99,7 @@ extension GraphThemeLook {
     var arbor: GraphLinkArbor? { nil }
     var farArbor: GraphLinkArbor? { nil }
     var bridge: GraphLinkBridge? { nil }
+    func mouths(parts: [GraphThemeParts], plan: ThemePlan) -> GraphLinkMouthKeeper? { nil }
 }
 
 /// Which planner and look each theme has.
@@ -254,6 +259,7 @@ extension GraphSceneBuilder {
         universe.bridge = look.bridge
         universe.trims = [Float](repeating: look.linkTrim, count: GraphNodeStyle.allCases.count)
         universe.ticker = look.ticker(parts: parts, plan: plan)
+        universe.mouths = look.mouths(parts: parts, plan: plan)
         var simLooks = GraphSimLooks(linkMaterial: look.linkMaterial, hotRing: look.hotRing, hotDisk: SCNGeometry(),
                                      clocked: look.clocked, emitters: [], trails: [], sky: sky)
         simLooks.universe = universe
