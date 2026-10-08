@@ -6,80 +6,119 @@ import simd
 // MARK: - The Neurons look
 //
 // How the Neurons theme (GraphNeurons) is dressed, for the shared theme
-// scene (GraphThemeScene): every cell a translucent, glowing gel body -
-// soma (NeuronShaders.soma, its membrane wobbling, a purple and magenta
-// interior), its dendritic arbor of soft tapered tubes (swaying), a halo
-// round it, and a glow its dendrites give off when an impulse arrives - on
-// deep blue fluid with bokeh (out-of-focus lights in the palette's colours)
-// and slow motes drifting through the map, instead of stars.
+// scene (GraphThemeScene), after the owner's board: every cell a
+// translucent, glowing gel soma (NeuronShaders.soma, its membrane wobbling,
+// a purple and magenta interior round a bright nucleus), a crown of soft
+// tapered dendrites growing out of it (swaying), a halo round it, and a
+// glow its dendrites give off when an impulse arrives - on deep blue fluid
+// with bokeh (out-of-focus lights in the palette's colours) and slow motes
+// drifting through the map, instead of stars.
 //
-// Colours are bioluminescence on deep blue (NeuronPalette): each region its
-// own dye (green, cyan, pink, amber, violet), its ideas' cells leaning to
-// the region's accent so a map of two regions shows all four; receptors
-// gold, microglia pale ice; axons pale teal, impulses amber with a magenta
-// halo.
+// What a cell holds is drawn inside it, and only once it is opened: a part
+// (a folder in the cell's folder) a smaller gel sphere floating in its
+// cytoplasm, a page a vesicle, an idea a granule. An opened container
+// clears its middle so what floats there shows: its nucleus settles small
+// at the centre, its speckle and its interior's haze thin (rpOpen, eased
+// over most of a second as it opens or closes).
+//
+// Links are the cells' axons: each grows out of its sender from under the
+// membrane, swells into a hillock and tapers, and ends in one synapse on
+// its target (GraphLinkArbor); its width follows the sender's size and the
+// link's strength (GraphRibbonWriter.widthStep).
+//
+// Colours are bioluminescence on deep blue (NeuronPalette): each cell its
+// own dye (green, cyan, pink, amber, violet), its parts and ideas leaning
+// to the dye's accent; receptors gold, drifting cells pale ice; axons
+// amber, impulses amber with a magenta halo.
 //
 // Each cell shows a state (NeuronState, chosen in the Look menu or by its
 // role): resting, firing, releasing, pacemaker, migrating, engulfing - the
 // space styles' six, each a process of its own in the soma and halo
-// shaders, and in its shape and motion here: a pacemaker's bipolar arbor
-// turning, a migrating cell's leading process and its nucleus stepping
-// forward, an engulfing cell's microglial arbor.
+// shaders, and in its shape and motion here: a free pacemaker's bipolar
+// arbor turning, a migrating cell's leading process, an engulfing cell's
+// fine processes closing and opening.
 //
-// Nothing is made per cell but its nodes: materials are one per (region
-// dye, kind of cell, state), geometry one sphere and a few arbor shapes per
-// kind, shared; every cell is turned at random so no two look alike.
+// Nothing is made per cell but its nodes and a container's own soma
+// material (each opens on its own): other materials are one per (dye, kind
+// of cell, state), geometry one sphere and a few arbor shapes per kind,
+// shared; every cell is turned at random so no two look alike.
 //
 // The Graphics budget (GraphQuality.current) sets the cost: at Smooth the
 // sphere has fewer segments, the arbors fewer sides, samples and side
 // branches, the shaders their simple path (rpDetail 0: no organelles, no
 // spines, no bursts) and fewer impulses fire. Reduce Motion or a still
-// space: no wobble, no sway, no impulses - the picture whole but still.
+// space: no wobble, no sway, no impulses, no easing - the picture whole
+// but still.
 
 /// What kind of cell a body is drawn as (its material and arbor).
 nonisolated enum NeuronCellKind: Int, CaseIterable, Sendable {
-    case hub
-    case pyramidal
-    case interneuron
-    case commissural
-    case glia
+    /// A whole cell (a top-level folder, or the home cell): a soma round a
+    /// nucleus, crowned with dendrites.
+    case cell
+    /// A part of a cell (a folder inside it): a clear sphere inside, with
+    /// no processes of its own.
+    case part
+    /// A page, inside its folder.
+    case vesicle
+    /// An idea, inside its folder.
+    case granule
+    /// A free note with links: one long leading process ending in a fan.
     case receptor
-    case microglia
+    /// A free note with no links: a small cell of many fine processes.
+    case drifter
+    /// A free pacemaker: two long dendrites, opposite.
+    case bipolar
 
     static func of(_ role: NeuronRole) -> NeuronCellKind {
         switch role {
-        case .region, .relay, .brainstem: return .hub
-        case .pyramidal: return .pyramidal
-        case .interneuron: return .interneuron
-        case .commissural: return .commissural
-        case .glia: return .glia
+        case .cell, .home: return .cell
+        case .part: return .part
+        case .vesicle: return .vesicle
+        case .granule: return .granule
         case .receptor: return .receptor
-        case .microglia: return .microglia
+        case .drifter: return .drifter
         }
     }
 
-    /// The nucleus's radius, as a share of the cell's.
+    /// The nucleus's radius, as a share of the body's (0: none - a part
+    /// and a vesicle are clear).
     var nucleus: Float {
         switch self {
-        case .hub: return 0.42
-        case .pyramidal, .commissural: return 0.46
-        case .interneuron: return 0.5
-        case .glia: return 0.32
-        case .receptor: return 0.4
-        case .microglia: return 0.28
+        case .cell, .drifter: return 0.3
+        case .part, .vesicle: return 0
+        case .granule: return 0.5
+        case .receptor, .bipolar: return 0.4
         }
     }
 
     /// How far the membrane wobbles, as a share of the radius.
     var wobble: Float {
         switch self {
-        case .hub: return 0.03
-        case .pyramidal, .commissural, .receptor: return 0.04
-        case .interneuron: return 0.045
-        case .glia: return 0.05
-        case .microglia: return 0.07
+        case .cell: return 0.025
+        case .part: return 0.035
+        case .vesicle, .receptor, .bipolar: return 0.04
+        case .granule: return 0.02
+        case .drifter: return 0.06
         }
     }
+
+    /// How much of the purple and magenta interior shows: a part's and a
+    /// vesicle's thin, so what floats in them, and behind, shows through.
+    var fill: Float {
+        switch self {
+        case .cell, .receptor, .drifter, .bipolar: return 1
+        case .part: return 0.45
+        case .vesicle: return 0.2
+        case .granule: return 0.8
+        }
+    }
+
+    /// Whether it grows processes of its own (what floats inside a cell
+    /// has none).
+    var branches: Bool { self == .cell || self == .receptor || self == .drifter || self == .bipolar }
+
+    /// Whether things float inside it once it is opened.
+    var holds: Bool { self == .cell || self == .part }
 }
 
 @MainActor

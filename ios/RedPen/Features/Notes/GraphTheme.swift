@@ -7,9 +7,10 @@ import Foundation
 //
 //   Space     the Universe (GraphUniverse): black holes, stars, planets,
 //             moons, pulsars and comets; the default
-//   Neurons   a nervous system (GraphNeurons): regions, relays down the
-//             pathway, neurons, glia and receptors, joined by axons that
-//             carry impulses
+//   Neurons   living cells (GraphNeurons): each top-level folder a cell,
+//             its folders the parts inside it, its notes the smallest
+//             things floating in them; processes grow out of the cells
+//             to the cells they link to, carrying impulses
 //   Performance  speed first (GraphPerf*.swift): every note a point and
 //             every link a line, drawn by the GPU in a few instanced draws
 //             so 100,000 notes and their links fit on screen at once; far
@@ -120,8 +121,8 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
             return "Top-level folders are black holes, folders are stars, pages are gas giants "
                 + "and ideas are rocky planets. Bigger holds more."
         case .neurons:
-            return "Top-level folders are brain regions, folders are relays down the pathway, "
-                + "pages are large neurons and ideas small ones. Links are axons carrying impulses."
+            return "Top-level folders are cells, folders are the parts inside them, "
+                + "pages are vesicles and ideas granules. Links grow out of the cells as axons carrying impulses."
         case .performance:
             return "Every note is a point and every link a line, drawn so 100,000 fit at once. "
                 + "Each top-level folder has its own colour; far away a folder\u{2019}s notes merge into one glow."
@@ -137,8 +138,8 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
                     "Tap + \u{203A} New page for a gas giant, New idea for a rocky planet.",
                     "Type [[ and a note\u{2019}s title in a note: a link joins them."]
         case .neurons:
-            return ["Tap + \u{203A} New folder: a new brain region.",
-                    "Tap + \u{203A} New page for a large neuron, New idea for a small one.",
+            return ["Tap + \u{203A} New folder: a new cell.",
+                    "Tap + \u{203A} New page for a vesicle, New idea for a granule.",
                     "Type [[ and a note\u{2019}s title in a note: an axon joins them."]
         case .performance:
             return ["Tap + \u{203A} New folder: a new cluster round its hub.",

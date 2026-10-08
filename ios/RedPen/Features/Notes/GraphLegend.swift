@@ -262,49 +262,49 @@ struct GraphLegendContent {
     private static let receptorTint: Color = Color(red: 1.0, green: 0.82, blue: 0.45)
 
     private static let neuronRungs: [GraphLegendRung] = [
-        GraphLegendRung(caption: "Region", size: 30, fill: tealGel, ring: teal, halo: true),
-        GraphLegendRung(caption: "Relay", size: 24, fill: greenGel, ring: green, halo: true),
-        GraphLegendRung(caption: "Page", size: 18, fill: tealBody, ring: tealRing, halo: true),
-        GraphLegendRung(caption: "Idea", size: 13, fill: tealBody, ring: tealFaint, halo: true),
-        GraphLegendRung(caption: "Glia", size: 8, fill: gliaGel, ring: .clear)
+        GraphLegendRung(caption: "Cell", size: 30, fill: tealGel, ring: teal, halo: true),
+        GraphLegendRung(caption: "Part", size: 22, fill: greenGel, ring: green, halo: true),
+        GraphLegendRung(caption: "Free", size: 15, fill: gliaGel, ring: .clear),
+        GraphLegendRung(caption: "Page", size: 12, fill: tealBody, ring: tealRing, halo: true),
+        GraphLegendRung(caption: "Idea", size: 9, fill: tealBody, ring: tealFaint, halo: true)
     ]
 
     private static let neuronRows: [GraphLegendRow] = [
-        GraphLegendRow(symbol: "brain", name: "Region",
-                       text: "A top-level folder: a brain region, its big pyramidal cell (an upper motor neuron) at the heart of a cluster of its notes. Bigger holds more.",
+        GraphLegendRow(symbol: "circle.hexagongrid.fill", name: "Cell",
+                       text: "A top-level folder: a whole cell, glowing through its membrane round a bright nucleus. Its folders and notes float inside it. Bigger holds more.",
                        tint: teal, how: "Make a folder: + \u{203A} New folder."),
-        GraphLegendRow(symbol: "arrow.triangle.branch", name: "Relay",
-                       text: "A folder inside a folder: the next relay down a descending pathway from the brain, a brainstem nucleus, then a spinal cord neuron, then an autonomic ganglion on the way to its organ. Always a little smaller than the one it hangs from.",
+        GraphLegendRow(symbol: "smallcircle.filled.circle", name: "Cell part",
+                       text: "A folder inside a folder: an organelle inside its cell, and a smaller one inside that for each folder deeper down. Each holds its own notes.",
                        tint: green, how: "A folder inside a folder: its menu in the List \u{203A} New folder inside."),
-        GraphLegendRow(symbol: "circle.hexagongrid.fill", name: "Neuron",
-                       text: "A page: a large neuron. Bigger and more branched is longer.", tint: teal,
-                       how: "Add a page: + \u{203A} New page."),
-        GraphLegendRow(symbol: "smallcircle.filled.circle", name: "Interneuron",
-                       text: "An idea: a small neuron. Brighter means more links.", tint: interTint,
-                       how: "Add an idea: + \u{203A} New idea, or type it in the bar."),
-        GraphLegendRow(symbol: "allergens", name: "Glia",
-                       text: "A short idea linked only to the note it hugs, like an astrocyte tending its neuron.",
-                       tint: gliaTint, how: "A short idea linked to one note."),
-        GraphLegendRow(symbol: "arrow.left.and.right.circle.fill", name: "Commissural neuron",
-                       text: "An idea linking notes in two or more other folders; its fibres cross between them like the corpus callosum's.",
-                       tint: crossTint, how: "Link an idea to notes in two other folders."),
+        GraphLegendRow(symbol: "circle.fill", name: "Vesicle",
+                       text: "A page: a bright-rimmed vesicle floating inside the folder that holds it. Longer pages are bigger.",
+                       tint: teal, how: "Add a page: + \u{203A} New page."),
+        GraphLegendRow(symbol: "aqi.medium", name: "Granule",
+                       text: "An idea: a small bright granule inside the folder that holds it. Brighter means more links.",
+                       tint: interTint, how: "Add an idea: + \u{203A} New idea, or type it in the bar."),
         GraphLegendRow(symbol: "antenna.radiowaves.left.and.right", name: "Receptor",
-                       text: "A note in no folder with links: a sensory cell at the edge, sending impulses in. With no links it drifts as microglia.",
+                       text: "A note in no folder with links: a free cell at the edge, its leading process reaching in to the cells it links to.",
                        tint: receptorTint, how: "A note in no folder (Move \u{203A} No folder)."),
+        GraphLegendRow(symbol: "allergens", name: "Drifting cell",
+                       text: "A note in no folder and no links: a small glial cell drifting at the edge.",
+                       tint: gliaTint, how: "A note in no folder with no links."),
+        GraphLegendRow(symbol: "arrow.up.left.and.arrow.down.right", name: "Opening a cell",
+                       text: "A cell shows its insides only when you open it: its parts and notes grow out from its heart one after another, and fold back in when you leave.",
+                       tint: crossTint, how: "Tap a cell twice to fly in and open it."),
         GraphLegendRow(symbol: "sparkles", name: "Cell states",
-                       text: "Each cell shows a state, as the space\u{2019}s bodies have styles: resting, slowly breathing; firing, a burst of spikes with calcium waves spreading; releasing, a cloud of transmitter drifting out; pacemaker, a steady beat with two lobes sweeping round; migrating, crawling on behind its growth cone; engulfing, drawing debris into a dark phagosome. Left alone, a commissural cell beats, a receptor migrates and microglia engulf.",
-                       tint: stateTint, how: "Look \u{203A} Cells: one state for every note, or Region states for one folder."),
+                       text: "Each note shows a state, as the space\u{2019}s bodies have styles: resting, slowly breathing; firing, a burst of spikes with calcium waves spreading; releasing, a cloud of transmitter drifting out; pacemaker, a steady beat with two lobes sweeping round; migrating, crawling on behind its growth cone; engulfing, drawing debris into a dark phagosome. Left alone, a receptor migrates and a drifting cell engulfs.",
+                       tint: stateTint, how: "Look \u{203A} Cells: one state for every note, or Cell by cell for one folder."),
         GraphLegendRow(symbol: "bolt.horizontal.fill", name: "Axons and synapses",
-                       text: "Links. Impulses run from the sending cell at random times; near its target each axon branches into fine twigs whose swollen tips press on the next cell, and the impulse crosses there. Tracts join regions; each folder's pathway runs down to the folders inside it.",
+                       text: "Links. Each grows out of its cell as part of it, thick where it leaves and tapering to a synapse on the cell it reaches; impulses run along it. Inside an open cell, links between its notes run inside it.",
                        tint: amber, how: "Link two notes: type [[ and a note\u{2019}s title in a note.")
     ]
 
-    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a cell twice to open its note. Tap a region or relay twice to fly in, twice again to open the folder. Drag a region and its whole pathway follows."
+    private static let neuronFooter: String = "Cells drift gently in deep blue fluid. Touch and hold for a name. Tap a note twice to open it. Tap a cell or a part twice to fly in and open it, twice again to open the folder. Drag a cell and everything inside it follows."
 
     /// The Neurons (GraphNeurons): one line per kind of cell.
     static let neurons: GraphLegendContent = GraphLegendContent(
         rungs: neuronRungs, ladderCaption: "Bigger cells hold more.",
-        ladderLabel: "Size ladder: region, relay, page, idea, glia",
+        ladderLabel: "Size ladder: cell, part, free cell, page, idea",
         rows: neuronRows, footer: neuronFooter)
 }
 
@@ -421,7 +421,7 @@ struct GraphEmptyHint: View {
     private var words: String {
         switch theme {
         case .space: return "No galaxies yet: your notes orbit one star. Add a folder to light your first black hole."
-        case .neurons: return "No brain regions yet. Add a folder to grow your first one."
+        case .neurons: return "No cells yet. Add a folder to grow your first one."
         case .performance: return "No folders yet: every note shares one cluster. Add a folder to start a cluster of its own."
         }
     }

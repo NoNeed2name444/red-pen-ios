@@ -39,8 +39,9 @@ import simd
 ///
 /// The map has themes (GraphTheme, chosen at the top of the Look menu):
 /// Space - the Universe and the single looks - Neurons, the same
-/// hierarchy as a nervous system (GraphNeurons: regions, relays down the
-/// pathway, neurons, glia and receptors joined by axons carrying impulses),
+/// hierarchy as living cells (GraphNeurons: each top-level folder a cell,
+/// its folders the parts inside, its notes floating in them, opened as you
+/// fly in, and processes growing out to the cells they link to),
 /// planned the same way and built by the shared theme scene
 /// (GraphThemeScene), so it moves, picks, filters and flies in exactly as
 /// the Universe does. The Graphics setting applies to every theme.

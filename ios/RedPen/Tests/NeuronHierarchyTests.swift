@@ -1,19 +1,22 @@
-// The Neurons theme (GraphNeurons): the ideas' hierarchy as a nervous
-// system, laid out the way a pathway runs from the brain outward.
+// The Neurons theme (GraphNeurons): the ideas' folders as living cells.
 //
-// Top-level folders are brain regions, folders inside them relays down the
-// pathway, pages large neurons, ideas interneurons, short one-link ideas
-// glia hugging their neuron, bridging ideas commissural neurons, loose notes
-// receptors (linked) or microglia (not). None of this needs a screen, so it
-// is all checked here: the roles the design preview must show, the size
-// ladder over hundreds of random vaults, that the same notes always give the
-// same picture, that no two cells ever meet while they drift, that every
-// pathway runs outward, the links' kinds, and the edge cases (cycles, deep
-// nesting, empty folders, no folders at all, many loose notes).
+// A top-level folder is a cell on one sheet, a folder inside it a part
+// inside the cell, a folder inside that a smaller part inside the part,
+// and a note the smallest thing: a page a vesicle, an idea a granule,
+// inside the folder that holds it. Insides show only once a folder is
+// opened; a note in no folder is a free cell at the edge (a receptor when
+// it has links); links are the cells' own processes. None of this needs a
+// screen, so it is all checked here: the preview's roles closed and
+// opened, every note link carried once, the size ladder and nothing
+// meeting while they drift over hundreds of random vaults, that opening
+// never moves anything, that the same notes always give the same picture,
+// the sheet's order, and the edge cases (no folders, a cycle, ten deep,
+// empty folders, many loose notes, 300 notes).
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphNeurons.swift,
-// GraphNeuronImpulses.swift and GraphTheme.swift (Foundation only). The design preview's notes are the
-// same copy CosmicHierarchyTests uses.
+// GraphAnatomy.swift, GraphNeuronImpulses.swift and GraphTheme.swift
+// (Foundation only). The design preview's notes are the same copy
+// CosmicHierarchyTests uses.
 import Foundation
 
 var failures: [String] = []
@@ -311,7 +314,7 @@ func titles(_ plan: ThemePlan, _ role: NeuronRole) -> Set<String> {
 }
 
 func roleOf(_ body: ThemeBody) -> NeuronRole {
-    NeuronRole(rawValue: body.role) ?? .interneuron
+    NeuronRole(rawValue: body.role) ?? .granule
 }
 
 func distance(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float {
@@ -320,319 +323,708 @@ func distance(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float {
     return sum.squareRoot()
 }
 
-func dot3(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float {
-    (a * b).sum()
+func size(_ a: SIMD3<Float>) -> Float {
+    (a * a).sum().squareRoot()
 }
 
-/// Whether one of the pair is a glial cell on the other, or both glia on
-/// the same neuron: those sit inside each other's reach by design.
-func family(_ plan: ThemePlan, _ i: Int, _ j: Int) -> Bool {
-    let a: ThemeBody = plan.bodies[i]
-    let b: ThemeBody = plan.bodies[j]
-    let ga: Bool = roleOf(a) == .glia
-    let gb: Bool = roleOf(b) == .glia
-    if ga && a.parent == j { return true }
-    if gb && b.parent == i { return true }
-    return ga && gb && a.parent == b.parent
+/// The plan with these folders opened.
+func planOpen(_ input: UniverseInput, _ open: [UUID]) -> ThemePlan {
+    var copy: UniverseInput = input
+    copy.open = open
+    return GraphNeurons.plan(copy)
 }
 
-/// Pairs whose solid bodies meet at some time in 0...`upTo` s.
-func overlaps(_ plan: ThemePlan, upTo: Double = 120, step: Double = 3) -> [String] {
-    var bad: [String] = []
-    var t: Double = 0
-    let n: Int = plan.bodies.count
-    while t <= upTo {
-        let at: [SIMD3<Float>] = (0..<n).map { plan.position(of: $0, time: t) }
-        for x in 0..<n {
-            for y in (x + 1)..<n {
-                let limit: Float = plan.bodies[x].sphere + plan.bodies[y].sphere
-                let gap: Float = distance(at[x], at[y])
-                if gap < limit && bad.count < 5 {
-                    bad.append("\(plan.bodies[x].title)/\(plan.bodies[y].title) t=\(t) d=\(gap) < \(limit)")
+/// The plan with every folder opened.
+func allOpen(_ input: UniverseInput) -> ThemePlan {
+    planOpen(input, input.folders.map(\.id))
+}
+
+/// Times to look at drifting things: two minutes, at uneven steps.
+let looks: [Double] = (0..<24).map { Double($0) * 5.3 + 0.17 }
+
+/// Each body's insides, by index.
+func insides(_ plan: ThemePlan) -> [[Int]] {
+    var kids: [[Int]] = [[Int]](repeating: [], count: plan.bodies.count)
+    for (k, body) in plan.bodies.enumerated() where body.parent >= 0 && body.parent < plan.bodies.count {
+        kids[body.parent].append(k)
+    }
+    return kids
+}
+
+/// Whether body `outer` holds body `inner`, however deep.
+func holds(_ plan: ThemePlan, _ outer: Int, _ inner: Int) -> Bool {
+    var at: Int = plan.bodies[inner].parent
+    var steps: Int = 0
+    while at >= 0 && steps <= plan.bodies.count {
+        if at == outer { return true }
+        at = plan.bodies[at].parent
+        steps += 1
+    }
+    return false
+}
+
+/// What breaks the size ladder: a body as big as the room inside what
+/// holds it, a note as big as a part beside it, an idea as big as a page
+/// beside it, a busier cell smaller than a quieter one, a drifting cell as
+/// big as a receptor, or a role that does not fit where it is.
+func ladderProblems(_ plan: ThemePlan) -> [String] {
+    var problems: [String] = []
+    let bodies: [ThemeBody] = plan.bodies
+    for (k, body) in bodies.enumerated() {
+        let role: NeuronRole = roleOf(body)
+        guard body.sphere > 0 && body.sphere.isFinite else {
+            problems.append("\(body.title) has no size")
+            continue
+        }
+        switch body.kind {
+        case .note:
+            if ![NeuronRole.vesicle, .granule, .receptor, .drifter].contains(role) { problems.append("\(body.title) a note as \(role)") }
+        case .folder:
+            if role != .cell && role != .part { problems.append("\(body.title) a folder as \(role)") }
+        case .home:
+            if role != .home || body.id != GraphUniverse.homeID { problems.append("\(body.title) a home as \(role)") }
+        }
+        let free: Bool = role == .cell || role == .home || role.isFree
+        if free != (body.parent < 0) { problems.append("\(body.title) as \(role) with parent \(body.parent)") }
+        guard body.parent >= 0 else { continue }
+        guard body.parent < k else {
+            problems.append("\(body.title) before what holds it")
+            continue
+        }
+        let holder: ThemeBody = bodies[body.parent]
+        if !roleOf(holder).isContainer { problems.append("\(body.title) inside \(holder.title), a \(roleOf(holder))") }
+        if body.sphere >= holder.sphere * Float(GraphNeurons.inner) {
+            problems.append("\(body.title) \(body.sphere) as big as the room in \(holder.title) \(holder.sphere)")
+        }
+        if body.kind != .note && body.depth != holder.depth + 1 { problems.append("\(body.title) at depth \(body.depth)") }
+    }
+    for inside in insides(plan) where !inside.isEmpty {
+        let parts: [Float] = inside.filter { roleOf(bodies[$0]) == .part }.map { bodies[$0].sphere }
+        let notes: [Float] = inside.filter { bodies[$0].kind == .note }.map { bodies[$0].sphere }
+        let pages: [Float] = inside.filter { roleOf(bodies[$0]) == .vesicle }.map { bodies[$0].sphere }
+        let ideas: [Float] = inside.filter { roleOf(bodies[$0]) == .granule }.map { bodies[$0].sphere }
+        if let note = notes.max(), let part = parts.min(), note >= part {
+            problems.append("a note \(note) as big as a part \(part) in \(bodies[bodies[inside[0]].parent].title)")
+        }
+        if let idea = ideas.max(), let page = pages.min(), idea >= page {
+            problems.append("an idea \(idea) as big as a page \(page) in \(bodies[bodies[inside[0]].parent].title)")
+        }
+    }
+    let tops: [ThemeBody] = bodies.filter { $0.parent < 0 && roleOf($0).isContainer }
+    for a in tops {
+        for b in tops where a.count > b.count && a.sphere < b.sphere {
+            problems.append("\(a.title) (\(a.count) notes) smaller than \(b.title) (\(b.count))")
+        }
+    }
+    let receptors: [Float] = bodies.filter { roleOf($0) == .receptor }.map(\.sphere)
+    let drifters: [Float] = bodies.filter { roleOf($0) == .drifter }.map(\.sphere)
+    if let drifter = drifters.max(), let receptor = receptors.min(), drifter >= receptor {
+        problems.append("a drifting cell \(drifter) as big as a receptor \(receptor)")
+    }
+    return problems
+}
+
+/// What floats out through its container's membrane, into a cell's
+/// nucleus or into a sibling at some time. Measured relative to the
+/// container (the drift offsets), so even ten levels deep the floats are
+/// fine.
+func insideProblems(_ plan: ThemePlan) -> [String] {
+    var problems: [String] = []
+    for (p, inside) in insides(plan).enumerated() where !inside.isEmpty {
+        let holder: ThemeBody = plan.bodies[p]
+        let room = Float(GraphNeurons.inner) * holder.sphere
+        let core: Float = holder.depth == 0 ? Float(GraphNeurons.nucleus) * room : 0
+        let radii: [Float] = inside.map { plan.bodies[$0].sphere }
+        for t in looks where problems.count < 4 {
+            let at: [SIMD3<Float>] = inside.map { GraphUniverse.offset(plan.bodies[$0].orbit, time: t) }
+            for n in 0..<inside.count {
+                let name: String = plan.bodies[inside[n]].title
+                let far: Float = size(at[n])
+                if far + radii[n] > room * 1.00001 {
+                    problems.append("\(name) out of \(holder.title) at \(t): \(far + radii[n]) > \(room)")
+                }
+                if core > 0 && far - radii[n] < core * 0.99999 {
+                    problems.append("\(name) in the nucleus of \(holder.title) at \(t)")
+                }
+                for m in (n + 1)..<inside.count where distance(at[n], at[m]) < radii[n] + radii[m] {
+                    problems.append("\(name) meets \(plan.bodies[inside[m]].title) in \(holder.title) at \(t)")
                 }
             }
         }
-        t += step
     }
-    return bad
+    return problems
 }
 
-/// Pairs whose dendrites' reach overlaps at rest (glia and their neuron
-/// excepted).
-func reachOverlaps(_ plan: ThemePlan) -> [String] {
-    var bad: [String] = []
-    let n: Int = plan.bodies.count
-    for x in 0..<n {
-        for y in (x + 1)..<n where !family(plan, x, y) {
-            let a: ThemeBody = plan.bodies[x]
-            let b: ThemeBody = plan.bodies[y]
-            let ra: Float = a.sphere * Float(roleOf(a).reach)
-            let rb: Float = b.sphere * Float(roleOf(b).reach)
-            let gap: Float = distance(a.home, b.home)
-            if gap < ra + rb - 1e-4 && bad.count < 5 {
-                bad.append("\(a.title)/\(b.title) d=\(gap) < \(ra + rb)")
+/// Cells and free cells that meet at some time (what floats inside a
+/// container is insideProblems' to check).
+func meetProblems(_ plan: ThemePlan) -> [String] {
+    var problems: [String] = []
+    let outer: [Int] = plan.bodies.indices.filter { plan.bodies[$0].parent < 0 }
+    for t in looks where problems.count < 4 {
+        let at: [SIMD3<Float>] = outer.map { plan.position(of: $0, time: t) }
+        for n in 0..<outer.count {
+            let a: ThemeBody = plan.bodies[outer[n]]
+            for m in (n + 1)..<outer.count {
+                let b: ThemeBody = plan.bodies[outer[m]]
+                if distance(at[n], at[m]) < a.sphere + b.sphere {
+                    problems.append("\(a.title) meets \(b.title) at \(t)")
+                }
             }
         }
     }
-    return bad
+    return problems
 }
 
-/// The plan's rules that hold for any vault.
-func ladderProblems(_ plan: ThemePlan) -> [String] {
-    var bad: [String] = []
-    let bodies: [ThemeBody] = plan.bodies
-    let containers: [ThemeBody] = bodies.filter { roleOf($0).isContainer }
-    let notes: [ThemeBody] = bodies.filter { !roleOf($0).isContainer }
-    let smallestContainer: Float = containers.map(\.sphere).min() ?? 99
-    let biggestNote: Float = notes.map(\.sphere).max() ?? 0
-    if !containers.isEmpty && !notes.isEmpty && smallestContainer <= biggestNote {
-        bad.append("container \(smallestContainer) <= note \(biggestNote)")
-    }
-    for (i, b) in bodies.enumerated() {
-        if b.parent >= i { bad.append("\(b.title) before its parent") }
-        guard roleOf(b) == .relay else { continue }
-        let up: ThemeBody = bodies[b.parent]
-        if !roleOf(up).isContainer { bad.append("\(b.title)'s parent is not a container") }
-        if b.sphere >= up.sphere { bad.append("\(b.title) \(b.sphere) >= parent \(up.sphere)") }
-    }
-    let pyramids: [Float] = bodies.filter { roleOf($0) == .pyramidal }.map(\.sphere)
-    let inters: [Float] = bodies.filter { roleOf($0) == .interneuron }.map(\.sphere)
-    let glia: [Float] = bodies.filter { roleOf($0) == .glia }.map(\.sphere)
-    let bridges: [Float] = bodies.filter { roleOf($0) == .commissural }.map(\.sphere)
-    if let p = pyramids.min(), let q = inters.max(), p <= q { bad.append("page \(p) <= idea \(q)") }
-    if let p = pyramids.min(), let q = bridges.max(), p <= q { bad.append("page \(p) <= commissural \(q)") }
-    if let p = inters.min(), let q = glia.max(), p <= q { bad.append("idea \(p) <= glia \(q)") }
-    for b in bodies where roleOf(b) == .glia {
-        let host: ThemeBody = bodies[b.parent]
-        if roleOf(host).isContainer { bad.append("glia \(b.title) on a container") }
-    }
-    return bad
-}
-
-/// Every body stays inside the envelope's box, at any time.
-func envelopeHolds(_ plan: ThemePlan) -> [String] {
-    guard !plan.envelope.isEmpty else { return ["no envelope"] }
-    var low = SIMD3<Float>(repeating: 1e9)
-    var high = SIMD3<Float>(repeating: -1e9)
+/// Cells and free cells that leave the whole-map framing at some time.
+func envelopeProblems(_ plan: ThemePlan) -> [String] {
+    guard let first = plan.envelope.first else { return plan.bodies.isEmpty ? [] : ["no envelope"] }
+    var low: SIMD3<Float> = first
+    var high: SIMD3<Float> = first
     for p in plan.envelope {
         low = pointwiseMin(low, p)
         high = pointwiseMax(high, p)
     }
-    var bad: [String] = []
-    for t in stride(from: 0.0, through: 60.0, by: 5.0) {
-        for i in plan.bodies.indices {
-            let p: SIMD3<Float> = plan.position(of: i, time: t)
-            let r: Float = plan.bodies[i].sphere
-            let out: Bool = p.x - r < low.x || p.y - r < low.y || p.z - r < low.z
-                || p.x + r > high.x || p.y + r > high.y || p.z + r > high.z
-            if out && bad.count < 3 { bad.append("\(plan.bodies[i].title) at t=\(t)") }
+    var problems: [String] = []
+    for (k, body) in plan.bodies.enumerated() where body.parent < 0 {
+        for t in looks {
+            let p: SIMD3<Float> = plan.position(of: k, time: t)
+            let r: Float = body.sphere
+            let inside: Bool = p.x - r >= low.x - 0.001 && p.y - r >= low.y - 0.001 && p.z - r >= low.z - 0.001
+                && p.x + r <= high.x + 0.001 && p.y + r <= high.y + 0.001 && p.z + r <= high.z + 0.001
+            if !inside {
+                problems.append("\(body.title) leaves the framing at \(t)")
+                break
+            }
         }
     }
-    return bad
+    return problems
 }
 
-// MARK: T1 the design preview's cells
-
-let preview: ThemePlan = GraphNeurons.plan(previewInput())
-check("T1 two regions", titles(preview, .region) == ["Cardiology", "Examples"], "\(titles(preview, .region))")
-check("T1 three relays", titles(preview, .relay) == ["Inguinal", "Femoral", "Anatomy"], "\(titles(preview, .relay))")
-let expectedPyramids: Set<String> = [
-    "Heart failure", "Groin hernia", "Inguinal canal", "Femoral hernia", "Indirect inguinal hernia",
-    "Direct inguinal hernia", "Acute coronary syndrome", "Atrial fibrillation", "Murmurs"
-]
-check("T1 nine large neurons", titles(preview, .pyramidal) == expectedPyramids, "\(titles(preview, .pyramidal))")
-let expectedInter: Set<String> = [
-    "Inferior epigastric vessels", "Internal ring test", "Canal boundaries", "Spermatic cord coverings",
-    "Loop diuretics", "ACE inhibitors", "Hypokalaemia", "NSTEMI", "Troponin", "STEMI", "Heart sounds", "Syncope"
-]
-check("T1 twelve interneurons", titles(preview, .interneuron) == expectedInter, "\(titles(preview, .interneuron))")
-let expectedGlia: [String: String] = [
-    "Hernia repair": "Groin hernia", "LA/PM mnemonic": "Canal boundaries", "Femoral canal": "Femoral hernia",
-    "Saphena varix": "Femoral hernia", "BNP": "Heart failure", "CHA2DS2-VASc": "Atrial fibrillation"
-]
-var foundGlia: [String: String] = [:]
-for body in preview.bodies where body.role == NeuronRole.glia.rawValue {
-    foundGlia[body.title] = preview.bodies[body.parent].title
-}
-check("T1 six glia on their neurons", foundGlia == expectedGlia, "\(foundGlia)")
-check("T1 the bridging idea is commissural", titles(preview, .commissural) == ["Expansile cough impulse"],
-      "\(titles(preview, .commissural))")
-check("T1 both loose notes are receptors", titles(preview, .receptor) == ["Richter's hernia", "Pericarditis"],
-      "\(titles(preview, .receptor))")
-check("T1 no microglia", titles(preview, .microglia).isEmpty)
-let expectedSummary: String = "2 regions, 3 relays, 9 neurons, 12 interneurons, 6 glia, 1 commissural neuron, 2 receptors"
-check("T1 summary", preview.summary == expectedSummary, preview.summary)
-let anatomy: Int = bodyNamed(preview, "Anatomy") ?? -1
-let inguinal: Int = bodyNamed(preview, "Inguinal") ?? -1
-let examples: Int = bodyNamed(preview, "Examples") ?? -1
-check("T1 Anatomy relays from Inguinal, Inguinal from Examples",
-      anatomy >= 0 && preview.bodies[anatomy].parent == inguinal && preview.bodies[inguinal].parent == examples)
-check("T1 regions listed", preview.regions.map { preview.bodies[$0].title }.sorted() == ["Cardiology", "Examples"])
-check("T1 a region is its own region", preview.bodies[examples].region == examples)
-check("T1 Anatomy's region is Examples", anatomy >= 0 && preview.bodies[anatomy].region == examples)
-
-// MARK: T2 links
-
-func link(_ plan: ThemePlan, _ a: String, _ b: String) -> ThemeLink? {
-    guard let i = bodyNamed(plan, a), let j = bodyNamed(plan, b) else { return nil }
-    return plan.links.first { ($0.a == i && $0.b == j) || ($0.a == j && $0.b == i) }
-}
-
-check("T2 a glial cell's link is hidden", link(preview, "BNP", "Heart failure")?.kind == 3)
-check("T2 inside one cluster: local", link(preview, "Loop diuretics", "Hypokalaemia")?.kind == 0)
-let projection: ThemeLink? = link(preview, "Femoral hernia", "Inguinal canal")
-check("T2 between clusters of one region: a projection round the region",
-      projection?.kind == 1 && projection?.centre == examples, "\(String(describing: projection))")
-check("T2 to a loose note: a far tract", link(preview, "Pericarditis", "STEMI")?.kind == 2)
-let pathways: [ThemeLink] = preview.links.filter { $0.kind == 4 }
-check("T2 one pathway per relay", pathways.count == 3, "\(pathways.count)")
-let pathwayDown: Bool = pathways.allSatisfy { preview.bodies[$0.b].parent == $0.a }
-check("T2 each pathway runs from a container to the one inside it", pathwayDown)
-let sendsDown: Bool = pathways.allSatisfy { preview.bodies[$0.a].rank >= preview.bodies[$0.b].rank }
-check("T2 impulses run down the pathway", sendsDown)
-let receptor: Int = bodyNamed(preview, "Richter's hernia") ?? -1
-let femoral: Int = bodyNamed(preview, "Femoral hernia") ?? -1
-check("T2 a receptor sends inward", receptor >= 0 && femoral >= 0
-      && preview.bodies[receptor].rank > preview.bodies[femoral].rank)
-let noteLinks: Int = preview.links.filter { $0.kind != 4 }.count
-check("T2 every note link kept", noteLinks == 35, "\(noteLinks)")
-
-// MARK: T3 the ladder, overlaps and the envelope
-
-check("T3 preview ladder", ladderProblems(preview).isEmpty, "\(ladderProblems(preview))")
-check("T3 preview: no cells meet as they drift", overlaps(preview).isEmpty, "\(overlaps(preview))")
-check("T3 preview: dendrites clear at rest", reachOverlaps(preview).isEmpty, "\(reachOverlaps(preview))")
-check("T3 preview: inside the envelope", envelopeHolds(preview).isEmpty, "\(envelopeHolds(preview))")
-var ladderBad: [String] = []
-var reachBad: [String] = []
-var meetBad: [String] = []
-for seed in 1...200 {
-    let input: UniverseInput = randomVault(UInt64(seed), maxNotes: 60, maxFolders: 12)
-    let plan: ThemePlan = GraphNeurons.plan(input)
-    let problems: [String] = ladderProblems(plan)
-    if !problems.isEmpty && ladderBad.count < 3 { ladderBad.append("seed \(seed): \(problems)") }
-    let reach: [String] = reachOverlaps(plan)
-    if !reach.isEmpty && reachBad.count < 3 { reachBad.append("seed \(seed): \(reach)") }
-    if seed % 10 == 0 {
-        let meet: [String] = overlaps(plan, upTo: 60, step: 6)
-        if !meet.isEmpty && meetBad.count < 3 { meetBad.append("seed \(seed): \(meet)") }
+/// The body each note shows as: its own when it shows, else the nearest
+/// folder round it that does (with no folders, the home cell).
+func shownBodies(_ input: UniverseInput, _ plan: ThemePlan) -> [UUID: Int] {
+    var byID: [UUID: Int] = [:]
+    for (k, body) in plan.bodies.enumerated() { byID[body.id] = k }
+    var parentOf: [UUID: UUID] = [:]
+    for folder in input.folders {
+        if let p = folder.parent { parentOf[folder.id] = p }
     }
-    let planned: Int = plan.bodies.filter { !roleOf($0).isContainer }.count
-    if planned != input.notes.count && ladderBad.count < 3 { ladderBad.append("seed \(seed): lost notes") }
+    var out: [UUID: Int] = [:]
+    for note in input.notes {
+        if let own = byID[note.id] {
+            out[note.id] = own
+            continue
+        }
+        if input.folders.isEmpty {
+            out[note.id] = byID[GraphUniverse.homeID]
+            continue
+        }
+        var at: UUID? = note.folder
+        var steps: Int = 0
+        while let folder = at, steps <= input.folders.count + 1 {
+            if let k = byID[folder] {
+                out[note.id] = k
+                break
+            }
+            at = parentOf[folder]
+            steps += 1
+        }
+    }
+    return out
 }
-check("T3 200 random vaults keep the ladder", ladderBad.isEmpty, "\(ladderBad)")
-check("T3 200 random vaults: dendrites clear at rest", reachBad.isEmpty, "\(reachBad)")
-check("T3 20 random vaults: no cells meet as they drift", meetBad.isEmpty, "\(meetBad)")
+
+struct Way: Hashable {
+    let a: UUID
+    let b: UUID
+}
+
+struct BodyPair: Hashable {
+    let low: Int
+    let high: Int
+}
+
+/// What is wrong with a plan's processes: every pair of shown bodies with
+/// note links between them carries exactly one, sent from the side with
+/// more of the links (ties by name), never between a body and what holds
+/// it, kind 5 inside one cell and 6 between cells or free ones, with a dye
+/// and a width.
+func processProblems(_ input: UniverseInput, _ plan: ThemePlan) -> [String] {
+    var problems: [String] = []
+    let shown: [UUID: Int] = shownBodies(input, plan)
+    let notes = Set<UUID>(input.notes.map(\.id))
+    var ways = Set<Way>()
+    for edge in input.edges where edge.a != edge.b && notes.contains(edge.a) && notes.contains(edge.b) {
+        ways.insert(Way(a: edge.a, b: edge.b))
+    }
+    var up: [BodyPair: Int] = [:]
+    var down: [BodyPair: Int] = [:]
+    for way in ways {
+        guard let x = shown[way.a], let y = shown[way.b] else {
+            problems.append("a linked note shows nowhere")
+            continue
+        }
+        if x == y { continue }
+        let pair = BodyPair(low: min(x, y), high: max(x, y))
+        if x < y { up[pair, default: 0] += 1 } else { down[pair, default: 0] += 1 }
+    }
+    var seen: [BodyPair: Int] = [:]
+    for link in plan.links {
+        let n: Int = plan.bodies.count
+        guard link.a >= 0, link.b >= 0, link.a < n, link.b < n, link.a != link.b else {
+            problems.append("a process with a bad end: \(link.a) \(link.b)")
+            continue
+        }
+        let a: ThemeBody = plan.bodies[link.a]
+        let b: ThemeBody = plan.bodies[link.b]
+        let pair = BodyPair(low: min(link.a, link.b), high: max(link.a, link.b))
+        seen[pair, default: 0] += 1
+        let same: Bool = a.region >= 0 && a.region == b.region
+        if link.kind != (same ? 5 : 6) { problems.append("\(a.title) - \(b.title): kind \(link.kind)") }
+        if link.centre != -1 { problems.append("\(a.title) - \(b.title): centre \(link.centre)") }
+        if FiberKind(rawValue: link.tag) == nil { problems.append("\(a.title) - \(b.title): dye \(link.tag)") }
+        if !(link.width >= 0.669 && link.width <= 1.751) { problems.append("\(a.title) - \(b.title): width \(link.width)") }
+        if holds(plan, link.a, link.b) || holds(plan, link.b, link.a) {
+            problems.append("\(a.title) - \(b.title): one holds the other")
+        }
+        let along: Int = link.a < link.b ? up[pair, default: 0] : down[pair, default: 0]
+        let against: Int = link.a < link.b ? down[pair, default: 0] : up[pair, default: 0]
+        if along + against == 0 {
+            problems.append("\(a.title) - \(b.title) carries no link")
+        } else if along < against {
+            problems.append("\(a.title) -> \(b.title) runs against \(against) of its \(along + against) links")
+        } else if along == against
+            && (a.title.lowercased(), a.id.uuidString) > (b.title.lowercased(), b.id.uuidString) {
+            problems.append("\(a.title) -> \(b.title): a tie sent from the later name")
+        }
+    }
+    for pair in Set(up.keys).union(down.keys) where seen[pair] != 1 {
+        problems.append("\(plan.bodies[pair.low].title) - \(plan.bodies[pair.high].title): \(seen[pair] ?? 0) processes")
+    }
+    return problems
+}
+
+/// Bodies of `small` that `big` (the same vault with more opened) lost or
+/// changed: place, size, drift, facing or role.
+func movedProblems(_ small: ThemePlan, _ big: ThemePlan) -> [String] {
+    var byID: [UUID: ThemeBody] = [:]
+    for body in big.bodies { byID[body.id] = body }
+    var problems: [String] = []
+    for body in small.bodies {
+        guard let other = byID[body.id] else {
+            problems.append("\(body.title) is gone")
+            continue
+        }
+        if other.home != body.home || other.sphere != body.sphere || other.orbit != body.orbit
+            || other.axis != body.axis || other.role != body.role || other.label != body.label {
+            problems.append("\(body.title) changed")
+        }
+    }
+    return problems
+}
+
+/// The first few problems, for a check's detail.
+func few(_ problems: [String]) -> String {
+    problems.prefix(3).joined(separator: "; ")
+}
+
+// MARK: T1 the design preview, closed and opened
+
+let preview: UniverseInput = previewInput()
+let examples: UUID = fixedID(900)
+let inguinal: UUID = fixedID(901)
+let closed: ThemePlan = GraphNeurons.plan(preview)
+check("T1 closed: two cells and two receptors", closed.summary == "2 cells, 2 receptors", closed.summary)
+check("T1 closed: the top folders are the cells", titles(closed, .cell) == ["Examples", "Cardiology"],
+      "\(titles(closed, .cell))")
+check("T1 closed: the linked loose notes are receptors",
+      titles(closed, .receptor) == ["Richter's hernia", "Pericarditis"], "\(titles(closed, .receptor))")
+check("T1 closed: nothing shows inside a closed cell", closed.bodies.allSatisfy { $0.parent < 0 })
+check("T1 the cells are the regions", closed.regions.map { closed.bodies[$0].title } .sorted() == ["Cardiology", "Examples"]
+      && closed.regions.allSatisfy { closed.bodies[$0].region == $0 })
+let openOne: ThemePlan = planOpen(preview, [examples])
+check("T1 Examples opened: its two parts and three notes show",
+      openOne.summary == "2 cells, 2 parts, 1 vesicle, 2 granules, 2 receptors", openOne.summary)
+check("T1 Examples opened: Inguinal and Femoral are parts", titles(openOne, .part) == ["Inguinal", "Femoral"],
+      "\(titles(openOne, .part))")
+check("T1 Examples opened: Groin hernia a vesicle, its ideas granules",
+      titles(openOne, .vesicle) == ["Groin hernia"]
+      && titles(openOne, .granule) == ["Hernia repair", "Expansile cough impulse"],
+      "\(titles(openOne, .vesicle)) \(titles(openOne, .granule))")
+let examplesBody: Int = bodyNamed(openOne, "Examples") ?? -1
+check("T1 Examples opened: all of it inside Examples",
+      openOne.bodies.allSatisfy { $0.parent < 0 || $0.parent == examplesBody }
+      && openOne.bodies.filter { $0.parent == examplesBody }.count == 5)
+let openTwo: ThemePlan = planOpen(preview, [examples, inguinal])
+check("T1 Inguinal opened too: Anatomy and Inguinal's notes show",
+      openTwo.summary == "2 cells, 3 parts, 4 vesicles, 4 granules, 2 receptors", openTwo.summary)
+check("T1 Anatomy is a part inside Inguinal",
+      bodyNamed(openTwo, "Anatomy").map { openTwo.bodies[$0].parent } == bodyNamed(openTwo, "Inguinal")
+      && bodyNamed(openTwo, "Anatomy").map { roleOf(openTwo.bodies[$0]) } == .part)
+check("T1 a part inside a closed cell stays shut", planOpen(preview, [inguinal]).summary == "2 cells, 2 receptors")
+check("T1 the order folders are opened in changes nothing",
+      planOpen(preview, [inguinal, examples]).bodies == openTwo.bodies)
+let openAll: ThemePlan = allOpen(preview)
+check("T1 all opened: every note shows inside its folder",
+      openAll.summary == "2 cells, 3 parts, 9 vesicles, 19 granules, 2 receptors", openAll.summary)
+var misplaced: [String] = []
+for note in preview.notes {
+    guard let k = bodyNamed(openAll, note.title) else {
+        misplaced.append(note.title + " missing")
+        continue
+    }
+    let body: ThemeBody = openAll.bodies[k]
+    let holder: UUID? = body.parent >= 0 ? openAll.bodies[body.parent].id : nil
+    if holder != note.folder { misplaced.append(note.title) }
+    if roleOf(body) != (note.folder == nil ? .receptor : (note.isPage ? .vesicle : .granule)) {
+        misplaced.append(note.title + " as \(roleOf(body))")
+    }
+}
+check("T1 all opened: each note in the folder that holds it, a page a vesicle", misplaced.isEmpty, few(misplaced))
+check("T1 each body after what holds it", openAll.bodies.enumerated().allSatisfy { $0.element.parent < $0.offset })
+check("T1 a container's framing holds it; a note has none",
+      openAll.systems.count == openAll.bodies.count
+      && zip(openAll.bodies, openAll.systems).allSatisfy { $0.kind == .note ? $1.isEmpty : $1.count == 6 })
+check("T1 the preview's ladder holds, open and closed",
+      ladderProblems(closed).isEmpty && ladderProblems(openOne).isEmpty && ladderProblems(openAll).isEmpty,
+      few(ladderProblems(closed) + ladderProblems(openOne) + ladderProblems(openAll)))
+check("T1 nothing inside meets or leaves its cell", insideProblems(openAll).isEmpty, few(insideProblems(openAll)))
+check("T1 no cells meet", meetProblems(openAll).isEmpty, few(meetProblems(openAll)))
+check("T1 the framing holds every cell", envelopeProblems(openAll).isEmpty, few(envelopeProblems(openAll)))
+
+// MARK: T2 the links as the cells' processes
+
+check("T2 closed: every link carried once", processProblems(preview, closed).isEmpty,
+      few(processProblems(preview, closed)))
+check("T2 closed: two processes, each from a receptor into its cell",
+      closed.links.count == 2 && closed.links.allSatisfy {
+          roleOf(closed.bodies[$0.a]) == .receptor && roleOf(closed.bodies[$0.b]) == .cell && $0.kind == 6
+      }, "\(closed.links)")
+check("T2 Examples opened: every link carried once", processProblems(preview, openOne).isEmpty,
+      few(processProblems(preview, openOne)))
+let richter: Int = bodyNamed(openOne, "Richter's hernia") ?? -1
+let femoral: Int = bodyNamed(openOne, "Femoral") ?? -1
+check("T2 a link into a closed part ends on the part",
+      openOne.links.contains { $0.a == richter && $0.b == femoral && $0.kind == 6 })
+let groin: Int = bodyNamed(openOne, "Groin hernia") ?? -1
+let inguinalPart: Int = bodyNamed(openOne, "Inguinal") ?? -1
+check("T2 three links from Groin hernia into Inguinal make one process",
+      openOne.links.filter { $0.a == groin && $0.b == inguinalPart }.count == 1
+      && openOne.links.first { $0.a == groin && $0.b == inguinalPart }?.width == Float(0.55 + 0.12 * 6))
+check("T2 inside a cell kind 5, between cells 6",
+      openOne.links.filter { $0.kind == 5 }.count == 6 && openOne.links.filter { $0.kind == 6 }.count == 2,
+      "\(openOne.links.map(\.kind))")
+check("T2 Inguinal opened: every link carried once", processProblems(preview, openTwo).isEmpty,
+      few(processProblems(preview, openTwo)))
+check("T2 all opened: every link carried once", processProblems(preview, openAll).isEmpty,
+      few(processProblems(preview, openAll)))
+check("T2 all opened: links between notes only, no note to a folder",
+      openAll.links.allSatisfy { openAll.bodies[$0.a].kind == .note && openAll.bodies[$0.b].kind == .note })
+check("T2 plain links are excitatory: strength 4 one way, 5 both ways",
+      openAll.links.allSatisfy {
+          $0.tag == FiberKind.excitatory.rawValue
+              && ($0.width == Float(0.55 + 0.12 * 4) || $0.width == Float(0.55 + 0.12 * 5))
+      } && openAll.links.contains { $0.width == Float(0.55 + 0.12 * 5) })
+// what a link carries, read from the notes (GraphAnatomy)
+let dyeFolders: [UniverseFolder] = [UniverseFolder(id: fixedID(700), name: "Sender", parent: nil),
+                                    UniverseFolder(id: fixedID(701), name: "Target", parent: nil)]
+let dyeNotes: [AnatomyNote] = [
+    AnatomyNote(id: fixedID(710), title: "Benign mimic", body: "Unlike [[Strangulation]], it never needs surgery.",
+                isPage: false, folder: fixedID(700), tags: [], source: nil, hand: [fixedID(712)],
+                written: [fixedID(711)], created: 0),
+    AnatomyNote(id: fixedID(711), title: "Strangulation", body: "Ischaemic bowel.", isPage: false,
+                folder: fixedID(701), tags: [], source: nil, hand: [], written: [], created: 1),
+    AnatomyNote(id: fixedID(712), title: "Obstruction", body: "Colicky pain.", isPage: false,
+                folder: fixedID(701), tags: [], source: nil, hand: [], written: [], created: 2)
+]
+let dyeInput = UniverseInput(
+    notes: dyeNotes.map { UniverseNote(id: $0.id, title: $0.title, isPage: false, folder: $0.folder, words: 4,
+                                       created: $0.created) },
+    folders: dyeFolders, edges: [UniverseEdge(a: fixedID(710), b: fixedID(711)), UniverseEdge(a: fixedID(710), b: fixedID(712))],
+    seedByName: true, anatomy: AnatomyInput(notes: dyeNotes, folders: dyeFolders))
+let dyeShut: ThemePlan = GraphNeurons.plan(dyeInput)
+check("T2 a contrast and a hand link: one process, dyed by the contrast",
+      dyeShut.links.count == 1 && dyeShut.links[0].tag == FiberKind.inhibitory.rawValue
+      && dyeShut.links[0].width == Float(0.55 + 0.12 * 5), "\(dyeShut.links)")
+check("T2 it runs from the cell that sends", dyeShut.links.first.map { dyeShut.bodies[$0.a].title } == "Sender")
+let dyeOpen: ThemePlan = allOpen(dyeInput)
+let dyeTags: [String: Int] = Dictionary(uniqueKeysWithValues: dyeOpen.links.map { (dyeOpen.bodies[$0.b].title, $0.tag) })
+check("T2 opened: the contrast inhibitory, the hand link modulatory",
+      dyeTags == ["Strangulation": FiberKind.inhibitory.rawValue, "Obstruction": FiberKind.modulatory.rawValue],
+      "\(dyeTags)")
+check("T2 opened: every link carried once", processProblems(dyeInput, dyeOpen).isEmpty,
+      few(processProblems(dyeInput, dyeOpen)))
+
+// MARK: T3 the ladder and nothing meeting, over random vaults
+
+var ladderSeen: [String] = []
+var insideSeen: [String] = []
+var meetSeen: [String] = []
+var processSeen: [String] = []
+var movedSeen: [String] = []
+var envelopeSeen: [String] = []
+var shownSeen: [String] = []
+for seed in 0..<160 {
+    let vault: UniverseInput = randomVault(UInt64(seed) &* 7919 &+ 13, maxNotes: 60, maxFolders: 12)
+    var dice = Dice(state: UInt64(seed) &+ 99)
+    let some: [UUID] = vault.folders.map(\.id).filter { _ in dice.unit() < 0.5 }
+    let shut: ThemePlan = GraphNeurons.plan(vault)
+    let half: ThemePlan = planOpen(vault, some)
+    let full: ThemePlan = allOpen(vault)
+    for (name, plan) in [("closed", shut), ("half open", half), ("open", full)] {
+        let tag: String = "seed \(seed) \(name): "
+        if ladderSeen.count < 3 { ladderSeen += ladderProblems(plan).prefix(1).map { tag + $0 } }
+        if insideSeen.count < 3 { insideSeen += insideProblems(plan).prefix(1).map { tag + $0 } }
+        if meetSeen.count < 3 { meetSeen += meetProblems(plan).prefix(1).map { tag + $0 } }
+        if processSeen.count < 3 { processSeen += processProblems(vault, plan).prefix(1).map { tag + $0 } }
+        if envelopeSeen.count < 3 { envelopeSeen += envelopeProblems(plan).prefix(1).map { tag + $0 } }
+    }
+    if movedSeen.count < 3 {
+        movedSeen += (movedProblems(shut, half) + movedProblems(half, full)).prefix(1).map { "seed \(seed): " + $0 }
+    }
+    let notes: Int = full.bodies.filter { $0.kind == .note }.count
+    let folders: Int = full.bodies.filter { $0.kind != .note }.count
+    let wantFolders: Int = vault.folders.isEmpty ? (vault.notes.isEmpty ? 0 : 1) : vault.folders.count
+    if (notes != vault.notes.count || folders != wantFolders) && shownSeen.count < 3 {
+        shownSeen.append("seed \(seed): \(notes) of \(vault.notes.count) notes, \(folders) of \(wantFolders) folders")
+    }
+}
+check("T3 all opened, every note and folder shows", shownSeen.isEmpty, few(shownSeen))
+check("T3 the ladder holds in 160 random vaults, closed, half open and open", ladderSeen.isEmpty, few(ladderSeen))
+check("T3 nothing leaves its membrane, enters a nucleus or meets a sibling, drifting for two minutes",
+      insideSeen.isEmpty, few(insideSeen))
+check("T3 no two cells or free cells meet", meetSeen.isEmpty, few(meetSeen))
+check("T3 every link carried by exactly one process", processSeen.isEmpty, few(processSeen))
+check("T3 opening moves nothing already shown", movedSeen.isEmpty, few(movedSeen))
+check("T3 the framing holds every cell", envelopeSeen.isEmpty, few(envelopeSeen))
 
 // MARK: T4 the same notes, the same picture
 
-let again: ThemePlan = GraphNeurons.plan(previewInput())
-check("T4 planned twice, identical", again.bodies == preview.bodies && again.links == preview.links)
-let base: UniverseInput = previewInput()
-let shuffled = UniverseInput(notes: base.notes.reversed(), folders: base.folders.reversed(),
-                             edges: base.edges.reversed(), seedByName: true)
-let reordered: ThemePlan = GraphNeurons.plan(shuffled)
-check("T4 in any order, identical", reordered.bodies == preview.bodies)
+check("T4 planned twice, the same", allOpen(preview).bodies == openAll.bodies && allOpen(preview).links == openAll.links)
+let flippedInput = UniverseInput(notes: preview.notes.reversed(), folders: preview.folders.reversed(),
+                                 edges: preview.edges.reversed(), seedByName: true)
+let flipped: ThemePlan = allOpen(flippedInput)
+check("T4 the order notes come in changes nothing", flipped.bodies == openAll.bodies && flipped.links == openAll.links)
+check("T4 opening Examples moves nothing shown", movedProblems(closed, openOne).isEmpty, few(movedProblems(closed, openOne)))
+check("T4 opening Inguinal moves nothing shown", movedProblems(openOne, openTwo).isEmpty,
+      few(movedProblems(openOne, openTwo)))
+check("T4 opening everything moves nothing shown", movedProblems(openTwo, openAll).isEmpty,
+      few(movedProblems(openTwo, openAll)))
+check("T4 closing hides only what was inside",
+      Set(closed.bodies.map(\.id)) == Set(openAll.bodies.filter { $0.parent < 0 }.map(\.id)))
+check("T4 opening keeps the framing", closed.envelope == openAll.envelope)
+let unlinkedInput = UniverseInput(notes: preview.notes, folders: preview.folders, edges: [], seedByName: true)
+let unlinked: ThemePlan = allOpen(unlinkedInput)
+check("T4 without links: no processes, the loose notes drift free",
+      unlinked.links.isEmpty && titles(unlinked, .drifter) == ["Richter's hernia", "Pericarditis"]
+      && titles(unlinked, .receptor).isEmpty, unlinked.summary)
 
-// MARK: T5 the pathway runs outward
+// MARK: T5 the sheet: senders first, each cell facing the one it sends to
 
-var inward: [String] = []
-for (i, b) in preview.bodies.enumerated() where roleOf(b) == .relay {
-    let up: ThemeBody = preview.bodies[b.parent]
-    let out: Float = dot3(b.home - up.home, up.axis)
-    if out <= 0 { inward.append(b.title) }
-    _ = i
+/// Three top folders whose names run against the flow: Zeta's notes link
+/// to Mid's, Mid's to Alpha's.
+func flowInput() -> UniverseInput {
+    let names: [String] = ["Zeta", "Mid", "Alpha"]
+    var folders: [UniverseFolder] = []
+    var notes: [UniverseNote] = []
+    for (f, name) in names.enumerated() {
+        folders.append(UniverseFolder(id: fixedID(600 + f), name: name, parent: nil))
+        for k in 0..<3 {
+            notes.append(UniverseNote(id: fixedID(610 + f * 10 + k), title: "\(name) note \(k)", isPage: k == 0,
+                                      folder: fixedID(600 + f), words: 80, created: Double(f * 10 + k)))
+        }
+    }
+    var edges: [UniverseEdge] = []
+    for k in 0..<3 {
+        edges.append(UniverseEdge(a: fixedID(610 + k), b: fixedID(620 + k)))
+        edges.append(UniverseEdge(a: fixedID(620 + k), b: fixedID(630 + k)))
+    }
+    return UniverseInput(notes: notes, folders: folders, edges: edges, seedByName: true)
 }
-check("T5 every relay stands out along its parent's pathway", inward.isEmpty, "\(inward)")
-var systemsBad: [String] = []
-for (i, b) in preview.bodies.enumerated() where roleOf(b).isContainer {
-    let points: [SIMD3<Float>] = preview.systems[i]
-    if points.isEmpty { systemsBad.append(b.title) }
+
+let flow: ThemePlan = GraphNeurons.plan(flowInput())
+if let zeta = bodyNamed(flow, "Zeta"), let mid = bodyNamed(flow, "Mid"), let alpha = bodyNamed(flow, "Alpha") {
+    let z: ThemeBody = flow.bodies[zeta]
+    let m: ThemeBody = flow.bodies[mid]
+    let a: ThemeBody = flow.bodies[alpha]
+    check("T5 the sender first: Zeta left of Mid on the top row, Alpha below",
+          z.home.x < m.home.x && z.home.y > a.home.y && m.home.y > a.home.y, "\(z.home) \(m.home) \(a.home)")
+    let toMid: SIMD3<Float> = (m.home - z.home) / distance(m.home, z.home)
+    let toAlpha: SIMD3<Float> = (a.home - m.home) / distance(a.home, m.home)
+    check("T5 Zeta faces Mid and Mid faces Alpha",
+          (z.axis * toMid).sum() > 0.95 && (m.axis * toAlpha).sum() > 0.95, "\(z.axis) \(m.axis)")
+    check("T5 Alpha, sending nowhere, faces down the sheet", a.axis == SIMD3<Float>(0, -1, 0), "\(a.axis)")
+    let biggest: Float = [z.sphere, m.sphere, a.sphere].max() ?? 0
+    check("T5 the sheet is flat, facing the camera",
+          [z, m, a].allSatisfy { abs($0.home.z) <= 0.3 * biggest + 0.02 }, "\([z.home.z, m.home.z, a.home.z])")
+    check("T5 the processes run with the flow",
+          Set(flow.links.map { "\(flow.bodies[$0.a].title)>\(flow.bodies[$0.b].title)" }) == ["Zeta>Mid", "Mid>Alpha"]
+          && flow.links.allSatisfy { $0.kind == 6 }, "\(flow.links)")
+} else {
+    check("T5 the three cells", false, flow.summary)
 }
-check("T5 every container has a system to fly in to", systemsBad.isEmpty, "\(systemsBad)")
-let flyExamples: [SIMD3<Float>] = preview.systems[examples]
-let anatomyFar: Float = distance(preview.bodies[anatomy].home, preview.bodies[examples].home)
-let reachExamples: Float = flyExamples.map { ($0 * $0).sum().squareRoot() }.max() ?? 0
-check("T5 a region's fly-in holds its whole pathway", reachExamples > anatomyFar, "\(reachExamples) vs \(anatomyFar)")
+check("T5 nothing meets", meetProblems(flow).isEmpty, few(meetProblems(flow)))
 
 // MARK: T6 edge cases
 
-let top1: UUID = fixedID(5001)
-let homeOnly: ThemePlan = GraphNeurons.plan(UniverseInput(
-    notes: (1...8).map { UniverseNote(id: fixedID($0), title: "N\($0)", isPage: $0 % 3 == 0, folder: nil,
-                                      words: 20 * $0, created: 0) },
-    folders: [], edges: [UniverseEdge(a: fixedID(1), b: fixedID(2))], seedByName: false))
-check("T6 no folders: one brainstem first", homeOnly.bodies.first?.role == NeuronRole.brainstem.rawValue
-      && homeOnly.bodies.first?.id == GraphUniverse.homeID)
-check("T6 no folders: every note in it", homeOnly.bodies.dropFirst().allSatisfy { $0.parent >= 0 })
-check("T6 no folders: summary", homeOnly.summary.hasPrefix("1 brainstem"), homeOnly.summary)
+// no folders: one home cell holds every note, always open
+let homeNotes: [UniverseNote] = [
+    UniverseNote(id: fixedID(801), title: "Murmur grading", isPage: true, folder: nil, words: 300, created: 0),
+    UniverseNote(id: fixedID(802), title: "Splitting S2", isPage: false, folder: nil, words: 40, created: 1),
+    UniverseNote(id: fixedID(803), title: "Opening snap", isPage: false, folder: nil, words: 20, created: 2)
+]
+let homeInput = UniverseInput(notes: homeNotes, folders: [],
+                              edges: [UniverseEdge(a: fixedID(801), b: fixedID(802)),
+                                      UniverseEdge(a: fixedID(802), b: fixedID(803))], seedByName: true)
+let homePlan: ThemePlan = GraphNeurons.plan(homeInput)
+check("T6 no folders: one home cell first, holding every note",
+      homePlan.bodies.first?.id == GraphUniverse.homeID && homePlan.bodies.first?.role == NeuronRole.home.rawValue
+      && homePlan.bodies.count == 4 && homePlan.bodies.dropFirst().allSatisfy { $0.parent == 0 }
+      && homePlan.regions == [0], homePlan.summary)
+check("T6 no folders: the summary", homePlan.summary == "1 cell, 1 vesicle, 2 granules", homePlan.summary)
+check("T6 no folders: links inside the cell, each carried",
+      homePlan.links.count == 2 && homePlan.links.allSatisfy { $0.kind == 5 }
+      && processProblems(homeInput, homePlan).isEmpty, few(processProblems(homeInput, homePlan)))
+check("T6 no folders: the ladder holds, nothing meets", ladderProblems(homePlan).isEmpty
+      && insideProblems(homePlan).isEmpty, few(ladderProblems(homePlan) + insideProblems(homePlan)))
 
-// a cycle: A in B, B in A
-let fa: UUID = fixedID(6001)
-let fb: UUID = fixedID(6002)
-let cyc: ThemePlan = GraphNeurons.plan(UniverseInput(
-    notes: [UniverseNote(id: fixedID(1), title: "x", isPage: false, folder: fa, words: 5, created: 0)],
-    folders: [UniverseFolder(id: fa, name: "A", parent: fb), UniverseFolder(id: fb, name: "B", parent: fa)],
-    edges: [], seedByName: false))
-check("T6 a folder cycle is cut into one region and one relay",
-      titles(cyc, .region).count == 1 && titles(cyc, .relay).count == 1, cyc.summary)
+// a cycle, A inside B inside A, is cut: nothing lost
+let cycleInput = UniverseInput(
+    notes: [UniverseNote(id: fixedID(811), title: "In A", isPage: false, folder: fixedID(821), words: 30, created: 0),
+            UniverseNote(id: fixedID(812), title: "In B", isPage: false, folder: fixedID(822), words: 30, created: 1)],
+    folders: [UniverseFolder(id: fixedID(821), name: "A", parent: fixedID(822)),
+              UniverseFolder(id: fixedID(822), name: "B", parent: fixedID(821))],
+    edges: [UniverseEdge(a: fixedID(811), b: fixedID(812))], seedByName: true)
+let cycleShut: ThemePlan = GraphNeurons.plan(cycleInput)
+let cycleOpen: ThemePlan = allOpen(cycleInput)
+check("T6 a cycle: one cell, one part inside it, both notes",
+      cycleShut.summary == "1 cell" && cycleOpen.summary == "1 cell, 1 part, 2 granules", cycleOpen.summary)
+check("T6 a cycle: the ladder holds, nothing meets, every link carried",
+      ladderProblems(cycleOpen).isEmpty && insideProblems(cycleOpen).isEmpty
+      && processProblems(cycleInput, cycleOpen).isEmpty && processProblems(cycleInput, cycleShut).isEmpty,
+      few(ladderProblems(cycleOpen) + insideProblems(cycleOpen) + processProblems(cycleInput, cycleOpen)))
 
-// ten deep, one note at the bottom
+// ten folders deep, one note in each, linked down the chain
 var deepFolders: [UniverseFolder] = []
+var deepNotes: [UniverseNote] = []
 for k in 0..<10 {
-    let parent: UUID? = k == 0 ? nil : fixedID(7000 + k - 1)
-    deepFolders.append(UniverseFolder(id: fixedID(7000 + k), name: "D\(k)", parent: parent))
+    deepFolders.append(UniverseFolder(id: fixedID(830 + k), name: "D\(k)", parent: k == 0 ? nil : fixedID(829 + k)))
+    deepNotes.append(UniverseNote(id: fixedID(850 + k), title: "Deep note \(k)", isPage: k % 2 == 0,
+                                  folder: fixedID(830 + k), words: 120, created: Double(k)))
 }
-let deep: ThemePlan = GraphNeurons.plan(UniverseInput(
-    notes: [UniverseNote(id: fixedID(1), title: "bottom", isPage: true, folder: fixedID(7009), words: 3000,
+let deepInput = UniverseInput(notes: deepNotes, folders: deepFolders,
+                              edges: (0..<9).map { UniverseEdge(a: fixedID(850 + $0), b: fixedID(851 + $0)) },
+                              seedByName: true)
+let deep: ThemePlan = allOpen(deepInput)
+check("T6 ten deep: one cell, nine parts each inside the last, ten notes",
+      titles(deep, .cell) == ["D0"] && titles(deep, .part).count == 9 && deep.bodies.count == 20, deep.summary)
+let smallest: Float = deep.bodies.map(\.sphere).min() ?? 0
+check("T6 ten deep: the smallest still has a size", smallest > 0 && smallest.isFinite, "\(smallest)")
+check("T6 ten deep: the ladder holds, nothing leaves its membrane",
+      ladderProblems(deep).isEmpty && insideProblems(deep).isEmpty, few(ladderProblems(deep) + insideProblems(deep)))
+check("T6 ten deep: every link carried", processProblems(deepInput, deep).isEmpty,
+      few(processProblems(deepInput, deep)))
+let deepFirst: ThemePlan = planOpen(deepInput, [fixedID(830)])
+check("T6 ten deep, only the cell opened: it, its part and its note",
+      deepFirst.bodies.count == 3 && deepFirst.summary == "1 cell, 1 part, 1 vesicle", deepFirst.summary)
+check("T6 ten deep: a part opened inside a closed cell shows nothing more",
+      planOpen(deepInput, [fixedID(831)]).bodies.count == 1)
+
+// empty folders: a bare cell, a bare part
+let emptyInput = UniverseInput(
+    notes: [UniverseNote(id: fixedID(871), title: "Lonely fact", isPage: false, folder: fixedID(861), words: 10,
                          created: 0)],
-    folders: deepFolders, edges: [], seedByName: false))
-check("T6 ten deep: the ladder holds", ladderProblems(deep).isEmpty, "\(ladderProblems(deep))")
-check("T6 ten deep: no overlaps", overlaps(deep, upTo: 30, step: 5).isEmpty, "\(overlaps(deep, upTo: 30, step: 5))")
-check("T6 ten deep: every relay stands out along its pathway",
-      deep.bodies.filter { roleOf($0) == .relay }.allSatisfy { b in
-          dot3(b.home - deep.bodies[b.parent].home, deep.bodies[b.parent].axis) > 0 })
-
-let emptyPlan: ThemePlan = GraphNeurons.plan(UniverseInput(
-    notes: [], folders: [UniverseFolder(id: top1, name: "Empty", parent: nil)], edges: [], seedByName: false))
-check("T6 an empty folder is a small region", emptyPlan.bodies.count == 1
-      && emptyPlan.bodies.first?.sphere == 0.40)
-check("T6 nothing at all plans nothing", GraphNeurons.plan(UniverseInput(notes: [], folders: [], edges: [],
-                                                                      seedByName: false)).bodies.isEmpty)
-
-var looseNotes: [UniverseNote] = [UniverseNote(id: fixedID(1), title: "anchor", isPage: true, folder: top1,
-                                               words: 100, created: 0)]
-var looseEdges: [UniverseEdge] = []
-for k in 2...41 {
-    looseNotes.append(UniverseNote(id: fixedID(k), title: "L\(k)", isPage: false, folder: nil, words: 10,
-                                   created: Double(k)))
-    if k % 2 == 0 { looseEdges.append(UniverseEdge(a: fixedID(1), b: fixedID(k))) }
+    folders: [UniverseFolder(id: fixedID(860), name: "Empty", parent: nil),
+              UniverseFolder(id: fixedID(861), name: "Full", parent: nil),
+              UniverseFolder(id: fixedID(862), name: "Hollow", parent: fixedID(861))],
+    edges: [], seedByName: true)
+let emptyOpen: ThemePlan = allOpen(emptyInput)
+if let bare = bodyNamed(emptyOpen, "Empty"), let hollow = bodyNamed(emptyOpen, "Hollow") {
+    check("T6 an empty folder: the smallest cell, nothing inside it when opened",
+          emptyOpen.bodies[bare].sphere == Float(GraphNeurons.cellSphere(count: 0))
+          && !emptyOpen.bodies.contains { $0.parent == bare }, "\(emptyOpen.bodies[bare].sphere)")
+    check("T6 an empty part: inside its cell, nothing inside it",
+          emptyOpen.bodies[hollow].role == NeuronRole.part.rawValue && !emptyOpen.bodies.contains { $0.parent == hollow })
+} else {
+    check("T6 empty folders show", false, emptyOpen.summary)
 }
-let loosePlan: ThemePlan = GraphNeurons.plan(UniverseInput(
-    notes: looseNotes, folders: [UniverseFolder(id: top1, name: "Top", parent: nil)], edges: looseEdges,
-    seedByName: false))
-check("T6 forty loose: twenty receptors and twenty microglia",
-      titles(loosePlan, .receptor).count == 20 && titles(loosePlan, .microglia).count == 20, loosePlan.summary)
-check("T6 forty loose: none meet", overlaps(loosePlan, upTo: 60, step: 4).isEmpty,
-      "\(overlaps(loosePlan, upTo: 60, step: 4))")
-let brainEdge: Float = loosePlan.bodies.filter { $0.parent != -1 || roleOf($0).isContainer }
-    .map { ($0.home * $0.home).sum().squareRoot() }.max() ?? 0
-let looseNear: Float = loosePlan.bodies.filter { roleOf($0) == .receptor || roleOf($0) == .microglia }
-    .map { ($0.home * $0.home).sum().squareRoot() }.min() ?? 0
-check("T6 loose cells float at the periphery", looseNear > brainEdge * 0.8, "\(looseNear) vs \(brainEdge)")
+check("T6 empty folders: the ladder holds", ladderProblems(emptyOpen).isEmpty && insideProblems(emptyOpen).isEmpty,
+      few(ladderProblems(emptyOpen) + insideProblems(emptyOpen)))
+let nothing: ThemePlan = GraphNeurons.plan(UniverseInput(notes: [], folders: [], edges: [], seedByName: true))
+check("T6 nothing: an empty plan", nothing.bodies.isEmpty && nothing.links.isEmpty && nothing.summary.isEmpty)
+let bareInput = UniverseInput(notes: [], folders: emptyInput.folders, edges: [], seedByName: true)
+check("T6 folders and no notes: cells and parts only",
+      GraphNeurons.plan(bareInput).summary == "2 cells" && allOpen(bareInput).summary == "2 cells, 1 part",
+      allOpen(bareInput).summary)
+
+// forty loose notes round one cell: twenty linked into it, twenty not
+var looseNotes: [UniverseNote] = []
+var looseEdges: [UniverseEdge] = []
+for k in 0..<4 {
+    looseNotes.append(UniverseNote(id: fixedID(880 + k), title: "Hub note \(k)", isPage: false, folder: fixedID(879),
+                                   words: 50, created: Double(k)))
+}
+for k in 0..<40 {
+    looseNotes.append(UniverseNote(id: fixedID(1100 + k), title: "Loose \(k)", isPage: k % 5 == 0, folder: nil,
+                                   words: 30, created: Double(10 + k)))
+    if k < 20 { looseEdges.append(UniverseEdge(a: fixedID(1100 + k), b: fixedID(880 + k % 4))) }
+}
+let looseInput = UniverseInput(notes: looseNotes, folders: [UniverseFolder(id: fixedID(879), name: "Hub", parent: nil)],
+                               edges: looseEdges, seedByName: true)
+let loosePlan: ThemePlan = GraphNeurons.plan(looseInput)
+check("T6 forty loose: twenty receptors, twenty free cells",
+      loosePlan.summary == "1 cell, 20 receptors, 20 free cells", loosePlan.summary)
+check("T6 forty loose: no two meet", meetProblems(loosePlan).isEmpty, few(meetProblems(loosePlan)))
+check("T6 forty loose: the framing holds them", envelopeProblems(loosePlan).isEmpty, few(envelopeProblems(loosePlan)))
+if let hub = bodyNamed(loosePlan, "Hub") {
+    let hubBody: ThemeBody = loosePlan.bodies[hub]
+    let turned: [String] = loosePlan.bodies.filter { roleOf($0) == .receptor }.compactMap { body in
+        let to: SIMD3<Float> = (hubBody.home - body.home) / distance(hubBody.home, body.home)
+        return (body.axis * to).sum() > 0.9 ? nil : body.title
+    }
+    check("T6 forty loose: each receptor faces the cell it sends to", turned.isEmpty, "\(turned)")
+    let crowding: [String] = loosePlan.bodies.filter { roleOf($0).isFree }.compactMap { body in
+        distance(hubBody.home, body.home) >= hubBody.sphere * Float(GraphNeurons.reach) + body.sphere ? nil : body.title
+    }
+    check("T6 forty loose: all clear of the cell's processes", crowding.isEmpty, "\(crowding)")
+    check("T6 forty loose: every process runs from a receptor into the cell",
+          loosePlan.links.count == 20 && loosePlan.links.allSatisfy {
+              roleOf(loosePlan.bodies[$0.a]) == .receptor && $0.b == hub && $0.kind == 6
+          }, "\(loosePlan.links.count)")
+} else {
+    check("T6 forty loose: the hub cell", false, loosePlan.summary)
+}
+let looseOpen: ThemePlan = allOpen(looseInput)
+check("T6 forty loose, opened: every link carried, nothing meets",
+      processProblems(looseInput, looseOpen).isEmpty && meetProblems(looseOpen).isEmpty
+      && insideProblems(looseOpen).isEmpty, few(processProblems(looseInput, looseOpen) + meetProblems(looseOpen)))
 
 // MARK: T7 scale
 
 let started: Date = Date()
-let big: ThemePlan = GraphNeurons.plan(randomVault(300, maxNotes: 300, maxFolders: 30, exact: true))
+let bigInput: UniverseInput = randomVault(4242, maxNotes: 300, maxFolders: 40, exact: true)
+let big: ThemePlan = allOpen(bigInput)
 let took: Double = Date().timeIntervalSince(started)
-let bigNotes: Int = big.bodies.filter { !roleOf($0).isContainer }.count
-check("T7 300 notes: every note planned", bigNotes == 300, "\(bigNotes)")
+check("T7 300 notes, all opened: every note planned", big.bodies.filter { $0.kind == .note }.count == 300, big.summary)
 check("T7 300 notes: planned in under 2 s", took < 2, "\(took) s")
-check("T7 300 notes: the ladder holds", ladderProblems(big).isEmpty, "\(ladderProblems(big))")
-check("T7 300 notes: no overlaps", overlaps(big, upTo: 40, step: 10).isEmpty, "\(overlaps(big, upTo: 40, step: 10))")
-check("T7 300 notes: inside the envelope", envelopeHolds(big).isEmpty, "\(envelopeHolds(big))")
-
+print("     planned in \(Int(took * 1000)) ms")
+check("T7 300 notes: the ladder holds", ladderProblems(big).isEmpty, few(ladderProblems(big)))
+check("T7 300 notes: nothing leaves its membrane or meets", insideProblems(big).isEmpty && meetProblems(big).isEmpty,
+      few(insideProblems(big) + meetProblems(big)))
+check("T7 300 notes: every link carried once", processProblems(bigInput, big).isEmpty,
+      few(processProblems(bigInput, big)))
+check("T7 300 notes: the framing holds", envelopeProblems(big).isEmpty, few(envelopeProblems(big)))
+var crowdNotes: [UniverseNote] = []
+for k in 0..<200 {
+    crowdNotes.append(UniverseNote(id: fixedID(2000 + k), title: "Crowd \(k)", isPage: k % 3 == 0,
+                                   folder: fixedID(1999), words: 20 + k * 7, created: Double(k)))
+}
+let crowdInput = UniverseInput(notes: crowdNotes,
+                               folders: [UniverseFolder(id: fixedID(1999), name: "Crowded", parent: nil)],
+                               edges: [], seedByName: true)
+let crowd: ThemePlan = allOpen(crowdInput)
+check("T7 two hundred notes in one cell: all inside, none meeting",
+      crowd.bodies.count == 201 && insideProblems(crowd).isEmpty && ladderProblems(crowd).isEmpty,
+      few(insideProblems(crowd) + ladderProblems(crowd)))
 // MARK: T8 the theme choice
 
 check("T8 Space is the default", GraphTheme.stored(nil) == .space && GraphTheme.stored("nonsense") == .space)

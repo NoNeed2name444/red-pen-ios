@@ -166,15 +166,18 @@ suite spacestyles SpaceStyleTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/G
 # (tools/shader_check.py compiles them against a stand-in for Metal)
 suite shaders ShaderSourceTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/GraphSpaceShaders.swift \
       $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphShaderCatalog.swift
-# the Neurons theme: folders as brain regions and relays down the
-# pathway, notes as neurons, glia and receptors - the ladder, no
-# overlaps, pathways running outward, impulses at random times
+# the Neurons theme: top folders as cells on one sheet, folders inside
+# as parts inside them, notes as vesicles and granules, insides only
+# when opened, free cells at the edge, links as processes - the ladder,
+# nothing meeting, opening never moving anything, impulses at random times
 suite neurons NeuronHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
-      $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift
+      $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
+      $F/Notes/GraphTheme.swift
 # the Neurons' look: green, cyan, pink and amber on deep blue, the six
 # cell states mirroring the space styles, the Look menu's choice, the bokeh
 suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
-      $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift \
+      $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
+      $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
       $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
 # removing a note: how each body dies (stars, planets, black holes;
@@ -184,7 +187,7 @@ suite death GraphDeathTests.swift $F/Notes/GraphDeath.swift $F/Notes/GraphFrameS
 # link length: every theme's guarantees at 0.6-1.8, links grow with
 # the setting, bodies keep their size
 suite linklength LinkLengthTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift $F/Notes/GraphNeurons.swift \
-      $S/Space/GraphicsQuality.swift
+      $F/Notes/GraphAnatomy.swift $S/Space/GraphicsQuality.swift
 # name pills stay readable: contrast maths, style choice, no flicker
 suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 # touching the map: tap, double tap, hold, drag, orbit, the peek card

@@ -62,12 +62,16 @@ nonisolated struct ThemeBody: Sendable, Equatable {
 /// far geometry), 3 hidden (drawn as touching instead), 4 a pathway: a
 /// container to the container inside it (straight, in the far geometry);
 /// 5 and 6 always sent from `a` to `b` whatever the ends' ranks: 5 with
-/// the links, 6 in the far geometry.
+/// the links, 6 in the far geometry. `tag` is the theme's own code for the
+/// link (for Neurons, FiberKind.rawValue) and `width` how thick it is
+/// drawn, 1 as planned.
 nonisolated struct ThemeLink: Sendable, Equatable {
     let a: Int
     let b: Int
     let kind: Int
     let centre: Int
+    var tag: Int = 0
+    var width: Float = 1
 }
 
 nonisolated struct ThemePlan: Sendable {
@@ -82,7 +86,7 @@ nonisolated struct ThemePlan: Sendable {
     let systems: [[SIMD3<Float>]]
     /// The top-level containers' body indices.
     let regions: [Int]
-    /// What VoiceOver reads: "2 regions, 3 relays, 12 neurons".
+    /// What VoiceOver reads: "2 cells, 3 parts, 12 granules".
     let summary: String
 
     static let empty = ThemePlan(bodies: [], links: [], envelope: [], systems: [], regions: [], summary: "")

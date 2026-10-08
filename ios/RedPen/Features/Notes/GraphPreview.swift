@@ -31,12 +31,11 @@ import SwiftUI
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
-///   Cardiology and Examples as two brain regions, Inguinal and Femoral
-///   relays out along Examples' pathway with Anatomy one step further,
-///   pages as large neurons, ideas as interneurons, the six short one-link
-///   ideas as glia on their neurons, the bridging idea as a commissural
-///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
-///   `-graphPreviewLegend` work with it too.
+///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
+///   inside Examples with Anatomy inside Inguinal, pages as vesicles and
+///   ideas as granules inside the folders that hold them, and the two
+///   loose notes as free cells at the edge. Flying in to a cell opens it.
+///   `-graphPreviewFly` and `-graphPreviewLegend` work with it too.
 /// - `-graphPreviewCells <state>` shows every Neurons cell in that state
 ///   (firing, releasing, pacemaker, migrating, engulfing or resting).
 /// - The screen round the map is the app's: a back chevron top left, the
@@ -68,7 +67,7 @@ enum GraphPreview {
     /// three seconds after the space appears, so screenshots can catch the
     /// bodies dying (GraphDeath): the folders and notes named in the
     /// comma-separated list that follows, or by default the Femoral and
-    /// Anatomy folders (stars; relays; sub-chips) and BNP, Murmurs, Troponin,
+    /// Anatomy folders (stars; parts; sub-chips) and BNP, Murmurs, Troponin,
     /// Expansile cough impulse and Richter's hernia (a moon, a gas giant, a
     /// rocky planet, the pulsar and a comet; cells; parts). Nil without it.
     static let removes: [String]? = {

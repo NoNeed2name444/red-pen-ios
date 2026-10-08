@@ -461,14 +461,16 @@ nonisolated struct GraphShine: Sendable, Equatable {
         }
     }
 
-    /// The Neurons (NeuronRole's raw value): glowing somata, pale glia.
+    /// The Neurons (NeuronRole's raw value): glowing cells, the parts and
+    /// notes inside them dimmer, a receptor gold, a drifter pale.
     static func neurons(_ role: Int) -> GraphShine {
         switch role {
-        case 0, 1, 2: return GraphShine(colour: GraphRGB(0.95, 0.62, 0.78), reach: 2.2, strength: 0.7)
-        case 3: return GraphShine(colour: GraphRGB(0.72, 0.60, 0.95), reach: 1.8, strength: 0.55)
-        case 4, 6: return GraphShine(colour: GraphRGB(0.55, 0.78, 0.95), reach: 1.6, strength: 0.45)
-        case 5: return GraphShine(colour: GraphRGB(0.85, 0.88, 0.80), reach: 1.2, strength: 0.25)
-        case 7: return GraphShine(colour: GraphRGB(0.95, 0.85, 0.50), reach: 1.8, strength: 0.5)
+        case 0, 2: return GraphShine(colour: GraphRGB(0.95, 0.62, 0.78), reach: 2.2, strength: 0.7)
+        case 1: return GraphShine(colour: GraphRGB(0.82, 0.58, 0.95), reach: 1.8, strength: 0.55)
+        case 3: return GraphShine(colour: GraphRGB(0.72, 0.60, 0.95), reach: 1.6, strength: 0.5)
+        case 4: return GraphShine(colour: GraphRGB(0.55, 0.78, 0.95), reach: 1.4, strength: 0.4)
+        case 5: return GraphShine(colour: GraphRGB(0.62, 0.80, 0.98), reach: 1.2, strength: 0.25)
+        case 6: return GraphShine(colour: GraphRGB(0.95, 0.85, 0.50), reach: 1.8, strength: 0.5)
         default: return GraphShine(colour: GraphRGB(0.60, 0.70, 0.60), reach: 1.3, strength: 0.2)
         }
     }

@@ -62,6 +62,10 @@ nonisolated struct UniverseInput: Sendable {
     /// §3d): every note's body, tags, source and
     /// links. Nil for the other themes, which need only the titles.
     var anatomy: AnatomyInput? = nil
+    /// The folders opened on the map, outermost first (Neurons): a cell
+    /// shows its parts and notes only while its folder is here, and a
+    /// part its own only while it is too. The other themes ignore it.
+    var open: [UUID] = []
 }
 
 /// One note as the anatomy reads it: what Graph3DView hands over from the

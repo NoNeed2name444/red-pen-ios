@@ -1,15 +1,14 @@
 // The Neurons theme's look, as far as it is numbers (GraphNeuronStates):
 //
 // - the palette: bioluminescent green, cyan, pink and amber dyes on a deep
-//   blue, every colour on screen's scale; an idea's cell leans to its
-//   region's accent, so two regions already show all four colours; the
-//   soma's interior purple deepening to magenta;
+//   blue, every colour on screen's scale; an idea leans to its cell's
+//   accent, so two cells already show all four colours; the soma's
+//   interior purple deepening to magenta;
 // - the cell states: six, one for each space style and back again, each its
 //   own shader number; the Look menu in the space styles' order; natural
-//   states follow biology (a commissural cell beats, a receptor migrates,
-//   a microglial cell engulfs, the rest rest); a pacemaker beats with the
-//   pulsar's period;
-// - the choice: one state for every note, one per region winning over it,
+//   states follow biology (a receptor migrates, a drifter engulfs, the
+//   rest rest); a pacemaker beats with the pulsar's period;
+// - the choice: one state for every note, one per cell winning over it,
 //   containers always resting, stored strings read back the same and
 //   anything unreadable skipped;
 // - the bokeh: always the same discs, on the unit sphere, in the
@@ -18,7 +17,7 @@
 //   codes, the soma's interior is the palette's.
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphNeurons.swift,
-// GraphNeuronImpulses.swift, GraphTheme.swift, GraphSpaceOptics.swift,
+// GraphAnatomy.swift, GraphNeuronImpulses.swift, GraphTheme.swift, GraphSpaceOptics.swift,
 // GraphNeuronStates.swift, GraphShaderKit.swift, GraphSpaceShaders.swift and
 // GraphNeuronShaders.swift (Foundation only).
 import Foundation
@@ -56,17 +55,17 @@ check("N1 the interior purple, the heart magenta",
 let first: SIMD3<Float> = NeuronPalette.dye(slot: 0)
 let firstIdea: SIMD3<Float> = NeuronPalette.dye(slot: 0, idea: true)
 let accent: SIMD3<Float> = NeuronPalette.dyes[0].accent
-check("N1 an idea's cell leans to its region's accent",
+check("N1 an idea leans to its cell's accent",
       simd_distance_f(firstIdea, accent) < simd_distance_f(first, accent) && firstIdea != first)
-check("N1 slots wrap round, 5 and 6 a receptor's and a microglial cell's",
-      NeuronPalette.dye(slot: 5) == NeuronPalette.receptor && NeuronPalette.dye(slot: 6) == NeuronPalette.microglia
+check("N1 slots wrap round, 5 and 6 a receptor's and a drifter's",
+      NeuronPalette.dye(slot: 5) == NeuronPalette.receptor && NeuronPalette.dye(slot: 6) == NeuronPalette.drifter
       && NeuronPalette.dye(slot: 7) == NeuronPalette.dye(slot: 2))
-// regions 0 and 1 with their ideas: all four target colours
+// cells 0 and 1 with their ideas: all four target colours
 let two: [SIMD3<Float>] = [NeuronPalette.dyes[0].main, NeuronPalette.dyes[0].accent,
                            NeuronPalette.dyes[1].main, NeuronPalette.dyes[1].accent]
 let hasAll: Bool = two.contains { $0.y > 0.9 && $0.x < 0.5 } && two.contains { $0.z > 0.9 && $0.x < 0.4 }
     && two.contains { $0.x > 0.9 && $0.z > 0.6 } && two.contains { $0.x > 0.9 && $0.z < 0.4 }
-check("N1 two regions' dyes and accents give all four colours", hasAll)
+check("N1 two cells' dyes and accents give all four colours", hasAll)
 
 func simd_distance_f(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float {
     let d: SIMD3<Float> = a - b
@@ -85,10 +84,10 @@ check("N2 the menu in the space styles' order",
 check("N2 each its own title, process and symbol",
       Set(NeuronState.allCases.map(\.title)).count == 6 && Set(NeuronState.allCases.map(\.process)).count == 6
       && Set(NeuronState.allCases.map(\.symbol)).count == 6)
-check("N2 natural: commissural beats, a receptor migrates, microglia engulf, the rest rest",
-      NeuronState.natural(.commissural) == .pacemaker && NeuronState.natural(.receptor) == .migrating
-      && NeuronState.natural(.microglia) == .engulfing && NeuronState.natural(.pyramidal) == .resting
-      && NeuronState.natural(.interneuron) == .resting && NeuronState.natural(.glia) == .resting)
+let resting: [NeuronRole] = [.cell, .part, .home, .vesicle, .granule]
+check("N2 natural: a receptor migrates, a drifter engulfs, the rest rest",
+      NeuronState.natural(.receptor) == .migrating && NeuronState.natural(.drifter) == .engulfing
+      && resting.allSatisfy { NeuronState.natural($0) == .resting })
 check("N2 a pacemaker beats with the pulsar's period", NeuronState.beatPeriod == SpaceOptics.pulsarPeriod)
 
 // MARK: N3 the choice
@@ -103,9 +102,13 @@ for k in 0..<12 {
 }
 var edges: [UniverseEdge] = []
 for k in 0..<11 { edges.append(UniverseEdge(a: fixedID(k + 1), b: fixedID(((k * 5) % 12) + 1))) }
-let input = UniverseInput(notes: notes, folders: [UniverseFolder(id: folderA, name: "Examples", parent: nil),
+var input = UniverseInput(notes: notes, folders: [UniverseFolder(id: folderA, name: "Examples", parent: nil),
                                                   UniverseFolder(id: folderB, name: "Cardiology", parent: nil)],
                           edges: edges, seedByName: true)
+check("N3 a closed cell shows nothing inside",
+      GraphNeurons.plan(input).bodies.filter { $0.kind == .note }.count == 2)
+// Both cells opened, so the notes inside them are planned too.
+input.open = [folderA, folderB]
 let plan: ThemePlan = GraphNeurons.plan(input)
 let noteIndices: [Int] = plan.bodies.indices.filter { plan.bodies[$0].kind == .note }
 let containers: [Int] = plan.bodies.indices.filter { plan.bodies[$0].kind != .note }
@@ -114,7 +117,7 @@ let regionA: Int = plan.bodies.firstIndex { $0.id == folderA } ?? -1
 let natural = NeuronStateChoice.natural
 check("N3 natural: each note its role's state",
       noteIndices.allSatisfy { i in
-          natural.state(of: i, in: plan) == NeuronState.natural(NeuronRole(rawValue: plan.bodies[i].role) ?? .interneuron)
+          natural.state(of: i, in: plan) == NeuronState.natural(NeuronRole(rawValue: plan.bodies[i].role) ?? .granule)
       })
 let allFiring = NeuronStateChoice(main: NeuronState.firing.rawValue)
 check("N3 one state for every note", !noteIndices.isEmpty
@@ -124,9 +127,10 @@ check("N3 containers always rest", !containers.isEmpty
 let mixed = NeuronStateChoice(main: NeuronState.firing.rawValue, folders: [folderA: .engulfing])
 let inA: [Int] = noteIndices.filter { plan.bodies[$0].region == regionA }
 let outA: [Int] = noteIndices.filter { plan.bodies[$0].region != regionA }
-check("N3 a region's state wins for its cells", regionA >= 0 && !inA.isEmpty
+check("N3 a cell's state wins for the notes inside", regionA >= 0 && !inA.isEmpty
       && inA.allSatisfy { mixed.state(of: $0, in: plan) == .engulfing }
-      && outA.allSatisfy { mixed.state(of: $0, in: plan) == .firing })
+      && outA.allSatisfy { mixed.state(of: $0, in: plan) == .firing },
+      "A \(regionA) in \(inA.map { mixed.state(of: $0, in: plan).rawValue }) out \(outA.map { mixed.state(of: $0, in: plan).rawValue })")
 check("N3 out of range: resting", mixed.state(of: -1, in: plan) == .resting
       && mixed.state(of: plan.bodies.count, in: plan) == .resting)
 let raw: String = NeuronStateChoice.encode([folderA: .engulfing, folderB: .pacemaker])

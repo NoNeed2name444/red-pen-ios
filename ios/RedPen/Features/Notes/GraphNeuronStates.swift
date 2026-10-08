@@ -23,18 +23,18 @@ import Foundation
 //   engulfing  (the black hole's) a phagocyte: debris spiralling into a dark
 //                                phagosome ringed with light
 //
-// Natural states follow biology where a role is one of them: the
-// commissural neuron (the space's pulsar) beats as a pacemaker, a receptor
-// (a comet there) migrates in, a microglial cell engulfs; every other cell
-// rests. The Look menu sets one state for every note's cell, or one per
-// region (NeuronStateChoice), as the space's looks do.
+// Natural states follow biology where a role is one of them: a receptor
+// (the space's comet) migrates in along its leading process, a drifting
+// free cell (a microglial cell) engulfs; everything else rests. The Look
+// menu sets one state for every note, or one per cell (NeuronStateChoice),
+// as the space's looks do.
 //
 // Foundation only: tested on Linux (Tests/NeuronLookTests).
 
 nonisolated enum NeuronPalette {
-    /// The regions' membrane dyes in turn (sRGB, as on screen): green,
-    /// cyan, pink, amber, violet - each with its accent, which its ideas'
-    /// cells lean towards, so even two regions show all four colours.
+    /// The cells' membrane dyes in turn (sRGB, as on screen): green,
+    /// cyan, pink, amber, violet - each with its accent, which the ideas
+    /// inside lean towards, so even two cells show all four colours.
     static let dyes: [(main: SIMD3<Float>, accent: SIMD3<Float>)] = [
         (SIMD3<Float>(0.35, 1.0, 0.5), SIMD3<Float>(1.0, 0.74, 0.28)),
         (SIMD3<Float>(0.25, 0.92, 1.0), SIMD3<Float>(1.0, 0.42, 0.78)),
@@ -42,9 +42,9 @@ nonisolated enum NeuronPalette {
         (SIMD3<Float>(1.0, 0.74, 0.28), SIMD3<Float>(0.35, 1.0, 0.5)),
         (SIMD3<Float>(0.66, 0.5, 1.0), SIMD3<Float>(0.25, 0.92, 1.0))
     ]
-    /// A receptor's gold, a microglial cell's pale ice.
+    /// A receptor's gold, a drifting free cell's pale ice.
     static let receptor = SIMD3<Float>(1.0, 0.84, 0.48)
-    static let microglia = SIMD3<Float>(0.62, 0.8, 0.98)
+    static let drifter = SIMD3<Float>(0.62, 0.8, 0.98)
     /// The soma's interior: purple, deepening to magenta at its heart; the
     /// nucleus a violet-magenta, its nucleolus brighter.
     static let interior = SIMD3<Float>(0.58, 0.24, 0.98)
@@ -57,15 +57,14 @@ nonisolated enum NeuronPalette {
     /// The fluid behind everything: deep blue.
     static let deep = SIMD3<Float>(0.012, 0.03, 0.09)
 
-    /// How far an idea's cell leans to its region's accent.
+    /// How far an idea leans to its cell's accent.
     static let ideaLean: Float = 0.45
 
-    /// A dye slot's membrane colour: 0...4 the regions' (round again past
-    /// five), 5 a receptor's, 6 a microglial cell's; `idea` leans to the
-    /// accent.
+    /// A dye slot's membrane colour: 0...4 the cells' (round again past
+    /// five), 5 a receptor's, 6 a drifter's; `idea` leans to the accent.
     static func dye(slot: Int, idea: Bool = false) -> SIMD3<Float> {
         if slot == 5 { return receptor }
-        if slot == 6 { return microglia }
+        if slot == 6 { return drifter }
         let pair = dyes[max(slot, 0) % dyes.count]
         guard idea else { return pair.main }
         return pair.main + (pair.accent - pair.main) * ideaLean
@@ -160,13 +159,12 @@ nonisolated enum NeuronState: String, CaseIterable, Sendable, Identifiable {
     }
 
     /// A role's state when nothing is chosen: biology's, where a role is
-    /// one - the commissural cell a pacemaker, a receptor migrating, a
-    /// microglial cell engulfing - and rest everywhere else.
+    /// one - a receptor migrating in, a drifter (a microglial cell)
+    /// engulfing - and rest everywhere else.
     static func natural(_ role: NeuronRole) -> NeuronState {
         switch role {
-        case .commissural: return .pacemaker
         case .receptor: return .migrating
-        case .microglia: return .engulfing
+        case .drifter: return .engulfing
         default: return .resting
         }
     }
@@ -177,8 +175,8 @@ nonisolated enum NeuronState: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// What the owner chose in the Look menu for the Neurons: one state for
-/// every note's cell (or natural), and one per region (top-level folder),
-/// which wins for that region's cells. Containers - regions and relays -
+/// every note (or natural), and one per cell (top-level folder), which
+/// wins for the notes inside it. Containers - cells and their parts -
 /// keep their own look. Stored as two strings, as the space's looks are.
 nonisolated struct NeuronStateChoice: Sendable, Equatable {
     /// "natural", or a state's raw value.
@@ -228,8 +226,8 @@ nonisolated struct NeuronStateChoice: Sendable, Equatable {
         main != Self.naturalValue || !folders.isEmpty
     }
 
-    /// The state body `i` of `plan` shows: its region's state, else the
-    /// one for all, else its role's natural state; a container rests.
+    /// The state body `i` of `plan` shows: its cell's state, else the one
+    /// for all, else its role's natural state; a container rests.
     func state(of i: Int, in plan: ThemePlan) -> NeuronState {
         guard i >= 0, i < plan.bodies.count else { return .resting }
         let body: ThemeBody = plan.bodies[i]
@@ -238,7 +236,7 @@ nonisolated struct NeuronStateChoice: Sendable, Equatable {
             return chosen
         }
         if let all = NeuronState(rawValue: main) { return all }
-        return NeuronState.natural(NeuronRole(rawValue: body.role) ?? .interneuron)
+        return NeuronState.natural(NeuronRole(rawValue: body.role) ?? .granule)
     }
 }
 

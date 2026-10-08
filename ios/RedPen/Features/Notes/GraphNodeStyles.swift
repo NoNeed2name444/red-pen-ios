@@ -200,7 +200,7 @@ struct GraphStyleTool: View {
     }
 
     /// The Neurons' own choices: each cell's state (the space styles'
-    /// six, each a process of its own) for all notes, and one per region.
+    /// six, each a process of its own) for all notes, and one per cell.
     @ViewBuilder
     private var cellLooks: some View {
         Picker("Cells", selection: cellState) {
@@ -211,7 +211,7 @@ struct GraphStyleTool: View {
         }
         .pickerStyle(.inline)
         if !folders.isEmpty {
-            Menu("Region states") {
+            Menu("Cell by cell") {
                 ForEach(folders) { folder in
                     Picker(folder.name, selection: cellFolderBinding(folder.id)) {
                         Text("Same as all").tag("")

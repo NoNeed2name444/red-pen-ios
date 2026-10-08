@@ -265,8 +265,8 @@ nonisolated enum GraphPeek {
         switch theme {
         case "neurons":
             let words: [String: String] = [
-                "0": "Brain region", "1": "Relay neuron", "2": "Brainstem", "3": "Neuron", "4": "Interneuron",
-                "5": "Glial cell", "6": "Commissural neuron", "7": "Receptor", "8": "Microglia"
+                "0": "Cell", "1": "Cell part", "2": "Cell", "3": "Vesicle", "4": "Granule",
+                "5": "Drifting cell", "6": "Receptor"
             ]
             return words[role]
         default:
