@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 4:28 PM Cairo.
+Last updated: 2026-10-08, 4:42 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -36,8 +36,8 @@ Last updated: 2026-10-08, 4:28 PM Cairo.
 | Branch | Head | What it holds |
 |---|---|---|
 | wip/3d-neurons-m3 | the plan.md commit after 6847330 | M3 in progress; preflight OK on 5909600 (4:22 PM); its App build (run 37781812785) compiled the app (Build step green, 4:25 PM) |
-| design/3d-overhaul | fast-forwarded to the wip head at 4:30 PM | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code |
-| preview/3d-overhaul | fast-forwarded to the wip head at 4:30 PM | a push here makes screenshots; a Neurons-only run was dispatched |
+| design/3d-overhaul | the wip head | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; its App build (run 37784372084, e5e40b8) passed at 4:33 PM |
+| preview/3d-overhaul | e5e40b8 | a push here makes screenshots; the Neurons-only run 37784398918 was taking them at 4:40 PM (don't push here while it runs: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -67,6 +67,14 @@ Last updated: 2026-10-08, 4:28 PM Cairo.
     14, 15); the new testNeuronsOpenInTurn opens Examples, then Inguinal
     inside it (shots 20 to 22). testNeuronsAtRest now checks the summary
     for "cell" (the old "regions" and "glia" are gone).
+- Swift tests on design/3d-overhaul (run 37784371979) went red at 4:37 PM
+  with all 71 suites passing: the same commit was tested on design/ and
+  preview/ at once, and both runs force-pushed their logs to the
+  swift-tests branch at the same moment ("cannot lock ref"). The log
+  pushes now retry once (swift-tests.yml).
+- The wip App build (run 37781812785) runs the whole UI suite on a
+  simulator after its compile (design/ branches skip it); at 4:40 PM it
+  was still in that step.
 - app-build.yml runs on every push to personal and design/**. Keep work in
   progress on wip/3d-neurons-m3 until the app compiles. To compile-check it
   there, dispatch the build:
