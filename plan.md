@@ -35,7 +35,7 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the close-up redraw ("Neurons: the cell redrawn after the circled close-up") | M3 in progress; the Linux suites pass on the redraw; 8a18676 (the look before it) compiled on the Mac (App build run 37793822496, green) |
+| wip/3d-neurons-m3 | the cell body redrawn ("Neurons: the cell body redrawn closer to the circled close-up") | M3 in progress; the Linux suites pass (preflight, 6:50 PM); 95c4b8d (the first close-up redraw) compiled on the Mac (App build run 37800740887, green) |
 | design/3d-overhaul | the wip head once pushed | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
 | preview/3d-overhaul | 44e42e7 (the look the owner rejected) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
@@ -79,6 +79,15 @@ Last updated: 2026-10-08, 6:15 PM Cairo.
   that close-up only (section 4, "The look"): no ringed orbs, no threads,
   no circuits. GraphNeuronLook only compiles on the Mac, so its App build
   on design/ is the check.
+- The first close-up redraw (95c4b8d) was shot (preview run 37800861072,
+  only=testNeurons). Next to the close-up it was off in four ways: the
+  background a bright royal blue (the dome's 16 glows add 0.2 to 0.3 of
+  blue to NeuronPalette.deep), the nucleus a ball with a dark gap before a
+  teal rim, the dendrites short gold triangles (a linear taper and a gold
+  base term drowning the glass edge), the axon a thin gold line. The cell
+  body is redone (the mandala, swirling strokes, gold limb lobes, a thin
+  white-blue rim: section 4, "The look"); the dendrites, background and
+  axon are next (step 6b).
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
   60-minute limit. Two map tests failed:
@@ -130,7 +139,15 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    glass soma, deep-violet nucleus with a bright star, golden filament
    light, glass dendrites with golden light, beaded glass axon with a
    golden bouton, far blurred blue neurons and gold and blue bokeh behind.
-   Code and Linux suites done; next: App build on design/, then step 6.
+   - [x] First pass (95c4b8d): compiled, shot, compared (section 2).
+   - [x] The cell body redone after the comparison.
+   - [ ] The dendrites: long, thick glass trunks flowing out of the soma
+     (start inside it, a flared taper, up to GraphNeurons.reach), a bright
+     white-blue edge the whole way, gold streaks inside near the soma.
+   - [ ] The background: a dark teal-navy (the close-up's (6,20,30) to
+     (41,68,89)): NeuronPalette.deep and NeuronTissue's glow hues.
+   - [ ] The axon: a thicker beaded glass tube.
+   - [ ] App build on design/, then step 6.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
@@ -197,14 +214,15 @@ The circled close-up (8 Oct, 6 PM), the only target now:
 ### The look (after the circled close-up, 8 Oct, 6 PM)
 
 What the cells are now, and where (each shader's doc says the same):
-- Soma (NeuronShaders.soma): inside 0.66 of the radius the nucleus, deep
-  violet (NeuronPalette.interior (0.2,0.07,0.46)) brightening to violet at
-  its heart (.heart (0.52,0.24,0.98)), touched by the dye (tint A, 16%);
-  radial spokes and twinkling violet sparkles in it; a violet-white star at
-  its middle (rpNucleus its size); a crisp glassy rim round it. Outside it,
-  golden filament light hugging the nucleus, unevenly bright, with golden
-  sparkles (tint C, NeuronLook.sparkle (1,0.88,0.6)); then the clear glass,
-  its edge white-blue, and a wet highlight.
+- Soma (NeuronShaders.soma): a dark violet glass ball
+  (NeuronPalette.interior (0.2,0.07,0.46) darkening toward the edge, .heart
+  (0.52,0.24,0.98) at the middle, a touch of the dye, tint A); a violet
+  mandala at its heart (six bright points round the star, thin rays
+  between); short strokes swirling round it, violet near the heart and gold
+  toward the edge; a few sparkles in depth. At the limb golden filament
+  light in lobes that blaze in places, white-hot on their crests, with
+  golden glints (tint C, NeuronLook.sparkle (1,0.88,0.6)); then a thin
+  white-blue glass rim, a faint violet sheen inside it and a wet highlight.
 - Dendrites (NeuronShaders.arbor): glass, a white-blue edge, golden light
   inside near the soma (tint A, the golden (1,0.74,0.36)·0.88 + dye·0.12)
   cooling to blue-violet further out, faint spiralling strands, golden
