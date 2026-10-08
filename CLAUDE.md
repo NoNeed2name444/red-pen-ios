@@ -2,6 +2,7 @@
 
 The owner has only an iPhone and an iPad. Anything needing a Mac runs in GitHub Actions.
 The handoff and the plan live in the Chat-me repo: docs/architecture/handoff/context.md (wins on app state) and plan.md.
+What to continue next, step by step: plan.md at this repo's root. Read it right after this file, and keep it current (tick what's done, add what's new) in the same commits as the work.
 The owner's design targets: docs/design/targets-2026-10-01.md (no Rank, Clerk badge or XP; the app stays Stethoscore).
 
 ## Decisions
