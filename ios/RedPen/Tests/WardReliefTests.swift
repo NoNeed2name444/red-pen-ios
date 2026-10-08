@@ -153,6 +153,46 @@ for lift in WardLift.allCases {
     }
 }
 
+// Paper frame: exact ink, strict size threshold and grid endpoints.
+check("paper constants", WardPaper.frame == 12 && WardPaper.cell == 6 &&
+      WardPaper.boldEvery == 5 && WardPaper.line == 1 && WardPaper.edgeWidth == 1.5 &&
+      near(WardPaper.cornerShare, 53.33 / 428))
+for dark in [false, true] {
+    for strong in [false, true] {
+        let ink = WardPaper.ink(dark: dark, highContrast: strong)
+        check("paper ink \(dark)/\(strong)",
+              ink.hex == (dark ? 0x78AAF5 : 0x2868C4) &&
+              ink.fine == (strong ? 0 : (dark ? 0.07 : 0.09)) &&
+              ink.bold == (strong ? 0 : (dark ? 0.14 : 0.18)) &&
+              ink.edge == (dark ? 0.5 : 0.55))
+    }
+}
+check("paper panel excludes threshold", WardPaper.panel(width: 48, height: 500) == nil &&
+      WardPaper.panel(width: 500, height: 48) == nil)
+if let panel = WardPaper.panel(width: 49, height: 49) {
+    check("paper smallest panel", panel.x == 12 && panel.y == 12 &&
+          panel.width == 25 && panel.height == 25 && near(panel.radius, 25 * 53.33 / 428))
+} else {
+    check("paper smallest panel exists", false)
+}
+for (width, height) in [(428.0, 926.0), (926.0, 428.0)] {
+    if let panel = WardPaper.panel(width: width, height: height) {
+        check("paper panel \(width)x\(height)", panel.x == 12 && panel.y == 12 &&
+              panel.width == width - 24 && panel.height == height - 24 &&
+              near(panel.radius, 404 * 53.33 / 428))
+    } else {
+        check("paper phone panel exists", false)
+    }
+}
+let paper30 = WardPaper.lines(30), paper31 = WardPaper.lines(31)
+check("paper grid excludes endpoint", paper30.count == 5 &&
+      paper30.map { $0.at } == [0, 6, 12, 18, 24] &&
+      paper30.filter { $0.bold }.map { $0.at } == [0])
+check("paper grid includes next bold", paper31.count == 6 &&
+      paper31.map { $0.at } == [0, 6, 12, 18, 24, 30] &&
+      paper31.filter { $0.bold }.map { $0.at } == [0, 30])
+check("paper nonpositive grid empty", WardPaper.lines(0).isEmpty && WardPaper.lines(-5).isEmpty)
+
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

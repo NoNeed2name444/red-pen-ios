@@ -312,6 +312,7 @@ struct SkyRoot<Content: View>: View {
             .environment(\.graphics, budget)
             .environment(\.skyZoom, zoom)
             .preferredColorScheme(scheme)
+            .overlay { if !center.skyCovered { WardPaperFrame() } }
             .onAppear {
                 // the cues' tones are made once, ahead of the first one
                 if SpaceSettings.sounds { SpaceSounds.shared.prepare() }

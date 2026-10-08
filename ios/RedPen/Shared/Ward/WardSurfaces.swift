@@ -143,6 +143,53 @@ struct WardBackground: View {
     }
 }
 
+/// Still ECG paper around the screen; content scrolls beneath the open panel.
+struct WardPaperFrame: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Canvas { context, size in
+            guard let panel = WardPaper.panel(width: Double(size.width), height: Double(size.height)) else { return }
+            let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+            let (r, g, b) = WardPalette.rgb(ink.hex)
+            let color = Color(red: r, green: g, blue: b)
+            let rect = CGRect(origin: .zero, size: size)
+            let panelRect = CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height)
+            let hole = RoundedRectangle(cornerRadius: CGFloat(panel.radius), style: .continuous)
+                .path(in: panelRect)
+            var frame = Path(rect)
+            frame.addPath(hole)
+            context.drawLayer { layer in
+                layer.clip(to: frame, style: FillStyle(eoFill: true))
+                layer.fill(Path(rect), with: .color(.wardBackground))
+                func drawLine(_ line: Path, bold: Bool) {
+                    if ink.fine > 0 {
+                        layer.fill(line, with: .color(color.opacity(ink.fine)))
+                    }
+                    if bold && ink.bold > 0 {
+                        layer.fill(line, with: .color(color.opacity(ink.bold)))
+                    }
+                }
+                if ink.fine > 0 || ink.bold > 0 {
+                    for line in WardPaper.lines(Double(size.width)) {
+                        drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line,
+                                             height: size.height)), bold: line.bold)
+                    }
+                    for line in WardPaper.lines(Double(size.height)) {
+                        drawLine(Path(CGRect(x: 0, y: line.at, width: size.width,
+                                             height: WardPaper.line)), bold: line.bold)
+                    }
+                }
+            }
+            context.stroke(hole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 /// A card: raised off the base, no line round it.
 struct WardCardStyle: ViewModifier {
     var padding: CGFloat = WardSpace.gutter

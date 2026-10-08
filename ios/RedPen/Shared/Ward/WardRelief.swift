@@ -169,3 +169,52 @@ enum WardPress {
                              blur: soft(lift) + hollowSoft * q, edgeAlpha: raised.edgeAlpha)
     }
 }
+
+/// ECG paper geometry and ink, independent of the rendering framework.
+struct WardPaperInk: Equatable, Sendable {
+    var hex: UInt32
+    var fine: Double
+    var bold: Double
+    var edge: Double
+}
+
+struct WardPaperPanel: Equatable, Sendable {
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var radius: Double
+}
+
+enum WardPaper {
+    static let frame = 12.0
+    static let cell = 6.0
+    static let boldEvery = 5
+    static let line = 1.0
+    static let edgeWidth = 1.5
+    static let cornerShare = 53.33 / 428
+
+    static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
+        WardPaperInk(hex: dark ? 0x78AAF5 : 0x2868C4,
+                     fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
+                     bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
+                     edge: dark ? 0.5 : 0.55)
+    }
+
+    static func panel(width: Double, height: Double) -> WardPaperPanel? {
+        guard width > 4 * frame, height > 4 * frame else { return nil }
+        return WardPaperPanel(x: frame, y: frame,
+                              width: width - 2 * frame, height: height - 2 * frame,
+                              radius: (min(width, height) - 2 * frame) * cornerShare)
+    }
+
+    static func lines(_ length: Double) -> [(at: Double, bold: Bool)] {
+        var result: [(at: Double, bold: Bool)] = []
+        var k = 0
+        while Double(k) * cell < length {
+            result.append((at: Double(k) * cell, bold: k % boldEvery == 0))
+            k += 1
+        }
+        return result
+    }
+}
