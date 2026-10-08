@@ -202,6 +202,7 @@ struct MCQQuizView: View {
                     .buttonStyle(.wardCompact)
                     .disabled(saved.wrappedValue)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         // Wakes once, when the paper's time is up. Keyed by the end time, so

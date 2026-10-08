@@ -160,6 +160,7 @@ struct MockSittingView: View {
         ToolbarItem(placement: .topBarLeading) {
             if result == nil {
                 Button("End") { confirmQuit = true }
+                    .buttonStyle(.wardCompact)
                     .confirmationDialog("End the paper now?", isPresented: $confirmQuit, titleVisibility: .visible) {
                         Button("End and see results", role: .destructive) { finish() }
                         Button("Leave without results", role: .destructive) {
@@ -171,17 +172,21 @@ struct MockSittingView: View {
                     }
             }
         }
+        .sharedBackgroundVisibility(.hidden)
         ToolbarItem(placement: .topBarTrailing) {
             if result == nil && !onBreak {
                 Menu {
                     ExamToolMenuItems(sheet: $toolSheet, highlighting: $highlighting)
                 } label: {
-                    Label("More", systemImage: "ellipsis.circle")
-                        .labelStyle(.titleAndIcon)
+                    Label("More", systemImage: "ellipsis")
+                        .labelStyle(.iconOnly)
                 }
+                .menuStyle(.button)
+                .buttonStyle(.wardCircle)
                 .accessibilityHint("Lab values, calculator and highlighter")
             }
         }
+        .sharedBackgroundVisibility(.hidden)
     }
 
     // MARK: the header

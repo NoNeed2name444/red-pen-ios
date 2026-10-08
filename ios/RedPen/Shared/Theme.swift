@@ -459,16 +459,20 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// and, now and then, a small companion beside it.
 /// Always at the bottom, so the next step is in the same place on every
 /// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
-/// still works as the last child of a VStack.
+/// still works as the last child of a VStack. By default, a soft button above
+/// the slab folds it away for this visit; pass `folds: false` to keep it shown.
 ///
 /// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
 /// under the right hand (the left hand, right to left: `.trailing` turns
 /// round with the language, as the buttons' order in it does).
 struct StudyActionBar<Content: View>: View {
     private let content: Content
+    private let folds: Bool
+    @State private var folded = false
     @Environment(\.windowSpan) private var span
 
-    init(@ViewBuilder content: () -> Content) {
+    init(folds: Bool = true, @ViewBuilder content: () -> Content) {
+        self.folds = folds
         self.content = content()
     }
 
@@ -478,10 +482,30 @@ struct StudyActionBar<Content: View>: View {
         let innerCap: CGFloat? = broad ? nil : 700
         let outerCap: CGFloat = broad ? 1000 : 700
         let side: Alignment = broad ? .trailing : .center
-        VStack(spacing: 12) { content }
-            .padding(12)
-            .frame(maxWidth: innerCap)
-            .wardRaised(in: shape, lift: .high)
+        VStack(spacing: 8) {
+            if folds {
+                Button {
+                    withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) {
+                        folded.toggle()
+                    }
+                } label: {
+                    Label(folded ? "Show buttons" : "Hide buttons", systemImage: "chevron.down")
+                        .labelStyle(.iconOnly)
+                        .rotationEffect(.degrees(folded ? 180 : 0))
+                }
+                .buttonStyle(.wardCircle)
+                .accessibilityIdentifier("studyBarFold")
+                .frame(maxWidth: .infinity, alignment: side)
+            }
+            if !folded {
+                VStack(spacing: 12) { content }
+                    .padding(12)
+                    .frame(maxWidth: innerCap)
+                    .wardRaised(in: shape, lift: .high)
+                    .frame(maxWidth: .infinity, alignment: side)
+                    .transition(.slideFade(.bottom))
+            }
+        }
             .frame(maxWidth: outerCap, alignment: side)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
@@ -779,14 +803,17 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                             .accessibilityIdentifier("wardPocket")
                         }
                     } label: {
-                        Label("More", systemImage: "ellipsis.circle")
-                            .labelStyle(.titleAndIcon)
+                        Label("More", systemImage: "ellipsis")
+                            .labelStyle(.iconOnly)
                     }
+                    .menuStyle(.button)
+                    .buttonStyle(.wardCircle)
                     .accessibilityIdentifier("studyMore")
                     .accessibilityHint("Other things you can do on this screen")
                     // once, when study screens are familiar (StudyTips)
                     .studyTip(.turnInto, when: turnInto)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .tipSighting(.study)
             .turnIntoPicker(for: $turning)

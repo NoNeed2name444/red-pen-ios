@@ -298,7 +298,7 @@ private extension View {
     /// main button on the bar under the thumb.
     func firstRunChrome(page: FirstRunPage, nextTitle: String,
                         next: @escaping () -> Void, skip: @escaping () -> Void) -> some View {
-        let bar = StudyActionBar {
+        let bar = StudyActionBar(folds: false) {
             Button(action: next) {
                 Text(nextTitle).font(.headline)
             }

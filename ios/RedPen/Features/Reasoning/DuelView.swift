@@ -47,9 +47,13 @@ struct DuelsView: View {
                     Menu {
                         Button("Delete duels", systemImage: "trash", role: .destructive) { confirmClear = true }
                     } label: {
-                        Label("More", systemImage: "ellipsis.circle")
+                        Label("More", systemImage: "ellipsis")
+                            .labelStyle(.iconOnly)
                     }
+                    .menuStyle(.button)
+                    .buttonStyle(.wardCircle)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .confirmationDialog("Delete these duels and their scores?", isPresented: $confirmClear, titleVisibility: .visible) {

@@ -133,7 +133,7 @@ private struct FloatingActionBar: View {
         let showing: Bool = floating.floating(expecting: expecting, busy: generation.job != nil) != nil
         ZStack {
             if showing {
-                StudyActionBar {
+                StudyActionBar(folds: false) {
                     FloatingActionButton(expecting: expecting)
                 }
                 .transition(.slideFade(.bottom))
