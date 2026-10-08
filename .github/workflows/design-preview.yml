@@ -283,6 +283,9 @@ jobs:
         run: |
           mkdir -p out/shots/iphone out/shots/ipad out/logs
           cd out
+          # GitHub refuses a file over 100 MB, which loses every picture; a
+          # failed test's raw screen recording can be several hundred
+          find . -type f -size +95M -print -delete | sed 's/^/left out, too big: /'
           # the test lines and any errors, per run
           : > log.txt
           for log in logs/build-*.log; do
