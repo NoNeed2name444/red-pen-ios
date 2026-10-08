@@ -77,7 +77,7 @@ struct CaseWardView: View {
             }
         }
         .wardScreen()
-        .studyBar { bottomBar }
+        .studyBar(folds: true) { bottomBar }
         .sheet(isPresented: $showingLadder) {
             NavigationStack {
                 CaseLadderPanel(file: file, run: $run)

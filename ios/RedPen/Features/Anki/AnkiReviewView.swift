@@ -146,7 +146,7 @@ struct AnkiReviewView: View {
             }
         }
         .reviewUndoChip(until: $undoUntil, action: undo)
-        .studyBar { footer(item) }
+        .studyBar(folds: true) { footer(item) }
     }
 
     /// The finish: what happened, the way to a quiz on the same cards, and

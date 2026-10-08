@@ -251,7 +251,7 @@ struct MockSittingView: View {
             .readableColumn()
             .id(q.id)
         }
-        .studyBar { bar }
+        .studyBar(folds: true) { bar }
         .sheet(isPresented: $showGrid) { grid }
         .confirmationDialog(endTitle, isPresented: $confirmEnd, titleVisibility: .visible) {
             Button(isLastSection ? "Finish paper" : "Close \(spec.title)", role: .destructive) { closeSection() }

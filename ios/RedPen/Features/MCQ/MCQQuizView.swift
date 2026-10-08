@@ -969,7 +969,7 @@ struct MCQQuizView: View {
                     scrollContent
                 }
             }
-            .studyBar { footer(proxy) }
+            .studyBar(folds: true) { footer(proxy) }
             .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }
         }
     }

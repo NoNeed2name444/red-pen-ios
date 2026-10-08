@@ -49,7 +49,7 @@ struct CaseDecisionView: View {
                 }
             }
             // the study bar: the soft slab raised under the thumb
-            .studyBar {
+            .studyBar(folds: true) {
                 Button { discharge() } label: {
                     Label("Discharge and debrief", systemImage: "doc.text")
                 }

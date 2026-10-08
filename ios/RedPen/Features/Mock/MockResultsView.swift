@@ -50,7 +50,7 @@ struct MockResultsView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
-        .studyBar { bar }
+        .studyBar(folds: true) { bar }
         // a first mock that went reasonably is a good moment to ask for a rating, once
         .reviewPromptAfterMock(result.fraction >= 0.5)
         .navigationDestination(item: $practising) { set in

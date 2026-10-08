@@ -459,8 +459,9 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// and, now and then, a small companion beside it.
 /// Always at the bottom, so the next step is in the same place on every
 /// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
-/// still works as the last child of a VStack. By default, a soft button above
-/// the slab folds it away for this visit; pass `folds: false` to keep it shown.
+/// still works as the last child of a VStack. Reading screens can opt in with
+/// `.studyBar(folds: true) { }`: a band inside the slab folds its buttons away
+/// for this visit. It starts open; bars without that option stay shown.
 ///
 /// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
 /// under the right hand (the left hand, right to left: `.trailing` turns
@@ -471,7 +472,7 @@ struct StudyActionBar<Content: View>: View {
     @State private var folded = false
     @Environment(\.windowSpan) private var span
 
-    init(folds: Bool = true, @ViewBuilder content: () -> Content) {
+    init(folds: Bool = false, @ViewBuilder content: () -> Content) {
         self.folds = folds
         self.content = content()
     }
@@ -482,34 +483,55 @@ struct StudyActionBar<Content: View>: View {
         let innerCap: CGFloat? = broad ? nil : 700
         let outerCap: CGFloat = broad ? 1000 : 700
         let side: Alignment = broad ? .trailing : .center
-        VStack(spacing: 8) {
+        Group {
             if folds {
-                Button {
-                    withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) {
-                        folded.toggle()
+                VStack(spacing: 0) {
+                    Button {
+                        withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) {
+                            folded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: folded ? "chevron.compact.up" : "chevron.compact.down")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Color.wardInk)
+                            .frame(minWidth: 88, maxWidth: .infinity, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
-                } label: {
-                    Label(folded ? "Show buttons" : "Hide buttons", systemImage: "chevron.down")
-                        .labelStyle(.iconOnly)
-                        .rotationEffect(.degrees(folded ? 180 : 0))
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(folded ? "Show buttons" : "Hide buttons")
+                    .accessibilityIdentifier("studyBarFold")
+
+                    if !folded {
+                        VStack(spacing: 12) { content }
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 12)
+                            .transition(.slideFade(.bottom))
+                    }
                 }
-                .buttonStyle(.wardCircle)
-                .accessibilityIdentifier("studyBarFold")
+                .fixedSize(horizontal: broad, vertical: false)
+                .frame(maxWidth: innerCap)
+                .wardRaised(in: shape, lift: .high)
                 .frame(maxWidth: .infinity, alignment: side)
-            }
-            if !folded {
+            } else {
                 VStack(spacing: 12) { content }
                     .padding(12)
                     .frame(maxWidth: innerCap)
                     .wardRaised(in: shape, lift: .high)
                     .frame(maxWidth: .infinity, alignment: side)
-                    .transition(.slideFade(.bottom))
             }
         }
             .frame(maxWidth: outerCap, alignment: side)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
+    }
+}
+
+extension View {
+    func studyBar<C: View>(folds: Bool, @ViewBuilder _ content: () -> C) -> some View {
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            StudyActionBar(folds: folds, content: content)
+        }
     }
 }
 

@@ -96,7 +96,7 @@ struct BookReaderView: View {
             .readableColumn()
         }
         .id(index)
-        .studyBar { footer }
+        .studyBar(folds: true) { footer }
     }
 
     /// A heading's size by its level: # the largest, ### and below the

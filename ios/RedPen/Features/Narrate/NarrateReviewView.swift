@@ -391,7 +391,7 @@ struct NarrateReviewView: View {
         }
         // what a correction did, just above the bar, until undone or replaced
         .overlay(alignment: .bottom) { fixToast }
-        .studyBar { controls }
+        .studyBar(folds: true) { controls }
     }
 
     @ViewBuilder

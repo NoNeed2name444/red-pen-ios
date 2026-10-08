@@ -239,7 +239,7 @@ struct OsceReviewView: View {
             .padding(.bottom, 12)
             .readableColumn()
         }
-        .studyBar { footer }
+        .studyBar(folds: true) { footer }
     }
 
     private var promptLine: String {

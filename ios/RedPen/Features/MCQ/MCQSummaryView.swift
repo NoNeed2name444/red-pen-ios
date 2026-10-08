@@ -173,7 +173,7 @@ struct MCQSummaryView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
-        .studyBar { barButtons }
+        .studyBar(folds: true) { barButtons }
         .saveToIdeasHost()
         .reviewPromptAfterStreak(true)
         .modeScreen(.mcq)
