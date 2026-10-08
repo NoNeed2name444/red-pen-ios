@@ -121,6 +121,7 @@ enum WardRelief {
 
 /// Continuous control relief, independent of SwiftUI and its animation clock.
 struct WardPressSpec: Equatable, Sendable {
+    var blur: Double
     var outerShade: WardReliefLight
     var innerShade: WardReliefLight
     var innerHighlight: WardReliefLight
@@ -135,6 +136,11 @@ enum WardPress {
     static let shadeRelease = 0.18
     static let depth = 0.7
     static let softKeep = 0.6
+    static let hollowSoft = 1.0
+
+    static func soft(_ lift: WardLift) -> Double {
+        Double(lift.rawValue + 1) / 2
+    }
     static let quickCurve = (x1: 1.0 / 3, y1: 0.5, x2: 2.0 / 3, y2: 5.0 / 6)
 
     static func quick(_ u: Double) -> Double {
@@ -160,7 +166,8 @@ enum WardPress {
                             x: original.x * weight, y: original.y * weight,
                             radius: original.radius * (softKeep + (1 - softKeep) * weight))
         }
-        return WardPressSpec(outerShade: light(raised.shade, weight: up),
+        return WardPressSpec(blur: soft(lift) + hollowSoft * q,
+                             outerShade: light(raised.shade, weight: up),
                              innerShade: light(raised.shade, weight: down),
                              innerHighlight: light(raised.highlight, weight: down),
                              edgeAlpha: raised.edgeAlpha)

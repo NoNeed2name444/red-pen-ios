@@ -661,7 +661,7 @@ struct MCQQuizView: View {
     private func optionRow(_ idx: Int) -> some View {
         let mark: ChartQuiz.Mark = ChartQuiz.mark(slot: idx, selected: a.selected, correct: correctSlot(current),
                                                   checked: a.checked, examMode: examMode)
-        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
         let out: Bool = isStruck(idx)
         let text: String = optionText(current, slot: idx)
         return Button {
@@ -979,7 +979,7 @@ struct MCQQuizView: View {
             questionCard
             hintCard
 
-            VStack(spacing: 10) {
+            VStack(spacing: 16) {
                 ForEach(q.options.indices, id: \.self) { idx in
                     optionRow(idx)
                         .riseIn(index: idx + 1)

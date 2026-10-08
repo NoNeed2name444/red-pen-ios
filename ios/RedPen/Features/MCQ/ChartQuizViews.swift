@@ -5,8 +5,8 @@ import SwiftUI
 // its chips that are buttons are WardChipButtonStyle (WardControls). What
 // each shows is decided, and tested, in ChartQuiz.
 
-/// An answer option as a soft row: its letter in a small well, then its
-/// text. Chosen, the row is pressed into the base with its letter in Theatre
+/// An answer option as a soft tile: a plain monospaced letter, then its
+/// text. Chosen, the row is pressed into the base with letter and text in Theatre
 /// Blue; once checked, the right one is pressed in with a Discharge Green
 /// letter and check, a wrong pick with a Resus Red letter and cross - the
 /// colour on the letter and the mark only. Crossed out, it is struck through
@@ -16,7 +16,6 @@ struct WardOptionRow: View {
     let text: String
     var mark: ChartQuiz.Mark = .idle
     var struck = false
-    @ScaledMetric(relativeTo: .body) private var badge: CGFloat = 32
     /// Differentiate Without Colour: the chosen edge thicker, and right and
     /// wrong said in a word beside their marks.
     @Environment(\.accessibilityDifferentiateWithoutColor) private var noColour
@@ -31,24 +30,21 @@ struct WardOptionRow: View {
     }
 
     private var letterInk: Color {
-        if let tone { return tone }
-        return mark == .past ? .wardInkSecondary : .wardInk
+        tone ?? .wardInkSecondary
     }
 
     private var symbol: String? { mark == .right ? "checkmark.circle.fill" : (mark == .wrong ? "xmark.circle.fill" : nil) }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
-        HStack(spacing: WardSpace.m) {
+        let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
+        HStack(spacing: 14) {
             Text(letter)
-                .font(.body.weight(.bold).monospaced())
+                .font(.callout.weight(.semibold).monospaced())
                 .foregroundStyle(letterInk)
-                .frame(width: badge, height: badge)
-                .wardInset(in: Circle())
                 .accessibilityHidden(true)
             Text(text)
-                .font(.body)
-                .foregroundStyle(mark == .past ? Color.wardInkSecondary : Color.wardInk)
+                .font(.callout)
+                .foregroundStyle(mark == .chosen ? Color.wardPrimaryInk : (mark == .past ? Color.wardInkSecondary : Color.wardInk))
                 .strikethrough(struck, color: .wardInkSecondary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -61,8 +57,8 @@ struct WardOptionRow: View {
                 Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
         .frame(minHeight: 56)
         .wardRelief(in: shape, lift: .mid, pressed: tone != nil)
         // Differentiate Without Colour: the chosen one also ringed

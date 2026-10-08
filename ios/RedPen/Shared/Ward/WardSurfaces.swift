@@ -49,7 +49,8 @@ struct WardHoldsControl: PreferenceKey {
     }
 }
 
-/// Controls keep a crisp base-colour face while active lights glide into the page.
+/// Controls soften the base-colour face and active lights together as they glide
+/// into the page; labels stay sharp, as does the Increase Contrast edge.
 struct WardPressFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
@@ -89,19 +90,22 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     var body: some View {
         let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong)
         ZStack {
-            if spec.outerShade.lit {
-                shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
-            } else {
-                shape.fill(fill)
+            ZStack {
+                if spec.outerShade.lit {
+                    shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
+                } else {
+                    shape.fill(fill)
+                }
+                if spec.innerShade.lit || spec.innerHighlight.lit {
+                    shape.fill(innerFill(spec))
+                }
             }
-            if spec.innerShade.lit || spec.innerHighlight.lit {
-                shape.fill(innerFill(spec))
-            }
+            .compositingGroup()
+            .blur(radius: spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
         }
-        .compositingGroup()
     }
 
     private func innerFill(_ spec: WardPressSpec) -> AnyShapeStyle {

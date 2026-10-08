@@ -234,7 +234,7 @@ struct MockSittingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 questionCard
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     ForEach(q.options.indices, id: \.self) { slot in
                         optionRow(slot)
                     }
@@ -318,7 +318,7 @@ struct MockSittingView: View {
         let chosen: Bool = orig != nil && selected[id] == orig
         let crossed: Set<Int> = struck[id] ?? []
         let out: Bool = orig.map { (o: Int) -> Bool in crossed.contains(o) } ?? false
-        let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
         let letter: String = String(Character(Unicode.Scalar(UInt8(65 + min(slot, 25)))))
         let mark: ChartQuiz.Mark = chosen ? .chosen : .idle
         return Button {

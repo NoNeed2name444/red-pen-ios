@@ -67,6 +67,7 @@ enum WardSpace {
 
 enum WardRadius {
     static let card: CGFloat = 16
+    static let tile: CGFloat = 24
     static let button: CGFloat = 14
     static let field: CGFloat = 12
     static let icon: CGFloat = 10

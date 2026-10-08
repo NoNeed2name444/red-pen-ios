@@ -106,7 +106,7 @@ func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) <= 1e-9 }
 check("press constants", WardPress.sinkScale == 0.985 && WardPress.press == 0.05 &&
       WardPress.release == 0.07 && WardPress.shadePress == 0.15 &&
       WardPress.shadeRelease == 0.18 && WardPress.depth == 0.7 &&
-      WardPress.softKeep == 0.6)
+      WardPress.softKeep == 0.6 && WardPress.hollowSoft == 1)
 let curve = WardPress.quickCurve
 check("quick curve controls", near(curve.x1, 1.0 / 3) && curve.y1 == 0.5 &&
       near(curve.x2, 2.0 / 3) && near(curve.y2, 5.0 / 6))
@@ -122,7 +122,8 @@ check("progress clamps", WardPress.quick(-1) == 0 && WardPress.quick(2) == 1 &&
 check("release completes click", WardPress.releaseHold(held: -1) == 0.05 &&
       WardPress.releaseHold(held: 0) == 0.05 && near(WardPress.releaseHold(held: 0.02), 0.03) &&
       WardPress.releaseHold(held: 0.05) == 0 && WardPress.releaseHold(held: 1) == 0)
-for lift in WardLift.allCases {
+for (lift, expected) in zip(WardLift.allCases, [1.0, 1.5, 2.0, 2.5]) {
+    check("softness \(lift)", near(WardPress.soft(lift), expected))
     for dark in [false, true] {
         for strong in [false, true] {
             let raised = WardRelief.raised(lift, dark: dark, highContrast: strong)
@@ -130,6 +131,9 @@ for lift in WardLift.allCases {
                 WardPress.spec(lift, depth: q, dark: dark, highContrast: strong)
             }
             check("\(lift)/\(dark)/\(strong): depth clamps", spec(-1) == spec(0) && spec(2) == spec(1))
+            for (q, extra) in [(-1.0, 0.0), (0.0, 0.0), (0.5, 0.5), (1.0, 1.0), (2.0, 1.0)] {
+                check("blur \(lift)/\(dark)/\(strong)/\(q)", near(spec(q).blur, expected + extra))
+            }
             let resting = spec(0), pressed = spec(1)
             check("\(lift)/\(dark)/\(strong): resting lights",
                   resting.outerShade.lit && !resting.innerShade.lit && !resting.innerHighlight.lit)
