@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 8:10 PM Cairo.
+Last updated: 2026-10-09, 12:15 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,10 +35,10 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Neurons: a link that leaves a cell starts on its membrane" | M3 in progress; the Linux suites pass (preflight, 11:02 PM); this commit is #18 (section 3, step 6c); #17 (91aedd2) compiled on the Mac (App build 37835162580); round C (3a21e75, #14 and #15) was built and shot |
+| wip/3d-neurons-m3 | "Preview: sample the app's threads when it freezes" | M3 in progress; the Linux suites pass (preflight, 8 Oct 11:02 PM); #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); this commit is the freeze sampler (section 3, step 6d) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene) |
-| preview/3d-overhaul | 3a21e75 (round C shots, run 37829333699) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | d608991 | where design-preview.yml commits them |
+| preview/3d-overhaul | the same as wip (the freeze run, step 6d); before it 86791b6 (round D shots, run 37838122205, red on the iPad freeze) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | 4513172 (round D) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -135,7 +135,30 @@ Last updated: 2026-10-08, 8:10 PM Cairo.
   still showed: the soma's crisp rim across each tube's mouth (#17, done
   in 91aedd2) and, once a cell is opened, links from its parts and notes
   crossing its membrane to reach other cells (graph-14, 15, 20: #18, done
-  in this commit). Both are round D.
+  in 86791b6). Both are round D.
+- Round D (86791b6) compiled on the Mac (App build 37838831104, at
+  c8ec409) and was shot (preview run 37838122205, only=testNeurons):
+  graph-11, 20, 21 and 22 show #17 and #18 right (the rims open at the
+  tube mouths; links from an opened cell leave from its membrane). The run
+  went red on a freeze, not on the map's look:
+  - iPad testNeuronsLegend: "Failed to get matching snapshots: Timed out
+    while evaluating UI query" after 404 s; then testNeuronsLookMenu:
+    "Failed to terminate com.cramdown.app";
+  - iPhone testNeuronsFlyIn passed, but graph-14 and graph-15 are the same
+    picture: the screen stopped changing.
+  It comes and goes, and it is older than #17 and #18: round B's iPad
+  failed the same way ("Failed to terminate", then "Failed to launch"),
+  and round C's iPad testNeuronsAtRest took 285.6 s. Ruled out by reading
+  the code: the flown-cell ping-pong, GraphSim's locks (main never holds
+  GraphSim.lock while it touches SceneKit), the render thread's label work,
+  the frame fence, GraphPerfRenderer and NebulaBaker, the GraphQuality and
+  GraphLineStyleLive locks, the shaders' loops (all bounded: 3, 3 or 1,
+  and 5), and the style and neuron probes (their snapshots run in the
+  detached rebuild tasks, never on main). Left: the app stuck in the
+  kernel or the GPU ("Failed to terminate" means even SIGKILL did not end
+  it), the simulator's SpringBoard or backboardd hung, or a stalled VM GPU.
+  So the next run samples the app's threads while it freezes (step 6d,
+  #20).
 
 ## 3. Next steps
 
@@ -232,8 +255,37 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      shown bodies, as before). NeuronHierarchyTests T2 checks it: no
      process crosses a membrane, opened or not, and links inside an
      opened cell still join its notes with their own dyes.
-   - [ ] Round D (#17 and #18): the App build on design/, then one preview
-     run (only=testNeurons) and the shots sent.
+   - [x] Round D (#17 and #18): App build 37838831104 (green) and preview
+     run 37838122205 (only=testNeurons): graph-11, 20, 21, 22 show both
+     right. The run was red on the freeze (section 2, step 6d).
+   - [ ] Send the owner round D's shots (graph-11, 20, 21, 22 and the
+     OpenInTurn recording, under 30 MiB), saying plainly that the app
+     sometimes freezes in the tests and that it is being chased (6d).
+6d. [ ] #20, the freeze: find and fix what now and then freezes the app in
+   the map's UI tests (section 2, round D). It blocks the merge into
+   personal (step 7).
+   - [x] tools/hang_watch.sh, run by design-preview.yml for the iphone-graph
+     and ipad parts: from each app launch it samples the app's threads
+     (`sample`, with `ps -M` for each thread's state and CPU time) at 6,
+     12, 20, 30, 45, 70, 100, 150, 220, 320 and 450 s, and at 45 and 220 s
+     a spindump and the simulator's SpringBoard and backboardd too; after
+     the tests it keeps the simulator's log for the app, the Mac's GPU
+     lines and any crash or hang reports. They go up as the artifacts
+     hang-iphone-graph and hang-ipad (kept 7 days, never pushed to the
+     public shots branch). design-preview.yml's new input `repeat` runs
+     each test up to that many times, stopping at its first failure.
+   - [ ] One run of the three tests that froze, three times each:
+     `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only='testNeuronsAtRest|testNeuronsFlyIn|testNeuronsLegend' -f repeat=3`
+     Then fetch the artifacts into a new empty directory:
+     `gh api repos/noneed2name444/red-pen-ios/actions/runs/<run>/artifacts`
+     for the ids, `gh api repos/noneed2name444/red-pen-ios/actions/artifacts/<id>/zip > hang.zip`.
+   - [ ] Read them: a frozen app shows the same stack on its main thread
+     sample after sample (launches.txt says which process ran how long).
+     Its CPU time in ps.txt tells a spin (rising) from a wait (flat); a
+     wait in Metal or the render server points at the GPU or backboardd
+     (their samples and host-gpu.txt beside it).
+   - [ ] Fix it, run preflight, push to wip and design/ (compile check),
+     then one confirming preview run, and go on to step 7.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.

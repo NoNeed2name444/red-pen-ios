@@ -17,7 +17,8 @@
 # recorded; the tour on the iPhone; both on the iPad. A last job gathers
 # their pictures and pushes them. The run is red when a build fails (its
 # errors in the run's summary) or when a test fails (the pictures are still
-# pushed).
+# pushed). The 3D map parts also keep the app's sampled threads and its log
+# (tools/hang_watch.sh) in a hang-<part> artifact, for when it freezes.
 name: Design preview
 on:
   push:
@@ -26,6 +27,10 @@ on:
     inputs:
       only:
         description: 'Only the tests whose names match this pattern (grep -E), e.g. testGraphAtRest|testEachStyle'
+        required: false
+        default: ''
+      repeat:
+        description: 'Run each test up to this many times, stopping at its first failure (for a failure that comes and goes)'
         required: false
         default: ''
 permissions:
@@ -148,14 +153,18 @@ jobs:
           PART: ${{ matrix.part }}
           # workflow_dispatch: a pattern of test names to run (grep -E), all when empty
           ONLY: ${{ inputs.only }}
+          # workflow_dispatch: how many times to run each test at most (once when empty)
+          REPEAT: ${{ inputs.repeat }}
         run: |
+          AGAIN=""
+          case "${REPEAT:-}" in ''|*[!0-9]*) ;; *) AGAIN="-test-iterations $REPEAT -run-tests-until-failure" ;; esac
           # one test run against the build above: its result bundle and log, then which tests
           run_tests() {
             local bundle="$1" log="$2"
             shift 2
             xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
               -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath build-sim \
-              -resultBundlePath "../$bundle" "$@" \
+              -resultBundlePath "../$bundle" $AGAIN "$@" \
               -skipMacroValidation -skipPackagePluginValidation \
               SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
               CODE_SIGNING_ALLOWED=NO \
@@ -173,6 +182,12 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b || true
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
             --batteryState charged --wifiBars 3 || true
+          # now and then the app has frozen in a 3D map test (the screen stops
+          # changing, a query times out, the app cannot be ended): while the
+          # map's tests run, its threads are sampled (tools/hang_watch.sh)
+          case "$PART" in
+            iphone-graph|ipad) bash ../tools/hang_watch.sh watch "$UDID" "$RUNNER_TEMP/hang" > /dev/null 2>&1 & ;;
+          esac
           case "$PART" in
             iphone-graph)
               # a screen recording of each 3D map test, for the owner to watch:
@@ -195,6 +210,18 @@ jobs:
               for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
               if [ -n "$TOUR" ]; then args+=("$TOUR"); fi
               if [ ${#args[@]} -gt 0 ]; then run_tests ipad.xcresult ipad.log "${args[@]}"; fi ;;
+          esac
+      # after the pictures, also when they timed out: the watch above stops
+      # and the simulator's log for the app is kept, then the simulator ends
+      - name: Keep the app's log
+        if: always() && steps.dev.outputs.udid != ''
+        working-directory: ios
+        env:
+          UDID: ${{ steps.dev.outputs.udid }}
+          PART: ${{ matrix.part }}
+        run: |
+          case "$PART" in
+            iphone-graph|ipad) bash ../tools/hang_watch.sh collect "$UDID" "$RUNNER_TEMP/hang" || true ;;
           esac
           xcrun simctl shutdown "$UDID" || true
       - name: Save the pictures
@@ -265,6 +292,15 @@ jobs:
           path: out
           retention-days: 7
           if-no-files-found: warn
+      # the app's sampled threads and log (tools/hang_watch.sh), apart from
+      # the pictures, which are pushed for anyone to see
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.part != 'iphone-tour'
+        with:
+          name: hang-${{ matrix.part }}
+          path: ${{ runner.temp }}/hang
+          retention-days: 7
+          if-no-files-found: ignore
 
   publish:
     needs: shots
