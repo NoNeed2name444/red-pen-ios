@@ -82,17 +82,16 @@ private struct WardButtonFace: View {
         let shape = RoundedRectangle(cornerRadius: height / 2, style: .continuous)
         // the one main button stands a step higher than the rest
         let lift: WardLift = kind == .primary ? .high : compact ? .low : .mid
-        label
-            .font(font)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(ink)
-            // Small capsules keep their label's natural width even when a
-            // toolbar proposes only an icon-sized slot. Full-width buttons
-            // still wrap to the available space.
-            .fixedSize(horizontal: compact, vertical: false)
-            .padding(.horizontal, compact ? 14 : 20)
-            .padding(.vertical, compact ? 8 : 12)
-            .frame(minWidth: height, maxWidth: maxWidth, minHeight: height)
+        // Small capsules offer at least the padded label's ideal width so
+        // toolbar words fit inside their face; expanding labels still take
+        // the full width offered by a card.
+        Group {
+            if compact {
+                WardSmallButtonLayout { framedLabel }
+            } else {
+                framedLabel
+            }
+        }
             .background {
                 if enabled {
                     WardPressFace(shape: shape, lift: lift, pressed: pressed)
@@ -105,6 +104,39 @@ private struct WardButtonFace: View {
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
             .capPop(pressed)
+    }
+
+    private var framedLabel: some View {
+        label
+            .font(font)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(ink)
+            .padding(.horizontal, small ? 14 : 20)
+            .padding(.vertical, small ? 8 : 12)
+            .frame(minWidth: small ? 44 : 56, maxWidth: maxWidth, minHeight: small ? 44 : 56)
+    }
+
+}
+
+private struct WardSmallButtonLayout: Layout {
+    private func offer(_ proposal: ProposedViewSize, to subview: LayoutSubview) -> ProposedViewSize {
+        ProposedViewSize(
+            width: proposal.width.map { max($0, subview.sizeThatFits(.unspecified).width) },
+            height: proposal.height
+        )
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        subviews.reduce(CGSize.zero) { size, subview in
+            let child = subview.sizeThatFits(offer(proposal, to: subview))
+            return CGSize(width: max(size.width, child.width), height: max(size.height, child.height))
+        }
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            subview.place(at: bounds.origin, anchor: .topLeading, proposal: offer(proposal, to: subview))
+        }
     }
 }
 

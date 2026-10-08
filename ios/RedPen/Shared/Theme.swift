@@ -456,7 +456,8 @@ extension ButtonStyle where Self == BigButtonStyle {
 /// The bar across the bottom of a study screen, where the thumb rests.
 ///
 /// A soft slab raised high off the base, holding the screen's main button
-/// and, now and then, a small companion beside it.
+/// and, now and then, a small companion beside it. A hit-testable base strip
+/// covers the sides and bottom safe area so hidden rows cannot show or take taps.
 /// Always at the bottom, so the next step is in the same place on every
 /// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
 /// still works as the last child of a VStack. Reading screens can opt in with
@@ -525,6 +526,7 @@ struct StudyActionBar<Content: View>: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity)
+            .background { Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom]) }
     }
 }
 

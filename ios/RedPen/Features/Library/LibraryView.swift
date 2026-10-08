@@ -499,6 +499,12 @@ struct LibraryView: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
                 }
+                .frame(maxWidth: .infinity)
+                .background {
+                    if !underSky {
+                        Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
+                    }
+                }
                 .transition(.slideFade(.bottom))
         } else if keyboardUp {
             // the dock steps aside while typing
@@ -516,6 +522,12 @@ struct LibraryView: View {
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
+            }
+            .frame(maxWidth: .infinity)
+            .background {
+                if !underSky {
+                    Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
+                }
             }
             .transition(.slideFade(.bottom))
         }

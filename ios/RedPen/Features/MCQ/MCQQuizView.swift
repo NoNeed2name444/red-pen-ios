@@ -16,7 +16,8 @@ struct MCQQuizView: View {
     @State private var answers: [MCQAnswer]
     /// Per-question option order: displayed slot i shows the original option
     /// `orders[q][i]` — the web app's `shuffleOptions()`, applied per session
-    /// so the answer letter can't be memorised.
+    /// so the answer letter can't be memorised. Preview launches keep the
+    /// written order for repeatable screenshots.
     @State private var orders: [[Int]]
     @State private var showSummary = false
     @State private var pendingResume: QuizProgress?
@@ -78,7 +79,8 @@ struct MCQQuizView: View {
 
     /// `initialAnswers` is only used by the CI screenshot launch (see
     /// PreviewLaunch) to open the quiz with an answer already checked; it
-    /// also switches shuffling off so the screenshots are stable.
+    /// also switches session shuffling off. All preview launches keep a fixed
+    /// option order without changing the other session behavior.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil, isUnsaved: Bool = false,
          saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil,
          keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false) {
@@ -100,7 +102,7 @@ struct MCQQuizView: View {
 
     private static func makeOrders(for set: StudySet, shuffle: Bool) -> [[Int]] {
         set.questions.map { q in
-            OptionOrder.make(count: q.options.count, shuffle: shuffle)
+            OptionOrder.make(count: q.options.count, shuffle: shuffle && PreviewLaunch.screen == nil)
         }
     }
 
