@@ -163,7 +163,7 @@ extension View {
     /// `lift` stands the relief lower (or higher) than the plane's own
     /// where there is no room for it; the surface still moves as its plane.
     func popOut<S: InsettableShape>(_ plane: PopOutPlane, in shape: S, tint: Color? = nil,
-                                    pressed: Bool = false, cues: PopOutCues = .all,
+                                    pressed: Bool? = nil, cues: PopOutCues = .all,
                                     lift: WardLift? = nil) -> some View {
         modifier(PopOutModifier(plane: plane, shape: shape, pressed: pressed, cues: cues, lift: lift))
     }
@@ -298,7 +298,7 @@ private struct PopTileFace: View {
             .popOut(plane, in: shape, pressed: isPressed || selected, lift: lift)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
-            .capPop(isPressed, size: .tile)
+            .capPop(isPressed)
     }
 }
 
@@ -392,7 +392,7 @@ struct PopOutPose {
 private struct PopOutModifier<S: InsettableShape>: ViewModifier {
     let plane: PopOutPlane
     let shape: S
-    let pressed: Bool
+    let pressed: Bool?
     let cues: PopOutCues
     let lift: WardLift?
 
@@ -404,7 +404,7 @@ private struct PopOutModifier<S: InsettableShape>: ViewModifier {
 
     func body(content: Content) -> some View {
         let nextBase: PopOutPlane = max(plane, base)
-        let setup = PopOutSetup(plane: plane, base: base, span: span, pressed: pressed,
+        let setup = PopOutSetup(plane: plane, base: base, span: span, pressed: pressed ?? false,
                                 enabled: isEnabled, cues: cues, onScreen: onScreen)
         let shows: Bool = cues.shapesRelief
         return content
@@ -419,7 +419,7 @@ private struct PopOutModifier<S: InsettableShape>: ViewModifier {
             }
             .modifier(PopOutLive(setup: setup))
             // Reduce Motion: pressed in at once, no settling
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
+            .animation(reduceMotion ? nil : .wardShade(down: pressed == true), value: pressed)
             .onAppear { onScreen = true }
             .onDisappear { onScreen = false }
     }
@@ -438,12 +438,12 @@ struct PopOutSetup: Equatable {
 
 /// A surface's relief, by its plane: a well on the deep plane, nothing on
 /// the screen plane, raised above it, higher with each plane (or as high as
-/// `chosenLift`). Held, it sinks one lift nearer the base; disabled, it
+/// `chosenLift`). Controls glide into a hollow; disabled, the surface
 /// lies low and faint.
 private struct PopOutRelief<S: InsettableShape>: View {
     let shape: S
     let plane: PopOutPlane
-    let pressed: Bool
+    let pressed: Bool?
     let enabled: Bool
     let chosenLift: WardLift?
 
@@ -454,13 +454,14 @@ private struct PopOutRelief<S: InsettableShape>: View {
 
     var body: some View {
         if let lift = reliefLift {
-            if plane == .deep {
+            if let pressed {
+                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed)
+                    .opacity(enabled ? 1 : 0.5)
+            } else if plane == .deep {
                 WardReliefFace(shape: shape, lift: lift, inset: true)
-            } else if !enabled {
-                WardReliefFace(shape: shape, lift: .low)
-                    .opacity(0.5)
             } else {
-                WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed)
+                WardReliefFace(shape: shape, lift: enabled ? lift : .low)
+                    .opacity(enabled ? 1 : 0.5)
             }
         }
     }

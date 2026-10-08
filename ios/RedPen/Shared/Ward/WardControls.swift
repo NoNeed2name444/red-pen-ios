@@ -91,16 +91,16 @@ private struct WardButtonFace: View {
             .frame(minWidth: height, maxWidth: maxWidth, minHeight: height)
             .background {
                 if enabled {
-                    WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed)
+                    WardPressFace(shape: shape, lift: lift, pressed: pressed)
                 } else {
-                    WardReliefFace(shape: shape, lift: .low).opacity(0.5)
+                    WardPressFace(shape: shape, lift: .low, pressed: false).opacity(0.5)
                 }
             }
             .contentShape(shape)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
+            .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
-            .capPop(pressed, size: compact ? .small : .button)
+            .capPop(pressed)
     }
 }
 
@@ -148,17 +148,17 @@ private struct WardChipButtonFace: View {
             .padding(.vertical, 8)
             .background {
                 if enabled {
-                    WardReliefFace(shape: Capsule(), lift: .low, inset: down)
+                    WardPressFace(shape: Capsule(), lift: .low, pressed: down)
                 } else {
-                    WardReliefFace(shape: Capsule(), lift: .low).opacity(0.5)
+                    WardPressFace(shape: Capsule(), lift: .low, pressed: false).opacity(0.5)
                 }
             }
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
+            .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, Capsule())
             .hoverEffect(.highlight)
-            .capPop(pressed, size: .small)
+            .capPop(pressed)
     }
 }
 
@@ -197,16 +197,16 @@ private struct WardCircleButtonFace: View {
             .frame(minWidth: 44, minHeight: 44)
             .background {
                 if enabled {
-                    WardReliefFace(shape: Circle(), lift: down ? lift.lower : lift, inset: down)
+                    WardPressFace(shape: Circle(), lift: lift, pressed: down)
                 } else {
-                    WardReliefFace(shape: Circle(), lift: .low).opacity(0.5)
+                    WardPressFace(shape: Circle(), lift: .low, pressed: false).opacity(0.5)
                 }
             }
             .contentShape(Circle())
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
+            .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.highlight)
-            .capPop(pressed, size: .small)
+            .capPop(pressed)
     }
 }
 

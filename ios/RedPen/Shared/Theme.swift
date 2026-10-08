@@ -60,7 +60,7 @@ struct ModeTile: View {
             .foregroundStyle(selected ? Color.wardPrimaryInk : kind.tint)
             .frame(width: size, height: size)
             .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: selected)
+            .animation(reduceMotion ? nil : .wardShade(down: selected), value: selected)
             .accessibilityHidden(true)
     }
 }
@@ -149,33 +149,28 @@ extension View {
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
 }
 
-enum CapPopSize { case small, button, tile }
-
 extension View {
-    func capPop(_ pressed: Bool, size: CapPopSize = .button) -> some View {
-        modifier(CapPop(pressed: pressed, size: size))
+    func capPop(_ pressed: Bool) -> some View {
+        modifier(CapPop(pressed: pressed))
     }
 }
 
 private struct CapPop: ViewModifier {
     let pressed: Bool
-    let size: CapPopSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var pressedScale: CGFloat {
-        switch size {
-        case .small: return 0.90
-        case .button: return 0.94
-        case .tile: return 0.97
-        }
-    }
+    @State private var pressedAt: Date?
 
     func body(content: Content) -> some View {
-        content
-            .scaleEffect(pressed && !reduceMotion ? pressedScale : 1)
-            .animation(reduceMotion ? nil : pressed
-                ? .spring(response: 0.18, dampingFraction: 0.65)
-                : .spring(response: 0.4, dampingFraction: 0.35), value: pressed)
+        let releaseDelay = WardPress.releaseHold(held: pressedAt.map { Date().timeIntervalSince($0) } ?? WardPress.press)
+        return content
+            .scaleEffect(pressed && !reduceMotion ? WardPress.sinkScale : 1)
+            .animation(reduceMotion ? nil : Animation.wardClick(down: pressed)
+                .delay(pressed ? 0 : releaseDelay), value: pressed)
+            .onChange(of: pressed) { _, down in
+                if down {
+                    pressedAt = Date()
+                }
+            }
     }
 }
 
@@ -195,7 +190,7 @@ private struct PressableRowFace<Label: View>: View {
     var body: some View {
         label
             .opacity(pressed ? 0.9 : 1)
-            .capPop(pressed, size: .tile)
+            .capPop(pressed)
     }
 }
 extension ButtonStyle where Self == PressableRowStyle {

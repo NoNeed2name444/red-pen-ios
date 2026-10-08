@@ -507,11 +507,11 @@ private struct AnkiRatingFace: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, minHeight: 56)
-            .background { WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed) }
+            .background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
             .contentShape(shape)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
+            .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
-            .capPop(pressed, size: .button)
+            .capPop(pressed)
     }
 }

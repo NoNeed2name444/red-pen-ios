@@ -96,6 +96,63 @@ check("a light on its own colour at full strength is that colour",
 check("a light at no strength leaves the base",
       WardRelief.composite(WardReliefLight(hex: 0x123456, alpha: 0, x: 0, y: 0, radius: 0), on: 0xE0E5EC) == 0xE0E5EC)
 
+// The retro press has separate click and shade tracks, with no overshoot.
+func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) <= 1e-9 }
+check("press constants", WardPress.sinkScale == 0.985 && WardPress.press == 0.05 &&
+      WardPress.release == 0.07 && WardPress.shadePress == 0.15 &&
+      WardPress.shadeRelease == 0.18 && WardPress.depth == 0.7 &&
+      WardPress.hollowSoft == 1 && WardPress.softKeep == 0.6)
+let curve = WardPress.quickCurve
+check("quick curve controls", near(curve.x1, 1.0 / 3) && curve.y1 == 0.5 &&
+      near(curve.x2, 2.0 / 3) && near(curve.y2, 5.0 / 6))
+for i in 0...20 {
+    let t = Double(i) / 20, v = 1 - t
+    let x = 3 * v * v * t * curve.x1 + 3 * v * t * t * curve.x2 + t * t * t
+    let y = 3 * v * v * t * curve.y1 + 3 * v * t * t * curve.y2 + t * t * t
+    check("Bezier \(i): x=t, y=quick(t)", near(x, t) && near(y, WardPress.quick(t)))
+    check("glide \(i)", near(WardPress.glide(t), sin(t * .pi / 2)))
+}
+check("progress clamps", WardPress.quick(-1) == 0 && WardPress.quick(2) == 1 &&
+      WardPress.glide(-1) == 0 && near(WardPress.glide(2), 1))
+check("release completes click", WardPress.releaseHold(held: -1) == 0.05 &&
+      WardPress.releaseHold(held: 0) == 0.05 && near(WardPress.releaseHold(held: 0.02), 0.03) &&
+      WardPress.releaseHold(held: 0.05) == 0 && WardPress.releaseHold(held: 1) == 0)
+for lift in WardLift.allCases {
+    check("\(lift): softness", WardPress.soft(lift) == [1.0, 1.5, 2, 2.5][lift.rawValue - 1])
+    for dark in [false, true] {
+        for strong in [false, true] {
+            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong)
+            func spec(_ q: Double) -> WardPressSpec {
+                WardPress.spec(lift, depth: q, dark: dark, highContrast: strong)
+            }
+            check("\(lift)/\(dark)/\(strong): depth clamps", spec(-1) == spec(0) && spec(2) == spec(1))
+            var previous = spec(0)
+            for i in 0...100 {
+                let q = Double(i) / 100, up = 1 - q, down = 0.7 * q
+                let current = spec(q)
+                let lights = [current.outerShade, current.innerShade, current.innerHighlight]
+                let originals = [raised.shade, raised.shade, raised.highlight]
+                let weights = [up, down, down]
+                for j in 0..<3 {
+                    let light = lights[j], original = originals[j], w = weights[j]
+                    check("spec \(lift)/\(dark)/\(strong)/\(i)/\(j)",
+                          light.hex == original.hex && near(light.alpha, original.alpha * w) &&
+                          near(light.x, original.x * w) && near(light.y, original.y * w) &&
+                          near(light.radius, original.radius * (0.6 + 0.4 * w)))
+                }
+                check("blur and edge \(i)", near(current.blur, WardPress.soft(lift) + q) &&
+                      current.edgeAlpha == raised.edgeAlpha)
+                let old = [previous.outerShade, previous.innerShade, previous.innerHighlight]
+                check("continuous \(lift)/\(dark)/\(strong)/\(i)", zip(old, lights).allSatisfy {
+                    abs($0.alpha - $1.alpha) <= 0.01 + 1e-9 &&
+                    abs($0.x - $1.x) <= 0.12 + 1e-9 && abs($0.y - $1.y) <= 0.12 + 1e-9
+                })
+                previous = current
+            }
+        }
+    }
+}
+
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

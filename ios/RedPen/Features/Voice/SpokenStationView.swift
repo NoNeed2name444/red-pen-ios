@@ -442,7 +442,6 @@ private struct StationCircleFace: View {
     var body: some View {
         let down: Bool = isEnabled && (isPressed || on)
         let rest: WardLift = prominent ? .mid : .low
-        let lift: WardLift = down ? rest.lower : rest
         let ink: Color = isEnabled ? tint : Color.wardInkSecondary
         label
             .font(.title3.weight(.semibold))
@@ -450,16 +449,16 @@ private struct StationCircleFace: View {
             .frame(width: 48, height: 48)
             .background {
                 if isEnabled {
-                    WardReliefFace(shape: Circle(), lift: lift, inset: down)
+                    WardPressFace(shape: Circle(), lift: rest, pressed: down)
                 } else {
-                    WardReliefFace(shape: Circle(), lift: .low).opacity(0.5)
+                    WardPressFace(shape: Circle(), lift: .low, pressed: false).opacity(0.5)
                 }
             }
             .contentShape(Circle())
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
+            .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.highlight)
-            .capPop(isPressed, size: .small)
+            .capPop(isPressed)
     }
 }
 

@@ -17,6 +17,80 @@ extension ShadowStyle {
     }
 }
 
+extension Animation {
+    static func wardClick(down: Bool) -> Animation {
+        let c = WardPress.quickCurve
+        return .timingCurve(c.x1, c.y1, c.x2, c.y2,
+                            duration: down ? WardPress.press : WardPress.release)
+    }
+
+    static func wardShade(down: Bool) -> Animation {
+        Animation(WardShadeAnimation(duration: down ? WardPress.shadePress : WardPress.shadeRelease))
+    }
+}
+
+private struct WardShadeAnimation: CustomAnimation {
+    let duration: TimeInterval
+
+    func animate<V: VectorArithmetic>(value: V, time: TimeInterval,
+                                       context: inout AnimationContext<V>) -> V? {
+        guard time < duration else { return nil }
+        return value.scaled(by: WardPress.glide(time / duration))
+    }
+}
+
+/// Controls keep the same layers while their shade glides into the page.
+struct WardPressFace<S: InsettableShape>: View {
+    let shape: S
+    var lift: WardLift = .mid
+    var pressed: Bool
+    var fill = AnyShapeStyle(Color.wardSurface)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0,
+                        fill: fill, dark: scheme == .dark, strong: contrast == .increased)
+            .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
+    }
+}
+
+extension WardPressFace {
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color) {
+        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill))
+    }
+}
+
+private struct WardPressRelief<S: InsettableShape>: View, Animatable {
+    let shape: S
+    let lift: WardLift
+    var depth: Double
+    let fill: AnyShapeStyle
+    let dark: Bool
+    let strong: Bool
+
+    var animatableData: Double {
+        get { depth }
+        set { depth = newValue }
+    }
+
+    var body: some View {
+        let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong)
+        ZStack {
+            ZStack {
+                shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
+                shape.fill(fill
+                    .shadow(.ward(spec.innerShade, inner: true))
+                    .shadow(.ward(spec.innerHighlight, inner: true)))
+            }
+            .compositingGroup()
+            .blur(radius: spec.blur)
+            shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
+        }
+    }
+}
+
 /// A shape raised off the base or pressed into it. Raised, the two lights
 /// are two fills, the shade drawn over the highlight, so neither shadows the
 /// other; the face is one layer, so a fade fades it whole. Increase Contrast
@@ -147,10 +221,9 @@ extension View {
         background { WardReliefFace(shape: shape, lift: lift, inset: true, fill: fill) }
     }
 
-    /// Raised at rest; pressed in, one lift nearer the base, while held or
-    /// chosen.
+    /// Raised at rest; glides into a hollow at the same lift while held or chosen.
     func wardRelief<S: InsettableShape>(in shape: S, lift: WardLift = .low, pressed: Bool) -> some View {
-        background { WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed) }
+        background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
     }
 
     /// The soft UI's controls: the Theatre Blue that reads on the base as

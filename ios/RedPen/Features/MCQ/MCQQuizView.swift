@@ -1179,10 +1179,10 @@ private struct PopPressFace<S: InsettableShape>: View {
         label
             .background {
                 if raised {
-                    WardReliefFace(shape: shape, lift: inset ? .low : .mid, inset: inset)
+                    WardPressFace(shape: shape, lift: .mid, pressed: inset)
                 }
             }
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: inset)
-            .capPop(held, size: .tile)
+            .animation(reduceMotion ? nil : .wardShade(down: inset), value: inset)
+            .capPop(held)
     }
 }

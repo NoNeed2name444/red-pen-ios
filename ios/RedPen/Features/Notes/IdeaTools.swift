@@ -80,7 +80,7 @@ struct IdeaToolStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .ideaToolRelief(active: active || configuration.isPressed)
-            .capPop(configuration.isPressed, size: .small)
+            .capPop(configuration.isPressed)
     }
 }
 

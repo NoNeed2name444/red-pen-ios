@@ -115,3 +115,57 @@ enum WardRelief {
         return mix(r0, r1) << 16 | mix(g0, g1) << 8 | mix(b0, b1)
     }
 }
+
+/// Continuous control relief, independent of SwiftUI and its animation clock.
+struct WardPressSpec: Equatable, Sendable {
+    var outerShade: WardReliefLight
+    var innerShade: WardReliefLight
+    var innerHighlight: WardReliefLight
+    var blur: Double
+    var edgeAlpha: Double
+}
+
+enum WardPress {
+    static let sinkScale = 0.985
+    static let press = 0.05
+    static let release = 0.07
+    static let shadePress = 0.15
+    static let shadeRelease = 0.18
+    static let depth = 0.7
+    static let hollowSoft = 1.0
+    static let softKeep = 0.6
+    static let quickCurve = (x1: 1.0 / 3, y1: 0.5, x2: 2.0 / 3, y2: 5.0 / 6)
+
+    static func quick(_ u: Double) -> Double {
+        let u = min(1, max(0, u))
+        return u * (1.5 - 0.5 * u)
+    }
+
+    static func glide(_ u: Double) -> Double {
+        sin(min(1, max(0, u)) * .pi / 2)
+    }
+
+    static func soft(_ lift: WardLift) -> Double {
+        Double(lift.rawValue + 1) / 2
+    }
+
+    static func releaseHold(held: Double) -> Double {
+        max(0, press - max(0, held))
+    }
+
+    static func spec(_ lift: WardLift, depth q: Double, dark: Bool,
+                     highContrast: Bool = false) -> WardPressSpec {
+        let q = min(1, max(0, q))
+        let up = 1 - q, down = depth * q
+        let raised = WardRelief.raised(lift, dark: dark, highContrast: highContrast)
+        func light(_ original: WardReliefLight, weight: Double) -> WardReliefLight {
+            WardReliefLight(hex: original.hex, alpha: original.alpha * weight,
+                            x: original.x * weight, y: original.y * weight,
+                            radius: original.radius * (softKeep + (1 - softKeep) * weight))
+        }
+        return WardPressSpec(outerShade: light(raised.shade, weight: up),
+                             innerShade: light(raised.shade, weight: down),
+                             innerHighlight: light(raised.highlight, weight: down),
+                             blur: soft(lift) + hollowSoft * q, edgeAlpha: raised.edgeAlpha)
+    }
+}
