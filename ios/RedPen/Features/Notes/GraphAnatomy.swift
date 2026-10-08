@@ -49,27 +49,8 @@ import Foundation
 
 // MARK: - the input
 
-/// One note as the anatomy reads it: what Graph3DView hands over from the
-/// store. `written` is the notes its `[[Title]]`s name (NoteStore.resolve),
-/// `hand` its hand-made links; `source` names where it was saved from
-/// ("Question · Cardiology set"), nil for a note written here.
-nonisolated struct AnatomyNote: Sendable, Equatable {
-    let id: UUID
-    let title: String
-    let body: String
-    let isPage: Bool
-    let folder: UUID?
-    let tags: [String]
-    let source: String?
-    let hand: [UUID]
-    let written: [UUID]
-    let created: Double
-}
-
-nonisolated struct AnatomyInput: Sendable {
-    let notes: [AnatomyNote]
-    let folders: [UniverseFolder]
-}
+// AnatomyNote and AnatomyInput live in GraphUniverse.swift, beside the
+// UniverseInput that carries them to the Neurons and Circuit planners.
 
 // MARK: - the vocabulary
 
