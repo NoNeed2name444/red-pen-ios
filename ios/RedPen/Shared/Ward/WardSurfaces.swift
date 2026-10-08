@@ -39,7 +39,17 @@ private struct WardShadeAnimation: CustomAnimation {
     }
 }
 
-/// Controls keep the same layers while their shade glides into the page.
+/// A control anywhere inside a container keeps that container on the base.
+struct WardHoldsControl: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        let next = nextValue()
+        value = value || next
+    }
+}
+
+/// Controls keep a crisp base-colour face while active lights glide into the page.
 struct WardPressFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
@@ -53,6 +63,7 @@ struct WardPressFace<S: InsettableShape>: View {
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0,
                         fill: fill, dark: scheme == .dark, strong: contrast == .increased)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
+            .preference(key: WardHoldsControl.self, value: true)
     }
 }
 
@@ -78,27 +89,43 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     var body: some View {
         let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong)
         ZStack {
-            ZStack {
+            if spec.outerShade.lit {
                 shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
-                shape.fill(fill
-                    .shadow(.ward(spec.innerShade, inner: true))
-                    .shadow(.ward(spec.innerHighlight, inner: true)))
+            } else {
+                shape.fill(fill)
             }
-            .compositingGroup()
-            .blur(radius: spec.blur)
-            shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
+            if spec.innerShade.lit || spec.innerHighlight.lit {
+                shape.fill(innerFill(spec))
+            }
+            if spec.edgeAlpha > 0 {
+                shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
+            }
         }
+        .compositingGroup()
+    }
+
+    private func innerFill(_ spec: WardPressSpec) -> AnyShapeStyle {
+        var style = fill
+        if spec.innerShade.lit {
+            style = AnyShapeStyle(style.shadow(.ward(spec.innerShade, inner: true)))
+        }
+        if spec.innerHighlight.lit {
+            style = AnyShapeStyle(style.shadow(.ward(spec.innerHighlight, inner: true)))
+        }
+        return style
     }
 }
 
 /// A shape raised off the base or pressed into it. Raised, the two lights
 /// are two fills, the shade drawn over the highlight, so neither shadows the
 /// other; the face is one layer, so a fade fades it whole. Increase Contrast
-/// deepens the shade and adds an ink edge.
+/// deepens the shade and adds an ink edge. Flat containers keep only the fill
+/// and that contrast edge, so their controls stand just one level high.
 struct WardReliefFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var inset = false
+    var flat = false
     var fill = AnyShapeStyle(Color.wardSurface)
 
     @Environment(\.colorScheme) private var scheme
@@ -110,7 +137,9 @@ struct WardReliefFace<S: InsettableShape>: View {
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong)
                                          : WardRelief.raised(lift, dark: dark, highContrast: strong)
         ZStack {
-            if spec.inner {
+            if flat {
+                shape.fill(fill)
+            } else if spec.inner {
                 shape.fill(fill
                     .shadow(.ward(spec.shade, inner: true))
                     .shadow(.ward(spec.highlight, inner: true)))
@@ -127,8 +156,8 @@ struct WardReliefFace<S: InsettableShape>: View {
 }
 
 extension WardReliefFace {
-    init(shape: S, lift: WardLift = .mid, inset: Bool = false, fill: Color) {
-        self.init(shape: shape, lift: lift, inset: inset, fill: AnyShapeStyle(fill))
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color) {
+        self.init(shape: shape, lift: lift, inset: inset, flat: flat, fill: AnyShapeStyle(fill))
     }
 }
 
@@ -190,7 +219,7 @@ struct WardPaperFrame: View {
     }
 }
 
-/// A card: raised off the base, no line round it.
+/// A card: raised when it holds no Ward control, otherwise flat on the base.
 struct WardCardStyle: ViewModifier {
     var padding: CGFloat = WardSpace.gutter
     var lift: WardLift = .mid
@@ -204,7 +233,8 @@ struct WardCardStyle: ViewModifier {
 }
 
 /// The vitals monitor: a dark well (Chart Ink in both modes, light text on
-/// it) pressed into a raised bezel. In a List row the bezel stands as low
+/// it) pressed into a bezel, flat when it holds a Ward control. In a List row
+/// a raised bezel stands as low
 /// as the tiles do (`.low`, with wardCardRow).
 struct MonitorCard<Content: View>: View {
     private let lift: WardLift
@@ -258,9 +288,12 @@ extension View {
         modifier(WardCardStyle(padding: padding, lift: lift))
     }
 
-    /// Raised off the base: cards, buttons, bars and knobs.
+    /// Containers stand off the base unless they hold a Ward control; then
+    /// only the control is raised and the container keeps its fill and contrast edge.
     func wardRaised<S: InsettableShape>(in shape: S, lift: WardLift = .mid, fill: Color = .wardSurface) -> some View {
-        background { WardReliefFace(shape: shape, lift: lift, fill: fill) }
+        backgroundPreferenceValue(WardHoldsControl.self) { holdsControl in
+            WardReliefFace(shape: shape, lift: lift, flat: holdsControl, fill: fill)
+        }
     }
 
     /// Pressed into the base: fields, tracks, wells and whatever is chosen.

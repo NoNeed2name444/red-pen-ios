@@ -23,6 +23,9 @@ struct WardReliefLight: Equatable, Sendable {
     var x: Double
     var y: Double
     var radius: Double
+
+    /// Lights below the visible threshold are omitted from rendering.
+    var lit: Bool { alpha > 1e-4 }
 }
 
 /// A relief: a highlight from the top left and a shade to the bottom right.
@@ -121,7 +124,6 @@ struct WardPressSpec: Equatable, Sendable {
     var outerShade: WardReliefLight
     var innerShade: WardReliefLight
     var innerHighlight: WardReliefLight
-    var blur: Double
     var edgeAlpha: Double
 }
 
@@ -132,7 +134,6 @@ enum WardPress {
     static let shadePress = 0.15
     static let shadeRelease = 0.18
     static let depth = 0.7
-    static let hollowSoft = 1.0
     static let softKeep = 0.6
     static let quickCurve = (x1: 1.0 / 3, y1: 0.5, x2: 2.0 / 3, y2: 5.0 / 6)
 
@@ -143,10 +144,6 @@ enum WardPress {
 
     static func glide(_ u: Double) -> Double {
         sin(min(1, max(0, u)) * .pi / 2)
-    }
-
-    static func soft(_ lift: WardLift) -> Double {
-        Double(lift.rawValue + 1) / 2
     }
 
     static func releaseHold(held: Double) -> Double {
@@ -166,7 +163,7 @@ enum WardPress {
         return WardPressSpec(outerShade: light(raised.shade, weight: up),
                              innerShade: light(raised.shade, weight: down),
                              innerHighlight: light(raised.highlight, weight: down),
-                             blur: soft(lift) + hollowSoft * q, edgeAlpha: raised.edgeAlpha)
+                             edgeAlpha: raised.edgeAlpha)
     }
 }
 
