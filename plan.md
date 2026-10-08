@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 4:25 PM Cairo.
+Last updated: 2026-10-08, 4:28 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 4:25 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the preview fly-path commit, after 10e0010 | M3 in progress; preflight OK on 5909600 (4:22 PM); its App build (run 37781812785) was running at 4:25 PM |
-| design/3d-overhaul | d4cff03 "Remove the Circuit theme" | M1 (c122abb, Space) and M2 (no Circuit) done |
-| preview/3d-overhaul | a62231f | a push here makes screenshots |
+| wip/3d-neurons-m3 | the plan.md commit after 6847330 | M3 in progress; preflight OK on 5909600 (4:22 PM); its App build (run 37781812785) compiled the app (Build step green, 4:25 PM) |
+| design/3d-overhaul | fast-forwarded to the wip head at 4:30 PM | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code |
+| preview/3d-overhaul | fast-forwarded to the wip head at 4:30 PM | a push here makes screenshots; a Neurons-only run was dispatched |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -79,17 +79,17 @@ Last updated: 2026-10-08, 4:25 PM Cairo.
 
 ## 3. Next steps
 
-Steps 1 to 4 have code in af94d88 and 5909600. Tick them when the App
-build and the suites pass.
+Steps 1 to 4 are in af94d88 and 5909600: the suites pass (preflight, 4:22
+PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 
-1. [ ] Finish GraphNeuronLook.swift (design A in section 4).
-2. [ ] Do the soma and axon shaders (B, C) and the ribbon writer's width steps
+1. [x] Finish GraphNeuronLook.swift (design A in section 4).
+2. [x] Do the soma and axon shaders (B, C) and the ribbon writer's width steps
    (D). Run the suites: `--only shaders,neuronlook,neurons,linklength,touch,labels,anatomy,death`.
-3. [ ] Do GraphThemeScene (E). Commit and push to wip, dispatch app-build
+3. [x] Do GraphThemeScene (E). Commit and push to wip, dispatch app-build
    there, and fix what fails.
-4. [ ] Open cells from the view (F), and animate openings and closings in
+4. [x] Open cells from the view (F), and animate openings and closings in
    GraphSim (G). Run the suites and app-build again.
-5. [ ] Run preflight. Then push to design/3d-overhaul and preview/3d-overhaul
+5. [x] Run preflight. Then push to design/3d-overhaul and preview/3d-overhaul
    (both fast-forwards) and watch CI.
 6. [ ] Fetch shots/3d-overhaul and send the owner the Neurons shots: at rest,
    a cell opened with its parts and notes inside, and axons growing out of
